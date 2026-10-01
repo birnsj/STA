@@ -1,0 +1,30 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "03.10 A Career in Starfleet - Values Matrix",
+    "page": 90,
+    "note": "Book: sample values; players may adjust them or write their own."
+  },
+  "values": [
+    { "id": "value-01", "roll": 1, "text": "A good mystery is irresistible" },
+    { "id": "value-02", "roll": 2, "text": "Act with confidence, even if you don’t feel confident" },
+    { "id": "value-03", "roll": 3, "text": "Crew comes first" },
+    { "id": "value-04", "roll": 4, "text": "Diplomacy is the first and last solution to anything" },
+    { "id": "value-05", "roll": 5, "text": "Exploration is the blood that fills my veins" },
+    { "id": "value-06", "roll": 6, "text": "Good leaders get their hands dirty" },
+    { "id": "value-07", "roll": 7, "text": "I can make something from nothing" },
+    { "id": "value-08", "roll": 8, "text": "I finish what I start" },
+    { "id": "value-09", "roll": 9, "text": "Information is power" },
+    { "id": "value-10", "roll": 10, "text": "Never leave a stone unturned" },
+    { "id": "value-11", "roll": 11, "text": "Push me too far and you’ll see my ugly side" },
+    { "id": "value-12", "roll": 12, "text": "Resistance is never futile" },
+    { "id": "value-13", "roll": 13, "text": "Seeking to find myself far from home" },
+    { "id": "value-14", "roll": 14, "text": "Sensors can’t tell you everything" },
+    { "id": "value-15", "roll": 15, "text": "Spoiling for a fight" },
+    { "id": "value-16", "roll": 16, "text": "The mission comes first" },
+    { "id": "value-17", "roll": 17, "text": "Trust, but verify" },
+    { "id": "value-18", "roll": 18, "text": "We are all connected despite being worlds apart" },
+    { "id": "value-19", "roll": 19, "text": "Willing to sacrifice myself to save my crew" },
+    { "id": "value-20", "roll": 20, "text": "You must walk barefoot in the dirt to really understand a world" }
+  ]
+}

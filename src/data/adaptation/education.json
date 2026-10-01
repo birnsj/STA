@@ -1,0 +1,10 @@
+{
+  "note": "Prototype decisions for Step Four. The book's d20 rolls are not offered; the player chooses. As in the book, focuses can be the option's examples, any focus from the Focus Probability Matrix (p.85-88), or the player's own.",
+  "categoryOrder": ["starfleetAcademy", "alliedMilitary", "diplomatic", "civilian"],
+  "allowCustomFocus": true,
+  "allowCustomValue": true,
+  "disciplineSwap": {
+    "note": "Interpretation of the civilian 'reduce one of your other disciplines by 1': the reduced discipline must be one not increased at this step and must currently be at least 2, so it never drops below the starting score of 1.",
+    "minimumSourceTotal": 2
+  }
+}

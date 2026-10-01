@@ -1,0 +1,4 @@
+{
+  "note": "Prototype design decisions for Screen 02. Book (p.103): the player picks ONE setting OR condition, and that choice's options drive the attribute and discipline bonuses. Prototype follows the book: choosing a setting clears any condition and vice versa. Values use the book's Values Matrix plus a free-text custom value.",
+  "allowCustomValue": true
+}

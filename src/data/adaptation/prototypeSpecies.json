@@ -1,0 +1,4 @@
+{
+  "note": "Prototype design decision: the approved species set and display order for Screen 01. Mixed Heritage and New Species appear as extra cards after the six species.",
+  "speciesIds": ["human", "vulcan", "andorian", "tellarite", "trill", "caitian", "mixedHeritage", "newSpecies"]
+}

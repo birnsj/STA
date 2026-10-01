@@ -1,0 +1,4 @@
+{
+  "note": "Prototype design decision: every screen, including Species, starts with no card selected until the player clicks one.",
+  "preselectFirstSpecies": false
+}

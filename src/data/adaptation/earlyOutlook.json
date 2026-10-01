@@ -1,0 +1,10 @@
+{
+  "note": "Prototype decisions for Step Three. The book's d20 rolls are not offered; the player chooses. As in the book, the focus can be one of the outlook's examples, any focus from the Focus Probability Matrix (p.85-88), or the player's own.",
+  "approachOrder": ["upbringing", "aspiration", "caste"],
+  "allowCustomFocus": true,
+  "casteEligibility": {
+    "note": "Interpretation of the book's 'Klingon characters or those raised in a Klingon household': the character's species (or a mixed-heritage parent) is Klingon, or their Environment is Another Species' World raised among Klingons. No Klingon species is currently in the prototype list.",
+    "speciesIds": ["klingon"],
+    "raisedAmongSpeciesIds": ["klingon"]
+  }
+}

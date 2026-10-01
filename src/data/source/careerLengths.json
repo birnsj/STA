@@ -1,0 +1,34 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "Step Five: Career Length",
+    "pages": [122, 123]
+  },
+  "grants": "This stage grants the character a value arising from their career outlook.",
+  "lengths": [
+    {
+      "id": "novice",
+      "name": "Novice",
+      "roll": "1-6",
+      "description": "Your character is defined by their potential more than their skill. Their raw talent and their expectations of what the universe is like has not yet been tempered by reality.",
+      "valuePrompt": "Add a value, reflecting their inexperience and naïveté in some way.",
+      "source": { "book": "Captain's Log", "page": 122 }
+    },
+    {
+      "id": "experienced",
+      "name": "Experienced",
+      "roll": "7-13",
+      "description": "Your character has several years of experience and is enjoying a promising career.",
+      "valuePrompt": "Add a value, chosen freely.",
+      "source": { "book": "Captain's Log", "page": 123 }
+    },
+    {
+      "id": "veteran",
+      "name": "Veteran",
+      "roll": "14-20",
+      "description": "Your character has decades of experience and has served on many ships and starbases. Their judgement and opinions are highly regarded by subordinates, peers, and even superiors.",
+      "valuePrompt": "Add a value, reflecting their years of experience and the beliefs they’ve formed over their long career.",
+      "source": { "book": "Captain's Log", "page": 123 }
+    }
+  ]
+}

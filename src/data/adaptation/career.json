@@ -1,0 +1,28 @@
+{
+  "step": "career",
+  "allowCustomValue": true,
+  "lengthArt": {
+    "novice": "/assets/career/novice.png",
+    "experienced": "/assets/career/experienced.png",
+    "veteran": "/assets/career/veteran.png"
+  },
+  "rankTypeByEducation": {
+    "categories": { "civilian": "none", "diplomatic": "optional" },
+    "options": { "rankAndFile": "enlisted" },
+    "default": "officer"
+  },
+  "noRank": { "id": "noRank", "name": "No Rank" },
+  "noviceExcludedAssignments": ["commandingOfficer", "executiveOfficer", "chiefEngineer", "chiefOfSecurity", "chiefMedicalOfficer"],
+  "noviceMaxRank": { "officer": "lieutenantJuniorGrade", "enlisted": "pettyOfficer" },
+  "notes": [
+    "Screen 05 combines Book Step Five (Career Length) with the Assignment and Rank parts of Book Step Seven.",
+    "The assignment sets the character's department (one of the six disciplines). The book gives no department for Communications Officer, so the player chooses one (book p.92: 'Choose ... Department').",
+    "Only the book's listed senior staff roles are offered; the book's 'other roles are possible' is not implemented.",
+    "Rank type comes from Education: Civilian characters have no rank (book p.120), Diplomatic characters may choose a rank or No Rank (book p.119), Rank and File characters are enlisted (book p.117, p.132); everyone else uses officer ranks.",
+    "Enlisted ranks use the book's first title only, without 1st/2nd/3rd class.",
+    "Assignment minimum ranks apply to officer ranks only; the book gives no enlisted or no-rank minimums.",
+    "Career Length: a Novice cannot take Commanding Officer, Executive Officer, Chief Engineer, Chief of Security, or Chief Medical Officer. The book only says Step Five 'may limit' ranks and calls the lieutenant (junior grade) roles 'experienced personnel'; Commanding Officer was added by design decision.",
+    "Career Length: a Novice's rank is capped at Lieutenant (junior grade) for officers (the rank an Academy graduate can start at, p.115) and Petty Officer for enlisted (Rank and File 'likely becoming an NCO, equivalent to a Starfleet petty officer', p.117). Design decision; the book gives no limits.",
+    "lengthArt paths point into public/. Missing files fall back to the placeholder portrait."
+  ]
+}

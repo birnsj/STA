@@ -1,0 +1,13 @@
+{
+  "note": "Prototype design decision: the eight-stage creation flow from the approved mockup (the book's lifepath has seven steps).",
+  "steps": [
+    { "id": "species", "number": "01", "title": "Species", "subtitle": "Traits, Attributes, Identity" },
+    { "id": "environment", "number": "02", "title": "Environment", "subtitle": "Where you were raised" },
+    { "id": "earlyOutlook", "number": "03", "title": "Early Outlook", "subtitle": "Childhood & Influences" },
+    { "id": "education", "number": "04", "title": "Education", "subtitle": "Learning & Development" },
+    { "id": "career", "number": "05", "title": "Career", "subtitle": "Length, Assignment, Rank" },
+    { "id": "careerHistory", "number": "06", "title": "Career History", "subtitle": "Key Events" },
+    { "id": "finishingTouches", "number": "07", "title": "Finishing Touches", "subtitle": "Final Options" },
+    { "id": "review", "number": "08", "title": "Review", "subtitle": "Character Sheet" }
+  ]
+}

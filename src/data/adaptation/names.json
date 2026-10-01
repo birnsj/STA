@@ -1,0 +1,27 @@
+{
+  "notes": [
+    "Prototype: invented names for the Finishing Touches name randomizer. Not from Captain's Log, which has no naming step or name tables.",
+    "A random name is one first name from the male or female list plus one surname, mixed freely. Canon character names are deliberately avoided."
+  ],
+  "male": [
+    "Aaron", "Ambrose", "Anders", "Arjun", "Bastien", "Bram", "Callum", "Caspian", "Cyrus", "Dario",
+    "Desmond", "Dmitri", "Elias", "Emeka", "Ezra", "Felix", "Gareth", "Hassan", "Hiro", "Idris",
+    "Ivan", "Jalen", "Joaquin", "Kenji", "Kofi", "Lachlan", "Leif", "Luca", "Malik", "Marek",
+    "Mateo", "Nikolai", "Omar", "Orrin", "Quentin", "Rafael", "Ravi", "Rhys", "Ronan", "Santiago",
+    "Sebastian", "Soren", "Tariq", "Teodor", "Tobias", "Viktor", "Xavier", "Yusuf", "Zane", "Alaric"
+  ],
+  "female": [
+    "Adaeze", "Aiko", "Alana", "Amara", "Anya", "Beatriz", "Brigid", "Calla", "Celeste", "Corinne",
+    "Dalia", "Delphine", "Elena", "Elif", "Esme", "Farah", "Freya", "Gabriela", "Hana", "Imani",
+    "Ingrid", "Isla", "Jasmine", "Kaia", "Leilani", "Lena", "Lucia", "Maren", "Mei", "Mira",
+    "Nadia", "Noor", "Odette", "Priya", "Rhea", "Rosalind", "Sabine", "Saoirse", "Selene", "Sienna",
+    "Talia", "Tamsin", "Thandiwe", "Uma", "Valentina", "Vera", "Wren", "Ximena", "Yara", "Zara"
+  ],
+  "surnames": [
+    "Abara", "Adeyemi", "Alcott", "Andersen", "Arceneaux", "Bellamy", "Brennan", "Calder", "Castellanos", "Chandrasekhar",
+    "Delacroix", "Dunmore", "Elrod", "Falk", "Ferreira", "Fontaine", "Garrick", "Haldane", "Halloran", "Hollis",
+    "Ibarra", "Ishikawa", "Jovanovic", "Kaine", "Kaur", "Kowalski", "Lindqvist", "Madsen", "Marchetti", "Mbeki",
+    "Nakamura", "Nwosu", "Okafor", "Oyelaran", "Petrov", "Quinlan", "Ramires", "Reinholt", "Sandoval", "Silva",
+    "Strand", "Takahara", "Thorne", "Ueda", "Varga", "Vasquez", "Wexler", "Whitlock", "Yamada", "Zielinski"
+  ]
+}

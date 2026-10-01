@@ -1,0 +1,16 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "03.10 A Career in Starfleet - Attributes",
+    "page": 74
+  },
+  "note": "Descriptions are the book's defining sentences, lightly trimmed.",
+  "attributes": [
+    { "id": "control", "name": "Control", "page": 75, "description": "Defines characters who are precise, orderly, disciplined, highly coordinated, and who possess well-developed fine motor skills." },
+    { "id": "daring", "name": "Daring", "page": 75, "description": "Defines characters who are decisive and fearless. When the adrenaline starts pumping, a Daring character can act swiftly and confidently." },
+    { "id": "fitness", "name": "Fitness", "page": 75, "description": "Defines characters by their physical prowess, athleticism, and endurance. A character with high Fitness is also more able to weather attacks and hazards." },
+    { "id": "insight", "name": "Insight", "page": 75, "description": "Defines characters by their instincts and their perceptiveness. Insightful characters often have a good sense of the moods and feelings of others, and trust their own feelings when making decisions." },
+    { "id": "presence", "name": "Presence", "page": 78, "description": "Defines characters by their strength of personality, and by their ability to draw attention and command respect. It also means a strong sense of self, allowing a character to resist coercion or manipulation." },
+    { "id": "reason", "name": "Reason", "page": 78, "description": "Defines characters by their adherence to logic: meticulous analysis, detailed planning, the gathering of evidence, and the forming and testing of theories." }
+  ]
+}

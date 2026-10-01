@@ -1,0 +1,100 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "Step Seven: Finishing Touches - Assignment",
+    "pages": [130, 131, 132],
+    "note": "The book presents these as the most common senior staff roles and states that other roles are possible."
+  },
+  "assignments": [
+    {
+      "id": "commandingOfficer",
+      "name": "Commanding Officer",
+      "department": "command",
+      "departmentText": "Command department only.",
+      "minimumRank": "commander",
+      "description": "The captain. Even if the commanding officer does not hold the rank of captain, they will be referred to as captain by their subordinates. Every starship and starbase must have a commanding officer.",
+      "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "executiveOfficer",
+      "name": "Executive Officer",
+      "department": "command",
+      "departmentText": "Command department only.",
+      "minimumRank": "lieutenantJuniorGrade",
+      "description": "Also known as the “first officer,” the executive officer is the captain’s chief advisor and takes command in situations where the captain is unable to. If a ship does not have a dedicated executive officer, an officer in another role will be designated as first officer.",
+      "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "operationsManager",
+      "name": "Operations Manager",
+      "department": "engineering",
+      "departmentText": "Engineering department.",
+      "minimumRank": "ensign",
+      "description": "The operations manager manages and oversees all technical operations aboard or involving the ship, normally from the operations station on the bridge, or in conjunction with the chief engineer (on smaller ships, one officer may fill both roles). This often entails taking on the duties of a science officer, if there is no dedicated science officer in the senior staff.",
+      "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "flightController",
+      "name": "Flight Controller or Helmsman",
+      "department": "conn",
+      "departmentText": "Conn department only.",
+      "minimumRank": "ensign",
+      "description": "Not a typical senior staff role, some captains, particularly those operating in uncharted space, choose the most senior helmsman or flight control officer to serve as senior staff as well.",
+      "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "chiefEngineer",
+      "name": "Chief Engineer",
+      "department": "engineering",
+      "departmentText": "Engineering department only.",
+      "minimumRank": "lieutenantJuniorGrade",
+      "description": "The chief engineer is responsible for ensuring that the ship remains operational and functional and commands the engineering department.",
+      "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "chiefOfSecurity",
+      "name": "Chief of Security",
+      "department": "security",
+      "departmentText": "Security department only.",
+      "minimumRank": "lieutenantJuniorGrade",
+      "description": "The chief of security oversees the ship’s security department and is responsible for ensuring the safety of the ship and crew during missions, for the investigation of disciplinary and criminal matters, and for overseeing the protection of important persons aboard the ship. On many ships, the chief of security operates from the tactical station on the bridge.",
+      "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "chiefMedicalOfficer",
+      "name": "Chief Medical Officer",
+      "department": "medicine",
+      "departmentText": "Medical department only.",
+      "minimumRank": "lieutenantJuniorGrade",
+      "description": "The chief medical officer, also known as ship’s surgeon, or ship’s doctor, is responsible for the health and well-being of the crew and other persons aboard the ship and leads the ship’s medical department. A chief medical officer can order, and countermand the orders of, senior officers where matters of that officer’s health are concerned.",
+      "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "scienceOfficer",
+      "name": "Science Officer",
+      "department": "science",
+      "departmentText": "Science department only.",
+      "minimumRank": "ensign",
+      "description": "A science officer is responsible for advising the commanding officer of all matters scientific, providing hypotheses in matters concerning the unknown. Not all ships have a dedicated science officer within the senior staff, often having the operations manager take on these duties.",
+      "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "shipsCounselor",
+      "name": "Ship’s Counselor",
+      "department": "medicine",
+      "departmentText": "Medical department only.",
+      "minimumRank": "ensign",
+      "description": "On larger ships and starbases, it’s common to have personnel dedicated to the mental well-being of the crew. Some captains regard them as valuable advisors, as their training covers both culture and psychology, making them exceptionally good at reading the moods and intentions of others.",
+      "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "communicationsOfficer",
+      "name": "Communications Officer",
+      "department": null,
+      "departmentText": null,
+      "minimumRank": "ensign",
+      "description": "Communications officers are typically skilled in linguistics and cryptography and aided by advanced translation and decryption technologies. They are thus valuable during encounters with both new cultures and with hostile ones.",
+      "source": { "book": "Captain's Log", "page": 132 }
+    }
+  ]
+}

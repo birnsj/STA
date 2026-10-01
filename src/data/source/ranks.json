@@ -1,0 +1,28 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "Step Seven: Finishing Touches - Rank; Enlisted Personnel (sidebar)",
+    "page": 132
+  },
+  "note": "Starfleet officer ranks, lowest first. Minimum ranks per assignment live in assignments.json.",
+  "ranks": [
+    { "id": "ensign", "name": "Ensign", "note": "This is the lowest rank available to any officer." },
+    { "id": "lieutenantJuniorGrade", "name": "Lieutenant (junior grade)", "note": "This is the lowest rank that may be taken by any character fulfilling the assignment of executive officer, chief engineer, chief of security, or chief medical officer, as those assignments are only available to experienced personnel." },
+    { "id": "lieutenant", "name": "Lieutenant", "note": null },
+    { "id": "lieutenantCommander", "name": "Lieutenant Commander", "note": null },
+    { "id": "commander", "name": "Commander", "note": "This is the lowest rank that the commanding officer of a vessel may have." },
+    { "id": "captain", "name": "Captain", "note": "The most common rank for commanding officers of Starfleet vessels." }
+  ],
+  "enlistedNote": "Enlisted ranks, lowest first. The book also gives alternate titles and classes (noted per rank); the prototype uses the first title only.",
+  "enlistedRanks": [
+    { "id": "crewman", "name": "Crewman", "note": "Book: Crewman (1st class, 2nd class, or 3rd class)." },
+    { "id": "pettyOfficer", "name": "Petty Officer", "note": "Book: Petty officer/specialist/yeoman (1st class, 2nd class, or 3rd class)." },
+    { "id": "chiefPettyOfficer", "name": "Chief Petty Officer", "note": "Book: Chief petty officer/chief specialist." },
+    { "id": "seniorChiefPettyOfficer", "name": "Senior Chief Petty Officer", "note": "Book: Senior chief petty officer/senior chief specialist." },
+    { "id": "masterChiefPettyOfficer", "name": "Master Chief Petty Officer", "note": "Book: Master chief petty officer/master chief specialist." }
+  ],
+  "enlistedExcludedAssignments": {
+    "assignments": ["commandingOfficer", "executiveOfficer"],
+    "text": "Your character would not receive a commanding officer or executive officer assignment."
+  }
+}

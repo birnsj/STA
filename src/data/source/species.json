@@ -1,0 +1,66 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "03.20 Lifepath Creation - Step One: Species"
+  },
+  "species": [
+    {
+      "id": "human",
+      "name": "Human",
+      "description": "A resilient, diverse, and adaptable species. From warring nations on the brink of mutual annihilation, developed an allied and peaceful society engaged with the wider Galaxy. Founding member of the Federation.",
+      "attributeBonus": { "type": "choice", "count": 3, "amount": 1 },
+      "source": { "page": 98 }
+    },
+    {
+      "id": "vulcan",
+      "name": "Vulcan",
+      "description": "The Vulcans are a stoic, rational people. Widely claimed to be emotionless, in truth the Vulcans feel deeply and intensely, to their own detriment. Their stoicism comes from a culture of logic and self-discipline, where emotions are analyzed and dissected to rob them of their potency, so that they cannot overwhelm or control the individual. Vulcans embrace science and reason, but their lives are not purely devoted to logic: they also have a deeply philosophical side, with art and music as vital to their culture as logic. They are also an intensely private people, with many aspects of their culture – such as the rites of pon farr – which are not discussed amongst outsiders.",
+      "attributeBonus": { "type": "fixed", "attributes": ["control", "fitness", "reason"], "amount": 1 },
+      "source": { "page": 102 }
+    },
+    {
+      "id": "andorian",
+      "name": "Andorian",
+      "description": "An aggressive, passionate people from a frozen moon. Founding member of the Federation. Blue-skinned, pale-haired in appearance, with antennae. Their antennae aid in balance and spatial awareness; a lost antenna can be debilitating until it regrows. Andorians also have a high metabolism, meaning, among other things, that they tire more quickly than Humans; this also makes them more vulnerable to infection from certain types of injury.",
+      "attributeBonus": { "type": "fixed", "attributes": ["control", "daring", "presence"], "amount": 1 },
+      "source": { "page": 94 }
+    },
+    {
+      "id": "tellarite",
+      "name": "Tellarite",
+      "description": "An argumentative, honest, and skeptical people. Founding member of the Federation. Sturdy and hirsute in physique, vaguely porcine in appearance. Tellarites have a keen sense of smell and a high tolerance for many common drugs, toxins, and inebriants (Tellarites don’t get drunk, just feisty).",
+      "attributeBonus": { "type": "fixed", "attributes": ["control", "fitness", "insight"], "amount": 1 },
+      "source": { "page": 101 }
+    },
+    {
+      "id": "trill",
+      "name": "Trill",
+      "description": "The Trill species appear almost identical to Humans, except for rows of spots running down the sides of their bodies. However, this superficial similarity conceals a considerable difference – the Trill are capable of bonding with a symbiotic organism known as a symbiont, creating a distinct being from the two individual creatures. The symbionts can live for many centuries, and are placed with successive hosts, carrying the memories and knowledge of previous hosts into a new joining with each new generation. The Trill have been part of the Federation for well over a century, with several renowned Trill serving important roles in shaping the Federation.",
+      "attributeBonus": { "type": "fixed", "attributes": ["control", "presence", "reason"], "amount": 1 },
+      "source": { "page": 102 }
+    },
+    {
+      "id": "caitian",
+      "name": "Caitian",
+      "description": "A catlike people equally devoted to martial as well as artistic and philosophical pursuits. Solidly established within the Federation, with extensive representation at all levels of Starfleet. Bipedal, slightly smaller than Humans, with prehensile tails.",
+      "attributeBonus": { "type": "fixed", "attributes": ["daring", "fitness", "insight"], "amount": 1 },
+      "source": { "page": 96 }
+    },
+    {
+      "id": "mixedHeritage",
+      "name": "Mixed Heritage",
+      "variant": "mixedHeritage",
+      "description": "Many Starfleet officers have parents from different species. When creating such a character, you may choose three different attribute bonuses from across both species.",
+      "attributeBonus": { "type": "mixedChoice", "count": 3, "amount": 1 },
+      "source": { "page": 91, "section": "Mixed-Heritage Characters (sidebar)" }
+    },
+    {
+      "id": "newSpecies",
+      "name": "New Species",
+      "variant": "newSpecies",
+      "description": "Perhaps you would like to create a new, distinctive species. Your character might hail from a planet new to the United Federation of Planets. Or they might be the first of their kind to join Starfleet. Simply write a paragraph description of what sets your species apart from the rest and add one to three different attributes. The species may have certain physiological, technological, or mental specialties. These abilities are all wrapped up in your species trait that could provide certain advantages – or complications.",
+      "attributeBonus": { "type": "choice", "count": 3, "amount": 1 },
+      "source": { "page": 92, "section": "Creating New Species (sidebar); see also Unusual or Unique Characters, p.102: +1 to any three attributes" }
+    }
+  ]
+}

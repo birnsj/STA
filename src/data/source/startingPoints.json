@@ -1,0 +1,12 @@
+{
+  "source": { "book": "Captain's Log", "section": "Lifepath Creation - Starting Points", "page": 91 },
+  "attributeStart": 7,
+  "disciplineStart": 1,
+  "finishedCharacterLimits": {
+    "note": "Scores may exceed these during the lifepath; they are fixed in Step Seven: Finishing Touches (p.129).",
+    "attributeMax": 12,
+    "attributesAtMax": 1,
+    "disciplineMax": 5,
+    "disciplinesAtMax": 1
+  }
+}

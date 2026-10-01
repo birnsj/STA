@@ -1,0 +1,32 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "Step Seven: Finishing Touches",
+    "pages": [129, 130, 132]
+  },
+  "finalValue": {
+    "text": "The character receives one final value. This might reflect the career events rolled in Step Six, or it may represent some other element.",
+    "source": { "book": "Captain's Log", "page": 129 }
+  },
+  "attributes": {
+    "increaseCount": 2,
+    "text": "Increase two attributes by 1 each. Your character may not have any attributes above 12, and only one attribute with a score of 12. For any attribute which has a rating above and beyond those limits, reduce it until it is within the limit. For each point reduced on an attribute, increase another attribute by one, obeying the limits above.",
+    "source": { "book": "Captain's Log", "page": 129 }
+  },
+  "disciplines": {
+    "increaseCount": 2,
+    "text": "Increase two disciplines by 1 each. Your character may not have any disciplines above 5, and only one discipline with a score of 5. For any discipline which has a rating above and beyond those limits, reduce it until it is within the limit. For each point reduced on a discipline, increase another discipline by one, obeying the above limits.",
+    "source": { "book": "Captain's Log", "page": 129 }
+  },
+  "completeCharacter": {
+    "attributeTotal": 56,
+    "disciplineTotal": 16,
+    "valueCount": 4,
+    "focusCount": 6,
+    "source": { "book": "Captain's Log", "page": 129 }
+  },
+  "pronouns": {
+    "text": "Write your character’s pronouns on your character sheet. These pronouns help Starfleet personnel – and the other players in co-operative and guided modes – to use the proper address…",
+    "source": { "book": "Captain's Log", "page": 132 }
+  }
+}

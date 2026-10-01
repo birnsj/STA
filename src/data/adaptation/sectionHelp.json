@@ -1,0 +1,298 @@
+{
+  "note": "Hover tooltips for section titles. 'concepts' paraphrase the book's definitions (page cited); each section's 'does' describes what the prototype screen does and is not book text.",
+  "concepts": {
+    "trait": {
+      "name": "Trait",
+      "text": "An enduring part of your character's nature. Every character has at least one trait: their species.",
+      "page": 74
+    },
+    "attribute": {
+      "name": "Attributes",
+      "text": "Six ratings (Control, Daring, Fitness, Insight, Presence, Reason) for your physical and mental capabilities and the way you approach problems. For humanoids they range from 7 to 12; 8 is average.",
+      "page": 74
+    },
+    "discipline": {
+      "name": "Disciplines",
+      "text": "Six areas of expertise (Command, Conn, Engineering, Security, Science, Medicine), matching a starship's departments. Each is rated from 0 to 5.",
+      "page": 79
+    },
+    "focus": {
+      "name": "Focus",
+      "text": "A short description of a narrower skill, topic, or activity. Focuses improve your odds at tasks they apply to and can be used with any discipline.",
+      "page": 84
+    },
+    "value": {
+      "name": "Value",
+      "text": "A short statement of a core belief or conviction. Values define who your character is and can give them an extra push to succeed in difficult situations.",
+      "page": 88
+    },
+    "assignment": {
+      "name": "Assignment",
+      "text": "Your role aboard ship. The book lists the most common senior staff roles and says other roles are possible.",
+      "page": 130
+    },
+    "rank": {
+      "name": "Rank",
+      "text": "Your place in the chain of command. Starfleet officers run from Ensign to Captain; enlisted personnel have their own ranks.",
+      "page": 132
+    }
+  },
+  "sections": {
+    "speciesScreen": {
+      "title": "Species",
+      "what": "Book Step One. Your species is your character's first trait and raises three attributes by 1.",
+      "does": "Choose a species card and a gender, then complete any trait details and attribute choices below."
+    },
+    "speciesGender": {
+      "title": "Gender",
+      "what": "Prototype presentation choice, not from Captain's Log. It decides which portraits you can pick on Finishing Touches.",
+      "does": "Choose Male or Female. Gender has no effect on attributes, disciplines, values, focuses, traits, or any rule, and it is separate from pronouns."
+    },
+    "environmentScreen": {
+      "title": "Environment",
+      "what": "Book Step Two. Where and how your character was raised: either a Setting or a Condition. It grants one value, +1 to one attribute, and +1 to one discipline.",
+      "page": 103,
+      "does": "Pick the Setting or Condition tab and a card, then choose the value, attribute, and discipline below."
+    },
+    "earlyOutlookScreen": {
+      "title": "Early Outlook",
+      "what": "Book Step Three. Your childhood, formative experiences, and key influences.",
+      "page": 107,
+      "does": "Choose an outlook card, then its attribute path, one discipline, and one focus."
+    },
+    "educationScreen": {
+      "title": "Education",
+      "what": "Book Step Four. Your training before your career. Each option grants one value, three attribute points, discipline increases, and three focuses.",
+      "page": 115,
+      "does": "Choose an education type card and one of its options, then make the choices in the numbered sections."
+    },
+    "careerScreen": {
+      "title": "Career",
+      "what": "Book Step Five sets how long your career has run and grants one value. Assignment and rank come from Book Step Seven (pp.130-132).",
+      "page": 122,
+      "does": "Choose a career length and its value, then your assignment and rank."
+    },
+    "careerHistoryScreen": {
+      "title": "Career History",
+      "what": "Book Step Six. Defining events in your career. Each raises one attribute and one discipline by 1 and grants one focus.",
+      "page": 123,
+      "does": "Choose two different events, then complete each one's attribute, discipline, and focus."
+    },
+    "finishingTouchesScreen": {
+      "title": "Finishing Touches",
+      "what": "Book Step Seven. One final value, and +1 to two attributes and two disciplines, kept within the book's limits.",
+      "page": 129,
+      "does": "Work through each card: final value, attributes, disciplines, name and pronouns, portrait, and optional notes."
+    },
+    "reviewScreen": {
+      "title": "Character Complete",
+      "what": "Your finished character sheet. This review screen is a prototype addition; the book has no review step.",
+      "does": "Check each section, fix anything under Needs Attention, then Confirm Character. Export JSON (dev) downloads the character as a .json file."
+    },
+    "reviewStatus": {
+      "title": "Status",
+      "what": "Checks your character against the book's finished-character requirements (attributes total 56, disciplines total 16, four values, six focuses) and the prototype's own checks, such as a name and duplicate values or focuses.",
+      "page": 129,
+      "does": "Lists each problem with a link to the screen that fixes it. When nothing is listed, Confirm Character becomes available."
+    },
+    "reviewIdentity": {
+      "title": "Identity",
+      "what": "Who your character is: name, gender, pronouns, species, species trait, and portrait. Gender is a presentation detail only.",
+      "does": "Summary only. Change these on Species and Finishing Touches."
+    },
+    "reviewOrigin": {
+      "title": "Origin & Early Life",
+      "what": "Where your character was raised and the outlook they grew up with.",
+      "does": "Summary only. Change these on Environment and Early Outlook."
+    },
+    "reviewAttributes": {
+      "concept": "attribute",
+      "does": "Your final scores. The book's finished character has an attribute total of 56, no attribute above 12, and only one at 12. Change them on Finishing Touches."
+    },
+    "reviewDisciplines": {
+      "concept": "discipline",
+      "does": "Your final scores. The book's finished character has a discipline total of 16, no discipline above 5, and only one at 5. Change them on Finishing Touches."
+    },
+    "reviewEducation": {
+      "title": "Education",
+      "what": "The education option your character trained in and its category.",
+      "does": "Summary only. Change it on Education."
+    },
+    "reviewCareer": {
+      "title": "Career",
+      "what": "Your career length, assignment, department, and rank.",
+      "does": "Summary only. Change these on Career. Posting will be chosen with your ship, which is not built yet."
+    },
+    "reviewEvents": {
+      "title": "Career Events",
+      "what": "The defining events of your career and what each one gave you.",
+      "does": "Summary only. Change them on Career History."
+    },
+    "reviewValues": {
+      "concept": "value",
+      "does": "Every value and the screen it came from. The book's finished character has four values."
+    },
+    "reviewFocuses": {
+      "concept": "focus",
+      "does": "Every focus and the screen it came from. The book's finished character has six focuses."
+    },
+    "reviewTraits": {
+      "concept": "trait",
+      "does": "Your traits and their descriptions. Change them on Species."
+    },
+    "reviewNotes": {
+      "title": "Equipment or Other Details",
+      "what": "The background notes you wrote on Finishing Touches.",
+      "does": "Free text only; the rules never read it."
+    },
+    "speciesTraits": {
+      "concept": "trait",
+      "does": "Your species becomes your first trait automatically. Mixed Heritage and New Species ask for extra details here."
+    },
+    "speciesAttributes": {
+      "concept": "attribute",
+      "does": "Shows the three attributes your species raises by +1. Some species let you choose which three."
+    },
+    "environmentValue": {
+      "concept": "value",
+      "does": "Choose one value that reflects the place or circumstances you were raised in."
+    },
+    "environmentAttribute": {
+      "concept": "attribute",
+      "does": "Raise one attribute by +1. The attributes offered depend on the Setting or Condition you chose."
+    },
+    "environmentDiscipline": {
+      "concept": "discipline",
+      "does": "Raise one discipline by +1."
+    },
+    "outlookAttribute": {
+      "concept": "attribute",
+      "does": "Your early outlook offers different paths, each with its own attribute bonuses. Choose one path."
+    },
+    "outlookDiscipline": {
+      "concept": "discipline",
+      "does": "Raise one discipline by +1, from those your early outlook offers."
+    },
+    "outlookFocus": {
+      "concept": "focus",
+      "does": "Choose one focus: a book example for your outlook, one from the Focus Matrix, or your own."
+    },
+    "educationOptions": {
+      "title": "Education Options",
+      "what": "Your training before your career began. Each option grants a value, attribute points, disciplines, and focuses.",
+      "does": "Pick one option from the education type chosen above. The numbered sections below then apply its benefits."
+    },
+    "educationDetails": {
+      "title": "Education Details",
+      "what": "The book's description and rules for the option you selected.",
+      "does": "Reference only; nothing to choose here."
+    },
+    "educationAttributes": {
+      "concept": "attribute",
+      "does": "Spend the attribute points your education gives. The instruction shows how many points and any limits."
+    },
+    "educationDisciplines": {
+      "concept": "discipline",
+      "does": "Choose the disciplines your education improves. Some options also allow an optional discipline swap."
+    },
+    "educationFocuses": {
+      "concept": "focus",
+      "does": "Choose the focuses your education gives: book examples, the Focus Matrix, or your own."
+    },
+    "educationValue": {
+      "concept": "value",
+      "does": "Choose one value you gained from your education."
+    },
+    "careerValue": {
+      "concept": "value",
+      "does": "Choose one value that fits how long your career has run."
+    },
+    "careerAssignment": {
+      "concept": "assignment",
+      "does": "Choose your role aboard ship. It sets your department and minimum officer rank. Some roles are closed to Novice or enlisted characters."
+    },
+    "assignmentDetails": {
+      "title": "Assignment Details",
+      "what": "The department, minimum rank, and book description for your assignment.",
+      "does": "Reference only, except when the book names no department; then choose one here."
+    },
+    "careerRank": {
+      "concept": "rank",
+      "does": "Choose your rank. What you can pick depends on your education (officer, enlisted, or civilian), your assignment's minimum rank, and your career length."
+    },
+    "eventAttribute": {
+      "concept": "attribute",
+      "does": "Raise one attribute by +1. Most events set it; some let you choose."
+    },
+    "eventDiscipline": {
+      "concept": "discipline",
+      "does": "Raise one discipline by +1. Most events set it; some let you choose."
+    },
+    "eventFocus": {
+      "concept": "focus",
+      "does": "Choose one focus reflecting this event: a book example, the Focus Matrix, or your own."
+    },
+    "eventDetails": {
+      "title": "Event Details",
+      "what": "The book's effects for the selected event, plus questions to help you imagine it.",
+      "does": "Reference only; nothing to choose here."
+    },
+    "finalValue": {
+      "concept": "value",
+      "does": "Choose your last value. It might reflect your career events or who your character has become."
+    },
+    "valueDetails": {
+      "title": "Value Details",
+      "what": "The book's text for this step and every value you have chosen so far.",
+      "does": "Reference only; nothing to choose here."
+    },
+    "attributeIncreases": {
+      "concept": "attribute",
+      "does": "Add +1 to several different attributes. Each row shows the current score and the final score."
+    },
+    "attributeDetails": {
+      "title": "Attribute Details",
+      "what": "The book's text for this step and the attribute limits.",
+      "does": "If a score goes over the limit, choose where the extra points go here. The total must come out exactly right."
+    },
+    "disciplineIncreases": {
+      "concept": "discipline",
+      "does": "Add +1 to several different disciplines. Each row shows the current score and the final score."
+    },
+    "disciplineDetails": {
+      "title": "Discipline Details",
+      "what": "The book's text for this step and the discipline limits.",
+      "does": "If a score goes over the limit, choose where the extra points go here. The total must come out exactly right."
+    },
+    "nameAndPronouns": {
+      "title": "Name & Pronouns",
+      "what": "Your character's name and, optionally, their pronouns.",
+      "does": "The name is required and becomes the exported file's name. Pronouns are optional."
+    },
+    "identityDetails": {
+      "title": "Identity Details",
+      "what": "The book's guidance on pronouns.",
+      "does": "Reference only; nothing to choose here."
+    },
+    "portraitOptions": {
+      "title": "Portrait",
+      "what": "How your character looks on the character sheet.",
+      "does": "Choose a preset portrait. The presets shown match the species and gender chosen on Species. Portraits are presentation only and have no game-rule effect."
+    },
+    "portraitDetails": {
+      "title": "Portrait Details",
+      "what": "Controls for browsing the portrait presets.",
+      "does": "Step through the presets one at a time."
+    },
+    "backgroundNotes": {
+      "title": "Background Notes",
+      "what": "Optional free text about your character's history, personality, and relationships.",
+      "does": "Saved and exported with your character. The rules never read these notes."
+    },
+    "notesDetails": {
+      "title": "Notes Details",
+      "what": "How background notes are used.",
+      "does": "Reference only; nothing to choose here."
+    }
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "source": "STA Captain's Log Solo RPG 2026 v1.0, Step Four: Education, pp.115-122",
+  "grants": "Each option grants one value, three attribute points (split +2/+1 or +1/+1/+1), discipline increases, and three focuses.",
+  "attributePoints": { "total": 3, "maxPerAttribute": 2 },
+  "focusCount": 3,
+  "categories": [
+    {
+      "id": "starfleetAcademy",
+      "name": "Starfleet Academy",
+      "tabLabel": "Starfleet Academy",
+      "optionLabel": "Track",
+      "description": "The years spent at Starfleet Academy are some of the most memorable and definitive of an officer’s life, shaping the direction of their career going forward. For those who pass the grueling entrance examinations, the Academy takes four years, covering a mixture of intense training, academic studies, and practical experiences. Much of this takes place within the main Starfleet Academy campus in San Francisco on Earth, but other campuses and annexes exist across the Federation, and a cadet may spend time at any of these before they graduate. A graduate of the Academy receives a commission as a Starfleet officer, with the rank of ensign, after which they may wait several weeks, or even months, for their first assignment. Some cadets – particularly those pursuing a doctorate – choose a path that requires an additional year or two of training and study, and instead graduate at the rank of lieutenant (junior grade).",
+      "roll": "1-5",
+      "disciplineMaxAtStage": 4,
+      "source": { "book": "Captain's Log", "page": 115 }
+    },
+    {
+      "id": "alliedMilitary",
+      "name": "Allied Military Training",
+      "tabLabel": "Allied Military",
+      "optionLabel": "Type",
+      "description": "Outside of Starfleet, the Milky Way Galaxy hosts many other security and military organizations. Instead of a Starfleet or Klingon officer, you might choose to build a Captain’s Log story around a Bajoran freedom fighter, a member of the Andorian Imperial Guard, or a radically candid warrior of the Qowat Milat.",
+      "roll": "6-10",
+      "disciplineMaxAtStage": null,
+      "source": { "book": "Captain's Log", "page": 117 }
+    },
+    {
+      "id": "diplomatic",
+      "name": "Diplomatic Training",
+      "tabLabel": "Diplomatic",
+      "optionLabel": "Type",
+      "description": "Ambassadorial characters are often found accompanying Starfleet vessels, and in other groups and situations conducive to telling exciting stories. These characters don’t necessarily have Starfleet training, but by necessity they are well-trained and well-informed, and quite capable of taking part in dangerous missions when necessary. Diplomat characters do not necessarily hold an active Starfleet rank or other military rank (though many well-known diplomats are retired Starfleet military).",
+      "roll": "11-15",
+      "disciplineMaxAtStage": null,
+      "source": { "book": "Captain's Log", "page": 119 }
+    },
+    {
+      "id": "civilian",
+      "name": "Civilian Career Training",
+      "tabLabel": "Civilian",
+      "optionLabel": "Type",
+      "description": "Civilian characters are known to become involved in adventures great and small throughout the Star Trek universe, from ambassador Sarek’s strategic negotiations to the discovery of the U.S.S. Protostar by a roguish Dal R’El. Building a Captain’s Log story around a civilian character offers a chance to shine a light on life outside of Starfleet. Civilian characters hold no Starfleet rank or other military rank, though they may be granted an honorary rank.",
+      "roll": "16-20",
+      "disciplineMaxAtStage": null,
+      "source": { "book": "Captain's Log", "page": 120 }
+    }
+  ],
+  "options": [
+    {
+      "id": "commandTrack",
+      "category": "starfleetAcademy",
+      "name": "Command Track",
+      "roll": "1-6",
+      "description": "The command track is for those cadets who aspire to command their own starship someday. It focuses on leadership and interpersonal skills, diplomacy, decision-making in crisis situations, an understanding of protocol and procedure, and starship operations, which includes flight control. Many command track cadets begin their careers as flight control officers and pilots, where their training can be put to the test on a smaller scale while they gain the experience necessary for more authority and responsibility. Command track cadets customarily undertake the infamous Kobayashi Maru test during their final year.",
+      "valueText": "Add a value reflecting the beliefs they developed during their time at the Academy.",
+      "attributes": { "required": null, "text": "Add three points to attributes, which may be split between any two or three (increase three attributes by +1 each, or increase one by +2 and another by +1)." },
+      "disciplines": { "major": ["command", "conn"], "minor": { "count": 2, "options": "others" }, "text": "Increase either Command or Conn by +2. Then, select two other disciplines to increase by +1 each. You may not increase any discipline above 4 at this stage." },
+      "focus": { "text": "Select three focuses, at least one of which should relate to your character’s chosen track.", "examples": ["Astronavigation", "Composure", "Diplomacy", "Evasive Action", "Extra-Vehicular Activity", "Helm Operations", "Inspiration", "Persuasion", "Small Craft", "Starfleet Protocols", "Starship Recognition", "Team Dynamics"] },
+      "source": { "book": "Captain's Log", "page": 115 }
+    },
+    {
+      "id": "operationsTrack",
+      "category": "starfleetAcademy",
+      "name": "Operations Track",
+      "roll": "7-13",
+      "description": "The operations track is practical and hands-on, dealing with many of the realities of Starfleet’s mission. Divided broadly into engineering and security divisions, operations track cadets are defined by a sense of pragmatism, whether that applies to the technical or the tactical.",
+      "valueText": "Add a value, reflecting the beliefs they developed during their time at the Academy.",
+      "attributes": { "required": null, "text": "Add three points to attributes, which may be split between any two or three (increase three attributes by +1 each, or increase one by +2 and another by +1)." },
+      "disciplines": { "major": ["security", "engineering"], "minor": { "count": 2, "options": "others" }, "text": "Increase either Security or Engineering by +2. Then select two other disciplines to increase by +1 each. You may not increase any discipline above 4 at this stage." },
+      "focus": { "text": "Select three focuses, at least one of which should relate to your character’s chosen track.", "examples": ["Computers", "Cybernetics", "Electro-Plasma Power Systems", "Espionage", "Hand Phasers", "Hand-to-Hand Combat", "Infiltration", "Interrogation", "Shipboard Tactical Systems", "Survival", "Transporters & Replicators", "Warp Field Dynamics"] },
+      "source": { "book": "Captain's Log", "page": 116 }
+    },
+    {
+      "id": "sciencesTrack",
+      "category": "starfleetAcademy",
+      "name": "Sciences Track",
+      "roll": "14-20",
+      "description": "Somewhat isolated from the other tracks, the sciences track is primarily academic, with Starfleet Academy producing many accomplished scientists. Included within the sciences track, but separated by a distinct curriculum, is Starfleet Medical, training doctors, nurses, and counselors to serve aboard Starfleet vessels and facilities across the Federation.",
+      "valueText": "Add a value reflecting the beliefs they developed during their time at the Academy.",
+      "attributes": { "required": null, "text": "Add three points to attributes, which may be split between any two or three (increase three attributes by +1 each, or increase one Attribute by +2 and another by +1)." },
+      "disciplines": { "major": ["science", "medicine"], "minor": { "count": 2, "options": "others" }, "text": "Increase either Science or Medicine by +2. Then, select two other disciplines to increase by +1 each. You may not increase any discipline above 4 at this stage." },
+      "focus": { "text": "The character selects three focuses, at least one of which should relate to the character’s chosen track.", "examples": ["Anthropology", "Astrophysics", "Botany", "Computers", "Cybernetics", "Emergency Medicine", "Exotectonics", "Genetics", "Geology", "Infectious Diseases", "Linguistics", "Physics", "Psychiatry", "Quantum Mechanics", "Trauma Surgery", "Virology", "Warp Field Dynamics", "Xenobiology"] },
+      "source": { "book": "Captain's Log", "page": 116 }
+    },
+    {
+      "id": "rankAndFile",
+      "category": "alliedMilitary",
+      "name": "Rank and File",
+      "roll": "1-5",
+      "description": "You represent the common mass of professional military personnel, who will serve as a mixture of ground troops and naval personnel. You will probably have received a broad, if basic, level of training in a variety of fields, with most of your time directed to one or two disciplines. You are enlisted personnel, rather than an officer, starting with a rate equivalent to a Starfleet crewman or Klingon bekk, and likely becoming an NCO, equivalent to a Starfleet petty officer or a Klingon bu’.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs as they developed during basic training, or which relate to why they enlisted to begin with.",
+      "attributes": { "required": ["fitness"], "text": "One of the attributes you increase must be Fitness, due to intense physical training." },
+      "disciplines": { "major": ["security"], "minor": { "count": 2, "options": "others" }, "text": "You increase your Security by 2, and two other disciplines by 1." },
+      "focus": { "text": "You select three focuses.", "examples": ["Composure", "Demolitions", "Disruptors", "Extra-Vehicular Activity", "Hand-to-Hand Combat", "Hand Phasers", "Infiltration", "Military Protocol", "Small Craft", "Survival"] },
+      "source": { "book": "Captain's Log", "page": 117 }
+    },
+    {
+      "id": "officerTraining",
+      "category": "alliedMilitary",
+      "name": "Officer Training",
+      "roll": "6-10",
+      "description": "You spent years of study to become an officer in your nation’s military. This encompassed both training in leadership and command, but also combat skills, technical and scientific studies, and a variety of other disciplines. Upon concluding your training – typically years of study in some manner of military academy or officer school – you receive a junior officer rank, equivalent to a Starfleet ensign or Klingon lagh. From there, you are expected to develop and expand your skills further as you rise in rank and gain more responsibilities.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs as they developed during their academy years, or which relate to why they became an officer to begin with.",
+      "attributes": { "required": null, "text": "These may be chosen freely." },
+      "disciplines": { "major": ["command", "security"], "pairedMajor": true, "minor": { "count": 1, "options": ["conn", "engineering", "science", "medicine"] }, "text": "You increase both Command and Security: increase one by 2, and the other by 1. Then, choose one of Conn, Engineering, Science, or Medicine, and increase that by 1 as well." },
+      "focus": { "text": "You select three focuses.", "examples": ["Diplomacy", "Disruptors", "Hand-to-Hand Combat", "Hand Phasers", "History", "Inspiration", "Military Protocol", "Politics", "Shipboard Tactical Systems", "Strategy & Tactics"] },
+      "source": { "book": "Captain's Log", "page": 117 }
+    },
+    {
+      "id": "intelligenceTraining",
+      "category": "alliedMilitary",
+      "name": "Intelligence Training",
+      "roll": "11-15",
+      "description": "You applied to join your nation’s military or some other civil service, and they found that your talents could be put to good use in intelligence. While you might have an official posting as ordinary personnel aboard a ship or a starbase, or an office in some government bureau, your true duties are both loftier and more clandestine. Personnel are trained to serve either as operatives – working in the field under cover identities to gather information and cultivate networks of informants – or as analysts who study the information gathered, searching for patterns and reporting on noteworthy findings to their superiors.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs as they developed during intelligence training, or which guides them during their operations.",
+      "attributes": { "required": ["insight", "reason"], "text": "You must pick Insight or Reason as one of the attributes increased." },
+      "disciplines": { "major": "any", "minor": { "count": 2, "options": "others" }, "mustInclude": "security", "text": "Increase a single discipline by 2, and two others by 1 each. You must select Security for one of your choices." },
+      "focus": { "text": "You select three focuses.", "examples": ["Computers", "Espionage", "Infiltration", "Interrogation", "Linguistics", "Persuasion", "Threat Analysis"] },
+      "source": { "book": "Captain's Log", "page": 118 }
+    },
+    {
+      "id": "militiaAndGuerillas",
+      "category": "alliedMilitary",
+      "name": "Militia and Guerillas",
+      "roll": "16-20",
+      "description": "You didn’t have any formal training. Rather, you learned to fight out of necessity, to defend your home from aggressors and invaders, or to try and liberate it from those who were oppressing your people. Frontier colonies, worlds where society has collapsed into feuding factions, and conquered planets often produce these kinds of fighters. You may be part of a citizen militia, an impromptu force that takes up arms when necessary but does not serve as part of a permanent standing army. You may be part of a resistance movement such as those seen on Bajor during the Cardassian Occupation, or the Maquis who fought the Cardassians in the late 2360s and early 2370s.",
+      "valueText": "You gain a single value, which should reflect the reason the character chooses to fight.",
+      "attributes": { "required": ["daring", "fitness"], "text": "You must select either Daring or Fitness as one of the attributes increased; you don’t get far without being bold or tough." },
+      "disciplines": { "major": ["security"], "minor": { "count": 2, "options": "others" }, "text": "Increase Security by 2, and two other disciplines by 1 each." },
+      "focus": { "text": "Select three focuses.", "examples": ["Composure", "Demolition", "Disguise", "Disruptors", "Hand-to-Hand Combat", "Hand Phasers", "Infiltration", "Inspiration", "Interrogation", "Psychological Warfare"] },
+      "source": { "book": "Captain's Log", "page": 118 }
+    },
+    {
+      "id": "diplomaticCorps",
+      "category": "diplomatic",
+      "name": "Diplomatic Corps",
+      "roll": "1-10",
+      "description": "You pursued diplomacy as a vocation early in life, and you have spent years or more rising from the staff of senior diplomats to your own postings in later life. You might serve within the Federation Diplomatic Corps, or as a representative on behalf of a specific world (typically your own homeworld). Either way, your role is a respected one, and you have considerable professional and personal influence.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their studies, or which led them to enter diplomatic service in the first place.",
+      "attributes": { "required": ["reason", "insight"], "text": "One of the attributes you increase must be Reason or Insight, as a sharp mind and keen instincts are necessary for diplomatic work." },
+      "disciplines": { "major": ["command"], "minor": { "count": 2, "options": "others" }, "text": "You increase your Command by 2, and two other disciplines by 1." },
+      "focus": { "text": "You select three focuses.", "examples": ["Diplomacy", "Espionage", "History", "Linguistics", "Philosophy", "Politics", "Xenoanthropology"] },
+      "source": { "book": "Captain's Log", "page": 119 }
+    },
+    {
+      "id": "honoraryStatus",
+      "category": "diplomatic",
+      "name": "Honorary Status",
+      "roll": "11-20",
+      "description": "You had an illustrious career – perhaps in Starfleet or your culture’s military, perhaps in politics – and received a diplomatic appointment later in life as a reward for your accomplishments. You serve well in such a role, having established valuable connections to other worlds and civilizations during your prior career. You might be retired from your prior career, or you may be on an extended leave of absence while you serve as a diplomat.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs forged during their career before becoming a diplomat.",
+      "attributes": { "required": null, "text": "These may be chosen freely." },
+      "disciplines": { "major": ["command"], "minor": { "count": 2, "options": "others" }, "text": "You increase your Command by 2, and two other disciplines by 1." },
+      "focus": { "text": "You select three focuses.", "examples": ["Diplomacy", "Espionage", "History", "Leadership", "Philosophy", "Politics", "Strategy and Tactics", "Xenoanthropology"] },
+      "source": { "book": "Captain's Log", "page": 120 }
+    },
+    {
+      "id": "freightAndTransport",
+      "category": "civilian",
+      "name": "Freight and Transport",
+      "roll": "1-3",
+      "description": "You are a member of a privately-owned starship, perhaps running cargo from system to system, or flying passengers to distant destinations. These ships are often family businesses, passed down through generations, running a specific route. Others take whatever contracts they can find, carrying goods or passengers on an ad-hoc basis.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed through their career, or the ones which led them to take up such a vocation.",
+      "attributes": { "required": null, "text": "These may be chosen freely." },
+      "disciplines": { "major": ["conn", "engineering"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Conn or Engineering by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses.", "examples": ["Astronavigation", "Bureaucracy", "Emergency Repairs", "Extra-Vehicular Activity", "Helm Operations", "Logistics", "Propulsion Systems", "Small Craft", "Starship Recognition", "Transporters & Replicators"] },
+      "source": { "book": "Captain's Log", "page": 120 }
+    },
+    {
+      "id": "lawEnforcement",
+      "category": "civilian",
+      "name": "Law Enforcement",
+      "roll": "4-6",
+      "description": "You work to protect people in your local community, keeping the peace, arbitrating disputes, and confronting those who seek to exploit or do harm to others. Such groups normally exist on frontier worlds and independent settlements far from the stability of the Federation. On the main worlds of the Federation, Starfleet security personnel fill this role during emergencies, but law enforcement isn’t typically a concern on worlds where crime no longer exists.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their career, or the beliefs that drove them to take up that career in the first place.",
+      "attributes": { "required": null, "text": "These may be chosen freely." },
+      "disciplines": { "major": ["command", "security"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Command or Security by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses.", "examples": ["Hand-to-Hand Combat", "Interrogation", "Intimidation", "Law", "Phasers", "Small Craft"] },
+      "source": { "book": "Captain's Log", "page": 121 }
+    },
+    {
+      "id": "physician",
+      "category": "civilian",
+      "name": "Physician",
+      "roll": "7-9",
+      "description": "You’ve devoted your life to healing others. You may be trained as a doctor, a paramedic, a counselor, or you may be a medical researcher rather than a practicing physician, but either way, the goal is to help people who are hurt in some way. Your skills are in demand across explored space, and even civilian-trained physicians can find themselves aboard Starfleet and military ships.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their studies, or which led them to enter medicine in the first place.",
+      "attributes": { "required": null, "text": "These may be assigned freely." },
+      "disciplines": { "major": ["medicine"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Medicine by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses.", "examples": ["Cybernetics", "Emergency Medicine", "Genetics", "Psychiatry", "Surgery", "Virology", "Xenobiology"] },
+      "source": { "book": "Captain's Log", "page": 121 }
+    },
+    {
+      "id": "politicianOrBureaucrat",
+      "category": "civilian",
+      "name": "Politician or Bureaucrat",
+      "roll": "10-12",
+      "description": "You are a civil servant, operating within the structure of a civilization to ensure that it continues to function smoothly and to the benefit of its people. Your role may be narrowly focused upon a specific area of government, or you may be responsible for overseeing large departments or ministries, your decisions impacting millions or even billions of lives. Either way, your role is important, and you take pride in the necessary work you carry out.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their studies, or which led them to enter public service in the first place.",
+      "attributes": { "required": ["insight", "presence"], "text": "At least one of the attributes you increase must be Insight or Presence, as good instincts and a strong personality are valuable for getting into office." },
+      "disciplines": { "major": ["command"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Command by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses, or something related to your role in public service.", "examples": ["Bureaucracy", "Diplomacy", "History", "Linguistics", "Philosophy", "Politics"] },
+      "source": { "book": "Captain's Log", "page": 121 }
+    },
+    {
+      "id": "scientificOrTechnicalExpert",
+      "category": "civilian",
+      "name": "Scientific or Technical Expert",
+      "roll": "13-15",
+      "description": "You pursue scientific truth or technological progress, seeking to become your generation’s Zefram Cochrane, Emory Erickson, Leah Brahms, or Richard Daystrom. You probably specialize in a single field of scientific study or technical expertise, or a small number of related fields. You may end up working with Starfleet or a military, but this is more because they are interested in your work, rather than you serving their goals.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their studies, or which led them to pursue science or engineering in the first place.",
+      "attributes": { "required": ["reason"], "text": "At least one of the attributes you increase must be Reason, as nobody gets far in science or engineering without a keen intellect." },
+      "disciplines": { "major": ["science", "engineering"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Science or Engineering by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses.", "examples": ["Astrophysics", "Botany", "Cybernetics", "Exotectonics", "Genetics", "Quantum Mechanics", "Subspace Mechanics", "Temporal Mechanics", "Transporters and Replicators", "Warp Field Dynamics"] },
+      "source": { "book": "Captain's Log", "page": 122 }
+    },
+    {
+      "id": "traderOrMerchant",
+      "category": "civilian",
+      "name": "Trader or Merchant",
+      "roll": "16-18",
+      "description": "You exchange money for goods or services. Within the Federation, the actual transactions are a trivial matter, but other civilizations still make more overt use of money, with gold-pressed latinum serving as a common economic standard, easily exchanged for the Cardassian lek, Bajoran lita, or Klingon darsek. You’re a part of the galactic economy, providing a service or trading in valuable goods (or both) in exchange for latinum, currency, or other goods or services.",
+      "valueText": "You gain a single value, which should reflect the character’s beliefs developed during their career, or which led them to become a merchant in the first place.",
+      "attributes": { "required": ["insight", "presence"], "text": "One of the attributes you increase must be Insight or Presence, as a successful trader is often a “people person.”" },
+      "disciplines": { "major": ["command"], "minor": { "count": 2, "options": "others" }, "swap": true, "text": "You increase your Command by 2, and two other disciplines by 1 each. In addition, you may reduce one of your other disciplines by 1 and add that point to any discipline not already increased." },
+      "focus": { "text": "You select three focuses.", "examples": ["Art", "Cooking", "Disruptors", "Economics", "Logistics", "Persuasion", "Psychology", "Tailoring"] },
+      "source": { "book": "Captain's Log", "page": 122 }
+    }
+  ]
+}

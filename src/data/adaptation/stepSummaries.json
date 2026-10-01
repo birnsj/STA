@@ -1,0 +1,105 @@
+{
+  "note": "Copy for the Step Complete popups (screens 1-7). 'concepts' and each step's 'grants' paraphrase Captain's Log (pages cited). 'why' and 'closing' are prototype explanatory copy and add no rules. Choices, numbers, and book descriptions come from the character and the content data, never from this file.",
+  "cumulative": {
+    "text": "Every character starts with 7 in each attribute and 1 in each discipline. Each lifepath step adds to those scores; the gains are cumulative.",
+    "pages": [91]
+  },
+  "concepts": {
+    "attribute": {
+      "title": "Attributes",
+      "text": "Your character's physical and mental capabilities, and the way they approach problems. For humanoids they run from 7 to 12; 8 is average.",
+      "pages": [74]
+    },
+    "discipline": {
+      "title": "Disciplines",
+      "text": "Broad areas of training and professional expertise, matching a starship's departments.",
+      "pages": [79]
+    },
+    "focus": {
+      "title": "Focuses",
+      "text": "Narrower specialties that come from deeper study and practical experience: activities where your character shines. A focus is not tied to any one discipline; it helps with any task it would logically benefit.",
+      "pages": [84]
+    },
+    "value": {
+      "title": "Values",
+      "text": "Short statements of your character's core beliefs and convictions. A value is not a number: it explains why your character acts as they do, can give them an extra push in difficult situations, and can change as they grow.",
+      "pages": [88]
+    },
+    "trait": {
+      "title": "Traits",
+      "text": "Enduring facts about your character's nature. Every character has at least one trait: their species. A trait can provide advantages or complications, depending on the situation.",
+      "pages": [74, 92]
+    }
+  },
+  "images": {
+    "note": "Optional popup art, as paths into public/ with {id} replaced by the chosen card's id. Missing files show the placeholder. Career and Career History reuse their screens' art; Finishing Touches shows the chosen portrait.",
+    "species": "/assets/summary/species/{id}.png",
+    "environment": "/assets/summary/environment/{id}.png",
+    "earlyOutlook": "/assets/summary/early-outlook/{id}.png",
+    "education": "/assets/summary/education/{id}.png"
+  },
+  "steps": {
+    "species": {
+      "bookStep": "Book Step One",
+      "grants": "Your species is your character's first trait, and it raises three different attributes by 1.",
+      "pages": [74, 91],
+      "why": [
+        "Species makes the first changes to the universal starting scores, so your character already leans toward certain approaches before anything else happens to them.",
+        "Your species is also your first trait. It stays with your character for good and can matter in play, helping in one situation and complicating another."
+      ]
+    },
+    "environment": {
+      "bookStep": "Book Step Two",
+      "grants": "Where and how your character was raised: one Setting or one Condition. It gives +1 to one attribute, +1 to one discipline, and one value.",
+      "pages": [103],
+      "why": [
+        "Environment is the second layer on top of your species. Its attribute and discipline points show how your surroundings shaped your abilities; its value shows how they shaped your worldview."
+      ]
+    },
+    "earlyOutlook": {
+      "bookStep": "Book Step Three",
+      "grants": "Your childhood, formative experiences, and key influences. It gives three attribute points (the split depends on the path you chose), +1 to one discipline, and one focus.",
+      "pages": [107],
+      "why": [
+        "The path matters: the same outlook raises different attributes depending on whether your character accepted or rebelled against it, or pursued or gave up an aspiration. That response is part of who they became.",
+        "Your focus here is one of the first specialties on your sheet: something your character picked up while growing up."
+      ]
+    },
+    "education": {
+      "bookStep": "Book Step Four",
+      "grants": "Your training before your career. Each option gives three attribute points, four discipline points (+2 to one, then +1s), three focuses, and one value.",
+      "pages": [115],
+      "why": [
+        "Education is the largest single step: attributes, disciplines, focuses, and a value all at once. It is where your character's professional profile takes shape.",
+        "Your +2 discipline marks the area your training concentrated on; the +1s show the breadth around it."
+      ]
+    },
+    "career": {
+      "bookStep": "Book Step Five",
+      "grants": "How long your career has run. It gives one value, arising from your character's career outlook. It changes no scores.",
+      "pages": [122],
+      "assignmentNote": "Assignment and rank come from Book Step Seven (pp.130-132). Your assignment is your role aboard ship and sets your department; your rank is your place in the chain of command. Neither changes any scores.",
+      "noviceNote": "Prototype rule: a Novice can't take the senior roles (Commanding Officer, Executive Officer, or a department chief), and their rank is capped at Lieutenant (junior grade), or Petty Officer for enlisted characters.",
+      "why": [
+        "Career length records where your character is in their working life. Its value captures the outlook that experience (or the lack of it) has given them so far."
+      ]
+    },
+    "careerHistory": {
+      "bookStep": "Book Step Six",
+      "grants": "Defining events in your career. Each event gives +1 to one attribute, +1 to one discipline, and one focus. You have two.",
+      "pages": [123],
+      "why": [
+        "These are the pivotal moments of your character's history. Each one explains specific points on your sheet: an attribute, a discipline, and a focus that grew out of what happened."
+      ]
+    },
+    "finishingTouches": {
+      "bookStep": "Book Step Seven",
+      "grants": "One final value, and +1 to two different attributes and two different disciplines, kept within the limits of a finished starting character.",
+      "pages": [129],
+      "why": [
+        "Finishing Touches rounds out the character and applies the limits of a finished starting character: a score over the maximum is brought down, and the extra points are moved to other scores."
+      ],
+      "closing": "Your lifepath is now complete. Screen 8 will assemble these cumulative choices into your finished character record."
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "03.10 Focuses - Probability Matrixes",
+    "pages": [85, 86, 87, 88]
+  },
+  "note": "Each division lists its two d20 halves in book order (1-20 then 1-20). Some entries appear under more than one division, as in the book.",
+  "divisions": [
+    {
+      "id": "command",
+      "name": "Command",
+      "focuses": [
+        "Art", "Bargain", "Call to Action", "Cold Reading", "Composure", "Coordinated Efforts", "Courting Rituals", "Cultural Expert", "Debate", "Deception",
+        "Decisive Leadership", "Diplomacy", "Emotional Intelligence", "Etiquette", "Fleet Commander", "Gambling", "History", "Inspiration", "Intimidation", "Journalism",
+        "Law", "Lead by Example", "Linguistics", "Mental Discipline", "Multi-Discipline", "Negotiation", "Oratory", "Performer", "Persuasion", "Philosophy",
+        "Politics", "Prime Directive", "Reporting Procedures", "Rhetoric", "Starfleet Protocol", "Station Operations", "Strategy/Tactics", "Teaching", "Team Dynamics", "Time Management"
+      ]
+    },
+    {
+      "id": "conn",
+      "name": "Conn",
+      "focuses": [
+        "Astronavigation", "Astronomy", "Astrophysics", "Atmospheric Flight", "Attack Run", "Boat Pilot / Submersibles", "Climbing", "Combat Maneuvers", "Communication Systems", "Covering Advance",
+        "Efficient Evasion", "Evacuation Procedures", "Evasive Action", "Extra-Vehicular Activity", "Flight Controller", "Glancing Impact", "Ground Vehicles", "Guidance Systems", "Helm Operations", "Impulse Engines",
+        "Multi-Tasking", "Pathfinder", "Power Management", "Precision Maneuvering", "Repairs and Maintenance", "Ship Design and Construction", "Shuttlebay Management", "Small Craft", "Space Station Operations", "Spacewalk",
+        "Starfleet Protocols", "Starship Expert (pick one)", "Starship Recognition", "Stellar Cartography", "Strafing Run", "Subspace Theory", "Survival", "Tracking", "Warp Drive", "Zero-G Combat"
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "focuses": [
+        "Ambush Tactics", "Blade Weapons", "Camouflage", "Chemical and Biological Weapons", "Combat Medic", "Computer Security Systems", "Criminal Minds", "Criminal Organizations", "Crisis Management", "Deadeye Marksman",
+        "Deflector Operations", "Demolitions", "Espionage", "Evacuation Procedures", "Fleet Formations", "Forensics", "Forgery", "Hand Phasers", "Hazardous Environments", "Heavy Cover",
+        "Interrogation", "Intimidation", "Klingon Weapons", "Law Enforcement", "Lead Investigator", "Martial Arts", "Mental Resistance Techniques", "Organizational Psychology", "Patrol", "Phasers",
+        "Pickpocketing", "Planetary Surveys", "Precision Targeting", "Security Systems", "Ship Engagement Tactics", "Ship Lockdown Procedures", "Small Unit Tactics", "Strategy", "Targeting Systems", "Torpedoes"
+      ]
+    },
+    {
+      "id": "engineering",
+      "name": "Engineering",
+      "focuses": [
+        "Advanced Holograms", "Artificial Intelligence Systems", "Cybernetics", "Deflector Systems", "Diagnostics", "Electro-Plasma Systems", "Emergency Repairs", "Energy Weapons", "EVA Suits", "Experimental Device (specify type)",
+        "Exploit Engineering Flaw", "Flight Control Systems", "Force Fields", "Holodeck Programming", "Imaging Equipment", "Impulse Fundamentals", "Jury-Rigging", "Locksmith", "Maintenance Specialist", "Manufacturing",
+        "Meticulous", "Mining Operations", "Modeling & Design", "Percussive Maintenance", "Procedural Compliance", "Propulsion", "Repair Team Leader", "Reverse Engineering", "Saboteur", "Salvage",
+        "Sensor Calibration", "Shuttlecraft Maintenance", "Space Stations", "Structural Engineering", "Subspace Mechanics", "System Maintenance", "Transporters/Replicators", "Troubleshooting", "Warp Core Mechanics", "Weapons Engineering"
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "focuses": [
+        "Animal Behavior", "Anthropology", "Archaeology", "Astrometrics", "Biochemistry", "Biology/Xenobiology", "Botany/Xenobotany", "Catastrophism", "Chemistry", "Computer Science",
+        "Deflector Operations", "Ecology", "Expedition Expert", "Galactic History", "Geology", "Laboratory Maintenance", "Marine Biology", "Matter/Antimatter", "Meteorology", "Microbiology",
+        "Nanotechnology", "Photonic Applications", "Physics", "Prototyping", "Quantum Consciousness", "Quantum Mechanics", "Rapid Analysis", "Research", "Sensor Operations", "Sociology",
+        "Specific Historical Time Period", "Starfleet Programming", "Subspace Theory", "Temporal Mechanics", "Terraforming", "Unconventional Thinking", "Unified Field Theory", "Unorthodox Mathematics", "Walking Encyclopedia", "Warp Theory"
+      ]
+    },
+    {
+      "id": "medicine",
+      "name": "Medicine",
+      "focuses": [
+        "Alternative Medicine", "Anesthesia/Pain Management", "Bedside Manner", "Biochemistry", "Biology/Xenobiology", "Biotechnology", "Chemistry", "Counseling", "Cutting-Edge Medicine", "Cybernetics",
+        "Dentistry", "Diagnostic Expertise", "Emergency Medicine", "Ethics", "Field Medic", "First Aid", "Genetics", "Guided Therapy", "Imaging Systems", "Immunology",
+        "Internal Medicine", "Kinesiology", "Medical Toxicology", "Microbiology", "Neuropsychology/Psychiatry", "Parapsychology", "Pathology", "Patient Care", "Pediatrics", "Pharmacology",
+        "Positive Reinforcement", "Psychiatry", "Psychoanalysis", "Psychosomatic Disorders", "Rheumatology", "Stress Disorders", "Surgery", "Triage", "Veterinary Medicine", "Virology"
+      ]
+    }
+  ]
+}

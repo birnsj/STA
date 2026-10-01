@@ -1,0 +1,224 @@
+import { useCharacter } from '../character/CharacterContext.jsx'
+import {
+  getAssignmentBlock,
+  getAssignmentById,
+  getAssignments,
+  getCareerLengthById,
+  getCareerLengths,
+  getCareerRequirements,
+  getDepartmentFor,
+  getDepartments,
+  getMinimumRank,
+  getRankOptions,
+  getRankType,
+  isAboveNoviceCap,
+  getValueMatrix,
+  isCustomValueAllowed,
+  isDepartmentChoice,
+  isRankAllowed,
+} from '../rules/career.js'
+import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
+import { areAllMet, getLockedSections } from '../rules/requirements.js'
+import CardCarousel from '../components/CardCarousel.jsx'
+import ChoiceList from '../components/ChoiceList.jsx'
+import { getAssignmentTip, getRankTip } from '../rules/infoTips.js'
+import HelpTip from '../components/HelpTip.jsx'
+import MechanicsColumn from '../components/MechanicsColumn.jsx'
+import Portrait from '../components/Portrait.jsx'
+import ScreenFooter from '../components/ScreenFooter.jsx'
+import ValuePicker from '../components/ValuePicker.jsx'
+
+// Rank type comes from Education (see career.json rankTypeByEducation).
+const RANK_INSTRUCTIONS = {
+  officer: (minimum) => `Choose your rank. Minimum: ${minimum.name}.`,
+  optional: (minimum) => `Diplomats may hold a rank or none. Minimum if ranked: ${minimum.name}.`,
+  enlisted: () => 'Rank and File training makes you enlisted. Choose your rate.',
+  none: () => 'Civilians hold no rank.',
+}
+
+function DepartmentPicker({ department, onSelect }) {
+  return (
+    <select
+      className={`env-select career-department-select${department ? '' : ' is-missing'}`}
+      aria-label="Department"
+      value={department?.id ?? ''}
+      onChange={(event) => onSelect(event.target.value)}
+    >
+      <option value="" disabled>Choose a department…</option>
+      {getDepartments().map((entry) => (
+        <option key={entry.id} value={entry.id}>{entry.name}</option>
+      ))}
+    </select>
+  )
+}
+
+function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepartment }) {
+  return (
+    <div className={`panel env-column career-assignment-details${locked ? ' is-locked' : ''}`} inert={locked}>
+      <h3 className="env-column-title"><HelpTip helpId="assignmentDetails">Assignment Details</HelpTip></h3>
+      <div className="env-column-body">
+        {assignment ? (
+          <>
+            <p className="career-detail-name">{assignment.name}</p>
+            {isDepartmentChoice(career) ? (
+              <>
+                <p className="career-detail-line">
+                  <span className="education-book-label">Department:</span> None stated in the book — choose one.
+                </p>
+                <DepartmentPicker department={career.department} onSelect={onSelectDepartment} />
+              </>
+            ) : (
+              <p className="career-detail-line">
+                <span className="education-book-label">Department:</span> {getDepartmentFor(assignment.id)?.name}
+              </p>
+            )}
+            {rankType !== 'enlisted' && rankType !== 'none' && (
+              <p className="career-detail-line">
+                <span className="education-book-label">Minimum rank:</span> {getMinimumRank(assignment.id).name}
+                {rankType === 'optional' && ' (if ranked)'}
+              </p>
+            )}
+            <p className="education-detail-description">{assignment.description}</p>
+            <p className="source-ref">Captain's Log, p.{assignment.source.page}</p>
+          </>
+        ) : (
+          <p className="education-detail-description">Select an assignment to see its details.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function CareerScreen({ step, navigation }) {
+  const { character, dispatch } = useCharacter()
+  const { career } = character
+  const requirements = getCareerRequirements(character)
+  const locked = getLockedSections(requirements)
+
+  const length = getCareerLengthById(career.length?.id)
+  const lengthCard = getCareerLengths().find((entry) => entry.id === length?.id)
+  const assignment = getAssignmentById(career.assignment?.id)
+  const minimumRank = assignment ? getMinimumRank(assignment.id) : null
+  const rankType = getRankType(character)
+
+  return (
+    <section className="screen">
+      <div className="screen-title">
+        <span className="screen-number">{step.number}</span>
+        <div>
+          <h1 className={`screen-heading${requirements.length ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
+          <p className="screen-intro">
+            Choose how long your career has run, then your assignment and rank. Your career length gives you one Value; your assignment sets your department.
+          </p>
+        </div>
+      </div>
+
+      <CardCarousel
+        label="Career length"
+        variant={`carousel-environment${requirements.length ? '' : ' is-missing'}`}
+        items={getCareerLengths()}
+        selectedId={length?.id ?? null}
+        onSelect={(lengthId) => dispatch({ type: 'selectCareerLength', lengthId })}
+      />
+
+      <div className="species-details env-details panel">
+        <Portrait label={length?.name} image={lengthCard?.image} className="portrait-detail" />
+        <div className="species-details-text">
+          <h2 className="species-details-name">{length?.name ?? 'No career length selected'}</h2>
+          <p>{length?.description ?? 'Select a career length above.'}</p>
+          {length && (
+            <>
+              <p className="career-value-prompt">
+                <span className="education-book-label">Value:</span> {length.valuePrompt}
+              </p>
+              <p className="source-ref">Captain's Log, p.{length.source.page} · Roll {length.roll}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="env-mechanics career-mechanics">
+        {/* Values are remembered per length (choiceMemory.js), so a value chosen before a length would be lost. */}
+        <MechanicsColumn
+          number="1"
+          title="Career Value"
+          helpId="careerValue"
+          instruction={length ? `Choose a value that fits your career length${isCustomValueAllowed() ? ', or write your own' : ''}.` : 'Select a career length to choose its Value.'}
+          instructionLines={3}
+          met={requirements.value}
+          locked={locked.value}
+        >
+          {length && (
+            <ValuePicker
+              value={career.value}
+              matrix={getValueMatrix()}
+              allowCustom={isCustomValueAllowed()}
+              onSelectMatrix={(valueId) => dispatch({ type: 'selectCareerMatrixValue', valueId })}
+              onCustomChange={(text) => dispatch({ type: 'setCareerCustomValue', text })}
+              heldElsewhere={getValuesHeldElsewhere(character, 'career')}
+            />
+          )}
+        </MechanicsColumn>
+
+        <MechanicsColumn
+          number="2"
+          title="Assignment"
+          helpId="careerAssignment"
+          instruction="Choose your role aboard ship. It sets your department."
+          instructionLines={3}
+          met={requirements.assignment}
+          locked={locked.assignment}
+        >
+          <ChoiceList
+            label="Assignment"
+            options={getAssignments().map((entry) => {
+              const block = getAssignmentBlock(character, entry.id)
+              return {
+                id: entry.id,
+                label: entry.name,
+                suffix: block ?? getDepartmentFor(entry.id)?.name ?? 'Choose',
+                disabled: Boolean(block),
+                tip: getAssignmentTip(entry, block),
+              }
+            })}
+            selectedId={assignment?.id}
+            onSelect={(assignmentId) => dispatch({ type: 'selectCareerAssignment', assignmentId })}
+          />
+        </MechanicsColumn>
+
+        <AssignmentDetails
+          assignment={assignment}
+          career={career}
+          rankType={rankType}
+          locked={locked.assignment}
+          onSelectDepartment={(departmentId) => dispatch({ type: 'selectCareerDepartment', departmentId })}
+        />
+
+        <MechanicsColumn
+          number="3"
+          title="Rank"
+          helpId="careerRank"
+          instruction={assignment ? RANK_INSTRUCTIONS[rankType](minimumRank) : 'Select an assignment to choose a rank.'}
+          instructionLines={3}
+          met={requirements.rank}
+          locked={locked.rank}
+        >
+          <ChoiceList
+            label="Rank"
+            options={[...getRankOptions(character)].reverse().map((rank) => ({
+              id: rank.id,
+              label: rank.name,
+              disabled: !isRankAllowed(character, rank.id),
+              suffix: isAboveNoviceCap(character, rank.id) ? 'Not for Novice' : undefined,
+              tip: getRankTip(rank.id),
+            }))}
+            selectedId={career.rank?.id}
+            onSelect={(rankId) => dispatch({ type: 'selectCareerRank', rankId })}
+          />
+        </MechanicsColumn>
+      </div>
+
+      <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />
+    </section>
+  )
+}

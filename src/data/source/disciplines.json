@@ -1,0 +1,16 @@
+{
+  "source": {
+    "book": "Captain's Log 2026",
+    "section": "03.10 A Career in Starfleet - Disciplines",
+    "page": 79
+  },
+  "note": "Descriptions are the book's defining sentences, lightly trimmed.",
+  "disciplines": [
+    { "id": "command", "name": "Command", "page": 80, "description": "Covers leadership, negotiation, coordinating and motivating others, personal discipline, and resisting coercion, along with a variety of other social skills." },
+    { "id": "conn", "name": "Conn", "page": 80, "description": "About spacecraft and the practicalities of living and working in space: plotting courses, piloting, operating vehicles, spacefaring traditions and protocols, and how spatial phenomena affect travel." },
+    { "id": "engineering", "name": "Engineering", "page": 81, "description": "About technology: designing, building, maintaining, understanding, and operating it, and making sure it produces the desired results." },
+    { "id": "security", "name": "Security", "page": 81, "description": "About safety, protection, and survival, but most importantly about violence: watching for it, understanding it, defending against it, and employing it." },
+    { "id": "science", "name": "Science", "page": 82, "description": "The pursuit and application of knowledge, from advanced mathematics, subspace theory, and temporal mechanics to anthropology and sociology." },
+    { "id": "medicine", "name": "Medicine", "page": 83, "description": "A distinct discipline alongside Science, less about knowledge and more about the result: healing those who are injured or sick." }
+  ]
+}
