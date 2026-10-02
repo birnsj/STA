@@ -30,3 +30,6 @@ music/
 *.njsproj
 *.sln
 *.sw?
+
+# Netlify CLI local site link
+.netlify
