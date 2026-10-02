@@ -1,6 +1,6 @@
 import HelpTip from './HelpTip.jsx'
 
-export default function Header({ subtitle = 'Character Creation', subtitleHelpId, onQuit }) {
+export default function Header({ subtitle = 'Character Creation', subtitleHelpId }) {
   return (
     <header className="header">
       <div className="header-brand">
@@ -17,11 +17,6 @@ export default function Header({ subtitle = 'Character Creation', subtitleHelpId
         <span className="bar bar-yellow" />
         <span className="bar bar-red bar-thin" />
       </div>
-      {onQuit && (
-        <button type="button" className="header-quit" onClick={onQuit} title="Return to the Main Menu.">
-          Quit
-        </button>
-      )}
       <div className="header-affiliation">
         <div className="header-affiliation-title">United Federation of Planets</div>
         <div className="header-affiliation-motto">Exploration ◆ Diplomacy ◆ Science</div>

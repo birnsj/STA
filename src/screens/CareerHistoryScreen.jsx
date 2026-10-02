@@ -90,7 +90,7 @@ export default function CareerHistoryScreen({ step, navigation }) {
   const eventCard = carouselItems.find((entry) => entry.id === event?.id)
 
   return (
-    <section className="screen">
+    <section className="screen career-history-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>

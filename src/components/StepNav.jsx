@@ -11,7 +11,9 @@ export default function StepNav({ steps, currentStepId, completedStepIds, onSele
         const isComplete = completedStepIds.includes(step.id)
         const isNextUnfinished = index === firstIncompleteIndex
         const isSelectable = !isActive && (isComplete || isNextUnfinished)
-        const className = `step-nav-item${isActive ? ' is-active' : ''}${isSelectable && isComplete ? ' is-complete' : ''}`
+        // Review isn't "complete" until confirmed, but once every step before it is done it looks complete so the player sees it's clickable.
+        const looksComplete = isSelectable && (isComplete || (isNextUnfinished && index === steps.length - 1))
+        const className = `step-nav-item${isActive ? ' is-active' : ''}${looksComplete ? ' is-complete' : ''}`
         const content = (
           <>
             <span className="step-nav-number">{step.number}</span>
@@ -19,7 +21,7 @@ export default function StepNav({ steps, currentStepId, completedStepIds, onSele
               <span className="step-nav-title">{step.title}</span>
               <span className="step-nav-subtitle">{step.subtitle}</span>
             </span>
-            {isSelectable && isComplete && <span className="step-nav-check" aria-label="Completed">✓</span>}
+            {looksComplete && <span className="step-nav-check" aria-label="Completed">✓</span>}
           </>
         )
         return isSelectable ? (

@@ -53,7 +53,7 @@ export default function EnvironmentScreen({ step, navigation }) {
     dispatch(isSettingTab ? { type: 'selectEnvironmentSetting', settingId: id } : { type: 'selectEnvironmentCondition', conditionId: id })
 
   return (
-    <section className="screen">
+    <section className="screen environment-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>

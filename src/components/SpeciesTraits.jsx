@@ -39,14 +39,16 @@ export default function SpeciesTraits({ selection, genderId, onParentChange, onN
 
   if (isMixedHeritage(species)) {
     return (
-      <div className="species-traits">
+      <div className="species-traits is-mixed">
         <div className="parent-selects">
           <ParentCarousel selection={selection} index={0} genderId={genderId} onChange={onParentChange} />
           <ParentCarousel selection={selection} index={1} genderId={genderId} onChange={onParentChange} />
         </div>
-        {selection.traits.map((trait) => (
-          <Trait key={trait.id} name={trait.name} text={getTraitDescription(selection)} />
-        ))}
+        <div className="mixed-traits">
+          {selection.traits.map((trait) => (
+            <Trait key={trait.id} name={trait.name} text={getTraitDescription(selection)} />
+          ))}
+        </div>
       </div>
     )
   }

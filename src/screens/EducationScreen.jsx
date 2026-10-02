@@ -75,13 +75,15 @@ export default function EducationScreen({ step, navigation }) {
   const locked = getLockedSections(requirements)
 
   return (
-    <section className="screen">
+    <section className="screen education-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
           <h1 className={`screen-heading${requirements.option ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
             Choose your education. This reflects your formal training and academic background, as defined in Captain's Log.
+            <br />
+            Your education provides the benefits defined in Captain's Log. Final Attribute values are assigned later (total must equal 56).
           </p>
         </div>
       </div>
@@ -226,10 +228,6 @@ export default function EducationScreen({ step, navigation }) {
           )}
         </MechanicsColumn>
       </div>
-
-      <p className="screen-note panel">
-        Note: Your education provides the benefits defined in Captain's Log. Final Attribute values are assigned later (total must equal 56).
-      </p>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />
     </section>

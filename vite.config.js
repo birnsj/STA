@@ -8,6 +8,6 @@ export default defineConfig({
   base: './',
   server: {
     // Media, PDFs and packaged builds aren't app code; watching them crashes the server when another program locks a file.
-    watch: { ignored: ['**/music/**', '**/reference/**', '**/release/**', '**/dist/**'] },
+    watch: { ignored: ['**/music/**', '**/reference/**', '**/extracted-art/**', '**/release/**', '**/dist/**'] },
   },
 })

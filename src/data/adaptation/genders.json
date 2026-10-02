@@ -1,10 +1,12 @@
 {
   "notes": [
     "Prototype: gender is a presentation/art choice only. It picks which portrait set is shown and has no effect on attributes, disciplines, values, focuses, traits, or any Captain's Log mechanic.",
-    "Book: Captain's Log has no gender step; p.132 asks only for pronouns, which stay a separate, free-text field and are never derived from or forced to match gender."
+    "Book: Captain's Log has no gender step; p.132 asks only for pronouns, which stay a separate, free-text field and are never derived from or forced to match gender.",
+    "anyPortrait: this gender may use every portrait for the species, regardless of the portrait's gender."
   ],
   "genders": [
     { "id": "male", "name": "Male" },
-    { "id": "female", "name": "Female" }
+    { "id": "female", "name": "Female" },
+    { "id": "other", "name": "Other", "anyPortrait": true }
   ]
 }

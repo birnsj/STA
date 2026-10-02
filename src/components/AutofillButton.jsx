@@ -5,7 +5,7 @@ export default function AutofillButton() {
   const { dispatch } = useCharacter()
   return (
     <button type="button" className="dev-button" onClick={() => dispatch({ type: 'autofill' })}>
-      Autofill (dev)
+      Autofill
     </button>
   )
 }

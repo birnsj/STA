@@ -14,6 +14,8 @@ import * as educationRules from './education.js'
 import * as careerRules from './career.js'
 import * as historyRules from './careerHistory.js'
 import * as finishingRules from './finishingTouches.js'
+import { getCardTip, getRankTip, getScoreTip } from './infoTips.js'
+import { getConceptHelp, getSectionHelp } from './sectionHelp.js'
 
 // Builds the Step Complete popup content for screens 1-7 from the canonical character. Plain data only:
 // the modal renders it and calculates nothing itself.
@@ -128,11 +130,11 @@ function speciesSummary(character) {
       ? `${definition.name} species bonus`
       : 'One of the three attributes you chose for your species'
   const choices = [
-    { label: 'Species', value: name },
-    { label: 'Gender', value: character.identity.gender?.name },
+    { label: 'Species', value: name, tip: getCardTip(definition) },
+    { label: 'Gender', value: character.identity.gender?.name, tip: getSectionHelp('speciesGender') },
     ...(species.parents ? [{ label: 'Parents', value: species.parents.filter(Boolean).map((parent) => parent.name).join(' and ') }] : []),
-    { label: 'Attribute bonuses', value: bonusList(species.attributeBonuses) },
-    { label: species.traits.length > 1 ? 'Species traits' : 'Species trait', value: species.traits.map((trait) => trait.name).join(', ') },
+    { label: 'Attribute bonuses', value: bonusList(species.attributeBonuses), tip: getConceptHelp('attribute') },
+    { label: species.traits.length > 1 ? 'Species traits' : 'Species trait', value: species.traits.map((trait) => trait.name).join(', '), tip: getConceptHelp('trait') },
   ]
   const meaning = isMixedHeritage(definition)
     ? species.parents.filter(Boolean).map((parent) => ({ title: parent.name, text: getSpeciesById(parent.id).description, source: bookPage(getSpeciesById(parent.id).source.page) }))
@@ -167,11 +169,13 @@ function environmentSummary(character) {
   return {
     image: { src: fillPattern(summaryCopy.images.environment, entry.id), label: entry.name },
     choices: [
-      { label: kindLabel, value: entry.name },
-      ...(environment.otherSpecies ? [{ label: 'Raised among', value: environment.otherSpecies.name }] : []),
-      { label: 'Attribute', value: bonusList([environment.attributeBonus]) },
-      { label: 'Discipline', value: bonusList([environment.disciplineBonus]) },
-      { label: 'Value', value: environment.value.text.trim() },
+      { label: kindLabel, value: entry.name, tip: getCardTip(entry) },
+      ...(environment.otherSpecies
+        ? [{ label: 'Raised among', value: environment.otherSpecies.name, tip: getCardTip(getSpeciesById(environment.otherSpecies.id)) }]
+        : []),
+      { label: 'Attribute', value: bonusList([environment.attributeBonus]), tip: getScoreTip(environment.attributeBonus?.id) },
+      { label: 'Discipline', value: bonusList([environment.disciplineBonus]), tip: getScoreTip(environment.disciplineBonus?.id) },
+      { label: 'Value', value: environment.value.text.trim(), tip: getConceptHelp('value') },
     ],
     meaning: [{ title: entry.name, text: entry.description, source: bookPage(entry.source?.page) }],
     groups: [
@@ -193,12 +197,12 @@ function earlyOutlookSummary(character) {
   return {
     image: { src: fillPattern(summaryCopy.images.earlyOutlook, outlook.id), label: outlook.name },
     choices: [
-      { label: 'Approach', value: approach.name },
-      { label: 'Outlook', value: outlook.name },
-      { label: 'Response', value: path.name },
-      { label: 'Attributes', value: bonusList(earlyOutlook.attributeBonuses) },
-      { label: 'Discipline', value: bonusList([earlyOutlook.disciplineBonus]) },
-      { label: 'Focus', value: earlyOutlook.focus.name.trim() },
+      { label: 'Approach', value: approach.name, tip: getCardTip(approach) },
+      { label: 'Outlook', value: outlook.name, tip: getCardTip(outlook) },
+      { label: 'Response', value: path.name, tip: path.text ? { title: path.name, text: path.text } : null },
+      { label: 'Attributes', value: bonusList(earlyOutlook.attributeBonuses), tip: getConceptHelp('attribute') },
+      { label: 'Discipline', value: bonusList([earlyOutlook.disciplineBonus]), tip: getScoreTip(earlyOutlook.disciplineBonus?.id) },
+      { label: 'Focus', value: earlyOutlook.focus.name.trim(), tip: getConceptHelp('focus') },
     ],
     meaning: [
       { title: `${outlook.name} (${approach.name})`, text: outlook.description, source: bookPage(outlook.source?.page) },
@@ -233,12 +237,12 @@ function educationSummary(character) {
   return {
     image: { src: fillPattern(summaryCopy.images.education, option.id), label: option.name },
     choices: [
-      { label: 'Education', value: category.name },
-      { label: category.optionLabel, value: option.name },
-      { label: 'Attributes', value: bonusList(education.attributeBonuses) },
-      { label: 'Disciplines', value: bonusList(education.disciplineBonuses) },
-      { label: 'Focuses', value: education.focuses.map((focus) => focus.name.trim()).join(', ') },
-      { label: 'Value', value: education.value.text.trim() },
+      { label: 'Education', value: category.name, tip: getCardTip(category) },
+      { label: category.optionLabel, value: option.name, tip: getCardTip(option) },
+      { label: 'Attributes', value: bonusList(education.attributeBonuses), tip: getConceptHelp('attribute') },
+      { label: 'Disciplines', value: bonusList(education.disciplineBonuses), tip: getConceptHelp('discipline') },
+      { label: 'Focuses', value: education.focuses.map((focus) => focus.name.trim()).join(', '), tip: getConceptHelp('focus') },
+      { label: 'Value', value: education.value.text.trim(), tip: getConceptHelp('value') },
     ],
     meaning: [{ title: `${option.name} (${category.name})`, text: option.description, source: bookPage(option.source?.page) }],
     groups: [
@@ -260,11 +264,11 @@ function careerSummary(character) {
   return {
     image: { src: careerRules.getCareerLengths().find((entry) => entry.id === length.id)?.image ?? null, label: length.name },
     choices: [
-      { label: 'Career length', value: length.name },
-      { label: 'Value', value: career.value.text.trim() },
-      { label: 'Assignment', value: assignment.name },
-      { label: 'Department', value: career.department?.name },
-      { label: 'Rank', value: career.rank?.name },
+      { label: 'Career length', value: length.name, tip: getCardTip(length) },
+      { label: 'Value', value: career.value.text.trim(), tip: getConceptHelp('value') },
+      { label: 'Assignment', value: assignment.name, tip: getCardTip(assignment) },
+      { label: 'Department', value: career.department?.name, tip: getScoreTip(career.department?.id) },
+      { label: 'Rank', value: career.rank?.name, tip: getRankTip(career.rank?.id) ?? getConceptHelp('rank') },
     ],
     meaning: [
       { title: length.name, text: length.description, source: bookPage(length.source?.page) },
@@ -293,7 +297,7 @@ function careerHistorySummary(character) {
   })
   return {
     image: null,
-    choices: character.careerHistory.events.map((slot, index) => ({ label: `Career Event ${index + 1}`, value: slot.event.name })),
+    choices: character.careerHistory.events.map((slot, index) => ({ label: `Career Event ${index + 1}`, value: slot.event.name, tip: getCardTip(chosen[index]) })),
     meaning: chosen.map((event) => ({ title: event.name, text: event.description, source: bookPage(event.source?.page) })),
     groups,
   }
@@ -358,9 +362,9 @@ function finishingSummary(character) {
   return {
     image: { src: portrait?.image ?? null, label: identity.name.trim() || portrait?.name },
     choices: [
-      { label: 'Final value', value: finishingTouches.value.text.trim() },
-      { label: 'Attribute increases', value: nameList(finishingTouches.attributes.increases) },
-      { label: 'Discipline increases', value: nameList(finishingTouches.disciplines.increases) },
+      { label: 'Final value', value: finishingTouches.value.text.trim(), tip: getConceptHelp('value') },
+      { label: 'Attribute increases', value: nameList(finishingTouches.attributes.increases), tip: getConceptHelp('attribute') },
+      { label: 'Discipline increases', value: nameList(finishingTouches.disciplines.increases), tip: getConceptHelp('discipline') },
       { label: 'Name', value: identity.name.trim() },
       ...(identity.pronouns.trim() ? [{ label: 'Pronouns', value: identity.pronouns.trim() }] : []),
       { label: 'Portrait', value: portrait?.name },

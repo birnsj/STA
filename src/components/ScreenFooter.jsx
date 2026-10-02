@@ -1,18 +1,19 @@
-import AutofillButton from './AutofillButton.jsx'
-import ClearButton from './ClearButton.jsx'
-import ExportButton from './ExportButton.jsx'
+import DevButtons from './DevButtons.jsx'
 
-export default function ScreenFooter({ onBack, onNext, onClear, nextLabel, canGoBack, canGoNext, canShowSummary, onShowSummary, showAuto, canAuto, onAuto }) {
+export default function ScreenFooter({ onBack, onQuit, onNext, onClear, nextLabel, canGoBack, canGoNext, canShowSummary, onShowSummary, showAuto, canAuto, onAuto }) {
   return (
     <footer className="screen-footer">
-      <button type="button" className="nav-button nav-back" onClick={onBack} disabled={!canGoBack}>
-        ← Back
-      </button>
-      <div className="dev-buttons">
-        <AutofillButton />
-        <ClearButton onClear={onClear} />
-        <ExportButton />
+      <div className="footer-back">
+        <button type="button" className="nav-button nav-back" onClick={onBack} disabled={!canGoBack}>
+          ← Back
+        </button>
+        {onQuit && (
+          <button type="button" className="nav-button nav-quit" onClick={onQuit} title="Return to the Main Menu.">
+            Quit
+          </button>
+        )}
       </div>
+      <DevButtons onClear={onClear} />
       <div className="footer-forward">
         {showAuto && (
           <button

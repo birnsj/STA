@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { music } from './audio/music.js'
+import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
 import { CharacterProvider, useCharacter } from './character/CharacterContext.jsx'
 import { loadLocation, loadSettings, saveLocation, saveSettings } from './character/persistence.js'
 import {
@@ -77,6 +78,8 @@ function CharacterCreator({ onExit, onConfirmed }) {
     canGoNext: Boolean(nextStep),
     nextLabel: nextStep ? `Next: ${nextStep.title}` : 'Next',
     onBack: () => (previousStep ? setCurrentStepId(previousStep.id) : requestQuit()),
+    // The first screen's Back already returns to the Main Menu, so it has no Quit.
+    onQuit: previousStep ? requestQuit : undefined,
     onNext: () => nextStep && setCurrentStepId(nextStep.id),
     onGoToStep: (stepId) => isKnownStep(stepId) && setCurrentStepId(stepId),
     // Dev: every later screen depends on earlier choices, so a cleared character restarts at the first screen.
@@ -107,7 +110,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
   if (step.id === 'review') {
     return (
       <div className="frame">
-        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" onQuit={requestQuit} />
+        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" />
         <div className="frame-body frame-body-review" inert={quitConfirmOpen}>
           <Screen step={step} navigation={navigation} />
         </div>
@@ -118,8 +121,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
 
   return (
     <div className="frame">
-      {/* The first screen's Back already returns to the Main Menu, so it has no Quit. */}
-      <Header onQuit={previousStep ? requestQuit : undefined} />
+      <Header />
       <div className="frame-body" inert={summaryPopup.open || quitConfirmOpen}>
         <StepNav
           steps={steps}
@@ -162,6 +164,9 @@ function Views() {
     music.start()
     return music.stop
   }, [])
+
+  useEffect(() => setEffectsVolume(audioSettings.effects / 100), [audioSettings.effects])
+  useEffect(() => installUiSounds(), [])
 
   // Create Character always starts a fresh character; saved characters are kept.
   const openView = (nextView) => {

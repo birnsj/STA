@@ -253,11 +253,23 @@ dd {
   transition: border-color 0.2s, color 0.2s;
 }
 
-.main-menu-button:hover,
+.main-menu-button {
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.main-menu-button:not(:disabled):hover,
 .main-menu-button:focus-visible {
   outline: none;
-  border-color: #4f9cf5;
-  color: #6fb2ff;
+  background: #0d2a5c;
+  border-color: #6fb2ff;
+  color: #d6e8ff;
+  box-shadow: 0 0 10px rgba(79, 156, 245, 0.55), inset 0 0 12px rgba(79, 156, 245, 0.25);
+}
+
+/* The colored tab beside a highlighted button brightens with it. */
+.main-menu-row:has(.main-menu-button:not(:disabled):hover) .main-menu-accent,
+.main-menu-row:has(.main-menu-button:focus-visible) .main-menu-accent {
+  filter: brightness(1.3);
 }
 
 .main-menu-button.is-primary {
@@ -269,7 +281,9 @@ dd {
 .main-menu-button.is-primary:hover,
 .main-menu-button.is-primary:focus-visible {
   color: #000;
-  border-color: #ffe08a;
+  background: linear-gradient(90deg, #ffd46a, #f7b733);
+  border-color: #fff0b8;
+  box-shadow: 0 0 12px rgba(247, 183, 51, 0.7);
 }
 
 .main-menu-chevron {
@@ -1155,29 +1169,6 @@ dd {
   background: var(--yellow);
 }
 
-.header-quit {
-  align-self: flex-start;
-  margin-top: 6px;
-  height: 44px;
-  padding: 0 26px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  background: transparent;
-  border: 2px solid var(--red);
-  border-radius: 4px;
-  color: var(--red);
-  cursor: pointer;
-}
-
-.header-quit:hover,
-.header-quit:focus-visible {
-  outline: none;
-  background: var(--red);
-  color: #000;
-}
-
 .header-affiliation {
   text-align: right;
   text-transform: uppercase;
@@ -1545,6 +1536,23 @@ dd {
   height: 152px;
 }
 
+/* Species art is portrait-shaped (4:5, like the summary portrait), so these portraits use that shape uncropped. */
+.species-screen .portrait-card {
+  height: auto;
+  aspect-ratio: 4 / 5;
+}
+
+/* Portrait height plus padding and border; fixed so long descriptions scroll instead of pushing the panels below. */
+.species-screen .species-details {
+  height: 225px;
+}
+
+/* Selected-item portraits are 15% larger than they started (here 140 × 175). */
+.species-screen .portrait-detail {
+  width: 161px;
+  height: 201px;
+}
+
 .species-details-text {
   overflow-y: auto;
   font-size: 17px;
@@ -1573,15 +1581,16 @@ dd {
 }
 
 .species-gender-options {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .species-gender-option {
-  flex: 1;
   padding: 10px 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   background: #040a18;
   border: 2px solid var(--panel-border);
@@ -1654,9 +1663,10 @@ dd {
 }
 
 /* Info boxes (useInfoTip.js) for section titles, cards, and list options. */
+/* Above the step summary overlay (300), which has info boxes of its own. */
 .info-tip {
   position: absolute;
-  z-index: 200;
+  z-index: 400;
   width: 300px;
   display: flex;
   flex-direction: column;
@@ -1771,9 +1781,85 @@ dd {
   min-width: 0;
 }
 
+/* Mixed Heritage: the two parents stacked on the left, the trait text on the right. */
+.species-traits.is-mixed {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+}
+
+/* Only the trait text scrolls; the parent pickers stay in place. */
+.panel-body:has(> .species-traits.is-mixed) {
+  overflow: hidden;
+}
+
+.species-traits.is-mixed .parent-selects {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.species-traits.is-mixed .parent-slot {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  width: 230px;
+}
+
+.mixed-traits {
+  flex: 1;
+  min-width: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 0 6px 0 12px;
+  border-left: 2px solid var(--panel-border);
+}
+
+/* The trait name sits above its text here, leaving the narrow column to the description. */
+.mixed-traits .trait {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+/* Same 4:5 shape as the species cards, as large as fits with both parents stacked in the panel. */
 .portrait-parent {
-  width: 100%;
-  height: 110px;
+  width: 72px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+}
+
+/* Arrows sit beside the small portrait instead of covering it. */
+.parent-slot .portrait-carousel-wrap {
+  margin: 0 30px;
+}
+
+.portrait-parent .portrait-carousel-arrow {
+  width: 24px;
+  height: 36px;
+  font-size: 22px;
+}
+
+.portrait-parent .portrait-carousel-arrow.is-prev {
+  left: -30px;
+}
+
+.portrait-parent .portrait-carousel-arrow.is-next {
+  right: -30px;
+}
+
+.portrait-parent .portrait-carousel-counter {
+  display: none;
+}
+
+.portrait-parent .portrait-label {
+  font-size: 11px;
+}
+
+.portrait-parent .portrait-caption {
+  display: none;
 }
 
 .portrait-unknown-mark {
@@ -1959,13 +2045,29 @@ dd {
 }
 
 .env-details {
-  height: 138px;
+  height: 155px;
 }
 
+/* Selected-item portraits are 15% larger than they started (180 × 114); same shape. */
 .env-details .portrait-detail {
-  height: 114px;
+  width: 207px;
+  height: 131px;
 }
 
+/* Same shape as the scrolling event cards above it (114 × 92), at the same height as the others. */
+.career-history-screen .env-details .portrait-detail {
+  width: auto;
+  aspect-ratio: 114 / 92;
+}
+
+/* Same shape as the detail portrait below it (180:114). */
+.environment-screen .carousel-environment .portrait-card,
+.early-outlook-screen .carousel-environment .portrait-card,
+.education-screen .carousel-environment .portrait-card,
+.career-screen .carousel-environment .portrait-card {
+  height: auto;
+  aspect-ratio: 180 / 114;
+}
 .env-mechanics {
   flex: 1;
   min-height: 0;
@@ -2798,14 +2900,48 @@ dd {
   min-height: 0;
   display: grid;
   grid-template-columns: 390px repeat(3, minmax(0, 1fr));
-  /* The bottom row is taller so Equipment and Focuses fit without scrolling; Values needs little height. */
-  grid-template-rows: 164px 270px minmax(0, 2fr) minmax(0, 3fr);
+  /* Attributes and Disciplines rows take their natural height; Equipment and Focuses get the rest. */
+  grid-template-rows: 164px auto auto minmax(0, 1fr);
   grid-template-areas:
-    'left identity origin education'
-    'left attributes disciplines career'
-    'left history values traits'
-    'left history focuses notes';
+    'left identity traits right'
+    'left attributes traits right'
+    'left disciplines values right'
+    'left focuses values right';
   gap: 12px;
+}
+
+/* Values keeps its natural height so Equipment gets the rest of the column for larger icons. */
+.review-values-equipment {
+  grid-area: values;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-values-equipment > .review-area-values {
+  flex: 0 0 auto;
+}
+
+.review-values-equipment > .review-area-notes {
+  flex: 1 1 auto;
+}
+
+/* The lifepath panels stack on their own, so Career Events can take its natural height instead of a shared row's. */
+.review-right-column {
+  grid-area: right;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-right-column > .review-panel {
+  flex: 1 1 auto;
+}
+
+.review-right-column > .review-area-history {
+  flex: 0 0 auto;
 }
 
 .review-identity-column {
@@ -2817,17 +2953,10 @@ dd {
 }
 
 .review-area-identity { grid-area: identity; }
-.review-area-origin { grid-area: origin; }
-.review-area-education { grid-area: education; }
 .review-area-attributes { grid-area: attributes; }
 .review-area-disciplines { grid-area: disciplines; }
-.review-area-career { grid-area: career; }
-.review-area-history { grid-area: history; }
-.review-area-values { grid-area: values; }
 .review-area-focuses { grid-area: focuses; }
 .review-area-traits { grid-area: traits; }
-.review-area-notes { grid-area: notes; }
-
 .review-area-attributes > .review-panel,
 .review-area-disciplines > .review-panel {
   height: 100%;
@@ -3006,14 +3135,15 @@ dd {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
+/* Compact enough that Attributes, Disciplines and Equipment stack in one column without scrolling. */
 .review-score {
   display: flex;
   justify-content: space-between;
-  padding: 3px 10px;
-  font-size: 15px;
+  padding: 0 10px;
+  font-size: 14px;
   text-transform: uppercase;
   background: var(--blue-deep);
   border-left: 6px solid var(--blue);
@@ -3029,7 +3159,7 @@ dd {
 }
 
 .review-total {
-  margin-top: 6px;
+  margin-top: 4px;
   font-size: 13px;
   text-align: right;
   color: var(--text-muted);
@@ -3133,19 +3263,20 @@ dd {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .review-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
+/* 48px keeps the 64px pixel-art icons on whole art pixels (each is drawn 4px wide, shown 3px). */
 .review-item-icon {
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   image-rendering: pixelated;
 }
 
@@ -3232,9 +3363,42 @@ dd {
   background: var(--blue-deep);
 }
 
+.footer-back {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-quit {
+  min-width: 0;
+  background: var(--blue);
+  color: var(--text);
+}
+
+.nav-button.nav-quit:not(:disabled):hover {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+  color: #000;
+}
+
 .dev-buttons {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
+}
+
+.dev-buttons-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+  margin-right: 2px;
+}
+
+.dev-buttons .dev-button {
+  padding: 2px 7px;
+  font-size: 11px;
 }
 
 .dev-button {
@@ -3264,7 +3428,7 @@ dd {
 /* Same outer size on every screen; only .step-summary-content scrolls. */
 .step-summary {
   position: relative;
-  width: 74%;
+  width: 700px;
   height: 72%;
   display: flex;
   flex-direction: column;
@@ -3302,7 +3466,7 @@ dd {
 }
 
 .step-summary-title {
-  font-size: 38px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.05;
   text-transform: uppercase;
@@ -3330,7 +3494,7 @@ dd {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 22px 18px;
+  padding: 12px 22px 16px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -3338,9 +3502,9 @@ dd {
 }
 
 .summary-section-heading {
-  margin-bottom: 6px;
-  padding-bottom: 3px;
-  font-size: 20px;
+  margin-bottom: 5px;
+  padding-bottom: 2px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -3359,14 +3523,27 @@ dd {
   align-items: flex-start;
 }
 
+/* Same shapes as the creator screens: 180 × 114 detail cards, and 4:5 for species and character portraits. */
 .summary-portrait {
-  width: 240px;
-  height: 180px;
+  width: 190px;
+  height: auto;
+  aspect-ratio: 180 / 114;
+}
+
+/* Wide cards start level with the first choice row, below the "What You Chose" heading (its full height, margin included). */
+.summary-portrait:not(.summary-portrait-tall) {
+  margin-top: 38px;
+}
+
+.summary-portrait-tall {
+  width: 150px;
+  aspect-ratio: 4 / 5;
 }
 
 .summary-portrait-small {
   width: 150px;
-  height: 100px;
+  height: auto;
+  aspect-ratio: 180 / 114;
 }
 
 .summary-portrait-small .portrait-label {
@@ -3387,8 +3564,8 @@ dd {
 
 .summary-choices {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
   margin-bottom: 6px;
 }
 
@@ -3403,6 +3580,7 @@ dd {
 
 .summary-choice dt {
   flex-shrink: 0;
+  width: 160px;
   font-size: 13px;
   text-transform: uppercase;
   color: var(--label);
@@ -3417,12 +3595,26 @@ dd {
 .summary-why,
 .summary-concept,
 .summary-group-text {
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .summary-concept {
   color: var(--text-muted);
+}
+
+/* Separate paragraphs and standalone sentences; the compact rows stay tight. */
+.summary-meaning + .summary-meaning,
+.summary-why + .summary-why {
+  margin-top: 8px;
+}
+
+.summary-section > .summary-concept {
+  margin-bottom: 8px;
+}
+
+.summary-group-text {
+  margin-top: 4px;
 }
 
 .summary-term {
@@ -3433,12 +3625,12 @@ dd {
 .summary-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 14px;
+  margin-top: 4px;
 }
 
 .summary-group.is-titled {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 2px solid var(--panel-border);
   border-radius: 6px;
 }
@@ -3457,14 +3649,14 @@ dd {
 }
 
 .summary-group-title {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .summary-block-heading {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -3472,8 +3664,8 @@ dd {
 }
 
 .summary-block .summary-concept {
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin: 2px 0 6px;
+  font-size: 12px;
 }
 
 .summary-changes,
@@ -3486,31 +3678,43 @@ dd {
   list-style: none;
 }
 
-.summary-changes {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+/* One row per change: name, before → after, delta badge, then the reason trimmed to one line (full text in the tip). */
+.summary-changes,
+.summary-additions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .summary-change,
 .summary-addition {
-  padding: 6px 10px 8px;
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 8px;
+  font-size: 14px;
   background: #0a1530;
-  border-left: 6px solid var(--blue);
+  border-left: 5px solid var(--blue);
   border-radius: 3px;
 }
 
-.summary-change-line {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  font-size: 20px;
-  text-transform: uppercase;
+.summary-change {
+  grid-template-columns: 150px 64px 38px minmax(0, 1fr);
+}
+
+.summary-addition {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.summary-change.help-tip:hover,
+.summary-addition.help-tip:hover {
+  text-decoration: none;
+  background: var(--blue-deep);
 }
 
 .summary-change-name {
-  flex: 1;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .summary-change-numbers strong {
@@ -3522,8 +3726,8 @@ dd {
 }
 
 .summary-delta {
-  min-width: 46px;
-  padding: 0 6px;
+  padding: 0 5px;
+  font-size: 12px;
   text-align: center;
   font-weight: 700;
   color: #000;
@@ -3537,33 +3741,12 @@ dd {
   color: var(--text);
 }
 
-.summary-change-total {
-  margin-top: 2px;
-  font-size: 14px;
-  color: var(--text);
-}
-
 .summary-change-reason {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--label);
-}
-
-.summary-change-description,
-.summary-book-text {
-  margin-top: 2px;
-  font-size: 13px;
-  line-height: 1.3;
-  color: var(--text-muted);
-}
-
-.summary-book-text {
-  font-style: italic;
-}
-
-.summary-additions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .summary-addition {
@@ -3571,7 +3754,7 @@ dd {
 }
 
 .summary-addition-text {
-  font-size: 17px;
+  font-size: 14px;
   color: var(--text);
 }
 
@@ -3601,13 +3784,13 @@ dd {
   grid-template-columns: 26px 280px 1fr;
   align-items: baseline;
   gap: 8px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   background: var(--blue-deep);
   border-radius: 3px;
 }
 
 .summary-check-mark {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -3621,7 +3804,7 @@ dd {
 }
 
 .summary-check-label {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -3632,7 +3815,7 @@ dd {
 }
 
 .summary-snapshot {
-  padding: 10px 12px 12px;
+  padding: 8px 10px 10px;
   background: #050a18;
   border: 2px dashed var(--panel-border);
   border-radius: 6px;
@@ -3642,53 +3825,54 @@ dd {
   margin-top: 8px;
 }
 
-.summary-snapshot-scores {
+/* Attributes and Disciplines side by side, each a vertical list like the Character Complete score lists (.review-score). */
+.summary-snapshot-columns {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
   margin-top: 4px;
+}
+
+.summary-snapshot-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-snapshot-column .summary-snapshot-block + .summary-snapshot-block {
+  margin-top: 0;
+}
+
+.summary-snapshot-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 3px;
 }
 
 .summary-snapshot-score {
   display: flex;
-  flex-direction: column;
-  padding: 4px 8px 6px;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
   background: var(--blue-deep);
-  border-top: 4px solid var(--blue);
+  border-left: 5px solid var(--blue);
   border-radius: 3px;
 }
 
-.summary-snapshot-name {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--text-muted);
+.summary-snapshot-score.help-tip:hover {
+  text-decoration: none;
+  border-left-color: var(--yellow);
 }
 
 .summary-snapshot-value {
-  font-size: 26px;
-  line-height: 1.1;
   color: var(--yellow);
 }
 
-.summary-snapshot-sources {
-  font-size: 11px;
-  line-height: 1.25;
-  color: var(--text-muted);
-}
-
-.summary-snapshot-lists {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.summary-snapshot-lists .summary-snapshot-block + .summary-snapshot-block {
-  margin-top: 0;
-}
-
 .summary-snapshot-list {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .summary-snapshot-source,
@@ -3698,8 +3882,8 @@ dd {
 }
 
 .summary-closing {
-  padding: 10px 14px;
-  font-size: 18px;
+  padding: 8px 12px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--yellow);
   background: var(--blue-deep);

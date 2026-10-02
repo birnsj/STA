@@ -1,7 +1,8 @@
 import { createElement, useEffect, useRef, useState } from 'react'
 import InfoTipBubble from './InfoTipBubble.jsx'
 
-const SHOW_DELAY_MS = 350
+// Long enough that sweeping the pointer across the screen doesn't flash boxes; clicking shows one at once.
+const SHOW_DELAY_MS = 800
 
 // One info box per list: spread `bind(content)` onto each item and render `element` once.
 export function useInfoTip() {
@@ -15,6 +16,11 @@ export function useInfoTip() {
     setActive(null)
   }
 
+  const show = (content, anchor) => {
+    clearTimeout(timerRef.current)
+    setActive({ content, anchor })
+  }
+
   const bind = (content) => {
     if (!content) return {}
     // Pointer (not mouse) events, because browsers don't send mouse events to disabled buttons.
@@ -25,7 +31,8 @@ export function useInfoTip() {
         timerRef.current = setTimeout(() => setActive({ content, anchor }), SHOW_DELAY_MS)
       },
       onPointerLeave: hide,
-      onFocus: (event) => event.currentTarget.matches(':focus-visible') && setActive({ content, anchor: event.currentTarget }),
+      onPointerUp: (event) => show(content, event.currentTarget),
+      onFocus: (event) => event.currentTarget.matches(':focus-visible') && show(content, event.currentTarget),
       onBlur: hide,
     }
   }

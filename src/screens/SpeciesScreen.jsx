@@ -41,13 +41,16 @@ export default function SpeciesScreen({ step, navigation }) {
     `panel mechanics-panel${locked[sectionId] ? ' is-locked' : requirements[sectionId] ? '' : ' is-missing'}`
 
   return (
-    <section className="screen">
+    <section className="screen species-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
           <h1 className={`screen-heading${requirements.species ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
             Choose your species. Each species has specific traits and attribute adjustments, as defined in Captain's Log.
+            <br />
+            Species traits and attribute adjustments are applied automatically when you select this species. You will
+            assign the final Attribute values later in the process. The total must equal 56.
           </p>
         </div>
       </div>
@@ -128,12 +131,6 @@ export default function SpeciesScreen({ step, navigation }) {
           </div>
         </div>
       </div>
-
-      <p className="screen-note panel">
-        Note: Species traits and attribute adjustments are applied automatically when you select this species.
-        <br />
-        You will assign the final Attribute values later in the process. The total must equal 56.
-      </p>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />
     </section>

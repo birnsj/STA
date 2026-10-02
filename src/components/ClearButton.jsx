@@ -2,7 +2,7 @@
 export default function ClearButton({ onClear }) {
   return (
     <button type="button" className="dev-button" onClick={onClear}>
-      Clear (dev)
+      Clear
     </button>
   )
 }

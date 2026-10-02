@@ -15,3 +15,10 @@ export function getSectionHelp(helpId) {
     source: page ? `Captain's Log, p.${page}` : null,
   }
 }
+
+// A shared book concept on its own (trait, attribute, discipline, focus, value, ...), for places that aren't a screen section.
+export function getConceptHelp(conceptId) {
+  const concept = sectionHelp.concepts[conceptId]
+  if (!concept) return null
+  return { title: concept.name, text: concept.text, source: concept.page ? `Captain's Log, p.${concept.page}` : null }
+}

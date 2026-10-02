@@ -10,9 +10,7 @@ import { getCardTip, getScoreTip } from '../rules/infoTips.js'
 import { getSpeciesDisplayName } from '../rules/species.js'
 import { getChoiceArt } from '../rules/choiceArt.js'
 import { getEquippedItems, getItemStatLines } from '../rules/equipment.js'
-import AutofillButton from '../components/AutofillButton.jsx'
-import ClearButton from '../components/ClearButton.jsx'
-import ExportButton from '../components/ExportButton.jsx'
+import DevButtons from '../components/DevButtons.jsx'
 import HelpTip from '../components/HelpTip.jsx'
 import Portrait from '../components/Portrait.jsx'
 import { useInfoTip } from '../components/useInfoTip.js'
@@ -209,24 +207,57 @@ export default function ReviewScreen({ navigation }) {
           />
         </ReviewPanel>
 
-        <ReviewPanel title="Origin & Early Life" helpId="reviewOrigin" className="review-area-origin">
-          <div className="review-with-image">
-            <Portrait
-              label={getChosenEntry(environment)?.name}
-              image={getChoiceArt('environment', getChosenEntry(environment)?.id)}
-              className="portrait-review-thumb"
-            />
-            <Fields
-              rows={[
-                environment.condition
-                  ? { label: 'Condition', value: environment.condition.name }
-                  : { label: 'Setting', value: environment.setting?.name },
-                ...(environment.otherSpecies ? [{ label: 'Raised Among', value: environment.otherSpecies.name }] : []),
-                { label: 'Early Outlook', value: formatOutlook(earlyOutlook) },
-              ]}
-            />
-          </div>
-        </ReviewPanel>
+        <div className="review-right-column">
+          <ReviewPanel title="Origin & Early Life" helpId="reviewOrigin" className="review-area-origin">
+            <div className="review-with-image">
+              <Portrait
+                label={getChosenEntry(environment)?.name}
+                image={getChoiceArt('environment', getChosenEntry(environment)?.id)}
+                className="portrait-review-thumb"
+              />
+              <Fields
+                rows={[
+                  environment.condition
+                    ? { label: 'Condition', value: environment.condition.name }
+                    : { label: 'Setting', value: environment.setting?.name },
+                  ...(environment.otherSpecies ? [{ label: 'Raised Among', value: environment.otherSpecies.name }] : []),
+                  { label: 'Early Outlook', value: formatOutlook(earlyOutlook) },
+                ]}
+              />
+            </div>
+          </ReviewPanel>
+
+          <ReviewPanel title="Education" helpId="reviewEducation" className="review-area-education">
+            <div className="review-with-image">
+              <Portrait label={education.option?.name} image={getChoiceArt('education', education.option?.id)} className="portrait-review-thumb" />
+              <Fields
+                rows={[
+                  { label: 'Education', value: education.option?.name },
+                  { label: 'Category', value: education.category?.name },
+                ]}
+              />
+            </div>
+          </ReviewPanel>
+
+          <ReviewPanel title="Career" helpId="reviewCareer" className="review-area-career">
+            <div className="review-with-image">
+              <Portrait label={career.length?.name} image={lengthArt} className="portrait-review-thumb" />
+              <Fields
+                rows={[
+                  { label: 'Career Length', value: career.length?.name },
+                  { label: 'Assignment', value: career.assignment?.name },
+                  { label: 'Department', value: career.department?.name },
+                  { label: 'Rank', value: career.rank?.name },
+                  { label: 'Posting', value: POSTING_TEXT },
+                ]}
+              />
+            </div>
+          </ReviewPanel>
+
+          <ReviewPanel title="Career Events" helpId="reviewEvents" className="review-area-history">
+            <CareerEvents careerHistory={careerHistory} />
+          </ReviewPanel>
+        </div>
 
         <div className="review-area-attributes">
           <ScorePanel title="Attributes" helpId="reviewAttributes" kind="attributes" character={character} />
@@ -235,40 +266,18 @@ export default function ReviewScreen({ navigation }) {
           <ScorePanel title="Disciplines" helpId="reviewDisciplines" kind="disciplines" character={character} />
         </div>
 
-        <ReviewPanel title="Education" helpId="reviewEducation" className="review-area-education">
-          <div className="review-with-image">
-            <Portrait label={education.option?.name} image={getChoiceArt('education', education.option?.id)} className="portrait-review-thumb" />
-            <Fields
-              rows={[
-                { label: 'Education', value: education.option?.name },
-                { label: 'Category', value: education.category?.name },
-              ]}
-            />
-          </div>
-        </ReviewPanel>
+        <div className="review-values-equipment">
+          <ReviewPanel title="Values" helpId="reviewValues" count={{ have: values.length, required: getRequiredValueCount() }} className="review-area-values">
+            <SourcedList items={values} />
+          </ReviewPanel>
 
-        <ReviewPanel title="Career" helpId="reviewCareer" className="review-area-career">
-          <div className="review-with-image">
-            <Portrait label={career.length?.name} image={lengthArt} className="portrait-review-thumb" />
-            <Fields
-              rows={[
-                { label: 'Career Length', value: career.length?.name },
-                { label: 'Assignment', value: career.assignment?.name },
-                { label: 'Department', value: career.department?.name },
-                { label: 'Rank', value: career.rank?.name },
-                { label: 'Posting', value: POSTING_TEXT },
-              ]}
-            />
-          </div>
-        </ReviewPanel>
-
-        <ReviewPanel title="Career Events" helpId="reviewEvents" className="review-area-history">
-          <CareerEvents careerHistory={careerHistory} />
-        </ReviewPanel>
-
-        <ReviewPanel title="Values" helpId="reviewValues" count={{ have: values.length, required: getRequiredValueCount() }} className="review-area-values">
-          <SourcedList items={values} />
-        </ReviewPanel>
+          <ReviewPanel title="Equipment" helpId="reviewEquipment" className="review-area-notes">
+            <EquipmentList items={getEquippedItems(character)} />
+            <p className="review-notes">
+              <span className="review-label">Other Details:</span> {character.backgroundNotes.trim() || 'None recorded.'}
+            </p>
+          </ReviewPanel>
+        </div>
 
         <ReviewPanel title="Focuses" helpId="reviewFocuses" count={{ have: focuses.length, required: getRequiredFocusCount() }} className="review-area-focuses">
           <SourcedList items={focuses} />
@@ -285,24 +294,18 @@ export default function ReviewScreen({ navigation }) {
             {!traits.length && <li>{EMPTY}</li>}
           </ul>
         </ReviewPanel>
-
-        <ReviewPanel title="Equipment" helpId="reviewEquipment" className="review-area-notes">
-          <EquipmentList items={getEquippedItems(character)} />
-          <p className="review-notes">
-            <span className="review-label">Other Details:</span> {character.backgroundNotes.trim() || 'None recorded.'}
-          </p>
-        </ReviewPanel>
       </div>
 
       <footer className="screen-footer review-footer">
-        <button type="button" className="nav-button nav-back" onClick={navigation.onBack}>
-          ← Back to Edit
-        </button>
-        <div className="dev-buttons">
-          <AutofillButton />
-          <ClearButton onClear={navigation.onClear} />
-          <ExportButton />
+        <div className="footer-back">
+          <button type="button" className="nav-button nav-back" onClick={navigation.onBack}>
+            ← Back to Edit
+          </button>
+          <button type="button" className="nav-button nav-quit" onClick={navigation.onQuit} title="Return to the Main Menu.">
+            Quit
+          </button>
         </div>
+        <DevButtons onClear={navigation.onClear} />
         <button
           type="button"
           className="nav-button nav-next review-confirm"

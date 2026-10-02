@@ -102,7 +102,7 @@ export default function CareerScreen({ step, navigation }) {
   const rankType = getRankType(character)
 
   return (
-    <section className="screen">
+    <section className="screen career-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>

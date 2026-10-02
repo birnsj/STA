@@ -41,13 +41,16 @@ export default function EarlyOutlookScreen({ step, navigation }) {
   const locked = getLockedSections(requirements)
 
   return (
-    <section className="screen">
+    <section className="screen early-outlook-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
           <h1 className={`screen-heading${requirements.outlook ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
             Choose your early outlook. This reflects your childhood, formative experiences, and key influences, as defined in Captain's Log.
+            <br />
+            Your early outlook choice and trait provide the benefits and adjustments defined in Captain's Log. You will assign
+            Attribute values later in the process. The total must equal 56.
           </p>
         </div>
       </div>
@@ -160,12 +163,6 @@ export default function EarlyOutlookScreen({ step, navigation }) {
           )}
         </MechanicsColumn>
       </div>
-
-      <p className="screen-note panel">
-        Note: Your early outlook choice and trait provide the benefits and adjustments defined in Captain's Log.
-        <br />
-        You will assign Attribute values later in the process. The total must equal 56.
-      </p>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />
     </section>

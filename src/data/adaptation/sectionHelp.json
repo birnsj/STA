@@ -46,7 +46,7 @@
     "speciesGender": {
       "title": "Gender",
       "what": "Prototype presentation choice, not from Captain's Log. It decides which portraits you can pick on Finishing Touches.",
-      "does": "Choose Male or Female. Gender has no effect on attributes, disciplines, values, focuses, traits, or any rule, and it is separate from pronouns."
+      "does": "Choose Male, Female, or Other. Other can use any portrait for the species. Gender has no effect on attributes, disciplines, values, focuses, traits, or any rule, and it is separate from pronouns."
     },
     "environmentScreen": {
       "title": "Environment",
@@ -87,7 +87,7 @@
     "reviewScreen": {
       "title": "Character Complete",
       "what": "Your finished character sheet. This review screen is a prototype addition; the book has no review step.",
-      "does": "Check each section, fix anything under Needs Attention, then Confirm Character. Export JSON (dev) downloads the character as a .json file."
+      "does": "Check each section, fix anything under Needs Attention, then Confirm Character. Export JSON (Dev) downloads the character as a .json file."
     },
     "reviewStatus": {
       "title": "Status",
