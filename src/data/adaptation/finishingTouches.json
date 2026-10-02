@@ -38,13 +38,6 @@
       "image": "/art/finishing/background-notes.png",
       "optional": true,
       "description": "Optional notes about your character's history and personality. Prototype feature: free text that is saved with the character but never used by the game rules."
-    },
-    {
-      "id": "randomize",
-      "name": "Randomize",
-      "image": "/art/finishing/randomize.png",
-      "disabled": true,
-      "description": "Not available in this prototype."
     }
   ],
   "notes": [
@@ -52,6 +45,6 @@
     "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step; pronouns are from p.132 and are optional here.",
     "Prototype: the mockup's Service Motto and Personal Goals are not implemented (Service Motto would duplicate Values).",
     "Limits follow the book: when scores exceed them, the player chooses which tied score keeps the maximum and where each reduced point goes.",
-    "Randomize is shown disabled. Category images point into public/; missing files fall back to the placeholder portrait."
+    "The mockup's Randomize category is replaced by the per-screen Auto button. Category images point into public/; missing files fall back to the placeholder portrait."
   ]
 }
