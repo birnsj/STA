@@ -75,7 +75,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
     canGoBack: true,
     canGoNext: Boolean(nextStep),
     nextLabel: nextStep ? `Next: ${nextStep.title}` : 'Next',
-    onBack: () => (previousStep ? setCurrentStepId(previousStep.id) : onExit()),
+    onBack: () => (previousStep ? setCurrentStepId(previousStep.id) : requestQuit()),
     onNext: () => nextStep && setCurrentStepId(nextStep.id),
     onGoToStep: (stepId) => isKnownStep(stepId) && setCurrentStepId(stepId),
     // Dev: every later screen depends on earlier choices, so a cleared character restarts at the first screen.
@@ -113,7 +113,8 @@ function CharacterCreator({ onExit, onConfirmed }) {
 
   return (
     <div className="frame">
-      <Header onQuit={requestQuit} />
+      {/* The first screen's Back already returns to the Main Menu, so it has no Quit. */}
+      <Header onQuit={previousStep ? requestQuit : undefined} />
       <div className="frame-body" inert={summaryPopup.open || quitConfirmOpen}>
         <StepNav
           steps={steps}
