@@ -21,7 +21,11 @@ let lastPressAt = 0
 let uninstall = null
 
 function getContext() {
-  if (!context) context = new AudioContext()
+  if (!context) {
+    // iPad/iPhone: "playback" lets these sounds play with the silent switch on, the same as the music.
+    if (navigator.audioSession) navigator.audioSession.type = 'playback'
+    context = new AudioContext()
+  }
   return context
 }
 
@@ -114,6 +118,8 @@ export function installUiSounds(root = document) {
   }
 
   const onOver = (event) => {
+    // A tap also sends pointerover just before the press; only a mouse really hovers.
+    if (event.pointerType && event.pointerType !== 'mouse') return
     const target = event.target.closest?.(HOVER_TARGETS) ?? null
     const moved = event.clientX !== pointerX || event.clientY !== pointerY
     onMove(event)
@@ -146,15 +152,25 @@ export function installUiSounds(root = document) {
     if (isPressable(target)) press(target)
   }
 
+  // iPad/iPhone Safari refuse to start audio on pointerdown; the end of the same tap is allowed, so the first tap
+  // unlocks audio here (its beep is then heard slightly late, every later one on time).
+  const onTapEnd = () => {
+    if (level > 0 && context?.state !== 'running') getContext().resume().catch(() => {})
+  }
+
   root.addEventListener('pointermove', onMove, { passive: true })
   root.addEventListener('pointerover', onOver)
   root.addEventListener('pointerdown', onPointerDown)
   root.addEventListener('keydown', onKeyDown)
+  root.addEventListener('touchend', onTapEnd, { passive: true })
+  root.addEventListener('click', onTapEnd)
   const cleanup = () => {
     root.removeEventListener('pointermove', onMove)
     root.removeEventListener('pointerover', onOver)
     root.removeEventListener('pointerdown', onPointerDown)
     root.removeEventListener('keydown', onKeyDown)
+    root.removeEventListener('touchend', onTapEnd)
+    root.removeEventListener('click', onTapEnd)
     if (uninstall === cleanup) uninstall = null
   }
   uninstall = cleanup

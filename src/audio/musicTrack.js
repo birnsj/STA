@@ -7,6 +7,7 @@ const TICK_MS = 30
 // A native <audio> loop clicks when the file ends mid-sound and replays any silence at its start, so the loop is done
 // by crossfading into a second player. Long enough to hide the timer's jitter, short enough to sound continuous.
 const CROSSFADE_S = 0.4
+const GESTURE_EVENTS = ['pointerdown', 'keydown', 'touchend', 'click']
 
 // loopStart (seconds): where repeats begin, so a file's leading silence is only heard the first time.
 export function createMusicTrack(url, { loopStart = 0 } = {}) {
@@ -89,17 +90,16 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
   }
 
   // Browsers block audio until the player interacts with the page, so a blocked start retries on the first gesture.
+  // iPad/iPhone Safari only unlock audio when a tap ends (touchend/click), not on pointerdown.
   function retryOnFirstGesture() {
     if (awaitingGesture) return
     awaitingGesture = true
     const retry = () => {
-      window.removeEventListener('pointerdown', retry)
-      window.removeEventListener('keydown', retry)
+      GESTURE_EVENTS.forEach((type) => window.removeEventListener(type, retry))
       awaitingGesture = false
       if (wanted) start()
     }
-    window.addEventListener('pointerdown', retry)
-    window.addEventListener('keydown', retry)
+    GESTURE_EVENTS.forEach((type) => window.addEventListener(type, retry))
   }
 
   function start() {
