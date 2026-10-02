@@ -13,11 +13,12 @@ import creationSteps from './data/adaptation/creationSteps.json'
 import CharacterStepSummaryModal from './components/CharacterStepSummaryModal.jsx'
 import CharacterSummary from './components/CharacterSummary.jsx'
 import Header from './components/Header.jsx'
+import QuitConfirm from './components/QuitConfirm.jsx'
 import ScaledStage from './components/ScaledStage.jsx'
 import StepNav from './components/StepNav.jsx'
 import { useStepSummaryPopup } from './components/useStepSummaryPopup.js'
 import { isCharacterValid } from './rules/characterValidation.js'
-import { getCompletedStepIds } from './rules/creationProgress.js'
+import { getCompletedStepIds, hasUnsavedProgress } from './rules/creationProgress.js'
 import { buildStepSummary } from './rules/stepSummary.js'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
@@ -64,6 +65,10 @@ function CharacterCreator({ onExit, onConfirmed }) {
   const nextStep = steps[index + 1]
   const Screen = SCREENS[step.id] ?? PlaceholderScreen
   const summaryPopup = useStepSummaryPopup(step.id, character)
+  // UI state: whether the Quit confirmation is showing.
+  const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
+  const requestQuit = () => (hasUnsavedProgress(character) ? setQuitConfirmOpen(true) : onExit())
+  const quitConfirm = quitConfirmOpen && <QuitConfirm onQuit={onExit} onCancel={() => setQuitConfirmOpen(false)} />
 
   const navigation = {
     // Back on the first screen leaves character creation for the Main Menu.
@@ -97,18 +102,19 @@ function CharacterCreator({ onExit, onConfirmed }) {
   if (step.id === 'review') {
     return (
       <div className="frame">
-        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" />
-        <div className="frame-body frame-body-review">
+        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" onQuit={requestQuit} />
+        <div className="frame-body frame-body-review" inert={quitConfirmOpen}>
           <Screen step={step} navigation={navigation} />
         </div>
+        {quitConfirm}
       </div>
     )
   }
 
   return (
     <div className="frame">
-      <Header />
-      <div className="frame-body" inert={summaryPopup.open}>
+      <Header onQuit={requestQuit} />
+      <div className="frame-body" inert={summaryPopup.open || quitConfirmOpen}>
         <StepNav
           steps={steps}
           currentStepId={currentStepId}
@@ -119,6 +125,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
         <CharacterSummary character={character} dispatch={dispatch} />
       </div>
       {summaryPopup.open && <CharacterStepSummaryModal summary={buildStepSummary(step.id, character)} onClose={summaryPopup.close} />}
+      {quitConfirm}
     </div>
   )
 }

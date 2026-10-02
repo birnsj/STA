@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Portrait from './Portrait.jsx'
 
 // One image at a time with previous/next arrows. Shows the fallback (or "?") until an item is chosen.
@@ -20,6 +21,14 @@ export default function PortraitCarousel({
     onSelect(portraits[(start + direction + portraits.length) % portraits.length].id)
   }
   const hasChoices = portraits.length > 0
+
+  // Loads every choice up front so stepping through them shows each picture immediately.
+  const imageList = portraits.map((portrait) => portrait.image).filter(Boolean).join('\n')
+  useEffect(() => {
+    imageList.split('\n').filter(Boolean).forEach((src) => {
+      new Image().src = src
+    })
+  }, [imageList])
 
   return (
     <div className="portrait-carousel-wrap">

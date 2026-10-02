@@ -874,6 +874,45 @@ dd {
   cursor: default;
 }
 
+/* Shown over the 1920x1080 creator, so roughly twice the menu-stage sizes. */
+.quit-confirm {
+  width: 760px;
+  gap: 24px;
+  padding: 44px 64px;
+  border-color: var(--red);
+}
+
+.quit-confirm .menu-notice-title {
+  font-size: 48px;
+  color: #ff7a80;
+}
+
+.quit-confirm .menu-notice-text {
+  font-size: 26px;
+}
+
+.quit-confirm .menu-notice-actions {
+  gap: 20px;
+}
+
+.quit-confirm .nav-button {
+  min-width: 220px;
+  padding: 14px 32px;
+  font-size: 26px;
+}
+
+.quit-confirm .quit-confirm-button {
+  border-color: var(--red);
+  color: #ff7a80;
+}
+
+.quit-confirm .quit-confirm-button:hover,
+.quit-confirm .quit-confirm-button:focus-visible {
+  outline: none;
+  background: var(--red);
+  color: #000;
+}
+
 .delete-confirm {
   width: 380px;
   border-color: var(--red);
@@ -1114,6 +1153,29 @@ dd {
 
 .bar-yellow {
   background: var(--yellow);
+}
+
+.header-quit {
+  align-self: flex-start;
+  margin-top: 6px;
+  height: 44px;
+  padding: 0 26px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: transparent;
+  border: 2px solid var(--red);
+  border-radius: 4px;
+  color: var(--red);
+  cursor: pointer;
+}
+
+.header-quit:hover,
+.header-quit:focus-visible {
+  outline: none;
+  background: var(--red);
+  color: #000;
 }
 
 .header-affiliation {
