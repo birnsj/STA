@@ -3460,13 +3460,34 @@ dd {
 .step-summary-title {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  font-size: 64px;
+  font-size: 49px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--yellow);
+}
+
+.shimmer-word {
+  background: linear-gradient(110deg, var(--yellow) 0 42%, #fff6d6 50%, var(--yellow) 58% 100%) 100% 0 / 300% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.shimmer-word.is-shimmering {
+  animation: shimmer-sweep var(--shimmer-duration, 1000ms) ease-in-out;
+}
+
+@keyframes shimmer-sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
 }
 
 .step-summary-step {

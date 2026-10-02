@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { getScoreTip } from '../rules/infoTips.js'
 import { getConceptHelp } from '../rules/sectionHelp.js'
 import HelpTip from './HelpTip.jsx'
@@ -224,6 +224,37 @@ function Snapshot({ snapshot }) {
   )
 }
 
+const SHIMMER_GAP_MS = [1500, 5000]
+const SHIMMER_DURATION_MS = [700, 1300]
+const randomBetween = ([min, max]) => min + Math.random() * (max - min)
+
+// A light sweep across the word at random intervals and speeds, so it reads as a glint rather than a loop.
+function ShimmerWord({ children }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const element = ref.current
+    let timer = null
+    const schedule = () => {
+      timer = setTimeout(() => {
+        element.style.setProperty('--shimmer-duration', `${Math.round(randomBetween(SHIMMER_DURATION_MS))}ms`)
+        element.classList.remove('is-shimmering')
+        // Reading layout restarts the animation when the class is added back.
+        void element.offsetWidth
+        element.classList.add('is-shimmering')
+        schedule()
+      }, randomBetween(SHIMMER_GAP_MS))
+    }
+    schedule()
+    return () => clearTimeout(timer)
+  }, [])
+  return (
+    <span ref={ref} className="shimmer-word">
+      {children}
+    </span>
+  )
+}
+
 export default function CharacterStepSummaryModal({ summary, onClose }) {
   useEffect(() => {
     const onKeyDown = (event) => event.key === 'Escape' && onClose()
@@ -236,7 +267,7 @@ export default function CharacterStepSummaryModal({ summary, onClose }) {
       <section className="step-summary" role="dialog" aria-modal="true" aria-labelledby="step-summary-title">
         <header className="step-summary-header">
           <h2 id="step-summary-title" className="step-summary-title">
-            Summary
+            <ShimmerWord>Summary</ShimmerWord>
             <span className="step-summary-step">
               <span className="step-summary-number">{summary.number}</span> {summary.title}
             </span>
