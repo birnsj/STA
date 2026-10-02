@@ -15,6 +15,7 @@ import {
   requiresOtherSpecies,
 } from '../rules/environment.js'
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
+import { getChoiceArt } from '../rules/choiceArt.js'
 import { areAllMet, getLockedSections } from '../rules/requirements.js'
 import CardCarousel from '../components/CardCarousel.jsx'
 import ChoiceList from '../components/ChoiceList.jsx'
@@ -92,7 +93,7 @@ export default function EnvironmentScreen({ step, navigation }) {
       />
 
       <div className="species-details env-details panel">
-        <Portrait label={activeEntry?.name} className="portrait-detail" />
+        <Portrait label={activeEntry?.name} image={getChoiceArt('environment', activeEntry?.id)} className="portrait-detail" />
         <div className="species-details-text">
           <h2 className="species-details-name">{activeEntry?.name ?? `No ${isSettingTab ? 'setting' : 'condition'} selected`}</h2>
           <p>{activeEntry?.description ?? `Select an environment ${isSettingTab ? 'setting' : 'condition'} above.`}</p>

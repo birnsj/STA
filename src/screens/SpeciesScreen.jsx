@@ -8,6 +8,7 @@ import {
   isMixedHeritage,
 } from '../rules/species.js'
 import { getGenders } from '../rules/appearance.js'
+import { getSpeciesArt } from '../rules/choiceArt.js'
 import { areAllMet, getLockedSections } from '../rules/requirements.js'
 import AttributeAdjustments from '../components/AttributeAdjustments.jsx'
 import CardCarousel from '../components/CardCarousel.jsx'
@@ -54,13 +55,13 @@ export default function SpeciesScreen({ step, navigation }) {
       <CardCarousel
         label="Species"
         variant={requirements.species ? '' : 'is-missing'}
-        items={getAvailableSpecies()}
+        items={getAvailableSpecies(gender?.id)}
         selectedId={selection?.id}
         onSelect={(speciesId) => dispatch({ type: 'selectSpecies', speciesId })}
       />
 
       <div className="species-details panel">
-        <Portrait label={species?.name} className="portrait-detail" />
+        <Portrait label={species?.name} image={getSpeciesArt(species?.id, gender?.id)} className="portrait-detail" />
         <div className="species-details-text">
           <h2 className={`species-details-name${requirements.species ? '' : ' is-missing'}`}>
             {species?.name ?? 'No species selected'}
@@ -102,6 +103,7 @@ export default function SpeciesScreen({ step, navigation }) {
             {selection && (
               <SpeciesTraits
                 selection={selection}
+                genderId={gender?.id}
                 onParentChange={(index, speciesId) => dispatch({ type: 'setSpeciesParent', index, speciesId })}
                 onNameChange={(name) => dispatch({ type: 'setNewSpeciesName', name })}
                 onDescriptionChange={(description) => dispatch({ type: 'setNewSpeciesDescription', description })}

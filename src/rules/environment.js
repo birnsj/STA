@@ -1,3 +1,4 @@
+import { withChoiceArt } from './choiceArt.js'
 import environmentSource from '../data/source/environments.json'
 import disciplineSource from '../data/source/disciplines.json'
 import valuesMatrix from '../data/source/valuesMatrix.json'
@@ -24,8 +25,8 @@ export function createEmptyEnvironment() {
   }
 }
 
-export const getSettings = () => environmentSource.settings
-export const getConditions = () => environmentSource.conditions
+export const getSettings = () => withChoiceArt('environment', environmentSource.settings)
+export const getConditions = () => withChoiceArt('environment', environmentSource.conditions)
 export const getSettingById = (id) => settingsById.get(id) ?? null
 export const getConditionById = (id) => conditionsById.get(id) ?? null
 export const getDisciplines = () => disciplines

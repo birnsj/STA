@@ -140,10 +140,10 @@
       "concept": "trait",
       "does": "Your traits and their descriptions. Change them on Species."
     },
-    "reviewNotes": {
-      "title": "Equipment or Other Details",
-      "what": "The background notes you wrote on Finishing Touches.",
-      "does": "Free text only; the rules never read it."
+    "reviewEquipment": {
+      "title": "Equipment",
+      "what": "Standard-issue gear, assigned automatically from your department, plus the background notes you wrote on Finishing Touches.",
+      "does": "Videogame adaptation: Captain's Log does not use equipment. The item stats are provisional videogame tuning, not book rules. Notes are free text the rules never read."
     },
     "speciesTraits": {
       "concept": "trait",
@@ -263,6 +263,11 @@
       "title": "Discipline Details",
       "what": "The book's text for this step and the discipline limits.",
       "does": "If a score goes over the limit, choose where the extra points go here. The total must come out exactly right."
+    },
+    "characterName": {
+      "title": "Name",
+      "what": "Your character's name. Type one or roll a random male, female, or mixed name.",
+      "does": "Required. Becomes the exported file's name. The same name is edited on the Name & Pronouns card."
     },
     "nameAndPronouns": {
       "title": "Name & Pronouns",

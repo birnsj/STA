@@ -116,7 +116,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
           onSelectStep={navigation.onGoToStep}
         />
         <Screen step={step} navigation={navigation} />
-        <CharacterSummary character={character} />
+        <CharacterSummary character={character} dispatch={dispatch} />
       </div>
       {summaryPopup.open && <CharacterStepSummaryModal summary={buildStepSummary(step.id, character)} onClose={summaryPopup.close} />}
     </div>

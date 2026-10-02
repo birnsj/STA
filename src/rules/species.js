@@ -1,3 +1,4 @@
+import { getSpeciesArt } from './choiceArt.js'
 import speciesSource from '../data/source/species.json'
 import attributeSource from '../data/source/attributes.json'
 import prototypeSpecies from '../data/adaptation/prototypeSpecies.json'
@@ -12,8 +13,8 @@ export function getAttributes() {
 }
 
 // Every card in the species carousel, including Mixed Heritage and New Species.
-export function getAvailableSpecies() {
-  return prototypeSpecies.speciesIds.map((id) => speciesById.get(id))
+export function getAvailableSpecies(genderId = null) {
+  return prototypeSpecies.speciesIds.map((id) => ({ ...speciesById.get(id), image: getSpeciesArt(id, genderId) }))
 }
 
 // Only real species (for mixed-heritage parents and "Another Species' World").

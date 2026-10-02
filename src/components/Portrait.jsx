@@ -4,7 +4,7 @@ import { useState } from 'react'
 function PortraitImage({ src }) {
   const [failed, setFailed] = useState(false)
   if (failed) return null
-  return <img className="portrait-image" src={src} alt="" onError={() => setFailed(true)} />
+  return <img className="portrait-image" src={src} alt="" draggable={false} onError={() => setFailed(true)} />
 }
 
 // Labeled placeholder until prototype art assets are supplied. `image` is an optional path into public/.

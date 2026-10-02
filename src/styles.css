@@ -27,6 +27,11 @@ body {
   overflow: hidden;
 }
 
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* Scrollbars in the interface colours. Chromium (browser and Electron) uses the ::-webkit rules; setting the standard
    scrollbar-color there would override them, so it is only given to browsers without ::-webkit-scrollbar. */
 ::-webkit-scrollbar {
@@ -1270,9 +1275,12 @@ dd {
 }
 
 /* Shorter than it was so the final score grids fit without scrolling. */
+/* Same 4:5 shape as the portrait art, so the whole image shows uncropped. */
 .portrait-summary {
+  flex-shrink: 0;
   width: 100%;
-  height: 130px;
+  height: auto;
+  aspect-ratio: 4 / 5;
   margin-bottom: 8px;
 }
 
@@ -1355,6 +1363,72 @@ dd {
 }
 
 /* ---------- Species details ---------- */
+
+.portrait-carousel-wrap {
+  flex-shrink: 0;
+}
+
+.portrait-carousel {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.portrait-carousel-wrap .portrait-summary {
+  margin-bottom: 4px;
+}
+
+.portrait-carousel-hint {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--label);
+}
+
+.portrait-carousel-image {
+  width: 100%;
+  height: 100%;
+}
+
+.portrait-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  width: 26px;
+  height: 40px;
+  transform: translateY(-50%);
+  background: rgba(5, 10, 22, 0.7);
+  border: 2px solid var(--blue);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.portrait-carousel-arrow.is-prev {
+  left: 4px;
+}
+
+.portrait-carousel-arrow.is-next {
+  right: 4px;
+}
+
+.portrait-carousel-arrow:hover,
+.portrait-carousel-arrow:focus-visible {
+  outline: none;
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.portrait-carousel-counter {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(5, 10, 22, 0.7);
+  color: var(--text);
+}
 
 .species-details {
   display: flex;
@@ -1576,8 +1650,10 @@ dd {
   gap: 6px;
 }
 
-.parent-selects .env-select {
-  margin-bottom: 0;
+.parent-slot-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--label);
 }
 
 .parent-slot {
@@ -2008,10 +2084,6 @@ dd {
 
 /* ---------- Education ---------- */
 
-.education-carousel .portrait-card {
-  height: 48px;
-}
-
 .education-lower {
   flex: 0 0 200px;
   grid-template-columns: 1.4fr 1fr;
@@ -2193,6 +2265,21 @@ dd {
 
 .finishing-total.is-error {
   color: var(--red, #e5484d);
+}
+
+.finishing-stack {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.finishing-stack > .panel:first-child {
+  flex: 1;
+}
+
+.finishing-name-panel {
+  flex: none;
 }
 
 .finishing-field {
@@ -2597,17 +2684,19 @@ dd {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Three equal columns of panels beside a full-height character column. */
 .review-grid {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
-  grid-template-rows: 164px 270px minmax(0, 0.85fr) minmax(0, 1.15fr);
+  grid-template-columns: 390px repeat(3, minmax(0, 1fr));
+  /* The bottom row is taller so Equipment and Focuses fit without scrolling; Values needs little height. */
+  grid-template-rows: 164px 270px minmax(0, 2fr) minmax(0, 3fr);
   grid-template-areas:
-    'left identity origin origin'
-    'left attributes disciplines service'
+    'left identity origin education'
+    'left attributes disciplines career'
     'left history values traits'
-    'left history focuses traits';
+    'left history focuses notes';
   gap: 12px;
 }
 
@@ -2621,22 +2710,15 @@ dd {
 
 .review-area-identity { grid-area: identity; }
 .review-area-origin { grid-area: origin; }
+.review-area-education { grid-area: education; }
 .review-area-attributes { grid-area: attributes; }
 .review-area-disciplines { grid-area: disciplines; }
+.review-area-career { grid-area: career; }
 .review-area-history { grid-area: history; }
 .review-area-values { grid-area: values; }
 .review-area-focuses { grid-area: focuses; }
-
-.review-area-service,
-.review-area-traits {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.review-area-service { grid-area: service; }
 .review-area-traits { grid-area: traits; }
+.review-area-notes { grid-area: notes; }
 
 .review-area-attributes > .review-panel,
 .review-area-disciplines > .review-panel {
@@ -2647,10 +2729,6 @@ dd {
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.review-area-traits > .review-panel:first-child {
-  flex: 1;
 }
 
 .review-panel .panel-heading {
@@ -2666,36 +2744,34 @@ dd {
   font-size: 14px;
 }
 
+/* The column's shape depends on the window. Full-body art is wide (700x1000) with the figure in the middle,
+   so cropping it to the box only trims backdrop. */
 .portrait-review {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  flex: 0 0 360px;
+  background: #050a16;
 }
 
-.portrait-review-scene {
-  width: 180px;
-  height: 96px;
+.portrait-review .portrait-image {
+  object-fit: cover;
 }
 
-.portrait-review-small {
-  width: 92px;
-  height: 56px;
+/* One size for every Review thumbnail (origin, education, career, career events). */
+.portrait-review-thumb {
+  flex: 0 0 auto;
+  width: 192px;
+  height: 108px;
 }
 
-.portrait-review-event {
-  width: 112px;
-  height: 64px;
-}
-
-.portrait-review-scene .portrait-label,
-.portrait-review-small .portrait-label,
-.portrait-review-event .portrait-label {
+.portrait-review-thumb .portrait-label {
   font-size: 12px;
 }
 
-.portrait-review-small .portrait-caption,
-.portrait-review-event .portrait-caption {
+.portrait-review-thumb .portrait-caption {
   display: none;
 }
+
 
 .review-nameplate {
   padding: 8px 12px;
@@ -2721,7 +2797,8 @@ dd {
 }
 
 .review-status {
-  flex: 1;
+  flex: 0 0 auto;
+  max-height: 240px;
 }
 
 .review-status.is-valid .panel-heading,
@@ -2802,6 +2879,11 @@ dd {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The large thumbnail leaves little width beside it, but these panels have height to spare. */
+.review-with-image .review-field dd {
+  white-space: normal;
 }
 
 .review-with-image {
@@ -2935,6 +3017,55 @@ dd {
 .review-notes {
   white-space: pre-wrap;
   font-size: 13px;
+}
+
+.review-items {
+  margin: 0 0 2px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-item-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.review-item-text {
+  min-width: 0;
+}
+
+.review-item-name {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.review-item-stats {
+  margin-left: 8px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--label);
+}
+
+.review-item-description {
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Footer ---------- */

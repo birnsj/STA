@@ -3,6 +3,7 @@ import disciplineSource from '../data/source/disciplines.json'
 import valuesMatrix from '../data/source/valuesMatrix.json'
 import educationAdaptation from '../data/adaptation/education.json'
 import { areAllMet } from './requirements.js'
+import { withChoiceArt } from './choiceArt.js'
 import { isBookFocus } from './focuses.js'
 import { getAttributes } from './species.js'
 import { getDisciplineTotalsBeforeEducation } from './characterTotals.js'
@@ -32,7 +33,7 @@ export function createEmptyEducation() {
   }
 }
 
-export const getCategories = () => educationAdaptation.categoryOrder.map((id) => categoriesById.get(id))
+export const getCategories = () => withChoiceArt('educationCategory', educationAdaptation.categoryOrder.map((id) => categoriesById.get(id)))
 export const getCategoryById = (id) => categoriesById.get(id) ?? null
 export const getOptions = (categoryId) => educationSource.options.filter((option) => option.category === categoryId)
 export const getOptionById = (id) => optionsById.get(id) ?? null

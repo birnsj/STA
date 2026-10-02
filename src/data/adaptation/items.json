@@ -1,0 +1,138 @@
+{
+  "note": "Videogame adaptation, not Captain's Log rules. Book (p.137): Captain's Log does not use equipment; its conversion notes for Star Trek Adventures list standard issue as uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers), with no stats. Every stat below is PROTOTYPE TUNING for the future videogame systems and may be rebalanced freely. Keep all balance numbers here, never in UI or combat code.",
+  "itemDefaults": {
+    "era": ["tos"],
+    "faction": ["starfleet"],
+    "tags": [],
+    "stackable": false,
+    "maxStack": 1,
+    "equipSlot": null,
+    "stats": {},
+    "prototypeTuning": true
+  },
+  "categories": {
+    "clothing": "Clothing",
+    "utility": "Utility",
+    "scanner": "Scanner",
+    "weapon": "Weapon",
+    "medical": "Medical",
+    "engineering": "Engineering"
+  },
+  "equipSlotsNote": "Provisional slot names, not yet an approved design: body, sidearm, scanner, communicator. null = carried in inventory, not equipped.",
+  "statDisplay": {
+    "note": "Display order and labels for stats. 'bands' turns a numeric value into a word on screen; the number stays the tuning value.",
+    "order": ["damage", "range", "accuracy", "charges", "scan", "medical", "engineering", "security", "protection"],
+    "labels": {
+      "damage": "Damage",
+      "range": "Range",
+      "accuracy": "Accuracy",
+      "charges": "Charges",
+      "scan": "Scan",
+      "medical": "Medical",
+      "engineering": "Engineering",
+      "security": "Security",
+      "protection": "Protection"
+    },
+    "bands": {
+      "range": { "1": "Close", "2": "Medium", "3": "Long" }
+    }
+  },
+  "items": [
+    {
+      "id": "standardUniform",
+      "name": "Standard Uniform",
+      "category": "clothing",
+      "icon": "/art/items/uniform.png",
+      "description": "Standard Starfleet duty uniform.",
+      "tags": ["uniform"],
+      "equipSlot": "body"
+    },
+    {
+      "id": "communicator",
+      "name": "Communicator",
+      "category": "utility",
+      "icon": "/art/items/communicator.png",
+      "description": "Personal communication with the ship and crew.",
+      "tags": ["communication", "callShip", "contactCrew", "requestTransport"],
+      "equipSlot": "communicator"
+    },
+    {
+      "id": "standardTricorder",
+      "name": "Standard Tricorder",
+      "category": "scanner",
+      "icon": "/art/items/tricorder_standard.png",
+      "description": "General-purpose portable scanning and analysis device.",
+      "tags": ["tricorder", "scanner"],
+      "equipSlot": "scanner",
+      "stats": { "scan": 2 }
+    },
+    {
+      "id": "scienceTricorder",
+      "name": "Science Tricorder",
+      "category": "scanner",
+      "icon": "/art/items/tricorder_science.png",
+      "description": "Scientific scanning and analysis.",
+      "tags": ["tricorder", "scanner", "science"],
+      "equipSlot": "scanner",
+      "stats": { "scan": 4 }
+    },
+    {
+      "id": "medicalTricorder",
+      "name": "Medical Tricorder",
+      "category": "scanner",
+      "icon": "/art/items/tricorder_medical.png",
+      "description": "Medical diagnosis and biological scanning.",
+      "tags": ["tricorder", "scanner", "medical"],
+      "equipSlot": "scanner",
+      "stats": { "scan": 2, "medical": 3 }
+    },
+    {
+      "id": "engineeringTricorder",
+      "name": "Engineering Tricorder",
+      "category": "scanner",
+      "icon": "/art/items/tricorder_engineering.png",
+      "description": "Technical diagnostics and engineering analysis.",
+      "tags": ["tricorder", "scanner", "engineering"],
+      "equipSlot": "scanner",
+      "stats": { "scan": 2, "engineering": 3 }
+    },
+    {
+      "id": "phaserType1",
+      "name": "Type-1 Phaser",
+      "category": "weapon",
+      "icon": "/art/items/phaser_type1.png",
+      "description": "Compact Starfleet hand phaser.",
+      "tags": ["phaser", "energyWeapon", "sidearm", "stun"],
+      "equipSlot": "sidearm",
+      "stats": { "damage": 3, "range": 1, "accuracy": 2, "charges": 6 }
+    },
+    {
+      "id": "phaserType2",
+      "name": "Type-2 Phaser",
+      "category": "weapon",
+      "icon": "/art/items/phaser_type2.png",
+      "description": "Larger hand phaser for serious tactical situations.",
+      "tags": ["phaser", "energyWeapon", "sidearm", "stun"],
+      "equipSlot": "sidearm",
+      "stats": { "damage": 4, "range": 2, "accuracy": 2, "charges": 10 }
+    },
+    {
+      "id": "medkit",
+      "name": "Medkit",
+      "category": "medical",
+      "icon": "/art/items/medkit.png",
+      "description": "Field medical supplies for treating injuries.",
+      "tags": ["medical", "healing"],
+      "stats": { "medical": 2 }
+    },
+    {
+      "id": "engineeringToolkit",
+      "name": "Engineering Toolkit",
+      "category": "engineering",
+      "icon": "/art/items/engineering_toolkit.png",
+      "description": "Tools for field repairs and technical work.",
+      "tags": ["engineering", "repair"],
+      "stats": { "engineering": 2 }
+    }
+  ]
+}

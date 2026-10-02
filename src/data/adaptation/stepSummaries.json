@@ -33,10 +33,12 @@
   },
   "images": {
     "note": "Optional popup art, as paths into public/ with {id} replaced by the chosen card's id. Missing files show the placeholder. Career and Career History reuse their screens' art; Finishing Touches shows the chosen portrait.",
-    "species": "/assets/summary/species/{id}.png",
-    "environment": "/assets/summary/environment/{id}.png",
-    "earlyOutlook": "/assets/summary/early-outlook/{id}.png",
-    "education": "/assets/summary/education/{id}.png"
+    "species": "/art/summary/species/{id}.png",
+    "speciesFemale": "/art/summary/species/{id}-female.png",
+    "environment": "/art/summary/environment/{id}.png",
+    "earlyOutlook": "/art/summary/early-outlook/{id}.png",
+    "education": "/art/summary/education/{id}.png",
+    "educationCategory": "/art/summary/education-category/{id}.png"
   },
   "steps": {
     "species": {

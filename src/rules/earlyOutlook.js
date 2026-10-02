@@ -1,3 +1,4 @@
+import { withChoiceArt } from './choiceArt.js'
 import outlookSource from '../data/source/earlyOutlooks.json'
 import disciplineSource from '../data/source/disciplines.json'
 import outlookAdaptation from '../data/adaptation/earlyOutlook.json'
@@ -27,7 +28,11 @@ export function createEmptyEarlyOutlook() {
 export const getApproaches = () => outlookAdaptation.approachOrder.map((id) => approachesById.get(id))
 export const getApproachById = (id) => approachesById.get(id) ?? null
 export const getOutlookById = (id) => outlooksById.get(id) ?? null
-export const getOutlooks = (approachId) => outlookSource.outlooks.filter((outlook) => outlook.approach === approachId)
+export const getOutlooks = (approachId) =>
+  withChoiceArt(
+    'earlyOutlook',
+    outlookSource.outlooks.filter((outlook) => outlook.approach === approachId),
+  )
 export const isCustomFocusAllowed = () => outlookAdaptation.allowCustomFocus
 
 export function isApproachAvailable(character, approachId) {

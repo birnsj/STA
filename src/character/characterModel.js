@@ -28,6 +28,8 @@ export function createEmptyCharacter() {
     identity: createEmptyIdentity(),
     // Prototype: optional player-written notes; never read by the rules.
     backgroundNotes: '',
+    // Videogame adaptation: [{ itemId }] references into the item data, issued automatically from the career.
+    equipment: [],
     // ISO timestamp set by Confirm Character on Review; any later edit clears it.
     confirmedAt: null,
   }

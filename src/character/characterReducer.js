@@ -35,6 +35,7 @@ import * as careerRules from '../rules/career.js'
 import * as historyRules from '../rules/careerHistory.js'
 import * as finishingRules from '../rules/finishingTouches.js'
 import * as appearanceRules from '../rules/appearance.js'
+import { reconcileEquipment } from '../rules/equipment.js'
 import { applyDefaultSelections } from '../rules/defaults.js'
 import { autofillCharacter } from '../rules/autofill.js'
 import { isCharacterValid } from '../rules/characterValidation.js'
@@ -42,7 +43,7 @@ import { isFocusHeldElsewhere, isMatrixValueHeldElsewhere } from '../rules/chara
 
 // Creator state: the canonical character plus the per-card choice memory (UI-only, never exported).
 export function createInitialState() {
-  return { character: applyDefaultSelections(createEmptyCharacter()), memory: createEmptyMemory() }
+  return { character: reconcileEquipment(applyDefaultSelections(createEmptyCharacter())), memory: createEmptyMemory() }
 }
 
 // Focus and value picks that would duplicate one from another screen are ignored; removing a focus is always allowed.
@@ -204,7 +205,8 @@ function finalize(character) {
       ),
     ),
   )
-  return { ...applyDefaultSelections(reconciled), confirmedAt: null }
+  // Equipment follows the career, so it is derived after defaults have filled any career choices.
+  return { ...reconcileEquipment(applyDefaultSelections(reconciled)), confirmedAt: null }
 }
 
 // Restores a saved character; reconciling repairs anything the current rules no longer allow.

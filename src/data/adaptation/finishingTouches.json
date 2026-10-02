@@ -5,44 +5,44 @@
     {
       "id": "finalValue",
       "name": "Final Value",
-      "image": "/assets/finishing/final-value.png",
+      "image": "/art/finishing/final-value.png",
       "description": "Your character receives one final value. It might reflect the career events you chose, or some other element of who they have become."
     },
     {
       "id": "attributes",
       "name": "Attributes",
-      "image": "/assets/finishing/attributes.png",
+      "image": "/art/finishing/attributes.png",
       "description": "Increase two attributes by 1 each, then bring every attribute within the book's limits. This fixes your final attribute scores."
     },
     {
       "id": "disciplines",
       "name": "Disciplines",
-      "image": "/assets/finishing/disciplines.png",
+      "image": "/art/finishing/disciplines.png",
       "description": "Increase two disciplines by 1 each, then bring every discipline within the book's limits. This fixes your final discipline scores."
     },
     {
       "id": "identity",
       "name": "Name & Pronouns",
-      "image": "/assets/finishing/name-pronouns.png",
+      "image": "/art/finishing/name-pronouns.png",
       "description": "Name your character and record their pronouns. Pronouns help others use the proper address for your character."
     },
     {
       "id": "portrait",
       "name": "Portrait",
-      "image": "/assets/finishing/portrait.png",
+      "image": "/art/finishing/portrait.png",
       "description": "Choose a portrait that represents your character. Prototype feature: it is shown in the character summary and has no game-rule effect."
     },
     {
       "id": "backgroundNotes",
       "name": "Background Notes",
-      "image": "/assets/finishing/background-notes.png",
+      "image": "/art/finishing/background-notes.png",
       "optional": true,
       "description": "Optional notes about your character's history and personality. Prototype feature: free text that is saved with the character but never used by the game rules."
     },
     {
       "id": "randomize",
       "name": "Randomize",
-      "image": "/assets/finishing/randomize.png",
+      "image": "/art/finishing/randomize.png",
       "disabled": true,
       "description": "Not available in this prototype."
     }

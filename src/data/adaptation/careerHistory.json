@@ -2,7 +2,7 @@
   "step": "careerHistory",
   "allowDuplicateEvents": false,
   "allowCustomFocus": true,
-  "eventArtPattern": "/assets/career-events/{id}.png",
+  "eventArtPattern": "/art/career-events/{id}.png",
   "notes": [
     "Screen 06 is Book Step Six (Career Events). Career Length stays on Screen 05; the book gives it no effect here beyond flavour for Novice.",
     "The book's d20 roll is not offered; the player chooses both events.",

@@ -145,6 +145,15 @@ Functional fidelity is more important.
 
 ---
 
+# ART FILES
+
+All card, portrait, and icon art lives in `public/art/` as **PNG** files, referenced by path from the data files (e.g. `/art/summary/species/{id}.png`).
+
+- Any new mock/placeholder art must be delivered as PNG in `public/art/`, following the existing folder and file-naming pattern (file name = the content id).
+- Never overwrite or regenerate existing art without asking first; the designer may have replaced mock files with real art.
+
+---
+
 # DEVELOPMENT METHOD
 
 Build the character creator incrementally.

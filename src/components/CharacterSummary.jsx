@@ -8,7 +8,8 @@ import {
   getRequiredFocusCount,
   getRequiredValueCount,
 } from '../rules/finishingTouches.js'
-import Portrait from './Portrait.jsx'
+import { getAvailablePortraits } from '../rules/appearance.js'
+import PortraitCarousel from './PortraitCarousel.jsx'
 
 const EMPTY = '—'
 const NOT_ASSIGNED = 'Not Assigned'
@@ -60,7 +61,7 @@ function CountRow({ label, items, required }) {
   )
 }
 
-export default function CharacterSummary({ character }) {
+export default function CharacterSummary({ character, dispatch }) {
   const { species, environment, earlyOutlook, education, career, careerHistory, identity } = character
   const historySlots = careerHistory.events.filter(Boolean)
   const traitNames = species?.traits.map((trait) => trait.name).join(', ')
@@ -72,7 +73,13 @@ export default function CharacterSummary({ character }) {
   return (
     <aside className="summary panel">
       <h2 className="summary-heading">Character Summary</h2>
-      <Portrait label={identity.name.trim() || speciesName} image={portrait?.image} className="portrait-summary" />
+      <PortraitCarousel
+        portraits={getAvailablePortraits(character)}
+        selectedId={portrait?.id}
+        onSelect={(portraitId) => dispatch({ type: 'selectPortrait', portraitId })}
+        fallbackLabel={identity.name.trim() || speciesName}
+        className="portrait-summary"
+      />
       <SummaryGroup
         rows={[
           { label: 'Name', value: identity.name.trim() },

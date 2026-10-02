@@ -12,6 +12,7 @@ import {
   isCustomFocusAllowed,
 } from '../rules/earlyOutlook.js'
 import { getFocusesHeldElsewhere } from '../rules/characterSheet.js'
+import { getChoiceArt } from '../rules/choiceArt.js'
 import { getFocusGroups } from '../rules/focuses.js'
 import { getScoreTip } from '../rules/infoTips.js'
 import { areAllMet, getLockedSections } from '../rules/requirements.js'
@@ -86,7 +87,7 @@ export default function EarlyOutlookScreen({ step, navigation }) {
       />
 
       <div className="species-details env-details panel">
-        <Portrait label={outlook?.name} className="portrait-detail" />
+        <Portrait label={outlook?.name} image={getChoiceArt('earlyOutlook', outlook?.id)} className="portrait-detail" />
         <div className="species-details-text">
           <h2 className={`species-details-name${requirements.outlook ? '' : ' is-missing'}`}>
             {outlook?.name ?? 'No early outlook selected'}

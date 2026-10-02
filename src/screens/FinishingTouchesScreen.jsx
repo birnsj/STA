@@ -43,6 +43,29 @@ function Panel({ title, helpId, met, locked, className = '', children }) {
   )
 }
 
+function NameField({ name, dispatch }) {
+  return (
+    <>
+      <label className="finishing-field">
+        <span className="finishing-field-label">Name (required)</span>
+        <input className="text-field" value={name} maxLength={60} onChange={(event) => dispatch({ type: 'setCharacterName', name: event.target.value })} />
+      </label>
+      <div className="name-randomizer">
+        {NAME_GROUPS.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            className="name-randomizer-button"
+            onClick={() => dispatch({ type: 'setCharacterName', name: randomName(group.id, name) })}
+          >
+            {group.label}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
 function FinalValuePanels({ character, dispatch, met }) {
   const book = getBookText().finalValue
   const values = getCharacterValues(character)
@@ -59,14 +82,19 @@ function FinalValuePanels({ character, dispatch, met }) {
           heldElsewhere={getValuesHeldElsewhere(character, 'finishingTouches')}
         />
       </Panel>
-      <Panel title="Value Details" helpId="valueDetails">
-        <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
-        <p className="education-detail-description">{book.text}</p>
-        <p className="education-detail-caption">Your values ({values.length}/{getRequiredValueCount()}):</p>
-        <ul className="finishing-list">
-          {values.map((value, index) => <li key={index}>{value.text}</li>)}
-        </ul>
-      </Panel>
+      <div className="finishing-stack">
+        <Panel title="Value Details" helpId="valueDetails">
+          <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
+          <p className="education-detail-description">{book.text}</p>
+          <p className="education-detail-caption">Your values ({values.length}/{getRequiredValueCount()}):</p>
+          <ul className="finishing-list">
+            {values.map((value, index) => <li key={index}>{value.text}</li>)}
+          </ul>
+        </Panel>
+        <Panel title="Name" helpId="characterName" met={getFinishingRequirements(character).identity} className="finishing-name-panel">
+          <NameField name={character.identity.name} dispatch={dispatch} />
+        </Panel>
+      </div>
     </>
   )
 }
@@ -120,22 +148,7 @@ function IdentityPanels({ character, dispatch, met }) {
   return (
     <>
       <Panel title="Name & Pronouns" helpId="nameAndPronouns" met={met}>
-        <label className="finishing-field">
-          <span className="finishing-field-label">Name (required)</span>
-          <input className="text-field" value={name} maxLength={60} onChange={(event) => dispatch({ type: 'setCharacterName', name: event.target.value })} />
-        </label>
-        <div className="name-randomizer">
-          {NAME_GROUPS.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              className="name-randomizer-button"
-              onClick={() => dispatch({ type: 'setCharacterName', name: randomName(group.id, name) })}
-            >
-              {group.label}
-            </button>
-          ))}
-        </div>
+        <NameField name={name} dispatch={dispatch} />
         <label className="finishing-field">
           <span className="finishing-field-label">Pronouns (optional)</span>
           <input className="text-field" value={pronouns} maxLength={40} placeholder="e.g. she/her" onChange={(event) => dispatch({ type: 'setCharacterPronouns', pronouns: event.target.value })} />

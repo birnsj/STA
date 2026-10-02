@@ -1,9 +1,10 @@
 import { getCharacterFocuses, getCharacterValues, getFinalScores } from '../rules/finishingTouches.js'
 import { getTraitEntries } from '../rules/characterSheet.js'
 import { validateCharacter } from '../rules/characterValidation.js'
+import { getEquippedItems } from '../rules/equipment.js'
 
 // Bump when the exported structure changes so future loaders can detect old files.
-export const SCHEMA_VERSION = '0.4.0'
+export const SCHEMA_VERSION = '0.5.0'
 
 // Derived from the choices at export time (null until Finishing Touches resolves them); loaders can recompute it.
 function buildFinal(character) {
@@ -13,6 +14,8 @@ function buildFinal(character) {
     values: getCharacterValues(character).map((value) => value.text.trim()),
     focuses: getCharacterFocuses(character).map((focus) => focus.name.trim()),
     traits: getTraitEntries(character).map(({ id, name }) => ({ id, name })),
+    // Names for readability only; character.equipment ({ itemId }) is the record a loader should use.
+    equipment: getEquippedItems(character).map(({ id, name }) => ({ itemId: id, name })),
   }
 }
 

@@ -2,9 +2,9 @@
   "step": "career",
   "allowCustomValue": true,
   "lengthArt": {
-    "novice": "/assets/career/novice.png",
-    "experienced": "/assets/career/experienced.png",
-    "veteran": "/assets/career/veteran.png"
+    "novice": "/art/career/novice.png",
+    "experienced": "/art/career/experienced.png",
+    "veteran": "/art/career/veteran.png"
   },
   "rankTypeByEducation": {
     "categories": { "civilian": "none", "diplomatic": "optional" },

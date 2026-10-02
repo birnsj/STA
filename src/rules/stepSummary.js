@@ -1,5 +1,6 @@
 import summaryCopy from '../data/adaptation/stepSummaries.json'
 import creationSteps from '../data/adaptation/creationSteps.json'
+import { getSpeciesArt } from './choiceArt.js'
 import attributeSource from '../data/source/attributes.json'
 import disciplineSource from '../data/source/disciplines.json'
 import startingPoints from '../data/source/startingPoints.json'
@@ -137,7 +138,7 @@ function speciesSummary(character) {
     ? species.parents.filter(Boolean).map((parent) => ({ title: parent.name, text: getSpeciesById(parent.id).description, source: bookPage(getSpeciesById(parent.id).source.page) }))
     : [{ title: name, text: isNewSpecies(definition) ? species.description.trim() || definition.description : definition.description, source: bookPage(definition.source.page) }]
   return {
-    image: { src: fillPattern(summaryCopy.images.species, species.id), label: name },
+    image: { src: getSpeciesArt(species.id, character.identity.gender?.id), label: name },
     choices,
     meaning,
     groups: [group({ attributes: stepScoreChanges(character, 'species', 'attributes', () => reason), traits: traitItems(species) })],

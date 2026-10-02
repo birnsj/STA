@@ -1,5 +1,6 @@
 import { getParentOptions, getSpeciesById, getTraitDescription, isMixedHeritage, isNewSpecies } from '../rules/species.js'
-import Portrait from './Portrait.jsx'
+import { getSpeciesArt } from '../rules/choiceArt.js'
+import PortraitCarousel from './PortraitCarousel.jsx'
 
 function Trait({ name, text }) {
   return (
@@ -10,35 +11,38 @@ function Trait({ name, text }) {
   )
 }
 
-function ParentSelect({ selection, index, onChange }) {
+function ParentCarousel({ selection, index, genderId, onChange }) {
   const parent = selection.parents[index]
+  const options = getParentOptions(selection, index).map((species) => ({
+    id: species.id,
+    name: species.name,
+    image: getSpeciesArt(species.id, genderId),
+  }))
   return (
     <div className="parent-slot">
-      <select
-        className="env-select"
-        aria-label={`Parent species ${index + 1}`}
-        value={parent?.id ?? ''}
-        onChange={(event) => onChange(index, event.target.value || null)}
-      >
-        <option value="">Parent species {index + 1}…</option>
-        {getParentOptions(selection, index).map((species) => (
-          <option key={species.id} value={species.id}>{species.name}</option>
-        ))}
-      </select>
-      <Portrait className="portrait-parent" label={parent?.name} unknown={!parent} />
+      <span className="parent-slot-label">Parent species {index + 1}{parent ? `: ${parent.name}` : ''}</span>
+      <PortraitCarousel
+        portraits={options}
+        selectedId={parent?.id}
+        onSelect={(speciesId) => onChange(index, speciesId)}
+        emptyUnknown
+        itemLabel={`parent species ${index + 1}`}
+        showHint={false}
+        className="portrait-parent"
+      />
     </div>
   )
 }
 
-export default function SpeciesTraits({ selection, onParentChange, onNameChange, onDescriptionChange }) {
+export default function SpeciesTraits({ selection, genderId, onParentChange, onNameChange, onDescriptionChange }) {
   const species = getSpeciesById(selection.id)
 
   if (isMixedHeritage(species)) {
     return (
       <div className="species-traits">
         <div className="parent-selects">
-          <ParentSelect selection={selection} index={0} onChange={onParentChange} />
-          <ParentSelect selection={selection} index={1} onChange={onParentChange} />
+          <ParentCarousel selection={selection} index={0} genderId={genderId} onChange={onParentChange} />
+          <ParentCarousel selection={selection} index={1} genderId={genderId} onChange={onParentChange} />
         </div>
         {selection.traits.map((trait) => (
           <Trait key={trait.id} name={trait.name} text={getTraitDescription(selection)} />

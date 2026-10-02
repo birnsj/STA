@@ -1,6 +1,6 @@
-// Completed steps (other than the current one) can be clicked to jump back to them.
-// The first unfinished step is also reachable when it lies behind the current step
-// (e.g. an older save that predates a newly required choice such as Gender).
+// Completed steps (other than the current one) can be clicked to jump to them.
+// The first unfinished step is also reachable, since every step before it is done: e.g. Review once
+// steps 1-7 are checked, or an older save that predates a newly required choice such as Gender.
 export default function StepNav({ steps, currentStepId, completedStepIds, onSelectStep }) {
   const activeIndex = steps.findIndex((step) => step.id === currentStepId)
   const firstIncompleteIndex = steps.findIndex((step) => !completedStepIds.includes(step.id))
@@ -9,8 +9,8 @@ export default function StepNav({ steps, currentStepId, completedStepIds, onSele
       {steps.map((step, index) => {
         const isActive = index === activeIndex
         const isComplete = completedStepIds.includes(step.id)
-        const isUnfinishedBehind = index === firstIncompleteIndex && index < activeIndex
-        const isSelectable = !isActive && (isComplete || isUnfinishedBehind)
+        const isNextUnfinished = index === firstIncompleteIndex
+        const isSelectable = !isActive && (isComplete || isNextUnfinished)
         const className = `step-nav-item${isActive ? ' is-active' : ''}${isSelectable && isComplete ? ' is-complete' : ''}`
         const content = (
           <>
