@@ -27,6 +27,11 @@ export default function ScaledStage({ width = DESIGN_RESOLUTION.width, height = 
           <StageSizeContext.Provider value={{ width: layout.width, height: layout.height }}>{children}</StageSizeContext.Provider>
         </div>
       </div>
+      <div className="rotate-notice" role="alert">
+        <div className="rotate-notice-icon" />
+        <p className="rotate-notice-title">Rotate your device</p>
+        <p className="rotate-notice-text">The character creator is designed for landscape.</p>
+      </div>
     </div>
   )
 }

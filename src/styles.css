@@ -126,6 +126,8 @@ dd {
 .stage-viewport {
   width: 100vw;
   height: 100vh;
+  /* Mobile browsers count their address bar in 100vh; dvh is the space actually visible. */
+  height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,6 +137,50 @@ dd {
 .stage-slot {
   position: relative;
   overflow: hidden;
+}
+
+.rotate-notice {
+  display: none;
+}
+
+/* Upright phones and tablets only; a narrow desktop window keeps the normal view. */
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-notice {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px;
+    background: #000;
+    color: var(--yellow);
+    font-family: inherit;
+    text-align: center;
+  }
+}
+
+.rotate-notice-icon {
+  width: 56px;
+  height: 90px;
+  border: 4px solid var(--yellow);
+  border-radius: 10px;
+  transform: rotate(90deg);
+}
+
+.rotate-notice-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rotate-notice-text {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
 }
 
 .stage {

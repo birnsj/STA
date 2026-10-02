@@ -8,7 +8,7 @@ export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1 }
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
 export const SCALE_MODE_OPTIONS = [
-  { id: 'fill', label: 'Fill Window', description: 'Uses the whole window. The layout stretches to the window’s shape.' },
+  { id: 'fill', label: 'Fill Window', description: 'Uses the whole window. The layout stretches to the window’s shape, within normal widescreen limits.' },
   { id: 'fit', label: 'Fit 16:9', description: 'Keeps the exact 1920×1080 layout, with black bars when the window is a different shape.' },
 ]
 
@@ -18,10 +18,19 @@ export function normalizeDisplaySettings(saved) {
   return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode }
 }
 
+// Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide
+// monitors) the stage stops at the limit and the rest is black bars, so panels never become absurdly tall or wide.
+export const FILL_ASPECT_RANGE = { min: 16 / 10, max: 21 / 9 }
+
 // Returns the scale and the stage size in design pixels.
 export function getStageLayout(settings, design, viewport) {
   if (settings.scaleMode === 'fixed') return { scale: settings.fixedScale, ...design }
-  const scale = Math.min(viewport.width / design.width, viewport.height / design.height)
-  if (settings.scaleMode === 'fit') return { scale, ...design }
-  return { scale, width: viewport.width / scale, height: viewport.height / scale }
+  if (settings.scaleMode === 'fit') {
+    return { scale: Math.min(viewport.width / design.width, viewport.height / design.height), ...design }
+  }
+  const aspect = Math.min(Math.max(viewport.width / viewport.height, FILL_ASPECT_RANGE.min), FILL_ASPECT_RANGE.max)
+  const stage = aspect >= design.width / design.height
+    ? { width: design.height * aspect, height: design.height }
+    : { width: design.width, height: design.width / aspect }
+  return { scale: Math.min(viewport.width / stage.width, viewport.height / stage.height), ...stage }
 }
