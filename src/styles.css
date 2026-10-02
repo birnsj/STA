@@ -3457,23 +3457,32 @@ dd {
   border-bottom: 3px solid var(--panel-border);
 }
 
-.step-summary-kicker {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .step-summary-title {
-  font-size: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 64px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
+.step-summary-step {
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+
 .step-summary-number {
+  color: var(--text-muted);
+}
+
+.step-summary-kicker {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-muted);
 }
 

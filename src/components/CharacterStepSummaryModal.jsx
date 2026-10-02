@@ -235,10 +235,13 @@ export default function CharacterStepSummaryModal({ summary, onClose }) {
     <div className="step-summary-overlay">
       <section className="step-summary" role="dialog" aria-modal="true" aria-labelledby="step-summary-title">
         <header className="step-summary-header">
-          <p className="step-summary-kicker">Step Complete · Character Development Summary</p>
           <h2 id="step-summary-title" className="step-summary-title">
-            <span className="step-summary-number">{summary.number}</span> {summary.title}
+            Summary
+            <span className="step-summary-step">
+              <span className="step-summary-number">{summary.number}</span> {summary.title}
+            </span>
           </h2>
+          <p className="step-summary-kicker">Here is what your choices on this screen did to your character, and why.</p>
           <p className="step-summary-grants">
             <span className="summary-term">{summary.bookStep}:</span> {summary.grants} {summary.grantsSource && <cite>{summary.grantsSource}</cite>}
           </p>
