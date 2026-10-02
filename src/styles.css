@@ -27,9 +27,12 @@ body {
   overflow: hidden;
 }
 
+/* Art is part of the interface: no drag, no selection, and no iPad/iPhone press-and-hold menu (Save Image, Copy...). */
 img {
   -webkit-user-drag: none;
+  -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Scrollbars in the interface colours. Chromium (browser and Electron) uses the ::-webkit rules; setting the standard
