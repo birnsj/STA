@@ -3219,7 +3219,8 @@ dd {
   gap: 12px;
 }
 
-.nav-summary {
+.nav-summary,
+.nav-auto {
   min-width: 0;
 }
 

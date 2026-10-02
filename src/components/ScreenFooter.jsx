@@ -2,7 +2,7 @@ import AutofillButton from './AutofillButton.jsx'
 import ClearButton from './ClearButton.jsx'
 import ExportButton from './ExportButton.jsx'
 
-export default function ScreenFooter({ onBack, onNext, onClear, nextLabel, canGoBack, canGoNext, canShowSummary, onShowSummary }) {
+export default function ScreenFooter({ onBack, onNext, onClear, nextLabel, canGoBack, canGoNext, canShowSummary, onShowSummary, showAuto, canAuto, onAuto }) {
   return (
     <footer className="screen-footer">
       <button type="button" className="nav-button nav-back" onClick={onBack} disabled={!canGoBack}>
@@ -14,6 +14,17 @@ export default function ScreenFooter({ onBack, onNext, onClear, nextLabel, canGo
         <ExportButton />
       </div>
       <div className="footer-forward">
+        {showAuto && (
+          <button
+            type="button"
+            className="nav-button nav-auto"
+            onClick={onAuto}
+            disabled={!canAuto}
+            title={canAuto ? 'Replace every choice on this screen with a random valid one.' : 'Complete the earlier screens first.'}
+          >
+            Auto
+          </button>
+        )}
         {canShowSummary && (
           <button type="button" className="nav-button nav-summary" onClick={onShowSummary}>
             Summary

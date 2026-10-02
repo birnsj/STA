@@ -9,6 +9,7 @@ import {
   switchEnvironmentCard,
   switchSpecies,
 } from './choiceMemory.js'
+import { autoChooseStep } from './autoChoice.js'
 import {
   setMixedParent,
   setNewSpeciesDescription,
@@ -239,6 +240,10 @@ export function creatorReducer(state, action) {
   if (action.type === 'resetCharacter') return createInitialState()
   if (action.type === 'loadCharacter') return loadCharacter(state, action.character)
   if (action.type === 'confirmCharacter') return confirm(state, action.confirmedAt)
+  if (action.type === 'autoChooseStep') {
+    const auto = autoChooseStep(state, action.stepId, action.seed)
+    return auto === state ? state : { ...auto, character: finalize(auto.character) }
+  }
   const switched = switchCard(state, action)
   if (switched) return switched === state ? state : { ...switched, character: finalize(switched.character) }
   const character = applyAction(state.character, action)

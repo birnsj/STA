@@ -18,7 +18,8 @@ import ScaledStage from './components/ScaledStage.jsx'
 import StepNav from './components/StepNav.jsx'
 import { useStepSummaryPopup } from './components/useStepSummaryPopup.js'
 import { isCharacterValid } from './rules/characterValidation.js'
-import { getCompletedStepIds, hasUnsavedProgress } from './rules/creationProgress.js'
+import { getCompletedStepIds, hasUnsavedProgress, isStepComplete } from './rules/creationProgress.js'
+import { hasAutoChoice } from './character/autoChoice.js'
 import { buildStepSummary } from './rules/stepSummary.js'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
@@ -83,6 +84,10 @@ function CharacterCreator({ onExit, onConfirmed }) {
       dispatch({ type: 'resetCharacter' })
       setCurrentStepId(steps[0].id)
     },
+    // Each screen's options depend on the earlier screens, so Auto waits until those are complete.
+    canAuto: hasAutoChoice(step.id) && steps.slice(0, index).every((earlier) => isStepComplete(earlier.id, character)),
+    showAuto: hasAutoChoice(step.id),
+    onAuto: () => dispatch({ type: 'autoChooseStep', stepId: step.id, seed: Math.random() }),
     canShowSummary: summaryPopup.canShow,
     onShowSummary: summaryPopup.show,
     // Saves the confirmed character (again, if it already was), then returns to the Main Menu. savedCharacterId (UI state) remembers which saved
