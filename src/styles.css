@@ -2491,10 +2491,6 @@ dd {
   flex: 1;
 }
 
-.finishing-name-panel {
-  flex: none;
-}
-
 .finishing-field {
   display: flex;
   flex-direction: column;
@@ -2511,7 +2507,7 @@ dd {
 .name-randomizer {
   display: flex;
   gap: 8px;
-  margin: -4px 0 12px;
+  margin: 8px 0 14px;
 }
 
 .name-randomizer-button {
@@ -2598,14 +2594,53 @@ dd {
 .finishing-preset-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .finishing-preset-counter {
-  min-width: 56px;
+  min-width: 110px;
   text-align: center;
   font-weight: 700;
+}
+
+.finishing-portrait-details .panel-body {
+  overflow-y: auto;
+}
+
+.finishing-portrait-details .portrait-finishing-preview {
+  width: 120px;
+  margin-bottom: 6px;
+}
+
+.finishing-portrait-details .finishing-preset-row {
+  margin-bottom: 8px;
+}
+
+.finishing-portrait-details .source-ref {
+  margin: 0;
+  text-align: center;
+}
+
+.finishing-life-track {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--blue);
+}
+
+.finishing-life-track-heading {
+  margin: 0 0 4px;
+  color: var(--yellow);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.finishing-life-track p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .summary-score-grid {

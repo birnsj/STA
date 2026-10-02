@@ -1,7 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { getCardTip } from '../rules/infoTips.js'
 import Portrait from './Portrait.jsx'
-import { useInfoTip } from './useInfoTip.js'
 
 // True when every card fits at its normal width (--card-width / --card-gap in styles.css).
 function allCardsFit(carousel, count) {
@@ -17,8 +15,6 @@ export default function CardCarousel({ items, selectedId, onSelect, label, varia
   const carouselRef = useRef(null)
   const trackRef = useRef(null)
   const [fits, setFits] = useState(false)
-  const tip = useInfoTip()
-
   useLayoutEffect(() => {
     const carousel = carouselRef.current
     const measure = () => setFits(allCardsFit(carousel, items.length))
@@ -47,7 +43,6 @@ export default function CardCarousel({ items, selectedId, onSelect, label, varia
               disabled={item.disabled}
               className={`option-card${isSelected ? ' is-selected' : ''}`}
               onClick={() => onSelect(item.id)}
-              {...tip.bind(getCardTip(item))}
             >
               {item.tag && <span className="option-card-tag">{item.tag}</span>}
               <Portrait label={item.name} image={item.image} className="portrait-card" />
@@ -59,7 +54,6 @@ export default function CardCarousel({ items, selectedId, onSelect, label, varia
       {!fits && (
         <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label={`Scroll ${label} right`}>›</button>
       )}
-      {tip.element}
     </div>
   )
 }

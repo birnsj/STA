@@ -365,9 +365,9 @@ function finishingSummary(character) {
       { label: 'Final value', value: finishingTouches.value.text.trim(), tip: getConceptHelp('value') },
       { label: 'Attribute increases', value: nameList(finishingTouches.attributes.increases), tip: getConceptHelp('attribute') },
       { label: 'Discipline increases', value: nameList(finishingTouches.disciplines.increases), tip: getConceptHelp('discipline') },
+      { label: 'Portrait', value: portrait?.name },
       { label: 'Name', value: identity.name.trim() },
       ...(identity.pronouns.trim() ? [{ label: 'Pronouns', value: identity.pronouns.trim() }] : []),
-      { label: 'Portrait', value: portrait?.name },
     ],
     meaning: [
       { title: 'Final value', text: book.finalValue.text, source: bookPage(book.finalValue.source.page) },

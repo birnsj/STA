@@ -26,11 +26,11 @@ import * as appearanceRules from './appearance.js'
 import { getAllMatrixFocuses } from './focuses.js'
 import { randomName } from './names.js'
 
-// order(list, score?) returns a new array in the order options should be tried; name() supplies a character name.
+// order(list, score?) returns a new array in the order options should be tried; name(), if present, supplies a character name.
 // Highest score first; Array.prototype.sort is stable, so ties keep canonical order.
+// No name: a placeholder would be easy to miss and end up on a finished character, so Autofill leaves the required field blank.
 export const strongestChooser = {
   order: (list, score) => (score ? [...list].sort((a, b) => score(b) - score(a)) : [...list]),
-  name: () => 'Test Officer',
 }
 
 // mulberry32: a small seeded generator, so the reducer stays pure (the seed is drawn when the button is pressed).
@@ -277,7 +277,7 @@ export function fillFinishingTouches(character, chooser = strongestChooser) {
   }
   next = fillFinishingScores(next, 'attributes', chooser)
   next = fillFinishingScores(next, 'disciplines', chooser)
-  if (!next.identity.name.trim()) next = { ...next, identity: finishingRules.setName(next.identity, chooser.name()) }
+  if (chooser.name && !next.identity.name.trim()) next = { ...next, identity: finishingRules.setName(next.identity, chooser.name()) }
   const [portrait] = chooser.order(appearanceRules.getAvailablePortraits(next))
   if (!next.identity.portrait && portrait) next = { ...next, identity: appearanceRules.selectPortrait(next, portrait.id) }
   return next

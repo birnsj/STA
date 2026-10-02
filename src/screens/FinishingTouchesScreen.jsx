@@ -16,6 +16,7 @@ import {
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { NAME_GROUPS, randomName } from '../rules/names.js'
 import { getAvailablePortraits } from '../rules/appearance.js'
+import { getLifeTrackSentences } from '../rules/lifeTrack.js'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from '../rules/species.js'
 import { getLockedSections } from '../rules/requirements.js'
 import CardCarousel from '../components/CardCarousel.jsx'
@@ -43,29 +44,6 @@ function Panel({ title, helpId, met, locked, className = '', children }) {
   )
 }
 
-function NameField({ name, dispatch }) {
-  return (
-    <>
-      <label className="finishing-field">
-        <span className="finishing-field-label">Name (required)</span>
-        <input className="text-field" value={name} maxLength={60} onChange={(event) => dispatch({ type: 'setCharacterName', name: event.target.value })} />
-      </label>
-      <div className="name-randomizer">
-        {NAME_GROUPS.map((group) => (
-          <button
-            key={group.id}
-            type="button"
-            className="name-randomizer-button"
-            onClick={() => dispatch({ type: 'setCharacterName', name: randomName(group.id, name) })}
-          >
-            {group.label}
-          </button>
-        ))}
-      </div>
-    </>
-  )
-}
-
 function FinalValuePanels({ character, dispatch, met }) {
   const book = getBookText().finalValue
   const values = getCharacterValues(character)
@@ -90,9 +68,6 @@ function FinalValuePanels({ character, dispatch, met }) {
           <ul className="finishing-list">
             {values.map((value, index) => <li key={index}>{value.text}</li>)}
           </ul>
-        </Panel>
-        <Panel title="Name" helpId="characterName" met={getFinishingRequirements(character).identity} className="finishing-name-panel">
-          <NameField name={character.identity.name} dispatch={dispatch} />
         </Panel>
       </div>
     </>
@@ -148,10 +123,37 @@ function IdentityPanels({ character, dispatch, met }) {
   return (
     <>
       <Panel title="Name & Pronouns" helpId="nameAndPronouns" met={met}>
-        <NameField name={name} dispatch={dispatch} />
+        <label className="finishing-field">
+          <span className="finishing-field-label">Name (required)</span>
+          <input
+            className="text-field"
+            value={name}
+            maxLength={60}
+            placeholder="Type a name or roll one"
+            onChange={(event) => dispatch({ type: 'setCharacterName', name: event.target.value })}
+          />
+        </label>
+        <div className="name-randomizer">
+          {NAME_GROUPS.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              className="name-randomizer-button"
+              onClick={() => dispatch({ type: 'setCharacterName', name: randomName(group.id, name) })}
+            >
+              {group.label}
+            </button>
+          ))}
+        </div>
         <label className="finishing-field">
           <span className="finishing-field-label">Pronouns (optional)</span>
-          <input className="text-field" value={pronouns} maxLength={40} placeholder="e.g. she/her" onChange={(event) => dispatch({ type: 'setCharacterPronouns', pronouns: event.target.value })} />
+          <input
+            className="text-field"
+            value={pronouns}
+            maxLength={40}
+            placeholder="e.g. she/her"
+            onChange={(event) => dispatch({ type: 'setCharacterPronouns', pronouns: event.target.value })}
+          />
         </label>
       </Panel>
       <Panel title="Identity Details" helpId="identityDetails">
@@ -195,13 +197,16 @@ function PortraitPanels({ character, dispatch, met }) {
           </div>
         </div>
       </Panel>
-      <Panel title="Portrait Details" helpId="portraitDetails">
+      <Panel title="Portrait Details" helpId="portraitDetails" className="finishing-portrait-details">
         <Portrait label={selected?.name} image={selected?.image} className="portrait-finishing-preview" />
         <div className="finishing-preset-row">
-          <span className="finishing-field-label">Preset</span>
           <button type="button" className="carousel-arrow" onClick={() => step(-1)} aria-label="Previous portrait">‹</button>
-          <span className="finishing-preset-counter">{index >= 0 ? index + 1 : '–'} / {portraits.length}</span>
+          <span className="finishing-preset-counter">Preset {index >= 0 ? index + 1 : '–'} / {portraits.length}</span>
           <button type="button" className="carousel-arrow" onClick={() => step(1)} aria-label="Next portrait">›</button>
+        </div>
+        <div className="finishing-life-track">
+          <h4 className="finishing-life-track-heading">Life Track</h4>
+          <p>{getLifeTrackSentences(character).join(' ')}</p>
         </div>
         <p className="source-ref">Prototype: portraits are presentation only and have no game-rule effect.</p>
       </Panel>
@@ -252,7 +257,7 @@ export default function FinishingTouchesScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.finalValue ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Add the final value and attribute and discipline increases defined in Captain's Log, then name your character and choose a portrait.
+            Add the final value and attribute and discipline increases defined in Captain's Log, choose a portrait, and finally name your character.
           </p>
         </div>
       </div>

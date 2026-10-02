@@ -243,8 +243,9 @@ export function getFinishingRequirements(character) {
     finalValue: Boolean(character.finishingTouches.value?.text.trim()) && getCharacterValues(character).length === complete.valueCount,
     attributes: getFinalScores(character, 'attributes') !== null,
     disciplines: getFinalScores(character, 'disciplines') !== null,
-    identity: Boolean(character.identity.name.trim()),
     portrait: isPortraitAvailable(character, character.identity.portrait?.id),
+    // Last, so naming the character is the final choice on the screen (sections unlock in this order).
+    identity: Boolean(character.identity.name.trim()),
   }
 }
 

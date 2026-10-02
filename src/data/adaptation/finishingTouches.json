@@ -21,16 +21,16 @@
       "description": "Increase two disciplines by 1 each, then bring every discipline within the book's limits. This fixes your final discipline scores."
     },
     {
-      "id": "identity",
-      "name": "Name & Pronouns",
-      "image": "/art/finishing/name-pronouns.png",
-      "description": "Name your character and record their pronouns. Pronouns help others use the proper address for your character."
-    },
-    {
       "id": "portrait",
       "name": "Portrait",
       "image": "/art/finishing/portrait.png",
       "description": "Choose a portrait that represents your character. Prototype feature: it is shown in the character summary and has no game-rule effect."
+    },
+    {
+      "id": "identity",
+      "name": "Name & Pronouns",
+      "image": "/art/finishing/name-pronouns.png",
+      "description": "Name your character and record their pronouns. Pronouns help others use the proper address for your character."
     },
     {
       "id": "backgroundNotes",
@@ -41,6 +41,7 @@
     }
   ],
   "notes": [
+    "Prototype: cards follow the unlock order, with Name & Pronouns as the last required choice and the optional Background Notes after it.",
     "Screen 07 is Book Step Seven. Assignment and Rank from Step Seven are on Screen 05.",
     "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step; pronouns are from p.132 and are optional here.",
     "Prototype: the mockup's Service Motto and Personal Goals are not implemented (Service Motto would duplicate Values).",
