@@ -29,7 +29,7 @@
       "heading": "Attacking",
       "lines": [
         "Pick a target by clicking a Klingon. Choose Stun or Deadly, then FIRE.",
-        "The result applies by itself: a hit shows -1 Hit over the target. If the roll would miss and you have an Aim or Momentum reroll, it waits so you can reroll a red die or click Accept Miss.",
+        "The result applies by itself: a hit shows -1 Hit over the target. If the roll would miss and you have an Aim or Momentum reroll, it waits so you can reroll a red die or click No Reroll.",
         "Two dice are rolled. Each die at or under your Target Number (Control + Security) is a success. You need as many successes as the Difficulty.",
         "Difficulty is 1, plus 1 if the target is beyond your weapon's best range, plus 1 if Threat is on."
       ]

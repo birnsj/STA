@@ -6,7 +6,7 @@ function Die({ value, targetNumber }) {
 }
 
 // The attack being rolled (with any rerolls still open to the player) or the last attack's result.
-// awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or Accept Miss instead of resolving itself.
+// awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or No Reroll instead of resolving itself.
 export default function RollPanel({ state, playerControls, awaitingChoice, onReroll, onResolve, onSpendMomentumHit }) {
   const roll = state.pending ?? state.result
   if (!roll) return null
@@ -49,7 +49,7 @@ export default function RollPanel({ state, playerControls, awaitingChoice, onRer
           {pending ? (
             playerControls && awaitingChoice ? (
               <button type="button" className="roll-resolve" onClick={onResolve}>
-                Accept Miss
+                No Reroll
               </button>
             ) : (
               <span className="roll-result-text">Rolling...</span>

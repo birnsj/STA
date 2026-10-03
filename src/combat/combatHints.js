@@ -11,7 +11,7 @@ function rollHint(state) {
     const options = []
     if (pending.aimReroll) options.push('Aim reroll')
     if (state.momentum) options.push('Momentum reroll')
-    return `This misses: you need ${pending.task.difficulty} green ${pending.task.difficulty === 1 ? 'die' : 'dice'}. Use ${options.join(' or ')} on a red die, or click Accept Miss.`
+    return `This misses: you need ${pending.task.difficulty} green ${pending.task.difficulty === 1 ? 'die' : 'dice'}. Use ${options.join(' or ')} on a red die, or click No Reroll.`
   }
   if (result && !result.closed && result.passed && !result.extraHit && state.momentum && isActive(state.combatants[result.targetId])) {
     if (state.turn.minorUsed && state.turn.majorUsed) {
