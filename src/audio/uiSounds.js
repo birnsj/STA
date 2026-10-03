@@ -183,7 +183,7 @@ function playPunch(audio) {
 
 const WEAPON_SOUNDS = { phaser: playPhaser, punch: playPunch }
 
-// Combat attacks, by the weapon's attackSound id. speed (Auto Combat 0.5x-4x) shortens or lengthens a phaser with its beam.
+// Combat attacks, by the weapon's attackSound id. speed (Auto Combat 1x-4x) shortens a phaser with its beam.
 // Opens or wakes the audio itself, since an AI shot can come before the next press; browsers still keep it silent until
 // the player has interacted with the page at least once.
 export function playWeaponSound(soundId, speed = 1) {

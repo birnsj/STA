@@ -4292,7 +4292,7 @@ dd {
   opacity: 0.7;
 }
 
-/* Action effects: durations divide by --fx-speed (Auto Combat 0.5x/1x/2x/4x). */
+/* Action effects: durations divide by --fx-speed (Auto Combat 1x/2x/4x). */
 .fx-anchor {
   transition-property: transform;
   transition-timing-function: linear;

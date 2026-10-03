@@ -1,4 +1,4 @@
-const AUTO_SPEEDS = [0.5, 1, 2, 4]
+const AUTO_SPEEDS = [1, 2, 4]
 
 // auto: 'off' | 'running' | 'paused'. Speed only shortens presentation delays; every rule still runs.
 export default function AutoCombatControls({ auto, speed, onStart, onPause, onResume, onStop, onSpeed }) {

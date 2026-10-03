@@ -52,7 +52,7 @@
     {
       "heading": "Auto Combat (testing)",
       "lines": [
-        "Auto Combat (bottom right) lets the AI play your party too, with the same rules and dice. Pause, Resume and Stop at any time; Stop hands control back to you. 0.5x, 2x and 4x only make it slower or faster to watch.",
+        "Auto Combat (bottom right) lets the AI play your party too, with the same rules and dice. Pause, Resume and Stop at any time; Stop hands control back to you. 2x and 4x only make it faster to watch.",
         "Type a Seed on the setup screen to replay the exact same fight. The seed of the current fight is shown in Debug."
       ]
     }
