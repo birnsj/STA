@@ -4,18 +4,20 @@
 // nextAIStep is called once per step; the caller applies the action and calls it again on the new state.
 //
 // Profiles:
-// - enemy: designer spec v1 enemy AI, unchanged. Nearest target; attack if a shot is available (taking cover, else aiming,
-//   first); otherwise move to the best reachable firing position (lower Difficulty, covered preferred, fewer steps);
-//   otherwise close the distance. Prefers Deadly.
+// Cover is automatic next to a cover object (no Take Cover action), so "taking cover" always means moving there.
+// - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (first moving into cover if a covered tile
+//   keeps the shot, else aiming); otherwise move to the best reachable firing position (lower Difficulty, covered preferred,
+//   fewer steps); otherwise close the distance. Prefers Deadly.
 // - player (Auto Combat spec): best available shot across all enemies (lowest Difficulty, exposed, most Hits, nearest);
-//   take cover when exposed to fire, or reposition next to cover if a shot is still available from there; otherwise Aim
-//   when it can still change the result; Stun unless the encounter allows Deadly; spends Momentum (see pendingStep etc.).
+//   when exposed to fire, move next to cover if a shot is still available from there; otherwise Aim when it can still
+//   change the result; after attacking, use leftover movement to reach cover; Stun unless the encounter allows Deadly;
+//   spends Momentum (see pendingStep etc.).
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getReachableTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { getWeapon } from './weaponSystem.js'
-import { getActiveCombatant, getBlockers, getEncounter, getOpponents, getReachable, isActive, MAX_HITS, previewAttack } from './combatState.js'
+import { canMove, getActiveCombatant, getBlockers, getEncounter, getOpponents, getReachable, isActive, MAX_HITS, previewAttack } from './combatState.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
 // AI tuning (implementation detail, not rules): how much a covered firing position is worth in Difficulty steps x10,
@@ -179,27 +181,43 @@ function moveStep(state, self, targets) {
   }
 }
 
+// Cover is automatic next to a cover object, so getting into cover means moving there. Nearest such tile that still has a
+// shot at the target no worse than the current one, or null.
+function moveIntoCoverWithShot(state, self, target, shot, why) {
+  if (self.inCover || !canMove(state, self)) return null
+  const covered = [...getReachable(state, self).values()]
+    .filter((entry) => entry.steps > 0 && canTakeCover(state.map, entry.position))
+    .map((entry) => ({ entry, shot: bestShot(state, self, target, entry.position) }))
+    .filter((option) => option.shot && option.shot.task.difficulty <= shot.task.difficulty)
+    .sort((a, b) => a.entry.steps - b.entry.steps || a.shot.task.difficulty - b.shot.task.difficulty)[0]
+  if (!covered) return null
+  return {
+    type: 'move',
+    destination: covered.entry.position,
+    targetId: target.id,
+    weaponId: shot.weapon.id,
+    decision: 'Move into cover',
+    reason: `${why}; ${plural(covered.entry.steps, 'tile')} away is next to cover and still has a shot (${shotSummary(covered.shot)}).`,
+  }
+}
+
+// After attacking: use any movement left to step into the nearest cover.
+function coverAfterAttackStep(state, self) {
+  if (self.inCover || !canMove(state, self)) return null
+  const covered = [...getReachable(state, self).values()]
+    .filter((entry) => entry.steps > 0 && canTakeCover(state.map, entry.position))
+    .sort((a, b) => a.steps - b.steps)[0]
+  if (!covered) return null
+  return { type: 'move', destination: covered.position, decision: 'Move into cover', reason: `Attack made; ${plural(covered.steps, 'tile')} away is next to cover.` }
+}
+
 // Player profile minor action before shooting, or null to attack straight away.
 function tacticalMinor(state, self, target, shot) {
   const threats = self.inCover ? [] : threatsTo(state, self)
   const planned = { targetId: target.id, weaponId: shot.weapon.id }
   if (threats.length) {
-    const from = threats.map((threat) => threat.character.name).join(', ')
-    if (canTakeCover(state.map, self.position)) return { type: 'takeCover', ...planned, decision: 'Take Cover', reason: `Exposed to fire from ${from}; cover is adjacent.` }
-    const covered = [...getReachable(state, self).values()]
-      .filter((entry) => entry.steps > 0 && canTakeCover(state.map, entry.position))
-      .map((entry) => ({ entry, shot: bestShot(state, self, target, entry.position) }))
-      .filter((option) => option.shot && option.shot.task.difficulty <= shot.task.difficulty)
-      .sort((a, b) => a.entry.steps - b.entry.steps || a.shot.task.difficulty - b.shot.task.difficulty)[0]
-    if (covered) {
-      return {
-        type: 'move',
-        destination: covered.entry.position,
-        ...planned,
-        decision: 'Move next to cover',
-        reason: `Exposed to fire from ${from}; ${plural(covered.entry.steps, 'tile')} away is next to cover and still has a shot (${shotSummary(covered.shot)}).`,
-      }
-    }
+    const move = moveIntoCoverWithShot(state, self, target, shot, `Exposed to fire from ${threats.map((threat) => threat.character.name).join(', ')}`)
+    if (move) return move
   }
   if (passChance(shot.task.targetNumber, shot.task.difficulty) < 1) {
     return { type: 'aim', ...planned, decision: 'Aim', reason: `Shot is not certain (${shotSummary(shot)}); Aim allows one reroll.` }
@@ -215,9 +233,8 @@ export function nextAIStep(state) {
   if (extraHit) return extraHit
 
   if (state.turn.majorUsed) {
-    if (profile.coverAfterAttack && !state.turn.minorUsed && !self.inCover && canTakeCover(state.map, self.position)) {
-      return { type: 'takeCover', decision: 'Take Cover', reason: 'Attack made; using the unused minor action to take cover.' }
-    }
+    const cover = profile.coverAfterAttack ? coverAfterAttackStep(state, self) : null
+    if (cover) return cover
     return { type: 'endTurn', decision: 'End turn', reason: 'Attack made; ending turn.' }
   }
   const cancel = cancelThreatStep(state, self)
@@ -232,9 +249,8 @@ export function nextAIStep(state) {
     if (!state.turn.minorUsed) {
       if (profile.minorAction === 'coverThenAim') {
         const planned = { targetId: target.id, weaponId: shot.weapon.id }
-        if (!self.inCover && canTakeCover(state.map, self.position)) {
-          return { type: 'takeCover', ...planned, decision: 'Take Cover', reason: `${target.character.name} is in range (${shot.band.name}); taking cover before firing.` }
-        }
+        const move = moveIntoCoverWithShot(state, self, target, shot, `${target.character.name} is in range (${shot.band.name})`)
+        if (move) return move
         return { type: 'aim', ...planned, decision: 'Aim', reason: `${target.character.name} is in range (${shot.band.name}); aiming before firing.` }
       }
       const minor = tacticalMinor(state, self, target, shot)

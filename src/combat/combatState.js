@@ -21,7 +21,17 @@ export const getEncounter = (encounterId) => encounterData.encounters.find((enco
 export const DEFAULT_ENCOUNTER_ID = encounterData.encounters[0].id
 
 // done: the character pressed End Turn (they may also be finished by having used both actions).
-const freshTurn = () => ({ minorUsed: false, majorUsed: false, aimReroll: false, done: false })
+// tilesMoved: movement spent this turn. Designer decision (Oct 2026): the first Move spends the minor action, and the
+// rest of the character's movement can be used later the same turn (e.g. move, attack, move again) at no extra action.
+// facing: presentation only (the book has no facing rules). One of the 8 grid directions, e.g. { x: 1, y: -1 }; it follows
+// the last step of a move and turns toward the target of an attack.
+const facingToward = (from, to) => {
+  const x = Math.sign(to.x - from.x)
+  const y = Math.sign(to.y - from.y)
+  return x || y ? { x, y } : { x: 0, y: -1 }
+}
+
+const freshTurn = () => ({ minorUsed: false, majorUsed: false, aimReroll: false, done: false, tilesMoved: 0 })
 
 function createCombatant(character, { side, controller, position }) {
   const weapons = getCharacterWeapons(character)
@@ -74,14 +84,23 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, players, seed
   const enemyCombatants = createEnemyCharacters(encounter).map(({ character, position }) =>
     createCombatant(character, { side: 'enemy', controller: 'ai', position }),
   )
-  const all = [...playerCombatants, ...enemyCombatants]
+  const map = parseMap(encounter.map.rows)
+  const nearestOpponent = (combatant) =>
+    [...playerCombatants, ...enemyCombatants]
+      .filter((other) => other.side !== combatant.side)
+      .sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  const all = [...playerCombatants, ...enemyCombatants].map((combatant) => ({
+    ...combatant,
+    inCover: canTakeCover(map, combatant.position),
+    facing: facingToward(combatant.position, nearestOpponent(combatant)?.position ?? combatant.position),
+  }))
   const order = buildInitiativeOrder(all, seededRandomInt(combatSeed), { firstSide: 'player', ...initiativeOptions })
   const first = all.find((combatant) => combatant.id === order[0])
   return {
     encounterId,
     seed: combatSeed,
     rolls: 0,
-    map: parseMap(encounter.map.rows),
+    map,
     combatants: Object.fromEntries(all.map((combatant) => [combatant.id, combatant])),
     order,
     round: 1,
@@ -137,12 +156,26 @@ export function getTurnGroupRange(state) {
 
 export const getTurnGroup = (state) => getTurnGroupRange(state).ids
 
+// Every combatant always has a facing; one without a stored facing faces the nearest active opponent.
+export function getFacing(state, combatant) {
+  if (combatant.facing) return combatant.facing
+  const nearest = getOpponents(state, combatant).sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  return facingToward(combatant.position, nearest?.position ?? combatant.position)
+}
+
 export const getTurnOf = (state, id) => (id === state.order[state.turnIndex] ? state.turn : state.groupTurns[id] ?? freshTurn())
 
-// Out of actions: pressed End Turn, or used both the minor and the major action.
+// Tiles of movement still available this turn. Once the minor action went on Aim, there is none.
+export function getMovementLeft(state, combatant) {
+  const turn = getTurnOf(state, combatant.id)
+  if (turn.minorUsed && !turn.tilesMoved) return 0
+  return Math.max(0, getMovementTiles(combatant.character) - (turn.tilesMoved ?? 0))
+}
+
+// Out of actions: pressed End Turn, or used both the minor and the major action with no movement left.
 export function isTurnFinished(state, id) {
   const turn = getTurnOf(state, id)
-  return turn.done || (turn.minorUsed && turn.majorUsed)
+  return turn.done || (turn.minorUsed && turn.majorUsed && getMovementLeft(state, state.combatants[id]) === 0)
 }
 
 // Enemies cannot be passed; allies can be passed but not stopped on. Defeated combatants do not block.
@@ -157,18 +190,17 @@ export function getBlockers(state, combatant) {
 }
 
 export function getReachable(state, combatant) {
-  return getReachableTiles(state.map, combatant.position, getMovementTiles(combatant.character), getBlockers(state, combatant))
+  return getReachableTiles(state.map, combatant.position, getMovementLeft(state, combatant), getBlockers(state, combatant))
 }
 
 export function getPathTo(state, combatant, destination) {
-  return findPath(state.map, combatant.position, destination, getMovementTiles(combatant.character), getBlockers(state, combatant))
+  return findPath(state.map, combatant.position, destination, getMovementLeft(state, combatant), getBlockers(state, combatant))
 }
 
 export const canAct = (state, combatant) => !state.outcome && !state.pending && getActiveCombatant(state)?.id === combatant.id
 export const canUseMinor = (state, combatant) => canAct(state, combatant) && !state.turn.minorUsed
 export const canUseMajor = (state, combatant) => canAct(state, combatant) && !state.turn.majorUsed
-export const canTakeCoverNow = (state, combatant) => canUseMinor(state, combatant) && !combatant.inCover && canTakeCover(state.map, combatant.position)
-
+export const canMove = (state, combatant) => canAct(state, combatant) && getMovementLeft(state, combatant) > 0
 // Everything the Task panel shows before FIRE, and exactly what the attack will use. fromPosition lets the AI test other tiles.
 export function previewAttack(state, attackerId, targetId, weaponId, fromPosition) {
   const attacker = state.combatants[attackerId]
@@ -318,18 +350,22 @@ export function combatReducer(state, action) {
 
   switch (action.type) {
     case 'move': {
-      if (!canUseMinor(state, actor)) return state
+      if (!canMove(state, actor)) return state
       const path = getPathTo(state, actor, action.destination)
       if (!path || path.length < 2) return state
       const destination = path[path.length - 1]
       const steps = path.length - 1
       const decided = recordDecision(state, actor, action, { path })
-      const moved = updateCombatant(decided.state, actor.id, { position: destination, inCover: false })
-      const next = { ...moved, turn: { ...state.turn, minorUsed: true }, lastMove: { key: state.log.length, combatantId: actor.id, path } }
-      return addLog(markAction(next, 'move', actor.id), [
+      const inCover = canTakeCover(state.map, destination)
+      const moved = updateCombatant(decided.state, actor.id, { position: destination, inCover, facing: facingToward(path[path.length - 2], destination) })
+      const turn = { ...state.turn, minorUsed: true, tilesMoved: (state.turn.tilesMoved ?? 0) + steps }
+      const next = { ...moved, turn, lastMove: { key: state.log.length, combatantId: actor.id, path } }
+      const left = getMovementTiles(actor.character) - turn.tilesMoved
+      return addLog(markAction(next, 'move', actor.id, { inCover }), [
         ...decided.lines,
-        `Minor Action: Move ${steps} ${steps === 1 ? 'tile' : 'tiles'}`,
-        `Path: ${path.map(formatPosition).join(' > ')}${actor.inCover ? ' (leaves cover)' : ''}`,
+        `${state.turn.tilesMoved ? 'Move (rest of movement)' : 'Minor Action: Move'} ${steps} ${steps === 1 ? 'tile' : 'tiles'}, ${left} left`,
+        `Path: ${path.map(formatPosition).join(' > ')}`,
+        ...(inCover ? [`${actor.character.name} is in cover (next to a cover object).`] : actor.inCover ? [`${actor.character.name} leaves cover.`] : []),
       ])
     }
     case 'aim': {
@@ -339,12 +375,6 @@ export function combatReducer(state, action) {
         ...decided.lines,
         'Minor Action: Aim (may reroll one attack die this turn)',
       ])
-    }
-    case 'takeCover': {
-      if (!canTakeCoverNow(state, actor)) return state
-      const decided = recordDecision(state, actor, action)
-      const covered = updateCombatant(decided.state, actor.id, { inCover: true })
-      return addLog(markAction({ ...covered, turn: { ...state.turn, minorUsed: true } }, 'takeCover', actor.id), [...decided.lines, 'Minor Action: Take Cover'])
     }
     case 'attack': {
       if (!canUseMajor(state, actor)) return state
@@ -374,7 +404,7 @@ export function combatReducer(state, action) {
         aimReroll: state.turn.aimReroll,
       }
       let next = {
-        ...afterDraw,
+        ...updateCombatant(afterDraw, actor.id, { facing: facingToward(actor.position, target.position) }),
         // The Threat raising this task's Difficulty is used up by it.
         threat: preview.threatModifier ? 0 : state.threat,
         turn: { ...state.turn, majorUsed: true, aimReroll: false },

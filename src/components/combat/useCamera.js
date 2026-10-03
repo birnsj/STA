@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan; when focus.key changes
+// Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan, the mouse wheel zooms; when focus.key changes
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
 const GLIDE = 0.14
@@ -19,6 +19,9 @@ const clamp = (camera, bounds, view) => ({
 const centredOn = (point, view) => ({ x: point.x - view.width / 2, y: point.y - view.height / 2 })
 
 const TOUCH_SLOP = 10
+const MIN_ZOOM = 0.6
+const MAX_ZOOM = 2
+const ZOOM_STEP = 1.15
 
 function swallowNextClick() {
   const swallow = (event) => {
@@ -34,18 +37,61 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 
 // bounds: world rectangle { minX, maxX, minY, maxY }; view: { width, height }; focus: { key, point }.
 // follow false: the camera stays where the player left it (it still starts centred on focus).
-export default function useCamera(bounds, view, focus, follow = true) {
+// onRightClick: a right-button press released without dragging (a drag pans instead).
+// The mouse wheel zooms; zoom divides the visible world size, so 2 shows half as much at twice the size. Following, it
+// zooms around the followed point so that stays put on screen; free, it zooms toward the pointer.
+export default function useCamera(bounds, view, focus, follow = true, onRightClick = null) {
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
+  const [zoom, setZoom] = useState(1)
   const cameraRef = useRef(camera)
+  const zoomRef = useRef(zoom)
+  // The world point the camera is gliding to centre on (not a corner), so a zoom mid-glide doesn't restart it.
   const targetRef = useRef(null)
   const heldRef = useRef(new Set())
+  const svgRef = useRef(null)
+  const followRef = useRef({ follow, point: focus.point })
   const { minX, maxX, minY, maxY } = bounds
-  const { width, height } = view
+  const width = view.width / zoom
+  const height = view.height / zoom
   const { x: focusX, y: focusY } = focus.point
 
   useEffect(() => {
-    targetRef.current = follow ? { x: focusX - width / 2, y: focusY - height / 2 } : null
-  }, [focus.key, focusX, focusY, width, height, follow])
+    const element = svgRef.current
+    if (!element) return undefined
+    // Native listener: React's wheel handler is passive and can't stop the page from scrolling.
+    const wheel = (event) => {
+      event.preventDefault()
+      const oldZoom = zoomRef.current
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldZoom * (event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP)))
+      if (newZoom === oldZoom) return
+      const oldSize = { width: view.width / oldZoom, height: view.height / oldZoom }
+      const newSize = { width: view.width / newZoom, height: view.height / newZoom }
+      const current = cameraRef.current
+      const following = followRef.current.follow
+      let anchor
+      if (following) {
+        anchor = followRef.current.point
+      } else {
+        const rect = element.getBoundingClientRect()
+        anchor = { x: current.x + ((event.clientX - rect.left) / rect.width) * oldSize.width, y: current.y + ((event.clientY - rect.top) / rect.height) * oldSize.height }
+      }
+      const fx = (anchor.x - current.x) / oldSize.width
+      const fy = (anchor.y - current.y) / oldSize.height
+      const next = clamp({ x: anchor.x - fx * newSize.width, y: anchor.y - fy * newSize.height }, { minX, maxX, minY, maxY }, newSize)
+      if (!following) targetRef.current = null
+      zoomRef.current = newZoom
+      cameraRef.current = next
+      setZoom(newZoom)
+      setCamera(next)
+    }
+    element.addEventListener('wheel', wheel, { passive: false })
+    return () => element.removeEventListener('wheel', wheel)
+  }, [minX, maxX, minY, maxY, view.width, view.height])
+
+  useEffect(() => {
+    followRef.current = { follow, point: { x: focusX, y: focusY } }
+    targetRef.current = follow ? { x: focusX, y: focusY } : null
+  }, [focus.key, focusX, focusY, follow])
 
   useEffect(() => {
     const down = (event) => {
@@ -86,7 +132,7 @@ export default function useCamera(bounds, view, focus, follow = true) {
         targetRef.current = null
         next = clamp({ x: current.x + Math.sign(dx) * PAN_SPEED * seconds, y: current.y + Math.sign(dy) * PAN_SPEED * seconds }, limits, size)
       } else if (targetRef.current) {
-        const target = clamp(targetRef.current, limits, size)
+        const target = clamp(centredOn(targetRef.current, size), limits, size)
         const close = Math.abs(target.x - current.x) < 0.5 && Math.abs(target.y - current.y) < 0.5
         next = close ? target : { x: current.x + (target.x - current.x) * GLIDE, y: current.y + (target.y - current.y) * GLIDE }
         if (close) targetRef.current = null
@@ -107,14 +153,18 @@ export default function useCamera(bounds, view, focus, follow = true) {
   // the browser sends on release is swallowed so the drag doesn't also move the character.
   const startDrag = (event) => {
     const isTouch = event.pointerType === 'touch'
+    // A middle-button press would start the browser's autoscroll; the wheel zooms instead.
+    if (!isTouch && event.button === 1) event.preventDefault()
     if (isTouch ? !event.isPrimary : event.button !== 2) return
     if (!isTouch) event.preventDefault()
     const scale = event.currentTarget.getBoundingClientRect().width / width
     const start = { x: event.clientX, y: event.clientY, camera: cameraRef.current }
     let panning = !isTouch
+    let dragged = false
     if (panning) targetRef.current = null
     const move = (moveEvent) => {
       if (moveEvent.pointerId !== event.pointerId) return
+      if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) >= TOUCH_SLOP) dragged = true
       if (!panning) {
         if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) < TOUCH_SLOP) return
         panning = true
@@ -134,12 +184,13 @@ export default function useCamera(bounds, view, focus, follow = true) {
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
       if (isTouch && panning) swallowNextClick()
+      if (!isTouch && !dragged) onRightClick?.()
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
   }
 
-  const dragHandlers = { onPointerDown: startDrag, onContextMenu: (event) => event.preventDefault() }
-  return { camera, dragHandlers }
+  const dragHandlers = { ref: svgRef, onPointerDown: startDrag, onContextMenu: (event) => event.preventDefault() }
+  return { camera: { ...camera, width, height }, dragHandlers }
 }

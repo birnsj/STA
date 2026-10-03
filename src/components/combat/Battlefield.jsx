@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
+import { getFacing } from '../../combat/combatState.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import HitPips from './HitPips.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
+import { playFootstep, playWeaponSound } from '../../audio/uiSounds.js'
 
 // Isometric projection of the logical grid, in world pixels with tile (0,0)'s top corner at the origin.
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
@@ -73,15 +75,32 @@ function useMoveAnimation(lastMove, msPerTile) {
   const animating = Boolean(lastMove) && step.key === key && step.index < lastMove.path.length - 1
   useEffect(() => {
     if (!animating) return undefined
+    playFootstep(step.index)
     const timer = setTimeout(() => setStep((current) => ({ ...current, index: current.index + 1 })), msPerTile)
     return () => clearTimeout(timer)
   }, [animating, step.index, msPerTile])
-  return animating ? { id: lastMove.combatantId, position: lastMove.path[step.index] } : null
+  if (!animating) return null
+  const here = lastMove.path[step.index]
+  const next = lastMove.path[step.index + 1]
+  return { id: lastMove.combatantId, position: here, facing: { x: Math.sign(next.x - here.x), y: Math.sign(next.y - here.y) } }
 }
 
-// turnStatus: { state, turn } for a party member during the party's turn. Their unused action points show as pips
-// above them; once the turn is used up they are dimmed with a grey ring and a check icon.
-function Unit({ combatant, position, msPerTile, isActive, isTarget, isSelected, turnStatus, onClick }) {
+// Arrow on the ground ring pointing along a grid direction, drawn in the same isometric projection as the tiles.
+function FacingArrow({ facing }) {
+  const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
+  const dir = { x: (facing.x - facing.y) / length, y: (facing.x + facing.y) / length }
+  const side = { x: -dir.y, y: dir.x }
+  const toScreen = (x, y) => `${x.toFixed(1)},${(y / 2).toFixed(1)}`
+  const tip = toScreen(dir.x * 38, dir.y * 38)
+  const left = toScreen(dir.x * 21 + side.x * 11, dir.y * 21 + side.y * 11)
+  const right = toScreen(dir.x * 21 - side.x * 11, dir.y * 21 - side.y * 11)
+  return <polygon className="iso-unit-facing" points={`${tip} ${left} ${right}`} />
+}
+
+// turnStatus: { state, turn, movement } for a party member during the party's turn. Actions left (count and pips) and
+// movement tiles left show above them; once the turn is used up they are dimmed with a grey ring and a check icon.
+// A shield on the portrait marks a unit in cover; it appears once a walk into cover has finished.
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, onClick }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const down = combatant.status !== 'active'
@@ -93,6 +112,7 @@ function Unit({ combatant, position, msPerTile, isActive, isTarget, isSelected, 
       className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
       onClick={down ? undefined : onClick}
+      data-ui-sound={down ? undefined : ''}
     >
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {isSelected && !isActive && <ellipse className="iso-unit-selected" cx="0" cy="0" rx="25" ry="12.5" />}
@@ -112,6 +132,14 @@ function Unit({ combatant, position, msPerTile, isActive, isTarget, isSelected, 
             </text>
           )}
           <line className="iso-unit-stand" x1="0" y1="-8" x2="0" y2="0" />
+          {facing && <FacingArrow facing={facing} />}
+          {combatant.inCover && !isWalking && (
+            <g className="iso-unit-cover" transform="translate(16 -48)">
+              <title>In cover</title>
+              <path d="M0 -7 L6 -4.5 V0.5 C6 4 3.5 6.2 0 7.5 C-3.5 6.2 -6 4 -6 0.5 V-4.5 Z" />
+              <path className="iso-unit-cover-mark" d="M-2.6 0.2 L-0.6 2.2 L2.8 -1.8" />
+            </g>
+          )}
         </>
       )}
       {!down && (
@@ -125,8 +153,16 @@ function Unit({ combatant, position, msPerTile, isActive, isTarget, isSelected, 
             <DoneIcon svg className="iso-unit-done" />
           ) : (
             <g className="iso-unit-points">
-              <rect className={turnStatus.turn.minorUsed ? 'is-used' : ''} x="-9" y="-3" width="8" height="5" rx="1.5" />
-              <rect className={turnStatus.turn.majorUsed ? 'is-used' : ''} x="1" y="-3" width="8" height="5" rx="1.5" />
+              <rect className="iso-unit-points-bg" x="-34" y="-7" width="68" height="12" rx="3" />
+              <text x="-24" y="2.5" textAnchor="middle">
+                {(turnStatus.turn.minorUsed ? 0 : 1) + (turnStatus.turn.majorUsed ? 0 : 1)}/2
+              </text>
+              <rect className={`iso-unit-point${turnStatus.turn.minorUsed ? ' is-used' : ''}`} x="-14" y="-3.5" width="6" height="5" rx="1.5" />
+              <rect className={`iso-unit-point${turnStatus.turn.majorUsed ? ' is-used' : ''}`} x="-6" y="-3.5" width="6" height="5" rx="1.5" />
+              <line className="iso-unit-points-divider" x1="3.5" y1="-5" x2="3.5" y2="3" />
+              <text className={`iso-unit-move${turnStatus.movement.left ? '' : ' is-empty'}`} x="18.5" y="2.5" textAnchor="middle">
+                &raquo;{turnStatus.movement.left}/{turnStatus.movement.total}
+              </text>
             </g>
           )}
         </g>
@@ -136,12 +172,13 @@ function Unit({ combatant, position, msPerTile, isActive, isTarget, isSelected, 
   )
 }
 
-const ACTION_LABELS = { move: 'Move', aim: 'Aim', takeCover: 'Take Cover', cancelThreat: 'Cancel Threat', momentumHit: '+1 Hit (Momentum)' }
+const ACTION_LABELS = { move: 'Move', aim: 'Aim', cancelThreat: 'Cancel Threat', momentumHit: '+1 Hit (Momentum)' }
 const UNIT_HEAD = 30
 
 function actionLabel(action) {
   if (action.type === 'attack') return getWeapon(action.weaponId).name
   if (action.type === 'reroll') return action.source === 'aim' ? 'Aim Reroll' : 'Momentum Reroll'
+  if (action.type === 'move' && action.inCover) return 'Move to Cover'
   return ACTION_LABELS[action.type] ?? null
 }
 
@@ -165,8 +202,18 @@ function FloatingLabel({ position, text, className, msPerTile }) {
 
 // Presentation of state.lastAction: what the acting character just did, the shot, and the result on the target.
 // Keyed by the action, so each new action replays its animation once.
-function ActionEffects({ state, positionOf, msPerTile }) {
+function ActionEffects({ state, positionOf, msPerTile, speed }) {
   const action = state.lastAction
+  const attackSound = action?.type === 'attack' && action.targetId ? getWeapon(action.weaponId).attackSound : null
+  // Speed is read from a ref so changing it mid-shot doesn't fire the sound a second time.
+  const speedRef = useRef(speed)
+  useEffect(() => {
+    speedRef.current = speed
+  }, [speed])
+  const actionKey = action?.key
+  useEffect(() => {
+    if (attackSound) playWeaponSound(attackSound, speedRef.current)
+  }, [actionKey, attackSound])
   if (!action) return null
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
@@ -213,10 +260,10 @@ function MovePathLine({ path }) {
 
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
-export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick }) {
+export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onRightClick }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
   // Click events don't reliably say whether they came from a finger, so the tile remembers the last pointer that pressed it.
   const pointerTypeRef = useRef('mouse')
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
@@ -240,6 +287,8 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           key={`u${unit.id}`}
           combatant={unit}
           position={shownPosition(unit)}
+          isWalking={walking?.id === unit.id}
+          facing={walking?.id === unit.id ? walking.facing : getFacing(state, unit)}
           msPerTile={msPerTile}
           isActive={unit.id === activeId}
           isTarget={unit.id === targetId}
@@ -258,7 +307,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
   return (
     <svg
       className="battlefield"
-      viewBox={`${camera.x} ${camera.y} ${VIEW.width} ${VIEW.height}`}
+      viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
       style={{ '--fx-speed': speed }}
       {...dragHandlers}
       onMouseLeave={() => onTileHover(null)}
@@ -274,6 +323,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
               key={key}
               className={`iso-tile${(x + y) % 2 ? ' is-alt' : ''}${reachable ? ' is-reachable' : ''}${onPath ? ' is-path' : ''}${isDestination ? ' is-destination' : ''}`}
               points={points(diamond(x, y))}
+              data-ui-press={reachable ? '' : undefined}
               onPointerDown={(event) => {
                 pointerTypeRef.current = event.pointerType
               }}
@@ -285,7 +335,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
       </g>
       {overlay.path && <MovePathLine path={overlay.path} />}
       {depthItems.map((item) => item.render())}
-      <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} />
+      <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} />
       {shot && (
         <line
           className={`iso-shot${shot.available ? '' : ' is-blocked'}`}

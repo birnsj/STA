@@ -2,11 +2,12 @@ import { useEffect, useReducer, useState } from 'react'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
   canAct,
-  canTakeCoverNow,
+  canMove,
   canUseMajor,
   canUseMinor,
   getActiveCombatant,
   getEncounter,
+  getMovementLeft,
   getOpponents,
   getPathTo,
   getReachable,
@@ -19,6 +20,7 @@ import {
   DEFAULT_ENCOUNTER_ID,
 } from '../combat/combatState.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
+import { canTakeCover } from '../combat/coverSystem.js'
 import { getMovementTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import { getWeapon } from '../combat/weaponSystem.js'
@@ -71,13 +73,21 @@ function cameraFocus(state, turnKey, active) {
 function getPartyTurnInfo(state, active) {
   if (state.outcome) return {}
   const { start, ids } = getTurnGroupRange(state)
-  // Ending a turn forfeits any unused action, so a finished member shows no points left.
+  // Ending a turn forfeits any unused action and movement, so a finished member shows nothing left.
   const spent = { minorUsed: true, majorUsed: true }
+  const movement = (id, left) => ({ left, total: getMovementTiles(state.combatants[id].character) })
   if (active.side === 'player') {
     return Object.fromEntries(
       ids.map((id) => {
         const finished = isTurnFinished(state, id)
-        return [id, { state: finished ? 'done' : id === active.id ? 'acting' : 'ready', turn: finished ? spent : getTurnOf(state, id) }]
+        return [
+          id,
+          {
+            state: finished ? 'done' : id === active.id ? 'acting' : 'ready',
+            turn: finished ? spent : getTurnOf(state, id),
+            movement: movement(id, finished ? 0 : getMovementLeft(state, state.combatants[id])),
+          },
+        ]
       }),
     )
   }
@@ -85,7 +95,7 @@ function getPartyTurnInfo(state, active) {
     state.order
       .slice(0, start)
       .filter((id) => state.combatants[id].side === 'player' && isActive(state.combatants[id]))
-      .map((id) => [id, { state: 'done', turn: spent }]),
+      .map((id) => [id, { state: 'done', turn: spent, movement: movement(id, 0) }]),
   )
 }
 
@@ -104,7 +114,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   // UI state only: the chosen action, target, weapon, injury mode, move destination, hovered tile, panels and camera follow.
   // chosenMode null = the default (Move while the minor action is unused); 'none' = the player deselected everything.
   const [chosenMode, setMode] = useState(null)
-  const defaultMode = isPlayerTurn && canUseMinor(state, active) ? 'move' : null
+  const defaultMode = isPlayerTurn && canMove(state, active) ? 'move' : null
   const mode = chosenMode === 'none' ? null : (chosenMode ?? defaultMode)
   const [targetId, setTargetId] = useState(null)
   const [weaponIds, setWeaponIds] = useState({})
@@ -146,6 +156,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const reachable = mode === 'move' && isPlayerTurn ? getReachable(state, active) : null
   const pathTarget = destination ?? hoverTile
   const movePath = reachable && pathTarget && reachable.has(tileKey(pathTarget)) && !samePosition(pathTarget, active.position) ? getPathTo(state, active, pathTarget) : null
+  const routeInCover = Boolean(movePath && canTakeCover(state.map, movePath[movePath.length - 1]))
   const preview = mode === 'attack' && target ? previewAttack(state, active.id, target.id, weapon.id) : null
 
   const overlay = {
@@ -156,9 +167,8 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   }
 
   const availability = {
-    move: canUseMinor(state, active),
+    move: canMove(state, active),
     aim: canUseMinor(state, active),
-    takeCover: canTakeCoverNow(state, active),
     attack: canUseMajor(state, active),
     endTurn: canAct(state, active),
   }
@@ -176,7 +186,6 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     attack: { enabled: Boolean(preview?.available) && availability.attack, run: () => dispatch({ type: 'attack', targetId: target.id, weaponId: weapon.id, injuryMode }) },
     move: { enabled: Boolean(movePath) && availability.move, run: () => dispatch({ type: 'move', destination: movePath[movePath.length - 1] }) },
     aim: { enabled: availability.aim, run: () => dispatch({ type: 'aim' }) },
-    takeCover: { enabled: availability.takeCover, run: () => dispatch({ type: 'takeCover' }) },
   }
   const confirmation = confirmations[mode]
   const confirm = {
@@ -214,7 +223,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const momentumHitOnOffer = Boolean(
     result && state.lastAction?.type === 'resolve' && !result.closed && result.passed && !result.extraHit && state.momentum > 0 && isActive(state.combatants[result.targetId]) && state.combatants[result.attackerId].side === 'player',
   )
-  const turnUsedUp = isPlayerTurn && state.turn.minorUsed && state.turn.majorUsed && !state.pending && !momentumHitOnOffer
+  const turnUsedUp = isPlayerTurn && isTurnFinished(state, active.id) && !state.pending && !momentumHitOnOffer
   useEffect(() => {
     if (!turnUsedUp || helpOpen) return undefined
     const timer = setTimeout(() => dispatch({ type: 'endTurn' }), AUTO_END_TURN_MS)
@@ -250,7 +259,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
-  const hint = getCombatHint(state, { mode, preview, movePath, auto, othersReady: Object.values(turnInfo).some((info) => info.state === 'ready') })
+  const hint = getCombatHint(state, { mode, preview, movePath, routeInCover, auto, othersReady: Object.values(turnInfo).some((info) => info.state === 'ready') })
+
+  // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
+  const releaseSelection = () => {
+    setMode('none')
+    setDestination(null)
+    setSelectedId(null)
+  }
 
   const startAuto = () => {
     setMode(null)
@@ -274,6 +290,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         onTileClick={handleTileClick}
         onTileHover={setHoverTile}
         onUnitClick={handleUnitClick}
+        onRightClick={releaseSelection}
       />
       <div className="combat-top-left">
         <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} />
@@ -317,8 +334,9 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
           mode={mode}
           weapon={weapon}
           canCycleWeapon={isPlayerTurn && active.weaponIds.length > 1}
-          highlightEndTurn={isPlayerTurn && state.turn.minorUsed && state.turn.majorUsed}
+          highlightEndTurn={isPlayerTurn && isTurnFinished(state, active.id)}
           turn={isPlayerTurn ? state.turn : null}
+          movement={isPlayerTurn ? { left: getMovementLeft(state, active), total: getMovementTiles(active.character) } : null}
           onSelect={selectAction}
           onCycleWeapon={cycleWeapon}
         />
@@ -329,7 +347,8 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
           autoTurn={auto !== 'off' && active.controller === 'player'}
           preview={preview}
           movePath={movePath}
-          movement={getMovementTiles(active.character)}
+          routeInCover={routeInCover}
+          movement={{ left: getMovementLeft(state, active), total: getMovementTiles(active.character) }}
           injuryMode={injuryMode}
           onInjuryMode={(modeId) => setInjuryModes({ ...injuryModes, [weapon.id]: modeId })}
           confirm={confirm}

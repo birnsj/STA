@@ -1,5 +1,5 @@
 // The one-line instruction shown during combat: what the player can do next, from the combat state and the UI selection.
-import { getActiveCombatant, isActive } from './combatState.js'
+import { getActiveCombatant, getMovementLeft, isActive } from './combatState.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
@@ -23,10 +23,12 @@ function rollHint(state) {
   return null
 }
 
-function modeHint(mode, { preview, movePath }) {
-  if (mode === 'move') return movePath ? `Click to move there (${plural(movePath.length - 1, 'tile')}).` : 'Click a blue tile to move there, or choose another action on the right.'
+function modeHint(mode, { preview, movePath, routeInCover }) {
+  if (mode === 'move') {
+    if (movePath) return `Click to move there (${plural(movePath.length - 1, 'tile')}${routeInCover ? ', ends in cover' : ''}).`
+    return 'Click a blue tile to move there (end next to a crate or console to be in cover), or choose another action on the right.'
+  }
   if (mode === 'aim') return 'Click AIM. Later this turn you may reroll one attack die.'
-  if (mode === 'takeCover') return 'Click TAKE COVER. Attackers must beat your cover roll. Moving loses it.'
   if (mode === 'attack') {
     if (!preview?.task) return 'Click a Klingon to target it.'
     if (!preview.available) return `${preview.reason} Click the other Klingon, or Move first.`
@@ -49,8 +51,13 @@ export function getCombatHint(state, ui) {
   const selected = modeHint(ui.mode, ui)
   if (selected) return selected
   const { minorUsed, majorUsed } = state.turn
-  if (minorUsed && majorUsed) return ui.othersReady ? 'Turn used up. Passing to the next Ready party member...' : 'Turn used up. Ending the turn...'
+  const tilesLeft = getMovementLeft(state, active)
+  if (minorUsed && majorUsed) {
+    if (tilesLeft) return `You can still move ${plural(tilesLeft, 'tile')}, or click End Turn.`
+    return ui.othersReady ? 'Turn used up. Passing to the next Ready party member...' : 'Turn used up. Ending the turn...'
+  }
+  if (minorUsed && tilesLeft) return `Now click Attack, move ${plural(tilesLeft, 'more tile')}, or End Turn.`
   if (minorUsed) return 'Now click Attack, or End Turn.'
-  if (majorUsed) return 'You can still Move, Aim or Take Cover, or click End Turn.'
-  return `${active.character.name}'s turn: a minor action (Move, Aim, Take Cover) and an Attack, then End Turn.`
+  if (majorUsed) return 'You can still Move or Aim, or click End Turn.'
+  return `${active.character.name}'s turn: a minor action (Move or Aim) and an Attack, then End Turn.`
 }

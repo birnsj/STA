@@ -4220,6 +4220,25 @@ dd {
   animation: combat-ring-pulse 1.4s ease-in-out infinite;
 }
 
+.iso-unit-facing {
+  fill: #3d7bff;
+  stroke: #e8f0ff;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.iso-unit.is-enemy .iso-unit-facing {
+  fill: var(--red);
+}
+
+.iso-unit.is-active .iso-unit-facing {
+  fill: var(--yellow);
+}
+
+.iso-unit.is-turn-done:not(.is-active) .iso-unit-facing {
+  fill: #6b7486;
+}
+
 .iso-unit-selected {
   fill: none;
   stroke: rgba(255, 255, 255, 0.6);
@@ -4273,7 +4292,7 @@ dd {
   opacity: 0.7;
 }
 
-/* Action effects: durations divide by --fx-speed (Auto Combat 1x/2x/4x). */
+/* Action effects: durations divide by --fx-speed (Auto Combat 0.5x/1x/2x/4x). */
 .fx-anchor {
   transition-property: transform;
   transition-timing-function: linear;
@@ -5042,16 +5061,92 @@ dd {
   gap: 3px;
 }
 
-.iso-unit-points rect {
+.iso-unit-points-bg {
+  fill: rgba(6, 12, 28, 0.9);
+  stroke: #3ccf7a;
+  stroke-width: 0.8;
+}
+
+.iso-unit-points text {
   fill: #3ccf7a;
-  stroke: #0b1a12;
-  stroke-width: 0.6;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.iso-unit-point {
+  fill: #3ccf7a;
   transition: fill 0.3s;
 }
 
-.iso-unit-points rect.is-used {
+.iso-unit-cover path {
+  fill: #2f8fd8;
+  stroke: #d8f0ff;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.iso-unit-cover .iso-unit-cover-mark {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.iso-unit-cover {
+  animation: cover-pop 0.35s ease-out;
+}
+
+@keyframes cover-pop {
+  from {
+    transform: translate(16px, -48px) scale(0.2);
+  }
+  to {
+    transform: translate(16px, -48px) scale(1);
+  }
+}
+
+.iso-unit-points-divider {
+  stroke: #3ccf7a;
+  stroke-width: 0.6;
+  opacity: 0.5;
+}
+
+.iso-unit-points text.iso-unit-move {
+  fill: #7fd3ff;
+}
+
+.iso-unit-points text.iso-unit-move.is-empty,
+.party-move-left.is-empty,
+.actions-move-left.is-empty {
+  fill: #6b7486;
+  color: #6b7486;
+}
+
+.party-hits-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.party-move-left {
+  font-size: 9px;
+  font-weight: 700;
+  color: #7fd3ff;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.actions-move-left {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #7fd3ff;
+}
+
+.iso-unit-point.is-used {
   fill: #2b3242;
   stroke: #6b7486;
+  stroke-width: 0.6;
 }
 
 .iso-unit.is-turn-done .iso-unit-body,

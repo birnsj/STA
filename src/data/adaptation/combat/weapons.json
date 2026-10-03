@@ -4,6 +4,7 @@
     "A successful attack causes exactly 1 Hit. Severity is not damage; it is recorded on the final Hit for later injury systems.",
     "Weapons link to carried equipment by itemId (items.json for phasers). The Unarmed Strike is always available.",
     "beamColor: presentation only (the shot effect on the battlefield). Weapons without one show a strike flash instead of a beam.",
+    "attackSound: presentation only (audio/uiSounds.js): phaser or punch. The disruptor uses the phaser sound as a placeholder until it has its own.",
     "maximumRange: designer decision - pistols stop at Long; only rifles reach Extreme. Each band beyond optimalRange adds +1 Difficulty."
   ],
   "rangeBands": [
@@ -47,6 +48,7 @@
       "maximumRange": "long",
       "focuses": ["Hand Phasers"],
       "beamColor": "#ff9b3d",
+      "attackSound": "phaser",
       "sourceType": "adaptation"
     },
     {
@@ -62,6 +64,7 @@
       "maximumRange": "long",
       "focuses": ["Hand Phasers"],
       "beamColor": "#ff9b3d",
+      "attackSound": "phaser",
       "sourceType": "adaptation"
     },
     {
@@ -77,6 +80,7 @@
       "maximumRange": "extreme",
       "focuses": ["Hand Phasers"],
       "beamColor": "#ff9b3d",
+      "attackSound": "phaser",
       "sourceType": "adaptation",
       "note": "Severity and qualities undefined in the spec. Nobody carries one in the first encounter."
     },
@@ -93,6 +97,7 @@
       "maximumRange": "long",
       "focuses": [],
       "beamColor": "#62f06e",
+      "attackSound": "phaser",
       "sourceType": "placeholder",
       "note": "Designer-approved placeholder. Book p.33: disruptors have no stun setting."
     },
@@ -108,6 +113,7 @@
       "optimalRange": "reach",
       "maximumRange": "reach",
       "focuses": [],
+      "attackSound": "punch",
       "alwaysAvailable": true,
       "sourceType": "placeholder",
       "note": "Not in the designer spec; added because characters fight with carried equipment only. Injury mode and Severity are placeholders."

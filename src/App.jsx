@@ -161,12 +161,15 @@ function Views() {
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
-  // The music plays across every view; the volume is set before starting so it fades in at the saved level.
+  // The music plays across every view except combat, where it fades out and fades back in on leaving.
+  // The volume is set before starting so it fades in at the saved level.
+  const musicWanted = view !== 'combat'
   useEffect(() => music.setVolume(audioSettings.music / 100), [audioSettings.music])
   useEffect(() => {
+    if (!musicWanted) return undefined
     music.start()
     return music.stop
-  }, [])
+  }, [musicWanted])
 
   useEffect(() => setEffectsVolume(audioSettings.effects / 100), [audioSettings.effects])
   useEffect(() => installUiSounds(), [])

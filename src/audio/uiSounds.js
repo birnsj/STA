@@ -1,7 +1,11 @@
-// Interface sound effects, synthesized with Web Audio so no sound files are needed.
+// Interface and combat sound effects, synthesized with Web Audio so no sound files are needed.
 // The gains are mix levels at 100% on the Settings "Effects" slider; both sounds are meant to sit well under the music.
 const HOVER_GAIN = 0.05
 const PRESS_GAIN = 0.06
+const PHASER_GAIN = 0.09
+const PHASER_SECONDS = 0.55
+const PUNCH_GAIN = 0.16
+const FOOTSTEP_GAIN = 0.12
 const MIN_HOVER_GAP_MS = 45
 // A press usually re-renders what's under the pointer (new screen, re-sorted list), which would re-trigger a hover blip.
 const HOVER_QUIET_AFTER_PRESS_MS = 300
@@ -9,10 +13,12 @@ const HOVER_QUIET_AFTER_PRESS_MS = 300
 const LOOKAHEAD_S = 0.01
 
 // What counts as "hovering something": controls and info-box items. Disabled buttons stay silent.
-const HOVER_TARGETS = 'button:not(:disabled), [role="option"], [role="radio"], .help-tip, a[href], select, input[type="range"]'
+// data-ui-sound marks non-button targets (e.g. units on the combat map) that should blip on hover and beep on press.
+const HOVER_TARGETS = 'button:not(:disabled), [role="option"], [role="radio"], .help-tip, a[href], select, input[type="range"], [data-ui-sound]'
 
 // What counts as "pressing something": every enabled button, plus choice controls and links.
-const PRESS_TARGETS = 'button, [role="option"], [role="radio"], [role="checkbox"], [role="tab"], [aria-pressed], a[href]'
+// data-ui-press marks targets that only beep on press (e.g. move tiles, where a blip per tile crossed would be noise).
+const PRESS_TARGETS = 'button, [role="option"], [role="radio"], [role="checkbox"], [role="tab"], [aria-pressed], a[href], [data-ui-sound], [data-ui-press]'
 
 let context = null
 let level = 1
@@ -91,6 +97,108 @@ function playPressBeep(audio) {
     tone.start(at)
     tone.stop(at + 0.085)
   }
+}
+
+// A phaser shot: two slightly detuned sawtooths sweeping down from a high whine, with a fast warble, through a
+// band-pass so it reads as an energy beam rather than a buzz. Length roughly matches the beam effect at 1x.
+function playPhaser(audio, duration) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const end = start + duration
+  const output = audio.createGain()
+  output.gain.setValueAtTime(0, start)
+  output.gain.linearRampToValueAtTime(PHASER_GAIN * level, start + 0.015)
+  output.gain.setValueAtTime(PHASER_GAIN * level, end - duration * 0.4)
+  output.gain.exponentialRampToValueAtTime(0.0001, end)
+
+  const filter = audio.createBiquadFilter()
+  filter.type = 'bandpass'
+  filter.frequency.value = 1700
+  filter.Q.value = 1.2
+  output.connect(filter).connect(audio.destination)
+
+  const warble = audio.createOscillator()
+  const warbleDepth = audio.createGain()
+  warble.frequency.value = 38
+  warbleDepth.gain.value = 70
+  warble.connect(warbleDepth)
+  warble.start(start)
+  warble.stop(end + 0.02)
+
+  for (const frequency of [1500, 1512]) {
+    const tone = audio.createOscillator()
+    tone.type = 'sawtooth'
+    tone.frequency.setValueAtTime(frequency, start)
+    tone.frequency.exponentialRampToValueAtTime(frequency * 0.62, end)
+    warbleDepth.connect(tone.frequency)
+    tone.connect(output)
+    tone.start(start)
+    tone.stop(end + 0.02)
+  }
+}
+
+// One second of white noise per audio context, shared by every punch and footstep.
+let noiseBuffer = null
+function getNoise(audio) {
+  if (noiseBuffer?.sampleRate !== audio.sampleRate) {
+    noiseBuffer = audio.createBuffer(1, audio.sampleRate, audio.sampleRate)
+    const samples = noiseBuffer.getChannelData(0)
+    for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1
+  }
+  return noiseBuffer
+}
+
+// A short burst of filtered noise; offset picks a different stretch of the buffer so repeats don't sound identical.
+function playNoiseBurst(audio, { start, length, gain, filterType, frequency, q = 1 }) {
+  const source = audio.createBufferSource()
+  source.buffer = getNoise(audio)
+  const filter = audio.createBiquadFilter()
+  filter.type = filterType
+  filter.frequency.value = frequency
+  filter.Q.value = q
+  const envelope = audio.createGain()
+  envelope.gain.setValueAtTime(0, start)
+  envelope.gain.linearRampToValueAtTime(gain * level, start + 0.004)
+  envelope.gain.exponentialRampToValueAtTime(0.0001, start + length)
+  source.connect(filter).connect(envelope).connect(audio.destination)
+  source.start(start, Math.random() * 0.8)
+  source.stop(start + length + 0.02)
+}
+
+// An unarmed hit: a low body thump (a sine dropping in pitch) under a short slap of mid-range noise.
+function playPunch(audio) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const thump = audio.createOscillator()
+  const thumpGain = audio.createGain()
+  thump.type = 'sine'
+  thump.frequency.setValueAtTime(150, start)
+  thump.frequency.exponentialRampToValueAtTime(50, start + 0.14)
+  thumpGain.gain.setValueAtTime(0, start)
+  thumpGain.gain.linearRampToValueAtTime(PUNCH_GAIN * level, start + 0.005)
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18)
+  thump.connect(thumpGain).connect(audio.destination)
+  thump.start(start)
+  thump.stop(start + 0.2)
+  playNoiseBurst(audio, { start, length: 0.05, gain: PUNCH_GAIN * 0.6, filterType: 'bandpass', frequency: 1200, q: 0.8 })
+}
+
+const WEAPON_SOUNDS = { phaser: playPhaser, punch: playPunch }
+
+// Combat attacks, by the weapon's attackSound id. speed (Auto Combat 0.5x-4x) shortens or lengthens a phaser with its beam.
+// Opens or wakes the audio itself, since an AI shot can come before the next press; browsers still keep it silent until
+// the player has interacted with the page at least once.
+export function playWeaponSound(soundId, speed = 1) {
+  const play = WEAPON_SOUNDS[soundId]
+  if (!play || level === 0) return
+  withRunningContext((audio) => play(audio, PHASER_SECONDS / speed))
+}
+
+// One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.
+export function playFootstep(stepIndex = 0) {
+  if (level === 0) return
+  withRunningContext((audio) => {
+    const start = audio.currentTime + LOOKAHEAD_S
+    playNoiseBurst(audio, { start, length: 0.07, gain: FOOTSTEP_GAIN, filterType: 'lowpass', frequency: stepIndex % 2 ? 620 : 760 })
+  })
 }
 
 function isPressable(element) {

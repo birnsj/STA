@@ -12,7 +12,6 @@ const ICONS = {
   attack: 'M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0.01 0',
   aim: 'M4 12h6M14 12h6M12 4v6M12 14v6',
   move: 'M5 7l5 5-5 5M12 7l5 5-5 5',
-  takeCover: 'M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z',
   assist: 'M8 9a2 2 0 1 0 0.01 0M16 9a2 2 0 1 0 0.01 0M4 19c0-3 2-5 4-5s4 2 4 5M12 19c0-3 2-5 4-5s4 2 4 5',
   useItem: 'M4 8h16v11H4zM9 8V5h6v3',
   endTurn: 'M19 12H7M11 7l-5 5 5 5',
@@ -43,7 +42,8 @@ export function SelectedCharacterPanel({ combatant }) {
 
 // highlightEndTurn: the acting character has used both actions, so End Turn is the only thing left.
 // turn: the acting character's used actions, shown as a countdown in the header (null when it isn't the player's turn).
-export function ActionsPanel({ availability, mode, weapon, canCycleWeapon, highlightEndTurn, turn, onSelect, onCycleWeapon }) {
+// movement: { left, total } tiles, shown on the Move row.
+export function ActionsPanel({ availability, mode, weapon, canCycleWeapon, highlightEndTurn, turn, movement, onSelect, onCycleWeapon }) {
   return (
     <section className="combat-panel actions-panel">
       <h2 className="combat-panel-title actions-panel-title">
@@ -67,6 +67,11 @@ export function ActionsPanel({ availability, mode, weapon, canCycleWeapon, highl
                   <path d={ICONS[id]} />
                 </svg>
                 <span className="actions-name">{action.name}</span>
+                {id === 'move' && movement && (
+                  <span className={`actions-move-left${movement.left ? '' : ' is-empty'}`}>
+                    {movement.left}/{movement.total}
+                  </span>
+                )}
                 {action.slot !== 'free' && <span className="actions-slot">{action.slot === 'minor' ? 'Minor' : 'Major'}</span>}
               </button>
               {id === 'attack' && weapon && (
@@ -95,7 +100,7 @@ export function TargetPanel({ target }) {
             <span className="target-row">
               Hits <HitPips hits={target.hits} />
             </span>
-            <span className={`target-row target-cover${target.inCover ? ' is-covered' : ''}`}>Cover: {target.inCover ? 'Cover' : 'No Cover'}</span>
+            <span className={`target-row target-cover${target.inCover ? ' is-covered' : ''}`}>Cover: {target.inCover ? 'In Cover' : 'No Cover'}</span>
             {target.status !== 'active' && <span className="target-row target-status">{STATUS_LABEL[target.status]}</span>}
           </div>
         </div>
@@ -141,10 +146,10 @@ function AttackTask({ preview, injuryMode, onInjuryMode }) {
   )
 }
 
-const CONFIRM_LABEL = { attack: 'Fire', move: 'Move', aim: 'Aim', takeCover: 'Take Cover' }
+const CONFIRM_LABEL = { attack: 'Fire', move: 'Move', aim: 'Aim' }
 
-// confirm: { enabled, onConfirm }
-export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, movement, injuryMode, onInjuryMode, confirm }) {
+// confirm: { enabled, onConfirm }; movement: { left, total } tiles this turn; routeInCover: the chosen route ends next to cover
+export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, movement, injuryMode, onInjuryMode, confirm }) {
   let body
   if (!isPlayerTurn) body = <p className="combat-panel-empty">{autoTurn ? 'Auto Combat' : 'Enemy turn'}</p>
   else if (mode === 'attack' && preview?.task) body = <AttackTask preview={preview} injuryMode={injuryMode} onInjuryMode={onInjuryMode} />
@@ -152,12 +157,16 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, mov
   else if (mode === 'move')
     body = (
       <>
-        <p className="task-line">Movement {movement} tiles</p>
-        <p className="task-line task-sub">{movePath ? `Route: ${movePath.length - 1} tiles` : 'Choose a highlighted tile'}</p>
+        <p className="task-line">
+          Movement {movement.left} / {movement.total} tiles left
+        </p>
+        <p className="task-line task-sub">
+          {movePath ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}` : 'Choose a highlighted tile'}
+        </p>
+        <p className="task-line task-sub">{ACTIONS.move.description}</p>
       </>
     )
   else if (mode === 'aim') body = <p className="task-line task-sub">{ACTIONS.aim.description}</p>
-  else if (mode === 'takeCover') body = <p className="task-line task-sub">{ACTIONS.takeCover.description}</p>
   else body = <p className="combat-panel-empty">Choose an action</p>
 
   const label = (mode === 'attack' && getWeapon(preview?.weapon?.id)?.type === 'melee' ? 'Strike' : CONFIRM_LABEL[mode]) ?? 'Confirm'

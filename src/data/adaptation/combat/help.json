@@ -4,23 +4,25 @@
   "sections": [
     {
       "heading": "Goal",
-      "lines": ["Take out both Klingons. Each figure has three Hit circles; three Hits removes it from the fight. You lose if your whole party is taken out."]
+      "lines": ["Take out all four Klingons. Each figure has three Hit circles; three Hits removes it from the fight. You lose if your whole party is taken out."]
     },
     {
       "heading": "Turns",
       "lines": [
         "The portraits at the top show the turn order. The large yellow one is acting now.",
-        "The deck is bigger than the screen: use W A S D (or the arrow keys), hold the right mouse button and drag, or on a touch screen drag with one finger, to look around. The view moves to whoever is acting; press Camera: Follow (top right) to switch to Camera: Free and keep the view where you put it.",
+        "The deck is bigger than the screen: use W A S D (or the arrow keys), hold the right mouse button and drag, or on a touch screen drag with one finger, to look around. Scroll the mouse wheel to zoom in and out. The view moves to whoever is acting; press Camera: Follow (top right) to switch to Camera: Free and keep the view where you put it.",
         "Your party acts first each round, then the Klingons take their turns automatically.",
-        "During the party's turn, click any party member marked Ready (on the map or in the bar at the bottom) to act with them. You can switch at any time and come back to finish their actions. Each character has 2 action points (Minor and Major) that count down as they are used; when both are spent the turn passes to the next Ready member automatically. The round moves on when everyone is done."
+        "The arrow at each figure's feet shows which way it is facing: blue for your party, red for Klingons, yellow for whoever is acting, grey once a turn is done. Figures turn toward where they walk and whom they shoot. Facing is for show only and has no effect on the rules.",
+        "During the party's turn, click any party member marked Ready (on the map or in the bar at the bottom) to act with them. You can switch at any time and come back to finish their actions. Each character has 2 action points (Minor and Major) that count down as they are used; when both are spent and no movement is left, the turn passes to the next Ready member automatically. The round moves on when everyone is done."
       ]
     },
     {
       "heading": "Your turn",
       "lines": [
-        "You get one minor action (Move, Aim or Take Cover) and one major action (Attack), in either order.",
+        "You get one minor action (Move or Aim) and one major action (Attack), in either order.",
         "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there.",
-        "For other actions, choose one on the right, set it up, then press the large yellow button. Press End Turn when you are done."
+        "Your first move uses the minor action, but you don't have to walk your full distance at once: the tiles left (shown as >> 3/5 above your character) can be walked later in the same turn, for example move, attack, then move again. Aiming instead of moving means no movement that turn.",
+        "For other actions, choose one on the right, set it up, then press the large yellow button. Right-click the battlefield to release your selection. Press End Turn when you are done."
       ]
     },
     {
@@ -33,7 +35,12 @@
     },
     {
       "heading": "Cover",
-      "lines": ["Take Cover works next to a crate and lasts until you move. A target in cover rolls too: if it scores more successes than the Difficulty, the attacker needs that many instead."]
+      "lines": [
+        "Cover is automatic; there is no Take Cover action. Any figure standing next to a crate or console (including diagonally) is in cover, and loses it as soon as it moves away.",
+        "A blue shield beside a figure's head on the map shows it is in cover. The Target panel shows whether your target is In Cover or has No Cover.",
+        "When planning a move, the hint and the Task panel tell you if the route ends in cover. The Klingons use cover the same way.",
+        "A target in cover rolls too: if it scores more successes than the Difficulty, the attacker needs that many instead."
+      ]
     },
     {
       "heading": "Momentum and Threat",
@@ -45,7 +52,7 @@
     {
       "heading": "Auto Combat (testing)",
       "lines": [
-        "Auto Combat (bottom right) lets the AI play your party too, with the same rules and dice. Pause, Resume and Stop at any time; Stop hands control back to you. 2x and 4x only make it faster to watch.",
+        "Auto Combat (bottom right) lets the AI play your party too, with the same rules and dice. Pause, Resume and Stop at any time; Stop hands control back to you. 0.5x, 2x and 4x only make it slower or faster to watch.",
         "Type a Seed on the setup screen to replay the exact same fight. The seed of the current fight is shown in Debug."
       ]
     }

@@ -5,7 +5,7 @@ import HitPips from './HitPips.jsx'
 const STATUS_LABEL = { incapacitated: 'Incapacitated', injured: 'Injured' }
 const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
 
-// The party, in pick order. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { minorUsed, majorUsed } } }
+// The party, in pick order. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { minorUsed, majorUsed }, movement: { left, total } } }
 // for members whose turn status is known this round; clicking a Ready member hands them the turn.
 export default function PartyBar({ party, activeId, selectedId, turnInfo, onSelect }) {
   return (
@@ -26,7 +26,14 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
             </span>
             <span className="party-info">
               <span className="party-name">{member.character.name}</span>
-              {member.status === 'active' ? <HitPips hits={member.hits} /> : <span className="party-status">{STATUS_LABEL[member.status]}</span>}
+              {member.status === 'active' ? (
+                <span className="party-hits-row">
+                  <HitPips hits={member.hits} />
+                  {info && <span className={`party-move-left${info.movement.left ? '' : ' is-empty'}`}>Move {info.movement.left}/{info.movement.total}</span>}
+                </span>
+              ) : (
+                <span className="party-status">{STATUS_LABEL[member.status]}</span>
+              )}
               {info && <ActionPoints turn={info.turn} />}
             </span>
             {info && (
