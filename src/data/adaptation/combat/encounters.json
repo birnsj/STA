@@ -1,0 +1,50 @@
+{
+  "notes": [
+    "Prototype test encounter: the party and 2 Klingons on a 32 x 24 starship deck.",
+    "Rooms: Main Engineering (top left, warp core in the middle), Cargo Bay (top right, where the Klingons board), a corridor across the middle, and Crew Quarters (party start), Transporter Room and Storage along the bottom. Rooms connect through 2-tile doorways.",
+    "Map legend: '#' wall (blocks movement and line of fire), 'c' cover object (consoles, crates, tables: blocks movement, not line of fire; Take Cover is allowed next to it), '.' floor.",
+    "Positions are [x, y] with x = column and y = row. The objective text and room layout are placeholder content.",
+    "autoCombat.playerInjuryMode: the setting AI-controlled player characters use in Auto Combat. Designer spec: 'stun' (Starfleet default); 'deadly' only if set here explicitly."
+  ],
+  "encounters": [
+    {
+      "id": "engineeringDeckBoarding",
+      "name": "Engineering Deck",
+      "objectives": [{ "id": "defeatBoarders", "text": "Defeat the Klingon boarding party" }],
+      "autoCombat": { "playerInjuryMode": "stun" },
+      "map": {
+        "rows": [
+          "################################",
+          "#.............#................#",
+          "#..cc.....cc..#..cc............#",
+          "#.............#..c......cc.....#",
+          "#.....##.......................#",
+          "#.c...##....c..................#",
+          "#.............#.....cc.....c...#",
+          "#..c......c...#......c.....c...#",
+          "#.............#..c.............#",
+          "#.............#................#",
+          "######..##############..########",
+          "#.........c....................#",
+          "#....................c.........#",
+          "#####..########..########..#####",
+          "#..........#........#..........#",
+          "#..........#........#..........#",
+          "#..cc......#........#..ccc.....#",
+          "#..........#...cc...#..........#",
+          "#..............................#",
+          "#......cc..#........#..ccc.....#",
+          "#..c.......#.c......#..........#",
+          "#..........#......c.#.......c..#",
+          "#..........#........#..........#",
+          "################################"
+        ]
+      },
+      "playerSpawns": [[2, 21], [4, 21], [2, 18], [5, 22]],
+      "enemies": [
+        { "enemyId": "klingonWarrior1", "position": [26, 2] },
+        { "enemyId": "klingonWarrior2", "position": [29, 4] }
+      ]
+    }
+  ]
+}

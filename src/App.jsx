@@ -27,6 +27,7 @@ import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
 import CareerHistoryScreen from './screens/CareerHistoryScreen.jsx'
 import CareerScreen from './screens/CareerScreen.jsx'
+import CombatScreen from './screens/CombatScreen.jsx'
 import EarlyOutlookScreen from './screens/EarlyOutlookScreen.jsx'
 import EducationScreen from './screens/EducationScreen.jsx'
 import EnvironmentScreen from './screens/EnvironmentScreen.jsx'
@@ -49,7 +50,7 @@ const SCREENS = {
   finishingTouches: FinishingTouchesScreen,
   review: ReviewScreen,
 }
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'combat']
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
@@ -139,7 +140,8 @@ function CharacterCreator({ onExit, onConfirmed }) {
   )
 }
 
-// The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape); character creation uses the design resolution.
+// The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
+// character creation uses the design resolution.
 const MENU_STAGE = { width: 1024, height: 576 }
 
 function Views() {
@@ -220,6 +222,11 @@ function Views() {
             onChangeAudio={setAudioSettings}
             onBack={openMenu}
           />
+        </ScaledStage>
+      )}
+      {view === 'combat' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+          <CombatScreen savedCharacters={savedCharacters} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'creator' && (

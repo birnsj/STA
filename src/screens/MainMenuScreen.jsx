@@ -16,7 +16,8 @@ const MENU_ITEMS = [
   { id: 'importCharacter', label: 'Import Character', accent: 'cyan', popup: 'import', enabled: 'afterCharacter' },
   { id: 'buildShip', label: 'Build Ship', accent: 'blue', action: 'shipBuilder', enabled: 'afterCharacter' },
   { id: 'importShip', label: 'Import Ship', accent: 'blue', action: null, enabled: false },
-  { id: 'loadEpisode', label: 'Load Episode', accent: 'red', action: null, enabled: false },
+  // For now Load Episode opens the personal combat prototype (designer decision).
+  { id: 'loadEpisode', label: 'Load Episode', accent: 'red', action: 'combat', enabled: 'afterCharacter' },
   { id: 'settings', label: 'Settings', accent: 'yellow', action: 'settings', enabled: true },
   { id: 'exit', label: 'Exit', accent: 'red', action: null, enabled: false },
 ]

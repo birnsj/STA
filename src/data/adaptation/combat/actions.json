@@ -1,0 +1,20 @@
+{
+  "notes": [
+    "Designer spec action economy: each turn has 1 minor and 1 major action. First pass implements Move, Aim, Take Cover, Attack and End Turn.",
+    "panel: the actions shown in the Actions panel, in mockup order. The others are defined for later passes."
+  ],
+  "panel": ["attack", "aim", "move", "takeCover", "assist", "useItem", "endTurn"],
+  "actions": [
+    { "id": "move", "name": "Move", "slot": "minor", "implemented": true },
+    { "id": "aim", "name": "Aim", "slot": "minor", "implemented": true, "description": "Reroll one attack die this turn." },
+    { "id": "takeCover", "name": "Take Cover", "slot": "minor", "implemented": true, "description": "Next to a cover object. Lost when you move." },
+    { "id": "useItem", "name": "Use Item", "slot": "minor", "implemented": false },
+    { "id": "interact", "name": "Interact", "slot": "minor", "implemented": false },
+    { "id": "attack", "name": "Attack", "slot": "major", "implemented": true },
+    { "id": "sprint", "name": "Sprint", "slot": "major", "implemented": false },
+    { "id": "assist", "name": "Assist", "slot": "major", "implemented": false },
+    { "id": "firstAid", "name": "First Aid", "slot": "major", "implemented": false },
+    { "id": "guard", "name": "Guard", "slot": "major", "implemented": false },
+    { "id": "endTurn", "name": "End Turn", "slot": "free", "implemented": true }
+  ]
+}

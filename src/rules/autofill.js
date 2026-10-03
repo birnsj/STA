@@ -22,20 +22,9 @@ import * as appearanceRules from './appearance.js'
 import { getAllMatrixFocuses } from './focuses.js'
 import { nameGroupForGender, randomName } from './names.js'
 import { pickStageValue } from './stageValues.js'
+import { seededRandom } from './seededRandom.js'
 
 const generatedName = (random) => (character) => randomName(nameGroupForGender(character.identity.gender?.id), '', random)
-
-// mulberry32: a small seeded generator, so the reducer stays pure (the seed is drawn when the button is pressed).
-function seededRandom(seed) {
-  let state = Math.floor(seed * 2 ** 32) >>> 0
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let t = state
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32
-  }
-}
 
 // order(list) returns the options in the order to try them; name(character) generates a name for the character's gender.
 export function createRandomChooser(seed) {

@@ -1,0 +1,116 @@
+{
+  "notes": [
+    "Prototype combat adaptation (designer spec, Oct 2026), not Captain's Log rules. Captain's Log personal conflict (pp.203-206) has no range bands, weapon Severity, or Stun/Deadly modes.",
+    "A successful attack causes exactly 1 Hit. Severity is not damage; it is recorded on the final Hit for later injury systems.",
+    "Weapons link to carried equipment by itemId (items.json for phasers). The Unarmed Strike is always available.",
+    "beamColor: presentation only (the shot effect on the battlefield). Weapons without one show a strike flash instead of a beam.",
+    "maximumRange: designer decision - pistols stop at Long; only rifles reach Extreme. Each band beyond optimalRange adds +1 Difficulty."
+  ],
+  "rangeBands": [
+    { "id": "reach", "name": "Reach", "minTiles": 1, "maxTiles": 1 },
+    { "id": "close", "name": "Close", "minTiles": 2, "maxTiles": 4 },
+    { "id": "medium", "name": "Medium", "minTiles": 5, "maxTiles": 8 },
+    { "id": "long", "name": "Long", "minTiles": 9, "maxTiles": 12 },
+    { "id": "extreme", "name": "Extreme", "minTiles": 13, "maxTiles": null }
+  ],
+  "attackTasks": {
+    "ranged": {
+      "attribute": "control",
+      "discipline": "security",
+      "baseDifficulty": 1,
+      "sourceType": "adaptation",
+      "note": "Designer decision (Oct 2026): base 1, changed from the spec's 2 because 2d20 can never pass Difficulty 3+. Matches the book's Difficulty 1 baseline (p.205)."
+    },
+    "melee": {
+      "attribute": "daring",
+      "discipline": "security",
+      "baseDifficulty": 1,
+      "sourceType": "placeholder",
+      "note": "Not in the designer spec. Daring + Security follows the book's melee example (p.204); Difficulty matches ranged until decided."
+    }
+  },
+  "injuryModes": [
+    { "id": "stun", "name": "Stun", "finalHitStatus": "incapacitated", "generatesThreat": false },
+    { "id": "deadly", "name": "Deadly", "finalHitStatus": "injured", "generatesThreat": true }
+  ],
+  "weapons": [
+    {
+      "id": "phaserType1",
+      "itemId": "phaserType1",
+      "name": "Type-1 Phaser",
+      "type": "ranged",
+      "injuryModes": ["stun", "deadly"],
+      "severity": 3,
+      "hands": 1,
+      "qualities": ["Charge"],
+      "optimalRange": "medium",
+      "maximumRange": "long",
+      "focuses": ["Hand Phasers"],
+      "beamColor": "#ff9b3d",
+      "sourceType": "adaptation"
+    },
+    {
+      "id": "phaserType2",
+      "itemId": "phaserType2",
+      "name": "Type-2 Phaser",
+      "type": "ranged",
+      "injuryModes": ["stun", "deadly"],
+      "severity": 4,
+      "hands": 1,
+      "qualities": ["Charge"],
+      "optimalRange": "long",
+      "maximumRange": "long",
+      "focuses": ["Hand Phasers"],
+      "beamColor": "#ff9b3d",
+      "sourceType": "adaptation"
+    },
+    {
+      "id": "phaserRifle",
+      "itemId": "phaserRifle",
+      "name": "Phaser Rifle",
+      "type": "ranged",
+      "injuryModes": ["stun", "deadly"],
+      "severity": null,
+      "hands": 2,
+      "qualities": [],
+      "optimalRange": "long",
+      "maximumRange": "extreme",
+      "focuses": ["Hand Phasers"],
+      "beamColor": "#ff9b3d",
+      "sourceType": "adaptation",
+      "note": "Severity and qualities undefined in the spec. Nobody carries one in the first encounter."
+    },
+    {
+      "id": "disruptorPistol",
+      "itemId": "disruptorPistol",
+      "name": "Disruptor Pistol",
+      "type": "ranged",
+      "injuryModes": ["deadly"],
+      "severity": 4,
+      "hands": 1,
+      "qualities": [],
+      "optimalRange": "long",
+      "maximumRange": "long",
+      "focuses": [],
+      "beamColor": "#62f06e",
+      "sourceType": "placeholder",
+      "note": "Designer-approved placeholder. Book p.33: disruptors have no stun setting."
+    },
+    {
+      "id": "unarmedStrike",
+      "itemId": null,
+      "name": "Unarmed Strike",
+      "type": "melee",
+      "injuryModes": ["stun"],
+      "severity": 1,
+      "hands": 0,
+      "qualities": [],
+      "optimalRange": "reach",
+      "maximumRange": "reach",
+      "focuses": [],
+      "alwaysAvailable": true,
+      "sourceType": "placeholder",
+      "note": "Not in the designer spec; added because characters fight with carried equipment only. Injury mode and Severity are placeholders."
+    }
+  ]
+}
