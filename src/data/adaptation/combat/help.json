@@ -10,7 +10,7 @@
       "heading": "Turns",
       "lines": [
         "The portraits at the top show the turn order. The large yellow one is acting now.",
-        "The deck is bigger than the screen: use W A S D (or the arrow keys), or hold the right mouse button and drag, to look around. The view moves to whoever is acting.",
+        "The deck is bigger than the screen: use W A S D (or the arrow keys), hold the right mouse button and drag, or on a touch screen drag with one finger, to look around. The view moves to whoever is acting; press Camera: Follow (top right) to switch to Camera: Free and keep the view where you put it.",
         "Your party acts first each round, then the Klingons take their turns automatically.",
         "During the party's turn, click any party member marked Ready (on the map or in the bar at the bottom) to act with them. You can switch at any time and come back to finish their actions. Each character has 2 action points (Minor and Major) that count down as they are used; when both are spent the turn passes to the next Ready member automatically. The round moves on when everyone is done."
       ]
@@ -19,7 +19,7 @@
       "heading": "Your turn",
       "lines": [
         "You get one minor action (Move, Aim or Take Cover) and one major action (Attack), in either order.",
-        "Move is selected at the start of each turn: click any blue tile to walk there.",
+        "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there.",
         "For other actions, choose one on the right, set it up, then press the large yellow button. Press End Turn when you are done."
       ]
     },

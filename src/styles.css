@@ -4115,6 +4115,8 @@ dd {
   inset: 0;
   width: 100%;
   height: 100%;
+  /* Lets a one-finger drag pan the map (useCamera.js) instead of scrolling or zooming the page. */
+  touch-action: none;
 }
 
 .iso-tile {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import HitPips from './HitPips.jsx'
@@ -213,10 +213,12 @@ function MovePathLine({ path }) {
 
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
-export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, msPerTile, speed, focus, onTileClick, onTileHover, onUnitClick }) {
+export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) })
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera)
+  // Click events don't reliably say whether they came from a finger, so the tile remembers the last pointer that pressed it.
+  const pointerTypeRef = useRef('mouse')
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const tiles = []
   const blocks = []
@@ -272,7 +274,10 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
               key={key}
               className={`iso-tile${(x + y) % 2 ? ' is-alt' : ''}${reachable ? ' is-reachable' : ''}${onPath ? ' is-path' : ''}${isDestination ? ' is-destination' : ''}`}
               points={points(diamond(x, y))}
-              onClick={() => onTileClick({ x, y })}
+              onPointerDown={(event) => {
+                pointerTypeRef.current = event.pointerType
+              }}
+              onClick={() => onTileClick({ x, y }, { touch: pointerTypeRef.current === 'touch' })}
               onMouseEnter={() => onTileHover({ x, y })}
             />
           )

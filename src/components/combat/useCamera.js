@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Presentation only: which part of the battlefield is on screen. WASD / arrow keys or right-click drag pan; when focus.key changes
+// Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan; when focus.key changes
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
 const GLIDE = 0.14
@@ -18,10 +18,23 @@ const clamp = (camera, bounds, view) => ({
 
 const centredOn = (point, view) => ({ x: point.x - view.width / 2, y: point.y - view.height / 2 })
 
+const TOUCH_SLOP = 10
+
+function swallowNextClick() {
+  const swallow = (event) => {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  window.addEventListener('click', swallow, { capture: true, once: true })
+  // If the browser sends no click after the drag, don't eat the next real tap.
+  setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 400)
+}
+
 const isTyping = (target) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
 // bounds: world rectangle { minX, maxX, minY, maxY }; view: { width, height }; focus: { key, point }.
-export default function useCamera(bounds, view, focus) {
+// follow false: the camera stays where the player left it (it still starts centred on focus).
+export default function useCamera(bounds, view, focus, follow = true) {
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const cameraRef = useRef(camera)
   const targetRef = useRef(null)
@@ -31,8 +44,8 @@ export default function useCamera(bounds, view, focus) {
   const { x: focusX, y: focusY } = focus.point
 
   useEffect(() => {
-    targetRef.current = { x: focusX - width / 2, y: focusY - height / 2 }
-  }, [focus.key, focusX, focusY, width, height])
+    targetRef.current = follow ? { x: focusX - width / 2, y: focusY - height / 2 } : null
+  }, [focus.key, focusX, focusY, width, height, follow])
 
   useEffect(() => {
     const down = (event) => {
@@ -88,15 +101,25 @@ export default function useCamera(bounds, view, focus) {
     return () => cancelAnimationFrame(frame)
   }, [minX, maxX, minY, maxY, width, height])
 
-  // Right-button drag: the world follows the pointer. Screen pixels are converted to world pixels using the element's
-  // on-screen size, because the whole stage is scaled to fit the window.
+  // Right-button drag (mouse) or one-finger drag (touch): the world follows the pointer. Screen pixels are converted to
+  // world pixels using the element's on-screen size, because the whole stage is scaled to fit the window.
+  // A touch only pans once it has moved past TOUCH_SLOP, so a tap still selects a tile or unit; after a pan, the click
+  // the browser sends on release is swallowed so the drag doesn't also move the character.
   const startDrag = (event) => {
-    if (event.button !== 2) return
-    event.preventDefault()
+    const isTouch = event.pointerType === 'touch'
+    if (isTouch ? !event.isPrimary : event.button !== 2) return
+    if (!isTouch) event.preventDefault()
     const scale = event.currentTarget.getBoundingClientRect().width / width
     const start = { x: event.clientX, y: event.clientY, camera: cameraRef.current }
-    targetRef.current = null
+    let panning = !isTouch
+    if (panning) targetRef.current = null
     const move = (moveEvent) => {
+      if (moveEvent.pointerId !== event.pointerId) return
+      if (!panning) {
+        if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) < TOUCH_SLOP) return
+        panning = true
+        targetRef.current = null
+      }
       const next = clamp(
         { x: start.camera.x - (moveEvent.clientX - start.x) / scale, y: start.camera.y - (moveEvent.clientY - start.y) / scale },
         { minX, maxX, minY, maxY },
@@ -105,12 +128,16 @@ export default function useCamera(bounds, view, focus) {
       cameraRef.current = next
       setCamera(next)
     }
-    const end = () => {
+    const end = (endEvent) => {
+      if (endEvent.pointerId !== event.pointerId) return
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      if (isTouch && panning) swallowNextClick()
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
   }
 
   const dragHandlers = { onPointerDown: startDrag, onContextMenu: (event) => event.preventDefault() }

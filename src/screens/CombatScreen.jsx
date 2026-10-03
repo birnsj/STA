@@ -101,7 +101,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const [speed, setSpeed] = useState(1)
   const aiControlled = active.controller === 'ai' || auto !== 'off'
   const isPlayerTurn = !aiControlled && !state.outcome
-  // UI state only: the chosen action, target, weapon, injury mode, move destination, hovered tile and panels.
+  // UI state only: the chosen action, target, weapon, injury mode, move destination, hovered tile, panels and camera follow.
   // chosenMode null = the default (Move while the minor action is unused); 'none' = the player deselected everything.
   const [chosenMode, setMode] = useState(null)
   const defaultMode = isPlayerTurn && canUseMinor(state, active) ? 'move' : null
@@ -113,6 +113,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const [hoverTile, setHoverTile] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [debugOpen, setDebugOpen] = useState(false)
+  const [followCamera, setFollowCamera] = useState(true)
   const [helpOpen, setHelpOpen] = useState(showHelpOnStart)
   const closeHelp = () => {
     setHelpOpen(false)
@@ -188,8 +189,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   }
 
   // With Move selected (the default), clicking a reachable tile moves there at once.
-  const handleTileClick = (tile) => {
+  // Prototype: a finger has no hover preview, so on touch the first tap shows the path and a second tap on the same
+  // tile moves; a mouse click moves at once.
+  const handleTileClick = (tile, { touch = false } = {}) => {
     if (mode !== 'move' || !availability.move || !reachable?.has(tileKey(tile)) || samePosition(tile, active.position)) return
+    if (touch && !(destination && samePosition(destination, tile))) {
+      setDestination(tile)
+      return
+    }
     dispatch({ type: 'move', destination: tile })
     setMode(null)
     setDestination(null)
@@ -263,6 +270,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         msPerTile={MOVE_TILE_MS / (auto === 'off' ? 1 : speed)}
         speed={auto === 'off' ? 1 : speed}
         focus={cameraFocus(state, turnKey, active)}
+        followCamera={followCamera}
         onTileClick={handleTileClick}
         onTileHover={setHoverTile}
         onUnitClick={handleUnitClick}
@@ -283,6 +291,15 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         </p>
       )}
       <div className="combat-top-right">
+        <button
+          type="button"
+          className="combat-button is-small"
+          aria-pressed={followCamera}
+          title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click to follow whoever is acting.'}
+          onClick={() => setFollowCamera(!followCamera)}
+        >
+          Camera: {followCamera ? 'Follow' : 'Free'}
+        </button>
         <button type="button" className="combat-button is-small" onClick={() => setHelpOpen(true)}>
           How to Play
         </button>
