@@ -10,8 +10,9 @@ function subtitle(actionId, character) {
 
 const DETAIL = { move: 'Reposition', phaser: `Range ${TUNING.phaserRange}, needs sight`, melee: 'Adjacent target', push: 'Adjacent, 1 tile', interact: 'EPS conduit' }
 
-export default function ActionBar2({ state, character, actionId, onSelect, onEndTurn }) {
-  const playerTurn = state.phase === 'player' && !state.outcome
+// locked: Auto Combat is playing the character, so the buttons only show what it can do.
+export default function ActionBar2({ state, character, actionId, locked = false, onSelect, onEndTurn }) {
+  const playerTurn = state.phase === 'player' && !state.outcome && !locked
   return (
     <div className="c2-actions" role="toolbar" aria-label="Actions">
       {ACTION_IDS.map((id) => {

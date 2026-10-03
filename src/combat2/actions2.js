@@ -119,9 +119,10 @@ export function previewPush(state, attackerId, targetId) {
 export function previewInteract(state, actorId) {
   const actor = state.units[actorId]
   const task = buildActionTask(actor.character, 'interact', 1)
-  const adjacent = isAdjacent(actor.position, state.epsControl)
+  const adjacent = state.hazardControls.some((control) => isAdjacent(actor.position, control))
   let reason = null
-  if (!adjacent) reason = 'Stand next to the EPS conduit control'
+  if (!state.hazardControls.length || !state.hazard.tiles.length) reason = 'This map has no EPS conduit to overload'
+  else if (!adjacent) reason = 'Stand next to the EPS conduit control'
   else if (state.hazard.active) reason = 'The conduit is already discharging'
   return { available: !reason, reason, task, chance: taskChance(task.targetNumber, 1) }
 }

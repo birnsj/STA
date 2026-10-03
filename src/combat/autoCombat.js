@@ -16,8 +16,9 @@ export function stepAI(state) {
 export const autoCombatReducer = (state, action) => (action.type === 'aiStep' ? stepAI(state) : combatReducer(state, action))
 
 // Runs a whole fight with every combatant AI-controlled, without any UI. Same inputs + seed -> same result.
-export function runAutoCombat({ encounterId, players, seed, maxSteps = 5000 }) {
-  let state = createCombat({ encounterId, players, seed })
+// map: a parsed map file.
+export function runAutoCombat({ encounterId, map, players, seed, maxSteps = 5000 }) {
+  let state = createCombat({ encounterId, map, players, seed })
   let steps = 0
   while (!state.outcome && steps < maxSteps) {
     state = stepAI(state)

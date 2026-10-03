@@ -76,46 +76,21 @@
   shape-rendering: crispEdges;
 }
 
+/* Overlay diamonds over the tile PNGs: invisible (but clickable) unless an overlay class tints them. */
 .c2-tile {
-  fill: #2a3236;
-  stroke: #182023;
+  fill: transparent;
+  stroke: none;
   stroke-width: 1;
 }
 
-.c2-tile.is-alt {
-  fill: #2e373b;
-}
-
-.c2-tile.is-doorway {
-  fill: #33444a;
-  stroke: #c9a23a;
-}
-
-.c2-tile.is-grating {
-  fill: #3d3520;
-  stroke: #6e5a28;
-  stroke-dasharray: 4 3;
-}
-
-.c2-tile.is-hazard-live {
-  fill: #c25a12;
-  stroke: #ffd27a;
-  stroke-dasharray: none;
-  animation: c2-hazard 0.6s steps(2) infinite;
-}
-
-@keyframes c2-hazard {
-  50% { fill: #ff9a2e; }
-}
-
 .c2-tile.is-reach { fill: rgba(64, 140, 255, 0.5); stroke: #8cc0ff; cursor: pointer; }
-.c2-tile.is-noreach { fill: #3a2427; }
-.c2-tile.is-range { fill: #3f3a22; }
-.c2-tile.is-nosight { fill: #1b2022; }
-.c2-tile.is-adjacent { fill: #4a3420; stroke: #ff9a3d; }
-.c2-tile.is-interact { fill: #1f4558; stroke: #6fd3ff; }
-.c2-tile.is-hazardpreview { stroke: #ffd27a; stroke-width: 2; stroke-dasharray: none; }
-.c2-tile.is-threat { fill: #5a2020; stroke: #ff5a4a; }
+.c2-tile.is-noreach { fill: rgba(120, 30, 40, 0.35); }
+.c2-tile.is-range { fill: rgba(200, 170, 60, 0.22); }
+.c2-tile.is-nosight { fill: rgba(0, 0, 0, 0.45); }
+.c2-tile.is-adjacent { fill: rgba(255, 140, 50, 0.3); stroke: #ff9a3d; }
+.c2-tile.is-interact { fill: rgba(60, 170, 230, 0.35); stroke: #6fd3ff; }
+.c2-tile.is-hazardpreview { stroke: #ffd27a; stroke-width: 2; }
+.c2-tile.is-threat { fill: rgba(220, 50, 40, 0.35); stroke: #ff5a4a; }
 .c2-tile.is-hover { stroke: #ffffff; stroke-width: 2; }
 
 .c2-area-label {
@@ -123,27 +98,6 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   pointer-events: none;
-}
-
-.c2-block { pointer-events: none; }
-.c2-block-bulkhead .c2-face-top { fill: #5c6870; }
-.c2-block-bulkhead .c2-face-left { fill: #3c454b; }
-.c2-block-bulkhead .c2-face-right { fill: #2c3338; }
-.c2-block-machinery .c2-face-top { fill: #6e3a2e; }
-.c2-block-machinery .c2-face-left { fill: #4a2620; }
-.c2-block-machinery .c2-face-right { fill: #371c18; }
-.c2-block-machinery .c2-block-detail { fill: #ff6b3d; opacity: 0.75; }
-.c2-block-crate .c2-face-top { fill: #8a7650; }
-.c2-block-crate .c2-face-left { fill: #5d4f35; }
-.c2-block-crate .c2-face-right { fill: #4a3f2a; }
-.c2-block-crate .c2-block-detail { fill: none; stroke: #b39a68; }
-.c2-block-epsControl .c2-face-top { fill: #35577a; }
-.c2-block-epsControl .c2-face-left { fill: #243d56; }
-.c2-block-epsControl .c2-face-right { fill: #1a2d40; }
-.c2-block-eps { fill: #5fd0ff; animation: c2-eps 1.6s steps(2) infinite; }
-
-@keyframes c2-eps {
-  50% { fill: #b8ecff; }
 }
 
 .c2-move-path,
@@ -203,7 +157,7 @@
 .c2-beam {
   stroke-width: 3;
   pointer-events: none;
-  animation: c2-beam 0.5s ease-out both;
+  animation: c2-beam calc(0.5s / var(--c2-speed, 1)) ease-out both;
 }
 
 .c2-beam.is-player { stroke: #ff9b3d; }
@@ -224,7 +178,7 @@
   stroke: #000;
   stroke-width: 3px;
   pointer-events: none;
-  animation: c2-float 1.6s ease-out both;
+  animation: c2-float calc(1.6s / var(--c2-speed, 1)) ease-out both;
 }
 
 .c2-float.is-good { fill: #7dff9a; }
@@ -242,7 +196,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 230px;
+  width: 260px;
 }
 
 .c2-objectives ul {
@@ -263,6 +217,46 @@
 .c2-turn-banner.is-enemy {
   border-color: #ff5a4a;
   background: rgba(255, 90, 74, 0.14);
+}
+
+.c2-objectives-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.c2-objectives-actions .c2-button.is-small {
+  margin-top: 0;
+}
+
+.c2-auto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.c2-auto-status {
+  color: #7dff9a;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.c2-auto-speed {
+  padding: 2px 6px;
+  border: 1px solid #3f6f78;
+  border-radius: 2px;
+  background: #13272b;
+  color: var(--text);
+  font-size: 10px;
+}
+
+.c2-auto-speed.is-selected {
+  border-color: #ffb347;
+  color: #ffb347;
 }
 
 .c2-hazard-note {
@@ -654,6 +648,15 @@
   gap: 14px;
   margin: 10px 0;
   min-height: 230px;
+}
+
+.c2-setup-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 12px;
 }
 
 .c2-setup-list {

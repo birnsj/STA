@@ -1,0 +1,158 @@
+{
+  "notes": [
+    "Biomes for Generate Map's ground locations (Colony, Outpost, Small City, Ruins, Wilderness, Cave). Ships and stations have no biome.",
+    "The list draws on the Captain's Log Solo RPG (beast Preferred Environment table: deciduous forest, swamps, standing water, sandy and rocky desert, arctic, volcanic features; Primary World classes H desert, P glaciated, D barren). Everything here is prototype content: tiles, features, densities and building styles are not from the book.",
+    "ground / path: open ground and the paths and trails laid on it. trail: Wilderness only, a track across the map (null = none). plants: what grows at a colony's edges, around an outpost, in ruins and in a city's plaza. boulder: loose rocks outside. fence: yard fences at a colony (null = no fences, because the fence art is drawn on temperate ground).",
+    "walls.prefab: colony and outpost buildings. walls.city: Small City buildings. cave: floor, wall and boulder tiles for caves.",
+    "features run in order on open ground. blob: patches grown from random spots (tiles: one picked per patch), one per `per` tiles of map area, `size` tiles each. scatter: single tiles, one per `per` tiles. line: wandering lines edge to edge, one per `per` tiles (at least one), with extra `crossings`. fringe: `tile` beside every `around` tile with probability `chance`. Solid features never cut the walkable map in two.",
+    "Wilderness uses the full feature density; settlements use less (see featureScale in mapGenerators.js). caveFeatures: the same kinds, on cave floor.",
+    "card: colours for Generate Card's drawn episode pictures (src/maps/cardArt.js). skies: the skies it may pick (day, dusk, night, overcast, murky, desertDay, pale, volcanic, airless). ground: far, middle and near hill colours. plant: tree, pine, mangrove, cactus, iceSpike, rock or crater. rock: cave and cliff colour. building: settlement wall colour. extra: water, lava, crevasse or null."
+  ],
+  "biomes": [
+    {
+      "id": "temperate",
+      "label": "Temperate",
+      "nameCategory": "wilderness",
+      "card": { "skies": ["day", "dusk", "night", "overcast"], "ground": ["#7c9a5c", "#5f8344", "#4b6e34"], "plant": "tree", "plantColour": "#3f6a2e", "rock": "#6a6660", "building": "#9aa4ac", "extra": null },
+      "ground": "ground",
+      "path": "path",
+      "trail": null,
+      "plants": ["tree"],
+      "boulder": "rock",
+      "fence": "fence",
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "caveFloor", "wall": "rockWall", "boulder": "rock" },
+      "features": [
+        { "kind": "blob", "tiles": ["rock"], "per": 45, "size": [1, 5] },
+        { "kind": "scatter", "tile": "tree", "per": 40 }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "forest",
+      "label": "Forest",
+      "nameCategory": "forest",
+      "card": { "skies": ["day", "dusk", "overcast", "night"], "ground": ["#5a7a4a", "#4a6a40", "#3e5c36"], "plant": "pine", "plantColour": "#1e3822", "rock": "#5a6a50", "building": "#7a5a3a", "extra": null },
+      "ground": "grass",
+      "path": "ground",
+      "trail": "ground",
+      "plants": ["broadleaf", "pine"],
+      "boulder": "mossRock",
+      "fence": null,
+      "walls": { "prefab": "timberWall", "city": "timberWall" },
+      "cave": { "floor": "caveFloor", "wall": "rockWall", "boulder": "rock" },
+      "features": [
+        { "kind": "blob", "tiles": ["broadleaf", "pine"], "per": 55, "size": [4, 12] },
+        { "kind": "scatter", "tile": "bush", "per": 30 },
+        { "kind": "scatter", "tile": "log", "per": 70 }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "swamp",
+      "label": "Swamp",
+      "nameCategory": "swamp",
+      "card": { "skies": ["murky", "dusk", "night"], "ground": ["#4a5a40", "#3e4a34", "#34433e"], "plant": "mangrove", "plantColour": "#2e4428", "rock": "#4a4a40", "building": "#6a4e34", "extra": "water" },
+      "ground": "mud",
+      "path": "boardwalk",
+      "trail": "boardwalk",
+      "plants": ["mangrove"],
+      "boulder": "rock",
+      "fence": null,
+      "walls": { "prefab": "timberWall", "city": "timberWall" },
+      "cave": { "floor": "mud", "wall": "rockWall", "boulder": "rock" },
+      "features": [
+        { "kind": "blob", "tiles": ["grass"], "per": 150, "size": [3, 6] },
+        { "kind": "blob", "tiles": ["water"], "per": 60, "size": [4, 14] },
+        { "kind": "fringe", "tile": "reeds", "around": "water", "chance": 0.3 },
+        { "kind": "scatter", "tile": "mangrove", "per": 50 },
+        { "kind": "scatter", "tile": "log", "per": 120 }
+      ],
+      "caveFeatures": [
+        { "kind": "blob", "tiles": ["water"], "per": 80, "size": [3, 8] },
+        { "kind": "fringe", "tile": "reeds", "around": "water", "chance": 0.3 }
+      ]
+    },
+    {
+      "id": "desert",
+      "label": "Desert",
+      "nameCategory": "desert",
+      "card": { "skies": ["desertDay", "dusk", "night"], "ground": ["#d9b06a", "#c99a52", "#b98a44"], "plant": "cactus", "plantColour": "#4f7a3a", "rock": "#a07a4a", "building": "#c8a070", "extra": null },
+      "ground": "sand",
+      "path": "path",
+      "trail": null,
+      "plants": ["cactus"],
+      "boulder": "desertRock",
+      "fence": null,
+      "walls": { "prefab": "adobeWall", "city": "adobeWall" },
+      "cave": { "floor": "sand", "wall": "sandstone", "boulder": "desertRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["sandstone"], "per": 110, "size": [5, 14] },
+        { "kind": "scatter", "tile": "desertRock", "per": 70 },
+        { "kind": "scatter", "tile": "cactus", "per": 45 }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "iceField",
+      "label": "Ice Field",
+      "nameCategory": "iceField",
+      "card": { "skies": ["pale", "dusk", "night"], "ground": ["#c8d6e0", "#d6e2ea", "#e6edf2"], "plant": "iceSpike", "plantColour": "#bcd8ea", "rock": "#8fa4b4", "building": "#b4c4d0", "extra": "crevasse" },
+      "ground": "snow",
+      "path": "path",
+      "trail": null,
+      "plants": ["iceBlock"],
+      "boulder": "snowRock",
+      "fence": null,
+      "walls": { "prefab": "snowPrefabWall", "city": "snowPrefabWall" },
+      "cave": { "floor": "ice", "wall": "iceWall", "boulder": "snowRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["ice"], "per": 90, "size": [6, 16] },
+        { "kind": "line", "tile": "crevasse", "per": 500, "thickness": 1, "crossings": 2 },
+        { "kind": "blob", "tiles": ["iceBlock"], "per": 100, "size": [2, 6] },
+        { "kind": "scatter", "tile": "snowRock", "per": 150 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["snow"], "per": 60, "size": [4, 10] }]
+    },
+    {
+      "id": "volcanic",
+      "label": "Volcanic",
+      "nameCategory": "volcanic",
+      "card": { "skies": ["volcanic", "night"], "ground": ["#3a3230", "#2e2a28", "#221e1c"], "plant": "rock", "plantColour": "#1a1614", "rock": "#2a2220", "building": "#5a4a44", "extra": "lava" },
+      "ground": "ash",
+      "path": "path",
+      "trail": null,
+      "plants": ["basalt"],
+      "boulder": "basalt",
+      "fence": null,
+      "walls": { "prefab": "heatWall", "city": "heatWall" },
+      "cave": { "floor": "ash", "wall": "basaltWall", "boulder": "basalt" },
+      "features": [
+        { "kind": "line", "tile": "lava", "per": 2000, "thickness": 2, "crossings": 2 },
+        { "kind": "blob", "tiles": ["lava"], "per": 150, "size": [3, 8] },
+        { "kind": "blob", "tiles": ["basalt"], "per": 80, "size": [2, 6] },
+        { "kind": "scatter", "tile": "basalt", "per": 120 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["lava"], "per": 100, "size": [2, 6] }]
+    },
+    {
+      "id": "barren",
+      "label": "Barren",
+      "nameCategory": "barren",
+      "card": { "skies": ["airless", "dusk"], "ground": ["#6a6660", "#7a7670", "#5a5650"], "plant": "crater", "plantColour": "#55524e", "rock": "#4a4844", "building": "#9aa4ac", "extra": null },
+      "ground": "regolith",
+      "path": "path",
+      "trail": null,
+      "plants": ["barrenRock"],
+      "boulder": "barrenRock",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "regolith", "wall": "rockWall", "boulder": "barrenRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["rockWall"], "per": 120, "size": [4, 10] },
+        { "kind": "scatter", "tile": "barrenRock", "per": 45 }
+      ],
+      "caveFeatures": []
+    }
+  ]
+}

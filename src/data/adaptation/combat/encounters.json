@@ -1,9 +1,10 @@
 {
   "notes": [
-    "Prototype test encounter: the party and 4 Klingons on a 32 x 24 starship deck.",
-    "Rooms: Main Engineering (top left, warp core in the middle), Cargo Bay (top right, where the Klingons board), a corridor across the middle, and Crew Quarters (party start), Transporter Room and Storage along the bottom. Rooms connect through 2-tile doorways.",
-    "Map legend: '#' wall (blocks movement and line of fire), 'c' cover object (consoles, crates, tables: blocks movement, not line of fire; standing next to it gives cover automatically), '.' floor.",
-    "Positions are [x, y] with x = column and y = row. The objective text and room layout are placeholder content.",
+    "Prototype test encounter: the party against 4 Klingons. Played on any map file in the project's maps/ folder (picked in setup); defaultMapId is a map file name.",
+    "The default map, Engineering Deck (32 x 24): Main Engineering (top left, warp core in the middle), Cargo Bay (top right, where the Klingons board), a corridor across the middle, and Crew Quarters (party start), Transporter Room and Storage along the bottom. Rooms connect through 2-tile doorways.",
+    "Tiles come from the shared catalogue (src/data/adaptation/maps/tiles.json): solid tiles block movement, tiles that block sight block line of fire, and standing next to a cover tile gives cover automatically. Hazard tiles are ordinary floor in this mode.",
+    "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order; extra spawns stay empty.",
+    "The objective text is placeholder content.",
     "autoCombat.playerInjuryMode: the setting AI-controlled player characters use in Auto Combat. Designer spec: 'stun' (Starfleet default); 'deadly' only if set here explicitly."
   ],
   "encounters": [
@@ -12,41 +13,8 @@
       "name": "Engineering Deck",
       "objectives": [{ "id": "defeatBoarders", "text": "Defeat the Klingon boarding party" }],
       "autoCombat": { "playerInjuryMode": "stun" },
-      "map": {
-        "rows": [
-          "################################",
-          "#.............#................#",
-          "#..cc.....cc..#..cc............#",
-          "#.............#..c......cc.....#",
-          "#.....##.......................#",
-          "#.c...##....c..................#",
-          "#.............#.....cc.....c...#",
-          "#..c......c...#......c.....c...#",
-          "#.............#..c.............#",
-          "#.............#................#",
-          "######..##############..########",
-          "#.........c....................#",
-          "#....................c.........#",
-          "#####..########..########..#####",
-          "#..........#........#..........#",
-          "#..........#........#..........#",
-          "#..cc......#........#..ccc.....#",
-          "#..........#...cc...#..........#",
-          "#..............................#",
-          "#......cc..#........#..ccc.....#",
-          "#..c.......#.c......#..........#",
-          "#..........#......c.#.......c..#",
-          "#..........#........#..........#",
-          "################################"
-        ]
-      },
-      "playerSpawns": [[2, 21], [4, 21], [2, 18], [5, 22]],
-      "enemies": [
-        { "enemyId": "klingonWarrior1", "position": [26, 2] },
-        { "enemyId": "klingonWarrior2", "position": [29, 4] },
-        { "enemyId": "klingonWarrior3", "position": [23, 3] },
-        { "enemyId": "klingonWarrior4", "position": [28, 7] }
-      ]
+      "defaultMapId": "Engineering Deck",
+      "roster": ["klingonWarrior1", "klingonWarrior2", "klingonWarrior3", "klingonWarrior4"]
     }
   ]
 }

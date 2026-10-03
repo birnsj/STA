@@ -396,27 +396,33 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   )
 }
 
-export default function CombatScreen({ savedCharacters, onExit }) {
+// mapId: the episode's map, chosen in Load Episode.
+export default function CombatScreen({ savedCharacters, mapId, onExit }) {
   // UI state: the chosen party (RuntimeCharacters) and the running combat. Never saved or exported.
   const [party, setParty] = useState([])
   // fixedSeed: the seed typed on the setup screen (null = a new random seed every fight). runId remounts Battle per fight.
   const [fixedSeed, setFixedSeed] = useState(null)
+  // The parsed map file the fight is on, kept for Restart.
+  const [map, setMap] = useState(null)
   const [runId, setRunId] = useState(0)
   const [state, dispatch] = useReducer(autoCombatReducer, null)
   const [phase, setPhase] = useState('setup')
   // How to Play opens by itself only for the first fight after opening Load Episode.
   const [helpSeen, setHelpSeen] = useState(false)
 
-  const start = (members, seed) => {
+  const start = (members, seed, chosenMap) => {
     setParty(members)
     setFixedSeed(seed)
+    setMap(chosenMap)
     setRunId(runId + 1)
-    dispatch({ type: 'restart', options: { encounterId: DEFAULT_ENCOUNTER_ID, players: members, seed: seed ?? newSeed() } })
+    dispatch({ type: 'restart', options: { encounterId: DEFAULT_ENCOUNTER_ID, map: chosenMap, players: members, seed: seed ?? newSeed() } })
     setPhase('battle')
   }
 
   if (phase === 'setup' || !state) {
-    return <CombatSetup savedCharacters={savedCharacters} initialParty={party} initialSeed={fixedSeed} onStart={start} onExit={onExit} />
+    return (
+      <CombatSetup savedCharacters={savedCharacters} initialParty={party} initialSeed={fixedSeed} mapId={mapId} onStart={start} onExit={onExit} />
+    )
   }
   return (
     <Battle
@@ -425,7 +431,7 @@ export default function CombatScreen({ savedCharacters, onExit }) {
       dispatch={dispatch}
       showHelpOnStart={!helpSeen}
       onHelpSeen={() => setHelpSeen(true)}
-      onRestart={() => start(party, fixedSeed)}
+      onRestart={() => start(party, fixedSeed, map)}
       onChangeCharacter={() => setPhase('setup')}
       onExit={onExit}
     />

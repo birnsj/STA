@@ -3,11 +3,11 @@
 // effect, granted to anyone within Reach of a cover feature, with no action. Prototype: being on any of the 8 tiles around a
 // cover object puts a unit in cover automatically (on spawn and at the end of every move); moving elsewhere loses it.
 import { buildTask, countSuccesses, rollDice } from '../rules/taskResolver.js'
-import { neighbours, tileAt } from './battleMap.js'
+import { givesCover, isInside, neighbours } from './battleMap.js'
 
 export const COVER_TASK = { attribute: 'control', discipline: 'security' }
 
-export const canTakeCover = (map, position) => neighbours(position).some((tile) => tileAt(map, tile) === 'cover')
+export const canTakeCover = (map, position) => neighbours(position).some((tile) => isInside(map, tile) && givesCover(map, tile))
 
 export function rollCoverDefence(defender, random) {
   const task = buildTask(defender, { ...COVER_TASK, difficulty: 0 })

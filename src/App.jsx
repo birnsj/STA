@@ -27,6 +27,8 @@ import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
 import CareerHistoryScreen from './screens/CareerHistoryScreen.jsx'
 import CareerScreen from './screens/CareerScreen.jsx'
+import { DEFAULT_MAP_ID as COMBAT1_DEFAULT_MAP } from './combat/combatState.js'
+import { DEFAULT_MAP_ID as COMBAT2_DEFAULT_MAP } from './combat2/combat2State.js'
 import CombatScreen from './screens/CombatScreen.jsx'
 import Combat2Screen from './screens/Combat2Screen.jsx'
 import EpisodeSelectScreen from './screens/EpisodeSelectScreen.jsx'
@@ -35,6 +37,7 @@ import EducationScreen from './screens/EducationScreen.jsx'
 import EnvironmentScreen from './screens/EnvironmentScreen.jsx'
 import FinishingTouchesScreen from './screens/FinishingTouchesScreen.jsx'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
+import MapEditorScreen from './screens/MapEditorScreen.jsx'
 import PlaceholderScreen from './screens/PlaceholderScreen.jsx'
 import ReviewScreen from './screens/ReviewScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
@@ -52,7 +55,7 @@ const SCREENS = {
   finishingTouches: FinishingTouchesScreen,
   review: ReviewScreen,
 }
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2', 'mapEditor']
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
@@ -153,19 +156,21 @@ function Views() {
   const [displaySettings, setDisplaySettings] = useState(() => normalizeDisplaySettings(loadSettings()?.display))
   const [audioSettings, setAudioSettings] = useState(() => normalizeAudioSettings(loadSettings()?.audio))
   const [savedCharacters, setSavedCharacters] = useState(getSavedCharacters)
+  // UI state: Load Episode's combat type ('combat' | 'combat2') and the episode (map file id) picked there.
+  const [episode, setEpisode] = useState(() => ({ mode: 'combat', mapId: null, ...loadLocation().episode }))
   const openMenu = () => setView('menu')
   const handleConfirmed = (characters) => {
     setSavedCharacters(characters)
     openMenu()
   }
 
-  useEffect(() => saveLocation({ ...loadLocation(), view }), [view])
+  useEffect(() => saveLocation({ ...loadLocation(), view, episode }), [view, episode])
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
-  // The music plays across every view except the two combat prototypes, where it fades out and fades back in on leaving.
-  // The volume is set before starting so it fades in at the saved level.
-  const musicWanted = view !== 'combat' && view !== 'combat2'
+  // The music plays across every view except the two combat prototypes and the dev map editor, where it fades out and
+  // fades back in on leaving. The volume is set before starting so it fades in at the saved level.
+  const musicWanted = view !== 'combat' && view !== 'combat2' && view !== 'mapEditor'
   useEffect(() => music.setVolume(audioSettings.music / 100), [audioSettings.music])
   useEffect(() => {
     if (!musicWanted) return undefined
@@ -231,17 +236,35 @@ function Views() {
       )}
       {view === 'episodeSelect' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <EpisodeSelectScreen onOpen={openView} onBack={openMenu} />
+          <EpisodeSelectScreen
+            mode={episode.mode}
+            onModeChange={(mode) => setEpisode({ ...episode, mode })}
+            onOpen={(mapId) => {
+              setEpisode({ ...episode, mapId })
+              setView(episode.mode)
+            }}
+            onBack={openMenu}
+          />
         </ScaledStage>
       )}
       {view === 'combat' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <CombatScreen savedCharacters={savedCharacters} onExit={openMenu} />
+          <CombatScreen savedCharacters={savedCharacters} mapId={episode.mapId ?? COMBAT1_DEFAULT_MAP} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'combat2' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <Combat2Screen savedCharacters={savedCharacters} onBack={() => setView('episodeSelect')} onExit={openMenu} />
+          <Combat2Screen
+            savedCharacters={savedCharacters}
+            mapId={episode.mapId ?? COMBAT2_DEFAULT_MAP}
+            onBack={() => setView('episodeSelect')}
+            onExit={openMenu}
+          />
+        </ScaledStage>
+      )}
+      {view === 'mapEditor' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+          <MapEditorScreen onBack={openMenu} />
         </ScaledStage>
       )}
       {view === 'creator' && (

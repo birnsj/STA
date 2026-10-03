@@ -1,0 +1,328 @@
+/* Dev map editor (all classes me- prefixed) */
+.me-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #070c0e;
+  color: #cfe3e6;
+  font-size: 12px;
+}
+
+/* Wraps onto a second row when the window is too narrow, rather than squeezing labels onto two lines. */
+.me-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 10px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #23434a;
+  background: #0c1719;
+}
+
+.me-button,
+.me-select,
+.me-name,
+.me-number {
+  padding: 4px 8px;
+  border: 1px solid #3f6f78;
+  border-radius: 2px;
+  background: #13272b;
+  color: inherit;
+  font: inherit;
+}
+
+.me-button { cursor: pointer; }
+.me-toolbar .me-button,
+.me-toolbar .me-select,
+.me-size { flex-shrink: 0; white-space: nowrap; }
+.me-button:disabled { opacity: 0.45; cursor: default; }
+.me-button.is-primary { border-color: #ffb347; color: #ffb347; }
+.me-name { width: 170px; }
+.me-name.me-episode { width: 100%; box-sizing: border-box; margin-bottom: 3px; }
+.me-generate { width: 100%; margin-bottom: 4px; }
+.me-number { width: 46px; padding: 4px; }
+.me-select { max-width: 140px; }
+.me-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.me-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.me-palette,
+.me-side {
+  overflow-y: auto;
+  padding: 6px 8px;
+  background: #0a1315;
+}
+
+.me-palette {
+  width: 150px;
+  border-right: 1px solid #23434a;
+}
+
+.me-side {
+  width: 180px;
+  border-left: 1px solid #23434a;
+}
+
+.me-heading {
+  margin: 8px 0 4px;
+  color: #ffb347;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.me-heading:first-child { margin-top: 0; }
+
+.me-text {
+  margin: 0 0 4px;
+  color: #9fb9bd;
+  line-height: 1.35;
+}
+
+.me-text.is-warning,
+.me-warnings { color: #ff7a6b; }
+
+.me-warnings {
+  margin: 0 0 4px;
+  padding-left: 14px;
+  line-height: 1.35;
+}
+
+.me-status {
+  margin: 8px 0 0;
+  color: #7fd6e2;
+}
+
+.me-tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 3px;
+  padding: 2px 4px;
+  border: 1px solid #23434a;
+  border-radius: 2px;
+  background: #0f1d20;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.me-tool.is-selected {
+  border-color: #ffb347;
+  background: rgba(255, 179, 71, 0.14);
+}
+
+.me-group { margin-bottom: 3px; }
+
+.me-group-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 3px;
+  padding: 3px 4px;
+  border: 1px solid #2f5961;
+  border-radius: 2px;
+  background: #13282c;
+  color: #cfe3e6;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.me-group-tag:hover { border-color: #ffb347; }
+
+.me-group-arrow {
+  width: 10px;
+  color: #ffb347;
+}
+
+.me-group-label { flex: 1; }
+
+.me-group-count {
+  color: #6f8f94;
+  font-size: 10px;
+}
+
+/* Tile PNGs are 64x96; the thumbnail shows the drawn part at half size. */
+.me-thumb {
+  width: 32px;
+  height: 48px;
+  object-fit: cover;
+  object-position: bottom;
+  image-rendering: pixelated;
+}
+
+/* Episode card art is 16:9. */
+.me-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 4px;
+  border: 1px solid #23434a;
+  border-radius: 2px;
+  background: #0f1d20;
+  color: #6f8f94;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+.me-card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.me-card-select {
+  width: 100%;
+  max-width: none;
+  margin-bottom: 4px;
+}
+
+/* The Cover checkbox sits over the top of the tile's thumbnail, which is empty on flat tiles (a sibling of the tool
+   button, not inside it). */
+.me-tile { position: relative; }
+
+.me-cover {
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 2px 0 0;
+  border-radius: 2px;
+  background: rgba(6, 12, 14, 0.82);
+  color: #cfe3e6;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.me-cover input {
+  width: 10px;
+  height: 10px;
+  margin: 1px;
+  cursor: inherit;
+}
+
+.me-swatch {
+  width: 32px;
+  height: 16px;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.me-swatch.is-player { background: #3fb6e8; }
+.me-swatch.is-enemy { background: #e5483a; }
+.me-swatch.is-area { background: #9fb9bd; }
+.me-swatch.is-erase { background: repeating-linear-gradient(45deg, #444 0 3px, #222 3px 6px); }
+
+.me-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.me-board-area {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.me-board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}
+
+.me-cells polygon {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.me-hover {
+  fill: rgba(255, 255, 255, 0.12);
+  stroke: #ffffff;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.me-overlay { pointer-events: none; }
+
+.me-marker polygon { stroke: #ffffff; stroke-width: 1; opacity: 0.9; }
+.me-marker.is-player polygon { fill: #3fb6e8; }
+.me-marker.is-enemy polygon { fill: #e5483a; }
+.me-marker text {
+  fill: #ffffff;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.me-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.me-dialog {
+  width: 360px;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border: 1px solid #3f6f78;
+  border-radius: 3px;
+  background: #0c1719;
+}
+
+.me-load-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.me-load-list .me-tool {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 8px;
+}
+
+.me-load-name { color: #e6f2f4; }
+.me-load-file { color: #6f8f94; font-size: 10px; }
+
+.me-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.me-area-label {
+  fill: rgba(200, 225, 230, 0.6);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}

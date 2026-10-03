@@ -1,27 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { playFootstep, playWeaponSound } from '../../audio/uiSounds.js'
 import { tileKey } from '../../combat2/map2.js'
+import { diamond, isBlock, project, pts, TILE_H, TILE_W } from '../../maps/iso.js'
 import useCamera from '../combat/useCamera.js'
+import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
 import { STEP_MS } from './timing2.js'
 
-// Combat Type 2 board: its own isometric renderer (64x64 world tiles drawn as 64x32 diamonds) with tactical overlays.
+// Combat Type 2 board: the shared map tile PNGs (64x64 world tiles drawn as 64x32 diamonds) with tactical overlays on top.
 // Presentation only: reads the combat state and an overlay description, never changes either.
-const TILE_W = 64
-const TILE_H = 32
 // World area shown at zoom 1: a bit larger than the 1024x576 stage so the whole section fits between the HUD panels.
 const VIEW = { width: 1360, height: 765 }
-const HEIGHTS = { bulkhead: 46, machinery: 40, crate: 16, epsControl: 22 }
 const UNIT_HEAD = 58
-
-const project = ({ x, y }) => ({ x: ((x - y) * TILE_W) / 2, y: ((x + y) * TILE_H) / 2 })
-const pts = (list) => list.map(([x, y]) => `${x},${y}`).join(' ')
-
-function diamond(position, lift = 0, scale = 1) {
-  const c = project(position)
-  const w = (TILE_W / 2) * scale
-  const h = (TILE_H / 2) * scale
-  return [[c.x, c.y - h - lift], [c.x + w, c.y - lift], [c.x, c.y + h - lift], [c.x - w, c.y - lift]]
-}
 
 const MARGIN = 320
 const worldBounds = (map) => ({
@@ -33,31 +22,8 @@ const worldBounds = (map) => ({
 // Where the camera starts relative to the map centre, so the map sits in the space the HUD panels leave free.
 const START_OFFSET = { x: 260, y: 10 }
 
-// Front bulkheads (bottom row, right column) stay low and interior ones half height, so walls never hide the room.
-function blockHeight(map, { x, y }, type) {
-  if (type !== 'bulkhead') return HEIGHTS[type]
-  if (y === map.height - 1 || x === map.width - 1) return 10
-  if (y === 0 || x === 0) return HEIGHTS.bulkhead
-  return 24
-}
-
-function Block({ position, type, height }) {
-  const [top, right, bottom, left] = diamond(position)
-  const lift = ([x, y]) => [x, y - height]
-  return (
-    <g className={`c2-block c2-block-${type}`}>
-      <polygon className="c2-face-left" points={pts([left, bottom, lift(bottom), lift(left)])} />
-      <polygon className="c2-face-right" points={pts([bottom, right, lift(right), lift(bottom)])} />
-      <polygon className="c2-face-top" points={pts([top, right, bottom, left].map(lift))} />
-      {type === 'machinery' && <polygon className="c2-block-detail" points={pts(diamond(position, height, 0.5))} />}
-      {type === 'crate' && <polygon className="c2-block-detail" points={pts(diamond(position, height, 0.62))} />}
-      {type === 'epsControl' && <polygon className="c2-block-eps" points={pts(diamond(position, height, 0.55))} />}
-    </g>
-  )
-}
-
 // Walks the last moved unit along its path one tile at a time (combat state has already moved it).
-function useMoveAnimation(events) {
+function useMoveAnimation(events, speed) {
   const lastMove = [...events].reverse().find((event) => event.type === 'move') ?? null
   const key = lastMove?.id ?? null
   const [mountedKey] = useState(key)
@@ -67,9 +33,9 @@ function useMoveAnimation(events) {
   useEffect(() => {
     if (!animating) return undefined
     playFootstep(step.index)
-    const timer = setTimeout(() => setStep((current) => ({ ...current, index: current.index + 1 })), STEP_MS)
+    const timer = setTimeout(() => setStep((current) => ({ ...current, index: current.index + 1 })), STEP_MS / speed)
     return () => clearTimeout(timer)
-  }, [animating, step.index])
+  }, [animating, step.index, speed])
   return animating ? { id: lastMove.actorId, position: lastMove.path[step.index] } : null
 }
 
@@ -148,13 +114,13 @@ const ROLL_TEXT = (event) => {
   return event.effect.defeated ? 'HIT: DEFEATED' : 'HIT'
 }
 
-function walkDelay(events, event) {
+function walkDelay(events, event, speed) {
   const before = events.find((other) => other.id === event.id - 1)
-  return before?.type === 'move' && before.actorId === event.actorId ? (before.path.length - 1) * STEP_MS : 0
+  return before?.type === 'move' && before.actorId === event.actorId ? ((before.path.length - 1) * STEP_MS) / speed : 0
 }
 
 // The roll results of the latest step (hit / miss labels and a beam), delayed until the preceding walk finishes.
-function RollEffects({ state, positionOf }) {
+function RollEffects({ state, positionOf, speed }) {
   const latestId = state.events.at(-1)?.id ?? 0
   const [mountedId] = useState(latestId)
   const recent = state.events.filter((event) => event.id > mountedId && event.id > latestId - 3)
@@ -164,11 +130,11 @@ function RollEffects({ state, positionOf }) {
     const fresh = events.filter((event) => event.id > sounded.current && event.type === 'roll' && event.actionId !== 'interact')
     sounded.current = Math.max(sounded.current, events.at(-1)?.id ?? 0)
     const timers = fresh.map((event) =>
-      setTimeout(() => playWeaponSound(event.actionId === 'phaser' || event.actionId === 'disruptor' ? 'phaser' : 'punch'), walkDelay(events, event)),
+      setTimeout(() => playWeaponSound(event.actionId === 'phaser' || event.actionId === 'disruptor' ? 'phaser' : 'punch', speed), walkDelay(events, event, speed)),
     )
     return () => timers.forEach(clearTimeout)
-  }, [events])
-  const delayFor = (event) => walkDelay(state.events, event)
+  }, [events, speed])
+  const delayFor = (event) => walkDelay(state.events, event, speed)
 
   return recent.map((event) => {
     if (event.type !== 'roll' && event.type !== 'info') return null
@@ -204,9 +170,10 @@ function PathLine({ path, className }) {
   return <polyline className={className} points={pts(path.map((position) => [project(position).x, project(position).y]))} />
 }
 
-export default function Board2({ state, overlay, onTileClick, onTileHover, onUnitClick, onUnitHover, onRightClick }) {
+// speed: Auto Combat speed (1, 2 or 4); it only shortens walks and effects.
+export default function Board2({ state, overlay, speed = 1, onTileClick, onTileHover, onUnitClick, onUnitHover, onRightClick }) {
   const { map } = state
-  const walking = useMoveAnimation(state.events)
+  const walking = useMoveAnimation(state.events, speed)
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: 'board', point: { x: centre.x + START_OFFSET.x, y: centre.y + START_OFFSET.y } }, false, onRightClick)
   const positionOf = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
@@ -215,7 +182,7 @@ export default function Board2({ state, overlay, onTileClick, onTileHover, onUni
   const blocks = []
   map.tiles.forEach((row, y) =>
     row.forEach((type, x) => {
-      if (HEIGHTS[type]) blocks.push({ position: { x, y }, type })
+      if (isBlock(type)) blocks.push({ position: { x, y }, type })
       else floors.push({ position: { x, y }, type })
     }),
   )
@@ -223,7 +190,7 @@ export default function Board2({ state, overlay, onTileClick, onTileHover, onUni
   const depthItems = [
     ...blocks.map((block) => ({
       depth: block.position.x + block.position.y,
-      render: () => <Block key={`b${tileKey(block.position)}`} position={block.position} type={block.type} height={blockHeight(map, block.position, block.type)} />,
+      render: () => <BlockTile key={`b${tileKey(block.position)}`} map={map} position={block.position} />,
     })),
     ...units.map((unit) => ({
       depth: positionOf(unit).x + positionOf(unit).y + (unit.status === 'active' ? 0.5 : 0.1),
@@ -242,9 +209,8 @@ export default function Board2({ state, overlay, onTileClick, onTileHover, onUni
     })),
   ].sort((a, b) => a.depth - b.depth)
 
-  const tileClass = (key, type, position) => {
-    const classes = ['c2-tile', `is-${type}`, (position.x + position.y) % 2 ? 'is-alt' : '']
-    if (type === 'grating' && state.hazard.active) classes.push('is-hazard-live')
+  const tileClass = (key) => {
+    const classes = ['c2-tile']
     for (const [name, keys] of Object.entries(overlay.tileSets)) if (keys?.has(key)) classes.push(`is-${name}`)
     if (overlay.hoverKey === key) classes.push('is-hover')
     return classes.join(' ')
@@ -254,14 +220,21 @@ export default function Board2({ state, overlay, onTileClick, onTileHover, onUni
   const push = overlay.pushArrow
 
   return (
-    <svg className="c2-board" viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`} {...dragHandlers} onMouseLeave={() => onTileHover(null)}>
+    <svg
+      className="c2-board"
+      viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
+      style={{ '--c2-speed': speed }}
+      {...dragHandlers}
+      onMouseLeave={() => onTileHover(null)}
+    >
+      <FloorTiles map={map} hazardLive={state.hazard.active} />
       <g className="c2-floor">
-        {floors.map(({ position, type }) => {
+        {floors.map(({ position }) => {
           const key = tileKey(position)
           return (
             <polygon
               key={key}
-              className={tileClass(key, type, position)}
+              className={tileClass(key)}
               points={pts(diamond(position))}
               data-ui-press={overlay.tileSets.reach?.has(key) ? '' : undefined}
               onClick={() => onTileClick(position)}
@@ -306,7 +279,7 @@ export default function Board2({ state, overlay, onTileClick, onTileHover, onUni
           <line x1={project(push.from).x} y1={project(push.from).y} x2={project(push.to).x} y2={project(push.to).y} />
         </g>
       )}
-      <RollEffects state={state} positionOf={positionOf} />
+      <RollEffects state={state} positionOf={positionOf} speed={speed} />
     </svg>
   )
 }

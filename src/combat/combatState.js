@@ -8,7 +8,7 @@ import enemyData from '../data/adaptation/combat/enemies.json'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { buildTask, evaluateTask, rerollDie, rollDice } from '../rules/taskResolver.js'
-import { parseMap, tileKey, toPosition } from './battleMap.js'
+import { tileKey, toBattleMap } from './battleMap.js'
 import { applyCoverToDifficulty, canTakeCover, rollCoverDefence } from './coverSystem.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { findPath, getMovementTiles, getReachableTiles } from './movementSystem.js'
@@ -19,6 +19,8 @@ export const MAX_HITS = 3
 
 export const getEncounter = (encounterId) => encounterData.encounters.find((encounter) => encounter.id === encounterId) ?? null
 export const DEFAULT_ENCOUNTER_ID = encounterData.encounters[0].id
+export const DEFAULT_MAP_ID = encounterData.encounters[0].defaultMapId
+export const ENEMY_SPAWNS_NEEDED = encounterData.encounters[0].roster.length
 
 // done: the character pressed End Turn (they may also be finished by having used both actions).
 // tilesMoved: movement spent this turn. Designer decision (Oct 2026): the first Move spends the minor action, and the
@@ -49,12 +51,13 @@ function createCombatant(character, { side, controller, position }) {
   }
 }
 
-function createEnemyCharacters(encounter) {
-  return encounter.enemies.map(({ enemyId, position }) => {
+// The roster fills the map's enemy spawns in order; a map with fewer spawns fields fewer enemies.
+function createEnemyCharacters(encounter, mapFile) {
+  return encounter.roster.slice(0, mapFile.markers.enemySpawns.length).map((enemyId, index) => {
     const template = enemyData.enemies.find((enemy) => enemy.id === enemyId)
     const { character, error } = normalizeCharacterRecord(template.record, { id: enemyId })
     if (error) throw new Error(`Enemy ${enemyId}: ${error}`)
-    return { character, position: toPosition(position) }
+    return { character, position: mapFile.markers.enemySpawns[index] }
   })
 }
 
@@ -74,17 +77,19 @@ const turnHeader = (combatant) => [
   `Initiative: Daring ${combatant.character.attributes.daring}, Control ${combatant.character.attributes.control}`,
 ]
 
-// players: RuntimeCharacters controlled by the player, in party order. seed: a whole number; it fixes initiative ties and every roll.
-export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, players, seed, initiativeOptions }) {
+// players: RuntimeCharacters controlled by the player, in party order; each stands on the map's player start of the same
+// index (members beyond the map's player starts are left out). map: a parsed map file (src/maps/mapFormat.js).
+// seed: a whole number; it fixes initiative ties and every roll.
+export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile, players, seed, initiativeOptions }) {
   const encounter = getEncounter(encounterId)
   const combatSeed = seed >>> 0
-  const playerCombatants = players.map((character, index) =>
-    createCombatant(character, { side: 'player', controller: 'player', position: toPosition(encounter.playerSpawns[index]) }),
+  const playerCombatants = players.slice(0, mapFile.markers.playerStarts.length).map((character, index) =>
+    createCombatant(character, { side: 'player', controller: 'player', position: mapFile.markers.playerStarts[index] }),
   )
-  const enemyCombatants = createEnemyCharacters(encounter).map(({ character, position }) =>
+  const enemyCombatants = createEnemyCharacters(encounter, mapFile).map(({ character, position }) =>
     createCombatant(character, { side: 'enemy', controller: 'ai', position }),
   )
-  const map = parseMap(encounter.map.rows)
+  const map = toBattleMap(mapFile)
   const nearestOpponent = (combatant) =>
     [...playerCombatants, ...enemyCombatants]
       .filter((other) => other.side !== combatant.side)
@@ -98,6 +103,7 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, players, seed
   const first = all.find((combatant) => combatant.id === order[0])
   return {
     encounterId,
+    mapId: mapFile.id,
     seed: combatSeed,
     rolls: 0,
     map,

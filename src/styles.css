@@ -306,6 +306,29 @@ dd {
   font-size: 18px;
 }
 
+.main-menu-dev {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7fd6e2;
+  background: rgba(4, 10, 24, 0.75);
+  border: 1px solid #1f4f8c;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.main-menu-dev:hover,
+.main-menu-dev:focus-visible {
+  outline: none;
+  color: #d6e8ff;
+  border-color: #6fb2ff;
+}
+
 .main-menu-row.is-disabled .main-menu-accent {
   background: #4a4f5a;
 }
@@ -4119,13 +4142,10 @@ dd {
   touch-action: none;
 }
 
+/* Transparent (not none) so the polygon still takes clicks over the tile PNG beneath it. */
 .iso-tile {
-  fill: #1b2333;
+  fill: transparent;
   stroke: none;
-}
-
-.iso-tile.is-alt {
-  fill: #1e2739;
 }
 
 .iso-tile.is-reachable {
@@ -4167,34 +4187,6 @@ dd {
   to {
     stroke-dashoffset: -12;
   }
-}
-
-.iso-block .iso-face-left {
-  fill: #2a3346;
-}
-
-.iso-block .iso-face-right {
-  fill: #20283a;
-}
-
-.iso-block .iso-face-top {
-  fill: #3a4660;
-}
-
-.iso-block-wall .iso-face-left {
-  fill: #252d3f;
-}
-
-.iso-block-wall .iso-face-right {
-  fill: #1a2131;
-}
-
-.iso-block-wall .iso-face-top {
-  fill: #33405a;
-}
-
-.iso-cover-light {
-  fill: rgba(80, 190, 255, 0.55);
 }
 
 .iso-unit {
@@ -5543,10 +5535,27 @@ dd {
   color: var(--text-muted);
 }
 
+.combat-setup-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: -4px 0 8px;
+  font-size: 12px;
+}
+
+.combat-setup-location {
+  color: var(--text);
+}
+
+.combat-setup-map .combat-setup-text {
+  margin: 0;
+}
+
 .combat-setup-body {
   display: flex;
   gap: 14px;
-  min-height: 250px;
+  min-height: 226px;
 }
 
 .combat-setup-list {
@@ -5728,11 +5737,65 @@ dd {
   color: var(--text-muted);
 }
 
-.episode-select-options {
+.episode-select-modes {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.episode-select-modes .episode-select-option {
+  padding: 10px 14px;
+  opacity: 0.6;
+}
+
+.episode-select-modes .episode-select-option.is-selected {
+  border-color: var(--yellow);
+  opacity: 1;
+}
+
+.episode-select-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 360px;
+  margin: 0 0 16px;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.episode-select-list .episode-select-option {
+  width: 100%;
+  height: 100%;
+  padding: 10px 14px;
+}
+
+.episode-select-list .episode-select-card {
+  gap: 4px;
+  padding: 6px 6px 8px;
+}
+
+.episode-select-card .episode-select-label {
+  font-size: 14px;
+}
+
+/* Episode card art is 16:9; episodes without a card keep an empty frame so the grid stays even. */
+.episode-select-art {
+  display: block;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 2px;
+  border: 1px solid var(--panel-border);
+  border-radius: 2px;
+  background: linear-gradient(160deg, #10203f, #050a16);
+  overflow: hidden;
+}
+
+.episode-select-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .episode-select-option {

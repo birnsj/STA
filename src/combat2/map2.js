@@ -1,36 +1,17 @@
-// Combat Type 2 grid: its own tile types, movement, distance and line of sight (independent of Combat Type 1's battleMap).
+// Combat Type 2 grid: movement, distance and line of sight over a loaded map file (independent of Combat Type 1's battleMap).
+// Tile properties (solid, blocks sight, cover, role) come from the shared tile catalogue.
 // Positions are { x, y } (x = column, y = row). Diagonal steps cost 1 and distance counts diagonals as 1 (implementer default).
-const TILE_TYPES = {
-  '#': 'bulkhead',
-  M: 'machinery',
-  c: 'crate',
-  E: 'epsControl',
-  h: 'grating',
-  D: 'doorway',
-  '.': 'floor',
-}
-
-const SOLID = new Set(['bulkhead', 'machinery', 'crate', 'epsControl'])
-const BLOCKS_SIGHT = new Set(['bulkhead', 'machinery'])
-const GIVES_COVER = new Set(['machinery', 'crate', 'epsControl'])
-
-export function parseMap(rows) {
-  return {
-    width: rows[0].length,
-    height: rows.length,
-    tiles: rows.map((row) => [...row].map((symbol) => TILE_TYPES[symbol] ?? 'floor')),
-  }
-}
+import { getTile, WALL_TILE } from '../maps/mapFormat.js'
 
 export const tileKey = ({ x, y }) => `${x},${y}`
 export const samePosition = (a, b) => a.x === b.x && a.y === b.y
 export const toPosition = ([x, y]) => ({ x, y })
 
 export const isInside = (map, { x, y }) => x >= 0 && y >= 0 && x < map.width && y < map.height
-export const tileAt = (map, position) => (isInside(map, position) ? map.tiles[position.y][position.x] : 'bulkhead')
-export const isSolid = (map, position) => SOLID.has(tileAt(map, position))
-export const blocksSight = (map, position) => BLOCKS_SIGHT.has(tileAt(map, position))
-export const givesCover = (map, position) => GIVES_COVER.has(tileAt(map, position))
+export const tileAt = (map, position) => (isInside(map, position) ? map.tiles[position.y][position.x] : WALL_TILE)
+export const isSolid = (map, position) => getTile(tileAt(map, position)).solid
+export const blocksSight = (map, position) => getTile(tileAt(map, position)).blocksSight
+export const givesCover = (map, position) => getTile(tileAt(map, position)).cover
 
 export const distance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
 export const isAdjacent = (a, b) => distance(a, b) === 1
@@ -41,9 +22,9 @@ export const OFFSETS = [
 ]
 export const neighbours = (position) => OFFSETS.map(([dx, dy]) => ({ x: position.x + dx, y: position.y + dy }))
 
-export function tilesOfType(map, type) {
+export function tilesWithRole(map, role) {
   const found = []
-  map.tiles.forEach((row, y) => row.forEach((tile, x) => tile === type && found.push({ x, y })))
+  map.tiles.forEach((row, y) => row.forEach((id, x) => getTile(id).role === role && found.push({ x, y })))
   return found
 }
 

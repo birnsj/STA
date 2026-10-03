@@ -1,0 +1,21 @@
+/* Shared isometric tile images (map editor and combat boards). Prefixed tilemap- so Combat Type 1's iso-* styles never apply. */
+.tilemap-tile {
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.tilemap-tile.is-live {
+  animation: tilemap-blink 0.6s steps(2) infinite;
+}
+
+.tilemap-tile.is-blink {
+  animation: tilemap-blink 1.6s steps(2) infinite;
+}
+
+@keyframes tilemap-blink {
+  50% { opacity: 0.35; }
+}
+
+.tilemap-block.is-ghost {
+  opacity: 0.35;
+}

@@ -1,0 +1,20 @@
+{
+  "notes": "Map editor size presets. Prototype placeholder numbers, not from the source books; edit freely. Each map type has its own width x height for every size, because a large cave and a large starship deck are not the same size. Keep each size's dimensions different between types, so switching the map type visibly resizes the map. Maps are limited to 4-48 tiles a side.",
+  "sizes": [
+    { "id": "small", "label": "Small" },
+    { "id": "medium", "label": "Medium" },
+    { "id": "large", "label": "Large" },
+    { "id": "huge", "label": "Huge" }
+  ],
+  "byType": {
+    "starshipDeck": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28] },
+    "spaceStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30] },
+    "colony": { "small": [18, 14], "medium": [26, 18], "large": [34, 24], "huge": [48, 34] },
+    "outpost": { "small": [14, 12], "medium": [20, 16], "large": [28, 22], "huge": [38, 30] },
+    "surfaceSite": { "small": [16, 12], "medium": [24, 18], "large": [32, 24], "huge": [48, 36] },
+    "cave": { "small": [16, 14], "medium": [22, 20], "large": [30, 28], "huge": [44, 44] },
+    "wilderness": { "small": [20, 14], "medium": [28, 20], "large": [36, 26], "huge": [48, 40] },
+    "city": { "small": [20, 16], "medium": [30, 22], "large": [40, 28], "huge": [48, 42] },
+    "derelict": { "small": [16, 10], "medium": [22, 14], "large": [30, 20], "huge": [42, 28] }
+  }
+}

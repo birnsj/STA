@@ -70,6 +70,10 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
           })}
         </nav>
       </CoverArt>
+      {/* Dev tools sit in the corner, outside the painted menu list (which has no room for a ninth row). */}
+      <button type="button" className="main-menu-dev" inert={Boolean(popup)} onClick={() => onOpen('mapEditor')}>
+        Dev Edit
+      </button>
       {popup === 'newCharacter' && (
         <NewCharacterNotice savedCount={savedCharacters.length} onContinue={() => onOpen('creator')} onCancel={closePopup} />
       )}

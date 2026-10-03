@@ -19,33 +19,37 @@ import {
   TUNING,
 } from './actions2.js'
 import { planAllEnemies, planEnemy } from './intents2.js'
-import { parseMap, pathFrom, tileKey, tilesOfType, toPosition } from './map2.js'
+import { pathFrom, tileKey, tilesWithRole } from './map2.js'
 
 const MAX_EVENTS = 40
 const { encounter } = encounterData
+export const DEFAULT_MAP_ID = encounter.defaultMapId
+export const ENEMY_SPAWNS_NEEDED = encounter.roster.length
 
 function makeUnit(id, side, character, position, extra = {}) {
   return { id, side, character, position, hits: 0, status: 'active', ...extra }
 }
 
-export function createCombat2({ player, seed }) {
-  const map = parseMap(encounter.map.rows)
-  const units = { player: makeUnit('player', 'player', player, toPosition(encounter.playerSpawn)) }
+// map: a parsed map file (src/maps/mapFormat.js). The player stands on its first player start and the roster fills its
+// enemy spawns in order.
+export function createCombat2({ player, seed, map: mapFile }) {
+  const map = { width: mapFile.width, height: mapFile.height, tiles: mapFile.tiles }
+  const units = { player: makeUnit('player', 'player', player, mapFile.markers.playerStarts[0] ?? { x: 1, y: 1 }) }
   const order = ['player']
-  encounter.enemies.forEach(({ enemyId, position }, index) => {
+  encounter.roster.slice(0, mapFile.markers.enemySpawns.length).forEach((enemyId, index) => {
     const entry = enemyData.enemies.find((enemy) => enemy.id === enemyId)
     const { character } = normalizeCharacterRecord(entry.record, { id: `${enemyId}-${index}` })
     const id = `${enemyId}-${index}`
-    units[id] = makeUnit(id, 'enemy', character, toPosition(position), { role: entry.role, weaponName: entry.weaponName ?? null, weaponRange: entry.weaponRange ?? 1 })
+    units[id] = makeUnit(id, 'enemy', character, mapFile.markers.enemySpawns[index], { role: entry.role, weaponName: entry.weaponName ?? null, weaponRange: entry.weaponRange ?? 1 })
     order.push(id)
   })
   const state = {
-    encounterName: encounter.name,
+    encounterName: mapFile.name,
     objectives: encounter.objectives,
-    areas: encounter.areas.map((area) => ({ name: area.name, position: toPosition(area.position) })),
+    areas: mapFile.areas,
     map,
-    epsControl: tilesOfType(map, 'epsControl')[0],
-    hazard: { tiles: tilesOfType(map, 'grating'), active: false },
+    hazardControls: tilesWithRole(map, 'hazardControl'),
+    hazard: { tiles: tilesWithRole(map, 'hazard'), active: false },
     units,
     order,
     playerId: 'player',

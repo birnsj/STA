@@ -61,7 +61,7 @@ export function buildOverlay(state, ui) {
   if (ui.actionId === 'melee' || ui.actionId === 'push') overlay.tileSets.adjacent = keySet(neighbours(player.position).filter((tile) => !isSolid(state.map, tile)))
 
   if (ui.actionId === 'interact') {
-    overlay.tileSets.interact = keySet(neighbours(state.epsControl).filter((tile) => !isSolid(state.map, tile)))
+    overlay.tileSets.interact = keySet(state.hazardControls.flatMap(neighbours).filter((tile) => !isSolid(state.map, tile)))
     overlay.tileSets.hazardpreview = keySet(state.hazard.tiles)
   }
 

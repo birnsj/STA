@@ -1,71 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
+import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
+import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
 import { DoneIcon } from './ActionPoints.jsx'
 import HitPips from './HitPips.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { playFootstep, playWeaponSound } from '../../audio/uiSounds.js'
 
-// Isometric projection of the logical grid, in world pixels with tile (0,0)'s top corner at the origin.
+// Isometric projection of the logical grid, shared with every map view (src/maps/iso.js), drawn with the shared tile PNGs.
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
-const TILE_W = 56
-const TILE_H = 28
 const VIEW = { width: 1024, height: 576 }
 // Extra world space around the map so its edges can be scrolled out from under the HUD panels.
 const HUD_MARGIN = { x: 200, top: 150, bottom: 110 }
 
-const project = (x, y) => ({ x: ((x - y) * TILE_W) / 2, y: ((x + y) * TILE_H) / 2 })
-
 const worldBounds = (map) => ({
   minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
   maxX: (map.width * TILE_W) / 2 + HUD_MARGIN.x,
-  minY: -HUD_MARGIN.top,
-  maxY: ((map.width + map.height) * TILE_H) / 2 + HUD_MARGIN.bottom,
+  minY: -TILE_H / 2 - HUD_MARGIN.top,
+  maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
 })
-const tileCentre = ({ x, y }) => {
-  const top = project(x, y)
-  return { x: top.x, y: top.y + TILE_H / 2 }
-}
-
-function diamond(x, y, lift = 0) {
-  const p = project(x, y)
-  return [
-    [p.x, p.y - lift],
-    [p.x + TILE_W / 2, p.y + TILE_H / 2 - lift],
-    [p.x, p.y + TILE_H - lift],
-    [p.x - TILE_W / 2, p.y + TILE_H / 2 - lift],
-  ]
-}
-
-const points = (list) => list.map(([x, y]) => `${x},${y}`).join(' ')
-
-function shrink(corners, factor) {
-  const cx = corners.reduce((sum, [x]) => sum + x, 0) / corners.length
-  const cy = corners.reduce((sum, [, y]) => sum + y, 0) / corners.length
-  return corners.map(([x, y]) => [cx + (x - cx) * factor, cy + (y - cy) * factor])
-}
-
-// Front hull walls stay low and room walls fairly low so figures behind them remain visible.
-function wallHeight(map, x, y) {
-  const isFrontEdge = y === map.height - 1 || x === map.width - 1
-  const isBackEdge = y === 0 || x === 0
-  if (isFrontEdge) return 6
-  return isBackEdge ? 46 : 24
-}
-
-function Block({ x, y, height, kind }) {
-  const [top, right, bottom, left] = diamond(x, y)
-  const lift = (point) => [point[0], point[1] - height]
-  return (
-    <g className={`iso-block iso-block-${kind}`}>
-      <polygon className="iso-face-left" points={points([left, bottom, lift(bottom), lift(left)])} />
-      <polygon className="iso-face-right" points={points([bottom, right, lift(right), lift(bottom)])} />
-      <polygon className="iso-face-top" points={points([top, right, bottom, left].map(lift))} />
-      {kind === 'cover' && <polygon className="iso-cover-light" points={points(shrink(diamond(x, y, height), 0.45))} />}
-    </g>
-  )
-}
+const tileCentre = (position) => project(position)
 
 // Presentation only: walks the last moved unit along its path one tile at a time. Combat state has already moved it.
 function useMoveAnimation(lastMove, msPerTile) {
@@ -271,14 +227,13 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
   const blocks = []
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
-      const type = map.tiles[y][x]
-      if (type === 'floor') tiles.push({ x, y })
-      else blocks.push({ x, y, type })
+      if (isBlock(map.tiles[y][x])) blocks.push({ x, y })
+      else tiles.push({ x, y })
     }
   }
   const units = Object.values(state.combatants)
   const depthItems = [
-    ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <Block key={`b${block.x},${block.y}`} x={block.x} y={block.y} kind={block.type} height={block.type === 'wall' ? wallHeight(map, block.x, block.y) : 18} /> })),
+    ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <BlockTile key={`b${block.x},${block.y}`} map={map} position={block} /> })),
     ...units.map((unit) => ({
       depth: shownPosition(unit).x + shownPosition(unit).y + (unit.status === 'active' ? 0.5 : 0.1),
       key: `u${unit.id}`,
@@ -312,6 +267,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
       {...dragHandlers}
       onMouseLeave={() => onTileHover(null)}
     >
+      <FloorTiles map={map} />
       <g className="iso-floor">
         {tiles.map(({ x, y }) => {
           const key = tileKey({ x, y })
@@ -321,8 +277,8 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           return (
             <polygon
               key={key}
-              className={`iso-tile${(x + y) % 2 ? ' is-alt' : ''}${reachable ? ' is-reachable' : ''}${onPath ? ' is-path' : ''}${isDestination ? ' is-destination' : ''}`}
-              points={points(diamond(x, y))}
+              className={`iso-tile${reachable ? ' is-reachable' : ''}${onPath ? ' is-path' : ''}${isDestination ? ' is-destination' : ''}`}
+              points={points(diamond({ x, y }))}
               data-ui-press={reachable ? '' : undefined}
               onPointerDown={(event) => {
                 pointerTypeRef.current = event.pointerType

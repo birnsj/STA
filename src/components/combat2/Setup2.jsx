@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { normalizeCharacterRecord } from '../../character/runtimeCharacter.js'
 import { ACTION_IDS, ACTION_SPECS, buildActionTask, getPhaser, TUNING } from '../../combat2/actions2.js'
+import { ENEMY_SPAWNS_NEEDED } from '../../combat2/combat2State.js'
+import { episodeTitle, validateMap } from '../../maps/mapFormat.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
+import useEpisodeMap from '../maps/useEpisodeMap.js'
 
 // Combat Type 2 picks one existing character (saved, or a JSON export file). The first one carrying a phaser is preselected.
 function buildRoster(savedCharacters, loaded) {
@@ -12,7 +15,10 @@ function buildRoster(savedCharacters, loaded) {
   return [...saved, ...loaded.map((character) => ({ id: character.id, label: `${character.name} (file)`, character, error: null }))]
 }
 
-export default function Setup2({ savedCharacters, initialCharacter, onStart, onBack }) {
+export default function Setup2({ savedCharacters, initialCharacter, mapId, onStart, onBack }) {
+  const { map, problem: mapProblem } = useEpisodeMap(mapId)
+  const mapWarnings = map ? validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat Type 2' }) : []
+  const mapPlayable = Boolean(map?.markers.playerStarts.length)
   const [loaded, setLoaded] = useState(() => (initialCharacter?.id.startsWith('file:') ? [initialCharacter] : []))
   const roster = buildRoster(savedCharacters, loaded)
   const [chosenId, setChosenId] = useState(
@@ -41,8 +47,22 @@ export default function Setup2({ savedCharacters, initialCharacter, onStart, onB
       <div className="c2-panel c2-setup-panel">
         <p className="c2-setup-title">Combat Type 2: Tactical Positioning Test</p>
         <p className="c2-muted">
-          One character against two Klingons in an engineering section. {TUNING.actionPoints} AP per turn; every action costs 1. Uses the values saved in the character's JSON.
+          One character against two Klingons. {TUNING.actionPoints} AP per turn; every action costs 1. Uses the values saved in the character's JSON.
         </p>
+        <div className="c2-setup-map">
+          {map && (
+            <span>
+              Episode: {episodeTitle(map)} &middot; Location: {map.name}
+            </span>
+          )}
+          {mapProblem && <span className="c2-warning">{mapProblem}</span>}
+          {!mapProblem && !map && <span className="c2-muted">Loading...</span>}
+          {mapWarnings.map((warning) => (
+            <span key={warning} className="c2-warning">
+              {warning}
+            </span>
+          ))}
+        </div>
         <div className="c2-setup-body">
           <ul className="c2-setup-list">
             {roster.map((entry) => (
@@ -106,7 +126,7 @@ export default function Setup2({ savedCharacters, initialCharacter, onStart, onB
           <button type="button" className="c2-button" onClick={onBack}>
             Back
           </button>
-          <button type="button" className="c2-button is-primary" disabled={!chosen} onClick={() => onStart(chosen)}>
+          <button type="button" className="c2-button is-primary" disabled={!chosen || !mapPlayable} onClick={() => onStart(chosen, map)}>
             Start Combat
           </button>
         </div>

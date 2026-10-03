@@ -182,7 +182,8 @@ export default function ActionDetail2({ state, actionId, targetId, hoverTile, on
   return (
     <div className="c2-panel c2-detail">
       <p className="c2-panel-title">{actionId ? ACTION_SPECS[actionId].name : 'Action'}</p>
-      {!playerTurn && <p className="c2-muted">The Klingons are acting.</p>}
+      {state.phase === 'enemy' && <p className="c2-muted">The Klingons are acting.</p>}
+      {state.outcome && <p className="c2-muted">Combat over.</p>}
       {playerTurn && !actionId && <p className="c2-muted">Choose an action below. Each costs 1 of your {TUNING.actionPoints} AP. Point at a Klingon to see its threat.</p>}
       {playerTurn && actionId === 'move' && <MoveDetail state={state} hoverTile={hoverTile} />}
       {playerTurn && ['phaser', 'melee', 'push'].includes(actionId) && <TargetedDetail state={state} actionId={actionId} targetId={targetId} />}
