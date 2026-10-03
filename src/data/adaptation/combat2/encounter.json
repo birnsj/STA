@@ -1,0 +1,84 @@
+{
+  "notes": [
+    "Combat Type 2 test encounter: a separate experimental prototype. Nothing here is read by Combat Type 1.",
+    "All tuning numbers are VIDEOGAME ADAPTATIONS (designer spec, Oct 2026): 2 AP per turn, Move 4 tiles, Phaser range 6, 3 Hits = defeated.",
+    "Map legend: '#' bulkhead (blocks movement and line of sight), 'M' machinery (blocks movement and line of sight, gives cover), 'c' crates / low consoles (block movement, give cover, do not block line of sight), 'E' EPS conduit control (the interactable; blocks movement, gives cover), 'h' EPS grating (floor; hazardous while the conduit is discharging), 'D' doorway (floor), '.' deck plating.",
+    "Positions are [x, y] with x = column and y = row.",
+    "Implementer defaults awaiting designer review: diagonal steps cost 1; distance counts diagonals as 1; cover only applies to ranged attacks and only when a cover object is next to the target on the attacker's side; Push direction is straight away from the pusher; voluntary movement never enters an active hazard; a discharge hits anyone already standing on the grating; the hazard lasts until the start of the player's next turn; enemies make at most one attack per turn.",
+    "focusCandidates are display-only (Book: a Focus grants an Advantage, Captain's Log p.268; no mechanical effect in this prototype yet)."
+  ],
+  "tuning": {
+    "actionPoints": 2,
+    "moveTiles": 4,
+    "phaserRange": 6,
+    "maxHits": 3
+  },
+  "phaserItemIds": ["phaserType1", "phaserType2", "phaserRifle"],
+  "actions": {
+    "move": { "name": "Move", "sourceType": "adaptation" },
+    "phaser": {
+      "name": "Phaser",
+      "attribute": "control",
+      "discipline": "security",
+      "focusCandidates": ["Hand Phasers"],
+      "sourceType": "book",
+      "note": "Book (STA 2e Quickstart p.25): ranged attack is Control + Security, Difficulty 2 before cover. Prototype: Difficulty 1 exposed, 2 in cover."
+    },
+    "melee": {
+      "name": "Melee",
+      "attribute": "daring",
+      "discipline": "security",
+      "focusCandidates": ["Hand-to-Hand Combat"],
+      "sourceType": "book",
+      "note": "Book (Captain's Log p.204 example; Quickstart p.25): Daring + Security, Difficulty 1."
+    },
+    "push": {
+      "name": "Push",
+      "attribute": "fitness",
+      "discipline": "security",
+      "focusCandidates": ["Hand-to-Hand Combat"],
+      "sourceType": "adaptation",
+      "note": "Videogame adaptation: pushes an adjacent target 1 tile on success."
+    },
+    "interact": {
+      "name": "Interact",
+      "attribute": "control",
+      "discipline": "engineering",
+      "focusCandidates": ["Electro-Plasma Systems", "Power Management"],
+      "sourceType": "adaptation",
+      "note": "Videogame adaptation: overloads the EPS conduit so the grating discharges."
+    }
+  },
+  "encounter": {
+    "id": "engineeringMaintenance",
+    "name": "Deck 12: EPS Maintenance Section",
+    "objectives": ["Defeat the Klingon intruders", "Optional: overload the EPS conduit"],
+    "map": {
+      "rows": [
+        "####################",
+        "#....#.............#",
+        "#....#...c.....cc..#",
+        "#....D.............#",
+        "#....#....MMM...c..#",
+        "##D###....MMM......#",
+        "#.........##########",
+        "#..c..hhh.#........#",
+        "#..E..hhh.D...c....#",
+        "#..c..hhh.#........#",
+        "#.........#........#",
+        "####################"
+      ]
+    },
+    "areas": [
+      { "name": "Maintenance Bay", "position": [2, 1] },
+      { "name": "Plasma Relay Room", "position": [13, 1] },
+      { "name": "EPS Junction", "position": [4, 10] },
+      { "name": "Parts Storage", "position": [15, 10] }
+    ],
+    "playerSpawn": [2, 2],
+    "enemies": [
+      { "enemyId": "klingonWarrior", "position": [16, 9] },
+      { "enemyId": "klingonGuard", "position": [17, 3] }
+    ]
+  }
+}

@@ -28,6 +28,8 @@ import { normalizeDisplaySettings } from './settings/displaySettings.js'
 import CareerHistoryScreen from './screens/CareerHistoryScreen.jsx'
 import CareerScreen from './screens/CareerScreen.jsx'
 import CombatScreen from './screens/CombatScreen.jsx'
+import Combat2Screen from './screens/Combat2Screen.jsx'
+import EpisodeSelectScreen from './screens/EpisodeSelectScreen.jsx'
 import EarlyOutlookScreen from './screens/EarlyOutlookScreen.jsx'
 import EducationScreen from './screens/EducationScreen.jsx'
 import EnvironmentScreen from './screens/EnvironmentScreen.jsx'
@@ -50,7 +52,7 @@ const SCREENS = {
   finishingTouches: FinishingTouchesScreen,
   review: ReviewScreen,
 }
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'combat']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2']
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
@@ -161,9 +163,9 @@ function Views() {
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
-  // The music plays across every view except combat, where it fades out and fades back in on leaving.
+  // The music plays across every view except the two combat prototypes, where it fades out and fades back in on leaving.
   // The volume is set before starting so it fades in at the saved level.
-  const musicWanted = view !== 'combat'
+  const musicWanted = view !== 'combat' && view !== 'combat2'
   useEffect(() => music.setVolume(audioSettings.music / 100), [audioSettings.music])
   useEffect(() => {
     if (!musicWanted) return undefined
@@ -227,9 +229,19 @@ function Views() {
           />
         </ScaledStage>
       )}
+      {view === 'episodeSelect' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+          <EpisodeSelectScreen onOpen={openView} onBack={openMenu} />
+        </ScaledStage>
+      )}
       {view === 'combat' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <CombatScreen savedCharacters={savedCharacters} onExit={openMenu} />
+        </ScaledStage>
+      )}
+      {view === 'combat2' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+          <Combat2Screen savedCharacters={savedCharacters} onBack={() => setView('episodeSelect')} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'creator' && (
