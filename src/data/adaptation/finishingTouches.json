@@ -1,6 +1,8 @@
 {
   "step": "finishingTouches",
   "allowCustomValue": true,
+  "pronounPresets": ["He / him", "She / her", "They / them"],
+  "defaultPronounsByGender": { "male": "He / him", "female": "She / her" },
   "categories": [
     {
       "id": "finalValue",
@@ -24,7 +26,7 @@
       "id": "portrait",
       "name": "Portrait",
       "image": "/art/finishing/portrait.png",
-      "description": "Choose a portrait that represents your character. Prototype feature: it is shown in the character summary and has no game-rule effect."
+      "description": "Choose a portrait that represents your character. It is shown in the character summary and has no game-rule effect."
     },
     {
       "id": "identity",
@@ -37,13 +39,14 @@
       "name": "Background Notes",
       "image": "/art/finishing/background-notes.png",
       "optional": true,
-      "description": "Optional notes about your character's history and personality. Prototype feature: free text that is saved with the character but never used by the game rules."
+      "description": "Optional notes about your character's history and personality. Free text that is saved with the character but never used by the game rules."
     }
   ],
   "notes": [
     "Prototype: cards follow the unlock order, with Name & Pronouns as the last required choice and the optional Background Notes after it.",
     "Screen 07 is Book Step Seven. Assignment and Rank from Step Seven are on Screen 05.",
-    "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step; pronouns are from p.132 and are optional here.",
+    "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step. Pronouns are from p.132 and, as in the book, required.",
+    "Player-facing text never labels anything as a book rule, adaptation, or original system; provenance stays in data (sourceType) and these notes.",
     "Prototype: the mockup's Service Motto and Personal Goals are not implemented (Service Motto would duplicate Values).",
     "Limits follow the book: when scores exceed them, the player chooses which tied score keeps the maximum and where each reduced point goes.",
     "The mockup's Randomize category is replaced by the per-screen Auto button. Category images point into public/; missing files fall back to the placeholder portrait."

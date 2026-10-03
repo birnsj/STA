@@ -1,5 +1,6 @@
 const path = require('node:path')
 const { app, BrowserWindow, screen } = require('electron')
+const { registerCharacterFiles } = require('./characterFiles.cjs')
 
 // Matches DESIGN_RESOLUTION in src/settings/displaySettings.js; the page scales itself to whatever size the window is.
 const DESIGN_WIDTH = 1920
@@ -20,10 +21,13 @@ function createWindow() {
     minHeight: 540,
     backgroundColor: '#000000',
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') },
   })
   window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  registerCharacterFiles()
+  createWindow()
+})
 app.on('window-all-closed', () => app.quit())

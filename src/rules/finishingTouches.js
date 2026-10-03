@@ -37,7 +37,7 @@ export function createEmptyFinishingTouches() {
 }
 
 // Prototype identity/presentation data (not book mechanics). gender is { id, name } (chosen on Screen 1);
-// portrait is { id, name } of a preset from the species + gender set. Pronouns are separate free text.
+// portrait is { id, name } of a preset from the species + gender set. Pronouns are separate free text (required).
 export function createEmptyIdentity() {
   return { name: '', pronouns: '', gender: null, portrait: null }
 }
@@ -229,6 +229,11 @@ export const getRequiredFocusCount = () => complete.focusCount
 
 export const setName = (identity, name) => ({ ...identity, name })
 export const setPronouns = (identity, pronouns) => ({ ...identity, pronouns })
+export const getPronounPresets = () => finishingAdaptation.pronounPresets
+// Designer decision: Auto/Autofill give Male and Female characters these pronouns; other genders have no default.
+export const getDefaultPronouns = (genderId) => finishingAdaptation.defaultPronounsByGender[genderId] ?? null
+// Book p.92 / p.132: a finished character has pronouns. Free text; only Auto/Autofill fill them from gender.
+export const hasPronouns = (identity) => Boolean(identity.pronouns?.trim())
 
 // ---------- Requirements ----------
 
@@ -245,7 +250,7 @@ export function getFinishingRequirements(character) {
     disciplines: getFinalScores(character, 'disciplines') !== null,
     portrait: isPortraitAvailable(character, character.identity.portrait?.id),
     // Last, so naming the character is the final choice on the screen (sections unlock in this order).
-    identity: Boolean(character.identity.name.trim()),
+    identity: Boolean(character.identity.name.trim()) && hasPronouns(character.identity),
   }
 }
 

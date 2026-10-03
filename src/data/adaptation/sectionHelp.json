@@ -45,7 +45,7 @@
     },
     "speciesGender": {
       "title": "Gender",
-      "what": "Prototype presentation choice, not from Captain's Log. It decides which portraits you can pick on Finishing Touches.",
+      "what": "Decides which portraits you can pick on Finishing Touches.",
       "does": "Choose Male, Female, or Other. Other can use any portrait for the species. Gender has no effect on attributes, disciplines, values, focuses, traits, or any rule, and it is separate from pronouns."
     },
     "environmentScreen": {
@@ -86,12 +86,12 @@
     },
     "reviewScreen": {
       "title": "Character Complete",
-      "what": "Your finished character sheet. This review screen is a prototype addition; the book has no review step.",
+      "what": "Your finished character sheet.",
       "does": "Check each section, fix anything under Needs Attention, then Confirm Character. Export JSON (Dev) downloads the character as a .json file."
     },
     "reviewStatus": {
       "title": "Status",
-      "what": "Checks your character against the book's finished-character requirements (attributes total 56, disciplines total 16, four values, six focuses) and the prototype's own checks, such as a name and duplicate values or focuses.",
+      "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, disciplines total 16, four values, six focuses, and no duplicate values or focuses.",
       "page": 129,
       "does": "Lists each problem with a link to the screen that fixes it. When nothing is listed, Confirm Character becomes available."
     },
@@ -143,7 +143,7 @@
     "reviewEquipment": {
       "title": "Equipment",
       "what": "Standard-issue gear, assigned automatically from your department, plus the background notes you wrote on Finishing Touches.",
-      "does": "Videogame adaptation: Captain's Log does not use equipment. The item stats are provisional videogame tuning, not book rules. Notes are free text the rules never read."
+      "does": "Summary only. Equipment changes with your assignment and department on Career. Notes are free text the rules never read."
     },
     "speciesTraits": {
       "concept": "trait",
@@ -271,8 +271,8 @@
     },
     "nameAndPronouns": {
       "title": "Name & Pronouns",
-      "what": "Your character's name and, optionally, their pronouns.",
-      "does": "The name is required and becomes the exported file's name. Pronouns are optional."
+      "what": "Your character's name and pronouns.",
+      "does": "Both are required. The name becomes the exported file's name. Pick a pronoun set or type your own."
     },
     "identityDetails": {
       "title": "Identity Details",

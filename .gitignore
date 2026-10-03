@@ -20,6 +20,9 @@ reference/
 music/
 /character.json
 
+# Desktop app saved characters (local only)
+/characters/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

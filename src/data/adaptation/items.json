@@ -8,8 +8,10 @@
     "maxStack": 1,
     "equipSlot": null,
     "stats": {},
-    "prototypeTuning": true
+    "sourceType": "captains-log",
+    "statsSourceType": "adaptation"
   },
+  "sourceTypeNote": "Provenance for development only, never shown to the player. sourceType is where the item itself comes from; statsSourceType is where its stats come from. Values: 'captains-log' (book rules or content), 'adaptation' (our videogame version of a book element), 'original' (our own system). Every item here is named in the book without stats (pp.39-40: communicators, standard and specialty tricorders, type-1 phaser sidearms, medical tricorder, medkit, engineering toolkit; p.137: uniform, communicator, tricorder, type-1 or type-2 phaser). All stats, slots, and the automatic loadout are adaptation.",
   "categories": {
     "clothing": "Clothing",
     "utility": "Utility",

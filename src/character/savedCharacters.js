@@ -1,40 +1,45 @@
 import { serializeCharacter } from '../export/serializeCharacter.js'
-import { loadSavedCharacters, readSavedCharacterData, saveSavedCharacters } from './persistence.js'
+import {
+  insertSavedCharacterAfter,
+  loadSavedCharacters,
+  putSavedCharacter,
+  readSavedCharacterData,
+  removeSavedCharacter,
+} from './persistence.js'
 
 export const getSavedCharacters = loadSavedCharacters
 export const getSavedCharacterData = readSavedCharacterData
 
+// Browser saves keep this id; saved files replace it with one based on the character's name.
+const newSavedId = () => crypto.randomUUID().slice(0, 8)
+
 export function deleteSavedCharacter(id) {
-  const next = loadSavedCharacters().filter((entry) => entry.id !== id)
-  saveSavedCharacters(next)
-  return next
+  removeSavedCharacter(id)
+  return loadSavedCharacters()
 }
 
-// Dev: copies an entry (new id, placed right after it) so the list can be filled for testing.
+// Dev: empties the saved list for testing.
+export function deleteAllSavedCharacters() {
+  loadSavedCharacters().forEach((entry) => removeSavedCharacter(entry.id))
+  return loadSavedCharacters()
+}
+
+// Dev: copies an entry (new id) so the list can be filled for testing.
 export function duplicateSavedCharacter(id) {
-  const characters = loadSavedCharacters()
-  const index = characters.findIndex((entry) => entry.id === id)
-  if (index < 0) return characters
-  const next = [...characters]
-  next.splice(index + 1, 0, { ...characters[index], id: crypto.randomUUID() })
-  saveSavedCharacters(next)
-  return next
+  const original = loadSavedCharacters().find((entry) => entry.id === id)
+  if (original) insertSavedCharacterAfter(id, { ...original, id: newSavedId() })
+  return loadSavedCharacters()
 }
 
 // Adds a confirmed character to the saved list, or replaces its earlier entry when savedId is given
 // (the player went back to edit a character they had already confirmed). Returns the entry id and the new list.
 export function saveConfirmedCharacter(character, savedId = null) {
-  const characters = loadSavedCharacters()
-  const id = savedId && characters.some((entry) => entry.id === savedId) ? savedId : crypto.randomUUID()
-  const entry = {
-    id,
+  const existingId = savedId && loadSavedCharacters().some((entry) => entry.id === savedId) ? savedId : newSavedId()
+  const id = putSavedCharacter({
+    id: existingId,
     savedAt: new Date().toISOString(),
     name: character.identity.name.trim(),
     record: serializeCharacter(character),
-  }
-  const next = characters.some((existing) => existing.id === id)
-    ? characters.map((existing) => (existing.id === id ? entry : existing))
-    : [...characters, entry]
-  saveSavedCharacters(next)
-  return { id, characters: next }
+  })
+  return { id, characters: loadSavedCharacters() }
 }

@@ -4,6 +4,7 @@ import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
 import { CharacterProvider, useCharacter } from './character/CharacterContext.jsx'
 import { loadLocation, loadSettings, saveLocation, saveSettings } from './character/persistence.js'
 import {
+  deleteAllSavedCharacters,
   deleteSavedCharacter,
   duplicateSavedCharacter,
   getSavedCharacterData,
@@ -192,6 +193,10 @@ function Views() {
       if (loadLocation().savedCharacterId === entry.id) saveLocation({ ...loadLocation(), savedCharacterId: null })
     },
     onDuplicate: (entry) => setSavedCharacters(duplicateSavedCharacter(entry.id)),
+    onDeleteAll: () => {
+      setSavedCharacters(deleteAllSavedCharacters())
+      saveLocation({ ...loadLocation(), savedCharacterId: null })
+    },
   }
 
   return (

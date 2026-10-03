@@ -3,12 +3,13 @@ import startingPoints from '../data/source/startingPoints.json'
 import { isStepComplete } from './creationProgress.js'
 import { getAssignmentBlock, isRankAllowed } from './career.js'
 import { getEventCount } from './careerHistory.js'
-import { getFocusEntries, getValueEntries } from './characterSheet.js'
+import { getFocusEntries, getTraitEntries, getValueEntries } from './characterSheet.js'
 import {
   getFinalScores,
   getKindInfo,
   getRequiredFocusCount,
   getRequiredValueCount,
+  hasPronouns,
 } from './finishingTouches.js'
 
 const limits = startingPoints.finishedCharacterLimits
@@ -81,12 +82,27 @@ function validateFocuses(character) {
   return [...countIssue, ...duplicateIssues(focuses, 'Focus')]
 }
 
+// The core choice of each lifepath step, named explicitly so a character loaded from a file can't skip one even if
+// a step's completeness check changes.
+function validateLifepathChoices(character) {
+  const { environment, earlyOutlook, education, career } = character
+  const issues = []
+  if (!getTraitEntries(character).length) issues.push(issue('species', 'No species trait.'))
+  if (!environment.setting && !environment.condition) issues.push(issue('environment', 'No environment chosen.'))
+  if (!earlyOutlook.outlook) issues.push(issue('earlyOutlook', 'No early outlook chosen.'))
+  if (!education.option) issues.push(issue('education', 'No education chosen.'))
+  if (!career.length) issues.push(issue('career', 'No career length chosen.'))
+  return issues
+}
+
 // Book p.92: choose Name, Pronouns, Department, Rank, Assignment and Posting.
-// Prototype: pronouns are optional and posting waits for ship creation, so neither is checked here.
+// Prototype: posting waits for ship creation, so it isn't checked here. Every assignment has a department (chosen
+// by the player for Communications Officer) and every character a rank (No Rank for civilians), so both are required.
 function validateService(character) {
   const { career, careerHistory, identity } = character
   const issues = []
   if (!identity.name.trim()) issues.push(issue('finishingTouches', 'The character has no name.'))
+  if (!hasPronouns(identity)) issues.push(issue('finishingTouches', 'The character has no pronouns.'))
   if (!career.assignment) issues.push(issue('career', 'No assignment chosen.'))
   else if (getAssignmentBlock(character, career.assignment.id)) {
     issues.push(issue('career', `${career.assignment.name}: ${getAssignmentBlock(character, career.assignment.id)}.`))
@@ -106,6 +122,7 @@ export function validateCharacter(character) {
   if (!character.species) return [issue('species', 'No species chosen.')]
   return [
     ...validateStepsComplete(character),
+    ...validateLifepathChoices(character),
     ...validateScores(character, 'attributes'),
     ...validateScores(character, 'disciplines'),
     ...validateValues(character),

@@ -1,5 +1,6 @@
 {
   "note": "Videogame adaptation: starting loadout, issued automatically (the player does not choose gear). Book (p.137) only lists standard issue for conversion to Star Trek Adventures: uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers). The per-department loadouts below are the approved prototype design, keyed by the career department. Applied in order: base items, then the department, then the assignment (if listed). 'tricorder' replaces the default tricorder; 'add' appends items.",
+  "sourceType": "adaptation",
   "base": ["standardUniform", "communicator"],
   "defaultTricorder": "standardTricorder",
   "departments": {

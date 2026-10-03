@@ -109,9 +109,10 @@ function SavedCharacterCard({ entry }) {
   )
 }
 
-export default function ImportCharacterCarousel({ characters, onLoad, onDelete, onDuplicate, onCancel }) {
+export default function ImportCharacterCarousel({ characters, onLoad, onDelete, onDuplicate, onDeleteAll, onCancel }) {
   const [index, setIndex] = useState(0)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
   const count = characters.length
   const current = count ? Math.min(index, count - 1) : -1
   const selected = characters[current] ?? null
@@ -129,6 +130,12 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
     setConfirmingDelete(false)
   }
 
+  const deleteAll = () => {
+    onDeleteAll()
+    setConfirmingDeleteAll(false)
+    setIndex(0)
+  }
+
   return (
     <div className="menu-notice-backdrop">
       <div
@@ -136,7 +143,7 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
         role="dialog"
         aria-modal="true"
         aria-labelledby="import-character-title"
-        inert={confirmingDelete}
+        inert={confirmingDelete || confirmingDeleteAll}
         onKeyDown={handleKeyDown}
       >
         <h2 id="import-character-title" className="menu-notice-title">Import Character</h2>
@@ -175,10 +182,34 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
           </button>
         </div>
 
-        <button type="button" className="dev-button import-duplicate" disabled={!selected} onClick={() => onDuplicate(selected)}>
-          Duplicate (dev)
-        </button>
+        <div className="import-dev-actions">
+          <button type="button" className="dev-button import-duplicate" disabled={!selected} onClick={() => onDuplicate(selected)}>
+            Duplicate (dev)
+          </button>
+          <button type="button" className="dev-button import-duplicate" disabled={!selected} onClick={() => setConfirmingDeleteAll(true)}>
+            Delete All (dev)
+          </button>
+        </div>
       </div>
+
+      {confirmingDeleteAll && selected && (
+        <div className="menu-notice-backdrop">
+          <div className="ship-builder-panel menu-notice delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="delete-all-confirm-title">
+            <h2 id="delete-all-confirm-title" className="menu-notice-title">Are You Sure?</h2>
+            <p className="menu-notice-text">
+              Delete all <strong>{count}</strong> saved characters? This cannot be undone.
+            </p>
+            <div className="menu-notice-actions">
+              <button type="button" className="nav-button nav-back" onClick={() => setConfirmingDeleteAll(false)} autoFocus>
+                Keep
+              </button>
+              <button type="button" className="nav-button import-delete" onClick={deleteAll}>
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmingDelete && selected && (
         <div className="menu-notice-backdrop">

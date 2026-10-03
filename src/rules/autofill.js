@@ -1,10 +1,6 @@
-// Completes every unfinished choice on a screen without touching choices already made.
-// Not a book rule. A chooser decides the order options are tried in:
-// - strongestChooser (dev Autofill): reinforce the character's current strengths — highest attribute/discipline totals
-//   win, ties go to canonical order — and take the first book example/value where a pick is free-form.
-// - createRandomChooser (player Auto button): any valid option, at random.
-import { getAttributeTotals, getDisciplineTotalsBeforeEducation } from './characterTotals.js'
-import { selectFirstCards } from './defaults.js'
+// Completes every unfinished choice on a screen without touching choices already made, picking valid options at
+// random (not a book rule). Used by the Auto button and the dev Autofill; see character/autoChoice.js.
+import { getAttributeTotals } from './characterTotals.js'
 import {
   getBaseSpecies,
   getChoosableAttributeIds,
@@ -24,14 +20,10 @@ import * as historyRules from './careerHistory.js'
 import * as finishingRules from './finishingTouches.js'
 import * as appearanceRules from './appearance.js'
 import { getAllMatrixFocuses } from './focuses.js'
-import { randomName } from './names.js'
+import { nameGroupForGender, randomName } from './names.js'
+import { pickStageValue } from './stageValues.js'
 
-// order(list, score?) returns a new array in the order options should be tried; name(), if present, supplies a character name.
-// Highest score first; Array.prototype.sort is stable, so ties keep canonical order.
-// No name: a placeholder would be easy to miss and end up on a finished character, so Autofill leaves the required field blank.
-export const strongestChooser = {
-  order: (list, score) => (score ? [...list].sort((a, b) => score(b) - score(a)) : [...list]),
-}
+const generatedName = (random) => (character) => randomName(nameGroupForGender(character.identity.gender?.id), '', random)
 
 // mulberry32: a small seeded generator, so the reducer stays pure (the seed is drawn when the button is pressed).
 function seededRandom(seed) {
@@ -45,6 +37,7 @@ function seededRandom(seed) {
   }
 }
 
+// order(list) returns the options in the order to try them; name(character) generates a name for the character's gender.
 export function createRandomChooser(seed) {
   const random = seededRandom(seed)
   const shuffle = (list) => {
@@ -55,16 +48,14 @@ export function createRandomChooser(seed) {
     }
     return copy
   }
-  return { order: (list) => shuffle(list), name: () => randomName('any'), random }
+  return { order: (list) => shuffle(list), name: generatedName(random), random }
 }
-
-const byTotals = (totals) => (id) => totals[id]
 
 // Review rejects duplicate focuses, so autofill skips names the character already holds.
 const heldFocusNames = (character) => finishingRules.getCharacterFocuses(character).map((focus) => focus.name.trim().toLowerCase())
 const firstUnheld = (names, character) => names.find((name) => !heldFocusNames(character).includes(name.toLowerCase()))
 
-export function fillSpecies(character, chooser = strongestChooser) {
+export function fillSpecies(character, chooser) {
   let species = character.species
   const definition = getSpeciesById(species.id)
   if (isMixedHeritage(definition)) {
@@ -79,7 +70,7 @@ export function fillSpecies(character, chooser = strongestChooser) {
   const missing = getRequiredAttributeChoices(definition) - species.attributeBonuses.length
   if (missing > 0) {
     const chosen = species.attributeBonuses.map((bonus) => bonus.id)
-    const candidates = chooser.order(getChoosableAttributeIds(species), byTotals(getAttributeTotals(character))).filter((id) => !chosen.includes(id))
+    const candidates = chooser.order(getChoosableAttributeIds(species)).filter((id) => !chosen.includes(id))
     candidates.slice(0, missing).forEach((id) => (species = toggleAttributeChoice(species, id)))
   }
   const gender = chooser.order(appearanceRules.getGenders())[0]
@@ -87,7 +78,7 @@ export function fillSpecies(character, chooser = strongestChooser) {
   return { ...character, species, identity }
 }
 
-export function fillEnvironment(character, chooser = strongestChooser) {
+export function fillEnvironment(character, chooser) {
   let next = character
   const update = (environment) => (next = environmentRules.reconcileEnvironment({ ...next, environment }))
   if (environmentRules.requiresOtherSpecies(next.environment) && !next.environment.otherSpecies) {
@@ -95,27 +86,32 @@ export function fillEnvironment(character, chooser = strongestChooser) {
   }
   if (!next.environment.attributeBonus) {
     const ids = environmentRules.getAttributeOptions(next).map((option) => option.id)
-    const [best] = chooser.order(ids, byTotals(getAttributeTotals(next)))
+    const [best] = chooser.order(ids)
     if (best) update(environmentRules.selectAttributeBonus(next, best))
   }
   if (!next.environment.disciplineBonus) {
     const ids = environmentRules.getDisciplineOptions(next).map((option) => option.id)
-    const [best] = chooser.order(ids, byTotals(getDisciplineTotalsBeforeEducation(next)))
+    const [best] = chooser.order(ids)
     if (best) update(environmentRules.selectDisciplineBonus(next, best))
   }
   if (!next.environment.value?.text.trim()) {
-    update(environmentRules.selectMatrixValue(next.environment, chooser.order(environmentRules.getValueMatrix())[0].id))
+    const text = pickStageValue(next, 'environment', chooser.order)
+    update(
+      text
+        ? environmentRules.setCustomValue(next.environment, text)
+        : environmentRules.selectMatrixValue(next.environment, chooser.order(environmentRules.getValueMatrix())[0].id),
+    )
   }
   return next
 }
 
-export function fillEarlyOutlook(character, chooser = strongestChooser) {
+export function fillEarlyOutlook(character, chooser) {
   let earlyOutlook = character.earlyOutlook
   const outlookId = earlyOutlook.outlook.id
   if (!earlyOutlook.path) earlyOutlook = outlookRules.selectPath(earlyOutlook, chooser.order(outlookRules.getPathOptions(outlookId))[0].id)
   if (!earlyOutlook.disciplineBonus) {
     const ids = outlookRules.getDisciplineOptions(outlookId).map((option) => option.id)
-    const [best] = chooser.order(ids, byTotals(getDisciplineTotalsBeforeEducation({ ...character, earlyOutlook })))
+    const [best] = chooser.order(ids)
     earlyOutlook = outlookRules.selectDiscipline(earlyOutlook, best)
   }
   if (!earlyOutlook.focus?.name.trim()) {
@@ -130,13 +126,13 @@ function fillEducationAttributes(character, chooser) {
   const required = educationRules.getRequiredAttributes(education.option.id).map((attribute) => attribute.id)
   const totals = getAttributeTotals(character)
   const hasRequired = () => !required.length || education.attributeBonuses.some((bonus) => required.includes(bonus.id))
-  const ranked = chooser.order(Object.keys(totals), byTotals(totals))
+  const ranked = chooser.order(Object.keys(totals))
   // Earlier picks can use every point without meeting a new option's required attribute; free the weakest point.
   if (!hasRequired() && educationRules.getAttributePointsSpent(education) >= educationRules.getAttributePointsTotal()) {
     const weakest = [...education.attributeBonuses].sort((a, b) => totals[a.id] - totals[b.id])[0]
     education = educationRules.decreaseAttribute(education, weakest.id)
   }
-  const requiredOrder = chooser.order(required, byTotals(totals))
+  const requiredOrder = chooser.order(required)
   while (educationRules.getAttributePointsSpent(education) < educationRules.getAttributePointsTotal()) {
     const pool = hasRequired() ? ranked : requiredOrder
     const target = pool.find((id) => educationRules.canIncreaseAttribute(education, id))
@@ -150,7 +146,7 @@ function fillEducationDisciplines(character, chooser) {
   let next = character
   const apply = (education) => (next = { ...next, education })
   const rules = educationRules.getDisciplineRules(next.education.option.id)
-  const strongest = (rows) => chooser.order(rows, (row) => row.before)[0]
+  const strongest = (rows) => chooser.order(rows)[0]
 
   if (!next.education.disciplinePicks.major) {
     const best = strongest(educationRules.getDisciplineRows(next).filter((row) => row.canMajor))
@@ -179,26 +175,34 @@ function fillEducationFocusesAndValue(character, chooser) {
     if (firstUnheld([example], { ...character, education })) education = educationRules.toggleFocusExample(education, example)
   }
   if (!education.value?.text.trim()) {
-    const environmentValueId = character.environment.value?.matrixId
-    const entry = chooser.order(educationRules.getValueMatrix()).find((value) => value.id !== environmentValueId)
-    education = educationRules.selectMatrixValue(education, entry.id)
+    const text = pickStageValue({ ...character, education }, 'education', chooser.order)
+    if (text) education = educationRules.setCustomValue(education, text)
+    else {
+      const environmentValueId = character.environment.value?.matrixId
+      const entry = chooser.order(educationRules.getValueMatrix()).find((value) => value.id !== environmentValueId)
+      education = educationRules.selectMatrixValue(education, entry.id)
+    }
   }
   return { ...character, education }
 }
 
-export function fillEducation(character, chooser = strongestChooser) {
+export function fillEducation(character, chooser) {
   let next = educationRules.reconcileEducation(character)
   next = fillEducationAttributes(next, chooser)
   next = fillEducationDisciplines(next, chooser)
   return fillEducationFocusesAndValue(next, chooser)
 }
 
-export function fillCareer(character, chooser = strongestChooser) {
+export function fillCareer(character, chooser) {
   let career = character.career
   if (!career.value?.text.trim()) {
-    const usedIds = [character.environment.value?.matrixId, character.education.value?.matrixId]
-    const entry = chooser.order(careerRules.getValueMatrix()).find((value) => !usedIds.includes(value.id))
-    career = careerRules.selectMatrixValue(career, entry.id)
+    const text = pickStageValue(character, 'career', chooser.order)
+    if (text) career = careerRules.setCustomValue(career, text)
+    else {
+      const usedIds = [character.environment.value?.matrixId, character.education.value?.matrixId]
+      const entry = chooser.order(careerRules.getValueMatrix()).find((value) => !usedIds.includes(value.id))
+      career = careerRules.selectMatrixValue(career, entry.id)
+    }
   }
   let next = { ...character, career }
   if (!career.assignment) {
@@ -215,7 +219,7 @@ export function fillCareer(character, chooser = strongestChooser) {
   return next
 }
 
-export function fillCareerHistory(character, chooser = strongestChooser) {
+export function fillCareerHistory(character, chooser) {
   let history = character.careerHistory
   history.events.forEach((slot, index) => {
     if (!slot) {
@@ -225,12 +229,12 @@ export function fillCareerHistory(character, chooser = strongestChooser) {
     const { attributeBonus, disciplineBonus, focus, event } = history.events[index]
     if (!attributeBonus) {
       const ids = historyRules.getAttributes().map((a) => a.id)
-      const [best] = chooser.order(ids, byTotals(getAttributeTotals({ ...character, careerHistory: history })))
+      const [best] = chooser.order(ids)
       history = historyRules.selectAttribute(history, index, best)
     }
     if (!disciplineBonus) {
       const ids = historyRules.getDisciplines().map((d) => d.id)
-      const [best] = chooser.order(ids, byTotals(getDisciplineTotalsBeforeEducation(character)))
+      const [best] = chooser.order(ids)
       history = historyRules.selectDiscipline(history, index, best)
     }
     if (!focus) {
@@ -252,7 +256,7 @@ function fillFinishingScores(character, kind, chooser) {
   while (next.finishingTouches[kind].increases.length < increaseCount) {
     const { raw } = finishingRules.getLimitAnalysis(next, kind)
     const chosen = next.finishingTouches[kind].increases
-    const pool = chooser.order(ids, byTotals(raw)).filter((id) => !chosen.includes(id))
+    const pool = chooser.order(ids).filter((id) => !chosen.includes(id))
     const target = pool.find((id) => raw[id] + 1 < max) ?? pool[0]
     apply(finishingRules.toggleIncrease(next, kind, target))
   }
@@ -260,7 +264,7 @@ function fillFinishingScores(character, kind, chooser) {
   if (analysis.needsKeeperChoice && !analysis.keeper) apply(finishingRules.setKeepAtMax(next, kind, chooser.order(analysis.atOrOverMax)[0]))
   analysis = finishingRules.getLimitAnalysis(next, kind)
   while (analysis.assigned < analysis.excess) {
-    const target = chooser.order(ids, byTotals(analysis.raw)).find((id) => analysis.canReceive(id))
+    const target = chooser.order(ids).find((id) => analysis.canReceive(id))
     if (!target) break
     apply(finishingRules.addRedistributionPoint(next, kind, target))
     analysis = finishingRules.getLimitAnalysis(next, kind)
@@ -268,28 +272,26 @@ function fillFinishingScores(character, kind, chooser) {
   return next
 }
 
-export function fillFinishingTouches(character, chooser = strongestChooser) {
+export function fillFinishingTouches(character, chooser) {
   let next = character
   if (!next.finishingTouches.value?.text.trim()) {
-    const usedIds = finishingRules.getCharacterValues(next).map((value) => value.matrixId)
-    const entry = chooser.order(finishingRules.getValueMatrix()).find((value) => !usedIds.includes(value.id))
-    next = { ...next, finishingTouches: finishingRules.selectMatrixValue(next.finishingTouches, entry.id) }
+    const text = pickStageValue(next, 'finishingTouches', chooser.order)
+    if (text) next = { ...next, finishingTouches: finishingRules.setCustomValue(next.finishingTouches, text) }
+    else {
+      const usedIds = finishingRules.getCharacterValues(next).map((value) => value.matrixId)
+      const entry = chooser.order(finishingRules.getValueMatrix()).find((value) => !usedIds.includes(value.id))
+      next = { ...next, finishingTouches: finishingRules.selectMatrixValue(next.finishingTouches, entry.id) }
+    }
   }
   next = fillFinishingScores(next, 'attributes', chooser)
   next = fillFinishingScores(next, 'disciplines', chooser)
-  if (chooser.name && !next.identity.name.trim()) next = { ...next, identity: finishingRules.setName(next.identity, chooser.name()) }
+  if (!next.identity.name.trim()) next = { ...next, identity: finishingRules.setName(next.identity, chooser.name(next)) }
+  // Blank pronouns (required) get the gender's default, or a random preset for a gender without one.
+  if (!finishingRules.hasPronouns(next.identity)) {
+    const pronouns = finishingRules.getDefaultPronouns(next.identity.gender?.id) ?? chooser.order(finishingRules.getPronounPresets())[0]
+    next = { ...next, identity: finishingRules.setPronouns(next.identity, pronouns) }
+  }
   const [portrait] = chooser.order(appearanceRules.getAvailablePortraits(next))
   if (!next.identity.portrait && portrait) next = { ...next, identity: appearanceRules.selectPortrait(next, portrait.id) }
-  return next
-}
-
-export function autofillCharacter(character) {
-  let next = fillSpecies(selectFirstCards(character))
-  next = fillEnvironment(next)
-  next = fillEarlyOutlook(next)
-  next = fillEducation(next)
-  next = fillCareer(next)
-  next = fillCareerHistory(next)
-  next = fillFinishingTouches(next)
   return next
 }

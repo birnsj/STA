@@ -49,9 +49,10 @@ function autoEarlyOutlook(state, chooser) {
   return withCharacter(switched, fillEarlyOutlook({ ...switched.character, earlyOutlook }, chooser))
 }
 
+// Category first, then an option in it, as on screen; picking among all options would favour the largest category.
 function autoEducation(state, chooser) {
-  const options = getCategories().flatMap((category) => getOptions(category.id))
-  const [option] = chooser.order(options)
+  const [category] = chooser.order(getCategories())
+  const [option] = chooser.order(getOptions(category.id))
   const switched = switchEducationOption(state, option.id)
   const education = selectEducationOption({ ...switched.character, education: createEmptyEducation() }, option.id)
   return withCharacter(switched, fillEducation({ ...switched.character, education }, chooser))
@@ -68,7 +69,7 @@ function autoCareerHistory(state, chooser) {
   return withCharacter(state, fillCareerHistory({ ...state.character, careerHistory: createEmptyCareerHistory() }, chooser))
 }
 
-// Pronouns and Background Notes are the player's own optional free text, so Auto leaves them alone.
+// Pronouns and Background Notes are the player's own free text, so Auto keeps them; blank pronouns (required) are filled.
 function autoFinishingTouches(state, chooser) {
   const { character } = state
   const identity = { ...character.identity, name: '', portrait: null }
@@ -86,6 +87,9 @@ const AUTO_BY_STEP = {
 }
 
 export const hasAutoChoice = (stepId) => Boolean(AUTO_BY_STEP[stepId])
+
+// In screen order, since each screen's options depend on the earlier ones.
+export const AUTO_STEP_IDS = Object.keys(AUTO_BY_STEP)
 
 // seed is drawn by the caller (Math.random()) so this stays a pure function of its inputs.
 export function autoChooseStep(state, stepId, seed) {

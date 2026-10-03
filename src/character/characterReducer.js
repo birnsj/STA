@@ -9,7 +9,7 @@ import {
   switchEnvironmentCard,
   switchSpecies,
 } from './choiceMemory.js'
-import { autoChooseStep } from './autoChoice.js'
+import { AUTO_STEP_IDS, autoChooseStep } from './autoChoice.js'
 import {
   setMixedParent,
   setNewSpeciesDescription,
@@ -38,7 +38,6 @@ import * as finishingRules from '../rules/finishingTouches.js'
 import * as appearanceRules from '../rules/appearance.js'
 import { reconcileEquipment } from '../rules/equipment.js'
 import { applyDefaultSelections } from '../rules/defaults.js'
-import { autofillCharacter } from '../rules/autofill.js'
 import { isCharacterValid } from '../rules/characterValidation.js'
 import { isFocusHeldElsewhere, isMatrixValueHeldElsewhere } from '../rules/characterSheet.js'
 
@@ -74,8 +73,6 @@ function isBlockedDuplicatePick(character, action) {
 function applyAction(character, action) {
   if (isBlockedDuplicatePick(character, action)) return character
   switch (action.type) {
-    case 'autofill':
-      return autofillCharacter(character)
     case 'toggleSpeciesAttribute':
       if (!character.species) return character
       return { ...character, species: toggleAttributeChoice(character.species, action.attributeId) }
@@ -243,6 +240,14 @@ export function creatorReducer(state, action) {
   if (action.type === 'autoChooseStep') {
     const auto = autoChooseStep(state, action.stepId, action.seed)
     return auto === state ? state : { ...auto, character: finalize(auto.character) }
+  }
+  // Dev Autofill: a whole new random character, as if Auto were pressed on every screen in turn.
+  // Each screen gets its own seed derived from the one drawn at the button press.
+  if (action.type === 'autofill') {
+    return AUTO_STEP_IDS.reduce(
+      (next, stepId, index) => creatorReducer(next, { type: 'autoChooseStep', stepId, seed: (action.seed + index * 0.6180339887) % 1 }),
+      createInitialState(),
+    )
   }
   const switched = switchCard(state, action)
   if (switched) return switched === state ? state : { ...switched, character: finalize(switched.character) }

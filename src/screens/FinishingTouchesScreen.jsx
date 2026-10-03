@@ -8,6 +8,7 @@ import {
   getIncreaseRows,
   getKindInfo,
   getLimitAdjustment,
+  getPronounPresets,
   getRequiredValueCount,
   getValueMatrix,
   isCustomValueAllowed,
@@ -146,20 +147,32 @@ function IdentityPanels({ character, dispatch, met }) {
           ))}
         </div>
         <label className="finishing-field">
-          <span className="finishing-field-label">Pronouns (optional)</span>
+          <span className="finishing-field-label">Pronouns (required)</span>
           <input
             className="text-field"
             value={pronouns}
             maxLength={40}
-            placeholder="e.g. she/her"
+            placeholder="Pick a set or type your own"
             onChange={(event) => dispatch({ type: 'setCharacterPronouns', pronouns: event.target.value })}
           />
         </label>
+        <div className="name-randomizer">
+          {getPronounPresets().map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={`name-randomizer-button${pronouns.trim() === preset ? ' is-selected' : ''}`}
+              aria-pressed={pronouns.trim() === preset}
+              onClick={() => dispatch({ type: 'setCharacterPronouns', pronouns: preset })}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
       </Panel>
       <Panel title="Identity Details" helpId="identityDetails">
         <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
         <p className="education-detail-description">{book.text}</p>
-        <p className="source-ref">Prototype: the name is a videogame addition; the book's lifepath has no naming step.</p>
       </Panel>
     </>
   )
@@ -208,7 +221,7 @@ function PortraitPanels({ character, dispatch, met }) {
           <h4 className="finishing-life-track-heading">Life Track</h4>
           <p>{getLifeTrackSentences(character).join(' ')}</p>
         </div>
-        <p className="source-ref">Prototype: portraits are presentation only and have no game-rule effect.</p>
+        <p className="source-ref">Portraits are presentation only and have no game-rule effect.</p>
       </Panel>
     </>
   )

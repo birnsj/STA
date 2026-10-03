@@ -81,7 +81,7 @@
       "grants": "How long your career has run. It gives one value, arising from your character's career outlook. It changes no scores.",
       "pages": [122],
       "assignmentNote": "Assignment and rank come from Book Step Seven (pp.130-132). Your assignment is your role aboard ship and sets your department; your rank is your place in the chain of command. Neither changes any scores.",
-      "noviceNote": "Prototype rule: a Novice can't take the senior roles (Commanding Officer, Executive Officer, or a department chief), and their rank is capped at Lieutenant (junior grade), or Petty Officer for enlisted characters.",
+      "noviceNote": "A Novice can't take the senior roles (Commanding Officer, Executive Officer, or a department chief), and their rank is capped at Lieutenant (junior grade), or Petty Officer for enlisted characters.",
       "why": [
         "Career length records where your character is in their working life. Its value captures the outlook that experience (or the lack of it) has given them so far."
       ]
