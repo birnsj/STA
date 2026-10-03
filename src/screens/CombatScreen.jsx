@@ -14,9 +14,11 @@ import {
   getTurnGroup,
   getTurnGroupRange,
   getTurnOf,
+  hasTargetInRange,
   isActive,
   isTurnFinished,
   previewAttack,
+  rollAwaitsPlayer,
   DEFAULT_ENCOUNTER_ID,
 } from '../combat/combatState.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
@@ -44,6 +46,8 @@ const AI_STEP_MS = 700
 const AI_ROLL_MS = 1100
 const MOVE_TILE_MS = 140
 const AUTO_END_TURN_MS = 1200
+// The same beat the AI's rolls get, so the dice can be read before the result lands.
+const AUTO_RESOLVE_MS = AI_ROLL_MS
 // A fight's seed is drawn when it starts (never during render) unless the player typed one in.
 const newSeed = () => Math.floor(Math.random() * MAX_SEED)
 
@@ -166,12 +170,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     shot: preview ? { from: active.position, to: target.position, available: preview.available } : null,
   }
 
+  const targetInRange = hasTargetInRange(state, active.id, weapon.id)
   const availability = {
     move: canMove(state, active),
     aim: canUseMinor(state, active),
-    attack: canUseMajor(state, active),
+    attack: canUseMajor(state, active) && targetInRange,
     endTurn: canAct(state, active),
   }
+  const unavailableReasons = canUseMajor(state, active) && !targetInRange ? { attack: `No enemy in range of your ${weapon.name}. Move closer first.` } : {}
 
   const selectAction = (id) => {
     if (id === 'endTurn') {
@@ -230,6 +236,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     return () => clearTimeout(timer)
   }, [turnUsedUp, helpOpen, dispatch])
 
+  // A rolled player attack resolves on its own after a beat to read the dice, unless it would miss and a reroll is open.
+  const autoResolve = isPlayerTurn && Boolean(state.pending) && state.combatants[state.pending.attackerId].side === 'player' && !rollAwaitsPlayer(state)
+  useEffect(() => {
+    if (!autoResolve || helpOpen) return undefined
+    const timer = setTimeout(() => dispatch({ type: 'resolveAttack' }), AUTO_RESOLVE_MS)
+    return () => clearTimeout(timer)
+  }, [autoResolve, helpOpen, dispatch, state.pending])
+
   const selectPartyMember = (id) => {
     if (canSwitchTo(id)) {
       dispatch({ type: 'selectCombatant', combatantId: id })
@@ -259,7 +273,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
-  const hint = getCombatHint(state, { mode, preview, movePath, routeInCover, auto, othersReady: Object.values(turnInfo).some((info) => info.state === 'ready') })
+  const hint = getCombatHint(state, { mode, preview, movePath, routeInCover, auto, targetInRange, othersReady: Object.values(turnInfo).some((info) => info.state === 'ready') })
 
   // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
   const releaseSelection = () => {
@@ -331,6 +345,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         <SelectedCharacterPanel combatant={shownCharacter} />
         <ActionsPanel
           availability={isPlayerTurn ? availability : {}}
+          unavailableReasons={isPlayerTurn ? unavailableReasons : {}}
           mode={mode}
           weapon={weapon}
           canCycleWeapon={isPlayerTurn && active.weaponIds.length > 1}
@@ -369,6 +384,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
       <RollPanel
         state={state}
         playerControls={rollBelongsToPlayer && isPlayerTurn}
+        awaitingChoice={rollAwaitsPlayer(state)}
         onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
         onResolve={() => dispatch({ type: 'resolveAttack' })}
         onSpendMomentumHit={() => dispatch({ type: 'spendMomentumHit' })}

@@ -184,8 +184,8 @@ function actionLabel(action) {
 
 function resultLabel(action, target) {
   if (!action.passed && action.type === 'resolve') return 'Miss'
-  if (!action.removed) return 'Hit'
-  return target.status === 'incapacitated' ? 'Incapacitated' : 'Down'
+  if (!action.removed) return '-1 Hit'
+  return `-1 Hit: ${target.status === 'incapacitated' ? 'Incapacitated' : 'Down'}`
 }
 
 // A floating label that follows a unit (same transform transition as the unit, so it walks with it).

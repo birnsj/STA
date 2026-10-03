@@ -6,7 +6,8 @@ function Die({ value, targetNumber }) {
 }
 
 // The attack being rolled (with any rerolls still open to the player) or the last attack's result.
-export default function RollPanel({ state, playerControls, onReroll, onResolve, onSpendMomentumHit }) {
+// awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or Accept Miss instead of resolving itself.
+export default function RollPanel({ state, playerControls, awaitingChoice, onReroll, onResolve, onSpendMomentumHit }) {
   const roll = state.pending ?? state.result
   if (!roll) return null
   const attacker = state.combatants[roll.attackerId]
@@ -14,8 +15,8 @@ export default function RollPanel({ state, playerControls, onReroll, onResolve, 
   const values = state.pending ? state.pending.dice : roll.dice.map((die) => die.value)
   const { task, cover } = roll
   const pending = Boolean(state.pending)
-  const canAimReroll = pending && playerControls && state.pending.aimReroll
-  const canMomentumReroll = pending && playerControls && state.momentum > 0
+  const canAimReroll = pending && playerControls && awaitingChoice && state.pending.aimReroll
+  const canMomentumReroll = pending && playerControls && awaitingChoice && state.momentum > 0
   const canExtraHit = !pending && playerControls && roll.passed && !roll.extraHit && !roll.closed && state.momentum > 0 && target.status === 'active'
 
   return (
@@ -46,9 +47,9 @@ export default function RollPanel({ state, playerControls, onReroll, onResolve, 
         ))}
         <div className="roll-outcome">
           {pending ? (
-            playerControls ? (
+            playerControls && awaitingChoice ? (
               <button type="button" className="roll-resolve" onClick={onResolve}>
-                Resolve
+                Accept Miss
               </button>
             ) : (
               <span className="roll-result-text">Rolling...</span>

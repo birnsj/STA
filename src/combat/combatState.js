@@ -178,6 +178,15 @@ export function isTurnFinished(state, id) {
   return turn.done || (turn.minorUsed && turn.majorUsed && getMovementLeft(state, state.combatants[id]) === 0)
 }
 
+// A player's rolled attack waits for the player only when it would miss and a reroll could still save it; otherwise
+// it resolves on its own (prototype: no Resolve click for a roll with nothing left to decide).
+export function rollAwaitsPlayer(state) {
+  const { pending } = state
+  if (!pending || state.combatants[pending.attackerId].side !== 'player') return false
+  const canReroll = pending.aimReroll || state.momentum > 0
+  return canReroll && !evaluateTask(pending.task, pending.dice).passed
+}
+
 // Enemies cannot be passed; allies can be passed but not stopped on. Defeated combatants do not block.
 export function getBlockers(state, combatant) {
   const blockedKeys = new Set()
@@ -220,6 +229,12 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   if (!range.available) return { ...base, available: false, reason: `Out of range (${band.name}).` }
   if (!hasLineOfFire(state.map, position, target.position)) return { ...base, available: false, reason: 'No line of fire.' }
   return { ...base, available: true, reason: null }
+}
+
+// Whether any opponent could be attacked right now with this weapon (in range and in line of fire).
+export function hasTargetInRange(state, attackerId, weaponId) {
+  const attacker = state.combatants[attackerId]
+  return getOpponents(state, attacker).some((opponent) => previewAttack(state, attackerId, opponent.id, weaponId).available)
 }
 
 // ---------- reducer helpers ----------

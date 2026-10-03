@@ -43,7 +43,8 @@ export function SelectedCharacterPanel({ combatant }) {
 // highlightEndTurn: the acting character has used both actions, so End Turn is the only thing left.
 // turn: the acting character's used actions, shown as a countdown in the header (null when it isn't the player's turn).
 // movement: { left, total } tiles, shown on the Move row.
-export function ActionsPanel({ availability, mode, weapon, canCycleWeapon, highlightEndTurn, turn, movement, onSelect, onCycleWeapon }) {
+// unavailableReasons: { [actionId]: text } shown as the tooltip of an action that is greyed out for a reason the player can fix.
+export function ActionsPanel({ availability, unavailableReasons = {}, mode, weapon, canCycleWeapon, highlightEndTurn, turn, movement, onSelect, onCycleWeapon }) {
   return (
     <section className="combat-panel actions-panel">
       <h2 className="combat-panel-title actions-panel-title">
@@ -60,7 +61,7 @@ export function ActionsPanel({ availability, mode, weapon, canCycleWeapon, highl
                 type="button"
                 className={`actions-button${mode === id ? ' is-selected' : ''}${id === 'endTurn' && highlightEndTurn && enabled ? ' is-highlight' : ''}`}
                 disabled={!enabled}
-                title={action.implemented ? `${action.name} (${action.slot})${action.description ? `: ${action.description}` : ''}` : 'Not in this prototype yet'}
+                title={!action.implemented ? 'Not in this prototype yet' : (unavailableReasons[id] ?? `${action.name} (${action.slot})${action.description ? `: ${action.description}` : ''}`)}
                 onClick={() => onSelect(id)}
               >
                 <svg className="actions-icon" viewBox="0 0 24 24" aria-hidden="true">
