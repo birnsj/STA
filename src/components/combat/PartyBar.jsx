@@ -5,7 +5,7 @@ import HitPips from './HitPips.jsx'
 const STATUS_LABEL = { incapacitated: 'Incapacitated', injured: 'Injured' }
 const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
 
-// The party, in pick order. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { minorUsed, majorUsed }, movement: { left, total } } }
+// The party, in pick order. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { ap }, movement: { left, total } } }
 // for members whose turn status is known this round; clicking a Ready member hands them the turn.
 export default function PartyBar({ party, activeId, selectedId, turnInfo, onSelect }) {
   return (

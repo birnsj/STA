@@ -13,22 +13,25 @@
         "The deck is bigger than the screen: use W A S D (or the arrow keys), hold the right mouse button and drag, or on a touch screen drag with one finger, to look around. Scroll the mouse wheel to zoom in and out. The view moves to whoever is acting; press Camera: Follow (top right) to switch to Camera: Free and keep the view where you put it.",
         "Your party acts first each round, then the Klingons take their turns automatically.",
         "The arrow at each figure's feet shows which way it is facing: blue for your party, red for Klingons, yellow for whoever is acting, grey once a turn is done. Figures turn toward where they walk and whom they shoot. Facing is for show only and has no effect on the rules.",
-        "During the party's turn, click any party member marked Ready (on the map or in the bar at the bottom) to act with them. You can switch at any time and come back to finish their actions. Each character has 2 action points (Minor and Major) that count down as they are used; when both are spent and no movement is left, the turn passes to the next Ready member automatically. The round moves on when everyone is done."
+        "During the party's turn, click any party member marked Ready in the bar at the bottom (or click them on the map, then Switch) to act with them. You can switch at any time and come back to finish their actions. Each character has 2 AP (action points) that count down as they are used; at 0 AP the turn passes to the next Ready member automatically, and once the whole party is out of AP the Klingons act."
       ]
     },
     {
       "heading": "Your turn",
       "lines": [
-        "You get one minor action (Move or Aim) and one major action (Attack), in either order.",
-        "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there.",
-        "Your first move uses the minor action, but you don't have to walk your full distance at once: the tiles left (shown as >> 3/5 above your character) can be walked later in the same turn, for example move, attack, then move again. Aiming instead of moving means no movement that turn.",
-        "For other actions, choose one on the right, set it up, then press the large yellow button. Right-click the battlefield to release your selection. Press End Turn when you are done."
+        "You start each turn with 2 AP. Move, Aim, Attack and Assist each cost 1 AP, in any order: Move + Attack, Aim + Attack, Attack + Attack. Move is the only one you can't repeat.",
+        "Click a Klingon to show buttons around it: Stun and Deadly fire at it straight away, Aim sets up a reroll, and Info shows its Hits, cover and your chance to hit. Click a party member for Assist (and Switch to hand them the turn). Click the same figure again, or the floor, to put the buttons away.",
+        "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there. You can Move once per turn, up to your full movement (shown as >> 5/5 above your character); tiles you don't use are lost.",
+        "Aim lets you reroll one die on your next attack this turn. Aiming twice doesn't give a second reroll.",
+        "Assist (1 AP): click a party member who still has a turn this round, then Assist (or use Assist on the right). Their next attack rolls your 1d20 as well, against your own Target Number; it adds a success only if they score at least one themselves. One assist per attack; unused assists end with the round.",
+        "For actions on the right, choose one, set it up, then press the large yellow button. Right-click the battlefield to release your selection.",
+        "Your turn ends by itself when your AP runs out. The small End Turn button under the actions ends it early if you want to keep the rest."
       ]
     },
     {
       "heading": "Attacking",
       "lines": [
-        "Pick a target by clicking a Klingon. Choose Stun or Deadly, then FIRE.",
+        "Click a Klingon, then click Stun or Deadly next to it to fire. The Task panel on the right shows the roll you will make.",
         "The result applies by itself: a hit shows -1 Hit over the target. If the roll would miss and you have an Aim or Momentum reroll, it waits so you can reroll a red die or click No Reroll.",
         "Two dice are rolled. Each die at or under your Target Number (Control + Security) is a success. You need as many successes as the Difficulty.",
         "Difficulty is 1, plus 1 if the target is beyond your weapon's best range, plus 1 if Threat is on."

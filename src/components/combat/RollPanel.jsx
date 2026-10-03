@@ -45,6 +45,12 @@ export default function RollPanel({ state, playerControls, awaitingChoice, onRer
             )}
           </div>
         ))}
+        {roll.assist && (
+          <div className="roll-die-slot roll-assist" title={`${state.combatants[roll.assist.helperId].character.name}'s assist die (TN ${roll.assist.task.targetNumber})`}>
+            <Die value={roll.assist.die} targetNumber={roll.assist.task.targetNumber} />
+            <span className="roll-assist-label">Assist</span>
+          </div>
+        )}
         <div className="roll-outcome">
           {pending ? (
             playerControls && awaitingChoice ? (

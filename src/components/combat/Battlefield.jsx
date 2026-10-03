@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
-import { getFacing } from '../../combat/combatState.js'
+import { getFacing, TURN_AP } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
 import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
 import { DoneIcon } from './ActionPoints.jsx'
 import HitPips from './HitPips.jsx'
+import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { playFootstep, playWeaponSound } from '../../audio/uiSounds.js'
@@ -111,10 +112,11 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
             <g className="iso-unit-points">
               <rect className="iso-unit-points-bg" x="-34" y="-7" width="68" height="12" rx="3" />
               <text x="-24" y="2.5" textAnchor="middle">
-                {(turnStatus.turn.minorUsed ? 0 : 1) + (turnStatus.turn.majorUsed ? 0 : 1)}/2
+                {turnStatus.turn.ap}/{TURN_AP}
               </text>
-              <rect className={`iso-unit-point${turnStatus.turn.minorUsed ? ' is-used' : ''}`} x="-14" y="-3.5" width="6" height="5" rx="1.5" />
-              <rect className={`iso-unit-point${turnStatus.turn.majorUsed ? ' is-used' : ''}`} x="-6" y="-3.5" width="6" height="5" rx="1.5" />
+              {Array.from({ length: TURN_AP }, (_, index) => (
+                <rect key={index} className={`iso-unit-point${index < turnStatus.turn.ap ? '' : ' is-used'}`} x={-14 + index * 8} y="-3.5" width="6" height="5" rx="1.5" />
+              ))}
               <line className="iso-unit-points-divider" x1="3.5" y1="-5" x2="3.5" y2="3" />
               <text className={`iso-unit-move${turnStatus.movement.left ? '' : ' is-empty'}`} x="18.5" y="2.5" textAnchor="middle">
                 &raquo;{turnStatus.movement.left}/{turnStatus.movement.total}
@@ -176,19 +178,20 @@ function ActionEffects({ state, positionOf, msPerTile, speed }) {
   const label = actionLabel(action)
   const isShot = action.type === 'attack' && target
   const weapon = isShot ? getWeapon(action.weaponId) : null
+  const beamColor = weapon && (weapon.beamColors?.[action.injuryMode] ?? weapon.beamColor)
   const from = tileCentre(positionOf(actor))
   const to = target && tileCentre(positionOf(target))
   const showsResult = (action.type === 'resolve' || action.type === 'momentumHit') && target
   return (
     <g key={action.key} className="fx" pointerEvents="none">
-      {isShot && weapon.beamColor && (
-        <g className="fx-beam" style={{ '--beam': weapon.beamColor }}>
+      {isShot && beamColor && (
+        <g className="fx-beam" style={{ '--beam': beamColor }}>
           <line className="fx-beam-glow" x1={from.x} y1={from.y - UNIT_HEAD} x2={to.x} y2={to.y - UNIT_HEAD} />
           <line className="fx-beam-core" x1={from.x} y1={from.y - UNIT_HEAD} x2={to.x} y2={to.y - UNIT_HEAD} />
           <circle className="fx-impact" cx={to.x} cy={to.y - UNIT_HEAD} r="10" />
         </g>
       )}
-      {isShot && !weapon.beamColor && <circle className="fx-strike" cx={to.x} cy={to.y - UNIT_HEAD} r="14" />}
+      {isShot && !beamColor && <circle className="fx-strike" cx={to.x} cy={to.y - UNIT_HEAD} r="14" />}
       {label && <FloatingLabel position={positionOf(actor)} text={label} className="is-action" msPerTile={msPerTile} />}
       {showsResult && (
         <FloatingLabel
@@ -216,7 +219,8 @@ function MovePathLine({ path }) {
 
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
-export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onRightClick }) {
+// ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
+export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, ring = null, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onRightClick }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
@@ -301,6 +305,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           y2={shotTo.y - 30}
         />
       )}
+      {ring && state.combatants[ring.unitId] && <UnitActionRing position={shownPosition(state.combatants[ring.unitId])} buttons={ring.buttons} info={ring.info} />}
     </svg>
   )
 }

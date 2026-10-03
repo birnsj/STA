@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "name": "Kelvara Caverns",
+  "episodeName": "Lines of Fire",
+  "card": "/art/episodes/Kelvara%20Caverns.png?v=1791059203341",
+  "mapType": "surfaceSite",
+  "biome": "iceField",
+  "rows": [
+    "*****************i******",
+    "*********II*****iiiii***",
+    "********II******iii*****",
+    "*****************i******",
+    "************************",
+    "***********iwww*********",
+    "*I********iii*****ww****",
+    "*II********ii*****ww****",
+    "**I********i******ww****",
+    "**VV**VVV*VVVVVVV*wwww**",
+    "VVVV*wVVV****II*VVw****k",
+    "V****w***********VVVVV*V",
+    "*****w******************",
+    "*****w******************",
+    "*wwwwww**************ii*",
+    "******w*********k****ii*",
+    "******w****wwwww****iiii",
+    "******w***************i*"
+  ],
+  "areas": [
+    {
+      "name": "Landing Zone",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Standing Stones",
+      "position": [
+        16,
+        12
+      ]
+    },
+    {
+      "name": "Broken Colonnade",
+      "position": [
+        8,
+        6
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        23,
+        17
+      ],
+      [
+        21,
+        16
+      ],
+      [
+        23,
+        13
+      ],
+      [
+        22,
+        17
+      ]
+    ],
+    "enemySpawns": [
+      [
+        0,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        0
+      ]
+    ]
+  }
+}

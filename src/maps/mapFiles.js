@@ -42,6 +42,11 @@ export async function loadMap(id) {
   return parseMapFile(entry.record, entry.id)
 }
 
+// Deletes maps/{id}.json. Returns the updated list of maps.
+export async function deleteMap(id) {
+  return summary(await callEndpoint('DELETE', { id }))
+}
+
 // Saves maps/{map.id}.json; previousId renames the file the map was opened from. Returns the updated list of maps.
 export async function saveMap(map, previousId = null) {
   return summary(await callEndpoint('PUT', { id: map.id, previousId, record: serializeMap(map) }))

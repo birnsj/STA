@@ -8,6 +8,12 @@ export const CARD_IMAGE = catalogue.imageSize
 
 export const isDrawnCard = (card) => typeof card === 'string' && card.startsWith('/')
 
+// The file name (without .png) of a picture Generate Card drew, or null for catalogue cards.
+export const drawnCardFileId = (card) => {
+  const match = isDrawnCard(card) && /^\/art\/episodes\/([^/?]+)\.png/.exec(card)
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 // { id, label, image }, or null when the card is empty or no longer in the catalogue.
 export const cardFor = (card) =>
   isDrawnCard(card) ? { id: card, label: 'Generated picture', image: card } : (EPISODE_CARDS.find((entry) => entry.id === card) ?? null)

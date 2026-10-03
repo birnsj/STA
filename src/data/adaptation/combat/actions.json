@@ -1,21 +1,24 @@
 {
   "notes": [
-    "Designer spec action economy: each turn has 1 minor and 1 major action. First pass implements Move, Aim, Attack and End Turn.",
-    "Designer decision (Oct 2026): movement can be split. The first Move spends the minor action; any tiles left can be walked later the same turn at no extra action. Aim as the minor action means no movement that turn.",
+    "Designer decision (Oct 2026), replacing the book's minor/major split (STA 2e Quickstart p. 23-24): every combatant (party and enemies) starts each turn with actionPoints AP; each action costs apCost. Any action except Move may be repeated in a turn (e.g. Attack + Attack). First pass implements Move, Aim, Attack and End Turn.",
+    "Designer decision (Oct 2026): Move is once per turn and goes up to the character's full movement allowance (Fitness-based); unused tiles are lost.",
+    "Designer decision (Oct 2026): at 0 AP the turn ends by itself (to the next party member with AP, else onward). End Turn (free) ends a turn with AP left.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically (removed from the mockup's panel).",
-    "panel: the actions shown in the Actions panel, in mockup order. The others are defined for later passes."
+    "panel: the actions shown in the Actions panel, in mockup order. The others are defined for later passes.",
+    "Designer decision (Oct 2026): Attack and Aim are not in the panel. Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim, Use Item and Info. Clicking a party member shows Assist (and Switch, to hand them the turn)."
   ],
-  "panel": ["attack", "aim", "move", "assist", "useItem", "endTurn"],
+  "actionPoints": 2,
+  "panel": ["move", "assist", "useItem", "endTurn"],
   "actions": [
-    { "id": "move", "name": "Move", "slot": "minor", "implemented": true, "description": "End next to a cover object to be in cover." },
-    { "id": "aim", "name": "Aim", "slot": "minor", "implemented": true, "description": "Reroll one attack die this turn." },
-    { "id": "useItem", "name": "Use Item", "slot": "minor", "implemented": false },
-    { "id": "interact", "name": "Interact", "slot": "minor", "implemented": false },
-    { "id": "attack", "name": "Attack", "slot": "major", "implemented": true },
-    { "id": "sprint", "name": "Sprint", "slot": "major", "implemented": false },
-    { "id": "assist", "name": "Assist", "slot": "major", "implemented": false },
-    { "id": "firstAid", "name": "First Aid", "slot": "major", "implemented": false },
-    { "id": "guard", "name": "Guard", "slot": "major", "implemented": false },
-    { "id": "endTurn", "name": "End Turn", "slot": "free", "implemented": true }
+    { "id": "move", "name": "Move", "apCost": 1, "implemented": true, "description": "Once per turn: walk up to your full movement. End next to a cover object to be in cover." },
+    { "id": "aim", "name": "Aim", "apCost": 1, "implemented": true, "description": "Reroll one die on your next attack this turn." },
+    { "id": "useItem", "name": "Use Item", "apCost": 1, "implemented": false },
+    { "id": "interact", "name": "Interact", "apCost": 1, "implemented": false },
+    { "id": "attack", "name": "Attack", "apCost": 1, "implemented": true },
+    { "id": "sprint", "name": "Sprint", "apCost": 1, "implemented": false },
+    { "id": "assist", "name": "Assist", "apCost": 1, "implemented": true, "description": "Pick an ally who still has a turn this round. Their next attack adds your 1d20; its success counts if they score at least one." },
+    { "id": "firstAid", "name": "First Aid", "apCost": 1, "implemented": false },
+    { "id": "guard", "name": "Guard", "apCost": 1, "implemented": false },
+    { "id": "endTurn", "name": "End Turn", "apCost": 0, "implemented": true }
   ]
 }

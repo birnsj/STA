@@ -3,7 +3,7 @@
     "Prototype combat adaptation (designer spec, Oct 2026), not Captain's Log rules. Captain's Log personal conflict (pp.203-206) has no range bands, weapon Severity, or Stun/Deadly modes.",
     "A successful attack causes exactly 1 Hit. Severity is not damage; it is recorded on the final Hit for later injury systems.",
     "Weapons link to carried equipment by itemId (items.json for phasers). The Unarmed Strike is always available.",
-    "beamColor: presentation only (the shot effect on the battlefield). Weapons without one show a strike flash instead of a beam.",
+    "beamColor: presentation only (the shot effect on the battlefield). Weapons without one show a strike flash instead of a beam. beamColors: { injuryModeId: colour } overrides it per mode (phasers: blue Stun, red Deadly).",
     "attackSound: presentation only (audio/uiSounds.js): phaser or punch. The disruptor uses the phaser sound as a placeholder until it has its own.",
     "maximumRange: designer decision - pistols stop at Long; only rifles reach Extreme. Each band beyond optimalRange adds +1 Difficulty."
   ],
@@ -47,7 +47,7 @@
       "optimalRange": "medium",
       "maximumRange": "long",
       "focuses": ["Hand Phasers"],
-      "beamColor": "#ff9b3d",
+      "beamColors": { "stun": "#5cc8ff", "deadly": "#ff4a32" },
       "attackSound": "phaser",
       "sourceType": "adaptation"
     },
@@ -63,7 +63,7 @@
       "optimalRange": "long",
       "maximumRange": "long",
       "focuses": ["Hand Phasers"],
-      "beamColor": "#ff9b3d",
+      "beamColors": { "stun": "#5cc8ff", "deadly": "#ff4a32" },
       "attackSound": "phaser",
       "sourceType": "adaptation"
     },
@@ -79,7 +79,7 @@
       "optimalRange": "long",
       "maximumRange": "extreme",
       "focuses": ["Hand Phasers"],
-      "beamColor": "#ff9b3d",
+      "beamColors": { "stun": "#5cc8ff", "deadly": "#ff4a32" },
       "attackSound": "phaser",
       "sourceType": "adaptation",
       "note": "Severity and qualities undefined in the spec. Nobody carries one in the first encounter."

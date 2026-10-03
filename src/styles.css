@@ -4284,6 +4284,109 @@ dd {
   opacity: 0.7;
 }
 
+/* Action buttons around a clicked unit (UnitActionRing). */
+.unit-ring {
+  animation: unit-ring-in 0.15s ease-out;
+}
+
+@keyframes unit-ring-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.unit-ring-button {
+  cursor: pointer;
+}
+
+.unit-ring-button circle {
+  fill: rgba(6, 12, 28, 0.92);
+  stroke: #47a8ff;
+  stroke-width: 1.5;
+}
+
+.unit-ring-button path {
+  fill: none;
+  stroke: #cfe3ff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.unit-ring-button text {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: #e8ecf5;
+  paint-order: stroke;
+  stroke: #040a18;
+  stroke-width: 2.5px;
+}
+
+.unit-ring-button:not(.is-disabled):hover circle,
+.unit-ring-button.is-active circle {
+  fill: #10295f;
+  stroke: var(--yellow);
+}
+
+.unit-ring-button.is-stun circle {
+  stroke: #47a8ff;
+}
+
+.unit-ring-button.is-deadly circle {
+  stroke: var(--red);
+}
+
+.unit-ring-button.is-deadly path {
+  stroke: #ff8a84;
+}
+
+.unit-ring-button.is-disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+/* Already used this turn (Aim), or the AI's choice in Auto Combat: lit, not faded. */
+.unit-ring-button.is-disabled.is-active {
+  opacity: 1;
+}
+
+.unit-ring-button.is-active circle {
+  stroke: var(--yellow);
+  stroke-width: 2.5;
+}
+
+.unit-ring-info {
+  padding: 5px 7px;
+  background: rgba(6, 12, 28, 0.94);
+  border: 1px solid var(--panel-border);
+  border-left: 4px solid var(--yellow);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--text);
+}
+
+.unit-ring-info-title {
+  margin-bottom: 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unit-ring-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.unit-ring-info-row span:first-child {
+  color: var(--text-muted);
+}
+
 /* Action effects: durations divide by --fx-speed (Auto Combat 1x/2x/4x). */
 .fx-anchor {
   transition-property: transform;
@@ -4755,6 +4858,8 @@ dd {
 }
 
 .actions-slot {
+  flex: none;
+  white-space: nowrap;
   font-size: 9px;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -4775,6 +4880,18 @@ dd {
 
 .actions-weapon:disabled {
   cursor: default;
+}
+
+.actions-weapon-row {
+  gap: 6px;
+  padding: 1px 4px 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.actions-weapon-row .actions-weapon {
+  max-width: none;
+  font-size: 11px;
 }
 
 .target-body {
@@ -4876,6 +4993,32 @@ dd {
 .injury-button.is-deadly.is-selected {
   border-color: var(--red);
   background: rgba(226, 70, 61, 0.25);
+}
+
+.assist-allies {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.assist-ally {
+  padding: 3px 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: none;
+  font-size: 11px;
+  text-align: left;
+}
+
+.assist-ally.is-selected {
+  border-color: var(--yellow);
+  background: rgba(246, 185, 40, 0.15);
+  color: var(--yellow);
+}
+
+.task-assist {
+  color: #7fd3ff;
 }
 
 .task-confirm {
@@ -5005,6 +5148,18 @@ dd {
   border-color: #4a5468;
   color: #6b7486;
   text-decoration: line-through;
+}
+
+.action-point.is-pip {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 2px;
+  background: #3ccf7a;
+}
+
+.action-point.is-pip.is-used {
+  background: #2b3242;
 }
 
 .actions-panel-title {
@@ -5151,15 +5306,108 @@ dd {
   fill: rgba(107, 116, 134, 0.12);
 }
 
-.actions-button.is-highlight {
-  border-color: var(--yellow);
-  color: var(--yellow);
-  animation: end-turn-pulse 1.2s ease-in-out infinite;
+/* Small: the turn ends by itself at 0 AP, so this is only for ending a turn early. */
+.actions-end-turn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0 auto;
+  padding: 1px 8px 2px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: none;
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
-@keyframes end-turn-pulse {
-  50% {
-    box-shadow: 0 0 10px rgba(246, 185, 40, 0.65);
+.actions-end-turn .actions-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.actions-end-turn:hover:not(:disabled) {
+  background: rgba(44, 102, 216, 0.25);
+  color: var(--text);
+}
+
+/* The turn is about to end by itself: a bar along the bottom of End Turn runs down to the hand-over. */
+.actions-auto-end {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--yellow);
+  transform-origin: left center;
+  animation: auto-end-run linear forwards;
+}
+
+@keyframes auto-end-run {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Turn hand-over banner: fades in, holds, fades out, and never blocks clicks. */
+.combat-turn-banner {
+  position: absolute;
+  top: 190px;
+  left: 250px;
+  right: 180px;
+  margin: 0 auto;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 36px;
+  border-top: 2px solid var(--yellow);
+  border-bottom: 2px solid var(--yellow);
+  background: linear-gradient(90deg, rgba(6, 12, 28, 0), rgba(6, 12, 28, 0.92) 20%, rgba(6, 12, 28, 0.92) 80%, rgba(6, 12, 28, 0));
+  pointer-events: none;
+  opacity: 0;
+  animation: turn-banner 1.6s ease-out forwards;
+}
+
+.combat-turn-banner.is-enemy {
+  border-color: #e05050;
+}
+
+.combat-turn-banner-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.combat-turn-banner.is-enemy .combat-turn-banner-title {
+  color: #ff7a7a;
+}
+
+.combat-turn-banner-subtitle {
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+@keyframes turn-banner {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -5279,6 +5527,18 @@ dd {
 
 .roll-reroll.is-momentum {
   border-color: #47a8ff;
+}
+
+/* The helper's die sits apart from the attacker's two. */
+.roll-assist {
+  padding-left: 8px;
+  border-left: 1px dashed var(--panel-border);
+}
+
+.roll-assist-label {
+  font-size: 9.5px;
+  color: #7fd3ff;
+  text-transform: uppercase;
 }
 
 .roll-outcome {
@@ -5778,6 +6038,18 @@ dd {
 
 .episode-select-card .episode-select-label {
   font-size: 14px;
+}
+
+.episode-select-item { position: relative; }
+
+/* Dev only, over the card art's top-right corner. */
+.episode-select-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 1px 6px;
+  font-size: 10px;
+  background: rgba(3, 6, 14, 0.8);
 }
 
 /* Episode card art is 16:9; episodes without a card keep an empty frame so the grid stays even. */

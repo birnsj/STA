@@ -5,29 +5,47 @@
 //
 // Profiles:
 // Cover is automatic next to a cover object (no Take Cover action), so "taking cover" always means moving there.
-// - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (first moving into cover if a covered tile
-//   keeps the shot, else aiming); otherwise move to the best reachable firing position (lower Difficulty, covered preferred,
-//   fewer steps); otherwise close the distance. Prefers Deadly.
+// Both profiles spend 2 AP a turn, 1 per action (actions.json).
+// - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (with 2 AP, first moving into cover if
+//   a covered tile keeps the shot, else aiming); otherwise move to the best reachable firing position (lower Difficulty,
+//   covered preferred, fewer steps); otherwise close the distance. Prefers Deadly.
 // - player (Auto Combat spec): best available shot across all enemies (lowest Difficulty, exposed, most Hits, nearest);
-//   when exposed to fire, move next to cover if a shot is still available from there; otherwise Aim when it can still
-//   change the result; after attacking, use leftover movement to reach cover; Stun unless the encounter allows Deadly;
-//   spends Momentum (see pendingStep etc.).
+//   with 2 AP, when exposed to fire, move next to cover if a shot is still available from there, otherwise Aim when it
+//   can still change the result; after attacking with AP left, move into cover if possible, else attack again; with no
+//   shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly; spends Momentum
+//   (see pendingStep etc.).
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getReachableTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { getWeapon } from './weaponSystem.js'
-import { canMove, getActiveCombatant, getBlockers, getEncounter, getOpponents, getReachable, isActive, MAX_HITS, previewAttack } from './combatState.js'
+import {
+  canAfford,
+  canMove,
+  evaluateAttack,
+  getActiveCombatant,
+  getAssistableAllies,
+  getBlockers,
+  getEncounter,
+  getHitChance,
+  getOpponents,
+  getReachable,
+  isActive,
+  MAX_HITS,
+  previewAttack,
+} from './combatState.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
 // AI tuning (implementation detail, not rules): how much a covered firing position is worth in Difficulty steps x10,
 // and the lowest chance a single rerolled die must have of succeeding before Momentum is spent on it.
 const COVER_PREFERENCE = 2
 const MOMENTUM_REROLL_MIN_CHANCE = 0.3
+// The smallest rise in an ally's chance to hit that is worth an AP on Assist.
+const MIN_ASSIST_GAIN = 0.05
 
 const PROFILES = {
-  enemy: { targeting: 'nearest', minorAction: 'coverThenAim', coverAfterAttack: false },
-  player: { targeting: 'bestShot', minorAction: 'tactical', coverAfterAttack: true },
+  enemy: { targeting: 'nearest', minorAction: 'coverThenAim', coverAfterAttack: false, assists: false },
+  player: { targeting: 'bestShot', minorAction: 'tactical', coverAfterAttack: true, assists: true },
 }
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
@@ -109,10 +127,10 @@ function attackAction(state, self, target, shot) {
 function pendingStep(state, self) {
   const { pending } = state
   const { targetNumber, difficulty } = pending.task
-  const successes = pending.dice.filter((value) => value <= targetNumber).length
+  const { successes, passed } = evaluateAttack(pending)
   const failed = pending.dice.map((value, index) => ({ value, index })).filter((die) => die.value > targetNumber)
   const worst = failed.sort((a, b) => b.value - a.value)[0]
-  if (successes < difficulty && worst) {
+  if (!passed && worst) {
     if (pending.aimReroll) return { type: 'reroll', source: 'aim', dieIndex: worst.index, decision: 'Aim reroll', reason: `Attack failing; rerolling the failed ${worst.value}.` }
     // Only when one more success would pass and the new die has a fair chance of giving it.
     const chance = dieChance(targetNumber)
@@ -141,7 +159,7 @@ function momentumHitStep(state, self) {
 // Threat adds +1 Difficulty to the party's next attack, which with two dice costs far more than a single reroll is worth,
 // so Momentum cancels it whenever this character still has an attack to make.
 function cancelThreatStep(state, self) {
-  if (self.side !== 'player' || !state.momentum || !state.threat || state.turn.majorUsed) return null
+  if (self.side !== 'player' || !state.momentum || !state.threat || !state.turn.ap) return null
   return { type: 'cancelThreat', decision: 'Spend Momentum: cancel Threat', reason: 'Threat would add +1 Difficulty to the next attack.' }
 }
 
@@ -201,7 +219,7 @@ function moveIntoCoverWithShot(state, self, target, shot, why) {
   }
 }
 
-// After attacking: use any movement left to step into the nearest cover.
+// After attacking with AP left: Move into the nearest cover.
 function coverAfterAttackStep(state, self) {
   if (self.inCover || !canMove(state, self)) return null
   const covered = [...getReachable(state, self).values()]
@@ -211,7 +229,42 @@ function coverAfterAttackStep(state, self) {
   return { type: 'move', destination: covered.position, decision: 'Move into cover', reason: `Attack made; ${plural(covered.steps, 'tile')} away is next to cover.` }
 }
 
-// Player profile minor action before shooting, or null to attack straight away.
+// Chance a shot hits, counting a target in cover as one Difficulty harder (its cover roll usually raises it).
+function expectedChance(state, attackerId, shot) {
+  const task = shot.targetInCover ? { ...shot.task, difficulty: shot.task.difficulty + 1 } : shot.task
+  return getHitChance(state, attackerId, { ...shot, task })
+}
+
+// Assist the ally (who can still attack this round) whose chance to hit it raises most, judged on their best shot from
+// where they stand, else from a firing position they can walk to. Chosen only when that gain beats ownChance, the
+// chance of this character's own attack (0 = no shot). An assist die only adds a success the ally still needs, so it
+// mostly pays at Difficulty 2+. Only party members share a turn, so only the player profile assists.
+function assistStep(state, self, ownChance) {
+  if (!PROFILES[self.side].assists || !canAfford(state, self, 'assist')) return null
+  const assisted = (allyId) => ({ ...state, assists: { ...state.assists, [allyId]: self.id } })
+  const options = getAssistableAllies(state, self)
+    .map((ally) => {
+      const here = bestShotTarget(state, ally)
+      const move = here ? null : moveStep(state, ally, getOpponents(state, ally))
+      const shot = here?.shot ?? (move?.weaponId ? previewAttack(state, ally.id, move.targetId, move.weaponId, move.destination) : null)
+      if (!shot) return null
+      return { ally, shot, gain: expectedChance(assisted(ally.id), ally.id, shot) - expectedChance(state, ally.id, shot) }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.gain - a.gain)
+  const best = options[0]
+  if (!best || best.gain < MIN_ASSIST_GAIN || best.gain <= ownChance) return null
+  const name = best.ally.character.name
+  const own = ownChance ? `its own shot hits ${Math.round(ownChance * 100)}%` : 'no shot of its own'
+  return {
+    type: 'assist',
+    allyId: best.ally.id,
+    decision: `Assist ${name}`,
+    reason: `${own}; +1d20 raises ${name}'s chance by ${Math.round(best.gain * 100)}% (${shotSummary(best.shot)}${best.shot.targetInCover ? ', target in cover' : ''}).`,
+  }
+}
+
+// Player profile preparation before shooting (with AP for both), or null to attack straight away.
 function tacticalMinor(state, self, target, shot) {
   const threats = self.inCover ? [] : threatsTo(state, self)
   const planned = { targetId: target.id, weaponId: shot.weapon.id }
@@ -232,11 +285,7 @@ export function nextAIStep(state) {
   const extraHit = momentumHitStep(state, self)
   if (extraHit) return extraHit
 
-  if (state.turn.majorUsed) {
-    const cover = profile.coverAfterAttack ? coverAfterAttackStep(state, self) : null
-    if (cover) return cover
-    return { type: 'endTurn', decision: 'End turn', reason: 'Attack made; ending turn.' }
-  }
+  if (!state.turn.ap) return { type: 'endTurn', decision: 'End turn', reason: 'No AP left.' }
   const cancel = cancelThreatStep(state, self)
   if (cancel) return cancel
 
@@ -246,7 +295,10 @@ export function nextAIStep(state) {
 
   if (choice?.shot) {
     const { target, shot } = choice
-    if (!state.turn.minorUsed) {
+    const assist = assistStep(state, self, expectedChance(state, self.id, shot))
+    if (assist) return assist
+    // With AP for both, one goes on preparing the shot (cover or Aim) and the last on the attack.
+    if (state.turn.ap > 1 && !state.turn.attacks) {
       if (profile.minorAction === 'coverThenAim') {
         const planned = { targetId: target.id, weaponId: shot.weapon.id }
         const move = moveIntoCoverWithShot(state, self, target, shot, `${target.character.name} is in range (${shot.band.name})`)
@@ -256,11 +308,17 @@ export function nextAIStep(state) {
       const minor = tacticalMinor(state, self, target, shot)
       if (minor) return minor
     }
+    // After attacking with AP left, the player profile first gets into cover; otherwise it attacks again.
+    if (state.turn.attacks && profile.coverAfterAttack) {
+      const cover = coverAfterAttackStep(state, self)
+      if (cover) return cover
+    }
     return attackAction(state, self, target, shot)
   }
-  if (!state.turn.minorUsed) {
-    const move = moveStep(state, self, profile.targeting === 'nearest' ? [nearest] : getOpponents(state, self))
-    if (move) return move
-  }
+  // No shot from here: walk to a firing position, else close the distance; with no move left, Assist an ally instead.
+  const move = moveStep(state, self, profile.targeting === 'nearest' ? [nearest] : getOpponents(state, self))
+  if (move) return move
+  const assist = assistStep(state, self, 0)
+  if (assist) return assist
   return { type: 'endTurn', decision: 'End turn', reason: `No shot at ${nearest.character.name} this turn.` }
 }
