@@ -4,7 +4,8 @@
     "PLACEHOLDER stats (designer-approved): authored in creator-legal ranges, 56 attribute points and 16 discipline points like a finished character. Not from Captain's Log, which gives no enemy stat blocks.",
     "Klingon species attribute bonuses are the book's (p.98: +1 Daring, +1 Fitness, +1 Presence). Klingons are not in the creator's species list.",
     "identity.portrait.image is used because Klingon portraits are not in portraits.json.",
-    "Warriors 3 and 4 are copies of Warriors 1 and 2 (same placeholder stats and portrait art) until they get their own."
+    "Warriors 3 and 4 are copies of Warriors 1 and 2 (same placeholder stats and portrait art) until they get their own.",
+    "Designer decision (Oct 2026): every Klingon has the Klingon Weapons focus (fits the disruptor, so their Aim rerolls both dice)."
   ],
   "enemies": [
     {
@@ -35,7 +36,7 @@
           "attributes": { "control": 9, "daring": 11, "fitness": 11, "insight": 8, "presence": 9, "reason": 8 },
           "disciplines": { "command": 2, "conn": 3, "engineering": 2, "security": 5, "science": 2, "medicine": 2 },
           "values": [],
-          "focuses": [],
+          "focuses": ["Klingon Weapons"],
           "traits": [{ "id": "klingon", "name": "Klingon" }],
           "equipment": [{ "itemId": "disruptorPistol", "name": "Disruptor Pistol" }]
         }
@@ -69,7 +70,7 @@
           "attributes": { "control": 10, "daring": 10, "fitness": 11, "insight": 8, "presence": 9, "reason": 8 },
           "disciplines": { "command": 3, "conn": 2, "engineering": 2, "security": 4, "science": 2, "medicine": 3 },
           "values": [],
-          "focuses": [],
+          "focuses": ["Klingon Weapons"],
           "traits": [{ "id": "klingon", "name": "Klingon" }],
           "equipment": [{ "itemId": "disruptorPistol", "name": "Disruptor Pistol" }]
         }
@@ -103,7 +104,7 @@
           "attributes": { "control": 9, "daring": 11, "fitness": 11, "insight": 8, "presence": 9, "reason": 8 },
           "disciplines": { "command": 2, "conn": 3, "engineering": 2, "security": 5, "science": 2, "medicine": 2 },
           "values": [],
-          "focuses": [],
+          "focuses": ["Klingon Weapons"],
           "traits": [{ "id": "klingon", "name": "Klingon" }],
           "equipment": [{ "itemId": "disruptorPistol", "name": "Disruptor Pistol" }]
         }
@@ -137,7 +138,7 @@
           "attributes": { "control": 10, "daring": 10, "fitness": 11, "insight": 8, "presence": 9, "reason": 8 },
           "disciplines": { "command": 3, "conn": 2, "engineering": 2, "security": 4, "science": 2, "medicine": 3 },
           "values": [],
-          "focuses": [],
+          "focuses": ["Klingon Weapons"],
           "traits": [{ "id": "klingon", "name": "Klingon" }],
           "equipment": [{ "itemId": "disruptorPistol", "name": "Disruptor Pistol" }]
         }

@@ -4,6 +4,8 @@
 import { blocksMovement, NEIGHBOUR_OFFSETS, samePosition, tileKey } from './battleMap.js'
 
 export const getMovementTiles = (character) => Math.floor(character.attributes.fitness / 2) + 1
+// Designer decision (Oct 2026): Sprint (1 AP, no roll, once per turn) goes half the movement allowance, rounded up.
+export const getSprintTiles = (character) => Math.ceil(getMovementTiles(character) / 2)
 
 function canStep(map, from, offset, blockedKeys) {
   const [dx, dy] = offset

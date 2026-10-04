@@ -4729,6 +4729,31 @@ dd {
   color: var(--text);
 }
 
+/* The optional opening Ambush, offered under the hint until anyone acts. */
+.combat-ambush {
+  display: block;
+  margin: 5px auto 0;
+  padding: 2px 10px;
+  border: 1px solid var(--yellow);
+  border-radius: 3px;
+  background: none;
+  font-size: 12px;
+  color: var(--yellow);
+}
+
+.combat-ambush:disabled {
+  border-color: var(--panel-border);
+  color: var(--text-muted);
+  background: none;
+  cursor: default;
+}
+
+.combat-ambush:not(:disabled):hover,
+.combat-ambush.is-selected {
+  background: var(--yellow);
+  color: #10121a;
+}
+
 .combat-modal.combat-help {
   width: 600px;
   padding: 14px 20px;
@@ -5516,6 +5541,12 @@ dd {
   box-shadow: 0 0 8px var(--red);
 }
 
+.roll-die.is-rolling {
+  background: rgba(120, 160, 255, 0.12);
+  border: 2px solid var(--panel-border);
+  color: var(--text-muted);
+}
+
 .roll-reroll {
   padding: 1px 5px;
   border: 1px solid var(--panel-border);
@@ -5701,6 +5732,31 @@ dd {
 .auto-speed.is-selected {
   border-color: var(--yellow);
   color: var(--yellow);
+}
+
+.auto-ai {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+}
+
+.auto-ai-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.auto-ai-select {
+  padding: 2px 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: #0b1424;
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
 }
 
 .combat-setup-seed {

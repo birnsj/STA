@@ -8,11 +8,11 @@ import encounterData from '../data/adaptation/combat/encounters.json'
 import enemyData from '../data/adaptation/combat/enemies.json'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
-import { buildTask, evaluateTask, rerollDie, rollDice, TASK_DICE } from '../rules/taskResolver.js'
+import { buildTask, evaluateTask, findApplicableFocus, rerollDie, rollDice, TASK_DICE } from '../rules/taskResolver.js'
 import { tileKey, toBattleMap } from './battleMap.js'
 import { applyCoverToDifficulty, canTakeCover, rollCoverDefence } from './coverSystem.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
-import { findPath, getMovementTiles, getReachableTiles } from './movementSystem.js'
+import { findPath, getMovementTiles, getReachableTiles, getSprintTiles } from './movementSystem.js'
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { getAttackTaskSpec, getCharacterWeapons, getInjuryMode, getRangeModifier, getWeapon } from './weaponSystem.js'
 
@@ -35,7 +35,7 @@ const facingToward = (from, to) => {
 
 export const TURN_AP = actionData.actionPoints
 const AP_COST = Object.fromEntries(actionData.actions.map((entry) => [entry.id, entry.apCost]))
-const freshTurn = () => ({ ap: TURN_AP, aimReroll: false, done: false, attacks: 0, moved: false })
+const freshTurn = () => ({ ap: TURN_AP, aimReroll: false, done: false, attacks: 0, moved: false, sprinted: false })
 const spendAP = (turn, actionId) => ({ ...turn, ap: Math.max(0, turn.ap - AP_COST[actionId]) })
 
 function createCombatant(character, { side, controller, position }) {
@@ -71,7 +71,7 @@ function createStats(combatants) {
     attacksHit: 0,
     momentum: { gained: 0, spentReroll: 0, spentHit: 0, spentCancelThreat: 0 },
     threat: { gained: 0, used: 0, cancelled: 0 },
-    byCombatant: Object.fromEntries(combatants.map((combatant) => [combatant.id, { attacks: 0, attacksHit: 0, hitsLanded: 0, hitsTaken: 0 }])),
+    byCombatant: Object.fromEntries(combatants.map((combatant) => [combatant.id, { attacks: 0, attacksHit: 0, hitsLanded: 0, hitsTaken: 0, lastAttackRound: 0 }])),
   }
 }
 
@@ -128,6 +128,8 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
     assists: {},
     momentum: 0,
     threat: 0,
+    // null until the party ambushes or is spotted first (see canAmbush); then { ambusherId, targetId, success } or { passed: true }.
+    ambush: null,
     pending: null,
     result: null,
     outcome: null,
@@ -183,9 +185,11 @@ export function getFacing(state, combatant) {
 
 export const getTurnOf = (state, id) => (id === state.order[state.turnIndex] ? state.turn : state.groupTurns[id] ?? freshTurn())
 
-// How far a Move could go now: the full movement allowance if the character has AP and hasn't moved this turn, else nothing.
-export function getMovementLeft(state, combatant) {
+// How far a Move (kind 'move') or Sprint (kind 'sprint') could go now: the full allowance if the character has AP and
+// hasn't used that action this turn, else nothing. Move and Sprint are each once per turn, in either order.
+export function getMovementLeft(state, combatant, kind = 'move') {
   const turn = getTurnOf(state, combatant.id)
+  if (kind === 'sprint') return turn.ap >= AP_COST.sprint && !turn.sprinted ? getSprintTiles(combatant.character) : 0
   return turn.ap >= AP_COST.move && !turn.moved ? getMovementTiles(combatant.character) : 0
 }
 
@@ -200,9 +204,30 @@ export function isTurnFinished(state, id) {
 export function rollAwaitsPlayer(state) {
   const { pending } = state
   if (!pending || state.combatants[pending.attackerId].side !== 'player') return false
-  const canReroll = pending.aimReroll || state.momentum > 0
-  return canReroll && !evaluateAttack(pending).passed
+  const evaluation = evaluateAttack(pending)
+  const canReroll = state.momentum > 0 || evaluation.dice.some((die, index) => !die.success && canAimReroll(pending, index))
+  return canReroll && !evaluation.passed
 }
+
+// Designer decision (Oct 2026), adapting Book p.79 (a focus grants a narrative Advantage, p.268): Aim lets the next attack
+// reroll one die, or both dice (each once) when the attacker has a focus that fits the weapon. A focus without Aim does nothing.
+export const aimRerollsFor = (task) => (task.focus ? TASK_DICE : 1)
+
+export const aimText = (focus) =>
+  focus ? `may reroll both dice on the next attack this turn (focus: ${focus})` : 'may reroll one die on the next attack this turn'
+
+// The attacker's first focus that fits one of their weapons, i.e. the focus that makes their Aim reroll both dice.
+export function getAimFocus(combatant) {
+  for (const weaponId of combatant.weaponIds) {
+    const focus = findApplicableFocus(combatant.character.focuses, getWeapon(weaponId).focuses)
+    if (focus) return focus
+  }
+  return null
+}
+
+// Whether Aim can still reroll this die of the pending attack (rerolls left, and Aim hasn't rerolled this die yet).
+export const canAimReroll = (pending, dieIndex) =>
+  pending.aimRerolls > 0 && !pending.rerolls.some((reroll) => reroll.source === 'aim' && reroll.index === dieIndex)
 
 // Enemies cannot be passed; allies can be passed but not stopped on. Defeated combatants do not block.
 export function getBlockers(state, combatant) {
@@ -215,17 +240,18 @@ export function getBlockers(state, combatant) {
   return { blockedKeys, occupiedKeys }
 }
 
-export function getReachable(state, combatant) {
-  return getReachableTiles(state.map, combatant.position, getMovementLeft(state, combatant), getBlockers(state, combatant))
+export function getReachable(state, combatant, kind = 'move') {
+  return getReachableTiles(state.map, combatant.position, getMovementLeft(state, combatant, kind), getBlockers(state, combatant))
 }
 
-export function getPathTo(state, combatant, destination) {
-  return findPath(state.map, combatant.position, destination, getMovementLeft(state, combatant), getBlockers(state, combatant))
+export function getPathTo(state, combatant, destination, kind = 'move') {
+  return findPath(state.map, combatant.position, destination, getMovementLeft(state, combatant, kind), getBlockers(state, combatant))
 }
 
 export const canAct = (state, combatant) => !state.outcome && !state.pending && getActiveCombatant(state)?.id === combatant.id
 export const canAfford = (state, combatant, actionId) => canAct(state, combatant) && state.turn.ap >= AP_COST[actionId]
 export const canMove = (state, combatant) => canAfford(state, combatant, 'move') && getMovementLeft(state, combatant) > 0
+export const canSprint = (state, combatant) => canAfford(state, combatant, 'sprint') && getMovementLeft(state, combatant, 'sprint') > 0
 // Aim doesn't stack: one reroll waits on the next attack at most.
 export const canAim = (state, combatant) => canAfford(state, combatant, 'aim') && !state.turn.aimReroll
 // Everything the Task panel shows before FIRE, and exactly what the attack will use. fromPosition lets the AI test other tiles.
@@ -278,20 +304,64 @@ function assistTaskFor(helper, weapon) {
 
 const dieChance = (targetNumber) => Math.min(20, Math.max(0, targetNumber)) / 20
 
-// Chance an available attack hits, before any cover roll by the target: the attacker's dice, plus the Aim reroll on one
-// failed die and the assist die when the attacker has them. Presentation aid only; the attack itself always rolls.
+// Chance an available attack hits, before any cover roll by the target: the attacker's dice, plus the Aim rerolls (one
+// failed die, or every failed die once with a fitting focus) and the assist die when the attacker has them.
+// Presentation aid only; the attack itself always rolls.
 export function getHitChance(state, attackerId, preview) {
   if (!preview?.available) return 0
   const { targetNumber, difficulty } = preview.task
-  const p = dieChance(targetNumber)
+  const turn = getTurnOf(state, attackerId)
+  const aimAll = turn.aimReroll && aimRerollsFor(preview.task) >= TASK_DICE
+  const base = dieChance(targetNumber)
+  // With every die rerolled once on a failure, each die succeeds with 1 - (1 - p)^2.
+  const p = aimAll ? 1 - (1 - base) ** 2 : base
   // successes[k] = chance of exactly k successes on the attacker's dice.
   let successes = [1]
   for (let die = 0; die < TASK_DICE; die++) successes = [...successes, 0].map((chance, k) => chance * (1 - p) + (k ? successes[k - 1] * p : 0))
-  const turn = getTurnOf(state, attackerId)
-  if (turn.aimReroll) successes = successes.map((chance, k) => (k < TASK_DICE ? chance * (1 - p) : chance) + (k > 0 ? successes[k - 1] * p : 0))
+  if (turn.aimReroll && !aimAll) successes = successes.map((chance, k) => (k < TASK_DICE ? chance * (1 - p) : chance) + (k > 0 ? successes[k - 1] * p : 0))
   const helper = state.assists[attackerId] && state.combatants[state.assists[attackerId]]
   const assist = helper && isActive(helper) ? dieChance(assistTaskFor(helper, preview.weapon).targetNumber) : 0
   return successes.reduce((total, chance, k) => total + chance * (k >= difficulty ? 1 : k > 0 && k + 1 >= difficulty ? assist : 0), 0)
+}
+
+// Designer decision (Oct 2026), from the book's stealth attribute (Captain's Log p.74: Control for "remaining stealthy") and
+// ambush (p.205: the ambusher "may score an automatic hit"): on a party turn, until anyone attacks (either side), the party
+// may try one Ambush, so it can sneak into position over several rounds. The party member with the best Control + Security
+// rolls at Difficulty 1; Camouflage or Ambush Tactics rerolls one failed die for free. Success: 1 Hit on the chosen Klingon.
+// Failure: the Klingons act first for the rest of the fight, starting now. Costs no AP.
+export const AMBUSH_DIFFICULTY = 1
+const AMBUSH_FOCUSES = ['Camouflage', 'Ambush Tactics']
+
+export const canAmbush = (state) => state.ambush === null && !state.outcome && !state.pending && getActiveCombatant(state).side === 'player'
+
+export function getAmbusher(state) {
+  const score = (combatant) => combatant.character.attributes.control + combatant.character.disciplines.security
+  return getCombatantList(state)
+    .filter((combatant) => combatant.side === 'player' && isActive(combatant))
+    .reduce((best, combatant) => (!best || score(combatant) > score(best) ? combatant : best), null)
+}
+
+export function previewAmbush(state, targetId) {
+  const ambusher = getAmbusher(state)
+  const target = state.combatants[targetId]
+  if (!ambusher) return { available: false, reason: 'No one can ambush.' }
+  const task = buildTask(ambusher.character, { attribute: 'control', discipline: 'security', difficulty: AMBUSH_DIFFICULTY, focusCandidates: AMBUSH_FOCUSES })
+  // Difficulty 1 fails only when every die fails; the focus reroll gives the last failed die one more try.
+  const miss = 1 - dieChance(task.targetNumber)
+  const chance = 1 - miss ** (TASK_DICE + (task.focus ? 1 : 0))
+  const base = { ambusher, target, task, chance }
+  if (!canAmbush(state)) return { ...base, available: false, reason: 'The chance to ambush has passed.' }
+  if (!target || target.side === 'player' || !isActive(target)) return { ...base, available: false, reason: 'Choose a Klingon to ambush.' }
+  // Designer decision (Oct 2026): only a Klingon the ambusher could shoot right now (in a weapon's range, clear line of fire).
+  const inReach = ambusher.weaponIds.some((weaponId) => previewAttack(state, ambusher.id, target.id, weaponId).available)
+  if (!inReach) return { ...base, available: false, reason: `${ambusher.character.name} has no shot at ${target.character.name} (out of range or no line of fire).` }
+  return { ...base, available: true, reason: null }
+}
+
+// The Klingons the ambusher could ambush now.
+export const getAmbushTargets = (state) => {
+  const ambusher = getAmbusher(state)
+  return ambusher ? getOpponents(state, ambusher).filter((enemy) => previewAmbush(state, enemy.id).available) : []
 }
 
 // Whether any opponent could be attacked right now with this weapon (in range and in line of fire).
@@ -432,23 +502,115 @@ function difficultyBreakdown(pending) {
 export function combatReducer(state, action) {
   if (action.type === 'restart') return createCombat(action.options)
   if (!state || state.outcome) return state
+  const next = reduceAction(state, action)
+  // Any attack, by either side, spots the party and ends the ambush chance.
+  if (next !== state && next.ambush === null && action.type === 'attack') return { ...next, ambush: { passed: true } }
+  return next
+}
+
+function ambushStep(state, action) {
+  const preview = previewAmbush(state, action.targetId)
+  if (!preview.available) return state
+  const { ambusher, target, task } = preview
+  const decided = recordDecision(state, ambusher, action)
+  const { random, next: afterDraw } = takeRandom(decided.state)
+  let dice = rollDice(random)
+  const rerolls = []
+  if (task.focus && !evaluateTask(task, dice).passed) {
+    const index = dice.length - 1
+    const rerolled = rerollDie(dice, index, random)
+    rerolls.push({ index, from: dice[index], to: rerolled[index], source: 'focus' })
+    dice = rerolled
+  }
+  const evaluation = evaluateTask(task, dice)
+  let next = {
+    ...afterDraw,
+    momentum: evaluation.momentum ? 1 : state.momentum,
+    threat: evaluation.threat ? 1 : state.threat,
+    ambush: { ambusherId: ambusher.id, targetId: target.id, success: evaluation.passed },
+  }
+  const lines = [
+    ...decided.lines,
+    `Ambush: ${ambusher.character.name} sneaks up on ${target.character.name}`,
+    `${task.attribute.name} ${task.attribute.value} + ${task.discipline.name} ${task.discipline.value} = TN ${task.targetNumber}, Difficulty ${task.difficulty}`,
+    `Focus: ${task.focus ? `${task.focus} (free reroll)` : 'None'}`,
+    ...rerolls.map((reroll) => `Focus reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`),
+    `Rolls: ${dice.join(', ')} (${evaluation.successes} ${evaluation.successes === 1 ? 'success' : 'successes'})`,
+  ]
+  if (evaluation.passed) {
+    const weapon = getWeapon(ambusher.weaponIds[0])
+    next = applyHit(next, target.id, weapon, weapon.injuryModes[0])
+    const after = next.combatants[target.id]
+    next = withStats(next, (stats) => {
+      stats.byCombatant[ambusher.id].hitsLanded += after.hits - target.hits
+      stats.byCombatant[target.id].hitsTaken += after.hits - target.hits
+    })
+    lines.push('RESULT: AMBUSHED', hitLine(target, after))
+  } else {
+    lines.push('RESULT: SPOTTED. The Klingons act first this fight.')
+  }
+  if (evaluation.momentum) lines.push('Momentum gained (both dice succeeded)')
+  if (evaluation.threat) lines.push('Threat gained (rolled a 20)')
+  next = withStats(next, (stats) => {
+    if (evaluation.momentum) stats.momentum.gained += 1
+    if (evaluation.threat) stats.threat.gained += 1
+  })
+  next = markAction(next, 'ambush', ambusher.id, { targetId: target.id, passed: evaluation.passed, removed: !isActive(next.combatants[target.id]) })
+  next = addLog(next, lines)
+  next = {
+    ...next,
+    result: {
+      kind: 'ambush',
+      attackerId: ambusher.id,
+      targetId: target.id,
+      task,
+      cover: null,
+      dice: evaluation.dice,
+      assist: null,
+      rerolls,
+      successes: evaluation.successes,
+      passed: evaluation.passed,
+      momentumGained: evaluation.momentum,
+      threatGained: evaluation.threat,
+      extraHit: false,
+      closed: false,
+    },
+  }
+  if (evaluation.passed) return withOutcome(next)
+  // Spotted: the party's round ends here (anyone yet to act loses that turn) and a new round starts with initiative rebuilt
+  // Klingons first (same tie-breaks as the fight's start), so the Klingons act now and stay first for the rest of the fight.
+  const all = Object.values(next.combatants)
+  const order = buildInitiativeOrder(all, seededRandomInt(state.seed), { firstSide: 'enemy' })
+  const first = next.combatants[order.find((id) => isActive(next.combatants[id]))]
+  const round = state.round + 1
+  next = { ...next, order, round, turnIndex: order.indexOf(first.id), turn: freshTurn(), groupTurns: {}, assists: {}, aiReason: null }
+  next = addLog(next, [`Initiative (Klingons first, then Daring, then Control): ${order.map((id) => next.combatants[id].character.name).join(', ')}`], 'info')
+  next = addLog(next, [`ROUND ${round}`], 'round')
+  return addLog(next, turnHeader(first), 'turn')
+}
+
+function reduceAction(state, action) {
   const actor = getActiveCombatant(state)
 
   switch (action.type) {
-    case 'move': {
-      if (!canMove(state, actor)) return state
-      const path = getPathTo(state, actor, action.destination)
+    case 'ambush':
+      return ambushStep(state, action)
+    case 'move':
+    case 'sprint': {
+      const kind = action.type
+      if (kind === 'move' ? !canMove(state, actor) : !canSprint(state, actor)) return state
+      const path = getPathTo(state, actor, action.destination, kind)
       if (!path || path.length < 2) return state
       const destination = path[path.length - 1]
       const steps = path.length - 1
       const decided = recordDecision(state, actor, action, { path })
       const inCover = canTakeCover(state.map, destination)
       const moved = updateCombatant(decided.state, actor.id, { position: destination, inCover, facing: facingToward(path[path.length - 2], destination) })
-      const turn = { ...spendAP(state.turn, 'move'), moved: true }
+      const turn = { ...spendAP(state.turn, kind), ...(kind === 'move' ? { moved: true } : { sprinted: true }) }
       const next = { ...moved, turn, lastMove: { key: state.log.length, combatantId: actor.id, path } }
-      return addLog(markAction(next, 'move', actor.id, { inCover }), [
+      return addLog(markAction(next, kind, actor.id, { inCover }), [
         ...decided.lines,
-        `Move ${steps} ${steps === 1 ? 'tile' : 'tiles'} (${apLeftText(turn)})`,
+        `${kind === 'move' ? 'Move' : 'Sprint'} ${steps} ${steps === 1 ? 'tile' : 'tiles'} (${apLeftText(turn)})`,
         `Path: ${path.map(formatPosition).join(' > ')}`,
         ...(inCover ? [`${actor.character.name} is in cover (next to a cover object).`] : actor.inCover ? [`${actor.character.name} leaves cover.`] : []),
       ])
@@ -459,7 +621,7 @@ export function combatReducer(state, action) {
       const turn = { ...spendAP(state.turn, 'aim'), aimReroll: true }
       return addLog(markAction({ ...decided.state, turn }, 'aim', actor.id), [
         ...decided.lines,
-        `Aim: may reroll one die on the next attack this turn (${apLeftText(turn)})`,
+        `Aim: ${aimText(getAimFocus(actor))} (${apLeftText(turn)})`,
       ])
     }
     case 'assist': {
@@ -498,7 +660,7 @@ export function combatReducer(state, action) {
         task: { ...preview.task, difficulty },
         dice: rollDice(random),
         rerolls: [],
-        aimReroll: state.turn.aimReroll,
+        aimRerolls: state.turn.aimReroll ? aimRerollsFor(preview.task) : 0,
         assist: null,
       }
       // The helper rolls after the attacker, against their own Target Number for the same attack.
@@ -522,6 +684,7 @@ export function combatReducer(state, action) {
       next = withStats(next, (stats) => {
         stats.attacks += 1
         stats.byCombatant[actor.id].attacks += 1
+        stats.byCombatant[actor.id].lastAttackRound = state.round
         if (preview.threatModifier) stats.threat.used += 1
         if (coverThreat) stats.threat.gained += 1
       })
@@ -533,7 +696,7 @@ export function combatReducer(state, action) {
         `${actor.character.name} attacks ${target.character.name} with ${preview.weapon.name} (${getInjuryMode(action.injuryMode).name})`,
         `Range: ${preview.band.name} (${preview.distance} tiles)`,
         `${task.attribute.name} ${task.attribute.value} + ${task.discipline.name} ${task.discipline.value} = TN ${task.targetNumber}`,
-        `Focus: ${task.focus ?? 'None'}`,
+        `Focus: ${task.focus ? `${task.focus} (${pending.aimRerolls ? 'Aim rerolls both dice' : 'no effect without Aim'})` : 'None'}`,
         cover
           ? `Target cover: ${cover.task.attribute.name} ${cover.task.attribute.value} + ${cover.task.discipline.name} ${cover.task.discipline.value} = TN ${cover.task.targetNumber}, rolls ${cover.dice.join(', ')}, ${cover.successes} ${cover.successes === 1 ? 'success' : 'successes'}`
           : 'Target cover: No',
@@ -548,7 +711,7 @@ export function combatReducer(state, action) {
       const { pending } = state
       if (!pending || action.dieIndex < 0 || action.dieIndex >= pending.dice.length) return state
       const attacker = state.combatants[pending.attackerId]
-      if (action.source === 'aim' && !pending.aimReroll) return state
+      if (action.source === 'aim' && !canAimReroll(pending, action.dieIndex)) return state
       if (action.source === 'momentum' && !(attacker.side === 'player' && state.momentum)) return state
       const decided = recordDecision(state, attacker, action)
       const { random, next: afterDraw } = takeRandom(decided.state)
@@ -557,7 +720,7 @@ export function combatReducer(state, action) {
       let next = {
         ...afterDraw,
         momentum: action.source === 'momentum' ? 0 : state.momentum,
-        pending: { ...pending, dice, rerolls: [...pending.rerolls, reroll], aimReroll: action.source === 'aim' ? false : pending.aimReroll },
+        pending: { ...pending, dice, rerolls: [...pending.rerolls, reroll], aimRerolls: pending.aimRerolls - (action.source === 'aim' ? 1 : 0) },
       }
       if (action.source === 'momentum') next = withStats(next, (stats) => (stats.momentum.spentReroll += 1))
       return addLog(markAction(next, 'reroll', attacker.id, { source: action.source }), [
@@ -629,7 +792,7 @@ export function combatReducer(state, action) {
     case 'spendMomentumHit': {
       const { result } = state
       const target = result && state.combatants[result.targetId]
-      if (!result || result.closed || !result.passed || result.extraHit || !state.momentum || !isActive(target)) return state
+      if (!result || result.kind === 'ambush' || result.closed || !result.passed || result.extraHit || !state.momentum || !isActive(target)) return state
       if (state.combatants[result.attackerId].side !== 'player') return state
       const decided = recordDecision(state, state.combatants[result.attackerId], action)
       let next = applyHit({ ...decided.state, momentum: 0 }, target.id, getWeapon(result.weaponId), result.injuryMode)

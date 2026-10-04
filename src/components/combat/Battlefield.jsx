@@ -55,9 +55,14 @@ function FacingArrow({ facing }) {
 }
 
 // turnStatus: { state, turn, movement } for a party member during the party's turn. Actions left (count and pips) and
-// movement tiles left show above them; once the turn is used up they are dimmed with a grey ring and a check icon.
+// movement tiles left (plus +N Sprint tiles while Sprint is unused) show above them; once the turn is used up they are dimmed with a grey ring and a check icon.
 // A shield on the portrait marks a unit in cover; it appears once a walk into cover has finished.
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, onClick }) {
+// Hover callbacks fire for a mouse only: a tap on a touch screen also sends hover events, which would fight the tap.
+const mouseOnly = (callback) => (event) => {
+  if (event.pointerType === 'mouse') callback()
+}
+
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const down = combatant.status !== 'active'
@@ -69,6 +74,8 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
       className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
       onClick={down ? undefined : onClick}
+      onPointerEnter={mouseOnly(() => onHover(true))}
+      onPointerLeave={mouseOnly(() => onHover(false))}
       data-ui-sound={down ? undefined : ''}
     >
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
@@ -110,7 +117,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
             <DoneIcon svg className="iso-unit-done" />
           ) : (
             <g className="iso-unit-points">
-              <rect className="iso-unit-points-bg" x="-34" y="-7" width="68" height="12" rx="3" />
+              <rect className="iso-unit-points-bg" x="-34" y="-7" width={turnStatus.movement.sprintLeft ? 82 : 68} height="12" rx="3" />
               <text x="-24" y="2.5" textAnchor="middle">
                 {turnStatus.turn.ap}/{TURN_AP}
               </text>
@@ -121,6 +128,11 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
               <text className={`iso-unit-move${turnStatus.movement.left ? '' : ' is-empty'}`} x="18.5" y="2.5" textAnchor="middle">
                 &raquo;{turnStatus.movement.left}/{turnStatus.movement.total}
               </text>
+              {turnStatus.movement.sprintLeft > 0 && (
+                <text className="iso-unit-move" x="40" y="2.5" textAnchor="middle">
+                  +{turnStatus.movement.sprintLeft}
+                </text>
+              )}
             </g>
           )}
         </g>
@@ -130,13 +142,14 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
 }
 
-const ACTION_LABELS = { move: 'Move', aim: 'Aim', cancelThreat: 'Cancel Threat', momentumHit: '+1 Hit (Momentum)' }
+const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', cancelThreat: 'Cancel Threat', momentumHit: '+1 Hit (Momentum)' }
 const UNIT_HEAD = 30
 
 function actionLabel(action) {
   if (action.type === 'attack') return getWeapon(action.weaponId).name
   if (action.type === 'reroll') return action.source === 'aim' ? 'Aim Reroll' : 'Momentum Reroll'
   if (action.type === 'move' && action.inCover) return 'Move to Cover'
+  if (action.type === 'sprint' && action.inCover) return 'Sprint to Cover'
   return ACTION_LABELS[action.type] ?? null
 }
 
@@ -220,7 +233,7 @@ function MovePathLine({ path }) {
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
 // ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
-export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, ring = null, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onRightClick }) {
+export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, ring = null, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onUnitHover = () => {}, onRingHover = () => {}, onRightClick }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
@@ -254,6 +267,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           isSelected={unit.id === selectedId}
           turnStatus={turnInfo[unit.id]}
           onClick={() => onUnitClick(unit.id)}
+          onHover={(entering) => onUnitHover(unit.id, entering)}
         />
       ),
     })),
@@ -305,7 +319,15 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           y2={shotTo.y - 30}
         />
       )}
-      {ring && state.combatants[ring.unitId] && <UnitActionRing position={shownPosition(state.combatants[ring.unitId])} buttons={ring.buttons} info={ring.info} />}
+      {ring && state.combatants[ring.unitId] && (
+        <UnitActionRing
+          position={shownPosition(state.combatants[ring.unitId])}
+          buttons={ring.buttons}
+          info={ring.info}
+          onPointerEnter={mouseOnly(() => onRingHover(true))}
+          onPointerLeave={mouseOnly(() => onRingHover(false))}
+        />
+      )}
     </svg>
   )
 }

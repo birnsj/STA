@@ -8,21 +8,34 @@ const RADIUS = 50
 const ARC_START = 200
 const ARC_END = -20
 const BUTTON_R = 13
+// Long rings (the acting character's own actions) widen so neighbouring buttons and labels don't overlap.
+const SPACING = 40
+const ARC_RADIANS = ((ARC_START - ARC_END) * Math.PI) / 180
+
+const ringRadius = (count) => Math.max(RADIUS, ((count - 1) * SPACING) / ARC_RADIANS)
 
 function buttonPosition(index, count) {
   const angle = count === 1 ? 90 : ARC_START + ((ARC_END - ARC_START) * index) / (count - 1)
   const radians = (angle * Math.PI) / 180
-  return { x: Math.cos(radians) * RADIUS, y: CENTRE_Y + Math.sin(radians) * RADIUS }
+  const radius = ringRadius(count)
+  return { x: Math.cos(radians) * radius, y: CENTRE_Y + Math.sin(radians) * radius }
 }
 
 // Clicks on the ring must not reach the tiles or units underneath.
 const stop = (event) => event.stopPropagation()
 
 // buttons: [{ id, label, icon, tone, enabled, active, title, onClick }]; info: { title, rows: [[label, value]] } or null.
-export default function UnitActionRing({ position, buttons, info }) {
+export default function UnitActionRing({ position, buttons, info, onPointerEnter, onPointerLeave }) {
   const centre = project(position)
   return (
-    <g className="unit-ring" transform={`translate(${centre.x} ${centre.y})`} onClick={stop} onPointerDown={stop}>
+    <g
+      className="unit-ring"
+      transform={`translate(${centre.x} ${centre.y})`}
+      onClick={stop}
+      onPointerDown={stop}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+    >
       {buttons.map((button, index) => {
         const { x, y } = buttonPosition(index, buttons.length)
         return (
@@ -46,7 +59,7 @@ export default function UnitActionRing({ position, buttons, info }) {
         )
       })}
       {info && (
-        <foreignObject x={RADIUS + 22} y={CENTRE_Y - 52} width="168" height="124">
+        <foreignObject x={ringRadius(buttons.length) + 22} y={CENTRE_Y - 52} width="168" height="124">
           <div className="unit-ring-info">
             <p className="unit-ring-info-title">{info.title}</p>
             {info.rows.map(([label, value]) => (

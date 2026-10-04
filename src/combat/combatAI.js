@@ -21,7 +21,9 @@ import { tileDistance } from './rangeSystem.js'
 import { getWeapon } from './weaponSystem.js'
 import {
   canAfford,
+  canAimReroll,
   canMove,
+  canSprint,
   evaluateAttack,
   getActiveCombatant,
   getAssistableAllies,
@@ -64,7 +66,7 @@ function passChance(targetNumber, needed) {
 // Injury modes this combatant's AI may use with a weapon, in preference order.
 // Enemies prefer Deadly (Klingon disruptors have nothing else). Player characters use Stun, and Deadly only if the encounter sets
 // autoCombat.playerInjuryMode to "deadly".
-function injuryModesFor(state, self, weapon) {
+export function injuryModesFor(state, self, weapon) {
   if (self.side === 'enemy') return weapon.injuryModes.includes('deadly') ? ['deadly'] : weapon.injuryModes
   const allowDeadly = getEncounter(state.encounterId).autoCombat?.playerInjuryMode === 'deadly'
   const preference = allowDeadly ? ['deadly', 'stun'] : ['stun']
@@ -72,7 +74,7 @@ function injuryModesFor(state, self, weapon) {
 }
 
 // A shot needing more successes than dice rolled cannot pass, so it does not count as usable.
-function bestShot(state, self, target, fromPosition) {
+export function bestShot(state, self, target, fromPosition) {
   const shots = self.weaponIds
     .filter((weaponId) => injuryModesFor(state, self, getWeapon(weaponId)).length)
     .map((weaponId) => previewAttack(state, self.id, target.id, weaponId, fromPosition))
@@ -111,7 +113,7 @@ function threatsTo(state, self) {
   )
 }
 
-const shotSummary = (shot) => `${shot.band.name} range, Difficulty ${shot.task.difficulty} with ${shot.weapon.name} (TN ${shot.task.targetNumber})`
+export const shotSummary = (shot) => `${shot.band.name} range, Difficulty ${shot.task.difficulty} with ${shot.weapon.name} (TN ${shot.task.targetNumber})`
 
 function attackAction(state, self, target, shot) {
   return {
@@ -124,14 +126,15 @@ function attackAction(state, self, target, shot) {
   }
 }
 
-function pendingStep(state, self) {
+export function pendingStep(state, self) {
   const { pending } = state
   const { targetNumber, difficulty } = pending.task
   const { successes, passed } = evaluateAttack(pending)
   const failed = pending.dice.map((value, index) => ({ value, index })).filter((die) => die.value > targetNumber)
   const worst = failed.sort((a, b) => b.value - a.value)[0]
   if (!passed && worst) {
-    if (pending.aimReroll) return { type: 'reroll', source: 'aim', dieIndex: worst.index, decision: 'Aim reroll', reason: `Attack failing; rerolling the failed ${worst.value}.` }
+    const aimDie = failed.find((die) => canAimReroll(pending, die.index))
+    if (aimDie) return { type: 'reroll', source: 'aim', dieIndex: aimDie.index, decision: 'Aim reroll', reason: `Attack failing; rerolling the failed ${aimDie.value}.` }
     // Only when one more success would pass and the new die has a fair chance of giving it.
     const chance = dieChance(targetNumber)
     if (self.side === 'player' && state.momentum && successes + 1 >= difficulty && chance >= MOMENTUM_REROLL_MIN_CHANCE) {
@@ -148,9 +151,9 @@ function pendingStep(state, self) {
 }
 
 // After a hit: +1 Hit from Momentum only when it removes the target from the fight.
-function momentumHitStep(state, self) {
+export function momentumHitStep(state, self) {
   const { result } = state
-  if (self.side !== 'player' || !state.momentum || !result || result.closed || result.attackerId !== self.id || !result.passed || result.extraHit) return null
+  if (self.side !== 'player' || !state.momentum || !result || result.kind === 'ambush' || result.closed || result.attackerId !== self.id || !result.passed || result.extraHit) return null
   const target = state.combatants[result.targetId]
   if (!isActive(target) || target.hits !== MAX_HITS - 1) return null
   return { type: 'spendMomentumHit', decision: 'Spend Momentum: +1 Hit', reason: `${target.character.name} has ${plural(target.hits, 'Hit')}; one more removes them from the fight.` }
@@ -158,14 +161,16 @@ function momentumHitStep(state, self) {
 
 // Threat adds +1 Difficulty to the party's next attack, which with two dice costs far more than a single reroll is worth,
 // so Momentum cancels it whenever this character still has an attack to make.
-function cancelThreatStep(state, self) {
+export function cancelThreatStep(state, self) {
   if (self.side !== 'player' || !state.momentum || !state.threat || !state.turn.ap) return null
   return { type: 'cancelThreat', decision: 'Spend Momentum: cancel Threat', reason: 'Threat would add +1 Difficulty to the next attack.' }
 }
 
 // Best reachable tile to shoot one of the targets from (lower Difficulty, covered preferred, fewer steps); else close the distance.
-function moveStep(state, self, targets) {
-  const reachable = [...getReachable(state, self).values()].filter((entry) => entry.steps > 0)
+// kind: 'move' or 'sprint' (the same choice at Sprint range).
+function moveStep(state, self, targets, kind = 'move') {
+  const reachable = [...getReachable(state, self, kind).values()].filter((entry) => entry.steps > 0)
+  const verb = kind === 'sprint' ? 'Sprint' : 'Move'
   const firing = targets
     .flatMap((target) => reachable.map((entry) => ({ target, entry, shot: bestShot(state, self, target, entry.position), covered: canTakeCover(state.map, entry.position) })))
     .filter((option) => option.shot)
@@ -174,11 +179,11 @@ function moveStep(state, self, targets) {
   if (firing.length) {
     const { target, entry, shot, covered } = firing[0]
     return {
-      type: 'move',
+      type: kind,
       destination: entry.position,
       targetId: target.id,
       weaponId: shot.weapon.id,
-      decision: `Move to a ${covered ? 'covered' : 'exposed'} firing position on ${target.character.name}`,
+      decision: `${verb} to a ${covered ? 'covered' : 'exposed'} firing position on ${target.character.name}`,
       reason: `No shot from here; ${plural(entry.steps, 'tile')} away a shot is ${shotSummary(shot)}.`,
     }
   }
@@ -191,10 +196,10 @@ function moveStep(state, self, targets) {
     .sort((a, b) => a.remaining - b.remaining || a.entry.steps - b.entry.steps)[0]
   if (!closest || closest.remaining === Infinity) return null
   return {
-    type: 'move',
+    type: kind,
     destination: closest.entry.position,
     targetId: target.id,
-    decision: `Close on ${target.character.name}`,
+    decision: `${kind === 'sprint' ? 'Sprint to close' : 'Close'} on ${target.character.name}`,
     reason: 'No firing position within reach this turn.',
   }
 }
@@ -230,7 +235,7 @@ function coverAfterAttackStep(state, self) {
 }
 
 // Chance a shot hits, counting a target in cover as one Difficulty harder (its cover roll usually raises it).
-function expectedChance(state, attackerId, shot) {
+export function expectedChance(state, attackerId, shot) {
   const task = shot.targetInCover ? { ...shot.task, difficulty: shot.task.difficulty + 1 } : shot.task
   return getHitChance(state, attackerId, { ...shot, task })
 }
@@ -315,10 +320,14 @@ export function nextAIStep(state) {
     }
     return attackAction(state, self, target, shot)
   }
-  // No shot from here: walk to a firing position, else close the distance; with no move left, Assist an ally instead.
-  const move = moveStep(state, self, profile.targeting === 'nearest' ? [nearest] : getOpponents(state, self))
+  // No shot from here: walk to a firing position, else close the distance; with no move left, Assist an ally instead,
+  // else Sprint (still unused this turn) on the same terms.
+  const targets = profile.targeting === 'nearest' ? [nearest] : getOpponents(state, self)
+  const move = canMove(state, self) ? moveStep(state, self, targets) : null
   if (move) return move
   const assist = assistStep(state, self, 0)
   if (assist) return assist
+  const sprint = canSprint(state, self) ? moveStep(state, self, targets, 'sprint') : null
+  if (sprint) return sprint
   return { type: 'endTurn', decision: 'End turn', reason: `No shot at ${nearest.character.name} this turn.` }
 }

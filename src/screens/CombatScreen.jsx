@@ -1,12 +1,19 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import actionData from '../data/adaptation/combat/actions.json'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
   canAct,
   canAfford,
+  aimText,
   canAim,
+  canAmbush,
   canAssist,
   canMove,
+  canSprint,
   getActiveCombatant,
+  getAimFocus,
+  getAmbusher,
+  getAmbushTargets,
   getAssistableAllies,
   getEncounter,
   getHitChance,
@@ -21,14 +28,14 @@ import {
   isActive,
   isTurnFinished,
   MAX_HITS,
+  previewAmbush,
   previewAttack,
   rollAwaitsPlayer,
   DEFAULT_ENCOUNTER_ID,
 } from '../combat/combatState.js'
-import { autoCombatReducer } from '../combat/autoCombat.js'
-import { nextAIStep } from '../combat/combatAI.js'
+import { autoCombatReducer, chooseAIStep } from '../combat/autoCombat.js'
 import { canTakeCover } from '../combat/coverSystem.js'
-import { getMovementTiles } from '../combat/movementSystem.js'
+import { getMovementTiles, getSprintTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import { getInjuryMode, getWeapon } from '../combat/weaponSystem.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
@@ -59,12 +66,17 @@ const AUTO_END_TURN_MS = 1200
 const AUTO_END_WITH_OFFER_MS = 3500
 // The same beat the AI's rolls get, so the dice can be read before the result lands.
 const AUTO_RESOLVE_MS = AI_ROLL_MS
+// The acting character's own ring opens on mouse-over and closes this long after the mouse leaves both them and the ring,
+// so the pointer can cross the gaps between buttons.
+const SELF_RING_CLOSE_MS = 350
 // A fight's seed is drawn when it starts (never during render) unless the player typed one in.
 const newSeed = () => Math.floor(Math.random() * MAX_SEED)
 
 // The delay before the next AI step: long enough to read a roll, or to watch a move finish.
 function aiDelay(state) {
   if (state.pending) return AI_ROLL_MS
+  // Just after the ambush roll (its log entry, plus the initiative, round and turn entries when spotted): time to read it.
+  if (state.lastAction?.type === 'ambush' && state.log.length - state.lastAction.key <= (state.ambush.success ? 1 : 4)) return AI_ROLL_MS * 1.5
   const justMoved = state.lastMove && state.lastMove.key === state.log.length - 1
   return justMoved ? Math.max(AI_STEP_MS, (state.lastMove.path.length - 1) * MOVE_TILE_MS + 300) : AI_STEP_MS
 }
@@ -74,7 +86,7 @@ function cameraFocus(state, turnKey, active) {
   // Stays on the shot through rerolls and the result (one attack per turn, so the key is stable until the next action).
   const action = state.lastAction
   const roll = state.pending ?? (state.result?.closed ? null : state.result)
-  if (roll && ['attack', 'reroll', 'resolve', 'momentumHit'].includes(action?.type)) {
+  if (roll && ['attack', 'reroll', 'resolve', 'momentumHit', 'ambush'].includes(action?.type)) {
     const from = state.combatants[roll.attackerId].position
     const to = state.combatants[roll.targetId].position
     return { key: `${turnKey}:shot`, position: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }
@@ -90,7 +102,12 @@ function getPartyTurnInfo(state, active) {
   const { start, ids } = getTurnGroupRange(state)
   // Ending a turn forfeits any AP left, so a finished member shows nothing left.
   const spent = { ap: 0 }
-  const movement = (id, left) => ({ left, total: getMovementTiles(state.combatants[id].character) })
+  const movement = (id, left, sprintLeft = 0) => ({
+    left,
+    total: getMovementTiles(state.combatants[id].character),
+    sprintLeft,
+    sprintTotal: getSprintTiles(state.combatants[id].character),
+  })
   if (active.side === 'player') {
     return Object.fromEntries(
       ids.map((id) => {
@@ -100,7 +117,7 @@ function getPartyTurnInfo(state, active) {
           {
             state: finished ? 'done' : id === active.id ? 'acting' : 'ready',
             turn: finished ? spent : getTurnOf(state, id),
-            movement: movement(id, finished ? 0 : getMovementLeft(state, state.combatants[id])),
+            movement: finished ? movement(id, 0) : movement(id, getMovementLeft(state, state.combatants[id]), getMovementLeft(state, state.combatants[id], 'sprint')),
           },
         ]
       }),
@@ -151,11 +168,11 @@ function choiceRing(state, choice) {
 }
 
 // The party's next AI step in Auto Combat, when it is one that shows buttons (so it can be shown before it runs).
-function plannedChoice(state) {
+function plannedChoice(state, partyAI) {
   if (state.outcome || state.pending) return null
   const active = getActiveCombatant(state)
   if (active.side !== 'player') return null
-  const step = nextAIStep(state)
+  const step = chooseAIStep(state, { partyAI })
   return ['attack', 'aim', 'assist'].includes(step.type) ? { ...step, actorId: active.id } : null
 }
 
@@ -172,7 +189,7 @@ function nearestOpponentId(state, combatant) {
   return opponents[0]?.id ?? null
 }
 
-function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onChangeCharacter, onExit }) {
+function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onPartyAI, enemyAI, onEnemyAI, onRestart, onChangeCharacter, onExit }) {
   const active = getActiveCombatant(state)
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
   const [auto, setAuto] = useState('off')
@@ -183,7 +200,9 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   // chosenMode null = the default (Move while AP is left); 'none' = the player deselected everything.
   const [chosenMode, setMode] = useState(null)
   const defaultMode = isPlayerTurn && canMove(state, active) ? 'move' : null
-  const mode = chosenMode === 'none' ? null : (chosenMode ?? defaultMode)
+  const ambushOpen = isPlayerTurn && canAmbush(state)
+  const chosen = chosenMode === 'ambush' && !ambushOpen ? null : chosenMode
+  const mode = chosen === 'none' ? null : (chosen ?? defaultMode)
   const [targetId, setTargetId] = useState(null)
   const [weaponIds, setWeaponIds] = useState({})
   // The unit whose action buttons are shown on the map (clicked enemy or party member), and whether its Info card is open.
@@ -205,7 +224,8 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const target = targetId && isActive(state.combatants[targetId]) ? state.combatants[targetId] : null
 
   // Each turn starts on the default action (Move) with the nearest enemy targeted.
-  const turnKey = `${state.round}:${state.turnIndex}`
+  // The active id is part of the key because a spotted ambush reorders initiative, which can leave turnIndex unchanged.
+  const turnKey = `${state.round}:${state.turnIndex}:${active.id}`
   const [shownTurn, setShownTurn] = useState(() => ({ key: turnKey, round: state.round, side: active.side }))
   const [banner, setBanner] = useState(() => ({ key: turnKey, ...turnBanner(state, null) }))
   if (shownTurn.key !== turnKey) {
@@ -221,22 +241,28 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   if (isPlayerTurn && !target && targetId !== nearestOpponentId(state, active)) setTargetId(nearestOpponentId(state, active))
 
   // In Auto Combat, a party member's next Attack, Aim or Assist is shown (its button lit) for a beat before it runs.
-  const planned = auto !== 'off' ? plannedChoice(state) : null
+  const planned = useMemo(() => (auto !== 'off' ? plannedChoice(state, partyAI) : null), [auto, state, partyAI])
 
   // AI turns (enemies, plus the party during Auto Combat): one step at a time, paced so it can be followed.
   // Paused while How to Play is open or Auto Combat is paused. The step itself is pure (autoCombat.stepAI).
   const hasPlan = Boolean(planned)
   useEffect(() => {
     if (state.outcome || !aiControlled || helpOpen || auto === 'paused') return undefined
-    const timer = setTimeout(() => dispatch({ type: 'aiStep' }), (aiDelay(state) + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
+    const timer = setTimeout(() => dispatch({ type: 'aiStep', partyAI, enemyAI }), (aiDelay(state) + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
     return () => clearTimeout(timer)
-  }, [state, aiControlled, dispatch, helpOpen, auto, speed, hasPlan])
+  }, [state, aiControlled, dispatch, helpOpen, auto, speed, hasPlan, partyAI, enemyAI])
 
-  const reachable = mode === 'move' && isPlayerTurn ? getReachable(state, active) : null
+  // Move and Sprint share the tile picking; moveKind is whichever of them is selected.
+  const moveKind = mode === 'move' || mode === 'sprint' ? mode : null
+  const reachable = moveKind && isPlayerTurn ? getReachable(state, active, moveKind) : null
   const pathTarget = destination ?? hoverTile
-  const movePath = reachable && pathTarget && reachable.has(tileKey(pathTarget)) && !samePosition(pathTarget, active.position) ? getPathTo(state, active, pathTarget) : null
+  const movePath =
+    reachable && pathTarget && reachable.has(tileKey(pathTarget)) && !samePosition(pathTarget, active.position) ? getPathTo(state, active, pathTarget, moveKind) : null
   const routeInCover = Boolean(movePath && canTakeCover(state.map, movePath[movePath.length - 1]))
   const preview = mode === 'attack' && target ? previewAttack(state, active.id, target.id, weapon.id) : null
+  const ambushPreview = mode === 'ambush' ? previewAmbush(state, ringId) : null
+  const ambusher = ambushOpen ? getAmbusher(state) : null
+  const ambushTargets = ambushOpen ? getAmbushTargets(state) : []
 
   const overlay = {
     reachableKeys: reachable ? new Set([...reachable.keys()].filter((key) => key !== tileKey(active.position))) : null,
@@ -252,6 +278,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const assistHelper = assistHelperId && isActive(state.combatants[assistHelperId]) ? state.combatants[assistHelperId] : null
   const availability = {
     move: canMove(state, active),
+    sprint: canSprint(state, active),
     assist: canAfford(state, active, 'assist') && assistAllies.length > 0,
     endTurn: canAct(state, active),
   }
@@ -277,6 +304,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
 
   const confirmations = {
     move: { enabled: Boolean(movePath) && availability.move, run: () => dispatch({ type: 'move', destination: movePath[movePath.length - 1] }) },
+    sprint: { enabled: Boolean(movePath) && availability.sprint, run: () => dispatch({ type: 'sprint', destination: movePath[movePath.length - 1] }) },
     assist: { enabled: Boolean(assistAlly) && availability.assist, run: () => dispatch({ type: 'assist', allyId: assistAlly.id }) },
   }
   const confirmation = confirmations[mode]
@@ -295,17 +323,17 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   // tile moves; a mouse click moves at once.
   const handleTileClick = (tile, { touch = false } = {}) => {
     // With buttons shown around a unit, a click on the floor just puts them away (back to Move).
-    if (ring) {
+    if (ring || mode === 'ambush') {
       closeRing()
       setMode(null)
       return
     }
-    if (mode !== 'move' || !availability.move || !reachable?.has(tileKey(tile)) || samePosition(tile, active.position)) return
+    if (!moveKind || !availability[moveKind] || !reachable?.has(tileKey(tile)) || samePosition(tile, active.position)) return
     if (touch && !(destination && samePosition(destination, tile))) {
       setDestination(tile)
       return
     }
-    dispatch({ type: 'move', destination: tile })
+    dispatch({ type: moveKind, destination: tile })
     setMode(null)
     setDestination(null)
     closeRing()
@@ -349,6 +377,32 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     setSelectedId(id)
   }
 
+  const canOpenSelfRing = isPlayerTurn && !state.pending && !turnUsedUp
+  const selfRingCloseTimer = useRef(null)
+  // True while the ring was opened by mouse-over, so the click that usually follows doesn't toggle it shut.
+  const hoverOpenedRef = useRef(false)
+  const cancelSelfRingClose = () => clearTimeout(selfRingCloseTimer.current)
+  useEffect(() => () => clearTimeout(selfRingCloseTimer.current), [])
+  const hoverSelfRing = (entering) => {
+    cancelSelfRingClose()
+    if (entering) return
+    selfRingCloseTimer.current = setTimeout(() => {
+      hoverOpenedRef.current = false
+      setRingId((current) => (current === active.id ? null : current))
+    }, SELF_RING_CLOSE_MS)
+  }
+  const handleUnitHover = (id, entering) => {
+    if (id !== active.id) return
+    if (entering && canOpenSelfRing) {
+      cancelSelfRingClose()
+      if (ringId !== id) hoverOpenedRef.current = true
+      setRingId(id)
+      setRingInfo(false)
+      return
+    }
+    if (ringId === id) hoverSelfRing(entering)
+  }
+
   // On the player's turn, clicking an enemy or another party member shows action buttons around them (a second click
   // puts them away). The enemy becomes the target with its attack previewed; a party member is picked for Assist.
   const handleUnitClick = (id) => {
@@ -360,6 +414,16 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
       setMode(closing ? null : ringMode)
       setDestination(null)
       return !closing
+    }
+    // Clicking the acting character shows their own actions around them; the current action (Move) stays selected.
+    if (id === active.id && canOpenSelfRing) {
+      cancelSelfRingClose()
+      setSelectedId(id)
+      const keepHoverOpened = hoverOpenedRef.current
+      hoverOpenedRef.current = false
+      setRingId(ringId === id && !keepHoverOpened ? null : id)
+      setRingInfo(false)
+      return
     }
     if (unit.side === active.side) {
       const offersActions = isPlayerTurn && !state.pending && id !== active.id && (canAssist(state, active, unit) || canSwitchTo(id))
@@ -375,8 +439,55 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     setSelectedId(id)
     if (!isPlayerTurn) return
     setTargetId(id)
+    // Choosing whom to ambush: the Klingon shows only the Ambush button, and the mode stays on Ambush.
+    if (mode === 'ambush') {
+      setRingId(ringId === id ? null : id)
+      setRingInfo(false)
+      return
+    }
     toggleRing('attack')
   }
+
+  const startAmbush = () => {
+    setMode(mode === 'ambush' ? 'none' : 'ambush')
+    setDestination(null)
+    closeRing()
+  }
+
+  useEffect(() => {
+    if (mode !== 'ambush') return undefined
+    const onKey = (event) => {
+      if (event.key !== 'Escape') return
+      setMode(null)
+      setRingId(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mode])
+
+  const ambushRingButtons = (enemy) => {
+    const ambush = previewAmbush(state, enemy.id)
+    const percent = `${Math.round(ambush.chance * 100)}%`
+    return [
+      {
+        id: 'ambush',
+        label: `Ambush (free) ${percent}`,
+        icon: 'ambush',
+        enabled: ambush.available,
+        title: ambush.available
+          ? `${ambush.ambusher.character.name} ambushes ${enemy.character.name}: TN ${ambush.task.targetNumber}, Difficulty 1, ${percent} chance. Success: 1 Hit. Failure: the Klingons act first.`
+          : ambush.reason,
+        onClick: () => {
+          dispatch({ type: 'ambush', targetId: enemy.id })
+          closeRing()
+          setMode(null)
+        },
+      },
+    ]
+  }
+
+  const aimEffect = aimText(getAimFocus(active))
+  const aimTitle = state.turn.aimReroll ? `Aimed: you ${aimEffect}.` : `Aim (1 AP): you ${aimEffect}.`
 
   const cycleWeapon = () => {
     const index = active.weaponIds.indexOf(weapon.id)
@@ -390,7 +501,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
       aim: {
         enabled: canAim(state, active),
         active: state.turn.aimReroll,
-        title: state.turn.aimReroll ? 'Aimed: you may reroll one die on your next attack this turn.' : 'Aim (1 AP): reroll one die on your next attack this turn.',
+        title: aimTitle,
         onClick: () => dispatch({ type: 'aim' }),
       },
       useItem: { enabled: false, title: 'Not in this prototype yet' },
@@ -413,6 +524,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     ]
     if (preview?.task) {
       rows.push(['Range', `${preview.band.name}, ${preview.distance} tiles`], ['Your roll', `TN ${preview.task.targetNumber}, Difficulty ${preview.task.difficulty}`])
+      if (state.turn.aimReroll) rows.push(['Aimed', preview.task.focus ? `reroll both dice (focus: ${preview.task.focus})` : 'reroll one die'])
       rows.push(['Chance to hit', preview.available ? `${Math.round(getHitChance(state, active.id, preview) * 100)}%` : 'No shot'])
       if (preview.available && enemy.inCover) rows.push(['In cover', 'their roll may lower it'])
     }
@@ -459,10 +571,69 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
     return buttons
   }
 
+  const selfRingButtons = () => {
+    const behaviour = {
+      move: {
+        enabled: availability.move,
+        active: mode === 'move',
+        title: availability.move ? 'Move (1 AP): click a highlighted tile to walk there.' : 'Already moved this turn, or no AP left.',
+        onClick: () => {
+          setMode('move')
+          setDestination(null)
+          closeRing()
+        },
+      },
+      sprint: {
+        enabled: availability.sprint,
+        active: mode === 'sprint',
+        title: availability.sprint
+          ? `Sprint (1 AP): run up to ${getSprintTiles(active.character)} tiles, before or after Move. Click a highlighted tile.`
+          : 'Already sprinted this turn, or no AP left.',
+        onClick: () => {
+          setMode('sprint')
+          setDestination(null)
+          closeRing()
+        },
+      },
+      aim: {
+        enabled: canAim(state, active),
+        active: state.turn.aimReroll,
+        title: aimTitle,
+        onClick: () => dispatch({ type: 'aim' }),
+      },
+      assist: {
+        enabled: availability.assist,
+        title: unavailableReasons.assist ?? (availability.assist ? 'Assist (1 AP): pick a party member; their next attack this round adds your 1d20.' : 'No AP left.'),
+        onClick: () => selectAction('assist'),
+      },
+      endTurn: {
+        enabled: availability.endTurn,
+        title: 'End Turn (free): end this character\'s turn with any AP left unused.',
+        onClick: () => {
+          closeRing()
+          dispatch({ type: 'endTurn' })
+        },
+      },
+    }
+    return actionData.selfRing.map((id) => {
+      const action = actionData.actions.find((entry) => entry.id === id)
+      return {
+        id,
+        label: action.name,
+        icon: id,
+        ...(behaviour[id] ?? { enabled: false, title: `${action.name}: not in this prototype yet.` }),
+      }
+    })
+  }
+
   const ringUnit = ringId ? state.combatants[ringId] : null
   const ringShown = isPlayerTurn && ringUnit && isActive(ringUnit) && !state.pending && !turnUsedUp
   let ring = null
-  if (ringShown && ringUnit.side !== active.side && mode === 'attack' && target?.id === ringUnit.id) {
+  if (ringShown && ringUnit.id === active.id) {
+    ring = { unitId: ringUnit.id, buttons: selfRingButtons(), info: null }
+  } else if (ringShown && ringUnit.side !== active.side && mode === 'ambush') {
+    ring = { unitId: ringUnit.id, buttons: ambushRingButtons(ringUnit), info: null }
+  } else if (ringShown && ringUnit.side !== active.side && mode === 'attack' && target?.id === ringUnit.id) {
     ring = { unitId: ringUnit.id, buttons: enemyRingButtons(ringUnit), info: ringInfo ? enemyRingInfo(ringUnit) : null }
   } else if (ringShown && ringUnit.side === active.side && mode === 'assist') {
     ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
@@ -475,7 +646,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
-  const hint = getCombatHint(state, { planned, mode, preview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
+  const hint = getCombatHint(state, { planned, mode, preview, ambushPreview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
 
   // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
   const releaseSelection = () => {
@@ -508,6 +679,8 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         onTileClick={handleTileClick}
         onTileHover={setHoverTile}
         onUnitClick={handleUnitClick}
+        onUnitHover={handleUnitHover}
+        onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
         onRightClick={releaseSelection}
       />
       <div className="combat-top-left">
@@ -524,6 +697,22 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
       {hint && (
         <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}`} aria-live="polite">
           {hint}
+          {ambusher && (
+            <button
+              type="button"
+              className={`combat-ambush${mode === 'ambush' ? ' is-selected' : ''}`}
+              disabled={!ambushTargets.length}
+              title={
+                ambushTargets.length
+                  ? `Optional, until anyone attacks: ${ambusher.character.name} rolls Control + Security at Difficulty 1 against a Klingon they have a shot at. Success: 1 Hit on that Klingon. Failure: you are spotted; a new round starts and the Klingons act first for the rest of the fight.`
+                  : `${ambusher.character.name} has no shot at any Klingon yet (out of range or no line of fire). Move ${ambusher.character.name} closer without attacking to set up an ambush; any attack, by either side, ends the chance.`
+              }
+              onClick={startAmbush}
+            >
+              Ambush: {ambusher.character.name}, TN {previewAmbush(state, null).task.targetNumber}
+              {!ambushTargets.length && ' (no shot yet: move closer)'}
+            </button>
+          )}
         </p>
       )}
       <div className="combat-top-right">
@@ -568,8 +757,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
           preview={preview}
           movePath={movePath}
           routeInCover={routeInCover}
-          movement={{ left: getMovementLeft(state, active), total: getMovementTiles(active.character) }}
+          movement={{
+            left: getMovementLeft(state, active),
+            total: getMovementTiles(active.character),
+            sprintLeft: getMovementLeft(state, active, 'sprint'),
+            sprintTotal: getSprintTiles(active.character),
+          }}
           assist={{ allies: assistAllies, allyId: assistAlly?.id ?? null, onAlly: setAssistAllyId, helper: assistHelper }}
+          ambush={ambushPreview}
           confirm={confirm}
         />
       </div>
@@ -578,6 +773,10 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
         <AutoCombatControls
           auto={auto}
           speed={speed}
+          partyAI={partyAI}
+          onPartyAI={onPartyAI}
+          enemyAI={enemyAI}
+          onEnemyAI={onEnemyAI}
           onStart={startAuto}
           onPause={() => setAuto('paused')}
           onResume={() => setAuto('running')}
@@ -587,6 +786,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, onRestart, onCha
       )}
       <RollPanel
         state={state}
+        speed={auto === 'off' ? 1 : speed}
         playerControls={rollBelongsToPlayer && isPlayerTurn}
         awaitingChoice={rollAwaitsPlayer(state)}
         onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
@@ -613,6 +813,9 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
   const [phase, setPhase] = useState('setup')
   // How to Play opens by itself only for the first fight after opening Load Episode.
   const [helpSeen, setHelpSeen] = useState(false)
+  // Test options kept across Restart, so AIs can be compared on the same seed.
+  const [partyAI, setPartyAI] = useState('classic')
+  const [enemyAI, setEnemyAI] = useState('classic')
 
   const start = (members, seed, chosenMap) => {
     setParty(members)
@@ -635,6 +838,10 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
       dispatch={dispatch}
       showHelpOnStart={!helpSeen}
       onHelpSeen={() => setHelpSeen(true)}
+      partyAI={partyAI}
+      onPartyAI={setPartyAI}
+      enemyAI={enemyAI}
+      onEnemyAI={setEnemyAI}
       onRestart={() => start(party, fixedSeed, map)}
       onChangeCharacter={() => setPhase('setup')}
       onExit={onExit}

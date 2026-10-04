@@ -137,7 +137,7 @@ function AttackTask({ preview, helper }) {
         {task.attribute.name} {task.attribute.value} + {task.discipline.name} {task.discipline.value}
       </p>
       <p className="task-line">Target Number {task.targetNumber}</p>
-      <p className="task-line">Focus: {task.focus ?? 'none'}</p>
+      <p className="task-line">Focus: {task.focus ? `${task.focus} (Aim rerolls both dice)` : 'none'}</p>
       <p className="task-line">
         Difficulty {task.difficulty}
         {preview.rangeModifier > 0 && <span className="task-note"> (range +{preview.rangeModifier})</span>}
@@ -158,7 +158,26 @@ function AttackTask({ preview, helper }) {
   )
 }
 
-const CONFIRM_LABEL = { move: 'Move', assist: 'Assist' }
+const CONFIRM_LABEL = { move: 'Move', sprint: 'Sprint', assist: 'Assist' }
+
+// The opening Ambush roll on the chosen Klingon; it is rolled from the Ambush button next to the Klingon on the map.
+function AmbushTask({ ambush }) {
+  if (!ambush?.target) return <p className="combat-panel-empty">Choose a Klingon to ambush</p>
+  const { task } = ambush
+  return (
+    <>
+      <p className="task-line">Ambush by {ambush.ambusher.character.name}</p>
+      <p className="task-line">
+        {task.attribute.name} {task.attribute.value} + {task.discipline.name} {task.discipline.value}
+      </p>
+      <p className="task-line">Target Number {task.targetNumber}</p>
+      <p className="task-line">Focus: {task.focus ? `${task.focus} (free reroll)` : 'none'}</p>
+      <p className="task-line">Difficulty {task.difficulty}</p>
+      <p className="task-line task-sub">{ACTIONS.ambush.description}</p>
+      {ambush.available ? <p className="task-line task-sub">Chance: {Math.round(ambush.chance * 100)}%</p> : <p className="task-warning">{ambush.reason}</p>}
+    </>
+  )
+}
 
 // The allies who can be assisted, as a pick list (one is pre-picked when there is only one).
 function AssistTask({ allies, allyId, onAlly }) {
@@ -176,11 +195,13 @@ function AssistTask({ allies, allyId, onAlly }) {
   )
 }
 
-// confirm: { enabled, onConfirm }; movement: { left, total } tiles this turn; routeInCover: the chosen route ends next to cover
+// confirm: { enabled, onConfirm }; movement: { left, total, sprintLeft, sprintTotal } tiles this turn; routeInCover: the chosen route ends next to cover
 // assist: { allies, allyId, onAlly } for the Assist pick list, and helper: who is assisting the acting character's next attack.
-export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, movement, assist, confirm }) {
+// ambush: the opening Ambush preview on the chosen Klingon (mode 'ambush').
+export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, movement, assist, ambush, confirm }) {
   let body
   if (!isPlayerTurn) body = <p className="combat-panel-empty">{autoTurn ? 'Auto Combat' : 'Enemy turn'}</p>
+  else if (mode === 'ambush') body = <AmbushTask ambush={ambush} />
   else if (mode === 'attack' && preview?.task) body = <AttackTask preview={preview} helper={assist.helper} />
   else if (mode === 'assist') body = <AssistTask allies={assist.allies} allyId={assist.allyId} onAlly={assist.onAlly} />
   else if (mode === 'attack') body = <p className="combat-panel-empty">Select a target</p>
@@ -194,6 +215,18 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
           {movePath ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}` : 'Choose a highlighted tile'}
         </p>
         <p className="task-line task-sub">{ACTIONS.move.description}</p>
+      </>
+    )
+  else if (mode === 'sprint')
+    body = (
+      <>
+        <p className="task-line">
+          Sprint {movement.sprintLeft} / {movement.sprintTotal} tiles left
+        </p>
+        <p className="task-line task-sub">
+          {movePath ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}` : 'Choose a highlighted tile'}
+        </p>
+        <p className="task-line task-sub">{ACTIONS.sprint.description}</p>
       </>
     )
   else body = <p className="combat-panel-empty">Choose an action, or click a unit on the map</p>

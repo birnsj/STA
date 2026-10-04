@@ -1,8 +1,9 @@
 // The single task-resolution service for every Attribute + Discipline roll in the game (combat now, everything else later).
 // Book (Captain's Log p.80, p.187): target number = Attribute + Discipline; each d20 equal to or under it is a success; any 20 generates Threat;
 // both dice succeeding generates Momentum (designer chose the p.187 wording over p.205's "two successes on a Difficulty 1 roll").
-// Prototype: the task passes when successes >= Difficulty. Book: an applicable focus grants an Advantage (p.268), not successes; the focus
-// is carried through so a later pass can apply it, but has no mechanical effect yet (designer decision).
+// Prototype: the task passes when successes >= Difficulty. Book: an applicable focus grants an Advantage (p.79, p.268), not successes.
+// Prototype (designer decision, Oct 2026): the focus never adds successes here; combat uses it only to let Aim reroll both attack dice,
+// and Ambush uses it for one reroll of a failed die.
 import { getAttributeName, getDisciplineName } from '../character/runtimeCharacter.js'
 
 export const TASK_DICE = 2

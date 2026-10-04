@@ -5,20 +5,46 @@
     "Designer decision (Oct 2026): at 0 AP the turn ends by itself (to the next party member with AP, else onward). End Turn (free) ends a turn with AP left.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically (removed from the mockup's panel).",
     "panel: the actions shown in the Actions panel, in mockup order. The others are defined for later passes.",
-    "Designer decision (Oct 2026): Attack and Aim are not in the panel. Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim, Use Item and Info. Clicking a party member shows Assist (and Switch, to hand them the turn)."
+    "Designer decision (Oct 2026): Attack and Aim are not in the panel. Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim, Use Item and Info. Clicking a party member shows Assist (and Switch, to hand them the turn).",
+    "Designer request (Oct 2026): clicking the acting character shows their own actions around them (selfRing, in order). Actions not implemented yet are shown disabled until their rules are approved."
   ],
   "actionPoints": 2,
   "panel": ["move", "assist", "useItem", "endTurn"],
+  "selfRing": ["move", "aim", "assist", "useItem", "interact", "sprint", "firstAid", "guard", "endTurn"],
   "actions": [
     { "id": "move", "name": "Move", "apCost": 1, "implemented": true, "description": "Once per turn: walk up to your full movement. End next to a cover object to be in cover." },
-    { "id": "aim", "name": "Aim", "apCost": 1, "implemented": true, "description": "Reroll one die on your next attack this turn." },
+    { "id": "aim", "name": "Aim", "apCost": 1, "implemented": true, "description": "Reroll one die on your next attack this turn; both dice (each once) with a focus that fits the weapon." },
     { "id": "useItem", "name": "Use Item", "apCost": 1, "implemented": false },
     { "id": "interact", "name": "Interact", "apCost": 1, "implemented": false },
     { "id": "attack", "name": "Attack", "apCost": 1, "implemented": true },
-    { "id": "sprint", "name": "Sprint", "apCost": 1, "implemented": false },
+    {
+      "id": "sprint",
+      "name": "Sprint",
+      "apCost": 1,
+      "implemented": true,
+      "description": "Once per turn, before or after Move: run up to half your movement (rounded up), no roll. End next to a cover object to be in cover.",
+      "notes": [
+        "Book: Captain's Log has no Sprint action; Fitness covers moving 'quickly around the battlefield' (p. 75) and its dash example rolls Fitness + Security (p. 205). The STA 2e Quickstart is not in reference/, so its Sprint is unchecked.",
+        "Designer decision (Oct 2026): 1 AP, no roll, ceil(movement / 2) tiles, once per turn before or after Move; everyone (party and Klingons) and every AI can use it. Not an attack, so it doesn't end the Ambush chance."
+      ]
+    },
     { "id": "assist", "name": "Assist", "apCost": 1, "implemented": true, "description": "Pick an ally who still has a turn this round. Their next attack adds your 1d20; its success counts if they score at least one." },
     { "id": "firstAid", "name": "First Aid", "apCost": 1, "implemented": false },
     { "id": "guard", "name": "Guard", "apCost": 1, "implemented": false },
-    { "id": "endTurn", "name": "End Turn", "apCost": 0, "implemented": true }
+    { "id": "endTurn", "name": "End Turn", "apCost": 0, "implemented": true },
+    {
+      "id": "ambush",
+      "name": "Ambush",
+      "apCost": 0,
+      "implemented": true,
+      "description": "Once, until anyone attacks: the party member with the best Control + Security rolls at Difficulty 1 against a Klingon they could shoot (Camouflage or Ambush Tactics rerolls a failed die). Success: 1 Hit on that Klingon. Failure: a new round starts and the Klingons act first for the rest of the fight.",
+      "notes": [
+        "Book (Captain's Log p. 74): Control is used for remaining stealthy. Book (p. 205): an ambusher 'may score an automatic hit'.",
+        "Designer decision (Oct 2026): optional at the fight's opening; best Control + Security in the party rolls; success = 1 free Hit on a chosen Klingon, failure = the Klingons act first this fight. Not in the Actions panel or self ring.",
+        "Designer decision (Oct 2026): only a Klingon the ambusher could shoot right now (in one of their weapons' range, with a clear line of fire).",
+        "Designer decision (Oct 2026): the chance lasts until anyone attacks (either side); Klingon turns spent moving don't spot the party, so it can close in over several rounds. Offered on party turns only.",
+        "Implementation detail (flag for designer): a failed ambush ends the party's current round at once (members yet to act lose that turn) and starts a new round with the Klingons first."
+      ]
+    }
   ]
 }
