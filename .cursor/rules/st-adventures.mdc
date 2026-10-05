@@ -65,6 +65,13 @@ Keep the prototype lightweight and easy to modify.
 
 PDF files containing the Star Trek Adventures / Captain's Log source material will exist inside the project directory.
 
+All reference PDFs are in:
+
+- `/reference` (project root) — Captain's Log Solo RPG and supplements, the STA 2e Quickstart Guide, Player's Guide, Command Division supplement, BRIEFS and other free releases.
+- `/reference/core-pdf` — the STA 2e core books: Core Rulebook, Species Sourcebook, Technical Manual, 23rd Century Campaign Guide, Exploration Guide and the Starter Set.
+
+Search both folders when verifying a rule. The folder may be hidden from file-search tools, so list it with a shell command (e.g. `cmd /c dir /b reference`) if a search finds nothing.
+
 Treat the supplied PDFs as **reference authority for the tabletop rules**.
 
 Important distinction:
