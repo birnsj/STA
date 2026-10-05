@@ -25,6 +25,8 @@ function jsonEndpoint(name, route, handlers) {
     configureServer(server) {
       server.middlewares.use(route, (req, res) => {
         let body = ''
+        // Decodes across chunk boundaries, so non-ASCII tile symbols in a map body never split.
+        req.setEncoding('utf8')
         req.on('data', (chunk) => (body += chunk))
         req.on('end', () => {
           try {

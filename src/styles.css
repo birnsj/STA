@@ -4698,6 +4698,45 @@ dd {
   cursor: default;
 }
 
+/* An NPC in the world that is not part of the fight. */
+.iso-unit.is-bystander {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: saturate(0.4);
+}
+
+/* Where the away team last saw an NPC it can't see now. */
+.last-known-marker ellipse {
+  fill: rgba(255, 92, 92, 0.08);
+  stroke: rgba(255, 120, 120, 0.7);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.last-known-marker text {
+  fill: rgba(255, 150, 150, 0.9);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.last-known-marker .last-known-label {
+  font-size: 9px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+.snap-marks line {
+  stroke: #ff5bd0;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.snap-marks circle {
+  fill: #ff5bd0;
+}
+
 .iso-unit-bracket {
   fill: none;
   stroke: var(--red);
@@ -5846,6 +5885,28 @@ dd {
   color: #ff7a7a;
 }
 
+/* Combat start: bigger and held longer than a turn banner (OPENING_BANNER_MS in CombatScreen.jsx). */
+.combat-turn-banner.is-start {
+  padding: 14px 64px;
+  border-width: 3px;
+  border-color: #e05050;
+  animation-duration: 2.4s;
+}
+
+.combat-turn-banner.is-start .combat-turn-banner-title {
+  font-size: 40px;
+  letter-spacing: 6px;
+  color: #ff7a7a;
+}
+
+.combat-turn-banner.is-start .combat-turn-banner-subtitle {
+  order: 1;
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+
 .combat-turn-banner-subtitle {
   font-size: 12px;
   letter-spacing: 3px;
@@ -6487,7 +6548,7 @@ dd {
 
 .episode-select-modes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }

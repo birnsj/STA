@@ -1,0 +1,679 @@
+/* Exploration prototype: reuses the combat screen's panels, party cards and isometric units. */
+
+.exploration-screen .combat-hint {
+  top: 40px;
+  left: 8px;
+  right: 8px;
+}
+
+/* Positions change every frame, so the combat units' walking transition would only add lag. */
+.explore-unit {
+  transition: none;
+}
+
+.explore-unit.is-selected .iso-unit-ring {
+  stroke: var(--yellow);
+  stroke-width: 2.5;
+  fill: rgba(246, 185, 40, 0.15);
+}
+
+.explore-unit.is-selected .iso-unit-body {
+  stroke: var(--yellow);
+}
+
+.explore-unit.is-lead .iso-unit-facing {
+  fill: var(--yellow);
+}
+
+.explore-unit-lead {
+  fill: var(--yellow);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+.explore-card-wrap {
+  position: relative;
+}
+
+.explore-card {
+  width: 150px;
+}
+
+.explore-card-detail {
+  overflow: hidden;
+  font-size: 10px;
+  color: var(--text-dim, #9fb4dc);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.explore-make-lead {
+  position: absolute;
+  top: -9px;
+  right: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--yellow);
+  border-radius: 3px;
+  background: #03060e;
+  color: var(--yellow);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.explore-formation-panel {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 196px;
+}
+
+.explore-formation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.explore-regroup {
+  width: 100%;
+}
+
+.explore-setup-list {
+  max-height: 260px;
+  margin-bottom: 10px;
+}
+
+.explore-debug-column {
+  position: absolute;
+  top: 76px;
+  bottom: 74px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 360px;
+  overflow-y: auto;
+}
+
+.explore-debug-panel {
+  flex: none;
+  font-size: 11px;
+}
+
+.explore-debug-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 0 0 6px;
+}
+
+.explore-debug-facts dt {
+  color: var(--text-dim, #9fb4dc);
+}
+
+.explore-debug-facts dd {
+  margin: 0;
+}
+
+.explore-debug-facts input {
+  width: 120px;
+  vertical-align: middle;
+}
+
+.explore-debug-table {
+  width: 100%;
+  margin-bottom: 6px;
+  border-collapse: collapse;
+}
+
+.explore-debug-table td {
+  padding: 1px 4px 1px 0;
+  white-space: nowrap;
+}
+
+.explore-debug-route {
+  fill: none;
+  stroke: #7fffd4;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.explore-debug-target {
+  fill: none;
+  stroke: #7fffd4;
+  stroke-width: 2;
+}
+
+.explore-debug-slot-ideal {
+  fill: none;
+  stroke: #ff9de2;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.explore-debug-slot {
+  fill: #ff9de2;
+}
+
+.explore-debug-label {
+  fill: #e8f0ff;
+  font-size: 9px;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+/* NPC awareness debug view. Colour by awareness: unaware grey, suspicious yellow, investigating orange,
+   alerted red, combat ready magenta. */
+.npc-debug {
+  --npc-state: #9fb4dc;
+}
+
+.npc-debug .is-suspicious {
+  --npc-state: #f6d028;
+}
+
+.npc-debug .is-investigating {
+  --npc-state: #ff9a3c;
+}
+
+.npc-debug .is-alerted {
+  --npc-state: #ff4a3d;
+}
+
+.npc-debug .is-combat-ready {
+  --npc-state: #ff3df2;
+}
+
+.npc-debug-cone {
+  fill: var(--npc-state);
+  fill-opacity: 0.12;
+  stroke: var(--npc-state);
+  stroke-width: 1.2;
+}
+
+.npc-debug-range {
+  fill: none;
+  stroke: var(--npc-state);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  stroke-opacity: 0.7;
+}
+
+.npc-debug-hearing {
+  fill: none;
+  stroke: #8fd3ff;
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  stroke-opacity: 0.6;
+}
+
+.npc-debug-sight {
+  fill: none;
+  stroke: var(--npc-state);
+  stroke-width: 2;
+}
+
+.npc-debug-last-known {
+  fill: none;
+  stroke: var(--npc-state);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+.npc-debug-investigate-line {
+  fill: none;
+  stroke: #ff9a3c;
+  stroke-width: 1.2;
+  stroke-dasharray: 6 4;
+}
+
+.npc-debug-investigate {
+  fill: #ff9a3c;
+  font-size: 16px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+.npc-debug-noise {
+  fill: rgba(143, 211, 255, 0.12);
+  stroke: #8fd3ff;
+  stroke-width: 2;
+}
+
+.npc-debug-label {
+  fill: var(--npc-state);
+}
+
+.explore-awareness-panel {
+  flex: none;
+  font-size: 11px;
+}
+
+.explore-combat-ready {
+  margin: 0 0 4px;
+  padding: 2px 6px;
+  border: 1px solid #ff3df2;
+  color: #ff3df2;
+  font-weight: 700;
+}
+
+.npc-state.is-suspicious {
+  color: #f6d028;
+}
+
+.npc-state.is-investigating {
+  color: #ff9a3c;
+}
+
+.npc-state.is-alerted {
+  color: #ff4a3d;
+}
+
+.npc-state.is-combat-ready {
+  color: #ff3df2;
+}
+
+.explore-debug-heading {
+  margin: 4px 0 2px;
+  color: var(--text-dim, #9fb4dc);
+}
+
+.explore-debug-list {
+  margin: 0 0 4px;
+  padding-left: 14px;
+}
+
+.explore-debug-events {
+  min-height: 7.5em;
+}
+
+.explore-debug-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* Combat started in the world: developer readout of how the fight links to the world (Link Debug). */
+.world-combat-debug {
+  position: absolute;
+  left: 8px;
+  top: 180px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 360px;
+  max-height: 330px;
+}
+
+.world-combat-debug-panel {
+  overflow: auto;
+  width: 100%;
+  font-size: 11px;
+}
+
+/* Party perception debug: each member's vision radius, rays to NPCs they see, and what the party knows of each NPC. */
+.perception-debug-radius {
+  fill: rgba(90, 170, 255, 0.04);
+  stroke: rgba(90, 170, 255, 0.45);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+
+.perception-debug-ray {
+  fill: none;
+  stroke: rgba(120, 220, 255, 0.85);
+  stroke-width: 1.5;
+}
+
+.perception-debug-label.is-visible {
+  fill: #7fe0ff;
+}
+
+.perception-debug-label.is-known {
+  fill: #ffb070;
+}
+
+.perception-debug-label.is-unknown {
+  fill: #9aa3b5;
+}
+
+/* An NPC the party can't see, drawn only in the debug view. */
+.explore-unit.is-unperceived {
+  opacity: 0.35;
+}
+
+.explore-debug-line {
+  margin: 0 0 4px;
+}
+
+/* Challenge objects on the map: amber while untouched, teal once changed; bright and clickable when in reach. */
+.challenge-marker {
+  --challenge: #f6b928;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.challenge-marker.is-changed {
+  --challenge: #4fd6c4;
+}
+
+.challenge-marker.is-in-reach {
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.challenge-marker ellipse {
+  fill: color-mix(in srgb, var(--challenge) 12%, transparent);
+  stroke: var(--challenge);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
+
+.challenge-marker.is-in-reach ellipse {
+  stroke-dasharray: none;
+  stroke-width: 2.5;
+}
+
+.challenge-marker path {
+  fill: var(--challenge);
+  stroke: #03060e;
+  stroke-width: 1.5;
+}
+
+.challenge-marker text {
+  fill: var(--challenge);
+  font-size: 10px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+.challenge-marker .challenge-marker-state {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* "Interact: <object>" prompts while someone stands in reach. */
+.challenge-prompts {
+  position: absolute;
+  left: 50%;
+  bottom: 120px;
+  z-index: 25;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+/* The interaction panel: approaches, performer / assistant, the character math, then the dice and result. */
+.challenge-panel {
+  position: absolute;
+  right: 12px;
+  top: 84px;
+  bottom: 12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 400px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.challenge-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.challenge-panel h3,
+.challenge-panel h4 {
+  margin: 0;
+  color: var(--label);
+  font-family: var(--display-font);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.challenge-panel h3 {
+  font-size: 18px;
+}
+
+.challenge-panel h4 {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.challenge-state {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+}
+
+.challenge-approach {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(16, 41, 95, 0.4);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.challenge-approach:hover:not(:disabled) {
+  border-color: var(--yellow);
+}
+
+.challenge-approach:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.challenge-approach-detail {
+  color: var(--label);
+  text-transform: capitalize;
+}
+
+.challenge-approach-description {
+  color: var(--text-muted);
+}
+
+.challenge-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.challenge-pick > span {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.challenge-pick-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.challenge-math {
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(3, 6, 14, 0.6);
+}
+
+.challenge-math-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.challenge-math-row.is-total {
+  margin-top: 2px;
+  color: var(--label);
+  font-weight: 700;
+}
+
+.challenge-math-row.is-detail {
+  padding-left: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.challenge-math-note {
+  margin: 4px 0 0;
+}
+
+.challenge-math-note.is-inactive,
+.challenge-math-hint {
+  color: var(--text-muted);
+}
+
+.challenge-math-note.is-assist {
+  padding-top: 4px;
+  border-top: 1px solid rgba(29, 74, 168, 0.6);
+}
+
+.challenge-math-blocker {
+  margin: 4px 0 0;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.challenge-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 6px;
+  background: var(--panel);
+}
+
+.challenge-result {
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.challenge-result.is-success {
+  border-color: #4fd6c4;
+}
+
+.challenge-result.is-failure {
+  border-color: var(--red);
+}
+
+.challenge-result p {
+  margin: 4px 0 0;
+}
+
+.challenge-result-verdict {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.challenge-result.is-success .challenge-result-verdict {
+  color: #4fd6c4;
+}
+
+.challenge-result.is-failure .challenge-result-verdict {
+  color: var(--red);
+}
+
+.challenge-result-line.is-complication {
+  color: #ff9a3c;
+  font-weight: 700;
+}
+
+.challenge-result-message {
+  font-style: italic;
+}
+
+.challenge-dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.challenge-die {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 78px;
+  animation: challenge-die-roll 0.5s ease-out both;
+}
+
+.challenge-die:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.challenge-die:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.challenge-die-face {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #5a6a8a;
+  border-radius: 8px;
+  background: #0b1430;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.challenge-die.is-success .challenge-die-face {
+  border-color: #4fd6c4;
+  color: #4fd6c4;
+}
+
+.challenge-die.is-critical .challenge-die-face {
+  border-color: var(--yellow);
+  color: var(--yellow);
+  box-shadow: 0 0 10px rgba(246, 185, 40, 0.6);
+}
+
+.challenge-die.is-complication .challenge-die-face {
+  border-color: #ff9a3c;
+  color: #ff9a3c;
+}
+
+.challenge-die-tag {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.challenge-die-owner {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+@keyframes challenge-die-roll {
+  from {
+    opacity: 0;
+    transform: rotate(-200deg) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

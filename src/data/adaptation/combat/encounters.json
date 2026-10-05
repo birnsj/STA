@@ -17,6 +17,15 @@
       "standardIssueWeapon": "phaserType2",
       "defaultMapId": "Engineering Deck",
       "roster": ["klingonWarrior1", "klingonWarrior2", "klingonWarrior3", "klingonWarrior4"]
+    },
+    {
+      "id": "explorationContact",
+      "name": "Exploration Contact",
+      "notes": "Combat started in the exploration world (src/exploration/combatLink.js): no roster or spawns; the fighters are whoever is in the world at that moment, where they stand. Objective text is placeholder content.",
+      "objectives": [{ "id": "defeatHostiles", "text": "Defeat the hostiles" }],
+      "autoCombat": { "playerInjuryMode": "stun" },
+      "standardIssueWeapon": "phaserType2",
+      "roster": []
     }
   ]
 }

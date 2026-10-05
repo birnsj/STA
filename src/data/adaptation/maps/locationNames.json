@@ -284,6 +284,61 @@
       ]
     },
     {
+      "id": "farm",
+      "label": "Farmstead",
+      "names": ["Halvorsen Homestead", "Corvanis Grain Farm", "Taleth Orchard", "Ortaine Hydro-Farm", "Sefaris Ranch", "Old Mirados Farmstead", "Draxis Agricultural Station 4", "Vessaron Fields", "Lethis Kelp Farm", "Amarisk Vineyards", "Ishkal Dairy Collective", "Greenfield Settlement"]
+    },
+    {
+      "id": "miningSite",
+      "label": "Mining Site",
+      "names": ["Kelvara Dilithium Quarry", "Black Vein Strip Mine", "Ortaine Ore Works", "Draxis Mining Claim 9", "Sefaris Pergium Dig", "Taleth Open Pit", "Corvanis Topaline Mine", "Ishkal Excavation Site", "Halvorsen Borehole Camp", "Rust Ridge Quarry", "Amarisk Kelbonite Works", "Deep Seam Mining Camp"]
+    },
+    {
+      "id": "landingField",
+      "label": "Landing Field",
+      "names": ["Mirados Landing Field", "Corvanis Spaceport", "Draxis Shuttle Pad 2", "Taleth Supply Depot", "Ortaine Freight Terminal", "Sefaris Starport", "Kelvara Landing Strip", "Halvorsen Field", "Ishkal Cargo Pad", "Lethis Transit Yard", "Amarisk Port Authority", "Frontier Landing Zone"]
+    },
+    {
+      "id": "fieldCamp",
+      "label": "Field Camp",
+      "names": ["Survey Camp Alpha", "Taleth Base Camp", "Ortaine Research Camp", "Away Team Camp", "Sefaris Expedition Camp", "Kelvara Field Station", "Draxis Refugee Camp", "Halvorsen Bivouac", "Ishkal Dig Camp", "Corvanis Forward Camp", "Lethis Observation Post", "Amarisk Science Camp"]
+    },
+    {
+      "id": "crashSite",
+      "label": "Crash Site",
+      "names": ["Shuttlecraft Crash Site", "Taleth Impact Zone", "Wreck of the Valiant's Shuttle", "Ortaine Crash Site", "Sefaris Debris Field", "Kelvara Downed Freighter", "Draxis Escape Pod Landing", "Halvorsen Impact Crater", "Wreck of the Ishkal Runner", "Corvanis Crash Trail", "Lethis Burn Scar", "Amarisk Wreck Site"]
+    },
+    {
+      "id": "laboratory",
+      "label": "Research Lab",
+      "names": ["Ortaine Research Institute", "Taleth Genetics Lab", "Daystrom Annex Lab 3", "Sefaris Xenobiology Lab", "Kelvara Weapons Research Facility", "Draxis Containment Lab", "Halvorsen Subspace Lab", "Ishkal Medical Research Wing", "Corvanis Botany Lab", "Lethis Cryogenics Lab", "Amarisk Particle Lab", "Black Site Research Lab"]
+    },
+    {
+      "id": "cantina",
+      "label": "Cantina",
+      "names": ["The Rusty Nacelle", "Draxis Cantina", "The Blue Moon Tavern", "Taleth Spaceport Bar", "Quark's Rival", "The Broken Warp Coil", "Sefaris Saloon", "The Last Orbit", "Kelvara Drinking Hall", "The Gilded Targ", "Ortaine Taproom", "The Wandering Comet"]
+    },
+    {
+      "id": "detention",
+      "label": "Detention Block",
+      "names": ["Kelvara Penal Colony Block C", "Draxis Detention Center", "Taleth Holding Facility", "Ortaine Prison Wing", "Sefaris Stockade", "Corvanis Security Lockup", "Halvorsen Correctional Block", "Ishkal Internment Camp Cells", "Lethis Maximum Security Wing", "Amarisk Holding Cells", "Detention Level 4", "Rura Penthe Annex"]
+    },
+    {
+      "id": "alienTemple",
+      "label": "Alien Temple",
+      "names": ["Temple of the Silent Ones", "Ortaine Sanctum", "Hall of the First Light", "Shrine of the Twin Suns", "Taleth Oracle Chamber", "Sanctuary of Echoes", "Temple of the Watchers", "Kelvara Reliquary", "Halls of the Departed", "Sefaris Star Temple", "Vault of the Ancients", "Sanctum of the Ninth Path"]
+    },
+    {
+      "id": "alienHive",
+      "label": "Alien Hive",
+      "names": ["The Brood Warrens", "Kelvara Hive Mound", "Nest of the Swarm", "Sefaris Hive Tunnels", "The Resin Deep", "Taleth Brood Chambers", "Hollow of the Queen", "Draxis Infestation Site", "The Chittering Dark", "Ortaine Hive Complex", "Spawning Grounds", "The Living Tunnels"]
+    },
+    {
+      "id": "alienVessel",
+      "label": "Alien Vessel",
+      "names": ["Unknown Vessel Interior", "The Seedship", "Bioship Corridors", "Alien Derelict Core", "The Silent Ark", "Probe Vessel Interior", "The Wanderer's Hold", "Living Ship Chambers", "Sphere Vessel Deck", "The Harvester", "Monolith Ship Interior", "The Shepherd's Vessel"]
+    },
+    {
       "id": "wilderness",
       "label": "Wilderness",
       "names": [
@@ -430,6 +485,66 @@
         "Taleth Smoking Hills",
         "Pyre Valley"
       ]
+    },
+    {
+      "id": "jungle",
+      "label": "Jungle",
+      "names": ["Kelvara Rainforest", "Mirados Green Hell", "Sefaris Canopy", "Ortaine Jungle Basin", "Corvanis Vine Country", "Taleth River Jungle", "Draxis Overgrowth", "Zhoran Cloud Forest", "Emerald Delta of Ishkal", "Halvorsen Lowland Jungle", "Thessaly Strangler Woods", "Vessaron Deep Green"]
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland",
+      "names": ["Kelvara Savanna", "Mirados Long Grass", "Sefaris Steppe", "Ortaine Prairie", "Corvanis Plains", "Taleth Veldt", "Golden Reach of Ishkal", "Halvorsen Downs", "Zhoran Wind Plains", "Thessaly Pampas", "Vessaron Grass Sea", "Draxis Rolling Hills"]
+    },
+    {
+      "id": "tundra",
+      "label": "Tundra",
+      "names": ["Kelvara Barrens", "Mirados Permafrost Plain", "Sefaris Tundra", "Ortaine Frost Moor", "Corvanis Lichen Fields", "Taleth Cold Steppe", "Halvorsen Muskeg", "Zhoran Grey Heath", "Thessaly Frozen Moss", "Vessaron Polar Plain", "Draxis Rime Flats", "Ishkal Thaw Lakes"]
+    },
+    {
+      "id": "coast",
+      "label": "Coast",
+      "names": ["Kelvara Strand", "Mirados Bay", "Sefaris Reef Shore", "Ortaine Lagoon", "Corvanis Sound", "Taleth Point", "Halvorsen Beach", "Zhoran Tidal Flats", "Thessaly Cove", "Vessaron Shoals", "Draxis Inlet", "Ishkal Sea Cliffs"]
+    },
+    {
+      "id": "mountains",
+      "label": "Mountains",
+      "names": ["Kelvara Highlands", "Mirados Pass", "Sefaris Peaks", "Ortaine Ridge", "Corvanis Col", "Taleth Spine", "Halvorsen Massif", "Zhoran Divide", "Thessaly Summit Trail", "Vessaron Crags", "Draxis Saddle", "Ishkal High Valley"]
+    },
+    {
+      "id": "geothermal",
+      "label": "Geothermal Field",
+      "names": ["Kelvara Geyser Basin", "Mirados Hot Springs", "Sefaris Steam Fields", "Ortaine Fumaroles", "Corvanis Mud Pots", "Taleth Sulphur Terraces", "Halvorsen Boiling Lakes", "Zhoran Vent Plain", "Thessaly Travertine Steps", "Vessaron Steam Valley", "Draxis Smoking Flats", "Ishkal Prismatic Pools"]
+    },
+    {
+      "id": "crystal",
+      "label": "Crystal Fields",
+      "names": ["Kelvara Crystal Expanse", "Mirados Prism Fields", "Sefaris Singing Spires", "Ortaine Quartz Desert", "Corvanis Shard Garden", "Taleth Resonance Plain", "Halvorsen Lattice", "Zhoran Glimmer Wastes", "Thessaly Geode Valley", "Vessaron Crystal Forest", "Draxis Refraction Flats", "Ishkal Amethyst Reach"]
+    },
+    {
+      "id": "fungal",
+      "label": "Fungal Forest",
+      "names": ["Kelvara Mycelial Forest", "Mirados Spore Woods", "Sefaris Cap Forest", "Ortaine Puffball Fields", "Corvanis Rot Hollow", "Taleth Gill Wood", "Halvorsen Spore Grove", "Zhoran Mushroom Stand", "Thessaly Hyphae Maze", "Vessaron Fruiting Fields", "Draxis Shelf Fungus Wood", "Ishkal Mould Gardens"]
+    },
+    {
+      "id": "acidMarsh",
+      "label": "Acid Marsh",
+      "names": ["Kelvara Acid Fens", "Mirados Caustic Mire", "Sefaris Toxic Bog", "Ortaine Corrosion Flats", "Corvanis Bile Marsh", "Taleth Sour Wetlands", "Halvorsen Blight Swamp", "Zhoran Etching Pools", "Thessaly Green Mire", "Vessaron Venom Marsh", "Draxis Seethe", "Ishkal Brimstone Bog"]
+    },
+    {
+      "id": "bioluminescent",
+      "label": "Bioluminescent Jungle",
+      "names": ["Kelvara Glow Forest", "Mirados Lantern Woods", "Sefaris Luminous Canopy", "Ortaine Shining Jungle", "Corvanis Starlit Grove", "Taleth Neon Thicket", "Halvorsen Glimmerwood", "Zhoran Lumen Forest", "Thessaly Firefly Jungle", "Vessaron Radiant Basin", "Draxis Phosphor Woods", "Ishkal Twilight Jungle"]
+    },
+    {
+      "id": "rustDesert",
+      "label": "Rust Desert",
+      "names": ["Kelvara Red Wastes", "Mirados Iron Dunes", "Sefaris Oxide Plain", "Ortaine Crimson Mesas", "Corvanis Rust Basin", "Taleth Red Canyon", "Halvorsen Hematite Flats", "Zhoran Scarlet Sands", "Thessaly Blood Plateau", "Vessaron Ochre Desert", "Draxis Red Barrens", "Ishkal Copper Badlands"]
+    },
+    {
+      "id": "glassPlains",
+      "label": "Glass Plains",
+      "names": ["Kelvara Glass Desert", "Mirados Obsidian Flats", "Sefaris Fused Plain", "Ortaine Black Mirror", "Corvanis Slag Fields", "Taleth Glassed Valley", "Halvorsen Vitrified Plain", "Zhoran Shatter Fields", "Thessaly Tektite Wastes", "Vessaron Burned Plain", "Draxis Melt Scar", "Ishkal Mirror Basin"]
     },
     {
       "id": "derelict",

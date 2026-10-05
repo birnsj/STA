@@ -24,5 +24,30 @@ export function randomUnusedLocationName(categoryId, isTaken, random = Math.rand
   return `${base} ${number}`
 }
 
-// Prototype: an episode title.
-export const randomEpisodeName = (currentName = '', random = Math.random) => pickOther(episodes.names, currentName, random)
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Whole words only, so a ship called Hope isn't found in "Hopeful Landing".
+const mentions = (text, name) => new RegExp(`(^|\\W)${escapeRegExp(name)}(\\W|$)`).test(text)
+
+// Titles built from the map name: about any world or ship it mentions, otherwise about the place itself. Long names like
+// "Wreck of the U.S.S. Calloway" read badly inside a pattern, so a named world or ship always wins.
+function mapTitles(mapName) {
+  const place = mapName.trim()
+  if (!place) return []
+  const fill = (patterns, key, value) => patterns.map((pattern) => pattern.replace(`{${key}}`, value))
+  const named = [
+    ...episodes.worlds.filter((world) => mentions(place, world)).flatMap((world) => fill(episodes.mapTitles.world, 'world', world)),
+    ...episodes.ships.filter((ship) => mentions(place, ship)).flatMap((ship) => fill(episodes.mapTitles.ship, 'ship', ship)),
+  ]
+  return named.length ? named : fill(episodes.mapTitles.place, 'place', place.replace(/^The /, 'the '))
+}
+
+// Prototype: an episode title. Sometimes (episodeNames.json mapChance) it is built from mapName instead of taken from
+// the list.
+export function randomEpisodeName(currentName = '', random = Math.random, mapName = '') {
+  const fromMap = mapTitles(mapName)
+  if (fromMap.length && random() < episodes.mapChance) {
+    const title = pickOther(fromMap, currentName, random)
+    if (title !== currentName) return title
+  }
+  return pickOther(episodes.names, currentName, random)
+}

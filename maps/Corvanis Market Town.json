@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "name": "Corvanis Market Town",
+  "episodeName": "The Warrior's Gambit",
+  "card": "/art/episodes/Corvanis%20Market%20Town.png?v=1791172941444",
+  "mapType": "city",
+  "biome": "temperate",
+  "weather": "downpour",
+  "rows": [
+    "--------==,,,,,,,,,==-------c-",
+    "-BBBBBB-==,T,,,,,T,==-BBBBBBB-",
+    "-B....B-==,,,,,,,,,==-B..c..B-",
+    "-Bc...B-==,,,,,,,,,==-D.....B-",
+    "-BBBDBB-==,,,FF,,,,==-BBBBBBB-",
+    "--c-----==,,,FF,,,,==---------",
+    "-BBDBBB-==,,,,,,,,,==-BDBBBBB-",
+    "-B....Bp==,,,,,,,,,==-B.....B-",
+    "-B.c..B-==,,,,,,,,,==-B....cB-",
+    "-BBBBBB-==,T,,,,,T,==-BBBBBBB-",
+    "----c---==,,,,,,,,,==---------",
+    "==============================",
+    "==============================",
+    "--------==-p-----p-==---------",
+    "-BBDBBB-==-BBDBBBB-==-BBBBBBB-",
+    "-B....B-==cB..c..B-==-D.....B-",
+    "-B....B-==pB.....B-==pB.....B-",
+    "-BM...B-==-B.....B-==-B.....B-",
+    "-BM...Bp==pB.....B-==-Bc....B-",
+    "-BM...B-==-B..MMMB-==-BMMM..B-",
+    "-BBBBBBc==-BBBBBBB-==cBBBBBBB-",
+    "--------==p--------==---------"
+  ],
+  "areas": [
+    {
+      "name": "Fountain Square",
+      "position": [
+        10,
+        0
+      ]
+    },
+    {
+      "name": "Clinic",
+      "position": [
+        2,
+        2
+      ]
+    },
+    {
+      "name": "Market Hall",
+      "position": [
+        2,
+        7
+      ]
+    },
+    {
+      "name": "Communications Office",
+      "position": [
+        23,
+        2
+      ]
+    },
+    {
+      "name": "Constabulary",
+      "position": [
+        23,
+        7
+      ]
+    },
+    {
+      "name": "Temple",
+      "position": [
+        2,
+        15
+      ]
+    },
+    {
+      "name": "Guild House",
+      "position": [
+        12,
+        15
+      ]
+    },
+    {
+      "name": "Workshop",
+      "position": [
+        23,
+        15
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        8
+      ],
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        11
+      ]
+    ],
+    "enemySpawns": [
+      [
+        29,
+        10
+      ],
+      [
+        29,
+        14
+      ],
+      [
+        29,
+        15
+      ],
+      [
+        29,
+        18
+      ]
+    ]
+  }
+}

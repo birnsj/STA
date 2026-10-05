@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
-import { BIOMES, MAP_GENERATORS, MAP_SIZES, sizeFor, sizeIdOf, usesBiome } from '../../maps/mapGenerators.js'
+import { BIOME_WORLDS, BIOMES, LOCATION_GROUPS, MAP_GENERATORS, MAP_SIZES, sizeFor, sizeIdOf, usesBiome } from '../../maps/mapGenerators.js'
 import { isIndoors, weatherOptions } from '../../maps/mapWeather.js'
 
 // Size presets for the map's type; Custom shows when the dimensions match none of them (set with the fields beside it).
@@ -58,24 +58,32 @@ function MapTypeControls({ map, onMapType, onBiome, onWeather, showWeather, onSh
   return (
     <span className="me-size">
       <select className="me-select" value={map.mapType} aria-label="Location" title="Location" onChange={(event) => onMapType(event.target.value)}>
-        {MAP_GENERATORS.map((generator) => (
-          <option key={generator.id} value={generator.id}>
-            {generator.label}
-          </option>
+        {LOCATION_GROUPS.map((group) => (
+          <optgroup key={group.id} label={group.label}>
+            {MAP_GENERATORS.filter((generator) => generator.group === group.id).map((generator) => (
+              <option key={generator.id} value={generator.id}>
+                {generator.label}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
       <select
         className="me-select"
         value={map.biome}
         aria-label="Biome"
-        title={biomeless ? 'Ships and stations have no biome' : 'Biome'}
+        title={biomeless ? 'Ships, stations and indoor locations have no biome' : 'Biome'}
         disabled={biomeless}
         onChange={(event) => onBiome(event.target.value)}
       >
-        {BIOMES.map((biome) => (
-          <option key={biome.id} value={biome.id}>
-            {biome.label}
-          </option>
+        {BIOME_WORLDS.map((world) => (
+          <optgroup key={world.id} label={world.label}>
+            {BIOMES.filter((biome) => biome.world === world.id).map((biome) => (
+              <option key={biome.id} value={biome.id}>
+                {biome.label}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
       <WeatherControls map={map} onWeather={onWeather} showWeather={showWeather} onShowWeather={onShowWeather} />

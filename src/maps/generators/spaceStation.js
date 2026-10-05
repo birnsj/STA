@@ -1,11 +1,14 @@
 // Space Station: a bulkhead hull with a wide promenade across the middle and rooms above and below it, each opening
 // onto the promenade. Small maps drop the lower band of rooms, then the rooms altogether.
+// makeStationGenerator builds the same layout from other tiles (a cantina's hall and back rooms, a cell block).
 import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
 import {
+  CRATE_TILE,
   DOOR_TILE,
   furnishRoom,
   key,
   labelRegions,
+  MACHINERY_TILE,
   makeGrid,
   markerCells,
   markersAtEnds,
@@ -18,7 +21,6 @@ import {
   splitAxis,
 } from './shared.js'
 
-const WALLS = new Set([WALL_TILE])
 const MIN_PROMENADE = 2
 
 // Rows (inclusive ranges) for the upper rooms, the promenade and the lower rooms; a band is null when it doesn't fit.
@@ -39,9 +41,26 @@ function bands(innerHeight, random) {
   return { upper: null, promenade: [1, innerHeight], lower: null }
 }
 
-export function generateSpaceStation(map, random, areaNames) {
+// overrides: { floor, wall, door, crate, machinery, hazard (place the EPS grating and control), span (room width),
+// furnishHall(tiles, keep, hall, random, style) / furnishRooms(tiles, keep, rooms, random, style) instead of the default
+// crates and consoles }.
+export function makeStationGenerator(overrides = {}) {
+  const style = { floor: FLOOR_TILE, wall: WALL_TILE, door: DOOR_TILE, crate: CRATE_TILE, machinery: MACHINERY_TILE, hazard: true, span: 6, ...overrides }
+  return (map, random, areaNames) => buildStation(map, random, areaNames, style)
+}
+
+// Crates and consoles line the promenade's walls; the rooms are furnished like deck rooms.
+function defaultFurnishHall(tiles, keep, hall, random, { floor, wall, crate, machinery }) {
+  furnishRoom(tiles, keep, hall, random, { floor, walls: new Set([wall]), density: 10, crate, machinery })
+}
+function defaultFurnishRooms(tiles, keep, rooms, random, { floor, wall, crate, machinery }) {
+  rooms.forEach((room) => furnishRoom(tiles, keep, room, random, { floor, walls: new Set([wall]), crate, machinery }))
+}
+
+function buildStation(map, random, areaNames, style) {
+  const { floor, wall, door: doorTile } = style
   const { width, height } = map
-  const tiles = makeGrid(width, height, (x, y) => (x === 0 || y === 0 || x === width - 1 || y === height - 1 ? WALL_TILE : FLOOR_TILE))
+  const tiles = makeGrid(width, height, (x, y) => (x === 0 || y === 0 || x === width - 1 || y === height - 1 ? wall : floor))
   const keep = new Set()
   const layout = bands(height - 2, random)
   const promenade = { x0: 1, x1: width - 2, y0: layout.promenade[0], y1: layout.promenade[1] }
@@ -50,14 +69,14 @@ export function generateSpaceStation(map, random, areaNames) {
   const roomBand = (rows, facesDown) => {
     if (!rows) return []
     const wallY = facesDown ? rows[1] + 1 : rows[0] - 1
-    for (let x = 1; x < width - 1; x++) tiles[wallY][x] = WALL_TILE
-    const rooms = splitAxis(1, width - 2, random).map(([x0, x1]) => ({ x0, x1, y0: rows[0], y1: rows[1] }))
+    for (let x = 1; x < width - 1; x++) tiles[wallY][x] = wall
+    const rooms = splitAxis(1, width - 2, random, style.span).map(([x0, x1]) => ({ x0, x1, y0: rows[0], y1: rows[1] }))
     rooms.slice(0, -1).forEach((room) => {
-      for (let y = rows[0]; y <= rows[1]; y++) tiles[y][room.x1 + 1] = WALL_TILE
+      for (let y = rows[0]; y <= rows[1]; y++) tiles[y][room.x1 + 1] = wall
     })
     rooms.forEach((room) => {
       const door = { x: randomInt(random, room.x0, room.x1), y: wallY }
-      tiles[door.y][door.x] = DOOR_TILE
+      tiles[door.y][door.x] = doorTile
       keep.add(key({ x: door.x, y: door.y - 1 })).add(key({ x: door.x, y: door.y + 1 }))
     })
     return rooms
@@ -66,9 +85,8 @@ export function generateSpaceStation(map, random, areaNames) {
   const lowerRooms = roomBand(layout.lower, false)
   const rooms = [...upperRooms, ...lowerRooms]
 
-  // Crates and consoles line the promenade's walls; the rooms are furnished like deck rooms.
-  furnishRoom(tiles, keep, promenade, random, { floor: FLOOR_TILE, walls: WALLS, density: 10 })
-  rooms.forEach((room) => furnishRoom(tiles, keep, room, random, { floor: FLOOR_TILE, walls: WALLS }))
+  ;(style.furnishHall ?? defaultFurnishHall)(tiles, keep, promenade, random, style)
+  ;(style.furnishRooms ?? defaultFurnishRooms)(tiles, keep, rooms, random, style)
 
   // Players in a room at one end and enemies in a room at the other (in the other band when there is one).
   const leftFirst = random() < 0.5
@@ -83,9 +101,11 @@ export function generateSpaceStation(map, random, areaNames) {
     ;[playerRoom, enemyRoom] = ends(rooms)
   }
 
-  const markerRooms = new Set([playerRoom, enemyRoom])
-  const sideRooms = shuffle(rooms.filter((room) => !markerRooms.has(room)), random)
-  placeHazard(tiles, keep, [...sideRooms, promenade, ...shuffle(rooms.filter((room) => markerRooms.has(room)), random)], random, FLOOR_TILE)
+  if (style.hazard) {
+    const markerRooms = new Set([playerRoom, enemyRoom])
+    const sideRooms = shuffle(rooms.filter((room) => !markerRooms.has(room)), random)
+    placeHazard(tiles, keep, [...sideRooms, promenade, ...shuffle(rooms.filter((room) => markerRooms.has(room)), random)], random, floor)
+  }
 
   const markers = playerRoom
     ? pickMarkers(markerCells(tiles, roomCells(playerRoom)), markerCells(tiles, roomCells(enemyRoom)), random)
@@ -93,3 +113,5 @@ export function generateSpaceStation(map, random, areaNames) {
   const areas = labelRegions(tiles, [roomCells(promenade), ...rooms.map(roomCells)], areaNames, random)
   return { ...map, tiles, areas, markers }
 }
+
+export const generateSpaceStation = makeStationGenerator()

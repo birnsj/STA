@@ -15,6 +15,17 @@
     "cave": { "small": [16, 14], "medium": [22, 20], "large": [30, 28], "huge": [44, 44] },
     "wilderness": { "small": [20, 14], "medium": [28, 20], "large": [36, 26], "huge": [48, 40] },
     "city": { "small": [20, 16], "medium": [30, 22], "large": [40, 28], "huge": [48, 42] },
-    "derelict": { "small": [16, 10], "medium": [22, 14], "large": [30, 20], "huge": [42, 28] }
+    "derelict": { "small": [16, 10], "medium": [22, 14], "large": [30, 20], "huge": [42, 28] },
+    "farm": { "small": [22, 16], "medium": [30, 22], "large": [38, 28], "huge": [48, 38] },
+    "miningSite": { "small": [20, 16], "medium": [28, 20], "large": [36, 26], "huge": [46, 36] },
+    "landingField": { "small": [18, 14], "medium": [26, 18], "large": [34, 24], "huge": [46, 32] },
+    "fieldCamp": { "small": [16, 14], "medium": [22, 18], "large": [30, 24], "huge": [40, 32] },
+    "crashSite": { "small": [20, 14], "medium": [28, 18], "large": [36, 24], "huge": [48, 32] },
+    "laboratory": { "small": [16, 12], "medium": [22, 16], "large": [30, 22], "huge": [40, 30] },
+    "cantina": { "small": [16, 13], "medium": [22, 17], "large": [28, 21], "huge": [36, 27] },
+    "detention": { "small": [18, 13], "medium": [24, 15], "large": [32, 19], "huge": [42, 23] },
+    "alienTemple": { "small": [18, 15], "medium": [26, 19], "large": [34, 25], "huge": [44, 31] },
+    "alienHive": { "small": [18, 16], "medium": [24, 22], "large": [32, 30], "huge": [46, 46] },
+    "alienVessel": { "small": [15, 11], "medium": [21, 15], "large": [29, 21], "huge": [41, 29] }
   }
 }

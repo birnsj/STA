@@ -1,5 +1,16 @@
 {
-  "notes": "Prototype placeholder area labels for Generate Map's layout types. Invented for the prototype, not taken from the source books; edit freely. Starship Deck, Space Station and Derelict Ship use the shipRoom and stationRoom lists in locationNames.json instead. Wilderness uses the list named after its biome (temperate, forest, swamp, desert, iceField, volcanic, barren).",
+  "notes": "Prototype placeholder area labels for Generate Map's layout types. Invented for the prototype, not taken from the source books; edit freely. Each other location uses the list under its own id. Starship Deck, Space Station and Derelict Ship use the shipRoom and stationRoom lists in locationNames.json instead. Wilderness uses the list named after its biome id (biomes.json).",
+  "farm": ["Farmhouse", "Barn", "North Field", "South Field", "Orchard", "Grain Field", "Tool Shed", "Pasture", "Root Cellar", "Hydroponic Rows"],
+  "miningSite": ["Quarry Pit", "Site Office", "Ore Processing", "Rail Spur", "Drill Platform", "Equipment Shed", "Spoil Heap", "Assay Hut", "Blasting Zone", "Loading Dock"],
+  "landingField": ["Landing Pad", "Control Hut", "Fuel Depot", "Cargo Apron", "Maintenance Bay", "Customs Office", "Pad Two", "Approach Lights"],
+  "fieldCamp": ["Campfire", "Supply Tent", "Sensor Mast", "Mess Tent", "Command Tent", "Latrine Trench", "Perimeter", "Sample Store"],
+  "crashSite": ["Impact Point", "Main Hull", "Debris Trail", "Engine Section", "Burn Scar", "Escape Hatch", "Scattered Cargo", "Cockpit"],
+  "laboratory": ["Main Lab", "Containment", "Specimen Store", "Clean Room", "Server Room", "Director's Office", "Decontamination", "Cryo Storage", "Analysis Lab", "Equipment Bay", "Isolation Ward", "Records Room"],
+  "cantina": ["Main Bar", "Back Room", "Kitchen", "Cellar", "Card Room", "Private Booth", "Storeroom", "Owner's Office", "Washroom", "Stage"],
+  "detention": ["Cell Block", "Guard Station", "Cell 1", "Cell 2", "Cell 3", "Cell 4", "Cell 5", "Cell 6", "Interrogation", "Processing", "Armoury", "Isolation Cell"],
+  "alienTemple": ["Great Nave", "Inner Sanctum", "East Chapel", "West Chapel", "Reliquary", "Ossuary", "Hall of Glyphs", "Oracle's Chamber", "Vestibule", "Sealed Vault"],
+  "alienHive": ["Brood Chamber", "Queen's Lair", "Feeding Pit", "Egg Gallery", "Resin Tunnels", "Spawning Pool", "Drone Warren", "Nest Core"],
+  "alienVessel": ["Control Nexus", "Bio-Chamber", "Propulsion Core", "Specimen Hold", "Neural Hub", "Membrane Lock", "Growth Vats", "Navigation Node", "Stasis Hall", "Resonance Chamber", "Archive Node", "Pod Bay"],
   "colony": [
     "Habitat Dome",
     "Colony Infirmary",
@@ -147,5 +158,17 @@
     "Obsidian Shelf",
     "Sulfur Vents",
     "Cooling Flow"
-  ]
+  ],
+  "jungle": ["Landing Zone", "River Bend", "Strangler Fig", "Vine Curtain", "Fern Gully", "Canopy Break", "Overgrown Shrine", "Mudbank", "Buttress Roots", "Hunter's Trail"],
+  "grassland": ["Landing Zone", "Lone Acacia", "Termite Towers", "Long Grass", "Watering Hole", "Game Trail", "Kopje", "Burned Patch", "Dry Riverbed", "Grazing Ground"],
+  "tundra": ["Landing Zone", "Frost Heave", "Lichen Field", "Thaw Pond", "Erratic Boulder", "Caribou Track", "Snow Patch", "Ice Lens", "Wind Scour", "Stone Circle"],
+  "coast": ["Landing Zone", "Tide Line", "Palm Grove", "Driftwood Pile", "Lagoon Mouth", "Rock Pools", "Dune Ridge", "Shipwreck Beach", "Sandbar", "Breakwater"],
+  "mountains": ["Landing Zone", "Switchback", "Cliff Face", "Scree Slope", "Saddle", "Treeline", "Overlook", "Boulder Field", "Ledge", "Hidden Valley"],
+  "geothermal": ["Landing Zone", "Old Faithful", "Hot Spring", "Mud Pots", "Sinter Terrace", "Steam Vent", "Sulphur Crust", "Boiling Pool", "Fumarole", "Cooling Basin"],
+  "crystal": ["Landing Zone", "Singing Spires", "Prism Gate", "Shard Field", "Resonance Point", "Crystal Arch", "Light Well", "Geode Hollow", "Facet Ridge", "Refraction Pool"],
+  "fungal": ["Landing Zone", "Cap Canopy", "Spore Cloud", "Puffball Patch", "Mycelium Mat", "Gill Hollow", "Fairy Ring", "Rot Pit", "Stalk Grove", "Mould Bank"],
+  "acidMarsh": ["Landing Zone", "Acid Pool", "Bloat Field", "Fume Vent", "Corroded Wreck", "Boardwalk Junction", "Sludge Channel", "Etched Rocks", "Toxic Hummock", "Bubbling Flat"],
+  "bioluminescent": ["Landing Zone", "Lantern Grove", "Glow Pools", "Lumen Thicket", "Shining Path", "Pulse Tree", "Spore Lights", "Dark Hollow", "Radiant Clearing", "Starlit Stream"],
+  "rustDesert": ["Landing Zone", "Red Mesa", "Oxide Flats", "Dust Basin", "Iron Arch", "Rust Dunes", "Canyon Mouth", "Hematite Ridge", "Crater Rim", "Wind-Cut Spire"],
+  "glassPlains": ["Landing Zone", "Obsidian Spires", "Mirror Flat", "Shard Field", "Melt Pool", "Fused Crater", "Black Ridge", "Tektite Scatter", "Glass Dune", "Cooling Vent"]
 }

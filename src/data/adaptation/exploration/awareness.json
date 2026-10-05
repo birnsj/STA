@@ -1,0 +1,72 @@
+{
+  "notes": [
+    "Prototype tuning for NPC awareness in exploration (designer spec, Oct 2026). Not from the STA books, which have no real-time perception rules. Every value is a first-pass placeholder for tuning.",
+    "Distances are in tiles, angles in degrees, rates and times in seconds. Facing: degrees on the map grid, 0 = toward increasing x (columns), 90 = toward increasing y (rows).",
+    "Awareness is tracked per NPC per party member. confidence runs 0..1: anything noticed (above 0) makes the NPC Suspicious of that character; reaching 1 is a positive identification (Alerted).",
+    "perceptionDefaults apply to every NPC unless its own perception block overrides them.",
+    "Vision: the character must be inside visionRange, inside the field of view and in line of sight (tiles with blocksSight in tiles.json block it). Inside closeRange: identified at once. Up to normalRange: confidence builds at awarenessBuildRate. Beyond normalRange: longRangeMultiplier times that. Near the edge of the field of view (beyond peripheralFraction of the half-angle): peripheralMultiplier. A moving character: movingMultiplier. A character standing still beyond normalRange: stationaryAtLongRangeMultiplier.",
+    "Out of sight, awareness holds for a while (suspiciousHoldSeconds / alertedHoldSeconds), then the NPC investigates the last known position (if its disposition investigates) or the awareness decays at awarenessDecayRate. A search that finds nothing drops the character to Suspicious at confidenceAfterSearch, which then decays to Unaware.",
+    "dispositions: investigates = goes to check suspicious things. response = what an Alerted NPC does when it actually sees the character: none, observe, confront (CONFRONTATION_READY event), alarm (alerts its group by alarm, then COMBAT_READY after alarmSeconds if it still sees a party member), combat (COMBAT_READY at once). An NPC's responseType overrides its disposition's response. alertsGroup = tells its alert group (with the NPC's alertMethod) when it first identifies someone.",
+    "alertMethods: how a group alert travels. range null = the whole alert group, wherever they are; needsSight = the receiver must have line of sight to the sender. grants = what receivers learn: suspicious (a place to check, nobody identified) or alerted (who was seen and where, at that moment only; no live tracking). Only members of the same alert group receive it.",
+    "COMBAT_READY is latched until combat starts (src/exploration/combatLink.js); combat ending clears it. The debug Reset NPCs button also clears it.",
+    "joinsCombat (dispositions): whether an NPC of that disposition takes part in combat when it is already Alerted, is reached by its alert group, or hears or sees the fight. The NPC whose COMBAT_READY starts the fight always takes part.",
+    "combatNoise: the noise a combat action makes (radius in tiles, intensity 0..1), heard by NPCs outside the fight. Only attacks make noise for now.",
+    "Hearing does not check walls yet. debugNoise: the noise made by the debug Noise tool."
+  ],
+  "states": [
+    { "id": "UNAWARE", "name": "Unaware" },
+    { "id": "SUSPICIOUS", "name": "Suspicious" },
+    { "id": "INVESTIGATING", "name": "Investigating" },
+    { "id": "ALERTED", "name": "Alerted" },
+    { "id": "COMBAT_READY", "name": "Combat Ready" }
+  ],
+  "perceptionDefaults": {
+    "visionRange": 9,
+    "normalRange": 5,
+    "closeRange": 2,
+    "fieldOfView": 100,
+    "hearingRange": 7,
+    "awarenessBuildRate": 1,
+    "awarenessDecayRate": 0.15
+  },
+  "vision": {
+    "longRangeMultiplier": 0.35,
+    "stationaryAtLongRangeMultiplier": 0.5,
+    "movingMultiplier": 1.5,
+    "peripheralFraction": 0.7,
+    "peripheralMultiplier": 0.5
+  },
+  "timing": {
+    "suspiciousHoldSeconds": 1.5,
+    "alertedHoldSeconds": 3,
+    "reactSeconds": 0.8,
+    "searchSeconds": 4,
+    "searchSweepDegrees": 70,
+    "confidenceAfterSearch": 0.5,
+    "alarmSeconds": 2,
+    "noiseSuspicion": 0.6
+  },
+  "movement": {
+    "patrolSpeed": 1.8,
+    "investigateSpeed": 2.6,
+    "turnRateDegrees": 220,
+    "arriveDistance": 0.35
+  },
+  "dispositions": [
+    { "id": "friendly", "name": "Friendly", "investigates": false, "response": "none", "alertsGroup": false, "joinsCombat": false },
+    { "id": "neutral", "name": "Neutral", "investigates": false, "response": "observe", "alertsGroup": false, "joinsCombat": false },
+    { "id": "wary", "name": "Wary", "investigates": true, "response": "confront", "alertsGroup": true, "joinsCombat": true },
+    { "id": "hostile", "name": "Hostile", "investigates": true, "response": "confront", "alertsGroup": true, "joinsCombat": true },
+    { "id": "aggressive", "name": "Aggressive", "investigates": true, "response": "combat", "alertsGroup": true, "joinsCombat": true }
+  ],
+  "alertMethods": [
+    { "id": "visual", "name": "Visual", "range": 10, "needsSight": true, "grants": "suspicious" },
+    { "id": "shout", "name": "Shout", "range": 12, "needsSight": false, "grants": "suspicious" },
+    { "id": "communicator", "name": "Communicator", "range": null, "needsSight": false, "grants": "alerted" },
+    { "id": "alarm", "name": "Alarm", "range": null, "needsSight": false, "grants": "alerted" },
+    { "id": "scripted", "name": "Scripted", "range": null, "needsSight": false, "grants": "alerted" }
+  ],
+  "defaultAlertMethod": "shout",
+  "debugNoise": { "radius": 6, "intensity": 1 },
+  "combatNoise": { "attack": { "radius": 8, "intensity": 1 } }
+}

@@ -1,0 +1,16 @@
+{
+  "notes": [
+    "Prototype tuning for what the away team perceives (designer spec, Oct 2026). Not from the STA books. First-pass placeholder values.",
+    "baseVisionRange: how far (in tiles) every party member sees, all around (no view cone), wherever line of sight is clear. The same line-of-sight test as NPC awareness: tiles with blocksSight in tiles.json block it. Not taken from any Attribute or Discipline: character mechanics are for difficult perception later (concealed targets, subtle clues).",
+    "Party members who are down (incapacitated or defeated) perceive nothing.",
+    "detectionSources: the ways the party can learn of something. identifies = the party learns what it is (e.g. 'Klingon Warrior'), not only that something is there (e.g. a life sign). Only visual is in use in this pass; the others are placeholders for later sensors, tricorders, hearing and scripted reveals."
+  ],
+  "baseVisionRange": 11,
+  "detectionSources": [
+    { "id": "visual", "name": "Visual", "identifies": true },
+    { "id": "auditory", "name": "Auditory", "identifies": false },
+    { "id": "sensor", "name": "Sensor", "identifies": false },
+    { "id": "tricorder", "name": "Tricorder", "identifies": false },
+    { "id": "scripted", "name": "Scripted", "identifies": true }
+  ]
+}

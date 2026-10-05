@@ -89,6 +89,15 @@ function prism(canvas, { scale, base, height, top, left, right }) {
   fill(canvas, [t, r, b, l].map(lift), hex(top))
 }
 
+// A thin spike standing off-centre (reeds, crystal shards), offset by dx, dy from the tile centre.
+function spike(canvas, dx, dy, { scale = 0.1, base = 0, height, top, left, right }) {
+  const [t, r, b, l] = diamond(base, scale).map(([x, y]) => [x + dx, y + dy])
+  const lift = ([x, y]) => [x, y - height]
+  fill(canvas, [l, b, lift(b), lift(l)], hex(left))
+  fill(canvas, [b, r, lift(r), lift(b)], hex(right))
+  fill(canvas, [t, r, b, l].map(lift), hex(top))
+}
+
 // Speckles a floor tile so natural ground doesn't read as deck plating.
 function speckle(canvas, colour, every) {
   const floor = diamond()
@@ -322,6 +331,407 @@ const TILES = {
     prism(canvas, { scale: 0.45, base: 22, height: 8, top: '#f4f8fa', left: '#5e6670', right: '#4a515a' })
     return canvas
   },
+  ...EXTRA_BIOME_TILES(),
+  ...LOCATION_TILES(),
+}
+
+// Tiles for the locations added after the first nine: farm, mining site, landing field, crash site, field camp,
+// research lab, cantina, detention block and the alien temple, hive and vessel.
+function LOCATION_TILES() {
+  const plain = (fillColour, stroke, fleck, every = 9) => () => (fleck ? speckle(floorTile({ fill: fillColour, stroke }), fleck, every) : floorTile({ fill: fillColour, stroke }))
+  const on = (base, draw) => () => {
+    const canvas = base()
+    draw(canvas)
+    return canvas
+  }
+  const wall = (top, left, right, detail) => ({
+    full: () => block({ top, left, right, height: 46, detail }),
+    mid: () => block({ top, left, right, height: 24, detail }),
+    low: () => block({ top, left, right, height: 10 }),
+  })
+  // Most props stand on a neutral dark floor so they read on any ground.
+  const dark = plain('#2a3236', '#182023')
+
+  const soil = plain('#4a3624', '#33251a', '#5a4430', 7)
+  const quarry = plain('#5a5048', '#3e3630', '#6e645a', 6)
+  const pad = plain('#4a5056', '#33383c')
+  const lab = plain('#b8c0c6', '#8a9298')
+  const planks = plain('#5a4028', '#3e2c1c')
+  const temple = plain('#6a5a48', '#4a3e30', '#7a6a56', 11)
+  const hive = plain('#3a2a20', '#261a14', '#5a3a28', 6)
+  const alien = plain('#2a1e3a', '#1a1228', '#4a3a6a', 10)
+  const barn = wall('#8a3a2a', '#6a2a1e', '#521f16', (canvas, h) => ring(canvas, h, 0.7, hex('#a84a36')))
+  const labWall = wall('#e0e6ea', '#aab4ba', '#8a949a', (canvas, h) => ring(canvas, h, 0.8, hex('#5fd0ff')))
+  const cantinaWall = wall('#7a5a3a', '#5a4028', '#46321f', (canvas, h) => ring(canvas, h, 0.75, hex('#c08040')))
+  const templeWall = wall('#8a7a5e', '#665a44', '#4e4434', (canvas, h) => fill(canvas, diamond(h, 0.35), hex('#d8b040')))
+  const hiveWall = wall('#5a3a28', '#42281a', '#321e14', (canvas, h) => fill(canvas, diamond(h, 0.5), hex('#7a4a30')))
+  const alienWall = wall('#4a3a6a', '#34284e', '#261c3a', (canvas, h) => ring(canvas, h, 0.6, hex('#a070ff')))
+
+  return {
+    // Farm
+    cropRows: on(soil, (canvas) => {
+      for (const dx of [-16, -6, 4, 14]) fill(canvas, diamond(0, 0.12).map(([x, y]) => [x + dx, y + dx / 2]), hex('#5a8a2e'))
+      for (const dx of [-12, -2, 8]) fill(canvas, diamond(0, 0.1).map(([x, y]) => [x + dx, y + dx / 2 - 3]), hex('#6a9a34'))
+    }),
+    tallCrop: on(soil, (canvas) => {
+      for (const [dx, dy] of [[-10, 0], [-2, -4], [6, -8], [-6, 4], [2, 0], [10, -4], [-2, 8], [6, 4]]) {
+        spike(canvas, dx, dy, { scale: 0.08, height: 22, top: '#d8c050', left: '#7a9a30', right: '#5e7a24' })
+      }
+    }),
+    barnWall: barn.full,
+    'barnWall-mid': barn.mid,
+    'barnWall-low': barn.low,
+    silo: on(dark, (canvas) => {
+      prism(canvas, { scale: 0.8, base: 0, height: 40, top: '#b8bcc0', left: '#8a8f94', right: '#6c7176' })
+      prism(canvas, { scale: 0.5, base: 40, height: 6, top: '#8a3a2a', left: '#6a2a1e', right: '#521f16' })
+    }),
+    hayBale: on(soil, (canvas) => {
+      prism(canvas, { scale: 0.7, base: 0, height: 12, top: '#d8b860', left: '#b09040', right: '#907430' })
+      ring(canvas, 12, 0.45, hex('#c0a050'))
+    }),
+    // Mining Site
+    quarryFloor: quarry,
+    'quarryFloor-alt': plain('#5e544c', '#3e3630', '#4a423a', 6),
+    oreVein: on(quarry, (canvas) => {
+      prism(canvas, { scale: 0.85, base: 0, height: 26, top: '#5a4e44', left: '#40372f', right: '#302a23' })
+      for (const [dx, dy] of [[-6, -30], [5, -27], [0, -33]]) fill(canvas, diamond(0, 0.08).map(([x, y]) => [x + dx, y + dy]), hex('#ffc040'))
+    }),
+    railTrack: on(quarry, (canvas) => {
+      ring(canvas, 0, 0.7, hex('#8a8a88'))
+      ring(canvas, 0, 0.4, hex('#8a8a88'))
+    }),
+    oreCart: on(quarry, (canvas) => {
+      prism(canvas, { scale: 0.65, base: 0, height: 14, top: '#5a6066', left: '#40454a', right: '#303438' })
+      fill(canvas, diamond(14, 0.45), hex('#8a7058'))
+    }),
+    drillRig: on(dark, (canvas) => {
+      prism(canvas, { scale: 0.8, base: 0, height: 10, top: '#c89a30', left: '#9a7424', right: '#7a5c1c' })
+      prism(canvas, { scale: 0.2, base: 10, height: 36, top: '#d8aa40', left: '#9a7424', right: '#7a5c1c' })
+      fill(canvas, diamond(46, 0.1), hex('#ff5040'))
+    }),
+    // Landing Field
+    landingPad: pad,
+    padMarking: on(pad, (canvas) => {
+      ring(canvas, 0, 0.7, hex('#e8c040'))
+      fill(canvas, diamond(0, 0.15), hex('#e8c040'))
+    }),
+    shuttleHull: on(pad, (canvas) => {
+      prism(canvas, { scale: 0.95, base: 0, height: 22, top: '#d0d6da', left: '#a0a8ae', right: '#80888e' })
+      prism(canvas, { scale: 0.6, base: 22, height: 10, top: '#e0e6ea', left: '#a0a8ae', right: '#80888e' })
+      fill(canvas, diamond(32, 0.2), hex('#4a8ac0'))
+    }),
+    fuelTank: on(pad, (canvas) => {
+      prism(canvas, { scale: 0.6, base: 0, height: 24, top: '#d8d0b8', left: '#b0a890', right: '#908870' })
+      ring(canvas, 24, 0.4, hex('#c04030'))
+    }),
+    // Crash Site
+    hullWreck: () => {
+      const canvas = speckle(floorTile({ fill: '#1e2224', stroke: '#121618' }), '#3a2a22', 6)
+      prism(canvas, { scale: 0.9, base: 0, height: 20, top: '#7a848a', left: '#545c62', right: '#40464a' })
+      prism(canvas, { scale: 0.5, base: 20, height: 14, top: '#8a949a', left: '#545c62', right: '#40464a' })
+      fill(canvas, diamond(34, 0.2), hex('#2a2e30'))
+      return canvas
+    },
+    burningWreck: () => {
+      const canvas = speckle(floorTile({ fill: '#1e2224', stroke: '#121618' }), '#3a2a22', 6)
+      prism(canvas, { scale: 0.6, base: 0, height: 10, top: '#5c6870', left: '#3c454b', right: '#2c3338' })
+      for (const [dx, dy, h] of [[-4, -1, 14], [4, -3, 18], [0, 3, 11]]) spike(canvas, dx, dy, { scale: 0.14, base: 10, height: h, top: '#ffd27a', left: '#ff8a2a', right: '#e05a10' })
+      return canvas
+    },
+    // Field Camp
+    tent: on(dark, (canvas) => {
+      prism(canvas, { scale: 0.9, base: 0, height: 14, top: '#6a7a4a', left: '#4e5c36', right: '#3e4a2a' })
+      prism(canvas, { scale: 0.55, base: 14, height: 8, top: '#7a8a56', left: '#4e5c36', right: '#3e4a2a' })
+      prism(canvas, { scale: 0.2, base: 22, height: 4, top: '#8a9a62', left: '#4e5c36', right: '#3e4a2a' })
+    }),
+    campfire: on(dark, (canvas) => {
+      ring(canvas, 0, 0.5, hex('#6a6660'))
+      for (const [dx, dy, h] of [[-3, 0, 8], [3, -2, 10], [0, 2, 6]]) spike(canvas, dx, dy, { scale: 0.12, height: h, top: '#ffd27a', left: '#ff8a2a', right: '#e05a10' })
+    }),
+    sensorMast: on(dark, (canvas) => {
+      prism(canvas, { scale: 0.5, base: 0, height: 6, top: '#7a848a', left: '#545c62', right: '#40464a' })
+      prism(canvas, { scale: 0.08, base: 6, height: 38, top: '#b8c0c6', left: '#8a9298', right: '#6a7278' })
+      prism(canvas, { scale: 0.4, base: 40, height: 3, top: '#d0d6da', left: '#8a9298', right: '#6a7278' })
+      fill(canvas, diamond(46, 0.08), hex('#5fd0ff'))
+    }),
+    // Research Lab
+    labFloor: lab,
+    'labFloor-alt': plain('#c0c8ce', '#8a9298'),
+    labWall: labWall.full,
+    'labWall-mid': labWall.mid,
+    'labWall-low': labWall.low,
+    labBench: on(lab, (canvas) => {
+      prism(canvas, { scale: 0.85, base: 0, height: 14, top: '#e8eef2', left: '#aab4ba', right: '#8a949a' })
+      fill(canvas, diamond(14, 0.25), hex('#5fd0ff'))
+    }),
+    containmentPod: on(lab, (canvas) => {
+      prism(canvas, { scale: 0.7, base: 0, height: 6, top: '#7a848a', left: '#545c62', right: '#40464a' })
+      prism(canvas, { scale: 0.55, base: 6, height: 30, top: '#9ae0f0', left: '#5aa0c0', right: '#40809a' })
+      prism(canvas, { scale: 0.7, base: 36, height: 4, top: '#7a848a', left: '#545c62', right: '#40464a' })
+    }),
+    // Cantina
+    plankFloor: planks,
+    'plankFloor-alt': plain('#5e442c', '#3e2c1c'),
+    cantinaWall: cantinaWall.full,
+    'cantinaWall-mid': cantinaWall.mid,
+    'cantinaWall-low': cantinaWall.low,
+    barCounter: on(planks, (canvas) => {
+      prism(canvas, { scale: 0.95, base: 0, height: 16, top: '#2a2a30', left: '#7a5a3a', right: '#5a4028' })
+      ring(canvas, 16, 0.8, hex('#c08040'))
+    }),
+    table: on(planks, (canvas) => {
+      prism(canvas, { scale: 0.12, base: 0, height: 8, top: '#4a3a2a', left: '#3a2c1e', right: '#2c2016' })
+      prism(canvas, { scale: 0.6, base: 8, height: 3, top: '#8a6a44', left: '#654c30', right: '#4f3b25' })
+      fill(canvas, diamond(11, 0.08), hex('#ffd27a'))
+    }),
+    // Detention Block
+    forceField: () => {
+      const canvas = floorTile({ fill: '#2a3236', stroke: '#5fd0ff' })
+      ring(canvas, 0, 0.6, hex('#3a90c0'))
+      return canvas
+    },
+    cellBunk: on(dark, (canvas) => {
+      prism(canvas, { scale: 0.8, base: 0, height: 8, top: '#7a848a', left: '#545c62', right: '#40464a' })
+      fill(canvas, diamond(8, 0.6), hex('#5a6a7a'))
+    }),
+    // Alien Temple
+    templeFloor: temple,
+    'templeFloor-alt': plain('#6e5e4c', '#4a3e30', '#5a4c3c', 11),
+    templeWall: templeWall.full,
+    'templeWall-mid': templeWall.mid,
+    'templeWall-low': templeWall.low,
+    templePillar: on(temple, (canvas) => {
+      prism(canvas, { scale: 0.6, base: 0, height: 4, top: '#9a8a6e', left: '#766a54', right: '#5e5442' })
+      prism(canvas, { scale: 0.42, base: 4, height: 38, top: '#a8987a', left: '#7c6e56', right: '#625844' })
+      prism(canvas, { scale: 0.6, base: 42, height: 4, top: '#b8a888', left: '#766a54', right: '#5e5442' })
+    }),
+    altar: on(temple, (canvas) => {
+      prism(canvas, { scale: 0.85, base: 0, height: 14, top: '#5a4a3a', left: '#42362a', right: '#32281e' })
+      fill(canvas, diamond(14, 0.4), hex('#d8b040'))
+      fill(canvas, diamond(14, 0.15), hex('#fff0a0'))
+    }),
+    glyphTile: on(temple, (canvas) => {
+      ring(canvas, 0, 0.7, hex('#d8b040'))
+      ring(canvas, 0, 0.35, hex('#d8b040'))
+    }),
+    // Alien Hive
+    hiveFloor: hive,
+    'hiveFloor-alt': plain('#3e2e22', '#261a14', '#2e2018', 6),
+    hiveWall: hiveWall.full,
+    'hiveWall-mid': hiveWall.mid,
+    'hiveWall-low': hiveWall.low,
+    eggPod: on(hive, (canvas) => {
+      prism(canvas, { scale: 0.55, base: 0, height: 12, top: '#8a6a48', left: '#6a4e34', right: '#523c28' })
+      prism(canvas, { scale: 0.35, base: 12, height: 6, top: '#a8e060', left: '#6a4e34', right: '#523c28' })
+    }),
+    slimePool: () => {
+      const canvas = floorTile({ fill: '#5a7a20', stroke: '#3a5214' })
+      ring(canvas, 0, 0.55, hex('#8ab030'))
+      return canvas
+    },
+    // Alien Vessel
+    alienDeck: alien,
+    'alienDeck-alt': plain('#2e2240', '#1a1228', '#3a2c54', 10),
+    alienBulkhead: alienWall.full,
+    'alienBulkhead-mid': alienWall.mid,
+    'alienBulkhead-low': alienWall.low,
+    alienConsole: on(alien, (canvas) => {
+      prism(canvas, { scale: 0.7, base: 0, height: 26, top: '#5a4a7a', left: '#3e3258', right: '#2e2442' })
+      fill(canvas, diamond(26, 0.4), hex('#c070ff'))
+    }),
+    bioPod: on(alien, (canvas) => {
+      prism(canvas, { scale: 0.6, base: 0, height: 10, top: '#6a3a6a', left: '#4e2a4e', right: '#3a1e3a' })
+      prism(canvas, { scale: 0.35, base: 10, height: 6, top: '#ff7ad0', left: '#4e2a4e', right: '#3a1e3a' })
+    }),
+  }
+}
+
+// Tiles for the Earth-like and alien biomes added after the first seven (each set drawn on its own biome's ground).
+function EXTRA_BIOME_TILES() {
+  const ground = (fillColour, stroke, fleck, every = 7) => () => speckle(floorTile({ fill: fillColour, stroke }), fleck, every)
+  const on = (base, draw) => () => {
+    const canvas = base()
+    draw(canvas)
+    return canvas
+  }
+  const boulder = (base, top, left, right, cap) =>
+    on(base, (canvas) => {
+      prism(canvas, { scale: 0.75, base: 0, height: 22, top, left, right })
+      prism(canvas, { scale: 0.45, base: 22, height: 8, top: cap, left, right })
+    })
+  const wall = (top, left, right, detail) => ({
+    full: () => block({ top, left, right, height: 46, detail }),
+    mid: () => block({ top, left, right, height: 24 }),
+    low: () => block({ top, left, right, height: 10 }),
+  })
+
+  const jungle = ground('#2a4424', '#1c3018', '#3a5a2e')
+  const savanna = ground('#8a7a3a', '#6a5c2a', '#a08e48')
+  const tundra = ground('#6a7258', '#4e5640', '#c8d0d0', 10)
+  const beach = ground('#d8c490', '#b8a470', '#e8d6a8', 8)
+  const scree = ground('#6a6a66', '#4c4c48', '#8a8a84', 6)
+  const sulphur = ground('#c8b858', '#a09040', '#e8dc80')
+  const crystal = ground('#8a7aa8', '#6a5a8a', '#d8c8ff', 9)
+  const fungal = ground('#4a3a4c', '#32263a', '#6a5070')
+  const toxic = ground('#5a6a2a', '#404c1c', '#7a8a34')
+  const glow = ground('#163032', '#0e2224', '#40e0d0', 9)
+  const rust = ground('#9a4a2e', '#763620', '#b05c3a')
+  const glass = ground('#1c1a24', '#0e0c14', '#5a5878', 8)
+  const cliff = wall('#7a7a76', '#56564f', '#43433e', (canvas, h) => ring(canvas, h, 0.7, hex('#8a8a84')))
+  const crystalWall = wall('#b8a0e0', '#8a70c0', '#6a50a0', (canvas, h) => fill(canvas, diamond(h, 0.4), hex('#e0d0ff')))
+  const rustMesa = wall('#b8603e', '#8a4428', '#6e3620', (canvas, h) => ring(canvas, h, 0.6, hex('#a05030')))
+
+  return {
+    // Jungle
+    jungleFloor: jungle,
+    'jungleFloor-alt': ground('#2e4a27', '#1c3018', '#22381c'),
+    jungleTree: on(jungle, (canvas) => {
+      prism(canvas, { scale: 0.2, base: 0, height: 18, top: '#5a3e26', left: '#4a321e', right: '#3a2717' })
+      prism(canvas, { scale: 0.95, base: 18, height: 18, top: '#2a6a2a', left: '#1c4a1c', right: '#153a15' })
+      prism(canvas, { scale: 0.6, base: 36, height: 10, top: '#348034', left: '#1c4a1c', right: '#153a15' })
+    }),
+    fern: on(jungle, (canvas) => {
+      for (const [dx, dy, h] of [[-9, -1, 10], [8, -2, 12], [0, 4, 9], [-2, -5, 13], [11, 3, 8]]) {
+        spike(canvas, dx, dy, { scale: 0.18, height: h, top: '#4aa04a', left: '#2e7a2e', right: '#226022' })
+      }
+    }),
+    // Grassland
+    savanna,
+    'savanna-alt': ground('#8e7e3e', '#6a5c2a', '#76682e'),
+    acacia: on(savanna, (canvas) => {
+      prism(canvas, { scale: 0.14, base: 0, height: 26, top: '#6a4a2e', left: '#523822', right: '#402c1a' })
+      prism(canvas, { scale: 0.95, base: 26, height: 8, top: '#5a7a30', left: '#425a22', right: '#34481a' })
+    }),
+    termiteMound: on(savanna, (canvas) => {
+      const colours = { top: '#b08048', left: '#8a5a2e', right: '#6e4824' }
+      prism(canvas, { scale: 0.6, base: 0, height: 12, ...colours })
+      prism(canvas, { scale: 0.38, base: 12, height: 10, ...colours })
+      prism(canvas, { scale: 0.18, base: 22, height: 6, ...colours })
+    }),
+    // Tundra
+    tundra,
+    'tundra-alt': ground('#6e765c', '#4e5640', '#58604a', 10),
+    lichenRock: boulder(tundra, '#8a9a70', '#5e6258', '#4a4e46', '#9aaa80'),
+    shrub: on(tundra, (canvas) => {
+      prism(canvas, { scale: 0.6, base: 0, height: 8, top: '#5a6a3a', left: '#44522c', right: '#364222' })
+      prism(canvas, { scale: 0.32, base: 8, height: 4, top: '#6a7a44', left: '#44522c', right: '#364222' })
+    }),
+    // Coast
+    beach,
+    'beach-alt': ground('#dcc894', '#b8a470', '#c4b080', 8),
+    shallows: () => {
+      const canvas = floorTile({ fill: '#4a9aa8', stroke: '#3a7a88' })
+      ring(canvas, 0, 0.6, hex('#7ac0c8'))
+      ring(canvas, 0, 0.3, hex('#8ad0d6'))
+      return canvas
+    },
+    palm: on(beach, (canvas) => {
+      prism(canvas, { scale: 0.1, base: 0, height: 34, top: '#8a6a44', left: '#6a5034', right: '#54402a' })
+      prism(canvas, { scale: 0.9, base: 34, height: 4, top: '#3a8a3a', left: '#2a6a2a', right: '#205420' })
+      prism(canvas, { scale: 0.4, base: 38, height: 4, top: '#4aa04a', left: '#2a6a2a', right: '#205420' })
+    }),
+    driftwood: on(beach, (canvas) => {
+      prism(canvas, { scale: 0.85, base: 0, height: 8, top: '#a89880', left: '#867a66', right: '#6a6050' })
+      ring(canvas, 8, 0.5, hex('#c0b298'))
+    }),
+    // Mountains
+    scree,
+    'scree-alt': ground('#6e6e6a', '#4c4c48', '#545450', 6),
+    cliff: cliff.full,
+    'cliff-mid': cliff.mid,
+    'cliff-low': cliff.low,
+    screeRock: boulder(scree, '#8e8e88', '#62625c', '#4c4c48', '#9e9e98'),
+    // Geothermal Field
+    sulphurCrust: sulphur,
+    'sulphurCrust-alt': ground('#ccbc5c', '#a09040', '#b0a048'),
+    geyser: on(sulphur, (canvas) => {
+      const rock = { top: '#a8a090', left: '#807868', right: '#686050' }
+      prism(canvas, { scale: 0.6, base: 0, height: 8, ...rock })
+      prism(canvas, { scale: 0.3, base: 8, height: 6, ...rock })
+      prism(canvas, { scale: 0.16, base: 14, height: 10, top: '#f4f8fa', left: '#d8e0e4', right: '#c0c8cc' })
+    }),
+    sulphurPool: () => {
+      const canvas = floorTile({ fill: '#d89a20', stroke: '#a06a14' })
+      ring(canvas, 0, 0.6, hex('#f0c040'))
+      fill(canvas, diamond(0, 0.3), hex('#40a0a0'))
+      return canvas
+    },
+    // Crystal Fields
+    crystalGround: crystal,
+    'crystalGround-alt': ground('#8e7eac', '#6a5a8a', '#76669a', 9),
+    crystalSpire: on(crystal, (canvas) => {
+      prism(canvas, { scale: 0.5, base: 0, height: 30, top: '#e0c8ff', left: '#a888e0', right: '#8868c0' })
+      prism(canvas, { scale: 0.3, base: 30, height: 12, top: '#f0e0ff', left: '#a888e0', right: '#8868c0' })
+      prism(canvas, { scale: 0.12, base: 42, height: 4, top: '#ffffff', left: '#c8b0f0', right: '#a890d8' })
+    }),
+    crystalCluster: on(crystal, (canvas) => {
+      for (const [dx, dy, h] of [[-8, 0, 12], [7, -2, 16], [0, 4, 10], [-1, -4, 18]]) {
+        spike(canvas, dx, dy, { scale: 0.16, height: h, top: '#e8d8ff', left: '#9a78d8', right: '#7a5ab8' })
+      }
+    }),
+    crystalWall: crystalWall.full,
+    'crystalWall-mid': crystalWall.mid,
+    'crystalWall-low': crystalWall.low,
+    // Fungal Forest
+    fungalGround: fungal,
+    'fungalGround-alt': ground('#4e3e50', '#32263a', '#3a2c3e'),
+    giantMushroom: on(fungal, (canvas) => {
+      prism(canvas, { scale: 0.2, base: 0, height: 28, top: '#d8d0c0', left: '#b0a898', right: '#908878' })
+      prism(canvas, { scale: 1, base: 28, height: 10, top: '#c8506a', left: '#9a3a50', right: '#7a2c3e' })
+      prism(canvas, { scale: 0.6, base: 38, height: 6, top: '#d8607a', left: '#9a3a50', right: '#7a2c3e' })
+      fill(canvas, diamond(44, 0.15), hex('#f0e0e0'))
+    }),
+    puffball: on(fungal, (canvas) => {
+      prism(canvas, { scale: 0.55, base: 0, height: 10, top: '#b8a0c0', left: '#8a7898', right: '#6e5e7a' })
+      prism(canvas, { scale: 0.3, base: 10, height: 4, top: '#c8b0d0', left: '#8a7898', right: '#6e5e7a' })
+    }),
+    // Acid Marsh
+    toxicMud: toxic,
+    'toxicMud-alt': ground('#5e6e2e', '#404c1c', '#48561e'),
+    acidPool: () => {
+      const canvas = floorTile({ fill: '#7ab020', stroke: '#4a6a14' })
+      ring(canvas, 0, 0.6, hex('#a8e040'))
+      fill(canvas, diamond(0, 0.25), hex('#c8ff60'))
+      return canvas
+    },
+    bloatPod: on(toxic, (canvas) => {
+      prism(canvas, { scale: 0.12, base: 0, height: 8, top: '#6a7a30', left: '#4e5c22', right: '#3e4a1a' })
+      prism(canvas, { scale: 0.55, base: 8, height: 10, top: '#a8c040', left: '#7a9a2a', right: '#5e7a20' })
+      prism(canvas, { scale: 0.3, base: 18, height: 4, top: '#c8e060', left: '#7a9a2a', right: '#5e7a20' })
+    }),
+    // Bioluminescent Jungle
+    glowMoss: glow,
+    'glowMoss-alt': ground('#1a3436', '#0e2224', '#2ab0a0', 13),
+    glowTree: on(glow, (canvas) => {
+      prism(canvas, { scale: 0.18, base: 0, height: 18, top: '#3a2a4a', left: '#2a1e38', right: '#20162c' })
+      prism(canvas, { scale: 0.85, base: 18, height: 16, top: '#2aa0a0', left: '#1a7070', right: '#145858' })
+      prism(canvas, { scale: 0.45, base: 34, height: 8, top: '#4af0e0', left: '#1a7070', right: '#145858' })
+    }),
+    glowPod: on(glow, (canvas) => {
+      for (const [dx, dy, h] of [[-7, 0, 8], [6, -2, 11], [0, 4, 7]]) {
+        spike(canvas, dx, dy, { scale: 0.2, height: h, top: '#80fff0', left: '#30c0b0', right: '#209080' })
+      }
+    }),
+    // Rust Desert
+    rustDust: rust,
+    'rustDust-alt': ground('#9e4e32', '#763620', '#843e26'),
+    rustRock: boulder(rust, '#a85a3a', '#7a3e26', '#62301e', '#b86a48'),
+    rustMesa: rustMesa.full,
+    'rustMesa-mid': rustMesa.mid,
+    'rustMesa-low': rustMesa.low,
+    // Glass Plains
+    glassPlain: glass,
+    'glassPlain-alt': ground('#201e2a', '#0e0c14', '#3a3850', 11),
+    glassShard: on(glass, (canvas) => {
+      for (const [dx, dy, h] of [[-8, 1, 14], [6, -2, 20], [1, 4, 10]]) {
+        spike(canvas, dx, dy, { scale: 0.14, height: h, top: '#8a88b0', left: '#3a3850', right: '#24223a' })
+      }
+    }),
+    glassSpire: on(glass, (canvas) => {
+      prism(canvas, { scale: 0.45, base: 0, height: 34, top: '#4a4868', left: '#2a283c', right: '#1a1828' })
+      prism(canvas, { scale: 0.2, base: 34, height: 8, top: '#9a98c8', left: '#2a283c', right: '#1a1828' })
+    }),
+  }
 }
 
 fs.mkdirSync(OUT, { recursive: true })

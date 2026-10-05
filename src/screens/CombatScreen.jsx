@@ -59,6 +59,8 @@ import { weatherFor } from '../maps/mapWeather.js'
 
 // Presentation delays only (divided by the Auto Combat speed). The combat itself never waits on them.
 const AI_STEP_MS = 700
+// Matches the combat-start-banner animation in styles.css.
+const OPENING_BANNER_MS = 2400
 const AI_ROLL_MS = 1100
 const MOVE_TILE_MS = 140
 // How long Auto Combat shows a party member's chosen button before the action runs.
@@ -191,8 +193,40 @@ function nearestOpponentId(state, combatant) {
   return opponents[0]?.id ?? null
 }
 
-function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onPartyAI, enemyAI, onEnemyAI, onRestart, onChangeCharacter, onExit }) {
+// Combat started in the exploration world (ExplorationScreen) also passes: onContinue (the result offers only Return to
+// Exploration), bystanders (NPCs outside the fight, drawn where they stand), snapMarks (debug: world position -> cell),
+// openingFocus (the camera starts on the encounter instead of the first to act), hiddenIds (enemies the party can't
+// perceive now: not drawn, not in the turn order, and the camera doesn't follow them), lastKnownMarks, openingBanner
+// ({ title, subtitle } shown as the fight starts) and children (drawn over the battle).
+export function Battle({
+  state,
+  dispatch,
+  showHelpOnStart,
+  onHelpSeen,
+  partyAI,
+  onPartyAI,
+  enemyAI,
+  onEnemyAI,
+  onRestart,
+  onChangeCharacter,
+  onExit,
+  onContinue = null,
+  bystanders = [],
+  snapMarks = null,
+  openingFocus = null,
+  hiddenIds = null,
+  lastKnownMarks = null,
+  openingBanner = null,
+  children = null,
+}) {
   const active = getActiveCombatant(state)
+  // The opening banner plays before anything else: the AI waits and the first turn banner follows it.
+  const [openingDone, setOpeningDone] = useState(!openingBanner)
+  useEffect(() => {
+    if (openingDone) return undefined
+    const timer = setTimeout(() => setOpeningDone(true), OPENING_BANNER_MS)
+    return () => clearTimeout(timer)
+  }, [openingDone])
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
   const [auto, setAuto] = useState('off')
   const [speed, setSpeed] = useState(1)
@@ -246,13 +280,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
   const planned = useMemo(() => (auto !== 'off' ? plannedChoice(state, partyAI) : null), [auto, state, partyAI])
 
   // AI turns (enemies, plus the party during Auto Combat): one step at a time, paced so it can be followed.
-  // Paused while How to Play is open or Auto Combat is paused. The step itself is pure (autoCombat.stepAI).
+  // Paused while How to Play is open, the opening banner plays or Auto Combat is paused. The step itself is pure
+  // (autoCombat.stepAI).
   const hasPlan = Boolean(planned)
   useEffect(() => {
-    if (state.outcome || !aiControlled || helpOpen || auto === 'paused') return undefined
+    if (state.outcome || !aiControlled || helpOpen || !openingDone || auto === 'paused') return undefined
     const timer = setTimeout(() => dispatch({ type: 'aiStep', partyAI, enemyAI }), (aiDelay(state) + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
     return () => clearTimeout(timer)
-  }, [state, aiControlled, dispatch, helpOpen, auto, speed, hasPlan, partyAI, enemyAI])
+  }, [state, aiControlled, dispatch, helpOpen, openingDone, auto, speed, hasPlan, partyAI, enemyAI])
 
   // Move and Sprint share the tile picking; moveKind is whichever of them is selected.
   const moveKind = mode === 'move' || mode === 'sprint' ? mode : null
@@ -648,7 +683,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
-  const hint = getCombatHint(state, { planned, mode, preview, ambushPreview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
+  const hint = hiddenIds?.includes(active.id) ? 'The enemy is acting.' : getCombatHint(state, { planned, mode, preview, ambushPreview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
 
   // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
   const releaseSelection = () => {
@@ -664,6 +699,14 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
     setAuto('running')
   }
 
+  // During an unseen enemy's turn the camera stays where it was, so it never points at what the party can't perceive.
+  const activeHidden = Boolean(hiddenIds?.includes(active.id))
+  const followFocus = openingFocus && !state.lastAction ? { key: 'opening', position: openingFocus } : cameraFocus(state, turnKey, active)
+  const [heldFocus, setHeldFocus] = useState(followFocus)
+  const focusChanged = heldFocus.key !== followFocus.key || heldFocus.position.x !== followFocus.position.x || heldFocus.position.y !== followFocus.position.y
+  if (!activeHidden && focusChanged) setHeldFocus(followFocus)
+  const focus = activeHidden ? heldFocus : followFocus
+
   return (
     <div className="combat-screen">
       <Battlefield
@@ -676,8 +719,12 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
         ring={ring}
         msPerTile={MOVE_TILE_MS / (auto === 'off' ? 1 : speed)}
         speed={auto === 'off' ? 1 : speed}
-        focus={cameraFocus(state, turnKey, active)}
+        focus={focus}
         followCamera={followCamera}
+        bystanders={bystanders}
+        snapMarks={snapMarks}
+        hiddenIds={hiddenIds}
+        lastKnownMarks={lastKnownMarks}
         onTileClick={handleTileClick}
         onTileHover={setHoverTile}
         onUnitClick={handleUnitClick}
@@ -695,8 +742,9 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
           onCancelThreat={() => dispatch({ type: 'cancelThreat' })}
         />
       </div>
-      <TurnOrderStrip state={state} />
-      {banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
+      <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
+      {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
+      {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
       {hint && (
         <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}`} aria-live="polite">
           {hint}
@@ -798,7 +846,8 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
       />
       {debugOpen && <DebugPanel state={state} auto={auto} onClose={() => setDebugOpen(false)} />}
       {helpOpen && <HowToPlay onClose={closeHelp} />}
-      {state.outcome && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={onExit} />}
+      {state.outcome && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={onExit} onContinue={onContinue} />}
+      {children}
     </div>
   )
 }

@@ -1,5 +1,16 @@
 {
-  "notes": "Prototype placeholder episode titles for the map editor's Generate Episode Name. Invented for the prototype, not taken from the source books; edit freely.",
+  "notes": [
+    "Prototype placeholder episode titles for the map editor's Generate Episode Name (and Generate Map). Invented for the prototype, not taken from the source books; edit freely.",
+    "mapChance: how often the title is built from the map's name instead of taken from names. mapTitles: the patterns. {place} is the whole map name; {world} is a world from worlds and {ship} a ship from ships, used only when the map name mentions one (e.g. 'Kelvara Settlement' mentions Kelvara, 'Wreck of the U.S.S. Calloway' mentions the U.S.S. Calloway). A map name that mentions a world or ship uses only those patterns; others use the place patterns."
+  ],
+  "mapChance": 0.4,
+  "mapTitles": {
+    "place": ["Trouble at {place}", "Siege of {place}", "Silence in {place}", "Last Stand at {place}", "Return to {place}", "Escape from {place}", "Nightfall at {place}"],
+    "world": ["Shadows over {world}", "The {world} Incident", "Fire on {world}", "The Fall of {world}", "Ghosts of {world}", "The {world} Gambit", "Blood on {world}", "The Road to {world}", "Storm over {world}", "The {world} Accord"],
+    "ship": ["The Last Voyage of the {ship}", "Ghosts of the {ship}", "Boarding the {ship}", "The {ship} Affair", "Adrift on the {ship}", "What Happened to the {ship}", "Mutiny on the {ship}"]
+  },
+  "worlds": ["Amarisk", "Beltrane", "Callisant", "Corvanis", "Draxis", "Hadrion", "Halvorsen", "Ishkal", "Kelvara", "Lethis", "Mirados", "Navarre", "Oranthe", "Ortaine", "Pellucid", "Sefaris", "Taleth", "Thessaly", "Ulvenna", "Vashenne", "Vessaron", "Zhoran"],
+  "ships": ["U.S.S. Calloway", "U.S.S. Kestrel", "I.K.S. Gorlath", "Bright Margin", "Selene's Grace", "Black Talon", "Meridian", "Tamsin", "Hope", "Vashenne"],
   "names": [
     "The Silent Frequency",
     "Boarding Party",

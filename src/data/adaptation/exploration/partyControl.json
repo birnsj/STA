@@ -1,0 +1,79 @@
+{
+  "notes": [
+    "Prototype: away-team movement and formations for exploration. Videogame adaptation, not from the books; every number here is implementation tuning.",
+    "Distances are in map tiles (1 = one tile). Positions are continuous, with tile centres at whole numbers.",
+    "Formation slots: x = to the leader's right, y = behind the leader. The first slot is the leader; followers take the others. Slots are scaled by the party's spacing and turned to the leader's heading.",
+    "Every party member walks at the same speed: no character stat is used for exploration movement yet."
+  ],
+  "movement": {
+    "walkSpeed": 3.2,
+    "catchUpSpeed": 4.4,
+    "catchUpDistance": 1.5,
+    "arriveDistance": 0.6,
+    "radius": 0.28,
+    "personalSpace": 0.68,
+    "separationStrength": 9,
+    "turnRateDegrees": 300,
+    "headingDeadbandDegrees": 25,
+    "replanSeconds": 0.3,
+    "groupedDistance": 4
+  },
+  "defaultFormation": "diamond",
+  "formations": [
+    {
+      "id": "diamond",
+      "name": "Diamond",
+      "description": "General purpose: the leader in front, two on the flanks and one at the rear.",
+      "slots": [
+        { "x": 0, "y": 0 },
+        { "x": -1, "y": 1 },
+        { "x": 1, "y": 1 },
+        { "x": 0, "y": 2 }
+      ]
+    },
+    {
+      "id": "line",
+      "name": "Line",
+      "description": "Side by side, for wide open spaces.",
+      "slots": [
+        { "x": 0, "y": 0 },
+        { "x": -1.1, "y": 0 },
+        { "x": 1.1, "y": 0 },
+        { "x": 2.2, "y": 0 }
+      ]
+    },
+    {
+      "id": "column",
+      "name": "Column",
+      "description": "One behind another, for corridors and narrow places.",
+      "slots": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": 1.1 },
+        { "x": 0, "y": 2.2 },
+        { "x": 0, "y": 3.3 }
+      ]
+    },
+    {
+      "id": "tight",
+      "name": "Tight",
+      "description": "Close together, where space is limited.",
+      "slots": [
+        { "x": 0, "y": 0 },
+        { "x": -0.6, "y": 0.6 },
+        { "x": 0.6, "y": 0.6 },
+        { "x": 0, "y": 1.2 }
+      ]
+    },
+    {
+      "id": "spread",
+      "name": "Spread",
+      "description": "Wide spacing, for tactical positioning and keeping clear of hazards.",
+      "slots": [
+        { "x": 0, "y": 0 },
+        { "x": -2, "y": 2 },
+        { "x": 2, "y": 2 },
+        { "x": 0, "y": 4 }
+      ]
+    }
+  ]
+}

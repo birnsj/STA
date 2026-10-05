@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "name": "Taleth City",
+  "episodeName": "Boarding Party",
+  "card": "/art/episodes/Taleth%20City.png?v=1791172940046",
+  "mapType": "city",
+  "biome": "temperate",
+  "weather": "clear",
+  "rows": [
+    "----------==---------==-------",
+    "-BBBBBBBB-==cBBBBBBB-==-BBBBB-",
+    "-B...cc.B-==-B.MMM.B-==-B...B-",
+    "-Bc.....B-==-B.....B-==-B...B-",
+    "-Bc.....B-==pB.....B-==pBM..B-",
+    "-B.....cBc==-B.....B-==-BM..B-",
+    "-B......B-==-B.....B-==pBM..Bc",
+    "-Bc.....B-==cB.c.c.Bp==-D...B-",
+    "-BBBBBDBB-==-BBBBBDB-==pBBBBB-",
+    "---p------==-------p-==-----p-",
+    "==============================",
+    "==============================",
+    "----------==,,,,,,,,,==-------",
+    "-BDBBBBBB-==,T,,,,,T,==-BBBBB-",
+    "-B...c.cB-==,,,,,,,,,==-D.c.B-",
+    "-Bc.....B-==,,,,,,,,,==-B...B-",
+    "-B......B-==,,,FF,,,,==-B...B-",
+    "cBc....cB-==,,,FF,,,,==-B..cB-",
+    "-B......B-==,,,,,,,,,==-B...B-",
+    "-B...c..B-==,,,,,,,,,==-B.c.B-",
+    "-BBBBBBBB-==,T,,,,,T,==-BBBBB-",
+    "----------==,,,,,,,,,==----c--"
+  ],
+  "areas": [
+    {
+      "name": "Town Plaza",
+      "position": [
+        12,
+        12
+      ]
+    },
+    {
+      "name": "Power Exchange",
+      "position": [
+        2,
+        2
+      ]
+    },
+    {
+      "name": "Tavern",
+      "position": [
+        14,
+        2
+      ]
+    },
+    {
+      "name": "Market Hall",
+      "position": [
+        25,
+        2
+      ]
+    },
+    {
+      "name": "Workshop",
+      "position": [
+        2,
+        14
+      ]
+    },
+    {
+      "name": "Guild House",
+      "position": [
+        25,
+        14
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        10
+      ],
+      [
+        0,
+        4
+      ]
+    ],
+    "enemySpawns": [
+      [
+        29,
+        19
+      ],
+      [
+        29,
+        15
+      ],
+      [
+        29,
+        11
+      ],
+      [
+        29,
+        16
+      ]
+    ]
+  }
+}

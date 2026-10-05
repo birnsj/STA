@@ -281,7 +281,7 @@ export default function MapEditorScreen({ onBack }) {
             aria-label="Episode name"
             onChange={(event) => edit({ ...map, episodeName: event.target.value })}
           />
-          <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, episodeName: randomEpisodeName(map.episodeName) })}>
+          <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })}>
             Generate Episode Name
           </button>
           <p className="me-text">The map name is the mission location.</p>

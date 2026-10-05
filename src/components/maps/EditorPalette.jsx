@@ -63,10 +63,12 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
   return (
     <div className="me-palette">
       <p className="me-heading">Tiles</p>
-      {GROUPS.map((group) => {
+      {GROUPS.map((group, index) => {
         const isOpen = open.has(group.id)
+        const startsSection = group.section && group.section !== GROUPS[index - 1]?.section
         return (
           <div key={group.id} className="me-group">
+            {startsSection && <p className="me-section">{group.section}</p>}
             <button type="button" className="me-group-tag" aria-expanded={isOpen} onClick={() => toggle(group.id)}>
               <span className="me-group-arrow" aria-hidden="true">
                 {isOpen ? '▾' : '▸'}

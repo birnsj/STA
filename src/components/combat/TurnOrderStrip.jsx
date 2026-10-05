@@ -3,11 +3,12 @@ import CombatPortrait from './CombatPortrait.jsx'
 
 // The fixed initiative queue, starting from the current turn group, so the portraits advance as turns are taken.
 // Inside a party group the player picks the order: the acting member is enlarged and finished members are dimmed.
-export default function TurnOrderStrip({ state }) {
+// hiddenIds: combatants the party can't perceive now (left out of the queue).
+export default function TurnOrderStrip({ state, hiddenIds = null }) {
   const list = getCombatantList(state)
   const { start, ids: groupIds } = getTurnGroupRange(state)
   const activeId = getActiveCombatant(state).id
-  const queue = [...list.slice(start), ...list.slice(0, start)].filter(isActive)
+  const queue = [...list.slice(start), ...list.slice(0, start)].filter((combatant) => isActive(combatant) && !hiddenIds?.includes(combatant.id))
   return (
     <ol className="turn-strip" aria-label="Turn order">
       {queue.map((combatant, index) => {

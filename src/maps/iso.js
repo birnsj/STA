@@ -5,6 +5,8 @@ export const TILE_W = 64
 export const TILE_H = 32
 
 export const project = ({ x, y }) => ({ x: ((x - y) * TILE_W) / 2, y: ((x + y) * TILE_H) / 2 })
+// The inverse of project: a world (screen-space) point back to continuous tile coordinates.
+export const unproject = ({ x, y }) => ({ x: x / TILE_W + y / TILE_H, y: y / TILE_H - x / TILE_W })
 export const pts = (list) => list.map(([x, y]) => `${x},${y}`).join(' ')
 
 export function diamond(position, lift = 0, scale = 1) {

@@ -6,12 +6,14 @@
     "walls.prefab: colony and outpost buildings. walls.city: Small City buildings. cave: floor, wall and boulder tiles for caves.",
     "features run in order on open ground. blob: patches grown from random spots (tiles: one picked per patch), one per `per` tiles of map area, `size` tiles each. scatter: single tiles, one per `per` tiles. line: wandering lines edge to edge, one per `per` tiles (at least one), with extra `crossings`. fringe: `tile` beside every `around` tile with probability `chance`. Solid features never cut the walkable map in two.",
     "Wilderness uses the full feature density; settlements use less (see featureScale in mapGenerators.js). caveFeatures: the same kinds, on cave floor.",
-    "card: colours for Generate Card's drawn episode pictures (src/maps/cardArt.js). skies: the skies it may pick (day, dusk, night, overcast, murky, desertDay, pale, volcanic, airless). ground: far, middle and near hill colours. plant: tree, pine, mangrove, cactus, iceSpike, rock or crater. rock: cave and cliff colour. building: settlement wall colour. extra: water, lava, crevasse or null."
+    "world: 'earth' or 'alien', the group the editor's Biome list shows it under. Jungle, Grassland, Tundra, Coast, Mountains, Geothermal Field and the alien biomes after Barren are prototype additions with no source-book basis.",
+    "card: colours for Generate Card's drawn episode pictures (src/maps/cardArt.js). skies: the skies it may pick (day, dusk, night, overcast, murky, desertDay, pale, volcanic, airless, alienViolet, alienTeal, toxic, rust). ground: far, middle and near hill colours. plant: tree, pine, mangrove, cactus, iceSpike, rock, crater, jungleTree, acacia, shrub, palm, crystal, mushroom, bulb, glowTree or geyser. rock: cave and cliff colour. building: settlement wall colour. extra: water, sea, acid, sulphur, lava, crevasse or null. mountains: the chance (0-1) of a mountain range on the horizon, instead of the location's default."
   ],
   "biomes": [
     {
       "id": "temperate",
       "label": "Temperate",
+      "world": "earth",
       "nameCategory": "wilderness",
       "card": { "skies": ["day", "dusk", "night", "overcast"], "ground": ["#7c9a5c", "#5f8344", "#4b6e34"], "plant": "tree", "plantColour": "#3f6a2e", "rock": "#6a6660", "building": "#9aa4ac", "extra": null },
       "ground": "ground",
@@ -31,6 +33,7 @@
     {
       "id": "forest",
       "label": "Forest",
+      "world": "earth",
       "nameCategory": "forest",
       "card": { "skies": ["day", "dusk", "overcast", "night"], "ground": ["#5a7a4a", "#4a6a40", "#3e5c36"], "plant": "pine", "plantColour": "#1e3822", "rock": "#5a6a50", "building": "#7a5a3a", "extra": null },
       "ground": "grass",
@@ -51,6 +54,7 @@
     {
       "id": "swamp",
       "label": "Swamp",
+      "world": "earth",
       "nameCategory": "swamp",
       "card": { "skies": ["murky", "dusk", "night"], "ground": ["#4a5a40", "#3e4a34", "#34433e"], "plant": "mangrove", "plantColour": "#2e4428", "rock": "#4a4a40", "building": "#6a4e34", "extra": "water" },
       "ground": "mud",
@@ -76,6 +80,7 @@
     {
       "id": "desert",
       "label": "Desert",
+      "world": "earth",
       "nameCategory": "desert",
       "card": { "skies": ["desertDay", "dusk", "night"], "ground": ["#d9b06a", "#c99a52", "#b98a44"], "plant": "cactus", "plantColour": "#4f7a3a", "rock": "#a07a4a", "building": "#c8a070", "extra": null },
       "ground": "sand",
@@ -96,6 +101,7 @@
     {
       "id": "iceField",
       "label": "Ice Field",
+      "world": "earth",
       "nameCategory": "iceField",
       "card": { "skies": ["pale", "dusk", "night"], "ground": ["#c8d6e0", "#d6e2ea", "#e6edf2"], "plant": "iceSpike", "plantColour": "#bcd8ea", "rock": "#8fa4b4", "building": "#b4c4d0", "extra": "crevasse" },
       "ground": "snow",
@@ -117,6 +123,7 @@
     {
       "id": "volcanic",
       "label": "Volcanic",
+      "world": "earth",
       "nameCategory": "volcanic",
       "card": { "skies": ["volcanic", "night"], "ground": ["#3a3230", "#2e2a28", "#221e1c"], "plant": "rock", "plantColour": "#1a1614", "rock": "#2a2220", "building": "#5a4a44", "extra": "lava" },
       "ground": "ash",
@@ -138,6 +145,7 @@
     {
       "id": "barren",
       "label": "Barren",
+      "world": "alien",
       "nameCategory": "barren",
       "card": { "skies": ["airless", "dusk"], "ground": ["#6a6660", "#7a7670", "#5a5650"], "plant": "crater", "plantColour": "#55524e", "rock": "#4a4844", "building": "#9aa4ac", "extra": null },
       "ground": "regolith",
@@ -151,6 +159,262 @@
       "features": [
         { "kind": "blob", "tiles": ["rockWall"], "per": 120, "size": [4, 10] },
         { "kind": "scatter", "tile": "barrenRock", "per": 45 }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "jungle",
+      "label": "Jungle",
+      "world": "earth",
+      "nameCategory": "jungle",
+      "card": { "skies": ["day", "overcast", "murky", "dusk"], "ground": ["#3e6a34", "#2f5a2a", "#244a22"], "plant": "jungleTree", "plantColour": "#1f5a1c", "rock": "#4a5a44", "building": "#7a5a3a", "extra": "water" },
+      "ground": "jungleFloor",
+      "path": "ground",
+      "trail": "ground",
+      "plants": ["jungleTree", "fern"],
+      "boulder": "mossRock",
+      "fence": null,
+      "walls": { "prefab": "timberWall", "city": "timberWall" },
+      "cave": { "floor": "mud", "wall": "rockWall", "boulder": "mossRock" },
+      "features": [
+        { "kind": "line", "tile": "water", "per": 1500, "thickness": 1, "crossings": 2 },
+        { "kind": "blob", "tiles": ["jungleTree"], "per": 35, "size": [5, 14] },
+        { "kind": "scatter", "tile": "fern", "per": 18 },
+        { "kind": "scatter", "tile": "mossRock", "per": 120 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["water"], "per": 90, "size": [2, 6] }]
+    },
+    {
+      "id": "grassland",
+      "label": "Grassland",
+      "world": "earth",
+      "nameCategory": "grassland",
+      "card": { "skies": ["day", "desertDay", "dusk", "night"], "ground": ["#b8a050", "#a89040", "#987f36"], "plant": "acacia", "plantColour": "#4a6a2a", "rock": "#7a6a50", "building": "#b0a080", "extra": null },
+      "ground": "savanna",
+      "path": "path",
+      "trail": "ground",
+      "plants": ["acacia"],
+      "boulder": "termiteMound",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "adobeWall" },
+      "cave": { "floor": "caveFloor", "wall": "rockWall", "boulder": "rock" },
+      "features": [
+        { "kind": "scatter", "tile": "acacia", "per": 60 },
+        { "kind": "scatter", "tile": "termiteMound", "per": 90 },
+        { "kind": "blob", "tiles": ["rock"], "per": 160, "size": [1, 3] }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "tundra",
+      "label": "Tundra",
+      "world": "earth",
+      "nameCategory": "tundra",
+      "card": { "skies": ["pale", "overcast", "dusk", "night"], "ground": ["#8a9478", "#7a8668", "#6a765a"], "plant": "shrub", "plantColour": "#4a5a34", "rock": "#6a7068", "building": "#b4c4d0", "extra": null },
+      "ground": "tundra",
+      "path": "path",
+      "trail": null,
+      "plants": ["shrub"],
+      "boulder": "lichenRock",
+      "fence": null,
+      "walls": { "prefab": "snowPrefabWall", "city": "snowPrefabWall" },
+      "cave": { "floor": "caveFloor", "wall": "rockWall", "boulder": "lichenRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["snow"], "per": 80, "size": [4, 10] },
+        { "kind": "blob", "tiles": ["ice"], "per": 160, "size": [3, 8] },
+        { "kind": "scatter", "tile": "lichenRock", "per": 70 },
+        { "kind": "scatter", "tile": "shrub", "per": 40 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["ice"], "per": 80, "size": [3, 6] }]
+    },
+    {
+      "id": "coast",
+      "label": "Coast",
+      "world": "earth",
+      "nameCategory": "coast",
+      "card": { "skies": ["day", "dusk", "overcast"], "ground": ["#e0cc98", "#d6c08a", "#ccb47c"], "plant": "palm", "plantColour": "#2a7a2a", "rock": "#9a8a6a", "building": "#d8d0c0", "extra": "sea" },
+      "ground": "beach",
+      "path": "boardwalk",
+      "trail": null,
+      "plants": ["palm"],
+      "boulder": "driftwood",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "beach", "wall": "sandstone", "boulder": "desertRock" },
+      "features": [
+        { "kind": "line", "tile": "water", "per": 600, "thickness": 3, "crossings": 0 },
+        { "kind": "fringe", "tile": "shallows", "around": "water", "chance": 0.7 },
+        { "kind": "scatter", "tile": "palm", "per": 45 },
+        { "kind": "scatter", "tile": "driftwood", "per": 90 }
+      ],
+      "caveFeatures": [
+        { "kind": "blob", "tiles": ["water"], "per": 70, "size": [3, 8] },
+        { "kind": "fringe", "tile": "shallows", "around": "water", "chance": 0.5 }
+      ]
+    },
+    {
+      "id": "mountains",
+      "label": "Mountains",
+      "world": "earth",
+      "nameCategory": "mountains",
+      "card": { "skies": ["day", "pale", "overcast", "dusk"], "ground": ["#7a7a74", "#6a6a64", "#5a5a54"], "plant": "pine", "plantColour": "#1e3822", "rock": "#6a6a70", "building": "#9aa4ac", "extra": null, "mountains": 1 },
+      "ground": "scree",
+      "path": "path",
+      "trail": "path",
+      "plants": ["pine"],
+      "boulder": "screeRock",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "caveFloor", "wall": "cliff", "boulder": "screeRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["cliff"], "per": 60, "size": [6, 16] },
+        { "kind": "blob", "tiles": ["pine"], "per": 120, "size": [3, 8] },
+        { "kind": "scatter", "tile": "screeRock", "per": 50 }
+      ],
+      "caveFeatures": [{ "kind": "scatter", "tile": "screeRock", "per": 60 }]
+    },
+    {
+      "id": "geothermal",
+      "label": "Geothermal Field",
+      "world": "earth",
+      "nameCategory": "geothermal",
+      "card": { "skies": ["overcast", "toxic", "dusk", "night"], "ground": ["#d8c870", "#c8b860", "#b8a850"], "plant": "geyser", "plantColour": "#a8a090", "rock": "#6a6050", "building": "#5a4a44", "extra": "sulphur" },
+      "ground": "sulphurCrust",
+      "path": "path",
+      "trail": null,
+      "plants": ["geyser"],
+      "boulder": "basalt",
+      "fence": null,
+      "walls": { "prefab": "heatWall", "city": "heatWall" },
+      "cave": { "floor": "sulphurCrust", "wall": "basaltWall", "boulder": "basalt" },
+      "features": [
+        { "kind": "blob", "tiles": ["sulphurPool"], "per": 70, "size": [3, 9] },
+        { "kind": "scatter", "tile": "geyser", "per": 60 },
+        { "kind": "scatter", "tile": "basalt", "per": 120 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["sulphurPool"], "per": 90, "size": [2, 5] }]
+    },
+    {
+      "id": "crystal",
+      "label": "Crystal Fields",
+      "world": "alien",
+      "nameCategory": "crystal",
+      "card": { "skies": ["alienViolet", "dusk", "night"], "ground": ["#a898c0", "#9888b4", "#8878a8"], "plant": "crystal", "plantColour": "#c8a8ff", "rock": "#6a5a8a", "building": "#c8c0d8", "extra": null },
+      "ground": "crystalGround",
+      "path": "path",
+      "trail": null,
+      "plants": ["crystalCluster"],
+      "boulder": "crystalCluster",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "crystalGround", "wall": "crystalWall", "boulder": "crystalCluster" },
+      "features": [
+        { "kind": "blob", "tiles": ["crystalSpire"], "per": 90, "size": [3, 9] },
+        { "kind": "scatter", "tile": "crystalCluster", "per": 35 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["crystalCluster"], "per": 70, "size": [1, 3] }]
+    },
+    {
+      "id": "fungal",
+      "label": "Fungal Forest",
+      "world": "alien",
+      "nameCategory": "fungal",
+      "card": { "skies": ["alienTeal", "murky", "night"], "ground": ["#5a4a5a", "#4a3c4c", "#3c303e"], "plant": "mushroom", "plantColour": "#c86a8a", "rock": "#4a3a4a", "building": "#8a7a6a", "extra": null },
+      "ground": "fungalGround",
+      "path": "path",
+      "trail": null,
+      "plants": ["giantMushroom", "puffball"],
+      "boulder": "puffball",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "timberWall" },
+      "cave": { "floor": "fungalGround", "wall": "rockWall", "boulder": "puffball" },
+      "features": [
+        { "kind": "blob", "tiles": ["giantMushroom"], "per": 60, "size": [3, 10] },
+        { "kind": "scatter", "tile": "puffball", "per": 30 }
+      ],
+      "caveFeatures": [
+        { "kind": "blob", "tiles": ["giantMushroom"], "per": 90, "size": [2, 5] },
+        { "kind": "scatter", "tile": "puffball", "per": 50 }
+      ]
+    },
+    {
+      "id": "acidMarsh",
+      "label": "Acid Marsh",
+      "world": "alien",
+      "nameCategory": "acidMarsh",
+      "card": { "skies": ["toxic", "murky", "night"], "ground": ["#7a8a3a", "#6a7a30", "#5a6a28"], "plant": "bulb", "plantColour": "#a8c040", "rock": "#4a5030", "building": "#9aa4ac", "extra": "acid" },
+      "ground": "toxicMud",
+      "path": "boardwalk",
+      "trail": "boardwalk",
+      "plants": ["bloatPod"],
+      "boulder": "bloatPod",
+      "fence": null,
+      "walls": { "prefab": "prefabWall", "city": "cityWall" },
+      "cave": { "floor": "toxicMud", "wall": "rockWall", "boulder": "bloatPod" },
+      "features": [
+        { "kind": "blob", "tiles": ["acidPool"], "per": 55, "size": [4, 12] },
+        { "kind": "scatter", "tile": "bloatPod", "per": 40 }
+      ],
+      "caveFeatures": [{ "kind": "blob", "tiles": ["acidPool"], "per": 80, "size": [2, 6] }]
+    },
+    {
+      "id": "bioluminescent",
+      "label": "Bioluminescent Jungle",
+      "world": "alien",
+      "nameCategory": "bioluminescent",
+      "card": { "skies": ["night", "alienTeal", "dusk"], "ground": ["#1e3a3e", "#18302e", "#122624"], "plant": "glowTree", "plantColour": "#4af0e0", "rock": "#22303a", "building": "#6a5a7a", "extra": null },
+      "ground": "glowMoss",
+      "path": "path",
+      "trail": null,
+      "plants": ["glowTree", "glowPod"],
+      "boulder": "glowPod",
+      "fence": null,
+      "walls": { "prefab": "timberWall", "city": "timberWall" },
+      "cave": { "floor": "glowMoss", "wall": "rockWall", "boulder": "glowPod" },
+      "features": [
+        { "kind": "blob", "tiles": ["glowTree"], "per": 50, "size": [4, 12] },
+        { "kind": "scatter", "tile": "glowPod", "per": 30 }
+      ],
+      "caveFeatures": [{ "kind": "scatter", "tile": "glowPod", "per": 40 }]
+    },
+    {
+      "id": "rustDesert",
+      "label": "Rust Desert",
+      "world": "alien",
+      "nameCategory": "rustDesert",
+      "card": { "skies": ["rust", "dusk", "night"], "ground": ["#b0583a", "#9a4a30", "#843e28"], "plant": "rock", "plantColour": "#6a2e1e", "rock": "#8a3e28", "building": "#c8a070", "extra": null },
+      "ground": "rustDust",
+      "path": "path",
+      "trail": null,
+      "plants": ["rustRock"],
+      "boulder": "rustRock",
+      "fence": null,
+      "walls": { "prefab": "adobeWall", "city": "adobeWall" },
+      "cave": { "floor": "rustDust", "wall": "rustMesa", "boulder": "rustRock" },
+      "features": [
+        { "kind": "blob", "tiles": ["rustMesa"], "per": 110, "size": [5, 14] },
+        { "kind": "scatter", "tile": "rustRock", "per": 45 }
+      ],
+      "caveFeatures": []
+    },
+    {
+      "id": "glassPlains",
+      "label": "Glass Plains",
+      "world": "alien",
+      "nameCategory": "glassPlains",
+      "card": { "skies": ["airless", "alienViolet", "night", "dusk"], "ground": ["#2a2834", "#1e1c28", "#14121c"], "plant": "crystal", "plantColour": "#4a4868", "rock": "#24222e", "building": "#9aa4ac", "extra": null },
+      "ground": "glassPlain",
+      "path": "path",
+      "trail": null,
+      "plants": ["glassShard"],
+      "boulder": "glassShard",
+      "fence": null,
+      "walls": { "prefab": "heatWall", "city": "heatWall" },
+      "cave": { "floor": "glassPlain", "wall": "basaltWall", "boulder": "glassShard" },
+      "features": [
+        { "kind": "blob", "tiles": ["glassSpire"], "per": 90, "size": [3, 8] },
+        { "kind": "blob", "tiles": ["lava"], "per": 300, "size": [2, 4] },
+        { "kind": "scatter", "tile": "glassShard", "per": 35 }
       ],
       "caveFeatures": []
     }

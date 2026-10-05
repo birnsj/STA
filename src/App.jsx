@@ -34,6 +34,7 @@ import { DEFAULT_MAP_ID as COMBAT2_DEFAULT_MAP } from './combat2/combat2State.js
 import CombatScreen from './screens/CombatScreen.jsx'
 import Combat2Screen from './screens/Combat2Screen.jsx'
 import EpisodeSelectScreen from './screens/EpisodeSelectScreen.jsx'
+import ExplorationScreen from './screens/ExplorationScreen.jsx'
 import EarlyOutlookScreen from './screens/EarlyOutlookScreen.jsx'
 import EducationScreen from './screens/EducationScreen.jsx'
 import EnvironmentScreen from './screens/EnvironmentScreen.jsx'
@@ -57,7 +58,7 @@ const SCREENS = {
   finishingTouches: FinishingTouchesScreen,
   review: ReviewScreen,
 }
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2', 'mapEditor']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2', 'exploration', 'mapEditor']
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
@@ -160,7 +161,7 @@ function Views() {
   const [displaySettings, setDisplaySettings] = useState(() => normalizeDisplaySettings(loadSettings()?.display))
   const [audioSettings, setAudioSettings] = useState(() => normalizeAudioSettings(loadSettings()?.audio))
   const [savedCharacters, setSavedCharacters] = useState(getSavedCharacters)
-  // UI state: Load Episode's combat type ('combat' | 'combat2') and the episode (map file id) picked there.
+  // UI state: Load Episode's prototype ('combat' | 'combat2' | 'exploration') and the episode (map file id) picked there.
   const [episode, setEpisode] = useState(() => ({ mode: 'combat', mapId: null, ...loadLocation().episode }))
   const openMenu = () => setView('menu')
   const handleConfirmed = (characters) => {
@@ -172,9 +173,9 @@ function Views() {
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
-  // The music plays across every view except the two combat prototypes and the dev map editor, where it fades out and
+  // The music plays across every view except the episode prototypes and the dev map editor, where it fades out and
   // fades back in on leaving. The volume is set before starting so it fades in at the saved level.
-  const musicWanted = view !== 'combat' && view !== 'combat2' && view !== 'mapEditor'
+  const musicWanted = !['combat', 'combat2', 'exploration', 'mapEditor'].includes(view)
   useEffect(() => music.setVolume(audioSettings.music / 100), [audioSettings.music])
   useEffect(() => {
     if (!musicWanted) return undefined
@@ -264,6 +265,11 @@ function Views() {
             onBack={() => setView('episodeSelect')}
             onExit={openMenu}
           />
+        </ScaledStage>
+      )}
+      {view === 'exploration' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+          <ExplorationScreen savedCharacters={savedCharacters} mapId={episode.mapId ?? COMBAT1_DEFAULT_MAP} onBack={() => setView('episodeSelect')} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'mapEditor' && (

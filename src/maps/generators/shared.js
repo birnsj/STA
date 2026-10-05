@@ -99,8 +99,8 @@ export function splitAxis(start, length, random, span = 6) {
 }
 
 // Crates and machinery stand against the room's walls (any id in `walls`), clear of `keep`, and take at most
-// 1 / density of its floor.
-export function furnishRoom(tiles, keep, room, random, { floor, walls, density = 6 }) {
+// 1 / density of its floor. crate / machinery: the tiles to use (a lab bench, an alien console...).
+export function furnishRoom(tiles, keep, room, random, { floor, walls, density = 6, crate = CRATE_TILE, machinery = MACHINERY_TILE }) {
   let budget = Math.floor(roomCells(room).length / density)
   const wallSide = () => shuffle(roomCells(room), random).filter((cell) => isFree(tiles, keep, cell, floor) && against(tiles, cell, walls))
 
@@ -110,7 +110,7 @@ export function furnishRoom(tiles, keep, room, random, { floor, walls, density =
       const horizontal = walls.has(tiles[start.y - 1]?.[start.x]) || walls.has(tiles[start.y + 1]?.[start.x])
       const run = Array.from({ length: randomInt(random, 2, 3) }, (_, i) => (horizontal ? { x: start.x + i, y: start.y } : { x: start.x, y: start.y + i }))
       const fits = run.every((cell) => cell.x <= room.x1 && cell.y <= room.y1 && isFree(tiles, keep, cell, floor) && against(tiles, cell, walls))
-      if (fits && placeSolid(tiles, run, MACHINERY_TILE)) {
+      if (fits && placeSolid(tiles, run, machinery)) {
         budget -= run.length
         break
       }
@@ -118,7 +118,7 @@ export function furnishRoom(tiles, keep, room, random, { floor, walls, density =
   }
   for (const cell of wallSide()) {
     if (budget <= 0) break
-    if (isFree(tiles, keep, cell, floor) && placeSolid(tiles, [cell], CRATE_TILE)) budget--
+    if (isFree(tiles, keep, cell, floor) && placeSolid(tiles, [cell], crate)) budget--
   }
 }
 

@@ -1,0 +1,280 @@
+{
+  "notes": [
+    "Challenge objects: things in the world that offer authored approaches, resolved with the one STA 2E task (src/rules/taskResolver.js). Framework = videogame adaptation; everything in 'maps' is TEST EPISODE CONTENT (Oct 2026), not book rules: the objects, their Difficulties, focus lists, equipment rules and outcomes are authoring choices to exercise the framework.",
+    "interactRange: how close (tiles, from the object's tile centre) a party member must stand to attempt or assist an action.",
+    "Object: id, name, type, position [x, y] (tile), state (starting state id), states { id: { label, description, tile } } where tile (optional) replaces the map tile at the object's position while in that state (e.g. a sealed door blocks the doorway); otherwise the map's own tile shows.",
+    "Action: id, label, description; routine: true = simply works, no roll. task = { attribute, department, difficulty, focuses [exact focus names], tags [task tags for species abilities], complicationRange, equipment { label, tags, itemIds, without: 'impossible' | { difficulty }, bonus [{ label, tags, itemIds, difficulty }] }, talentIds, roleIds (talents / role benefits whose prose condition the author says this task meets), traitRules [{ trait, difficulty } | { trait, impossible: true }] }.",
+    "assist: the approaches a second party member may help with (each { label, attribute, department, focuses }); omitted = no assistance. requires: { states: [object states], flags: { flag: value } }; unmet = the action is not offered. actionCost: { exploration, combat } metadata for later tactical use.",
+    "Outcomes: onSuccess, onFailure, onComplication (once if any complication remains after the roll, whether the task passed or failed), always. Effects: setState, setFlag, noise { radius, intensity } (the NPC awareness noise event), revealNpcs { radius, source, identified } and addFact { id, text } (into Party Knowledge), adjustDifficulty { actionId (default: this action), change, label }, setNpcResponse { alertGroupId, from, to } (NPC reaction override), lock { seconds } (no retry until then), message { text }."
+  ],
+  "interactRange": 2,
+  "maps": {
+    "Vault of the Ancients": [
+      {
+        "id": "damagedDoor01",
+        "name": "Damaged Door",
+        "type": "door",
+        "position": [14, 5],
+        "state": "sealed",
+        "states": {
+          "sealed": { "label": "Sealed", "description": "The door is jammed shut and its control panel sparks fitfully.", "tile": "alienBulkhead" },
+          "open": { "label": "Open", "description": "The door stands open." },
+          "forced": { "label": "Forced open", "description": "The door has been wrenched open; its frame is bent." }
+        },
+        "actions": [
+          {
+            "id": "bypassControls",
+            "label": "Bypass Controls",
+            "description": "Splice past the damaged control circuit.",
+            "requires": { "states": ["sealed"] },
+            "task": {
+              "attribute": "control",
+              "department": "engineering",
+              "difficulty": 2,
+              "focuses": ["Electro-Plasma Systems", "Jury-Rigging", "Locksmith", "Emergency Repairs", "Security Systems", "Computer Security Systems"],
+              "tags": ["electronics", "doorMechanism"],
+              "equipment": { "label": "engineering tools", "tags": ["engineering", "repair"], "without": { "difficulty": 1 } },
+              "talentIds": ["maintenanceSpecialist"]
+            },
+            "assist": [
+              { "label": "Talk them through the circuit", "attribute": "reason", "department": "science", "focuses": ["Physics", "Computer Science"] },
+              { "label": "Hold the panel steady", "attribute": "control", "department": "engineering", "focuses": ["Electro-Plasma Systems", "Jury-Rigging", "Emergency Repairs"] }
+            ],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "message", "text": "The door slides open." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The circuit refuses to cooperate. Another attempt is possible." }],
+            "onComplication": [
+              { "type": "noise", "radius": 6, "intensity": 0.6 },
+              { "type": "message", "text": "A power surge cracks loudly through the panel." }
+            ]
+          },
+          {
+            "id": "forceDoor",
+            "label": "Force the Door",
+            "description": "Brace and wrench the door open by hand.",
+            "requires": { "states": ["sealed"] },
+            "task": {
+              "attribute": "fitness",
+              "department": "security",
+              "difficulty": 3,
+              "focuses": ["Percussive Maintenance", "Structural Engineering", "Martial Arts"],
+              "tags": ["physical", "strength"]
+            },
+            "assist": [{ "label": "Pull alongside them", "attribute": "fitness", "department": "security", "focuses": ["Martial Arts"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "always": [
+              { "type": "noise", "radius": 9, "intensity": 1 },
+              { "type": "message", "text": "Metal shrieks against metal." }
+            ],
+            "onSuccess": [
+              { "type": "setState", "state": "forced" },
+              { "type": "message", "text": "The door grinds open." }
+            ],
+            "onFailure": [
+              { "type": "lock", "seconds": 5 },
+              { "type": "message", "text": "It won't budge yet. They need a moment before trying again." }
+            ]
+          },
+          {
+            "id": "openDoor",
+            "label": "Open Door",
+            "description": "With power restored, the door opens normally.",
+            "routine": true,
+            "requires": { "states": ["sealed"], "flags": { "powerRestored": true } },
+            "actionCost": { "exploration": "free", "combat": "minor" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "message", "text": "The door slides open." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "alarmPanel01",
+        "name": "Alarm Panel",
+        "type": "securityPanel",
+        "position": [3, 6],
+        "state": "armed",
+        "states": {
+          "armed": { "label": "Armed", "description": "A security panel wired to the alarm the west guards use." },
+          "disabled": { "label": "Disabled", "description": "The alarm circuit is dead." }
+        },
+        "actions": [
+          {
+            "id": "disableAlarm",
+            "label": "Disable Alarm",
+            "description": "Cut the alarm circuit without tripping it.",
+            "requires": { "states": ["armed"] },
+            "task": {
+              "attribute": "control",
+              "department": "engineering",
+              "difficulty": 2,
+              "focuses": ["Security Systems", "Computer Security Systems", "Electro-Plasma Systems", "Saboteur"],
+              "tags": ["electronics", "security"],
+              "equipment": { "label": "engineering tools", "tags": ["engineering", "repair"], "without": { "difficulty": 1 } }
+            },
+            "assist": [{ "label": "Spot the security lockout", "attribute": "reason", "department": "security", "focuses": ["Security Systems", "Computer Security Systems", "Infiltration"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "disabled" },
+              { "type": "setFlag", "flag": "alarmDisabled", "value": true },
+              { "type": "setNpcResponse", "alertGroupId": "security-west", "from": "alarm", "to": null },
+              { "type": "message", "text": "The alarm circuit goes dead. The west guards can no longer raise the alarm." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The panel's lockout holds." }],
+            "onComplication": [
+              { "type": "noise", "radius": 7, "intensity": 0.8 },
+              { "type": "message", "text": "A warning chime sounds from the panel." }
+            ]
+          },
+          {
+            "id": "overrideCodes",
+            "label": "Override Security Codes",
+            "description": "Work out the security codes and shut the alarm down from its own menu.",
+            "requires": { "states": ["armed"] },
+            "task": {
+              "attribute": "reason",
+              "department": "security",
+              "difficulty": 3,
+              "focuses": ["Security Systems", "Computer Security Systems", "Infiltration", "Espionage"],
+              "tags": ["security", "computers"]
+            },
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "disabled" },
+              { "type": "setFlag", "flag": "alarmDisabled", "value": true },
+              { "type": "setNpcResponse", "alertGroupId": "security-west", "from": "alarm", "to": null },
+              { "type": "message", "text": "The alarm accepts the override and shuts down." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The codes are rejected." }],
+            "onComplication": [
+              { "type": "noise", "radius": 7, "intensity": 0.8 },
+              { "type": "message", "text": "A warning chime sounds from the panel." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sensorConsole01",
+        "name": "Sensor Console",
+        "type": "sensorConsole",
+        "position": [16, 10],
+        "state": "idle",
+        "states": {
+          "idle": { "label": "Idle", "description": "An alien sensor console, still drawing power." },
+          "scanned": { "label": "Sweep complete", "description": "The console shows the results of the last sweep." }
+        },
+        "actions": [
+          {
+            "id": "runScan",
+            "label": "Run a Sensor Sweep",
+            "description": "Sweep the vault for life signs and anything unusual.",
+            "task": {
+              "attribute": "reason",
+              "department": "science",
+              "difficulty": 1,
+              "focuses": ["Sensor Operations", "Sensor Calibration", "Astrometrics", "Computer Science"],
+              "tags": ["sensors", "computers"],
+              "equipment": { "label": "a scanner", "tags": ["scanner"], "bonus": [{ "label": "Science tricorder linked in", "itemIds": ["scienceTricorder"], "difficulty": -1 }] }
+            },
+            "assist": [{ "label": "Boost the sensor gain", "attribute": "reason", "department": "engineering", "focuses": ["Sensor Calibration", "Imaging Equipment"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "scanned" },
+              { "type": "revealNpcs", "radius": 30, "source": "sensor", "identified": false },
+              { "type": "addFact", "id": "vaultPowerConduit", "text": "A hidden power conduit runs behind the north wall of the hall." },
+              { "type": "message", "text": "Life signs appear on the display, along with a power conduit behind the north wall." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The sweep returns only noise." }],
+            "onComplication": [
+              { "type": "adjustDifficulty", "change": 1, "label": "Console overloaded" },
+              { "type": "message", "text": "The console overloads; further sweeps will be harder." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "injuredCrew01",
+        "name": "Injured Crewmember",
+        "type": "casualty",
+        "position": [2, 16],
+        "state": "injured",
+        "states": {
+          "injured": { "label": "Injured", "description": "A crewmember lies hurt and barely conscious." },
+          "stabilized": { "label": "Stabilized", "description": "The crewmember is stable and resting." }
+        },
+        "actions": [
+          {
+            "id": "stabilize",
+            "label": "Stabilize",
+            "description": "Treat the injuries before they get worse.",
+            "requires": { "states": ["injured"] },
+            "task": {
+              "attribute": "control",
+              "department": "medicine",
+              "difficulty": 2,
+              "focuses": ["First Aid", "Emergency Medicine", "Triage", "Field Medic", "Surgery"],
+              "tags": ["medical"],
+              "equipment": { "label": "medical supplies", "tags": ["medical"], "without": { "difficulty": 2 } }
+            },
+            "assist": [{ "label": "Keep them calm", "attribute": "presence", "department": "medicine", "focuses": ["Bedside Manner", "Patient Care", "Counseling"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "stabilized" },
+              { "type": "setFlag", "flag": "casualtyStabilized", "value": true },
+              { "type": "addFact", "id": "crewmemberReport", "text": "The injured crewmember says the guards came out of the room north of the hall." },
+              { "type": "message", "text": "The crewmember's breathing steadies. They manage a few words about the guards." }
+            ],
+            "onFailure": [{ "type": "message", "text": "No improvement yet." }],
+            "onComplication": [
+              { "type": "adjustDifficulty", "change": 1, "label": "Condition worsened" },
+              { "type": "message", "text": "Their condition worsens; treatment will be harder now." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "powerRelay01",
+        "name": "Power Relay",
+        "type": "powerRelay",
+        "position": [5, 12],
+        "state": "offline",
+        "states": {
+          "offline": { "label": "Offline", "description": "A burnt-out relay feeding the damaged door's circuit." },
+          "online": { "label": "Online", "description": "The relay hums steadily." }
+        },
+        "actions": [
+          {
+            "id": "restorePower",
+            "label": "Restore Power",
+            "description": "Rebuild the relay and reroute power to the door circuit.",
+            "requires": { "states": ["offline"] },
+            "task": {
+              "attribute": "reason",
+              "department": "engineering",
+              "difficulty": 2,
+              "focuses": ["Electro-Plasma Systems", "Emergency Repairs", "Jury-Rigging", "Troubleshooting", "Power Management"],
+              "tags": ["electronics", "power"],
+              "equipment": { "label": "engineering tools", "tags": ["engineering", "repair"], "without": "impossible" }
+            },
+            "assist": [{ "label": "Hand them the right parts", "attribute": "control", "department": "engineering", "focuses": ["Emergency Repairs", "Jury-Rigging"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "online" },
+              { "type": "setFlag", "flag": "powerRestored", "value": true },
+              { "type": "message", "text": "Power flows to the damaged door; it can now be opened normally." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The relay stays dark." }],
+            "onComplication": [
+              { "type": "noise", "radius": 6, "intensity": 0.7 },
+              { "type": "message", "text": "The relay arcs with a loud crack." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -38,7 +38,8 @@ const AP_COST = Object.fromEntries(actionData.actions.map((entry) => [entry.id, 
 const freshTurn = () => ({ ap: TURN_AP, aimReroll: false, done: false, attacks: 0, moved: false, sprinted: false })
 const spendAP = (turn, actionId) => ({ ...turn, ap: Math.max(0, turn.ap - AP_COST[actionId]) })
 
-function createCombatant(character, { side, controller, position }) {
+// hits / status / injury / facing: carried in from the world when combat starts where everyone already stands.
+function createCombatant(character, { side, controller, position, hits = 0, status = 'active', injury = null, facing = null }) {
   const weapons = getCharacterWeapons(character)
   return {
     id: character.id,
@@ -46,10 +47,11 @@ function createCombatant(character, { side, controller, position }) {
     side,
     controller,
     position,
-    hits: 0,
-    status: 'active',
+    hits,
+    status,
     inCover: false,
-    injury: null,
+    injury,
+    facing,
     weaponIds: weapons.map((weapon) => weapon.id),
   }
 }
@@ -90,14 +92,18 @@ function withStandardIssue(character, weaponId) {
 // players: RuntimeCharacters controlled by the player, in party order; each stands on the map's player start of the same
 // index (members beyond the map's player starts are left out). map: a parsed map file (src/maps/mapFormat.js).
 // seed: a whole number; it fixes initiative ties and every roll.
-export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile, players, seed, initiativeOptions }) {
+// placements (optional): { players, enemies }, each [{ character, position, hits?, status?, injury?, facing? }]. Used when
+// combat starts in the exploration world: everyone fights from where they stand instead of the map's starts and spawns.
+export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile, players, seed, initiativeOptions, placements = null }) {
   const encounter = getEncounter(encounterId)
   const combatSeed = seed >>> 0
-  const playerCombatants = players.slice(0, mapFile.markers.playerStarts.length).map((character, index) =>
-    createCombatant(withStandardIssue(character, encounter.standardIssueWeapon), { side: 'player', controller: 'player', position: mapFile.markers.playerStarts[index] }),
+  const playerPlacements =
+    placements?.players ?? players.slice(0, mapFile.markers.playerStarts.length).map((character, index) => ({ character, position: mapFile.markers.playerStarts[index] }))
+  const playerCombatants = playerPlacements.map((placement) =>
+    createCombatant(withStandardIssue(placement.character, encounter.standardIssueWeapon), { ...placement, side: 'player', controller: 'player' }),
   )
-  const enemyCombatants = createEnemyCharacters(encounter, mapFile).map(({ character, position }) =>
-    createCombatant(character, { side: 'enemy', controller: 'ai', position }),
+  const enemyCombatants = (placements?.enemies ?? createEnemyCharacters(encounter, mapFile)).map((placement) =>
+    createCombatant(placement.character, { ...placement, side: 'enemy', controller: 'ai' }),
   )
   const map = toBattleMap(mapFile)
   const nearestOpponent = (combatant) =>
@@ -106,11 +112,13 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
       .sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
   const all = [...playerCombatants, ...enemyCombatants].map((combatant) => ({
     ...combatant,
-    inCover: canTakeCover(map, combatant.position),
-    facing: facingToward(combatant.position, nearestOpponent(combatant)?.position ?? combatant.position),
+    inCover: combatant.status === 'active' && canTakeCover(map, combatant.position),
+    facing: combatant.facing ?? facingToward(combatant.position, nearestOpponent(combatant)?.position ?? combatant.position),
   }))
   const order = buildInitiativeOrder(all, seededRandomInt(combatSeed), { firstSide: 'player', ...initiativeOptions })
-  const first = all.find((combatant) => combatant.id === order[0])
+  // Someone already down (from an earlier fight) never takes the first turn.
+  const turnIndex = Math.max(0, order.findIndex((id) => all.find((combatant) => combatant.id === id).status === 'active'))
+  const first = all.find((combatant) => combatant.id === order[turnIndex])
   return {
     encounterId,
     mapId: mapFile.id,
@@ -121,7 +129,7 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
     combatants: Object.fromEntries(all.map((combatant) => [combatant.id, combatant])),
     order,
     round: 1,
-    turnIndex: 0,
+    turnIndex,
     turn: freshTurn(),
     // Saved turns of the other members of the current party group (see getTurnGroup), keyed by combatant id.
     groupTurns: {},
@@ -138,6 +146,11 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
     lastDecision: null,
     lastMove: null,
     lastAction: null,
+    // Set only for combat started in the exploration world (src/exploration/combatLink.js):
+    // knowledge: { [enemyId]: { [playerId]: { known, lastKnownPosition, source } } } - an enemy with an entry only treats
+    // the party members it knows about as opponents. blockedKeys: tiles held by NPCs standing outside the fight.
+    knowledge: null,
+    blockedKeys: [],
     stats: createStats(all),
     log: [
       {
@@ -157,7 +170,11 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
 export const getActiveCombatant = (state) => state.combatants[state.order[state.turnIndex]]
 export const isActive = (combatant) => combatant.status === 'active'
 export const getCombatantList = (state) => state.order.map((id) => state.combatants[id])
-export const getOpponents = (state, combatant) => getCombatantList(state).filter((other) => other.side !== combatant.side && isActive(other))
+// Whether a combatant knows another is there. Only combat started in the world tracks this (state.knowledge), and only
+// for enemies: a party member an enemy hasn't detected is present but not one of its opponents.
+export const knowsAbout = (state, viewer, other) => !state.knowledge?.[viewer.id] || Boolean(state.knowledge[viewer.id][other.id]?.known)
+export const getOpponents = (state, combatant) =>
+  getCombatantList(state).filter((other) => other.side !== combatant.side && isActive(other) && knowsAbout(state, combatant, other))
 
 // Designer decision (Oct 2026): party members whose initiative slots are next to each other act as one group; the player
 // picks who acts, can switch at any time (even with actions left), and the group ends when every member is finished.
@@ -232,7 +249,7 @@ export const canAimReroll = (pending, dieIndex) =>
 
 // Enemies cannot be passed; allies can be passed but not stopped on. Defeated combatants do not block.
 export function getBlockers(state, combatant) {
-  const blockedKeys = new Set()
+  const blockedKeys = new Set(state.blockedKeys ?? [])
   const occupiedKeys = new Set()
   for (const other of Object.values(state.combatants)) {
     if (other.id === combatant.id || !isActive(other)) continue
@@ -379,6 +396,24 @@ const addLog = (state, lines, kind = 'action') => ({ ...state, log: [...state.lo
 const markAction = (state, type, actorId, details = {}) => ({ ...state, lastAction: { key: state.log.length, type, actorId, ...details } })
 
 const updateCombatant = (state, id, changes) => ({ ...state, combatants: { ...state.combatants, [id]: { ...state.combatants[id], ...changes } } })
+
+// A late arrival (an enemy that heard or saw the fight): joins from where it stands and takes the last initiative slot,
+// so it first acts at the end of the current round. placement: as in createCombat.
+export function addCombatant(state, placement, { side = 'enemy', controller = 'ai' } = {}) {
+  if (state.combatants[placement.character.id]) return state
+  const combatant = createCombatant(placement.character, { ...placement, side, controller })
+  const nearest = getCombatantList(state)
+    .filter((other) => other.side !== side && isActive(other))
+    .sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  const joined = {
+    ...combatant,
+    inCover: canTakeCover(state.map, combatant.position),
+    facing: combatant.facing ?? facingToward(combatant.position, nearest?.position ?? combatant.position),
+  }
+  const stats = structuredClone(state.stats)
+  stats.byCombatant[joined.id] = { attacks: 0, attacksHit: 0, hitsLanded: 0, hitsTaken: 0, lastAttackRound: 0 }
+  return addLog({ ...state, combatants: { ...state.combatants, [joined.id]: joined }, order: [...state.order, joined.id], stats }, [`${joined.character.name} joins the fight.`], 'info')
+}
 
 // The next roll's generator: one derived seed per roll, so replays match no matter how the UI is paced.
 function takeRandom(state) {

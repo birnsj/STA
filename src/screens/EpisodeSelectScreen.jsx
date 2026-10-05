@@ -6,11 +6,12 @@ import { weatherFor } from '../maps/mapWeather.js'
 import { canSaveMaps, deleteMap, listMaps } from '../maps/mapFiles.js'
 import { episodeTitle } from '../maps/mapFormat.js'
 
-// Load Episode: every map file in maps/ is an episode (its name is the mission location). For now the combat prototype
+// Load Episode: every map file in maps/ is an episode (its name is the mission location). For now the prototype
 // that plays it is chosen here too, as a development comparison tool.
 const MODES = [
   { id: 'combat', label: 'Combat Type 1', text: 'Party of up to 4, initiative, Major and Minor actions.' },
   { id: 'combat2', label: 'Combat Type 2', text: 'Tactical positioning: 1 character, 2 AP per turn, enemy intents, Push and an EPS hazard.' },
+  { id: 'exploration', label: 'Exploration', text: 'Away team movement: party selection, splitting up and formations. No enemies yet.' },
 ]
 
 export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack }) {
@@ -46,7 +47,7 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
     <div className="episode-select">
       <div className="episode-select-panel" inert={Boolean(deleting)}>
         <h2 className="episode-select-title">Load Episode</h2>
-        <p className="episode-select-text">Choose a combat prototype, then an episode.</p>
+        <p className="episode-select-text">Choose a prototype, then an episode.</p>
         <div className="episode-select-modes">
           {MODES.map((option) => (
             <button

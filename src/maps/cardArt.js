@@ -133,8 +133,12 @@ const SKIES = {
   pale: { top: '#a8c4dc', bottom: '#eaf2f7', sun: '#ffffff' },
   volcanic: { top: '#1e0e0c', bottom: '#6a2a18', glowColour: '#ff6a1a' },
   airless: { top: '#05070c', bottom: '#2e323c', stars: true, moon: '#c8ccd2' },
+  alienViolet: { top: '#2a1450', bottom: '#c070c0', sun: '#ffd8ff' },
+  alienTeal: { top: '#04161e', bottom: '#2a7a72', stars: true, moon: '#c0fff0' },
+  toxic: { top: '#3e4a14', bottom: '#b8c058', sun: '#f0ff90' },
+  rust: { top: '#5a2418', bottom: '#d89868', sun: '#fff0d0' },
 }
-const DARK_SKIES = new Set(['night', 'airless', 'volcanic', 'dusk'])
+const DARK_SKIES = new Set(['night', 'airless', 'volcanic', 'dusk', 'alienTeal'])
 const PLANET_COLOURS = ['#3d6ea8', '#a85a3a', '#5a8a5a', '#8a6aa8', '#c8a060', '#4a9aa8', '#a83a4a', '#7a7a8a']
 
 function drawSky(c, skyId, horizon) {
@@ -175,21 +179,43 @@ function drawTerrain(c, palette, horizon, { mountainChance = 0.45, volcanoChance
   if (c.random() < mountainChance) mountains(c, horizon, mix(palette.rock, SKIES.day.bottom, 0.35))
   if (c.random() < volcanoChance) volcano(c, horizon, palette)
   band(c, hills(c.random, horizon - 6, between(c.random, 3, 10)), far)
-  band(c, hills(c.random, horizon + 8, between(c.random, 2, 7)), middle)
+  // A sea fills the middle distance, so the near ground reads as the shore in front of it.
+  if (palette.extra === 'sea') drawSea(c, horizon + 2)
+  else band(c, hills(c.random, horizon + 8, between(c.random, 2, 7)), middle)
   const ground = hills(c.random, horizon + 30, between(c.random, 2, 6))
   band(c, ground, near)
   if (palette.extra === 'water') drawWater(c, horizon + between(c.random, 26, 44))
+  if (palette.extra === 'acid') drawWater(c, horizon + between(c.random, 26, 44), ACID)
+  if (palette.extra === 'sulphur') drawPools(c, horizon)
   if (palette.extra === 'lava') drawRiver(c, horizon, '#ff6a1a', '#ffa040')
   if (palette.extra === 'crevasse') drawCrevasse(c, horizon + between(c.random, 30, 60))
   return ground
 }
 
-function drawWater(c, top) {
-  band(c, () => top, '#34433e')
-  for (let i = 0; i < 30; i++) rect(c, c.random() * W, top + 2 + c.random() * (H - top), between(c.random, 12, 40), 1, '#5a6b62', 0.7)
+const SWAMP_WATER = { water: '#34433e', ripple: '#5a6b62', reed: '#6a7a3a' }
+const ACID = { water: '#5e8a1c', ripple: '#a8d040', reed: '#4a5a18' }
+
+function drawWater(c, top, colours = SWAMP_WATER) {
+  band(c, () => top, colours.water)
+  for (let i = 0; i < 30; i++) rect(c, c.random() * W, top + 2 + c.random() * (H - top), between(c.random, 12, 40), 1, colours.ripple, 0.7)
   for (let i = 0; i < 36; i++) {
     const x = c.random() * W
-    line(c, x, top + between(c.random, 2, 30), x + 2, top - between(c.random, 6, 16), 1.4, '#6a7a3a')
+    line(c, x, top + between(c.random, 2, 30), x + 2, top - between(c.random, 6, 16), 1.4, colours.reed)
+  }
+}
+
+function drawSea(c, top) {
+  band(c, () => top, '#2e6a8a')
+  for (let i = 0; i < 40; i++) rect(c, c.random() * W, top + 2 + c.random() * 30, between(c.random, 6, 26), 1, '#8ac8e0', 0.6)
+}
+
+// Hot springs: orange-rimmed pools with turquoise centres and a haze of steam.
+function drawPools(c, horizon) {
+  for (let i = Math.floor(between(c.random, 3, 7)); i > 0; i--) {
+    const [x, y, r] = [between(c.random, 10, 310), between(c.random, horizon + 34, H - 8), between(c.random, 10, 26)]
+    ellipse(c, x, y, r, r * 0.3, '#d8901c')
+    ellipse(c, x, y, r * 0.6, r * 0.18, '#40a8a8')
+    glow(c, x, y - 8, r * 0.8, '#ffffff', 0.05)
   }
 }
 
@@ -243,6 +269,49 @@ function plant(c, kind, colour, x, y, size) {
   } else if (kind === 'crater') {
     ellipse(c, x, y, size, size * 0.3, mix(colour, '#ffffff', 0.25))
     ellipse(c, x, y + 1, size * 0.8, size * 0.22, colour)
+  } else if (kind === 'jungleTree') {
+    rect(c, x - size * 0.08, y - size * 1.3, size * 0.16, size * 1.3, '#3a2a1c')
+    ellipse(c, x, y - size * 1.4, size * 0.7, size * 0.38, colour)
+    ellipse(c, x - size * 0.3, y - size * 1.2, size * 0.45, size * 0.28, mix(colour, '#000000', 0.25))
+    ellipse(c, x + size * 0.35, y - size * 1.25, size * 0.4, size * 0.25, mix(colour, '#000000', 0.15))
+    line(c, x + size * 0.2, y - size * 1.2, x + size * 0.25, y - size * 0.4, 1, mix(colour, '#000000', 0.3))
+  } else if (kind === 'acacia') {
+    line(c, x, y, x - size * 0.1, y - size * 0.9, Math.max(1, size * 0.08), '#4a3424')
+    line(c, x - size * 0.05, y - size * 0.5, x + size * 0.3, y - size * 0.9, Math.max(1, size * 0.06), '#4a3424')
+    ellipse(c, x + size * 0.05, y - size * 0.95, size * 0.75, size * 0.14, colour)
+    ellipse(c, x + size * 0.05, y - size * 0.9, size * 0.6, size * 0.08, mix(colour, '#000000', 0.25))
+  } else if (kind === 'shrub') {
+    ellipse(c, x, y - size * 0.15, size * 0.4, size * 0.2, colour)
+    ellipse(c, x + size * 0.15, y - size * 0.1, size * 0.25, size * 0.14, mix(colour, '#000000', 0.2))
+  } else if (kind === 'palm') {
+    const [tx, ty] = [x + size * 0.3, y - size * 1.3]
+    line(c, x, y, tx, ty, Math.max(1, size * 0.08), '#6a5034')
+    for (const [dx, dy] of [[-0.6, 0.3], [-0.4, -0.05], [0, -0.15], [0.4, -0.05], [0.6, 0.3]]) {
+      line(c, tx, ty, tx + dx * size, ty + dy * size, Math.max(1, size * 0.07), colour)
+    }
+  } else if (kind === 'crystal') {
+    for (const [dx, h, w] of [[-0.25, 0.7, 0.12], [0, 1.1, 0.16], [0.22, 0.8, 0.12]]) {
+      const cx = x + dx * size
+      poly(c, [[cx - w * size, y], [cx, y - h * size], [cx + w * size, y]], colour)
+      poly(c, [[cx, y], [cx, y - h * size], [cx + w * size, y]], mix(colour, '#000000', 0.3))
+    }
+    glow(c, x, y - size * 0.5, size * 0.6, colour, 0.06)
+  } else if (kind === 'mushroom') {
+    rect(c, x - size * 0.07, y - size * 0.9, size * 0.14, size * 0.9, '#d8ccb8')
+    ellipse(c, x, y - size * 0.9, size * 0.5, size * 0.26, colour, 1, (px, py) => py <= y - size * 0.86)
+    for (let i = 0; i < 3; i++) circle(c, x + (i - 1) * size * 0.22, y - size * 1.0, Math.max(1, size * 0.05), mix(colour, '#ffffff', 0.6))
+  } else if (kind === 'bulb') {
+    line(c, x, y, x + size * 0.1, y - size * 0.7, Math.max(1, size * 0.05), mix(colour, '#000000', 0.4))
+    circle(c, x + size * 0.1, y - size * 0.8, size * 0.2, colour)
+    circle(c, x + size * 0.05, y - size * 0.85, size * 0.07, mix(colour, '#ffffff', 0.5))
+  } else if (kind === 'glowTree') {
+    rect(c, x - size * 0.07, y - size * 0.9, size * 0.14, size * 0.9, '#1e1a2a')
+    glow(c, x, y - size * 1.0, size * 0.9, colour, 0.08)
+    circle(c, x, y - size * 1.0, size * 0.42, colour)
+    circle(c, x - size * 0.12, y - size * 1.08, size * 0.18, mix(colour, '#ffffff', 0.5))
+  } else if (kind === 'geyser') {
+    ellipse(c, x, y, size * 0.4, size * 0.1, '#c8a050')
+    for (let i = 0; i < 5; i++) circle(c, x + (c.random() - 0.5) * size * 0.2, y - size * (0.3 + i * 0.3), size * (0.1 + i * 0.05), colour, 0.35)
   }
 }
 
@@ -380,6 +449,162 @@ function caveMouth(c, palette) {
   for (let i = 0; i < 7; i++) {
     const x = c.random() * W
     poly(c, [[x - 10, H], [x + 10, H], [x, H - between(c.random, 10, 30)]], rock)
+  }
+}
+
+function farm(c, palette, skyId, base) {
+  const crop = mix(palette.plantColour, '#c8b040', 0.3)
+  for (let y = base + 4, i = 0; y < H; y += 3 + i++) rect(c, 0, y, W, 1 + i * 0.4, i % 2 ? crop : mix(crop, '#000000', 0.3), 0.85)
+  const [bx, bw, bh] = [between(c.random, 30, 200), between(c.random, 44, 64), between(c.random, 24, 32)]
+  rect(c, bx, base - bh, bw, bh, '#8a3a2a')
+  poly(c, [[bx - 4, base - bh], [bx + bw / 2, base - bh - 18], [bx + bw + 4, base - bh]], '#5a2a20')
+  rect(c, bx + bw / 2 - 7, base - 16, 14, 16, '#d8d0c0')
+  line(c, bx + bw / 2 - 7, base - 16, bx + bw / 2 + 7, base, 1, '#8a3a2a')
+  line(c, bx + bw / 2 + 7, base - 16, bx + bw / 2 - 7, base, 1, '#8a3a2a')
+  const sx = bx + bw + between(c.random, 6, 14)
+  rect(c, sx, base - 56, 14, 56, '#b8bcc0')
+  rect(c, sx + 10, base - 56, 4, 56, '#8a8f94')
+  circle(c, sx + 7, base - 56, 7, '#9aa0a6', 1, (_, y) => y <= base - 56)
+  const hx = bx > 160 ? between(c.random, 20, 80) : between(c.random, 230, 280)
+  rect(c, hx, base - 18, 30, 18, palette.building)
+  poly(c, [[hx - 3, base - 18], [hx + 15, base - 30], [hx + 33, base - 18]], mix(palette.building, '#000000', 0.35))
+  lit(c, skyId, hx + 5, base - 12)
+  lit(c, skyId, hx + 20, base - 12)
+}
+
+function miningSite(c, palette, skyId, base) {
+  const spoil = mix(palette.rock, '#000000', 0.15)
+  for (let i = Math.floor(between(c.random, 2, 4)); i > 0; i--) {
+    const [x, w, h] = [between(c.random, 0, W), between(c.random, 40, 90), between(c.random, 16, 36)]
+    poly(c, [[x - w / 2, base + 6], [x, base + 6 - h], [x + w / 2, base + 6]], spoil)
+    poly(c, [[x, base + 6], [x, base + 6 - h], [x + w / 2, base + 6]], mix(spoil, '#000000', 0.25))
+  }
+  const x = between(c.random, 60, 260)
+  const top = base - between(c.random, 60, 85)
+  for (const side of [-1, 1]) line(c, x + side * 16, base, x, top, 2, '#c89a30')
+  for (let y = base - 12; y > top + 8; y -= 12) line(c, x - (16 * (y - top)) / (base - top), y, x + (16 * (y - top)) / (base - top), y, 1, '#9a7424')
+  if (isDark(skyId)) glow(c, x, top, 6, '#ff3b30', 0.35)
+  const hx = x > 160 ? between(c.random, 20, 90) : between(c.random, 220, 290)
+  rect(c, hx, base - 16, 28, 16, palette.building)
+  lit(c, skyId, hx + 4, base - 11)
+  line(c, hx + 28, base - 12, x - 8, base - 30, 2, '#5a6066')
+  for (let i = 0; i < 3; i++) {
+    const cx = between(c.random, 10, 300)
+    rect(c, cx, base + 6, 14, 7, '#40454a')
+    rect(c, cx + 1, base + 4, 12, 3, '#8a7058')
+  }
+}
+
+function landingField(c, palette, skyId, base) {
+  const cx = between(c.random, 110, 210)
+  ellipse(c, cx, base + 16, 130, 16, '#4a5056')
+  ellipse(c, cx, base + 16, 60, 8, '#e8c040')
+  ellipse(c, cx, base + 16, 56, 6.5, '#4a5056')
+  const body = [[cx - 46, base + 14], [cx + 34, base + 14], [cx + 50, base + 6], [cx + 36, base - 6], [cx - 34, base - 9], [cx - 50, base]]
+  poly(c, body, '#d0d6da')
+  poly(c, [[cx - 50, base], [cx - 34, base - 9], [cx - 20, base - 9], [cx - 30, base + 2]], '#a0a8ae')
+  rect(c, cx + 10, base - 4, 22, 3, '#4a8ac0')
+  for (const side of [-1, 1]) rect(c, cx - 30, base + (side < 0 ? -14 : 12), 50, 4, '#80888e')
+  if (isDark(skyId)) for (let i = 0; i < 8; i++) glow(c, cx - 120 + i * 34, base + 16 + Math.sin(i) * 6, 3, '#ffd27a', 0.4)
+  const tx = cx > 160 ? between(c.random, 20, 60) : between(c.random, 260, 300)
+  rect(c, tx - 5, base - 64, 10, 64, mix(palette.building, '#7d8890', 0.5))
+  rect(c, tx - 11, base - 72, 22, 10, '#4a8ac0')
+  if (isDark(skyId)) glow(c, tx, base - 74, 5, '#ff3b30', 0.35)
+  for (let i = 0; i < 2; i++) {
+    const fx = tx + (cx > 160 ? 20 : -40) + i * 18
+    rect(c, fx, base - 18, 14, 18, '#d8d0b8')
+    rect(c, fx, base - 12, 14, 2, '#c04030')
+  }
+}
+
+function fieldCamp(c, palette, skyId, base) {
+  const fire = between(c.random, 120, 200)
+  for (let i = Math.floor(between(c.random, 3, 6)); i > 0; i--) {
+    const [x, y, w, h] = [between(c.random, 20, 300), base + between(c.random, 0, 30), between(c.random, 14, 24), between(c.random, 14, 22)]
+    poly(c, [[x - w, y], [x, y - h], [x + w, y]], '#6a7a4a')
+    poly(c, [[x, y], [x, y - h], [x + w, y]], '#4e5c36')
+    poly(c, [[x - 3, y], [x, y - h * 0.5], [x + 3, y]], '#2a2a20')
+  }
+  const fy = base + 22
+  glow(c, fire, fy - 6, 30, '#ff8a2a', isDark(skyId) ? 0.12 : 0.05)
+  poly(c, [[fire - 6, fy], [fire, fy - 14], [fire + 6, fy]], '#ff8a2a')
+  poly(c, [[fire - 3, fy], [fire, fy - 8], [fire + 3, fy]], '#ffd27a')
+  const mx = fire > 160 ? between(c.random, 30, 90) : between(c.random, 230, 290)
+  line(c, mx, base + 4, mx, base - 70, 2, '#b8c0c6')
+  rect(c, mx - 8, base - 72, 16, 2, '#d0d6da')
+  glow(c, mx, base - 74, 4, '#5fd0ff', 0.4)
+}
+
+function crashSite(c, palette, skyId, base) {
+  const [cx, cy, angle] = [between(c.random, 100, 220), base + between(c.random, 6, 20), between(c.random, -0.25, 0.25)]
+  ellipse(c, cx - 30, cy + 6, 150, 12, '#1e2224', 0.8)
+  const points = [[-70, 0], [-56, -14], [10, -20], [50, -12], [64, -2], [40, 6], [-20, 8], [-60, 6]]
+  const hull = points.map(([x, y]) => [cx + x * Math.cos(angle) - y * Math.sin(angle), cy + x * Math.sin(angle) + y * Math.cos(angle)])
+  poly(c, hull, '#7a848a')
+  poly(c, [hull[0], hull[1], hull[2], [cx, cy]], '#8a949a')
+  for (let i = 0; i < 4; i++) circle(c, cx + between(c.random, -50, 40), cy + between(c.random, -10, 2), between(c.random, 3, 7), '#1c2023', 0.8, (px, py) => inside(hull, px + 0.5, py + 0.5))
+  for (let i = 0; i < 3; i++) {
+    const [fx, fy] = [cx + between(c.random, -50, 50), cy - between(c.random, 4, 14)]
+    glow(c, fx, fy, 10, '#ff8a2a', 0.18)
+    poly(c, [[fx - 4, fy + 2], [fx, fy - 10], [fx + 4, fy + 2]], '#ffb347')
+    for (let k = 1; k < 7; k++) circle(c, fx + k * 4 + (c.random() - 0.5) * 6, fy - k * 10, 4 + k * 1.6, '#3a3a3c', 0.25)
+  }
+  for (let i = 0; i < 14; i++) {
+    const [x, y, s] = [between(c.random, 0, W), between(c.random, base, H), between(c.random, 3, 8)]
+    poly(c, [[x, y], [x + s, y - s * 0.4], [x + s * 1.2, y + 2], [x + s * 0.2, y + 3]], '#4a545a')
+  }
+}
+
+// ---- Alien interiors ----
+
+// A ribbed organic chamber with glowing nodes.
+function alienVessel(c) {
+  const hull = { wall: '#34284e', side: '#261c3a', floor: '#1e1630', ceiling: '#1a1228', back: '#4a3a6a' }
+  const accent = pick(c.random, ['#c070ff', '#5fffc0', '#ff7ad0'])
+  const g = room(c, hull, { width: [40, 90] })
+  for (const f of [0.2, 0.45, 0.7, 0.9]) {
+    line(c, g.l * f, g.t * f, g.l * f, H - (H - g.b) * f, 4 * (1.2 - f), '#5a4a7a')
+    line(c, W - (W - g.r) * f, g.t * f, W - (W - g.r) * f, H - (H - g.b) * f, 4 * (1.2 - f), '#4a3c66')
+  }
+  for (let i = 0; i < 5; i++) {
+    const [x, y] = [between(c.random, g.l + 6, g.r - 6), between(c.random, g.t + 6, g.b - 6)]
+    glow(c, x, y, 8, accent, 0.15)
+    circle(c, x, y, 2.5, accent)
+  }
+  line(c, g.vx, g.b, g.vx, H, 3, accent, 0.5)
+}
+
+// A stone nave of receding pillars leading to a glowing altar.
+function alienTemple(c) {
+  const hull = { wall: '#665a44', side: '#4e4434', floor: '#4a3e30', ceiling: '#2a241c', back: '#8a7a5e' }
+  const g = room(c, hull, { width: [36, 70], top: [36, 60] })
+  for (const f of [0.15, 0.4, 0.65, 0.85]) {
+    const w = 18 * (1.15 - f)
+    for (const x of [g.l * f + 4, W - (W - g.r) * f - 4 - w]) {
+      rect(c, x, g.t * f, w, H - (H - g.b) * f - g.t * f, '#a8987a')
+      rect(c, x + w * 0.65, g.t * f, w * 0.35, H - (H - g.b) * f - g.t * f, '#7c6e56')
+    }
+  }
+  rect(c, g.vx - 14, g.b - 12, 28, 12, '#5a4a3a')
+  glow(c, g.vx, g.b - 18, 26, '#d8b040', 0.12)
+  circle(c, g.vx, g.b - 18, 4, '#fff0a0')
+  for (let i = 0; i < 12; i++) rect(c, between(c.random, g.l + 4, g.r - 6), between(c.random, g.t + 4, g.b - 20), 2, 2, '#d8b040', 0.8)
+}
+
+// Resin-walled tunnels with strands hanging down and glowing egg pods on the floor.
+function alienHive(c) {
+  gradient(c, '#1e140e', '#3a2a20')
+  band(c, hills(c.random, between(c.random, 128, 148), 8), '#2a1c14')
+  for (let i = 0; i < 26; i++) {
+    const x = c.random() * W
+    line(c, x, 0, x + between(c.random, -8, 8), between(c.random, 20, 110), between(c.random, 1, 3), '#5a3a28', 0.8)
+  }
+  stalactites(c, '#42281a')
+  for (let i = Math.floor(between(c.random, 6, 14)); i > 0; i--) {
+    const [x, y, r] = [c.random() * W, between(c.random, 140, 178), between(c.random, 6, 14)]
+    glow(c, x, y - r, r * 1.4, '#a8e060', 0.06)
+    ellipse(c, x, y - r * 0.8, r * 0.7, r, '#8a6a48')
+    ellipse(c, x, y - r * 1.4, r * 0.35, r * 0.3, '#a8e060')
   }
 }
 
@@ -665,10 +890,10 @@ function damage(c) {
   rect(c, 0, 0, W, H, '#ff2a1a', 0.08)
 }
 
-// A ship or station interior: the scene a name suggests, otherwise a random one.
-function interior(c, name, { damaged = false } = {}) {
-  const scene = sceneForName(name) ?? pick(c.random, SCENES)
-  const hull = pick(c.random, HULLS)
+// A ship or station interior: the scene a name suggests, otherwise a random one. scene / hull: fixed choices instead.
+function interior(c, name, { damaged = false, scene: fixedScene = null, hull: fixedHull = null } = {}) {
+  const scene = fixedScene ?? sceneForName(name) ?? pick(c.random, SCENES)
+  const hull = fixedHull ?? pick(c.random, HULLS)
   const alert = !damaged && c.random() < 0.2
   scene(c, hull, alert ? '#ff3b30' : pick(c.random, ACCENTS))
   if (damaged) damage(c)
@@ -751,7 +976,13 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
   } else if (location === 'derelict') {
     if (random() < 0.5) interior(c, name, { damaged: true })
     else derelict(c)
-  }
+  } else if (location === 'laboratory') interior(c, name, { scene: sceneForName(name) ?? sickbay, hull: HULLS[4] })
+  // Cantina names often hold scene words ("The Broken Warp Coil"), so the scene is fixed.
+  else if (location === 'cantina') interior(c, name, { scene: lounge, hull: HULLS[1] })
+  else if (location === 'detention') interior(c, name, { scene: brig })
+  else if (location === 'alienVessel') alienVessel(c)
+  else if (location === 'alienTemple') alienTemple(c)
+  else if (location === 'alienHive') alienHive(c)
   else if (location === 'cave' && random() < 0.5) caveInterior(c, palette)
   else {
     const suited = skies ? palette.skies.filter((sky) => skies.includes(sky)) : []
@@ -760,7 +991,7 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
     drawSky(c, skyId, horizon)
     const wild = location === 'wilderness'
     const ground = drawTerrain(c, palette, horizon, {
-      mountainChance: wild ? 0.6 : 0.4,
+      mountainChance: palette.mountains ?? (wild ? 0.6 : 0.4),
       volcanoChance: palette.extra === 'lava' ? (wild ? 0.7 : 0.35) : 0,
     })
     const base = horizon + 24
@@ -768,6 +999,11 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
     else if (location === 'outpost') outpost(c, palette, skyId, base)
     else if (location === 'city') city(c, palette, skyId, base + 10)
     else if (location === 'surfaceSite') ruins(c, palette, skyId, base)
+    else if (location === 'farm') farm(c, palette, skyId, base)
+    else if (location === 'miningSite') miningSite(c, palette, skyId, base)
+    else if (location === 'landingField') landingField(c, palette, skyId, base)
+    else if (location === 'fieldCamp') fieldCamp(c, palette, skyId, base)
+    else if (location === 'crashSite') crashSite(c, palette, skyId, base)
     if (location === 'cave') caveMouth(c, palette)
     else plants(c, palette, ground, wild ? Math.floor(between(random, 10, 22)) : Math.floor(between(random, 2, 7)), location === 'city' ? base + 12 : 0)
   }

@@ -9,7 +9,20 @@ import { randomEpisodeName, randomLocationName, randomUnusedLocationName } from 
 import { generateCave } from './generators/cave.js'
 import { generateCity } from './generators/city.js'
 import { generateColony } from './generators/colony.js'
+import { generateCrashSite } from './generators/crashSite.js'
 import { generateDerelict } from './generators/derelict.js'
+import { generateFarm } from './generators/farm.js'
+import { generateFieldCamp } from './generators/fieldCamp.js'
+import {
+  generateAlienHive,
+  generateAlienTemple,
+  generateAlienVessel,
+  generateCantina,
+  generateDetention,
+  generateLaboratory,
+} from './generators/interiors.js'
+import { generateLandingField } from './generators/landingField.js'
+import { generateMiningSite } from './generators/miningSite.js'
 import { generateOutpost } from './generators/outpost.js'
 import { generateSpaceStation } from './generators/spaceStation.js'
 import { generateStarshipDeck } from './generators/starshipDeck.js'
@@ -20,23 +33,48 @@ import { DEFAULT_BIOME, mapFileId } from './mapFormat.js'
 
 const locationList = (categoryId) => locationNames.categories.find((category) => category.id === categoryId)?.names ?? []
 
-// The editor's Location list. nameCategory: the locationNames.json category Generate Name and Generate Map draw the
-// map's name from. areaNames: its area labels. setting: 'space' (ships and stations) or 'ground' (built in the chosen
-// biome). biomeNames: Wilderness takes its name and area labels from the biome instead.
+// The editor's Location list. group: its heading in the list (LOCATION_GROUPS). nameCategory: the locationNames.json
+// category Generate Name and Generate Map draw the map's name from. areaNames: its area labels. setting: 'space' (ships
+// and stations), 'ground' (built in the chosen biome) or 'interior' (indoors on a world, no biome). biomeNames:
+// Wilderness takes its name and area labels from the biome instead.
 // generate(map, random, areaNames, biome) returns the map with new tiles, areas and markers at the same size.
+const own = (id) => ({ nameCategory: id, areaNames: areaNames[id] ?? [] })
 export const MAP_GENERATORS = [
-  { id: 'starshipDeck', label: 'Starship Deck', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateStarshipDeck },
-  { id: 'spaceStation', label: 'Space Station', setting: 'space', nameCategory: 'stationRoom', areaNames: locationList('stationRoom'), generate: generateSpaceStation },
-  { id: 'derelict', label: 'Derelict Ship', setting: 'space', nameCategory: 'derelict', areaNames: locationList('shipRoom'), generate: generateDerelict },
-  { id: 'colony', label: 'Small Colony', setting: 'ground', nameCategory: 'colony', areaNames: areaNames.colony, generate: generateColony },
-  { id: 'outpost', label: 'Outpost', setting: 'ground', nameCategory: 'outpost', areaNames: areaNames.outpost, generate: generateOutpost },
-  { id: 'city', label: 'Small City', setting: 'ground', nameCategory: 'city', areaNames: areaNames.city, generate: generateCity },
-  { id: 'surfaceSite', label: 'Ruins', setting: 'ground', nameCategory: 'surfaceSite', areaNames: areaNames.surfaceSite, generate: generateSurfaceSite },
-  { id: 'wilderness', label: 'Wilderness', setting: 'ground', biomeNames: true, generate: generateWilderness },
-  { id: 'cave', label: 'Cave', setting: 'ground', nameCategory: 'cave', areaNames: areaNames.cave, generate: generateCave },
+  { id: 'starshipDeck', label: 'Starship Deck', group: 'space', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateStarshipDeck },
+  { id: 'spaceStation', label: 'Space Station', group: 'space', setting: 'space', nameCategory: 'stationRoom', areaNames: locationList('stationRoom'), generate: generateSpaceStation },
+  { id: 'derelict', label: 'Derelict Ship', group: 'space', setting: 'space', nameCategory: 'derelict', areaNames: locationList('shipRoom'), generate: generateDerelict },
+  { id: 'colony', label: 'Small Colony', group: 'surface', setting: 'ground', ...own('colony'), generate: generateColony },
+  { id: 'outpost', label: 'Outpost', group: 'surface', setting: 'ground', ...own('outpost'), generate: generateOutpost },
+  { id: 'city', label: 'Small City', group: 'surface', setting: 'ground', ...own('city'), generate: generateCity },
+  { id: 'farm', label: 'Farmstead', group: 'surface', setting: 'ground', ...own('farm'), generate: generateFarm },
+  { id: 'miningSite', label: 'Mining Site', group: 'surface', setting: 'ground', ...own('miningSite'), generate: generateMiningSite },
+  { id: 'landingField', label: 'Landing Field', group: 'surface', setting: 'ground', ...own('landingField'), generate: generateLandingField },
+  { id: 'fieldCamp', label: 'Field Camp', group: 'surface', setting: 'ground', ...own('fieldCamp'), generate: generateFieldCamp },
+  { id: 'crashSite', label: 'Crash Site', group: 'surface', setting: 'ground', ...own('crashSite'), generate: generateCrashSite },
+  { id: 'surfaceSite', label: 'Ruins', group: 'surface', setting: 'ground', ...own('surfaceSite'), generate: generateSurfaceSite },
+  { id: 'wilderness', label: 'Wilderness', group: 'surface', setting: 'ground', biomeNames: true, generate: generateWilderness },
+  { id: 'cave', label: 'Cave', group: 'surface', setting: 'ground', ...own('cave'), generate: generateCave },
+  { id: 'laboratory', label: 'Research Lab', group: 'indoor', setting: 'interior', ...own('laboratory'), generate: generateLaboratory },
+  { id: 'cantina', label: 'Cantina', group: 'indoor', setting: 'interior', ...own('cantina'), generate: generateCantina },
+  { id: 'detention', label: 'Detention Block', group: 'indoor', setting: 'interior', ...own('detention'), generate: generateDetention },
+  { id: 'alienTemple', label: 'Alien Temple', group: 'alien', setting: 'interior', ...own('alienTemple'), generate: generateAlienTemple },
+  { id: 'alienHive', label: 'Alien Hive', group: 'alien', setting: 'interior', ...own('alienHive'), generate: generateAlienHive },
+  { id: 'alienVessel', label: 'Alien Vessel', group: 'alien', setting: 'interior', ...own('alienVessel'), generate: generateAlienVessel },
+]
+// The Location list's groups, in order.
+export const LOCATION_GROUPS = [
+  { id: 'space', label: 'Space' },
+  { id: 'surface', label: 'Planet Surface' },
+  { id: 'indoor', label: 'Indoor' },
+  { id: 'alien', label: 'Alien' },
 ]
 
 export const BIOMES = biomeData.biomes
+// The Biome list's groups, by each biome's world.
+export const BIOME_WORLDS = [
+  { id: 'earth', label: 'Earth-like' },
+  { id: 'alien', label: 'Alien' },
+]
 
 // Unknown ids fall back to the first entry.
 export const generatorFor = (typeId) => MAP_GENERATORS.find((entry) => entry.id === typeId) ?? MAP_GENERATORS[0]
@@ -92,5 +130,5 @@ export function generateNamedMap(map, takenIds, random = Math.random) {
   const taken = new Set(takenIds.map((id) => id.toLowerCase()))
   const name = randomUnusedLocationName(nameCategoryOf(map), (candidate) => taken.has(mapFileId(candidate).toLowerCase()), random)
   const layout = generateMap(map, random)
-  return { ...layout, name, id: mapFileId(name), episodeName: randomEpisodeName('', random), card: randomEpisodeCard({ ...layout, card: null }, random) }
+  return { ...layout, name, id: mapFileId(name), episodeName: randomEpisodeName('', random, name), card: randomEpisodeCard({ ...layout, card: null }, random) }
 }

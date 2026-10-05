@@ -84,6 +84,14 @@
 
 .me-heading:first-child { margin-top: 0; }
 
+.me-section {
+  margin: 8px 0 3px;
+  color: #8fb4ba;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .me-text {
   margin: 0 0 4px;
   color: #9fb9bd;

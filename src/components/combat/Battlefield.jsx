@@ -5,6 +5,7 @@ import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../
 import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
 import { DoneIcon } from './ActionPoints.jsx'
 import HitPips from './HitPips.jsx'
+import LastKnownMarker from './LastKnownMarker.jsx'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
@@ -62,18 +63,19 @@ const mouseOnly = (callback) => (event) => {
   if (event.pointerType === 'mouse') callback()
 }
 
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, onClick, onHover }) {
+// isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const down = combatant.status !== 'active'
   const sideClass = combatant.side === 'player' ? 'is-player' : 'is-enemy'
-  const image = combatant.character.portrait.image
+  const image = combatant.character.portrait?.image
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
   return (
     <g
-      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}`}
+      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
-      onClick={down ? undefined : onClick}
+      onClick={down || isBystander ? undefined : onClick}
       onPointerEnter={mouseOnly(() => onHover(true))}
       onPointerLeave={mouseOnly(() => onHover(false))}
       data-ui-sound={down ? undefined : ''}
@@ -106,7 +108,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
           )}
         </>
       )}
-      {!down && (
+      {!down && !isBystander && (
         <g transform="translate(0 -60)">
           <HitPips hits={combatant.hits} svg />
         </g>
@@ -173,7 +175,7 @@ function FloatingLabel({ position, text, className, msPerTile }) {
 
 // Presentation of state.lastAction: what the acting character just did, the shot, and the result on the target.
 // Keyed by the action, so each new action replays its animation once.
-function ActionEffects({ state, positionOf, msPerTile, speed }) {
+function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const action = state.lastAction
   const attackSound = action?.type === 'attack' && action.targetId ? getWeapon(action.weaponId).attackSound : null
   // Speed is read from a ref so changing it mid-shot doesn't fire the sound a second time.
@@ -185,7 +187,7 @@ function ActionEffects({ state, positionOf, msPerTile, speed }) {
   useEffect(() => {
     if (attackSound) playWeaponSound(attackSound, speedRef.current)
   }, [actionKey, attackSound])
-  if (!action) return null
+  if (!action || hiddenIds?.includes(action.actorId)) return null
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
   const label = actionLabel(action)
@@ -233,7 +235,32 @@ function MovePathLine({ path }) {
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
 // ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
-export default function Battlefield({ state, activeId, targetId, selectedId, turnInfo = {}, overlay, ring = null, msPerTile, speed, focus, followCamera = true, onTileClick, onTileHover, onUnitClick, onUnitHover = () => {}, onRingHover = () => {}, onRightClick }) {
+// bystanders: [{ id, character, position, facing, status }] - NPCs outside the fight (combat started in the world).
+// snapMarks: [{ id, from, cell }] - debug: each fighter's world position and the cell it was snapped to.
+// hiddenIds: combatants the party can't perceive now (not drawn). lastKnownMarks: [{ id, position, label }].
+export default function Battlefield({
+  state,
+  activeId,
+  targetId,
+  selectedId,
+  turnInfo = {},
+  overlay,
+  ring = null,
+  msPerTile,
+  speed,
+  focus,
+  followCamera = true,
+  bystanders = [],
+  snapMarks = null,
+  hiddenIds = null,
+  lastKnownMarks = null,
+  onTileClick,
+  onTileHover,
+  onUnitClick,
+  onUnitHover = () => {},
+  onRingHover = () => {},
+  onRightClick,
+}) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
@@ -248,7 +275,7 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
       else tiles.push({ x, y })
     }
   }
-  const units = Object.values(state.combatants)
+  const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
   const depthItems = [
     ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <BlockTile key={`b${block.x},${block.y}`} map={map} position={block} /> })),
     ...units.map((unit) => ({
@@ -268,6 +295,21 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
           turnStatus={turnInfo[unit.id]}
           onClick={() => onUnitClick(unit.id)}
           onHover={(entering) => onUnitHover(unit.id, entering)}
+        />
+      ),
+    })),
+    ...bystanders.map((npc) => ({
+      depth: npc.position.x + npc.position.y + (npc.status === 'active' ? 0.5 : 0.1),
+      key: `n${npc.id}`,
+      render: () => (
+        <Unit
+          key={`n${npc.id}`}
+          combatant={{ id: npc.id, character: npc.character, side: 'enemy', status: npc.status, hits: 0, inCover: false }}
+          position={npc.position}
+          facing={npc.facing}
+          msPerTile={0}
+          isBystander
+          onHover={() => {}}
         />
       ),
     })),
@@ -308,8 +350,23 @@ export default function Battlefield({ state, activeId, targetId, selectedId, tur
         })}
       </g>
       {overlay.path && <MovePathLine path={overlay.path} />}
+      {snapMarks && (
+        <g className="snap-marks" pointerEvents="none">
+          {snapMarks.map((mark) => {
+            const from = tileCentre(mark.from)
+            const to = tileCentre(mark.cell)
+            return (
+              <g key={mark.id}>
+                <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
+                <circle cx={from.x} cy={from.y} r="4" />
+              </g>
+            )
+          })}
+        </g>
+      )}
+      {lastKnownMarks?.map((mark) => <LastKnownMarker key={mark.id} position={mark.position} label={mark.label} />)}
       {depthItems.map((item) => item.render())}
-      <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} />
+      <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {shot && (
         <line
           className={`iso-shot${shot.available ? '' : ' is-blocked'}`}
