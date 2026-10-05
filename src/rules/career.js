@@ -5,6 +5,8 @@ import disciplineSource from '../data/source/disciplines.json'
 import valuesMatrix from '../data/source/valuesMatrix.json'
 import careerAdaptation from '../data/adaptation/career.json'
 import { areAllMet } from './requirements.js'
+import { isTalentSlotMet } from './talents.js'
+import { getRoleById, isRoleEligible } from './roles.js'
 
 const lengthsById = new Map(lengthSource.lengths.map((length) => [length.id, length]))
 const assignmentsById = new Map(assignmentSource.assignments.map((assignment) => [assignment.id, assignment]))
@@ -20,6 +22,8 @@ export function createEmptyCareer() {
     assignment: null,
     department: null,
     rank: null,
+    // STA 2E role ({ id, name }), separate from the Captain's Log assignment. Its benefit is read from roles.json.
+    role: null,
   }
 }
 
@@ -139,8 +143,33 @@ export function selectDepartment(career, departmentId) {
   return { ...career, department: toRef(department) }
 }
 
+// ---------- Role (STA 2E) ----------
+
+// Designer decision (career.json roleByAssignment): an assignment with a same-named role sets that role, unchangeable.
+export function getRoleFor(assignmentId) {
+  const role = getRoleById(careerAdaptation.roleByAssignment[assignmentId])
+  return role ? toRef(role) : null
+}
+
+// The player picks a role only for an assignment without a matching one (none today).
+export const isRoleChoice = (career) => Boolean(career.assignment) && !getRoleFor(career.assignment.id)
+
+export function selectRole(career, roleId) {
+  const role = getRoleById(roleId)
+  if (!role || !isRoleChoice(career) || !isRoleEligible(roleId)) return career
+  return { ...career, role: toRef(role) }
+}
+
+// The role an assignment fixes, the player's still-eligible pick for an unmatched assignment, or none.
+function settleRole(career) {
+  if (!career.assignment) return career.role ? { ...career, role: null } : career
+  const fixed = getRoleFor(career.assignment.id)
+  if (fixed) return career.role?.id === fixed.id ? career : { ...career, role: fixed }
+  return career.role && !isRoleEligible(career.role.id) ? { ...career, role: null } : career
+}
+
 // Clears an assignment or rank that Education or Career Length no longer allows (rather than silently keeping it),
-// and gives characters without a rank their only option.
+// gives characters without a rank their only option, and keeps the role in step with the assignment.
 export function reconcileCareer(character) {
   let { career } = character
   if (career.assignment && !isAssignmentAllowed(character, career.assignment.id)) {
@@ -148,6 +177,7 @@ export function reconcileCareer(character) {
   }
   if (career.rank && !isRankAllowed({ ...character, career }, career.rank.id)) career = { ...career, rank: null }
   if (!career.rank && career.assignment && getRankType(character) === 'none') career = { ...career, rank: noRank }
+  career = settleRole(career)
   return career === character.career ? character : { ...character, career }
 }
 
@@ -157,7 +187,14 @@ export function selectAssignment(character, assignmentId) {
   if (!assignment || !isAssignmentAllowed(character, assignmentId)) return career
   // A department chosen for a department-less role survives switching between such roles only.
   const keptChoice = isDepartmentChoice(career) && !getDepartmentFor(assignmentId) ? career.department : null
-  return { ...career, assignment: toRef(assignment), department: getDepartmentFor(assignmentId) ?? keptChoice }
+  // A role picked for an unmatched assignment likewise survives only a switch to another unmatched one.
+  const keptRole = isRoleChoice(career) && !getRoleFor(assignmentId) ? career.role : null
+  return {
+    ...career,
+    assignment: toRef(assignment),
+    department: getDepartmentFor(assignmentId) ?? keptChoice,
+    role: getRoleFor(assignmentId) ?? keptRole,
+  }
 }
 
 export function selectRank(character, rankId) {
@@ -167,7 +204,10 @@ export function selectRank(character, rankId) {
 
 // ---------- Requirements ----------
 
-// In on-screen order: length card, value, assignment (with its department), rank.
+export const isRoleMet = (career) =>
+  Boolean(career.role && isRoleEligible(career.role.id) && (isRoleChoice(career) || career.role.id === getRoleFor(career.assignment?.id)?.id))
+
+// In on-screen order: length card, value, assignment (with its department and role), rank.
 export function getCareerRequirements(character) {
   const { career } = character
   return {
@@ -175,7 +215,9 @@ export function getCareerRequirements(character) {
     value: Boolean(career.value?.text?.trim()),
     assignment: Boolean(career.assignment && isAssignmentAllowed(character, career.assignment.id)),
     department: Boolean(career.department),
+    role: isRoleMet(career),
     rank: Boolean(career.rank && isRankAllowed(character, career.rank.id)),
+    talent: isTalentSlotMet(character, 'career'),
   }
 }
 

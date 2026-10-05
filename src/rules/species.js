@@ -1,10 +1,12 @@
 import { getSpeciesArt } from './choiceArt.js'
 import speciesSource from '../data/source/species.json'
 import attributeSource from '../data/source/attributes.json'
+import speciesAbilitySource from '../data/source/speciesAbilities.json'
 import prototypeSpecies from '../data/adaptation/prototypeSpecies.json'
 import { areAllMet } from './requirements.js'
 
 const speciesById = new Map(speciesSource.species.map((species) => [species.id, species]))
+const abilityBySpeciesId = new Map(speciesAbilitySource.abilities.map((ability) => [ability.speciesId, ability]))
 const attributes = attributeSource.attributes
 const toRef = (entry) => ({ id: entry.id, name: entry.name })
 
@@ -72,6 +74,45 @@ export function getTraitDescription(selection) {
   return species?.description ?? ''
 }
 
+// STA 2E Species Ability (see speciesAbilities.json). Looked up by species id rather than read from the saved
+// selection, so characters saved before abilities existed still get theirs. Null when undefined for the species.
+export function getSpeciesAbility(selection) {
+  if (!selection) return null
+  const ability = abilityBySpeciesId.get(selection.id)
+  if (!ability) return null
+  const { id, name, description, effects, source } = ability
+  return { id, name, description, effects, source }
+}
+
+// Why a species has no ability yet (mixed heritage, new species), or null.
+export function getSpeciesAbilityGap(selection) {
+  return selection ? speciesAbilitySource.unresolved[selection.id] ?? null : null
+}
+
+// Sets the stored ability reference from the species id, so saves from before abilities existed (or edited files)
+// always carry the ability of the species they actually are.
+export function withSpeciesAbility(selection) {
+  if (!selection) return selection
+  const ability = getSpeciesAbility(selection)
+  return { ...selection, speciesAbility: ability ? toRef(ability) : null }
+}
+
+export function hasCurrentSpeciesAbility(selection) {
+  return (selection?.speciesAbility?.id ?? null) === (getSpeciesAbility(selection)?.id ?? null)
+}
+
+// Display text for summary rows: the ability name, a pending note, or null before a species is chosen.
+export function getSpeciesAbilityLabel(selection) {
+  return getSpeciesAbility(selection)?.name ?? (getSpeciesAbilityGap(selection) ? 'Not yet defined' : null)
+}
+
+// Hover text for compact rows: "Name: description" (or why it is undefined).
+export function getSpeciesAbilityTitle(selection) {
+  const ability = getSpeciesAbility(selection)
+  if (ability) return `${ability.name}: ${ability.description}`
+  return getSpeciesAbilityGap(selection)?.note ?? null
+}
+
 // Builds the character's species entry. Choice-based entries start with no bonuses until the player picks them.
 export function createSpeciesSelection(speciesId) {
   const species = getSpeciesById(speciesId)
@@ -87,7 +128,7 @@ export function createSpeciesSelection(speciesId) {
   }
   if (isMixedHeritage(species)) selection.parents = [null, null]
   if (isNewSpecies(species)) Object.assign(selection, { customName: '', description: '' })
-  return { ...selection, traits: deriveTraits(selection) }
+  return withSpeciesAbility({ ...selection, traits: deriveTraits(selection) })
 }
 
 // Attributes the player may currently pick from (mixed heritage: the union of both parents' bonuses).

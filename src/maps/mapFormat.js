@@ -3,8 +3,9 @@
 // The name doubles as the mission location; episodeName is the title Load Episode lists it under.
 // mapType: the location (a Generate Map layout id, see mapGenerators.js); it picks the names and layout Generate uses.
 // biome: the terrain a ground location is built in (an id from biomes.json).
+// weather: the outdoor weather shown over the map (an id from weather.json); indoor locations are always clear.
 // card: the episode's picture in Load Episode: an id from episodeCards.json, the path of a picture Generate Card drew, or null.
-// In memory a map is { id, name, episodeName, card, mapType, biome, width, height, tiles: tile id grid [y][x], areas, markers } with { x, y } positions;
+// In memory a map is { id, name, episodeName, card, mapType, biome, weather, width, height, tiles: tile id grid [y][x], areas, markers } with { x, y } positions;
 // on disk the tiles are rows of catalogue symbols and positions are [x, y].
 import catalogue from '../data/adaptation/maps/tiles.json'
 
@@ -20,6 +21,8 @@ export const MAX_SIZE = 48
 export const DEFAULT_MAP_TYPE = 'starshipDeck'
 // Maps saved before biomes existed are temperate (ships and stations keep a biome too, but don't use it).
 export const DEFAULT_BIOME = 'temperate'
+// Maps saved before weather existed are clear (an id from weather.json).
+const CLEAR_WEATHER = 'clear'
 // Map types from before the location / biome split that were really biomes: they load as Wilderness in that biome.
 const BIOME_MAP_TYPES = new Set(['forest', 'swamp', 'desert', 'iceField', 'volcanic'])
 
@@ -60,6 +63,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     card: null,
     mapType: DEFAULT_MAP_TYPE,
     biome: DEFAULT_BIOME,
+    weather: CLEAR_WEATHER,
     width,
     height,
     tiles,
@@ -82,6 +86,7 @@ export function parseMapFile(file, id) {
     card: file.card ?? null,
     mapType: oldBiomeType ? 'wilderness' : (file.mapType ?? DEFAULT_MAP_TYPE),
     biome: oldBiomeType ? file.mapType : (file.biome ?? DEFAULT_BIOME),
+    weather: file.weather ?? CLEAR_WEATHER,
     width,
     height: rows.length,
     tiles,
@@ -101,6 +106,7 @@ export function serializeMap(map) {
     card: map.card ?? null,
     mapType: map.mapType ?? DEFAULT_MAP_TYPE,
     biome: map.biome ?? DEFAULT_BIOME,
+    weather: map.weather ?? CLEAR_WEATHER,
     rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
     areas: map.areas.map((area) => ({ name: area.name, position: fromPosition(area.position) })),
     markers: {

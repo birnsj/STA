@@ -19,6 +19,8 @@ import QuitConfirm from './components/QuitConfirm.jsx'
 import ScaledStage from './components/ScaledStage.jsx'
 import StepNav from './components/StepNav.jsx'
 import { useStepSummaryPopup } from './components/useStepSummaryPopup.js'
+import GuideHighlight from './effects/GuideHighlight.jsx'
+import { GUIDE_ARRIVAL_MS } from './effects/guideTiming.js'
 import { isCharacterValid } from './rules/characterValidation.js'
 import { getCompletedStepIds, hasUnsavedProgress, isStepComplete } from './rules/creationProgress.js'
 import { hasAutoChoice } from './character/autoChoice.js'
@@ -59,7 +61,7 @@ const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'c
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
-function CharacterCreator({ onExit, onConfirmed }) {
+function CharacterCreator({ onExit, onConfirmed, showGuide }) {
   const { character, dispatch } = useCharacter()
   const [currentStepId, setCurrentStepId] = useState(() => {
     const { stepId } = loadLocation()
@@ -73,7 +75,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
   const previousStep = steps[index - 1]
   const nextStep = steps[index + 1]
   const Screen = SCREENS[step.id] ?? PlaceholderScreen
-  const summaryPopup = useStepSummaryPopup(step.id, character)
+  const summaryPopup = useStepSummaryPopup(step.id, character, showGuide ? GUIDE_ARRIVAL_MS : 0)
   // UI state: whether the Quit confirmation is showing.
   const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
   const requestQuit = () => (hasUnsavedProgress(character) ? setQuitConfirmOpen(true) : onExit())
@@ -122,6 +124,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
           <Screen step={step} navigation={navigation} />
         </div>
         {quitConfirm}
+        {showGuide && <GuideHighlight enterFromFull />}
       </div>
     )
   }
@@ -141,6 +144,7 @@ function CharacterCreator({ onExit, onConfirmed }) {
       </div>
       {summaryPopup.open && <CharacterStepSummaryModal summary={buildStepSummary(step.id, character)} onClose={summaryPopup.close} />}
       {quitConfirm}
+      {showGuide && <GuideHighlight />}
     </div>
   )
 }
@@ -269,7 +273,7 @@ function Views() {
       )}
       {view === 'creator' && (
         <ScaledStage settings={displaySettings}>
-          <CharacterCreator onExit={openMenu} onConfirmed={handleConfirmed} />
+          <CharacterCreator onExit={openMenu} onConfirmed={handleConfirmed} showGuide={displaySettings.guideHighlight} />
         </ScaledStage>
       )}
     </>

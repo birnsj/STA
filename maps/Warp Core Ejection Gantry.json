@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Warp Core Ejection Gantry",
+  "episodeName": "Edge of the Frontier",
+  "card": "/art/episodes/Warp%20Core%20Ejection%20Gantry.png?v=1791172117843",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "emergencyLighting",
+  "rows": [
+    "####################",
+    "#c...#.cc..D.MMc...#",
+    "#c...#....c#.......#",
+    "#....D.....#.......#",
+    "#....#.....#....c..#",
+    "#D########D##D######",
+    "#....#.....#....c.c#",
+    "#c...#.....#c..hhhE#",
+    "#...c#.....#c..hhh.#",
+    "#....#....c#...hhh.#",
+    "#....#c....#c......#",
+    "#....D....c#......c#",
+    "#.cc.#.cc..D..c...c#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Deck 4 Sickbay",
+      "position": [
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Astrometrics Lab",
+      "position": [
+        6,
+        1
+      ]
+    },
+    {
+      "name": "Holodeck 3",
+      "position": [
+        12,
+        1
+      ]
+    },
+    {
+      "name": "Deck 12 EPS Maintenance Section",
+      "position": [
+        1,
+        6
+      ]
+    },
+    {
+      "name": "Torpedo Bay",
+      "position": [
+        6,
+        6
+      ]
+    },
+    {
+      "name": "Deck 8 Jefferies Tube Junction",
+      "position": [
+        12,
+        6
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        2,
+        9
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        10
+      ],
+      [
+        1,
+        12
+      ]
+    ],
+    "enemySpawns": [
+      [
+        17,
+        2
+      ],
+      [
+        16,
+        2
+      ],
+      [
+        17,
+        1
+      ],
+      [
+        16,
+        3
+      ]
+    ]
+  }
+}

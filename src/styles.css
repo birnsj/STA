@@ -826,7 +826,7 @@ dd {
 
 .import-card-lists {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding-top: 6px;
   border-top: 1px solid #1f4f8c;
@@ -1043,6 +1043,62 @@ dd {
 .settings-option-description {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.settings-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-toggle input[type='checkbox'] {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  background: #040a18;
+  border: 1px solid #1f4f8c;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.settings-toggle input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.settings-toggle input[type='checkbox']:checked {
+  background: var(--blue);
+  border-color: var(--yellow);
+}
+
+.settings-toggle input[type='checkbox']:checked::after {
+  background: var(--yellow);
+  transform: translateX(22px);
+}
+
+.settings-toggle input[type='checkbox']:focus-visible {
+  outline: 1px solid var(--yellow);
+  outline-offset: 3px;
 }
 
 .settings-slider {
@@ -1332,6 +1388,72 @@ dd {
   font-size: 13px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Only the description scrolls, so the species name and ability stay in view. */
+.species-screen .species-details-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.species-screen .species-details-text > * {
+  flex: none;
+}
+
+.species-screen .species-details-text > .species-details-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.species-ability {
+  margin: 6px 0 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--yellow);
+  border-left-width: 4px;
+  border-radius: 4px;
+  background: rgba(246, 185, 40, 0.08);
+}
+
+.species-ability p {
+  margin: 0;
+}
+
+.species-ability-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.species-ability-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.species-ability-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.species-ability-head .source-ref {
+  margin: 0 0 0 auto;
+  font-size: 12px;
+}
+
+/* Capped so a long ability (Vulcan) still leaves room for the description below. */
+.species-ability-text {
+  font-size: 14px;
+  line-height: 1.3;
+  max-height: calc(3 * 1.3em);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .placeholder-body {
@@ -2267,7 +2389,8 @@ dd {
 .env-tab.is-missing,
 .carousel.is-missing .option-card,
 .env-select.is-missing,
-.species-gender.is-missing .species-gender-option {
+.species-gender.is-missing .species-gender-option,
+.chip-group.is-missing .chip:not(:disabled) {
   animation: requirement-border 1.4s ease-in-out infinite;
 }
 
@@ -2282,7 +2405,8 @@ dd {
   .panel.is-missing,
   .env-tab.is-missing,
   .carousel.is-missing .option-card,
-  .env-select.is-missing {
+  .env-select.is-missing,
+  .chip-group.is-missing .chip {
     animation: none;
   }
 }
@@ -2393,15 +2517,250 @@ dd {
   margin-top: 2px;
 }
 
-.education-mechanics .swap-select.env-select {
-  padding: 0 4px;
-}
-
 /* ---------- Career ---------- */
 
 .career-mechanics {
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
   gap: 10px;
+}
+
+/* ---------- Talents (Early Outlook, Education, Career columns; Finishing Touches panel) ---------- */
+
+.outlook-mechanics {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.education-mechanics.education-mechanics {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1.15fr);
+}
+
+.career-mechanics.career-mechanics:not(.career-history-mechanics) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 1.2fr);
+}
+
+/* The talent list scrolls; the filter above and the chosen talent below stay in place. */
+.env-column-body:has(> .talent-picker),
+.panel-body:has(> .talent-picker) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.talent-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.talent-list.choice-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.choice.talent-row {
+  align-items: flex-start;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.talent-row .choice-radio {
+  margin-top: 2px;
+}
+
+.talent-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.talent-row-meta {
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--text-muted);
+}
+
+.choice.talent-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.choice.talent-row.is-invalid {
+  border-color: var(--red, #e5483f);
+}
+
+.talent-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.talent-details-kind {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.talent-details-name {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.talent-details-requirements {
+  color: var(--text-muted);
+}
+
+.talent-details-text {
+  margin: 2px 0;
+}
+
+.talent-details-requirements.is-missing-text {
+  color: var(--yellow);
+}
+
+.talent-chips {
+  margin-bottom: 6px;
+}
+
+/* ---------- Chip groups (ChipGroup.jsx), used instead of dropdowns ---------- */
+
+.chip-group {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.chip {
+  padding: 2px 7px;
+  background: #040a18;
+  border: 1px solid #1f4f8c;
+  border-radius: 10px;
+  color: #6fb2ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: #4f9cf5;
+}
+
+.chip.is-on {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #040a18;
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.focus-group-chips {
+  margin-bottom: 5px;
+}
+
+.raised-among {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.raised-among-label,
+.swap-chips-label {
+  font-size: 12px;
+  color: var(--label);
+}
+
+/* The held talent's row opens below itself: short text, then any choice it needs. */
+.talent-row-wrap.is-open {
+  flex-shrink: 0;
+  border: 1px solid var(--yellow);
+  border-radius: 4px;
+  background: rgba(246, 185, 40, 0.06);
+}
+
+.talent-row-wrap.is-open > .choice.talent-row {
+  border-color: transparent;
+}
+
+/* Picked, but its department/attribute/focus choice is still missing. */
+.talent-row-wrap.is-open.is-pending {
+  border-style: dashed;
+  background: rgba(246, 185, 40, 0.03);
+}
+
+.talent-row-wrap.is-pending .talent-row-meta {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.talent-choice-label.is-pending {
+  color: var(--yellow);
+}
+
+.talent-choice .chip:disabled {
+  text-decoration: line-through;
+}
+
+.talent-choice-blocked {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.talent-row-expand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 6px 30px;
+}
+
+.talent-row-description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.talent-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.talent-choice-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.talent-details-empty {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.finishing-list-source {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .career-assignment-details .env-column-title {
@@ -2764,6 +3123,27 @@ dd {
   margin-top: 6px;
 }
 
+/* The Role Benefit can run long, so the details panel scrolls rather than clipping it. */
+.career-assignment-details .env-column-body {
+  overflow-y: auto;
+}
+
+.career-role {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(120, 160, 255, 0.25);
+}
+
+.career-role-note {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.career-role-benefit {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
 .point-rows {
   display: flex;
   flex-direction: column;
@@ -2854,10 +3234,9 @@ dd {
 }
 
 .swap-row {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
-  align-items: center;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   margin-top: 4px;
 }
 
@@ -2867,10 +3246,15 @@ dd {
   color: var(--label);
 }
 
-.swap-select.env-select {
-  margin-bottom: 0;
-  padding: 1px 4px;
-  font-size: 13px;
+.swap-chips {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 4px;
+}
+
+.swap-chips-label {
+  padding-top: 2px;
 }
 
 /* ---------- Choice list ---------- */
@@ -3019,11 +3403,50 @@ dd {
   gap: 10px;
 }
 
+/* Traits keeps its natural height; Talents takes the rest of the column. */
+.review-traits-talents {
+  grid-area: traits;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-traits-talents > .review-area-traits {
+  flex: 0 0 auto;
+}
+
+.review-traits-talents > .review-area-talents {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.review-traits-talents > .review-area-role-benefit {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.review-area-role-benefit .review-panel-body {
+  overflow-y: auto;
+}
+
+.review-role-benefit-name {
+  margin: 0 0 2px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.review-role-benefit-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
 .review-area-identity { grid-area: identity; }
 .review-area-attributes { grid-area: attributes; }
 .review-area-disciplines { grid-area: disciplines; }
 .review-area-focuses { grid-area: focuses; }
-.review-area-traits { grid-area: traits; }
 .review-area-attributes > .review-panel,
 .review-area-disciplines > .review-panel {
   height: 100%;
@@ -3172,6 +3595,15 @@ dd {
   grid-template-columns: 92px minmax(0, 1fr);
   gap: 6px;
   line-height: 1.2;
+}
+
+/* Seven identity rows (with Species Ability) must fit the panel's fixed grid height without scrolling. */
+.review-area-identity .review-fields {
+  gap: 1px;
+}
+
+.review-area-identity .review-field {
+  line-height: 1.05;
 }
 
 .review-field dt,
@@ -6110,6 +6542,7 @@ dd {
 
 /* Episode card art is 16:9; episodes without a card keep an empty frame so the grid stays even. */
 .episode-select-art {
+  position: relative;
   display: block;
   aspect-ratio: 16 / 9;
   margin-bottom: 2px;

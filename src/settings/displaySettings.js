@@ -4,7 +4,8 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 
 // fill: use the whole window; the stage extends along whichever axis the window has spare room (default).
 // fit: show exactly the design size, letterboxed. fixed: always use fixedScale (1 = one design pixel per screen pixel).
-export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1 }
+// guideHighlight: the box in character creation that moves to the next section to fill in (src/effects/GuideHighlight.jsx).
+export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true }
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
 export const SCALE_MODE_OPTIONS = [
@@ -15,7 +16,8 @@ export const SCALE_MODE_OPTIONS = [
 // Repairs saved settings from older versions or hand edits so the stage always gets a usable value.
 export function normalizeDisplaySettings(saved) {
   const scaleMode = SCALE_MODE_OPTIONS.some((option) => option.id === saved?.scaleMode) ? saved.scaleMode : DEFAULT_DISPLAY_SETTINGS.scaleMode
-  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode }
+  const guideHighlight = typeof saved?.guideHighlight === 'boolean' ? saved.guideHighlight : DEFAULT_DISPLAY_SETTINGS.guideHighlight
+  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight }
 }
 
 // Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide

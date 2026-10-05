@@ -24,6 +24,42 @@ function readScores(scores, ids, label) {
 
 const idName = (value) => (isPlainObject(value) && value.id ? { id: value.id, name: value.name ?? value.id } : null)
 
+function readSpeciesAbility(ability) {
+  if (!isPlainObject(ability) || !ability.id) return null
+  return {
+    id: ability.id,
+    name: ability.name ?? ability.id,
+    description: typeof ability.description === 'string' ? ability.description : '',
+    effects: Array.isArray(ability.effects) ? ability.effects.filter(isPlainObject) : [],
+  }
+}
+
+function readRole(role) {
+  if (!isPlainObject(role) || !role.id) return null
+  const benefit = isPlainObject(role.benefit) ? role.benefit : {}
+  return {
+    id: role.id,
+    name: role.name ?? role.id,
+    benefit: {
+      id: benefit.id ?? role.id,
+      name: benefit.name ?? null,
+      description: typeof benefit.description === 'string' ? benefit.description : '',
+      effects: Array.isArray(benefit.effects) ? benefit.effects.filter(isPlainObject) : [],
+    },
+  }
+}
+
+function readTalent(talent) {
+  return {
+    id: talent.id,
+    name: talent.name ?? talent.id,
+    choice: idName(talent.choice),
+    description: typeof talent.description === 'string' ? talent.description : '',
+    effects: Array.isArray(talent.effects) ? talent.effects.filter(isPlainObject) : [],
+    step: talent.source?.step ?? null,
+  }
+}
+
 // Returns { character } or { error } (a message for the player when the JSON is not a usable character export).
 export function normalizeCharacterRecord(record, { id } = {}) {
   if (!isPlainObject(record) || !isPlainObject(record.final)) return { error: 'This is not a character export (no "final" section).' }
@@ -54,11 +90,17 @@ export function normalizeCharacterRecord(record, { id } = {}) {
       rank: idName(career.rank),
       department: idName(career.department),
       assignment: idName(career.assignment),
+      // Data only for now; exports before schema 0.8.0 (and NPC records) have none.
+      role: readRole(record.final.role),
       attributes: attributes.values,
       disciplines: disciplines.values,
       focuses: strings(record.final.focuses),
       values: strings(record.final.values),
       traits: items(record.final.traits).map((trait) => ({ id: trait.id ?? null, name: trait.name ?? '' })),
+      // Data only for now; exports before schema 0.6.0 (and NPC records) have none.
+      speciesAbility: readSpeciesAbility(record.final.speciesAbility),
+      // Data only for now; exports before schema 0.7.0 (and NPC records) have none.
+      talents: items(record.final.talents).filter((talent) => talent.id).map(readTalent),
       equipment: items(record.final.equipment).map((item) => ({ itemId: item.itemId, name: item.name ?? item.itemId })),
       source: { schemaVersion: record.schemaVersion ?? null, sourceType: record.sourceType ?? 'export' },
     },

@@ -4,6 +4,7 @@ import { createEmptyEducation } from '../rules/education.js'
 import { createEmptyCareer } from '../rules/career.js'
 import { createEmptyCareerHistory } from '../rules/careerHistory.js'
 import { createEmptyFinishingTouches, createEmptyIdentity } from '../rules/finishingTouches.js'
+import { createEmptyTalents } from '../rules/talents.js'
 
 // Single source of truth for the character's shape. Fields are added here only
 // as each creation screen is approved; the schema is intentionally not final.
@@ -24,6 +25,9 @@ export function createEmptyCharacter() {
     careerHistory: createEmptyCareerHistory(),
     // { value: { text, matrixId }, attributes: { increases, keepAtMax, redistribution }, disciplines: { same } }
     finishingTouches: createEmptyFinishingTouches(),
+    // Book p.131: four talents, one per granting step. Kept apart from the Species Ability (species.speciesAbility).
+    // { earlyOutlook, education, career, finishingTouches }: each { id, name, choice: { id, name } | null } or null.
+    talents: createEmptyTalents(),
     // Prototype presentation data, not book mechanics: { name, pronouns, portrait: { id, name } }
     identity: createEmptyIdentity(),
     // Prototype: optional player-written notes; never read by the rules.

@@ -23,6 +23,7 @@ import ValuePicker from '../components/ValuePicker.jsx'
 import { getScoreTip } from '../rules/infoTips.js'
 import HelpTip from '../components/HelpTip.jsx'
 import MechanicsColumn from '../components/MechanicsColumn.jsx'
+import ChipGroup from '../components/ChipGroup.jsx'
 import Portrait from '../components/Portrait.jsx'
 import RequirementTag from '../components/RequirementTag.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
@@ -125,17 +126,16 @@ export default function EnvironmentScreen({ step, navigation }) {
           locked={locked.attributeBonus}
         >
           {requiresOtherSpecies(environment) && (
-            <select
-              className="env-select"
-              aria-label="Species you were raised among"
-              value={environment.otherSpecies?.id ?? ''}
-              onChange={(event) => dispatch({ type: 'selectEnvironmentOtherSpecies', speciesId: event.target.value || null })}
-            >
-              {!environment.otherSpecies && <option value="">Raised among…</option>}
-              {getOtherSpeciesOptions(character).map((species) => (
-                <option key={species.id} value={species.id}>{species.name}</option>
-              ))}
-            </select>
+            <div className="raised-among">
+              <span className="raised-among-label">Raised among:</span>
+              <ChipGroup
+                label="Species you were raised among"
+                options={getOtherSpeciesOptions(character).map((species) => ({ id: species.id, label: species.name }))}
+                value={environment.otherSpecies?.id ?? ''}
+                onChange={(speciesId) => dispatch({ type: 'selectEnvironmentOtherSpecies', speciesId })}
+                missing={!environment.otherSpecies}
+              />
+            </div>
           )}
           <ChoiceList
             label="Attribute bonus"

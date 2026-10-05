@@ -7,9 +7,11 @@ import { getFocusEntries, getTraitEntries, getValueEntries } from '../rules/char
 import { validateCharacter } from '../rules/characterValidation.js'
 import { getFinalScores, getKindInfo, getPortraitById, getRequiredFocusCount, getRequiredValueCount } from '../rules/finishingTouches.js'
 import { getCardTip, getScoreTip } from '../rules/infoTips.js'
-import { getSpeciesDisplayName } from '../rules/species.js'
+import { getRequiredTalentCount, getRequirementSummary, getTalentEntries } from '../rules/talents.js'
+import { getSpeciesAbilityLabel, getSpeciesAbilityTitle, getSpeciesDisplayName } from '../rules/species.js'
 import { getChoiceArt } from '../rules/choiceArt.js'
 import { getEquippedItems, getItemStatLines } from '../rules/equipment.js'
+import { getRoleById } from '../rules/roles.js'
 import DevButtons from '../components/DevButtons.jsx'
 import HelpTip from '../components/HelpTip.jsx'
 import Portrait from '../components/Portrait.jsx'
@@ -41,10 +43,10 @@ function ReviewPanel({ title, helpId, count, className = '', children }) {
 function Fields({ rows }) {
   return (
     <dl className="review-fields">
-      {rows.map(({ label, value }) => (
+      {rows.map(({ label, value, title }) => (
         <div key={label} className="review-field">
           <dt>{label}</dt>
-          <dd title={value || undefined}>{value || EMPTY}</dd>
+          <dd title={title || value || undefined}>{value || EMPTY}</dd>
         </div>
       ))}
     </dl>
@@ -108,6 +110,31 @@ function SourcedList({ items }) {
           <span className="review-list-source">{stepTitles[item.stepId]}</span>
         </li>
       ))}
+    </ol>
+  )
+}
+
+function TalentList({ entries }) {
+  const tip = useInfoTip()
+  if (!entries.length) return <p className="review-list-empty">{EMPTY}</p>
+  return (
+    <ol className="review-list review-talents">
+      {entries.map((entry) => (
+        <li
+          key={entry.stepId}
+          className="help-tip"
+          {...tip.bind({
+            title: entry.label,
+            text: entry.talent.description,
+            sections: [{ label: 'Requirements', text: getRequirementSummary(entry.talent) }],
+            source: `${entry.talent.source.book}, p.${entry.talent.source.page}`,
+          })}
+        >
+          <span className="review-list-text">{entry.label}</span>
+          <span className="review-list-source">{entry.stepTitle}</span>
+        </li>
+      ))}
+      {tip.element}
     </ol>
   )
 }
@@ -179,6 +206,8 @@ export default function ReviewScreen({ navigation }) {
   const traits = getTraitEntries(character)
   const values = getValueEntries(character)
   const focuses = getFocusEntries(character).map((focus) => ({ stepId: focus.stepId, text: focus.name }))
+  const talents = getTalentEntries(character)
+  const role = getRoleById(career.role?.id)
   const lengthArt = getCareerLengths().find((length) => length.id === career.length?.id)?.image
   const serviceLine = [career.rank?.name, career.department?.name].filter(Boolean).join(' ◆ ')
 
@@ -202,6 +231,7 @@ export default function ReviewScreen({ navigation }) {
               { label: 'Pronouns', value: identity.pronouns.trim() },
               { label: 'Species', value: speciesName },
               { label: 'Species Trait', value: traits.map((trait) => trait.name).join(', ') },
+              { label: 'Species Ability', value: getSpeciesAbilityLabel(species), title: getSpeciesAbilityTitle(species) },
               { label: 'Portrait', value: portrait?.name },
             ]}
           />
@@ -248,6 +278,7 @@ export default function ReviewScreen({ navigation }) {
                   { label: 'Assignment', value: career.assignment?.name },
                   { label: 'Department', value: career.department?.name },
                   { label: 'Rank', value: career.rank?.name },
+                  { label: 'Role', value: role?.name },
                   { label: 'Posting', value: POSTING_TEXT },
                 ]}
               />
@@ -283,17 +314,39 @@ export default function ReviewScreen({ navigation }) {
           <SourcedList items={focuses} />
         </ReviewPanel>
 
-        <ReviewPanel title="Traits" helpId="reviewTraits" className="review-area-traits">
-          <ul className="review-traits">
-            {traits.map((trait) => (
-              <li key={trait.id}>
-                <span className="review-label">{trait.name}</span>
-                <span className="review-trait-text" title={trait.description}>{trait.description}</span>
-              </li>
-            ))}
-            {!traits.length && <li>{EMPTY}</li>}
-          </ul>
-        </ReviewPanel>
+        <div className="review-traits-talents">
+          <ReviewPanel title="Traits" helpId="reviewTraits" className="review-area-traits">
+            <ul className="review-traits">
+              {traits.map((trait) => (
+                <li key={trait.id}>
+                  <span className="review-label">{trait.name}</span>
+                  <span className="review-trait-text" title={trait.description}>{trait.description}</span>
+                </li>
+              ))}
+              {!traits.length && <li>{EMPTY}</li>}
+            </ul>
+          </ReviewPanel>
+
+          <ReviewPanel
+            title="Talents"
+            helpId="reviewTalents"
+            count={{ have: talents.length, required: getRequiredTalentCount() }}
+            className="review-area-talents"
+          >
+            <TalentList entries={talents} />
+          </ReviewPanel>
+
+          <ReviewPanel title="Role Benefit" helpId="reviewRoleBenefit" className="review-area-role-benefit">
+            {role ? (
+              <>
+                <p className="review-role-benefit-name">{role.name}</p>
+                <p className="review-role-benefit-text">{role.benefit.description}</p>
+              </>
+            ) : (
+              <p className="review-list-empty">{EMPTY}</p>
+            )}
+          </ReviewPanel>
+        </div>
       </div>
 
       <footer className="screen-footer review-footer">

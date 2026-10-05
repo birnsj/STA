@@ -16,7 +16,9 @@ import {
   isCustomValueAllowed,
   isDepartmentChoice,
   isRankAllowed,
+  isRoleChoice,
 } from '../rules/career.js'
+import { getRoleById, getRoles } from '../rules/roles.js'
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { areAllMet, getLockedSections } from '../rules/requirements.js'
 import CardCarousel from '../components/CardCarousel.jsx'
@@ -26,7 +28,9 @@ import HelpTip from '../components/HelpTip.jsx'
 import MechanicsColumn from '../components/MechanicsColumn.jsx'
 import Portrait from '../components/Portrait.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
+import TalentColumn from '../components/TalentColumn.jsx'
 import ValuePicker from '../components/ValuePicker.jsx'
+import ChipGroup from '../components/ChipGroup.jsx'
 
 // Rank type comes from Education (see career.json rankTypeByEducation).
 const RANK_INSTRUCTIONS = {
@@ -38,21 +42,48 @@ const RANK_INSTRUCTIONS = {
 
 function DepartmentPicker({ department, onSelect }) {
   return (
-    <select
-      className={`env-select career-department-select${department ? '' : ' is-missing'}`}
-      aria-label="Department"
+    <ChipGroup
+      label="Department"
+      options={getDepartments().map((entry) => ({ id: entry.id, label: entry.name }))}
       value={department?.id ?? ''}
-      onChange={(event) => onSelect(event.target.value)}
-    >
-      <option value="" disabled>Choose a department…</option>
-      {getDepartments().map((entry) => (
-        <option key={entry.id} value={entry.id}>{entry.name}</option>
-      ))}
-    </select>
+      onChange={onSelect}
+      missing={!department}
+    />
   )
 }
 
-function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepartment }) {
+// Role and Role Benefit (STA 2E Core pp.135–138), shown with the assignment that sets them.
+function RoleDetails({ career, onSelectRole }) {
+  const role = getRoleById(career.role?.id)
+  return (
+    <div className="career-role">
+      <p className="career-detail-line">
+        <span className="education-book-label">Role:</span>{' '}
+        {role ? role.name : 'Choose one.'}
+        {role && !isRoleChoice(career) && <span className="career-role-note"> (set by your assignment)</span>}
+      </p>
+      {isRoleChoice(career) && (
+        <ChipGroup
+          label="Role"
+          options={getRoles().map((entry) => ({ id: entry.id, label: entry.name, title: entry.benefit.description }))}
+          value={role?.id ?? ''}
+          onChange={onSelectRole}
+          missing={!role}
+        />
+      )}
+      {role && (
+        <>
+          <p className="career-detail-line career-role-benefit">
+            <span className="education-book-label">Role Benefit:</span> {role.benefit.description}
+          </p>
+          <p className="source-ref">STA 2E Core Rulebook, p.{role.source.page} · Requirements: none</p>
+        </>
+      )}
+    </div>
+  )
+}
+
+function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepartment, onSelectRole }) {
   return (
     <div className={`panel env-column career-assignment-details${locked ? ' is-locked' : ''}`} inert={locked}>
       <h3 className="env-column-title"><HelpTip helpId="assignmentDetails">Assignment Details</HelpTip></h3>
@@ -78,6 +109,7 @@ function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepar
                 {rankType === 'optional' && ' (if ranked)'}
               </p>
             )}
+            <RoleDetails career={career} onSelectRole={onSelectRole} />
             <p className="education-detail-description">{assignment.description}</p>
             <p className="source-ref">Captain's Log, p.{assignment.source.page}</p>
           </>
@@ -164,7 +196,7 @@ export default function CareerScreen({ step, navigation }) {
           number="2"
           title="Assignment"
           helpId="careerAssignment"
-          instruction="Choose your role aboard ship. It sets your department."
+          instruction="Choose your job aboard ship. It sets your department and your role."
           instructionLines={3}
           met={requirements.assignment}
           locked={locked.assignment}
@@ -192,6 +224,7 @@ export default function CareerScreen({ step, navigation }) {
           rankType={rankType}
           locked={locked.assignment}
           onSelectDepartment={(departmentId) => dispatch({ type: 'selectCareerDepartment', departmentId })}
+          onSelectRole={(roleId) => dispatch({ type: 'selectCareerRole', roleId })}
         />
 
         <MechanicsColumn
@@ -216,6 +249,8 @@ export default function CareerScreen({ step, navigation }) {
             onSelect={(rankId) => dispatch({ type: 'selectCareerRank', rankId })}
           />
         </MechanicsColumn>
+
+        <TalentColumn number="4" stepId="career" met={requirements.talent} locked={locked.talent} />
       </div>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />

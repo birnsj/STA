@@ -739,8 +739,9 @@ function derelict(c) {
 // ---- Entry point ----
 
 // location: a Generate Map location id. palette: the biome's card colours (ignored in space). name: the map name, which
-// picks a matching ship or station room when it names one. Returns RGBA bytes, rows top to bottom.
-export function drawEpisodeCard(location, palette, random = Math.random, name = '') {
+// picks a matching ship or station room when it names one. skies: the sky ids the weather allows (null = any of the
+// biome's). Returns RGBA bytes, rows top to bottom.
+export function drawEpisodeCard(location, palette, random = Math.random, name = '', skies = null) {
   const c = { data: new Uint8Array(W * H * 4).fill(255), random }
   const namedRoom = Boolean(sceneForName(name))
   if (location === 'starshipDeck') interior(c, name)
@@ -753,7 +754,8 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
   }
   else if (location === 'cave' && random() < 0.5) caveInterior(c, palette)
   else {
-    const skyId = pick(random, palette.skies)
+    const suited = skies ? palette.skies.filter((sky) => skies.includes(sky)) : []
+    const skyId = pick(random, suited.length ? suited : palette.skies)
     const horizon = between(random, 92, 118)
     drawSky(c, skyId, horizon)
     const wild = location === 'wilderness'

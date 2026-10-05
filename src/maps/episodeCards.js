@@ -6,6 +6,9 @@ import catalogue from '../data/adaptation/maps/episodeCards.json'
 export const EPISODE_CARDS = catalogue.cards
 export const CARD_IMAGE = catalogue.imageSize
 
+// The width (px) a card's weather overlay is drawn at before shrinking to the card, so it looks like the board's weather.
+export const CARD_WEATHER_WIDTH = 600
+
 export const isDrawnCard = (card) => typeof card === 'string' && card.startsWith('/')
 
 // The file name (without .png) of a picture Generate Card drew, or null for catalogue cards.

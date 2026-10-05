@@ -34,6 +34,7 @@ import MechanicsColumn from '../components/MechanicsColumn.jsx'
 import MultiFocusPicker from '../components/MultiFocusPicker.jsx'
 import RequirementTag from '../components/RequirementTag.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
+import TalentColumn from '../components/TalentColumn.jsx'
 import ValuePicker from '../components/ValuePicker.jsx'
 
 // Some book entries state only the restriction and rely on the section's shared rule for the split.
@@ -227,6 +228,8 @@ export default function EducationScreen({ step, navigation }) {
             />
           )}
         </MechanicsColumn>
+
+        <TalentColumn number="5" stepId="education" met={requirements.talent} locked={locked.talent} />
       </div>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />

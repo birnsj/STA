@@ -14,6 +14,18 @@
   "noRank": { "id": "noRank", "name": "No Rank" },
   "noviceExcludedAssignments": ["commandingOfficer", "executiveOfficer", "chiefEngineer", "chiefOfSecurity", "chiefMedicalOfficer"],
   "noviceMaxRank": { "officer": "lieutenantJuniorGrade", "enlisted": "pettyOfficer" },
+  "roleByAssignment": {
+    "commandingOfficer": "commandingOfficer",
+    "executiveOfficer": "executiveOfficer",
+    "operationsManager": "operationsManager",
+    "flightController": "flightController",
+    "chiefEngineer": "chiefEngineer",
+    "chiefOfSecurity": "chiefOfSecurity",
+    "chiefMedicalOfficer": "chiefMedicalOfficer",
+    "scienceOfficer": "scienceOfficer",
+    "shipsCounselor": "shipsCounselor",
+    "communicationsOfficer": "communicationsOfficer"
+  },
   "notes": [
     "Screen 05 combines Book Step Five (Career Length) with the Assignment and Rank parts of Book Step Seven.",
     "The assignment sets the character's department (one of the six disciplines). The book gives no department for Communications Officer, so the player chooses one (book p.92: 'Choose ... Department').",
@@ -23,6 +35,8 @@
     "Assignment minimum ranks apply to officer ranks only; the book gives no enlisted or no-rank minimums.",
     "Career Length: a Novice cannot take Commanding Officer, Executive Officer, Chief Engineer, Chief of Security, or Chief Medical Officer. The book only says Step Five 'may limit' ranks and calls the lieutenant (junior grade) roles 'experienced personnel'; Commanding Officer was added by design decision.",
     "Career Length: a Novice's rank is capped at Lieutenant (junior grade) for officers (the rank an Academy graduate can start at, p.115) and Petty Officer for enlisted (Rank and File 'likely becoming an NCO, equivalent to a Starfleet petty officer', p.117). Design decision; the book gives no limits.",
+    "Role (STA 2E Core pp.135–138) is kept apart from Assignment (Captain's Log pp.130–132). Designer decision: an assignment listed in roleByAssignment sets that same-named role automatically and the player cannot change it; an assignment not listed (none today) lets the player pick any Service Role. Every Captain's Log assignment has a Core role of the same name ('Flight Controller or Helmsman' is the Core 'Flight Controller', which the book says is 'also known as a helmsman').",
+    "Role requirements: the book gives none, so any role may go with any department, rank, or ratings (e.g. a Chief Medical Officer with Medicine 1 is legal).",
     "lengthArt paths point into public/. Missing files fall back to the placeholder portrait."
   ]
 }

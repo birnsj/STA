@@ -1,0 +1,95 @@
+{
+  "source": {
+    "edition": "Star Trek Adventures 2nd Edition",
+    "rule": "Core Rulebook p.99: each species provides a talent in the form of a Species Ability, received automatically and not selectable after character creation."
+  },
+  "notes": [
+    "name, description, and source are book text (STA 2E RAW). effects is our machine-readable structuring of that text (videogame adaptation); nothing in effects goes beyond the description.",
+    "Effects are data only; no game system reads them yet."
+  ],
+  "abilities": [
+    {
+      "id": "intense",
+      "speciesId": "andorian",
+      "name": "Intense",
+      "description": "When you succeed at a task where you purchased one or more d20s by adding to Threat, you generate 1 bonus Momentum for each d20 purchased. Bonus Momentum may not be saved.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 100 },
+      "effects": [
+        { "type": "momentum", "trigger": "taskSucceeded", "condition": "d20sPurchasedWithThreat", "bonusMomentumPerDie": 1, "canSave": false }
+      ]
+    },
+    {
+      "id": "faithOfTheHeart",
+      "speciesId": "human",
+      "name": "Faith of the Heart",
+      "description": "When you use one of your values to spend or gain Determination, you may also add 1 Momentum to the group pool.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 107 },
+      "effects": [
+        { "type": "momentum", "trigger": "valueUsedForDetermination", "addToGroupPool": 1, "optional": true }
+      ]
+    },
+    {
+      "id": "sturdy",
+      "speciesId": "tellarite",
+      "name": "Sturdy",
+      "description": "You gain +1 Protection against Stun Attacks only. Further, when you suffer a complication that represents a physical hindrance or being stunned, dazed, or disoriented, you may take 1 Stress to ignore that complication (and remove any associated trait).",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 111 },
+      "effects": [
+        { "type": "protection", "amount": 1, "against": ["stun"] },
+        {
+          "type": "stress",
+          "trigger": "complicationSuffered",
+          "condition": ["physicalHindrance", "stunned", "dazed", "disoriented"],
+          "cost": 1,
+          "effect": "ignoreComplication",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "patient",
+      "speciesId": "trill",
+      "name": "Patient",
+      "description": "When you succeed at a task where you purchased one or more d20s by spending Momentum, you generate 1 bonus Momentum for each d20 purchased. Bonus Momentum may not be saved.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 112 },
+      "effects": [
+        { "type": "momentum", "trigger": "taskSucceeded", "condition": "d20sPurchasedWithMomentum", "bonusMomentumPerDie": 1, "canSave": false }
+      ]
+    },
+    {
+      "id": "mentalDiscipline",
+      "speciesId": "vulcan",
+      "name": "Mental Discipline",
+      "description": "While Vulcans have some psychic capabilities, they require training to use it effectively (see the Mind Meld talent, page 154). Further, your maximum Stress is based on your Control rather than your Fitness, and you may suffer 2 Stress to avoid suffering any trait that represents an emotional state. However, if you become Fatigued, you increase the Potency of any such emotion-related trait by 1.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 113 },
+      "effects": [
+        { "type": "special", "id": "psychicTraining", "requiresTalent": "mindMeld", "talentSource": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 154 } },
+        { "type": "stress", "maxStressAttribute": "control", "replacesAttribute": "fitness" },
+        { "type": "stress", "trigger": "emotionalTraitSuffered", "cost": 2, "effect": "avoidTrait", "optional": true },
+        { "type": "special", "condition": "fatigued", "effect": "emotionalTraitPotency", "amount": 1 }
+      ]
+    },
+    {
+      "id": "felineForm",
+      "speciesId": "caitian",
+      "name": "Feline Form",
+      "description": "You have a prehensile tail, and retractable claws in your fingertips, useful for climbing and hunting. Whenever you attempt a task to maintain your balance or to climb, the first d20 you purchase is free. Further, you may grasp objects with your tail, though not as tightly or easily as with your hands. Due to your claws, your unarmed attacks may inflict both Stun and Deadly Injuries.",
+      "source": { "book": "Star Trek Adventures 2E Species Sourcebook", "page": 28 },
+      "effects": [
+        { "type": "freeDie", "tasks": ["balance", "climb"], "count": 1, "which": "firstPurchased" },
+        { "type": "interaction", "id": "prehensileTail", "effect": "graspObjects", "limitation": "lessTightlyOrEasilyThanHands" },
+        { "type": "attackModifier", "id": "claws", "attack": "unarmed", "injuryTypes": ["stun", "deadly"] }
+      ]
+    }
+  ],
+  "unresolved": {
+    "mixedHeritage": {
+      "status": "needsDesignDecision",
+      "note": "STA 2E (Core Rulebook p.99) gives a mixed-heritage character the Species Ability of their primary species. The Captain's Log flow has no primary-species choice, so which ability applies is not yet defined."
+    },
+    "newSpecies": {
+      "status": "needsDesignDecision",
+      "note": "A player-defined species has no Species Ability in the source material; whether and how one is chosen is not yet defined."
+    }
+  }
+}

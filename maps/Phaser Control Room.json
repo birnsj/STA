@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Phaser Control Room",
+  "episodeName": "Under Siege",
+  "card": "/art/episodes/Phaser%20Control%20Room.png?v=1791172100804",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "plasmaFire",
+  "rows": [
+    "####################",
+    "#c...D.c...cMM.D..c#",
+    "#chh.#........c#...#",
+    "#Ehh.#.........#c..#",
+    "#....#....c....#...#",
+    "##D#####D########D##",
+    "#..c.#c..c...c.#...#",
+    "#....#.........#...#",
+    "#....#........c#...#",
+    "#c...D........c#...#",
+    "#....#.........D...#",
+    "#c...#c.......c#...#",
+    "#...c#....c..MM#MMM#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Deck 15 Hydroponics Bay",
+      "position": [
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Cargo Bay 3",
+      "position": [
+        6,
+        1
+      ]
+    },
+    {
+      "name": "Warp Core Ejection Gantry",
+      "position": [
+        16,
+        1
+      ]
+    },
+    {
+      "name": "Astrometrics Lab",
+      "position": [
+        1,
+        6
+      ]
+    },
+    {
+      "name": "Auxiliary Control Room",
+      "position": [
+        7,
+        6
+      ]
+    },
+    {
+      "name": "Deck 10 Brig",
+      "position": [
+        16,
+        6
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        18,
+        2
+      ],
+      [
+        16,
+        4
+      ],
+      [
+        18,
+        4
+      ],
+      [
+        17,
+        1
+      ]
+    ],
+    "enemySpawns": [
+      [
+        3,
+        10
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        3,
+        9
+      ]
+    ]
+  }
+}

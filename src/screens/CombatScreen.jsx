@@ -54,6 +54,8 @@ import TurnOrderStrip from '../components/combat/TurnOrderStrip.jsx'
 import AutoCombatControls from '../components/combat/AutoCombatControls.jsx'
 import TurnBanner from '../components/combat/TurnBanner.jsx'
 import { MAX_SEED } from '../rules/seededRandom.js'
+import WeatherFx from '../effects/WeatherFx.jsx'
+import { weatherFor } from '../maps/mapWeather.js'
 
 // Presentation delays only (divided by the Auto Combat speed). The combat itself never waits on them.
 const AI_STEP_MS = 700
@@ -683,6 +685,7 @@ function Battle({ state, dispatch, showHelpOnStart, onHelpSeen, partyAI, onParty
         onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
         onRightClick={releaseSelection}
       />
+      <WeatherFx fx={weatherFor(state.weather).fx} />
       <div className="combat-top-left">
         <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} />
         <ResourceIndicators

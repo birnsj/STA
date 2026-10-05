@@ -41,7 +41,7 @@ export default function CardCarousel({ items, selectedId, onSelect, label, varia
               role="option"
               aria-selected={isSelected}
               disabled={item.disabled}
-              className={`option-card${isSelected ? ' is-selected' : ''}`}
+              className={`option-card${isSelected ? ' is-selected' : ''}${item.missing ? ' is-missing' : ''}`}
               onClick={() => onSelect(item.id)}
             >
               {item.tag && <span className="option-card-tag">{item.tag}</span>}

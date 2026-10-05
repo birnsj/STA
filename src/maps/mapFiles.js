@@ -29,9 +29,10 @@ async function callEndpoint(method, body) {
 // [{ id, name, record }]
 const allEntries = () => (import.meta.env.DEV ? callEndpoint('GET') : Promise.resolve(bundledEntries()))
 
-const summary = (entries) => entries.map(({ id, name, record }) => ({ id, name, episodeName: record?.episodeName ?? '', card: record?.card ?? null }))
+const summary = (entries) =>
+  entries.map(({ id, name, record }) => ({ id, name, episodeName: record?.episodeName ?? '', card: record?.card ?? null, weather: record?.weather ?? null }))
 
-// [{ id, name, episodeName, card }]
+// [{ id, name, episodeName, card, weather }]
 export async function listMaps() {
   return summary(await allEntries())
 }

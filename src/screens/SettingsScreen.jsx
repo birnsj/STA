@@ -29,6 +29,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               )
             })}
           </div>
+          <label className="settings-toggle">
+            <span className="settings-toggle-text">
+              <span className="settings-slider-label">Guide Highlight</span>
+              <span className="settings-option-description">In character creation, a box moves to the next section to fill in.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={displaySettings.guideHighlight}
+              onChange={(event) => onChangeDisplay({ ...displaySettings, guideHighlight: event.target.checked })}
+            />
+          </label>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
           <h2 id="settings-audio" className="settings-heading">

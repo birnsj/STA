@@ -1,0 +1,92 @@
+/* ---------- Guide highlight (GuideHighlight.jsx) ---------- */
+
+.guide-layer {
+  position: absolute;
+  inset: 0;
+  /* Above the step Summary popup (z-index 300), so the box can point at its Close button. */
+  z-index: 400;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.guide-box {
+  --guide-color: #f6b928;
+  --guide-glow: rgba(246, 185, 40, 0.55);
+  --guide-lock-delay: 0ms;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border: 1px solid rgba(246, 185, 40, 0.45);
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 180, 255, 0.07) 0 1px, transparent 1px 4px),
+    rgba(44, 102, 216, 0.08);
+  box-shadow: 0 0 14px var(--guide-glow), inset 0 0 18px rgba(44, 102, 216, 0.35);
+  overflow: hidden;
+}
+
+.guide-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--guide-color);
+  filter: drop-shadow(0 0 4px var(--guide-glow));
+}
+
+.guide-corner.is-tl { top: -1px; left: -1px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 6px; }
+.guide-corner.is-tr { top: -1px; right: -1px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 6px; }
+.guide-corner.is-bl { bottom: -1px; left: -1px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 6px; }
+.guide-corner.is-br { bottom: -1px; right: -1px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 6px; }
+
+/* A bright line sweeps down the target once the box has locked on. */
+.guide-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--guide-color), transparent);
+  box-shadow: 0 0 10px var(--guide-glow);
+  opacity: 0;
+}
+
+.guide-box.is-locking .guide-corner {
+  animation: guide-lock 420ms ease-out var(--guide-lock-delay) both;
+}
+
+.guide-box.is-locking .guide-scan {
+  animation: guide-scan 700ms ease-in-out var(--guide-lock-delay) both;
+}
+
+@keyframes guide-lock {
+  0% { transform: scale(1.6); opacity: 0.3; }
+  60% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes guide-scan {
+  0% { top: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-box.is-locking .guide-corner,
+  .guide-box.is-locking .guide-scan {
+    animation: none;
+  }
+}
+
+/* Map weather overlay (WeatherFx.jsx): covers its positioned parent, never takes clicks. */
+.weather-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+

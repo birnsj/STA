@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Deck 15 Hydroponics Bay",
+  "episodeName": "The Last Relay",
+  "card": "/art/episodes/Deck%2015%20Hydroponics%20Bay.png?v=1791172096935",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "plasmaFire",
+  "rows": [
+    "####################",
+    "#.c..#..cc.c..c#..c#",
+    "#....#........c#...#",
+    "#...c#..hhh...c#M..#",
+    "#....D..hhh....#M..#",
+    "#....#..hhh....D...#",
+    "#c..c#..EMMM...#...#",
+    "##D#########D####D##",
+    "#....#cccc.....#...#",
+    "#....D.........D...#",
+    "#...M#.........#..c#",
+    "#...M#........c#c..#",
+    "#...M#.......cc#...#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Main Engineering",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Battle Bridge",
+      "position": [
+        6,
+        1
+      ]
+    },
+    {
+      "name": "Ten Forward Lounge",
+      "position": [
+        16,
+        1
+      ]
+    },
+    {
+      "name": "Cargo Bay 3",
+      "position": [
+        1,
+        8
+      ]
+    },
+    {
+      "name": "Main Bridge",
+      "position": [
+        10,
+        8
+      ]
+    },
+    {
+      "name": "Holodeck 3",
+      "position": [
+        16,
+        8
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        16,
+        9
+      ],
+      [
+        17,
+        12
+      ],
+      [
+        16,
+        10
+      ],
+      [
+        17,
+        8
+      ]
+    ],
+    "enemySpawns": [
+      [
+        3,
+        3
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ]
+  }
+}

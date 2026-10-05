@@ -1,14 +1,20 @@
 import { getScoreTip } from '../rules/infoTips.js'
+import ChipGroup from './ChipGroup.jsx'
 import { useInfoTip } from './useInfoTip.js'
 
-function SwapSelect({ label, value, options, onChange }) {
+// Clicking the chosen discipline again clears it, so the optional move can be undone.
+function SwapChips({ label, value, options, onChange }) {
   return (
-    <select className="env-select swap-select" aria-label={label} value={value ?? ''} onChange={(event) => onChange(event.target.value)}>
-      <option value="">{label}…</option>
-      {options.map((discipline) => (
-        <option key={discipline.id} value={discipline.id}>{discipline.name}</option>
-      ))}
-    </select>
+    <div className="swap-chips">
+      <span className="swap-chips-label">{label}</span>
+      <ChipGroup
+        label={`Move 1 ${label.toLowerCase()}`}
+        options={options.map((discipline) => ({ id: discipline.id, label: discipline.name }))}
+        value={value ?? ''}
+        onChange={onChange}
+        clearable
+      />
+    </div>
   )
 }
 
@@ -56,8 +62,8 @@ export default function DisciplinePointPicker({ rows, picks, swapOptions, allows
       {allowsSwap && (
         <div className="swap-row">
           <span className="swap-label" title="Optional: reduce one discipline by 1 and add that point to one not already increased">Move 1</span>
-          <SwapSelect label="From" value={picks.swapFrom} options={swapOptions.from} onChange={onSwapFrom} />
-          <SwapSelect label="To" value={picks.swapTo} options={swapOptions.to} onChange={onSwapTo} />
+          <SwapChips label="From" value={picks.swapFrom} options={swapOptions.from} onChange={onSwapFrom} />
+          <SwapChips label="To" value={picks.swapTo} options={swapOptions.to} onChange={onSwapTo} />
         </div>
       )}
     </>

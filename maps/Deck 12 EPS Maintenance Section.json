@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Deck 12 EPS Maintenance Section",
+  "episodeName": "What the Dark Remembers",
+  "card": "/art/episodes/Deck%2012%20EPS%20Maintenance%20Section.png?v=1791172102553",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "rows": [
+    "####################",
+    "#.....#.c....D.....#",
+    "#....c#.....c#Ehhh.#",
+    "#.....D......#Mhhhc#",
+    "#....M#c....c#Mhhh.#",
+    "#....M#......#.....#",
+    "#.c..M#....MM#..cc.#",
+    "###D###D#######D####",
+    "#.....#.c..cc#.....#",
+    "#....c#......#....M#",
+    "#c....D......#....M#",
+    "#.....#......#....M#",
+    "#cc...#c.c...D..c..#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Deck 15 Hydroponics Bay",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Main Engineering",
+      "position": [
+        7,
+        1
+      ]
+    },
+    {
+      "name": "Deck 12 EPS Maintenance Section",
+      "position": [
+        14,
+        1
+      ]
+    },
+    {
+      "name": "Torpedo Bay",
+      "position": [
+        1,
+        8
+      ]
+    },
+    {
+      "name": "Ten Forward Lounge",
+      "position": [
+        7,
+        8
+      ]
+    },
+    {
+      "name": "Deck 4 Sickbay",
+      "position": [
+        14,
+        8
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        14,
+        10
+      ],
+      [
+        14,
+        9
+      ],
+      [
+        18,
+        8
+      ],
+      [
+        15,
+        12
+      ]
+    ],
+    "enemySpawns": [
+      [
+        5,
+        3
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        2,
+        4
+      ]
+    ]
+  }
+}

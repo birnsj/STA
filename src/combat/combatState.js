@@ -114,6 +114,7 @@ export function createCombat({ encounterId = DEFAULT_ENCOUNTER_ID, map: mapFile,
   return {
     encounterId,
     mapId: mapFile.id,
+    weather: mapFile.weather,
     seed: combatSeed,
     rolls: 0,
     map,

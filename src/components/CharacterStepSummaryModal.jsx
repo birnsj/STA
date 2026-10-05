@@ -140,6 +140,7 @@ function ChangeGroup({ group, concepts }) {
       <Additions title="Values" conceptId="value" concept={concepts.value} items={group.values} quote />
       <Additions title="Focuses" conceptId="focus" concept={concepts.focus} items={group.focuses} />
       <Additions title="Traits" conceptId="trait" concept={concepts.trait} items={group.traits} />
+      <Additions title="Talent" conceptId="talent" concept={concepts.talent} items={group.talents} />
     </div>
   )
 }
@@ -213,11 +214,13 @@ function Snapshot({ snapshot }) {
         <div className="summary-snapshot-column">
           <SnapshotScores title="Attributes" conceptId="attribute" scores={snapshot.attributes} />
           <SnapshotList title="Traits" conceptId="trait" items={snapshot.traits.map((text) => ({ text, source: 'Species' }))} />
+          <SnapshotList title="Species Ability" items={snapshot.speciesAbility ? [{ text: snapshot.speciesAbility, source: 'Species' }] : []} />
           <SnapshotList title="Values" conceptId="value" items={snapshot.values} quote />
         </div>
         <div className="summary-snapshot-column">
           <SnapshotScores title="Disciplines" conceptId="discipline" scores={snapshot.disciplines} />
           <SnapshotList title="Focuses" conceptId="focus" items={snapshot.focuses} />
+          <SnapshotList title="Talents" conceptId="talent" items={snapshot.talents} />
         </div>
       </div>
     </section>

@@ -5,6 +5,7 @@ import outlookAdaptation from '../data/adaptation/earlyOutlook.json'
 import { areAllMet } from './requirements.js'
 import { isBookFocus } from './focuses.js'
 import { getAttributes, getOwnSpeciesIds } from './species.js'
+import { isTalentSlotMet } from './talents.js'
 
 const approachesById = new Map(outlookSource.approaches.map((approach) => [approach.id, approach]))
 const outlooksById = new Map(outlookSource.outlooks.map((outlook) => [outlook.id, outlook]))
@@ -123,6 +124,7 @@ export function getEarlyOutlookRequirements(character) {
     path: Boolean(path),
     disciplineBonus: Boolean(disciplineBonus),
     focus: Boolean(focus?.name.trim()),
+    talent: isTalentSlotMet(character, 'earlyOutlook'),
   }
 }
 

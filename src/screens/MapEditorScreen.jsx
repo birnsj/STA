@@ -15,6 +15,8 @@ import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, getTile, mapFileId, re
 import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, randomMapName, sizeFor, sizeIdOf } from '../maps/mapGenerators.js'
 import { canDrawEpisodeArt, generateEpisodeArt, removeEpisodeArt } from '../maps/episodeArt.js'
 import { isDrawnCard } from '../maps/episodeCards.js'
+import { randomWeather, settleWeather, weatherFor } from '../maps/mapWeather.js'
+import WeatherFx from '../effects/WeatherFx.jsx'
 
 // Dev map editor (opened from the Main Menu's Dev Edit). Edits combat-independent map files in the project's maps/ folder,
 // which both combat types play.
@@ -31,6 +33,7 @@ export default function MapEditorScreen({ onBack }) {
   const [maps, setMaps] = useState([])
   const [tool, setTool] = useState('tile:bulkhead')
   const [ghostBlocks, setGhostBlocks] = useState(false)
+  const [showWeather, setShowWeather] = useState(true)
   const [hover, setHover] = useState(null)
   const [status, setStatus] = useState(null)
   const [showLoad, setShowLoad] = useState(false)
@@ -90,13 +93,14 @@ export default function MapEditorScreen({ onBack }) {
 
   const onNew = async () => (await confirmDiscard()) && replaceMap(blankMap(map.mapType, map.biome), null, 'New map.')
 
-  // Only the location, biome or size changed since the map was opened or saved: nothing worth asking about.
-  const withoutSetup = (other) => JSON.stringify({ ...other, mapType: null, biome: null })
+  // Only the location, biome, weather or size changed since the map was opened or saved: nothing worth asking about.
+  const withoutSetup = (other) => JSON.stringify({ ...other, mapType: null, biome: null, weather: null })
   const onlySetupChanged = Boolean(cleanMap) && withoutSetup(map) === withoutSetup(resizeMap(cleanMap, map.width, map.height))
   // A map Generate just made and nobody has touched: changing its location, biome or size rebuilds it straight away,
   // replacing its file. The same changes on a hand-made or loaded map only re-tag / resize it.
   const rebuildable = Boolean(generatedId) && generatedId === fileId && onlySetupChanged
-  const changeSetup = (next) => {
+  const changeSetup = (changed) => {
+    const next = settleWeather(changed)
     if (rebuildable) return onGenerate(next, { replace: true })
     edit(next)
     if (next.mapType !== map.mapType) setStatus(`Location set to ${generatorFor(next.mapType).label}. Generate Map builds a new one of this type.`)
@@ -136,6 +140,7 @@ export default function MapEditorScreen({ onBack }) {
       }
     }
     let generated = generateNamedMap(source, taken.map((entry) => entry.id))
+    generated = { ...generated, weather: randomWeather(generated) }
     if (!canSaveMaps) {
       replaceMap(generated, null, `Generated ${generated.name}. Saving only works from the dev server.`, { unsaved: true })
       return
@@ -250,6 +255,9 @@ export default function MapEditorScreen({ onBack }) {
         onRename={(name) => edit({ ...map, name })}
         onMapType={onMapType}
         onBiome={onBiome}
+        onWeather={(weather) => edit({ ...map, weather })}
+        showWeather={showWeather}
+        onShowWeather={setShowWeather}
         onSize={onSize}
         onResize={(width, height) => edit(resizeMap(map, width, height))}
         onNew={onNew}
@@ -262,6 +270,7 @@ export default function MapEditorScreen({ onBack }) {
         <EditorPalette tool={tool} onTool={setTool} ghostBlocks={ghostBlocks} onGhostBlocks={setGhostBlocks} onStatus={setStatus} />
         <div className="me-board-area">
           <EditorBoard key={boardKey} map={map} ghostBlocks={ghostBlocks} onPaint={onPaint} onHover={setHover} />
+          {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} />}
         </div>
         <div className="me-side">
           <p className="me-heading">Episode Name</p>
@@ -279,12 +288,13 @@ export default function MapEditorScreen({ onBack }) {
           <p className="me-heading">Episode Card</p>
           <EpisodeCardPicker
             cardId={map.card}
+            weatherFx={showWeather ? weatherFor(map.weather).fx : null}
             canGenerate={canDrawEpisodeArt}
             busy={drawingCard}
             onCard={(card) => edit({ ...map, card })}
             onGenerate={onGenerateCard}
           />
-          <p className="me-text">Shown in Load Episode. Generate Card draws a new picture for the location and biome, saved under the map name.</p>
+          <p className="me-text">Shown in Load Episode. Generate Card draws a new picture for the location, biome and weather, saved under the map name.</p>
           <p className="me-heading">Generate</p>
           <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, name: randomMapName(map) })}>
             Generate Name

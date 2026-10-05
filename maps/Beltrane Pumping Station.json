@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "name": "Beltrane Pumping Station",
+  "episodeName": "What the Dark Remembers",
+  "card": "/art/episodes/Beltrane%20Pumping%20Station.png?v=1791171514379",
+  "mapType": "outpost",
+  "biome": "temperate",
+  "weather": "hail",
+  "rows": [
+    ",,TT,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,T,,,,T,,,,,",
+    ",,,,,,,,,,,Tr,,,,,,,",
+    ",,,,T,,,,,r,T,,,,,,,",
+    ",,,,,,,,,,,,,,,r,,,,",
+    ",,,,,,,,,,,,,,,,,,,,",
+    ",PPPP,,,PPPPPP,T,r,,",
+    "cP..P,,,P....D===,,,",
+    ",P..P,,,P..c.P,,,T,,",
+    ",PDPP,,,PPPPPP,,,rTr",
+    ",c=,,,,,,,,,,,,,,,,,",
+    ",,=,,,,,,,,,,,,,rr,,",
+    ",,,,,,,,,,,,,rr,r,T,",
+    "r,,,,,,,,,,,,r,,,,,r",
+    ",,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,"
+  ],
+  "areas": [
+    {
+      "name": "Sensor Shack",
+      "position": [
+        9,
+        7
+      ]
+    },
+    {
+      "name": "Bunkhouse",
+      "position": [
+        2,
+        7
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        8
+      ],
+      [
+        0,
+        12
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        5
+      ],
+      [
+        19,
+        12
+      ],
+      [
+        19,
+        6
+      ],
+      [
+        19,
+        3
+      ]
+    ]
+  }
+}

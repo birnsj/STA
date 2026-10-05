@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Deck 6 Crew Quarters",
+  "episodeName": "The Hollow Moon",
+  "card": "/art/episodes/Deck%206%20Crew%20Quarters.png?v=1791172107653",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "emergencyLighting",
+  "rows": [
+    "####################",
+    "#c...c#..cc.cc#....#",
+    "#c....#.......#.hhc#",
+    "#c....#.......#chh.#",
+    "#.....#.......#c.E.#",
+    "#.....D.......D....#",
+    "#c....#c......#....#",
+    "#.....#c......#....#",
+    "#.c...#ccc....#c.c.#",
+    "####D########D##D###",
+    "#.....D.......#....#",
+    "#.....#......c#c...#",
+    "#..cc.#MM.....D..c.#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Phaser Control Room",
+      "position": [
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Battle Bridge",
+      "position": [
+        7,
+        1
+      ]
+    },
+    {
+      "name": "Main Engineering",
+      "position": [
+        15,
+        1
+      ]
+    },
+    {
+      "name": "Deck 12 EPS Maintenance Section",
+      "position": [
+        1,
+        10
+      ]
+    },
+    {
+      "name": "Deck 8 Jefferies Tube Junction",
+      "position": [
+        7,
+        10
+      ]
+    },
+    {
+      "name": "Deck 10 Brig",
+      "position": [
+        15,
+        10
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        17,
+        11
+      ],
+      [
+        18,
+        10
+      ],
+      [
+        18,
+        11
+      ],
+      [
+        16,
+        11
+      ]
+    ],
+    "enemySpawns": [
+      [
+        4,
+        2
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        3,
+        1
+      ]
+    ]
+  }
+}

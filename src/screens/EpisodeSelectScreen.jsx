@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import WeatherFx from '../effects/WeatherFx.jsx'
 import { removeEpisodeArt } from '../maps/episodeArt.js'
-import { cardFor, drawnCardFileId } from '../maps/episodeCards.js'
+import { CARD_WEATHER_WIDTH, cardFor, drawnCardFileId, isDrawnCard } from '../maps/episodeCards.js'
+import { weatherFor } from '../maps/mapWeather.js'
 import { canSaveMaps, deleteMap, listMaps } from '../maps/mapFiles.js'
 import { episodeTitle } from '../maps/mapFormat.js'
 
@@ -65,7 +67,10 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
             return (
               <li key={entry.id} className="episode-select-item">
                 <button type="button" className="episode-select-option episode-select-card" onClick={() => onOpen(entry.id)}>
-                  <span className="episode-select-art">{card && <img src={card.image} alt="" />}</span>
+                  <span className="episode-select-art">
+                    {card && <img src={card.image} alt="" />}
+                    {card && !isDrawnCard(entry.card) && <WeatherFx fx={weatherFor(entry.weather).fx} virtualWidth={CARD_WEATHER_WIDTH} />}
+                  </span>
                   <span className="episode-select-label">{episodeTitle(entry)}</span>
                   <span className="episode-select-desc">Location: {entry.name}</span>
                 </button>

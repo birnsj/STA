@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
 import { BIOMES, MAP_GENERATORS, MAP_SIZES, sizeFor, sizeIdOf, usesBiome } from '../../maps/mapGenerators.js'
+import { isIndoors, weatherOptions } from '../../maps/mapWeather.js'
 
 // Size presets for the map's type; Custom shows when the dimensions match none of them (set with the fields beside it).
 function SizePicker({ map, onSize }) {
@@ -52,7 +53,7 @@ function SizeFields({ width, height, onResize }) {
 
 // The map's location and biome (both saved with it) decide what kind of name Generate Name gives and what Generate Map
 // builds. Ships and stations have no biome, so the biome list is disabled for them.
-function MapTypeControls({ map, onMapType, onBiome, onSize }) {
+function MapTypeControls({ map, onMapType, onBiome, onWeather, showWeather, onShowWeather, onSize }) {
   const biomeless = !usesBiome(map)
   return (
     <span className="me-size">
@@ -77,12 +78,57 @@ function MapTypeControls({ map, onMapType, onBiome, onSize }) {
           </option>
         ))}
       </select>
+      <WeatherControls map={map} onWeather={onWeather} showWeather={showWeather} onShowWeather={onShowWeather} />
       <SizePicker map={map} onSize={onSize} />
     </span>
   )
 }
 
-export default function EditorToolbar({ map, canSave, dirty, onRename, onMapType, onBiome, onSize, onResize, onNew, onLoad, onSave, onSaveAs, onBack }) {
+// Weather is saved with the map and limited to what its biome (or, indoors, its location) offers; the FX toggle only
+// hides the effect while editing.
+function WeatherControls({ map, onWeather, showWeather, onShowWeather }) {
+  const options = weatherOptions(map)
+  return (
+    <>
+      <select
+        className="me-select"
+        value={map.weather}
+        aria-label="Weather"
+        title={options.length === 1 ? 'No weather here' : isIndoors(map) ? 'Atmosphere (indoor weather)' : 'Weather'}
+        disabled={options.length === 1}
+        onChange={(event) => onWeather(event.target.value)}
+      >
+        {options.map((weather) => (
+          <option key={weather.id} value={weather.id}>
+            {weather.label}
+          </option>
+        ))}
+      </select>
+      <label className="me-check" title="Show the weather effect over the map">
+        <input type="checkbox" checked={showWeather} onChange={(event) => onShowWeather(event.target.checked)} /> FX
+      </label>
+    </>
+  )
+}
+
+export default function EditorToolbar({
+  map,
+  canSave,
+  dirty,
+  onRename,
+  onMapType,
+  onBiome,
+  onWeather,
+  showWeather,
+  onShowWeather,
+  onSize,
+  onResize,
+  onNew,
+  onLoad,
+  onSave,
+  onSaveAs,
+  onBack,
+}) {
   const saveNote = canSave ? undefined : 'Saving map files only works from the dev server (npm run dev).'
   return (
     <div className="me-toolbar">
@@ -90,7 +136,15 @@ export default function EditorToolbar({ map, canSave, dirty, onRename, onMapType
         Back
       </button>
       <input className="me-name" value={map.name} aria-label="Map name" title="The map's name is also its file name" onChange={(event) => onRename(event.target.value)} />
-      <MapTypeControls map={map} onMapType={onMapType} onBiome={onBiome} onSize={onSize} />
+      <MapTypeControls
+        map={map}
+        onMapType={onMapType}
+        onBiome={onBiome}
+        onWeather={onWeather}
+        showWeather={showWeather}
+        onShowWeather={onShowWeather}
+        onSize={onSize}
+      />
       <SizeFields width={map.width} height={map.height} onResize={onResize} />
       <button type="button" className="me-button" onClick={onNew}>
         New

@@ -23,17 +23,27 @@ function useIsTyping() {
 // UI state only. Opens when the screen's NEXT check (isStepComplete) passes with a completed choice set the player
 // hasn't already closed on this visit. A screen that is already complete when the player arrives stays quiet.
 // show() re-opens it on demand (the Summary button) whenever the screen is complete.
-export function useStepSummaryPopup(stepId, character) {
+// delayMs holds back only the automatic opening, e.g. until the guide highlight has reached the Next button.
+export function useStepSummaryPopup(stepId, character, delayMs = 0) {
   const complete = hasStepSummary(stepId) && isStepComplete(stepId, character)
   const signature = complete ? getStepSignature(stepId, character) : null
   const [seen, setSeen] = useState({ stepId, signature })
   const [requestedStepId, setRequestedStepId] = useState(null)
+  const [delayedKey, setDelayedKey] = useState(null)
   const typing = useIsTyping()
 
   // Arriving on a screen sets its baseline (React's "adjust state while rendering" pattern).
   if (seen.stepId !== stepId) setSeen({ stepId, signature })
 
-  const automatic = seen.stepId === stepId && complete && signature !== seen.signature && !typing
+  const due = seen.stepId === stepId && complete && signature !== seen.signature && !typing
+  const dueKey = due ? `${stepId}|${signature}` : null
+  useEffect(() => {
+    if (!dueKey || !delayMs) return undefined
+    const timer = setTimeout(() => setDelayedKey(dueKey), delayMs)
+    return () => clearTimeout(timer)
+  }, [dueKey, delayMs])
+
+  const automatic = due && (!delayMs || delayedKey === dueKey)
   const requested = requestedStepId === stepId && complete
   return {
     open: automatic || requested,

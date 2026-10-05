@@ -7,6 +7,7 @@ import finishingAdaptation from '../data/adaptation/finishingTouches.json'
 import { getAttributeTotals, getDisciplineTotals } from './characterTotals.js'
 import { getPortraitById, isPortraitAvailable } from './appearance.js'
 import { areAllMet } from './requirements.js'
+import { isTalentSlotMet } from './talents.js'
 
 const limits = startingPoints.finishedCharacterLimits
 const complete = finishingSource.completeCharacter
@@ -248,6 +249,7 @@ export function getFinishingRequirements(character) {
     finalValue: Boolean(character.finishingTouches.value?.text.trim()) && getCharacterValues(character).length === complete.valueCount,
     attributes: getFinalScores(character, 'attributes') !== null,
     disciplines: getFinalScores(character, 'disciplines') !== null,
+    talent: isTalentSlotMet(character, 'finishingTouches'),
     portrait: isPortraitAvailable(character, character.identity.portrait?.id),
     // Last, so naming the character is the final choice on the screen (sections unlock in this order).
     identity: Boolean(character.identity.name.trim()) && hasPronouns(character.identity),

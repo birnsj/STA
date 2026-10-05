@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { getSavedCharacterData } from '../character/savedCharacters.js'
 import { getCharacterFocuses, getCharacterValues, getFinalScores, getKindInfo, getPortraitById } from '../rules/finishingTouches.js'
-import { getSpeciesDisplayName } from '../rules/species.js'
+import { getSpeciesAbilityLabel, getSpeciesDisplayName } from '../rules/species.js'
+import { getTalentEntries } from '../rules/talents.js'
 import Portrait from './Portrait.jsx'
 
 const EMPTY = '—'
@@ -91,10 +92,12 @@ function SavedCharacterCard({ entry }) {
               { label: 'Gender', value: identity.gender?.name },
               { label: 'Pronouns', value: identity.pronouns.trim() },
               { label: 'Traits', value: species?.traits.map((trait) => trait.name).join(', ') },
+              { label: 'Species Ability', value: getSpeciesAbilityLabel(species) },
               { label: 'Upbringing', value: environment.condition?.name ?? environment.setting?.name },
               { label: 'Education', value: education.option?.name },
               { label: 'Career', value: career.length?.name },
               { label: 'Assignment', value: career.assignment?.name },
+              { label: 'Role', value: career.role?.name },
             ]}
           />
           <ScoreList title="Attributes" kind="attributes" character={character} />
@@ -103,6 +106,7 @@ function SavedCharacterCard({ entry }) {
         <div className="import-card-lists">
           <NameList title="Values" items={getCharacterValues(character).map((value) => value.text.trim())} />
           <NameList title="Focuses" items={getCharacterFocuses(character).map((focus) => focus.name.trim())} />
+          <NameList title="Talents" items={getTalentEntries(character).map((entry) => entry.label)} />
         </div>
       </div>
     </div>

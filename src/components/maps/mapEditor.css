@@ -169,6 +169,7 @@
 
 /* Episode card art is 16:9. */
 .me-card-preview {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,6 +239,8 @@
   gap: 6px;
   margin-top: 10px;
 }
+
+.me-size .me-check { margin-top: 0; gap: 3px; }
 
 .me-board-area {
   position: relative;

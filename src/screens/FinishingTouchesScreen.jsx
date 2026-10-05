@@ -29,6 +29,8 @@ import RequirementTag from '../components/RequirementTag.jsx'
 import ScoreIncreasePicker from '../components/ScoreIncreasePicker.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
 import ValuePicker from '../components/ValuePicker.jsx'
+import TalentPicker, { TalentDetails } from '../components/TalentPicker.jsx'
+import { getChoiceOptions, getRequiredTalentCount, getTalentById, getTalentEntries, getTalentOptions } from '../rules/talents.js'
 
 const KIND_LABELS = { attributes: 'Attribute', disciplines: 'Discipline' }
 
@@ -113,6 +115,40 @@ function ScorePanels({ character, dispatch, kind, met }) {
         <p className={`finishing-total${adjustment.finalTotal !== null && adjustment.finalTotal !== adjustment.requiredTotal ? ' is-error' : ''}`}>
           Total: {adjustment.finalTotal ?? '…'} / {adjustment.requiredTotal}
         </p>
+      </Panel>
+    </>
+  )
+}
+
+function TalentPanels({ character, dispatch, met }) {
+  const stepId = 'finishingTouches'
+  const slot = character.talents[stepId]
+  const choiceOptions = slot ? getChoiceOptions(character, stepId, slot.id) : []
+  const onChoose = (choiceId) => dispatch({ type: 'selectTalentChoice', stepId, choiceId })
+  const entries = getTalentEntries(character)
+  return (
+    <>
+      <Panel title="Talent" helpId="talent" met={met}>
+        <p className="attribute-instruction">
+          Choose one talent you qualify for. Talents are separate from your Species Trait, Species Ability, Focuses and Values.
+        </p>
+        <TalentPicker
+          label="Finishing Touches talent"
+          options={getTalentOptions(character, stepId)}
+          slot={slot}
+          choiceOptions={choiceOptions}
+          onSelect={(talentId) => dispatch({ type: 'selectTalent', stepId, talentId })}
+          onChoose={onChoose}
+        />
+      </Panel>
+      <Panel title="Talent Details" helpId="talentDetails">
+        <TalentDetails talent={slot ? getTalentById(slot.id) : null} slot={slot} />
+        <p className="education-detail-caption">Your talents ({entries.length}/{getRequiredTalentCount()}):</p>
+        <ul className="finishing-list">
+          {entries.map((entry) => (
+            <li key={entry.stepId}>{entry.label} <span className="finishing-list-source">({entry.stepTitle})</span></li>
+          ))}
+        </ul>
       </Panel>
     </>
   )
@@ -260,6 +296,7 @@ export default function FinishingTouchesScreen({ step, navigation }) {
     ...category,
     disabled: Boolean(category.disabled || locked[category.id]),
     tag: category.disabled ? 'Off' : category.optional ? 'Optional' : requirements[category.id] ? '✓' : null,
+    missing: !category.disabled && !category.optional && !locked[category.id] && !requirements[category.id],
   }))
   const panelProps = { character, dispatch, met: requirements[activeId] }
 
@@ -270,7 +307,7 @@ export default function FinishingTouchesScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.finalValue ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Add the final value and attribute and discipline increases defined in Captain's Log, choose a portrait, and finally name your character.
+            Add the final value and attribute and discipline increases defined in Captain's Log and your fourth talent, choose a portrait, and finally name your character.
           </p>
         </div>
       </div>
@@ -288,6 +325,7 @@ export default function FinishingTouchesScreen({ step, navigation }) {
       <div className="species-mechanics finishing-lower">
         {activeId === 'finalValue' && <FinalValuePanels {...panelProps} />}
         {(activeId === 'attributes' || activeId === 'disciplines') && <ScorePanels {...panelProps} kind={activeId} />}
+        {activeId === 'talent' && <TalentPanels {...panelProps} />}
         {activeId === 'identity' && <IdentityPanels {...panelProps} />}
         {activeId === 'portrait' && <PortraitPanels {...panelProps} />}
         {activeId === 'backgroundNotes' && <BackgroundNotesPanels {...panelProps} />}

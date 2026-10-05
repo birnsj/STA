@@ -9,7 +9,7 @@ import {
   switchEnvironmentCard,
   switchSpecies,
 } from './choiceMemory.js'
-import { AUTO_STEP_IDS, autoChooseStep } from './autoChoice.js'
+import { AUTO_STEP_IDS, autoChooseStep, fillMissingTalents } from './autoChoice.js'
 import {
   setMixedParent,
   setNewSpeciesDescription,
@@ -36,6 +36,7 @@ import * as careerRules from '../rules/career.js'
 import * as historyRules from '../rules/careerHistory.js'
 import * as finishingRules from '../rules/finishingTouches.js'
 import * as appearanceRules from '../rules/appearance.js'
+import * as talentRules from '../rules/talents.js'
 import { reconcileEquipment } from '../rules/equipment.js'
 import { applyDefaultSelections } from '../rules/defaults.js'
 import { isCharacterValid } from '../rules/characterValidation.js'
@@ -133,6 +134,8 @@ function applyAction(character, action) {
       return { ...character, career: careerRules.selectAssignment(character, action.assignmentId) }
     case 'selectCareerDepartment':
       return { ...character, career: careerRules.selectDepartment(character.career, action.departmentId) }
+    case 'selectCareerRole':
+      return { ...character, career: careerRules.selectRole(character.career, action.roleId) }
     case 'selectCareerRank':
       return { ...character, career: careerRules.selectRank(character, action.rankId) }
     case 'selectCareerEventAttribute':
@@ -165,6 +168,10 @@ function applyAction(character, action) {
       return { ...character, identity: appearanceRules.selectPortrait(character, action.portraitId) }
     case 'setBackgroundNotes':
       return { ...character, backgroundNotes: action.text }
+    case 'selectTalent':
+      return { ...character, talents: talentRules.selectTalent(character, action.stepId, action.talentId) }
+    case 'selectTalentChoice':
+      return { ...character, talents: talentRules.selectTalentChoice(character, action.stepId, action.choiceId) }
     default:
       throw new Error(`Unknown character action: ${action.type}`)
   }
@@ -203,8 +210,9 @@ function finalize(character) {
       ),
     ),
   )
+  // Talents are checked last, against the species, scores, focuses and career the other steps have just settled.
   // Equipment follows the career, so it is derived after defaults have filled any career choices.
-  return { ...reconcileEquipment(applyDefaultSelections(reconciled)), confirmedAt: null }
+  return { ...reconcileEquipment(talentRules.reconcileTalents(applyDefaultSelections(reconciled))), confirmedAt: null }
 }
 
 // Restores a saved character; reconciling repairs anything the current rules no longer allow.
@@ -244,10 +252,12 @@ export function creatorReducer(state, action) {
   // Dev Autofill: a whole new random character, as if Auto were pressed on every screen in turn.
   // Each screen gets its own seed derived from the one drawn at the button press.
   if (action.type === 'autofill') {
-    return AUTO_STEP_IDS.reduce(
+    const filled = AUTO_STEP_IDS.reduce(
       (next, stepId, index) => creatorReducer(next, { type: 'autoChooseStep', stepId, seed: (action.seed + index * 0.6180339887) % 1 }),
       createInitialState(),
     )
+    const withTalents = fillMissingTalents(filled, (action.seed + AUTO_STEP_IDS.length * 0.6180339887) % 1)
+    return { ...withTalents, character: finalize(withTalents.character) }
   }
   const switched = switchCard(state, action)
   if (switched) return switched === state ? state : { ...switched, character: finalize(switched.character) }

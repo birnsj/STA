@@ -16,9 +16,11 @@ import * as environmentRules from './environment.js'
 import * as outlookRules from './earlyOutlook.js'
 import * as educationRules from './education.js'
 import * as careerRules from './career.js'
+import { getRoles } from './roles.js'
 import * as historyRules from './careerHistory.js'
 import * as finishingRules from './finishingTouches.js'
 import * as appearanceRules from './appearance.js'
+import * as talentRules from './talents.js'
 import { getAllMatrixFocuses } from './focuses.js'
 import { nameGroupForGender, randomName } from './names.js'
 import { pickStageValue } from './stageValues.js'
@@ -107,7 +109,22 @@ export function fillEarlyOutlook(character, chooser) {
     const name = firstUnheld(chooser.order(outlookRules.getFocusExamples(outlookId)), character)
     earlyOutlook = outlookRules.selectFocusExample(earlyOutlook, name ?? outlookRules.getFocusExamples(outlookId)[0])
   }
-  return { ...character, earlyOutlook }
+  return fillTalent({ ...character, earlyOutlook }, 'earlyOutlook', chooser)
+}
+
+// Picks a random talent the slot allows (the career slot's fixed talent is placed by reconciling), then its choice.
+export function fillTalent(character, stepId, chooser) {
+  let next = talentRules.reconcileTalents(character)
+  if (!next.talents[stepId]) {
+    const [pick] = chooser.order(talentRules.getTalentOptions(next, stepId).filter((option) => option.state === 'available'))
+    if (pick) next = { ...next, talents: talentRules.selectTalent(next, stepId, pick.talent.id) }
+  }
+  const slot = next.talents[stepId]
+  if (slot && talentRules.getTalentById(slot.id).choice && !slot.choice) {
+    const [choice] = chooser.order(talentRules.getChoiceOptions(next, stepId, slot.id).filter((option) => !option.disabled))
+    if (choice) next = { ...next, talents: talentRules.selectTalentChoice(next, stepId, choice.id) }
+  }
+  return next
 }
 
 function fillEducationAttributes(character, chooser) {
@@ -179,7 +196,7 @@ export function fillEducation(character, chooser) {
   let next = educationRules.reconcileEducation(character)
   next = fillEducationAttributes(next, chooser)
   next = fillEducationDisciplines(next, chooser)
-  return fillEducationFocusesAndValue(next, chooser)
+  return fillTalent(fillEducationFocusesAndValue(next, chooser), 'education', chooser)
 }
 
 export function fillCareer(character, chooser) {
@@ -201,11 +218,14 @@ export function fillCareer(character, chooser) {
   if (careerRules.isDepartmentChoice(next.career) && !next.career.department) {
     next = { ...next, career: careerRules.selectDepartment(next.career, chooser.order(careerRules.getDepartments())[0].id) }
   }
+  if (careerRules.isRoleChoice(next.career) && !next.career.role) {
+    next = { ...next, career: careerRules.selectRole(next.career, chooser.order(getRoles())[0].id) }
+  }
   if (!next.career.rank) {
     const rank = chooser.order(careerRules.getRankOptions(next)).find((option) => careerRules.isRankAllowed(next, option.id))
     next = { ...next, career: careerRules.selectRank(next, rank.id) }
   }
-  return next
+  return fillTalent(next, 'career', chooser)
 }
 
 export function fillCareerHistory(character, chooser) {
@@ -274,6 +294,7 @@ export function fillFinishingTouches(character, chooser) {
   }
   next = fillFinishingScores(next, 'attributes', chooser)
   next = fillFinishingScores(next, 'disciplines', chooser)
+  next = fillTalent(next, 'finishingTouches', chooser)
   if (!next.identity.name.trim()) next = { ...next, identity: finishingRules.setName(next.identity, chooser.name(next)) }
   // Blank pronouns (required) get the gender's default, or a random preset for a gender without one.
   if (!finishingRules.hasPronouns(next.identity)) {

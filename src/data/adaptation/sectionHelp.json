@@ -26,10 +26,22 @@
       "text": "A short statement of a core belief or conviction. Values define who your character is and can give them an extra push to succeed in difficult situations.",
       "page": 88
     },
+    "talent": {
+      "name": "Talent",
+      "text": "An additional benefit that defines an area of specialty or a personal approach, such as extra d20s, re-rolls, bonus Momentum, or using a different department in a situation. Many talents have requirements that must be met before they can be chosen. A finished character has four talents; they are separate from the Species Ability, Species Trait, Focuses and Values.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 95
+    },
     "assignment": {
       "name": "Assignment",
-      "text": "Your role aboard ship. The book lists the most common senior staff roles and says other roles are possible.",
+      "text": "Your job aboard ship. The book lists the most common senior staff roles and says other roles are possible.",
       "page": 130
+    },
+    "role": {
+      "name": "Role",
+      "text": "Your character's place within the crew, from Star Trek Adventures 2E. Each role defines the character's job and comes with a distinct in-game benefit, the Role Benefit. Role Benefits work like talents but come from your role and cannot be chosen as talents.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 135
     },
     "rank": {
       "name": "Rank",
@@ -41,7 +53,7 @@
     "speciesScreen": {
       "title": "Species",
       "what": "Book Step One. Your species is your character's first trait and raises three attributes by 1.",
-      "does": "Choose a species card and a gender, then complete any trait details and attribute choices below."
+      "does": "Choose a species card and a gender, then complete any trait details and attribute choices below. The species' Species Ability (from Star Trek Adventures 2E) is shown under its name."
     },
     "speciesGender": {
       "title": "Gender",
@@ -58,19 +70,19 @@
       "title": "Early Outlook",
       "what": "Book Step Three. Your childhood, formative experiences, and key influences.",
       "page": 107,
-      "does": "Choose an outlook card, then its attribute path, one discipline, and one focus."
+      "does": "Choose an outlook card, then its attribute path, one discipline, one focus, and one talent (Star Trek Adventures 2E: Upbringing grants a talent)."
     },
     "educationScreen": {
       "title": "Education",
       "what": "Book Step Four. Your training before your career. Each option grants one value, three attribute points, discipline increases, and three focuses.",
       "page": 115,
-      "does": "Choose an education type card and one of its options, then make the choices in the numbered sections."
+      "does": "Choose an education type card and one of its options, then make the choices in the numbered sections, ending with one talent."
     },
     "careerScreen": {
       "title": "Career",
       "what": "Book Step Five sets how long your career has run and grants one value. Assignment and rank come from Book Step Seven (pp.130-132).",
       "page": 122,
-      "does": "Choose a career length and its value, then your assignment and rank."
+      "does": "Choose a career length and its value, then your assignment and rank. Your career length also sets your talent: Novice receives Untapped Potential, Veteran receives Veteran, and Experienced chooses one."
     },
     "careerHistoryScreen": {
       "title": "Career History",
@@ -82,7 +94,7 @@
       "title": "Finishing Touches",
       "what": "Book Step Seven. One final value, and +1 to two attributes and two disciplines, kept within the book's limits.",
       "page": 129,
-      "does": "Work through each card: final value, attributes, disciplines, name and pronouns, portrait, and optional notes."
+      "does": "Work through each card: final value, attributes, disciplines, your fourth talent (Star Trek Adventures 2E: Finishing Touches brings you to four talents), portrait, name and pronouns, and optional notes."
     },
     "reviewScreen": {
       "title": "Character Complete",
@@ -91,7 +103,7 @@
     },
     "reviewStatus": {
       "title": "Status",
-      "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, disciplines total 16, four values, six focuses, and no duplicate values or focuses.",
+      "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, disciplines total 16, four values, six focuses, four legal talents, and no duplicate values, focuses or talents.",
       "page": 129,
       "does": "Lists each problem with a link to the screen that fixes it. When nothing is listed, Confirm Character becomes available."
     },
@@ -120,7 +132,7 @@
     },
     "reviewCareer": {
       "title": "Career",
-      "what": "Your career length, assignment, department, and rank.",
+      "what": "Your career length, assignment, department, rank, and role.",
       "does": "Summary only. Change these on Career. Posting will be chosen with your ship, which is not built yet."
     },
     "reviewEvents": {
@@ -135,6 +147,14 @@
     "reviewFocuses": {
       "concept": "focus",
       "does": "Every focus and the screen it came from. The book's finished character has six focuses."
+    },
+    "reviewTalents": {
+      "concept": "talent",
+      "does": "Your four Character Talents and the screen that granted each. The Species Ability is listed under Identity, not here. Change a talent on the screen it came from."
+    },
+    "reviewRoleBenefit": {
+      "concept": "role",
+      "does": "The benefit your role gives you. It is not one of your four talents and not your Species Ability. Your role comes from your assignment on Career."
     },
     "reviewTraits": {
       "concept": "trait",
@@ -209,11 +229,11 @@
     },
     "careerAssignment": {
       "concept": "assignment",
-      "does": "Choose your role aboard ship. It sets your department and minimum officer rank. Some roles are closed to Novice or enlisted characters."
+      "does": "Choose your job aboard ship. It sets your department, minimum officer rank, and your Star Trek Adventures 2E role (with its Role Benefit). Some assignments are closed to Novice or enlisted characters."
     },
     "assignmentDetails": {
       "title": "Assignment Details",
-      "what": "The department, minimum rank, and book description for your assignment.",
+      "what": "The department, minimum rank, and book description for your assignment, plus the Star Trek Adventures 2E role it gives you and that role's benefit.",
       "does": "Reference only, except when the book names no department; then choose one here."
     },
     "careerRank": {
@@ -240,6 +260,15 @@
     "finalValue": {
       "concept": "value",
       "does": "Choose your last value. It might reflect your career events or who your character has become."
+    },
+    "talent": {
+      "concept": "talent",
+      "does": "Choose this step's talent. Talents you don't qualify for, or already hold, are greyed out with the reason; switch the list to see them. Some talents also ask for a department, attribute, focus or attack type. Hover a talent for its full text."
+    },
+    "talentDetails": {
+      "title": "Talent Details",
+      "what": "The talent chosen here, with its requirements and book text, and every talent you have chosen so far.",
+      "does": "Reference only, apart from any choice the talent needs."
     },
     "valueDetails": {
       "title": "Value Details",

@@ -1,7 +1,7 @@
 import creationSteps from '../data/adaptation/creationSteps.json'
 import startingPoints from '../data/source/startingPoints.json'
 import { isStepComplete } from './creationProgress.js'
-import { getAssignmentBlock, isRankAllowed } from './career.js'
+import { getAssignmentBlock, isRankAllowed, isRoleMet } from './career.js'
 import { getEventCount } from './careerHistory.js'
 import { getFocusEntries, getTraitEntries, getValueEntries } from './characterSheet.js'
 import {
@@ -11,6 +11,15 @@ import {
   getRequiredValueCount,
   hasPronouns,
 } from './finishingTouches.js'
+import { hasCurrentSpeciesAbility } from './species.js'
+import {
+  TALENT_STEPS,
+  getFixedCareerTalentId,
+  getRequiredTalentCount,
+  getTalentEntries,
+  getTalentLabel,
+  isTalentSlotMet,
+} from './talents.js'
 
 const limits = startingPoints.finishedCharacterLimits
 const stepTitles = Object.fromEntries(creationSteps.steps.map((step) => [step.id, step.title]))
@@ -82,12 +91,32 @@ function validateFocuses(character) {
   return [...countIssue, ...duplicateIssues(focuses, 'Focus')]
 }
 
+// Book p.131: four talents, one from each granting step, each legal and (unless it says otherwise) taken once.
+function validateTalents(character) {
+  const issues = []
+  const entries = getTalentEntries(character)
+  if (entries.length !== getRequiredTalentCount()) issues.push(issue('finishingTouches', `${entries.length} of ${getRequiredTalentCount()} Talents chosen.`))
+  for (const stepId of TALENT_STEPS) {
+    const slot = character.talents?.[stepId]
+    if (slot && !isTalentSlotMet(character, stepId)) {
+      issues.push(issue(stepId, `Talent "${getTalentLabel(slot)}" is not allowed or needs a choice.`))
+    }
+  }
+  const fixedId = getFixedCareerTalentId(character)
+  if (fixedId && character.talents?.career?.id !== fixedId) issues.push(issue('career', 'The career talent does not match the career length.'))
+  const keys = entries.map(({ slot, talent }) => (talent.repeatable === 'perChoice' ? `${slot.id}:${slot.choice?.id}` : slot.id))
+  const repeated = entries.filter((_, index) => keys.indexOf(keys[index]) !== index)
+  for (const { stepId, label } of repeated) issues.push(issue(stepId, `Talent "${label}" is chosen more than once.`))
+  return issues
+}
+
 // The core choice of each lifepath step, named explicitly so a character loaded from a file can't skip one even if
 // a step's completeness check changes.
 function validateLifepathChoices(character) {
   const { environment, earlyOutlook, education, career } = character
   const issues = []
   if (!getTraitEntries(character).length) issues.push(issue('species', 'No species trait.'))
+  if (character.species && !hasCurrentSpeciesAbility(character.species)) issues.push(issue('species', 'Species Ability does not match the species.'))
   if (!environment.setting && !environment.condition) issues.push(issue('environment', 'No environment chosen.'))
   if (!earlyOutlook.outlook) issues.push(issue('earlyOutlook', 'No early outlook chosen.'))
   if (!education.option) issues.push(issue('education', 'No education chosen.'))
@@ -108,6 +137,8 @@ function validateService(character) {
     issues.push(issue('career', `${career.assignment.name}: ${getAssignmentBlock(character, career.assignment.id)}.`))
   }
   if (!career.department) issues.push(issue('career', 'No department chosen.'))
+  // STA 2E Core p.133: the role (and its Role Benefit) is chosen with the finishing details.
+  if (career.assignment && !isRoleMet(career)) issues.push(issue('career', 'No role chosen.'))
   if (!career.rank) issues.push(issue('career', 'No rank chosen.'))
   else if (career.assignment && !isRankAllowed(character, career.rank.id)) {
     issues.push(issue('career', `${career.rank.name} is not allowed for this character as ${career.assignment.name}.`))
@@ -127,6 +158,7 @@ export function validateCharacter(character) {
     ...validateScores(character, 'disciplines'),
     ...validateValues(character),
     ...validateFocuses(character),
+    ...validateTalents(character),
     ...validateService(character),
   ]
 }

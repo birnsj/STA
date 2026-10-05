@@ -14,6 +14,8 @@ import Result2 from '../components/combat2/Result2.jsx'
 import Setup2 from '../components/combat2/Setup2.jsx'
 import { stepDuration } from '../components/combat2/timing2.js'
 import '../components/combat2/combat2.css'
+import WeatherFx from '../effects/WeatherFx.jsx'
+import { weatherFor } from '../maps/mapWeather.js'
 
 // Presentation delays only (divided by the Auto Combat speed); the combat itself never waits on them.
 const ENEMY_PAUSE_MS = 450
@@ -106,6 +108,7 @@ function Fight({ player, map, seed, auto, speed, autoControls, onRestart, onExit
         onUnitHover={setHoverUnitId}
         onRightClick={clearAction}
       />
+      <WeatherFx fx={weatherFor(state.weather).fx} />
       <div className="c2-panel c2-objectives">
         <p className="c2-panel-title">{state.encounterName}</p>
         <ul>

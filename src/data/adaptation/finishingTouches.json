@@ -23,6 +23,12 @@
       "description": "Increase two disciplines by 1 each, then bring every discipline within the book's limits. This fixes your final discipline scores."
     },
     {
+      "id": "talent",
+      "name": "Talent",
+      "image": "/art/finishing/talent.png",
+      "description": "Choose one extra talent, bringing you to a total of four. Its requirements are checked against your final scores."
+    },
+    {
       "id": "portrait",
       "name": "Portrait",
       "image": "/art/finishing/portrait.png",
@@ -44,6 +50,7 @@
   ],
   "notes": [
     "Prototype: cards follow the unlock order, with Name & Pronouns as the last required choice and the optional Background Notes after it.",
+    "The Talent card comes from Star Trek Adventures 2E (Core p.131: 'select one extra talent, bringing you to a total of four'); it follows Disciplines so talent requirements are checked against final scores.",
     "Screen 07 is Book Step Seven. Assignment and Rank from Step Seven are on Screen 05.",
     "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step. Pronouns are from p.132 and, as in the book, required.",
     "Player-facing text never labels anything as a book rule, adaptation, or original system; provenance stays in data (sourceType) and these notes.",

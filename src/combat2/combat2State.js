@@ -45,6 +45,7 @@ export function createCombat2({ player, seed, map: mapFile }) {
   })
   const state = {
     encounterName: mapFile.name,
+    weather: mapFile.weather,
     objectives: encounter.objectives,
     areas: mapFile.areas,
     map,

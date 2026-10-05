@@ -7,6 +7,7 @@ import { withChoiceArt } from './choiceArt.js'
 import { isBookFocus } from './focuses.js'
 import { getAttributes } from './species.js'
 import { getDisciplineTotalsBeforeEducation } from './characterTotals.js'
+import { isTalentSlotMet } from './talents.js'
 
 const categoriesById = new Map(educationSource.categories.map((category) => [category.id, category]))
 const optionsById = new Map(educationSource.options.map((option) => [option.id, option]))
@@ -346,6 +347,7 @@ export function getEducationRequirements(character) {
     disciplines: Boolean(option) && isDisciplineAllocationComplete(option, education.disciplinePicks),
     focuses: education.focuses.length === FOCUS_COUNT && education.focuses.every((focus) => focus.name.trim()),
     value: Boolean(education.value?.text.trim()),
+    talent: isTalentSlotMet(character, 'education'),
   }
 }
 

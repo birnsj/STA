@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "name": "Lethis Haven",
+  "episodeName": "Below Decks",
+  "card": "/art/episodes/Lethis%20Haven.png?v=1791172141872",
+  "mapType": "colony",
+  "biome": "temperate",
+  "weather": "magneticStorm",
+  "rows": [
+    ",T,,,T,,,,,,,,,,,,,,,,,,c,",
+    ",TT,,,,T,,PPPPPPPP,PPPPP,,",
+    ",,,,,,,,,,P......P,P...P,,",
+    ",T,,,,,T,,P.....cP,P...P,,",
+    "T,,,,,,,,,PPPDPPPPcPPDPPc,",
+    "T,,,,,,,,,,,,=,,,,,,,=,,,,",
+    "==========================",
+    "==========================",
+    ",,,,,c=,,,,,,,,=,,,,,,,,,,",
+    ",PPPPPDP,,,,,,,=,,,,,,,,T,",
+    ",P.c...P,,,PPPPDPP,,,,,,,,",
+    ",P.....P,,,P.....P,,,,,,T,",
+    ",P.....P,,cP.....P,,,,,,,,",
+    ",P...c.P,,cP.c...P,,,,,,,,",
+    ",PPPPPPP,,,PPPPPPP,,,T,,,,",
+    ",c,,,,,,,,,,,,c,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,TTT,T,",
+    ",T,,T,,,,T,,,T,,,,,TT,,,,,"
+  ],
+  "areas": [
+    {
+      "name": "Security Post",
+      "position": [
+        12,
+        11
+      ]
+    },
+    {
+      "name": "Habitat Dome",
+      "position": [
+        11,
+        2
+      ]
+    },
+    {
+      "name": "Mess Hall",
+      "position": [
+        2,
+        10
+      ]
+    },
+    {
+      "name": "Schoolhouse",
+      "position": [
+        20,
+        2
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "enemySpawns": [
+      [
+        25,
+        11
+      ],
+      [
+        25,
+        16
+      ],
+      [
+        25,
+        10
+      ],
+      [
+        25,
+        12
+      ]
+    ]
+  }
+}

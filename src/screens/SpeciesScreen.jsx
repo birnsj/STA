@@ -2,6 +2,8 @@ import { useCharacter } from '../character/CharacterContext.jsx'
 import {
   getAvailableSpecies,
   getRequiredAttributeChoices,
+  getSpeciesAbility,
+  getSpeciesAbilityGap,
   getSpeciesById,
   getSpeciesRequirements,
   hasAttributeChoice,
@@ -34,6 +36,8 @@ export default function SpeciesScreen({ step, navigation }) {
   const selection = character.species
   const species = selection ? getSpeciesById(selection.id) : null
   const nameSuffix = species ? ` (${species.name})` : ''
+  const ability = getSpeciesAbility(selection)
+  const abilityGap = getSpeciesAbilityGap(selection)
   const requirements = getSpeciesRequirements(character)
   const gender = character.identity.gender
   const locked = getLockedSections(requirements)
@@ -47,10 +51,11 @@ export default function SpeciesScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.species ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose your species. Each species has specific traits and attribute adjustments, as defined in Captain's Log.
+            Choose your species. Captain's Log gives each species a Species Trait and attribute adjustments; Star Trek
+            Adventures 2E adds a distinct Species Ability.
             <br />
-            Species traits and attribute adjustments are applied automatically when you select this species. You will
-            assign the final Attribute values later in the process. The total must equal 56.
+            All three are assigned automatically when you select a species. You will assign the final Attribute values
+            later in the process. The total must equal 56.
           </p>
         </div>
       </div>
@@ -70,8 +75,28 @@ export default function SpeciesScreen({ step, navigation }) {
             {species?.name ?? 'No species selected'}
             <RequirementTag met={requirements.species} />
           </h2>
-          <p>{species?.description ?? 'Select a species above to view its description, traits, and attribute adjustments.'}</p>
-          {species && <p className="source-ref">Captain's Log, p.{species.source.page}</p>}
+          {ability && (
+            <div className="species-ability">
+              <p className="species-ability-head">
+                <span className="species-ability-label">Species Ability</span>
+                <span className="species-ability-name">{ability.name}</span>
+                <span className="source-ref">{ability.source.book}, p.{ability.source.page}</span>
+              </p>
+              <p className="species-ability-text">{ability.description}</p>
+            </div>
+          )}
+          {abilityGap && (
+            <div className="species-ability">
+              <p className="species-ability-head">
+                <span className="species-ability-label">Species Ability</span>
+              </p>
+              <p className="species-ability-text">Not yet defined for this option.</p>
+            </div>
+          )}
+          <div className="species-details-scroll">
+            <p>{species?.description ?? 'Select a species above to view its description, traits, and attribute adjustments.'}</p>
+            {species && <p className="source-ref">Captain's Log, p.{species.source.page}</p>}
+          </div>
         </div>
         <div className={`species-gender${requirements.gender ? '' : ' is-missing'}`} inert={locked.gender}>
           <h3 className="species-gender-heading">

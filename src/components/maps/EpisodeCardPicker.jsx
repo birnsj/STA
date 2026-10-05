@@ -1,13 +1,17 @@
-import { cardFor, EPISODE_CARDS, isDrawnCard } from '../../maps/episodeCards.js'
+import WeatherFx from '../../effects/WeatherFx.jsx'
+import { CARD_WEATHER_WIDTH, cardFor, EPISODE_CARDS, isDrawnCard } from '../../maps/episodeCards.js'
 
 // The map editor's Episode Card section: a preview of the episode's Load Episode picture, a list of the catalogue cards
-// (plus the episode's own generated picture), and Generate Card (onGenerate draws a new picture for the map).
-export default function EpisodeCardPicker({ cardId, canGenerate, busy, onCard, onGenerate }) {
+// (plus the episode's own generated picture), and Generate Card (onGenerate draws a new picture for the map, with its
+// weather painted on). Catalogue cards have no weather of their own, so the map's weather plays over them (weatherFx;
+// null hides it).
+export default function EpisodeCardPicker({ cardId, weatherFx, canGenerate, busy, onCard, onGenerate }) {
   const card = cardFor(cardId)
   return (
     <>
       <div className="me-card-preview">
         {card ? <img src={card.image} alt={card.label} /> : <span>{cardId ? `Missing card: ${cardId}` : 'No card'}</span>}
+        {card && !isDrawnCard(cardId) && <WeatherFx fx={weatherFx} virtualWidth={CARD_WEATHER_WIDTH} />}
       </div>
       <select className="me-select me-card-select" value={card ? card.id : ''} aria-label="Episode card" onChange={(event) => onCard(event.target.value || null)}>
         <option value="">No card</option>

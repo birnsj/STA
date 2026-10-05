@@ -25,6 +25,7 @@ import OutlookPathList from '../components/OutlookPathList.jsx'
 import Portrait from '../components/Portrait.jsx'
 import RequirementTag from '../components/RequirementTag.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
+import TalentColumn from '../components/TalentColumn.jsx'
 
 const TAB_ICONS = { upbringing: '◍', aspiration: '✦', caste: '◈' }
 
@@ -162,6 +163,8 @@ export default function EarlyOutlookScreen({ step, navigation }) {
             />
           )}
         </MechanicsColumn>
+
+        <TalentColumn number="4" stepId="earlyOutlook" met={requirements.talent} locked={locked.talent} />
       </div>
 
       <ScreenFooter {...navigation} canGoNext={navigation.canGoNext && areAllMet(requirements)} />
