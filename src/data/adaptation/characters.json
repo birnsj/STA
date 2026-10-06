@@ -1,0 +1,550 @@
+{
+  "notes": [
+    "VIDEOGAME ADAPTATION (designer spec, Oct 2026: Unified Character Architecture): every authored person in the game is a full character in the creator's own record shape. authoredCharacters.js builds each entry into a character export record (current schemaVersion, the creator's default sections, the Species Ability from the species data, final.faction and final.equipment resolved like an export) and loads it through the same RuntimeCharacter normalizer as a player character.",
+    "An entry holds only what makes the character who they are: character { faction, species, career, identity, equipment: [{ itemId }] } and final { attributes, disciplines, values, focuses, traits, talents, rank, department, assignment, role }. talents use the export's talent entry shape. Nothing about how an instance behaves in the world (controller, disposition, awareness, position, patrol, alert group) belongs here: that is the world actor (exploration/npcs.json) or the encounter (combat/encounters.json), which reference a character by id.",
+    "sourceClassification: metadata only, never read by the rules: the book stat block a character was transcribed from. Its npcCategory does not make the character a Minor NPC in play (rules/personalCondition.js npcCategoryOf).",
+    "Klingon Warriors (Book: STA 2e Core p.354, Klingon Warrior, Minor NPC): Control 7, Daring 10, Fitness 10, Insight 7, Presence 9, Reason 8; Command 1, Conn 2, Engineering 1, Security 2, Medicine and Science none (0); traits Klingon, Warrior; Protection 1; attacks Unarmed Strike, D'k tahg dagger, Escalation 1 Bat'leth, Disruptor Pistol; special rule Warrior's Spirit (p.153). A stat block's attributes are final (species included).",
+    "Klingon species (Book: STA 2e Core p.107): +1 Daring, Fitness, Presence; trait Klingon; Species Ability Brak'lul (+1 Protection stacking with armour; First Aid on them may re-roll a d20). The stat block's Protection 1 is matched by Brak'lul, so no separate stat-block Protection is kept.",
+    "Not yet authored for the Klingon Warriors (no source-backed build exists in the project): focuses (the Minor NPC stat block has none), talents (Klingon species talents, Core p.151, are not transcribed: talents.json excludes non-creator species), rank, assignment and role, lifepath (environment, upbringing, education, career events), and personal names. The Bat'leth is left out (no Escalation rules) and Warrior's Spirit is not implemented.",
+    "identity.portrait.image is used because Klingon portraits are not in portraits.json. Warriors 3 and 4 share portrait art with Warriors 1 and 2.",
+    "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.107), the Klingon Veteran (p.354) and Moq'var, Son of Koloth (p.355). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented."
+  ],
+  "characters": [
+    {
+      "id": "klingonWarrior1",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "valueSources": [
+          {
+            "value": "It is a good day to die!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "Own the day!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "I am a Klingon warrior; if you doubt it, a demonstration can be arranged!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "There is nothing more honorable than victory",
+            "source": "Core p.355, Moq'var, Son of Koloth"
+          }
+        ]
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "klingon",
+              "name": "Klingon"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Klingon Warrior 1",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "klingon-warrior-1",
+            "name": "Klingon Warrior 1",
+            "image": "/art/combat/klingon-warrior-1.png"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "dkTahg"
+          },
+          {
+            "itemId": "disruptorPistol"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [
+          "It is a good day to die!",
+          "Own the day!",
+          "I am a Klingon warrior; if you doubt it, a demonstration can be arranged!",
+          "There is nothing more honorable than victory"
+        ],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "klingon",
+            "name": "Klingon"
+          },
+          {
+            "id": "warrior",
+            "name": "Warrior"
+          }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonWarrior2",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "valueSources": [
+          {
+            "value": "Revenge is a dish best served cold",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "There is nothing more honorable than victory",
+            "source": "Core p.355, Moq'var, Son of Koloth"
+          },
+          {
+            "value": "Own the day!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "To kill the defenseless is not true battle",
+            "source": "Core p.355, Moq'var, Son of Koloth"
+          }
+        ]
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "klingon",
+              "name": "Klingon"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Klingon Warrior 2",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "klingon-warrior-2",
+            "name": "Klingon Warrior 2",
+            "image": "/art/combat/klingon-warrior-2.png"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "dkTahg"
+          },
+          {
+            "itemId": "disruptorPistol"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [
+          "Revenge is a dish best served cold",
+          "There is nothing more honorable than victory",
+          "Own the day!",
+          "To kill the defenseless is not true battle"
+        ],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "klingon",
+            "name": "Klingon"
+          },
+          {
+            "id": "warrior",
+            "name": "Warrior"
+          }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonWarrior3",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "valueSources": [
+          {
+            "value": "Today is a Good Day to Die!",
+            "source": "Core p.354, Klingon Veteran"
+          },
+          {
+            "value": "Revenge is a dish best served cold",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "I am a Klingon warrior; if you doubt it, a demonstration can be arranged!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "To kill the defenseless is not true battle",
+            "source": "Core p.355, Moq'var, Son of Koloth"
+          }
+        ]
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "klingon",
+              "name": "Klingon"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Klingon Warrior 3",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "klingon-warrior-1",
+            "name": "Klingon Warrior 3",
+            "image": "/art/combat/klingon-warrior-1.png"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "dkTahg"
+          },
+          {
+            "itemId": "disruptorPistol"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [
+          "Today is a Good Day to Die!",
+          "Revenge is a dish best served cold",
+          "I am a Klingon warrior; if you doubt it, a demonstration can be arranged!",
+          "To kill the defenseless is not true battle"
+        ],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "klingon",
+            "name": "Klingon"
+          },
+          {
+            "id": "warrior",
+            "name": "Warrior"
+          }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonWarrior4",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "valueSources": [
+          {
+            "value": "There is nothing more honorable than victory",
+            "source": "Core p.355, Moq'var, Son of Koloth"
+          },
+          {
+            "value": "Own the day!",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "Revenge is a dish best served cold",
+            "source": "Core p.107, Klingon species sample Values"
+          },
+          {
+            "value": "It is a good day to die!",
+            "source": "Core p.107, Klingon species sample Values"
+          }
+        ]
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "klingon",
+              "name": "Klingon"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Klingon Warrior 4",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "klingon-warrior-2",
+            "name": "Klingon Warrior 4",
+            "image": "/art/combat/klingon-warrior-2.png"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "dkTahg"
+          },
+          {
+            "itemId": "disruptorPistol"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [
+          "There is nothing more honorable than victory",
+          "Own the day!",
+          "Revenge is a dish best served cold",
+          "It is a good day to die!"
+        ],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "klingon",
+            "name": "Klingon"
+          },
+          {
+            "id": "warrior",
+            "name": "Warrior"
+          }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    }
+  ]
+}

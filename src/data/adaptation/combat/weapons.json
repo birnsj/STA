@@ -1,12 +1,17 @@
 {
   "notes": [
     "Prototype combat adaptation (designer spec, Oct 2026), not Captain's Log rules. Captain's Log personal conflict (pp.203-206) has no range bands, weapon Severity, or Stun/Deadly modes.",
-    "A successful attack causes exactly 1 Hit. Severity is not damage; it is recorded on the final Hit for later injury systems.",
+    "Book (STA 2e Core p.291): a successful attack inflicts an Injury of the chosen type (injuryModes) with the weapon's severity, less the target's Protection (minimum 1); the target may Avoid Injury by suffering Stress equal to that severity (rules/personalCondition.js). There are no Hits. Severity, injury types and qualities are the book's weapons table (p.242) unless a weapon's note says otherwise.",
+    "Qualities: Accurate (Aim rerolls two dice) and Intense (adding severity costs 1 Momentum per point instead of 2, Book p.241) are applied. Charge is recorded but not applied (no Prepare action yet).",
     "Weapons link to carried equipment by itemId (items.json for phasers). The Unarmed Strike is always available.",
     "beamColor: presentation only (the shot effect on the battlefield). Weapons without one show a strike flash instead of a beam. beamColors: { injuryModeId: colour } overrides it per mode (phasers: blue Stun, red Deadly).",
     "attackSound: presentation only (audio/uiSounds.js): phaser or punch. The disruptor uses the phaser sound as a placeholder until it has its own.",
     "maximumRange: designer decision - pistols stop at Long; only rifles reach Extreme. Each band beyond optimalRange adds +1 Difficulty.",
-    "focuses: designer decision (Oct 2026) - the focuses that fit each weapon (names from focusMatrix.json). Book p.79: a focus grants a narrative Advantage (p.268). Prototype: Aim with a fitting focus lets the next attack reroll both dice instead of one; a focus without Aim does nothing."
+    "focuses: designer decision (Oct 2026) - the focuses that fit each weapon (names from focusMatrix.json, matched exactly). Book (STA 2e Core p.256): with an applicable focus, a die at or under the Department is a critical success (2 successes). That is the focus's only effect on an attack.",
+    "Aim - Book (STA 2e Core p.288): the next Attack this turn may reroll a single d20. Accurate quality (p.241): Aim may reroll up to two d20s instead. Read from qualities (\"Accurate\").",
+    "attackTasks: the Attribute + Department, base Difficulty and opposition of each attack type, resolved by the shared STA 2E task (src/rules/taskResolver.js). opposition.when: targetInCover | targetAware; opposition.difficulty: 'higher' (VIDEOGAME ADAPTATION: the higher of the normal Difficulty and the defender's successes, so taking Cover never makes a target easier to hit because its roll was poor) or 'successes' (Book p.256: the defender's successes, plus the attacker's other Difficulty changes). The defender's task goes through the same task preparation as the attacker's: their own Attribute + Department, structured effects (opposition.tags) and the applicable focus from opposition.focuses.",
+    "opposition.focuses: VIDEOGAME ADAPTATION (designer-authored, Oct 2026): the focus names that help a defender in cover or in melee, matched exactly. Carrying a weapon no longer decides which focus defends.",
+    "traitRules (attack and defence tasks): authored scene-trait rules, as on challenge tasks: { trait, difficulty, side } where side (optional: player | enemy) limits the rule to that side's tasks. Traits come from the scene (Create Trait). The rules listed here are TEST EPISODE CONTENT (Oct 2026), not book rules."
   ],
   "rangeBands": [
     { "id": "reach", "name": "Reach", "minTiles": 1, "maxTiles": 1 },
@@ -18,22 +23,41 @@
   "attackTasks": {
     "ranged": {
       "attribute": "control",
-      "discipline": "security",
-      "baseDifficulty": 1,
-      "sourceType": "adaptation",
-      "note": "Designer decision (Oct 2026): base 1, changed from the spec's 2 because 2d20 can never pass Difficulty 3+. Matches the book's Difficulty 1 baseline (p.205)."
+      "department": "security",
+      "baseDifficulty": 2,
+      "tags": ["attack", "rangedAttack"],
+      "traitRules": [{ "trait": "Overloaded Junction", "difficulty": 1, "side": "enemy" }],
+      "opposition": {
+        "when": "targetInCover",
+        "attribute": "control",
+        "department": "security",
+        "difficulty": "higher",
+        "tags": ["defence", "coverDefence"],
+        "focuses": ["Heavy Cover", "Small Unit Tactics", "Combat Tactics", "Covering Advance", "Evasive Action", "Efficient Evasion"]
+      },
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.289): Ranged Attack = Control + Security, Difficulty 2; if the target has Cover it becomes an opposed task resisted by the target's own Control + Security. VIDEOGAME ADAPTATION (designer cover rule, kept): the Difficulty becomes the higher of 2 and the target's successes, where the book uses the target's successes alone (p.256). Range-band modifiers are a videogame adaptation."
     },
     "melee": {
       "attribute": "daring",
-      "discipline": "security",
+      "department": "security",
       "baseDifficulty": 1,
-      "sourceType": "placeholder",
-      "note": "Not in the designer spec. Daring + Security follows the book's melee example (p.204); Difficulty matches ranged until decided."
+      "tags": ["attack", "meleeAttack"],
+      "opposition": {
+        "when": "targetAware",
+        "attribute": "daring",
+        "department": "security",
+        "difficulty": "successes",
+        "tags": ["defence", "meleeDefence"],
+        "focuses": ["Martial Arts", "Hand-to-Hand Combat", "Combat Maneuvers"]
+      },
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.289): Melee Attack = Daring + Security, Difficulty 1; if the target is aware of the attack and able to defend, it becomes an opposed task resisted by the target's own Daring + Security, whose successes set the Difficulty (p.256). Cover does not apply to melee (p.289: Cover affects ranged attacks)."
     }
   },
   "injuryModes": [
-    { "id": "stun", "name": "Stun", "finalHitStatus": "incapacitated", "generatesThreat": false },
-    { "id": "deadly", "name": "Deadly", "finalHitStatus": "injured", "generatesThreat": true }
+    { "id": "stun", "name": "Stun", "generatesThreat": false },
+    { "id": "deadly", "name": "Deadly", "generatesThreat": true }
   ],
   "weapons": [
     {
@@ -74,16 +98,16 @@
       "name": "Phaser Rifle",
       "type": "ranged",
       "injuryModes": ["stun", "deadly"],
-      "severity": null,
+      "severity": 5,
       "hands": 2,
-      "qualities": [],
+      "qualities": ["Accurate", "Charge"],
       "optimalRange": "long",
       "maximumRange": "extreme",
       "focuses": ["Hand Phasers", "Phasers", "Deadeye Marksman"],
       "beamColors": { "stun": "#5cc8ff", "deadly": "#ff4a32" },
       "attackSound": "phaser",
       "sourceType": "adaptation",
-      "note": "Severity and qualities undefined in the spec. Nobody carries one in the first encounter."
+      "note": "Book (STA 2e Core p.242 weapons table): Phaser Type-3 (phaser rifle) = Stun, Deadly, Severity 5, 2H, Accurate, Charge. No party member carries one yet. Range bands are a videogame adaptation."
     },
     {
       "id": "disruptorPistol",
@@ -93,14 +117,47 @@
       "injuryModes": ["deadly"],
       "severity": 4,
       "hands": 1,
-      "qualities": [],
+      "qualities": ["Intense"],
       "optimalRange": "long",
       "maximumRange": "long",
       "focuses": ["Klingon Weapons", "Deadeye Marksman"],
       "beamColor": "#62f06e",
       "attackSound": "phaser",
-      "sourceType": "placeholder",
-      "note": "Designer-approved placeholder. Book p.33: disruptors have no stun setting."
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.242 weapons table; Klingon Warrior p.354): Disruptor Pistol = Deadly only, Severity 4, 1H, Intense. Range bands are a videogame adaptation."
+    },
+    {
+      "id": "disruptorRifle",
+      "itemId": "disruptorRifle",
+      "name": "Disruptor Rifle",
+      "type": "ranged",
+      "injuryModes": ["deadly"],
+      "severity": 5,
+      "hands": 2,
+      "qualities": ["Accurate", "Intense"],
+      "optimalRange": "long",
+      "maximumRange": "extreme",
+      "focuses": ["Klingon Weapons", "Deadeye Marksman"],
+      "beamColor": "#62f06e",
+      "attackSound": "phaser",
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.242 weapons table): Disruptor Rifle = Deadly only, Severity 5, 2H, Accurate, Intense. No enemy carries one yet (no item record). Range bands are a videogame adaptation (as the phaser rifle)."
+    },
+    {
+      "id": "dkTahg",
+      "itemId": "dkTahg",
+      "name": "D'k tahg Dagger",
+      "type": "melee",
+      "injuryModes": ["deadly"],
+      "severity": 2,
+      "hands": 1,
+      "qualities": ["Hidden 1"],
+      "optimalRange": "reach",
+      "maximumRange": "reach",
+      "focuses": [],
+      "attackSound": "punch",
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.354, Klingon Warrior attacks): D'k tahg dagger = Melee, Deadly 2, Size 1H, Hidden 1. Hidden is recorded but not applied (no concealment rules yet). focuses: none authored yet (designer to decide)."
     },
     {
       "id": "unarmedStrike",
@@ -108,7 +165,7 @@
       "name": "Unarmed Strike",
       "type": "melee",
       "injuryModes": ["stun"],
-      "severity": 1,
+      "severity": 2,
       "hands": 0,
       "qualities": [],
       "optimalRange": "reach",
@@ -116,8 +173,8 @@
       "focuses": ["Martial Arts"],
       "attackSound": "punch",
       "alwaysAvailable": true,
-      "sourceType": "placeholder",
-      "note": "Not in the designer spec; added because characters fight with carried equipment only. Injury mode and Severity are placeholders."
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.242 weapons table): Unarmed Strike = Melee, Stun, Severity 2, 1H. Always available to everyone."
     }
   ]
 }

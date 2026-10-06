@@ -1,10 +1,13 @@
 // RuntimeCharacter: the one in-game character model, built from a character export record (the JSON Export
-// downloads and the saved files hold). Players and NPCs both come through here so every game system (combat now;
-// dialogue, investigation, etc. later) reads the same fields. Read-only game data, never written back to the export.
+// downloads and the saved files hold, and every authored person in adaptation/characters.json, see
+// authoredCharacters.js). Player characters, allies and enemies all come through here, so every game system reads the
+// same fields and never asks who controls the character. Read-only game data, never written back to the record; runtime
+// state (condition, position, awareness) lives with the world actor or combatant that uses the character.
 import attributeData from '../data/source/attributes.json'
 import disciplineData from '../data/source/disciplines.json'
 import { getPortraitById } from '../rules/appearance.js'
-import { getSpeciesDisplayName } from '../rules/species.js'
+import { getCreatorFaction } from '../rules/factions.js'
+import { getSpeciesAbility, getSpeciesDisplayName } from '../rules/species.js'
 
 export const ATTRIBUTE_IDS = attributeData.attributes.map((attribute) => attribute.id)
 export const DISCIPLINE_IDS = disciplineData.disciplines.map((discipline) => discipline.id)
@@ -80,6 +83,8 @@ export function normalizeCharacterRecord(record, { id } = {}) {
     character: {
       id: id ?? name,
       name,
+      // Exports before schema 0.9.0 carry none; they all come from the creator, whose characters share one faction.
+      faction: idName(record.final.faction ?? details.faction) ?? getCreatorFaction(),
       pronouns: typeof identity.pronouns === 'string' ? identity.pronouns : '',
       species: details.species ? { id: details.species.id ?? null, name: getSpeciesDisplayName(details.species) ?? '' } : null,
       portrait: {
@@ -90,18 +95,21 @@ export function normalizeCharacterRecord(record, { id } = {}) {
       rank: idName(career.rank),
       department: idName(career.department),
       assignment: idName(career.assignment),
-      // Data only for now; exports before schema 0.8.0 (and NPC records) have none.
+      // Data only for now; exports before schema 0.8.0 have none.
       role: readRole(record.final.role),
       attributes: attributes.values,
       disciplines: disciplines.values,
       focuses: strings(record.final.focuses),
       values: strings(record.final.values),
       traits: items(record.final.traits).map((trait) => ({ id: trait.id ?? null, name: trait.name ?? '' })),
-      // Data only for now; exports before schema 0.6.0 (and NPC records) have none.
-      speciesAbility: readSpeciesAbility(record.final.speciesAbility),
-      // Data only for now; exports before schema 0.7.0 (and NPC records) have none.
+      // Exports before schema 0.6.0 have none stored: the character then gets their species' ability from the species data.
+      speciesAbility: readSpeciesAbility(record.final.speciesAbility ?? getSpeciesAbility(details.species)),
+      // Data only for now; exports before schema 0.7.0 have none.
       talents: items(record.final.talents).filter((talent) => talent.id).map(readTalent),
       equipment: items(record.final.equipment).map((item) => ({ itemId: item.itemId, name: item.name ?? item.itemId })),
+      // Metadata only, never read by the rules: the book stat block an authored character was based on
+      // ({ book, page, statBlock, npcCategory, personalThreat, protection }), or null.
+      sourceClassification: isPlainObject(record.sourceClassification) ? { ...record.sourceClassification } : null,
       source: { schemaVersion: record.schemaVersion ?? null, sourceType: record.sourceType ?? 'export' },
     },
   }

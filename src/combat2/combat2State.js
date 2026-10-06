@@ -6,7 +6,8 @@ import encounterData from '../data/adaptation/combat2/encounter.json'
 import enemyData from '../data/adaptation/combat2/enemies.json'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
-import { evaluateTask, rollDice } from '../rules/taskResolver.js'
+import { rollDice } from '../rules/taskResolver.js'
+import { evaluateTask } from './captainsLogTask.js'
 import {
   canPlayerAct,
   getEnemies,

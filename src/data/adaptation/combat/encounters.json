@@ -3,7 +3,7 @@
     "Prototype test encounter: the party against 4 Klingons. Played on any map file in the project's maps/ folder (picked in setup); defaultMapId is a map file name.",
     "The default map, Engineering Deck (32 x 24): Main Engineering (top left, warp core in the middle), Cargo Bay (top right, where the Klingons board), a corridor across the middle, and Crew Quarters (party start), Transporter Room and Storage along the bottom. Rooms connect through 2-tile doorways.",
     "Tiles come from the shared catalogue (src/data/adaptation/maps/tiles.json): solid tiles block movement, tiles that block sight block line of fire, and standing next to a cover tile gives cover automatically. Hazard tiles are ordinary floor in this mode.",
-    "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order; extra spawns stay empty.",
+    "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order, as character ids (full characters in src/data/adaptation/characters.json, the same records the exploration actors use); extra spawns stay empty.",
     "The objective text is placeholder content.",
     "autoCombat.playerInjuryMode: the setting AI-controlled player characters use in Auto Combat. Designer spec: 'stun' (Starfleet default); 'deadly' only if set here explicitly.",
     "standardIssueWeapon: designer decision (Oct 2026) for balance. A party member who brings no weapon of their own (only the always-available Unarmed Strike) is issued this one for the fight. Combat-only: the character's file and export are not changed."

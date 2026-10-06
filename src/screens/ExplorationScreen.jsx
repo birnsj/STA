@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
+import CharacterInspector from '../components/CharacterInspector.jsx'
+import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
 import { ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
+import Minimap from '../components/exploration/Minimap.jsx'
 import '../components/exploration/exploration.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady, getNpcs, isDown, stateName } from '../exploration/awareness.js'
 import { getAvailableActions, getChallengeViews, getDefinition, objectsInReach } from '../exploration/challengeObjects.js'
-import { getCombatDiagnostics, MODE } from '../exploration/combatLink.js'
+import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
 import { explorationReducer } from '../exploration/explorationState.js'
 import { getFormation } from '../exploration/formations.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
+import { conditionSummary, minorDefeatText, normalizeCondition } from '../rules/personalCondition.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import { Battle } from './CombatScreen.jsx'
 
@@ -60,7 +64,7 @@ function DebugPanel({ state, mode, lastCombat, onSpacing, onClose }) {
                 {member.position.x.toFixed(2)}, {member.position.y.toFixed(2)}
               </td>
               <td>
-                {member.condition && `${member.condition.status === 'active' ? `${member.condition.hits} Hits` : 'Down'}, `}
+                {member.condition && `${conditionSummary(member.character, normalizeCondition(member.condition))}, `}
                 {member.order ? ORDER_LABEL[member.order.type] : 'Idle'}
                 {member.order?.type === 'follow' && ` ${state.members[member.order.leaderId].character.name}, slot ${member.order.slot + 1}`}
               </td>
@@ -159,13 +163,20 @@ function AwarenessPanel({ world, party, knowledge, noiseTool, onNoiseTool, onRes
             <tr key={npc.id}>
               <td>{npc.name}</td>
               <td>{dispositionName(npc.disposition)}</td>
-              <td className={`npc-state is-${npc.state.toLowerCase().replace('_', '-')}`}>{isDown(npc) ? 'Down' : stateName(npc.state)}</td>
+              <td className={`npc-state is-${npc.state.toLowerCase().replace('_', '-')}`}>{isDown(npc) ? (minorDefeatText(npc.condition) ?? 'Down') : stateName(npc.state)}</td>
               <td>{npc.focusId ? name(npc.focusId) : '-'}</td>
               <td>{npc.alertGroupId ?? '-'}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="explore-debug-heading">Characters</p>
+      {party.memberIds.map((id) => (
+        <CharacterInspector key={id} character={party.members[id].character} condition={party.members[id].condition} actor={{ id, controller: 'player' }} />
+      ))}
+      {getNpcs(world).filter((npc) => npc.character).map((npc) => (
+        <CharacterInspector key={npc.id} character={npc.character} condition={npc.condition} actor={{ id: npc.id, controller: npc.controller, disposition: dispositionName(npc.disposition), awareness: stateName(npc.state) }} />
+      ))}
       <p className="explore-debug-heading">Known to</p>
       <ul className="explore-debug-list">
         {party.memberIds.map((id) => {
@@ -325,7 +336,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debugOpen ? npc.name : entry.identified ? null : 'Life sign' }))
   const bystanders = getNpcs(world)
     .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && isVisibleToParty(knowledge, npc.id))
-    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }, status: npc.condition?.status ?? 'active' }))
+    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }, condition: normalizeCondition(npc.condition) }))
   const trigger = combat.combatants[link.trigger.npcId]
   const target = combat.combatants[link.trigger.targetId]
   const openingFocus = trigger && target ? { x: (trigger.position.x + target.position.x) / 2, y: (trigger.position.y + target.position.y) / 2 } : (trigger?.position ?? null)
@@ -334,8 +345,23 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
     subtitle: !target ? null : trigger && isVisibleToParty(knowledge, trigger.id) ? `${trigger.character.name} engages ${target.character.name}` : `${target.character.name} has been spotted`,
   }))
   const diagnostics = debugOpen ? getCombatDiagnostics(state) : null
+  // The same challenge objects as in exploration, usable by whoever acts (combatLink.js runs them).
+  const objectList = getCombatObjects(state)
+  const objects = {
+    list: objectList,
+    preview: (objectId, actionId) => previewCombatObject(state, objectId, actionId),
+    compare: (objectId, actionId, performerId) => compareCombatObject(state, objectId, actionId, performerId),
+    marks: getChallengeViews(state.scenario).map((view) => ({
+      id: view.id,
+      name: view.name,
+      position: view.position,
+      stateLabel: view.stateLabel,
+      inReach: objectList.some((entry) => entry.definition.id === view.id),
+    })),
+  }
   return (
     <Battle
+      objects={objects}
       state={combat}
       dispatch={combatDispatch}
       showHelpOnStart={false}
@@ -352,13 +378,15 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
       openingBanner={openingBanner}
       snapMarks={diagnostics?.snaps ?? null}
       openingFocus={openingFocus}
+      debugOpen={debugOpen}
+      onDebug={onDebug}
+      worldActors={debugOpen ? Object.fromEntries(getNpcs(world).map((npc) => [npc.id, { disposition: dispositionName(npc.disposition), awareness: stateName(npc.state) }])) : null}
     >
-      <div className="world-combat-debug">
-        <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={onDebug}>
-          Link Debug
-        </button>
-        {diagnostics && <CombatLinkPanel diagnostics={diagnostics} onForceEnd={() => dispatch({ type: 'endCombat' })} />}
-      </div>
+      {diagnostics && (
+        <div className="world-combat-debug">
+          <CombatLinkPanel diagnostics={diagnostics} onForceEnd={() => dispatch({ type: 'endCombat' })} />
+        </div>
+      )}
     </Battle>
   )
 }
@@ -370,6 +398,13 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const [noiseTool, setNoiseTool] = useState(false)
   // UI state: the challenge object whose interaction panel is open. Move orders wait while it's open.
   const [interactionId, setInteractionId] = useState(null)
+  // UI state: who is best at the approach being considered in the interaction panel (party card highlight).
+  const [recommendation, setRecommendation] = useState(null)
+  // The panel recomputes on every world tick (most animation frames); keeping the old object when nothing changed
+  // stops each tick from forcing a second render of the whole screen.
+  const updateRecommendation = useCallback((next) => {
+    setRecommendation((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
+  }, [])
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   const challengeViews = getChallengeViews(state.scenario)
@@ -447,6 +482,9 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         onSelect={select}
       />
       <WeatherFx fx={weatherFor(party.map.weather).fx} />
+      <div className="combat-top-left">
+        <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
+      </div>
       <p className="combat-hint is-player-turn">
         {openId
           ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
@@ -464,7 +502,18 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           ))}
         </div>
       )}
-      {openId && <ChallengePanel key={openId} state={state} objectId={openId} defaultPerformerId={party.selectedIds[0] ?? party.leaderId} dispatch={dispatch} onClose={() => setInteractionId(null)} />}
+      {openId && (
+        <ChallengePanel
+          key={openId}
+          state={state}
+          objectId={openId}
+          defaultPerformerId={party.selectedIds[0] ?? party.leaderId}
+          dispatch={dispatch}
+          onClose={() => setInteractionId(null)}
+          onRecommend={updateRecommendation}
+          dev={debugOpen}
+        />
+      )}
       <div className="combat-top-right">
         <button
           type="button"
@@ -485,12 +534,14 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           Exit
         </button>
       </div>
+      {!openId && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} debug={debugOpen} />}
       <ExplorationPartyBar
         members={members}
         selectedIds={party.selectedIds}
         leaderId={party.leaderId}
         onSelect={select}
         onSetLeader={(id) => dispatch({ type: 'setLeader', id })}
+        recommendation={openId ? recommendation : null}
       />
       {!openId && (
         <FormationPanel

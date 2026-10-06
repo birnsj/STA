@@ -135,6 +135,32 @@
       "description": "Tools for field repairs and technical work.",
       "tags": ["engineering", "repair"],
       "stats": { "engineering": 2 }
+    },
+    {
+      "id": "disruptorPistol",
+      "name": "Disruptor Pistol",
+      "category": "weapon",
+      "icon": null,
+      "description": "Klingon disruptor sidearm.",
+      "faction": ["klingonEmpire"],
+      "tags": ["disruptor", "energyWeapon", "sidearm"],
+      "equipSlot": "sidearm",
+      "sourceType": "book",
+      "statsSourceType": "book",
+      "reference": "STA 2e Core Rulebook p.242 (weapons table), p.354 (Klingon Warrior). Combat stats live in combat/weapons.json; no art yet."
+    },
+    {
+      "id": "dkTahg",
+      "name": "D'k tahg Dagger",
+      "category": "weapon",
+      "icon": null,
+      "description": "Klingon dagger.",
+      "faction": ["klingonEmpire"],
+      "tags": ["blade", "melee"],
+      "equipSlot": null,
+      "sourceType": "book",
+      "statsSourceType": "book",
+      "reference": "STA 2e Core Rulebook p.354 (Klingon Warrior attacks). Combat stats live in combat/weapons.json; no art yet."
     }
   ]
 }

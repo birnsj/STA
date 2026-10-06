@@ -1,4 +1,4 @@
-// Data-driven weapons (data/adaptation/combat/weapons.json). Severity is kept for injuries; it is never damage.
+// Data-driven weapons (data/adaptation/combat/weapons.json). Severity is the Injury's severity (rules/personalCondition.js).
 import weaponData from '../data/adaptation/combat/weapons.json'
 import { getBandIndex, RANGE_BANDS } from './rangeSystem.js'
 

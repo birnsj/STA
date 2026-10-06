@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
-import { getFacing, TURN_AP } from '../../combat/combatState.js'
+import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
 import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
 import { DoneIcon } from './ActionPoints.jsx'
-import HitPips from './HitPips.jsx'
+import ConditionTrack from './ConditionTrack.jsx'
+import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
 import LastKnownMarker from './LastKnownMarker.jsx'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
@@ -67,7 +68,7 @@ const mouseOnly = (callback) => (event) => {
 function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
-  const down = combatant.status !== 'active'
+  const down = Boolean(combatant.condition?.defeated)
   const sideClass = combatant.side === 'player' ? 'is-player' : 'is-enemy'
   const image = combatant.character.portrait?.image
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
@@ -106,11 +107,20 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
               <path className="iso-unit-cover-mark" d="M-2.6 0.2 L-0.6 2.2 L2.8 -1.8" />
             </g>
           )}
+          {combatant.guard && (
+            <g className="iso-unit-guard" transform="translate(-16 -48)">
+              <title>Guarded: attacks against them +1 Difficulty</title>
+              <rect x="-6.5" y="-6.5" width="13" height="13" rx="2" />
+              <text x="0" y="3.5" textAnchor="middle">
+                G
+              </text>
+            </g>
+          )}
         </>
       )}
-      {!down && !isBystander && (
-        <g transform="translate(0 -60)">
-          <HitPips hits={combatant.hits} svg />
+      {!isBystander && combatant.condition && (
+        <g transform={down ? 'translate(0 -20)' : 'translate(0 -60)'}>
+          <ConditionTrack character={combatant.character} condition={combatant.condition} svg />
         </g>
       )}
       {turnStatus && !down && (
@@ -120,12 +130,15 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
           ) : (
             <g className="iso-unit-points">
               <rect className="iso-unit-points-bg" x="-34" y="-7" width={turnStatus.movement.sprintLeft ? 82 : 68} height="12" rx="3" />
-              <text x="-24" y="2.5" textAnchor="middle">
-                {turnStatus.turn.ap}/{TURN_AP}
+              <title>{`${turnStatus.turn.major} Major, ${turnStatus.turn.minor} Minor action left`}</title>
+              <text x="-28" y="2.5" textAnchor="middle">
+                M
               </text>
-              {Array.from({ length: TURN_AP }, (_, index) => (
-                <rect key={index} className={`iso-unit-point${index < turnStatus.turn.ap ? '' : ' is-used'}`} x={-14 + index * 8} y="-3.5" width="6" height="5" rx="1.5" />
-              ))}
+              <rect className={`iso-unit-point${turnStatus.turn.major > 0 ? '' : ' is-used'}`} x="-23" y="-3.5" width="6" height="5" rx="1.5" />
+              <text x="-11" y="2.5" textAnchor="middle">
+                m
+              </text>
+              <rect className={`iso-unit-point${turnStatus.turn.minor > 0 ? '' : ' is-used'}`} x="-6" y="-3.5" width="6" height="5" rx="1.5" />
               <line className="iso-unit-points-divider" x1="3.5" y1="-5" x2="3.5" y2="3" />
               <text className={`iso-unit-move${turnStatus.movement.left ? '' : ' is-empty'}`} x="18.5" y="2.5" textAnchor="middle">
                 &raquo;{turnStatus.movement.left}/{turnStatus.movement.total}
@@ -144,7 +157,8 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
 }
 
-const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', cancelThreat: 'Cancel Threat', momentumHit: '+1 Hit (Momentum)' }
+const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', direct: 'Direct', cancelThreat: 'Cancel Threat', extraMinor: 'Extra Minor', secondMajor: 'Second Major' }
+const TASK_LABELS = { guard: ['Guard', 'Guard failed'], firstAid: ['First Aid', 'First Aid failed'], interact: ['Task', 'Task failed'] }
 const UNIT_HEAD = 30
 
 function actionLabel(action) {
@@ -152,13 +166,20 @@ function actionLabel(action) {
   if (action.type === 'reroll') return action.source === 'aim' ? 'Aim Reroll' : 'Momentum Reroll'
   if (action.type === 'move' && action.inCover) return 'Move to Cover'
   if (action.type === 'sprint' && action.inCover) return 'Sprint to Cover'
+  if (TASK_LABELS[action.type]) return action.passed === false ? TASK_LABELS[action.type][1] : TASK_LABELS[action.type][0]
   return ACTION_LABELS[action.type] ?? null
 }
 
+// What a hit did to the target: an Injury waiting for Avoid Injury, avoided (Stress taken), or Defeated (a Minor NPC:
+// Unconscious or Dead, target condition).
 function resultLabel(action, target) {
-  if (!action.passed && action.type === 'resolve') return 'Miss'
-  if (!action.removed) return '-1 Hit'
-  return `-1 Hit: ${target.status === 'incapacitated' ? 'Incapacitated' : 'Down'}`
+  if (action.type === 'resolve' && !action.passed) return 'Miss'
+  const defeated = minorDefeatText(target?.condition) ?? 'Defeated'
+  if (action.type === 'injury') return action.avoided ? 'Injury avoided' : defeated
+  const injury = action.injury ? `${injuryTypeName(action.injury.type)} ${action.injury.severity}` : 'Hit'
+  if (action.awaiting) return `${injury}: Avoid?`
+  if (action.removed) return `${injury}: ${defeated}`
+  return `${injury}: avoided`
 }
 
 // A floating label that follows a unit (same transform transition as the unit, so it walks with it).
@@ -196,7 +217,7 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const beamColor = weapon && (weapon.beamColors?.[action.injuryMode] ?? weapon.beamColor)
   const from = tileCentre(positionOf(actor))
   const to = target && tileCentre(positionOf(target))
-  const showsResult = (action.type === 'resolve' || action.type === 'momentumHit') && target
+  const showsResult = (action.type === 'resolve' || action.type === 'injury') && target
   return (
     <g key={action.key} className="fx" pointerEvents="none">
       {isShot && beamColor && (
@@ -232,6 +253,26 @@ function MovePathLine({ path }) {
   )
 }
 
+// A challenge object on the battlefield (combat in the world): its name and state; clickable when the acting character
+// can reach it. mark: { id, name, position, stateLabel, inReach }.
+function ObjectMarker({ mark, onClick }) {
+  const centre = tileCentre(mark.position)
+  return (
+    <g
+      className={`combat-object${mark.inReach ? ' is-in-reach' : ''}`}
+      transform={`translate(${centre.x} ${centre.y})`}
+      onClick={mark.inReach ? onClick : undefined}
+      data-ui-sound={mark.inReach ? '' : undefined}
+    >
+      <title>{`${mark.name}: ${mark.stateLabel}${mark.inReach ? ' (click to use)' : ''}`}</title>
+      <polygon points="0,-30 9,-21 0,-12 -9,-21" />
+      <text y="-34" textAnchor="middle">
+        {mark.name}
+      </text>
+    </g>
+  )
+}
+
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
 // ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
@@ -260,6 +301,8 @@ export default function Battlefield({
   onUnitHover = () => {},
   onRingHover = () => {},
   onRightClick,
+  objectMarks = null,
+  onObjectClick = () => {},
 }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
@@ -279,7 +322,7 @@ export default function Battlefield({
   const depthItems = [
     ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <BlockTile key={`b${block.x},${block.y}`} map={map} position={block} /> })),
     ...units.map((unit) => ({
-      depth: shownPosition(unit).x + shownPosition(unit).y + (unit.status === 'active' ? 0.5 : 0.1),
+      depth: shownPosition(unit).x + shownPosition(unit).y + (unit.condition.defeated ? 0.1 : 0.5),
       key: `u${unit.id}`,
       render: () => (
         <Unit
@@ -299,12 +342,12 @@ export default function Battlefield({
       ),
     })),
     ...bystanders.map((npc) => ({
-      depth: npc.position.x + npc.position.y + (npc.status === 'active' ? 0.5 : 0.1),
+      depth: npc.position.x + npc.position.y + (npc.condition.defeated ? 0.1 : 0.5),
       key: `n${npc.id}`,
       render: () => (
         <Unit
           key={`n${npc.id}`}
-          combatant={{ id: npc.id, character: npc.character, side: 'enemy', status: npc.status, hits: 0, inCover: false }}
+          combatant={{ id: npc.id, character: npc.character, side: 'enemy', condition: npc.condition, inCover: false }}
           position={npc.position}
           facing={npc.facing}
           msPerTile={0}
@@ -365,6 +408,9 @@ export default function Battlefield({
         </g>
       )}
       {lastKnownMarks?.map((mark) => <LastKnownMarker key={mark.id} position={mark.position} label={mark.label} />)}
+      {objectMarks?.map((mark) => (
+        <ObjectMarker key={mark.id} mark={mark} onClick={() => onObjectClick(mark.id)} />
+      ))}
       {depthItems.map((item) => item.render())}
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {shot && (

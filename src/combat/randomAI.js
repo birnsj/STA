@@ -10,7 +10,7 @@ const SEED_SALT = 0x5bd1e995
 
 export function randomStep(state, self) {
   if (state.pending) return pendingStep(state, self)
-  const random = seededRandomInt(deriveSeed(state.seed ^ SEED_SALT, state.log.length * 4 + state.turn.ap))
+  const random = seededRandomInt(deriveSeed(state.seed ^ SEED_SALT, state.log.length * 4 + state.turn.major * 2 + state.turn.minor))
   const pick = (list) => list[Math.floor(random() * list.length)]
 
   const shots = getOpponents(state, self)

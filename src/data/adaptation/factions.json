@@ -1,0 +1,11 @@
+{
+  "notes": [
+    "VIDEOGAME ADAPTATION (designer spec, Oct 2026: Unified Character Architecture): every character belongs to a faction. Faction is character data; it is not who controls the character (player / AI) or how they feel about the away team (disposition, awareness), which belong to the world actor.",
+    "creatorFaction: the faction of every character made in the character creator (the Federation / TOS demo direction). The creator has no faction choice; exports from before schema 0.9.0 carry no faction and are read as this one."
+  ],
+  "creatorFaction": "federation",
+  "factions": [
+    { "id": "federation", "name": "Federation" },
+    { "id": "klingonEmpire", "name": "Klingon Empire" }
+  ]
+}

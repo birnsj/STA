@@ -5,11 +5,15 @@ import { createEmptyCareer } from '../rules/career.js'
 import { createEmptyCareerHistory } from '../rules/careerHistory.js'
 import { createEmptyFinishingTouches, createEmptyIdentity } from '../rules/finishingTouches.js'
 import { createEmptyTalents } from '../rules/talents.js'
+import { getCreatorFaction } from '../rules/factions.js'
 
 // Single source of truth for the character's shape. Fields are added here only
 // as each creation screen is approved; the schema is intentionally not final.
 export function createEmptyCharacter() {
   return {
+    // { id, name } (factions.json). Videogame adaptation: fixed for creator characters (no choice screen); authored
+    // characters (adaptation/characters.json) carry their own.
+    faction: getCreatorFaction(),
     // { id, name, traits: [{ id, name }], attributeBonuses: [{ id, name, value }] }
     species: null,
     // { setting, condition, otherSpecies, value: { text, matrixId }, attributeBonus, disciplineBonus }

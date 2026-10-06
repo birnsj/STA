@@ -3,9 +3,13 @@
 // of the game uses: the map (a sealed door's tile), NPC awareness (noise), Party Knowledge (scans) and scenario flags.
 //
 // Definitions (static, authored: challenges.json now, the map editor later) are kept apart from the scenario's runtime
-// state: scenario = { definitions, objects: { [id]: { state, locks, difficultyMods, originalTile } }, flags, traits,
-// log, taskCount }. The resolver decides success / failure / complications; the object decides what that means.
+// state: scenario = { definitions, objects: { [id]: { state, locks, combatLocks, difficultyMods, originalTile } }, flags,
+// traits: [{ name, potency, description, source }], log, taskCount }. The resolver decides success / failure /
+// complications; the object decides what that means. The same objects stay usable in combat (exploration/combatLink.js):
+// same definitions, same state, same rules; combat only decides who acts, what it costs and who assists.
 import data from '../data/adaptation/exploration/challenges.json'
+import { checkDicePurchase, payForDice, saveMomentum } from '../rules/missionResources.js'
+import { isDefeated } from '../rules/personalCondition.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollD20, rollDice } from '../rules/taskResolver.js'
@@ -18,14 +22,14 @@ export const INTERACT_RANGE = data.interactRange
 const TASK_SEED_OFFSET = 100000
 
 const pointOf = (definition) => ({ x: definition.position[0], y: definition.position[1] })
-const isUp = (member) => !member.condition || member.condition.status === 'active'
+const isUp = (member) => !isDefeated(member.condition)
 
 export function createScenario(map) {
   const definitions = data.maps[map.id] ?? data.maps[map.name] ?? []
   const objects = Object.fromEntries(
     definitions.map((definition) => {
       const { x, y } = pointOf(definition)
-      return [definition.id, { state: definition.state, locks: {}, difficultyMods: {}, originalTile: map.tiles[y][x] }]
+      return [definition.id, { state: definition.state, locks: {}, combatLocks: {}, difficultyMods: {}, originalTile: map.tiles[y][x] }]
     }),
   )
   return { definitions, objects, flags: {}, traits: [], log: [], taskCount: 0 }
@@ -89,27 +93,44 @@ export function getAvailableActions(state, objectId) {
   return definition.actions
     .filter((action) => meetsRequirements(scenario, definition, action.requires))
     .map((action) => {
+      const combatLock = object.combatLocks?.[action.id]
+      if (state.combat && combatLock !== undefined && state.combat.round < combatLock) return { action, available: false, reason: 'Try again next round' }
       const lockedUntil = object.locks[action.id]
       if (lockedUntil !== undefined && world.time < lockedUntil) return { action, available: false, reason: `Try again in ${Math.ceil(lockedUntil - world.time)}s` }
       return { action, available: true, reason: null }
     })
 }
 
-const taskContext = (scenario, objectId, actionId) => {
+// The action type an object's action takes in combat (Book p.288: a routine interaction is a minor action, an
+// interaction needing a task is a major one), from its authored actionCost.combat.
+export const combatCostOf = (action) => action.actionCost?.combat ?? (action.routine ? 'minor' : 'major')
+
+// The party always performs object tasks ('player' side, for side-limited trait rules). condition: the performer's
+// personal condition (Fatigue and Stress complications apply in exploration too).
+// combatLines (combat only): Difficulty changes combat adds to the task ([{ label, change }], e.g. a bought second Major).
+const taskContext = (scenario, objectId, actionId, condition, combatLines = []) => {
   const mod = scenario.objects[objectId].difficultyMods[actionId]
-  return { traits: scenario.traits, difficultyMod: mod?.change ?? 0, difficultyModLabel: mod?.label }
+  return { traits: scenario.traits, side: 'player', condition, difficultyMod: mod?.change ?? 0, difficultyModLabel: mod?.label, extraLines: combatLines }
 }
 
-// The character math before the roll: { prepared (leader), assist: { approach, task, focus } | null }.
-export function previewChallenge(state, { objectId, actionId, performerId, assistantId = null, assistIndex = 0 }) {
+// The character math before the roll: { prepared (leader), assist: { approach, task, focus, ... } | null }.
+// combatAssist (combat only): the assist combat has decided on (an Assist set up for the performer, or the commander's
+// Control + Command on a Direct), already prepared; it replaces the exploration assistant. combatLines: see taskContext.
+export function previewChallenge(state, { objectId, actionId, performerId, assistantId = null, assistIndex = 0, combatAssist = null, combatLines = [] }) {
   const definition = getDefinition(state.scenario, objectId)
   const action = definition.actions.find((candidate) => candidate.id === actionId)
   if (action.routine) return { prepared: null, assist: null }
-  const prepared = prepareTask(state.party.members[performerId].character, action.task, taskContext(state.scenario, objectId, actionId))
+  const performer = state.party.members[performerId]
+  const prepared = prepareTask(performer.character, action.task, taskContext(state.scenario, objectId, actionId, performer.condition, combatLines))
+  if (combatAssist) return { prepared, assist: combatAssist }
   const approach = assistantId && action.assist?.[assistIndex]
-  const assist = approach ? { approach, ...prepareAssist(state.party.members[assistantId].character, approach) } : null
+  const assistant = assistantId && state.party.members[assistantId]
+  const assist = approach ? { approach, ...prepareAssist(assistant.character, approach, assistant.condition) } : null
   return { prepared, assist }
 }
+
+const traitKey = (name) => name.toLowerCase()
+const withTraits = (state, traits) => ({ ...state, scenario: { ...state.scenario, traits } })
 
 // ---------- outcome effects ----------
 
@@ -145,7 +166,23 @@ function applyEffect(state, definition, action, effect, ctx) {
       return { ...state, world: { ...state.world, npcs } }
     }
     case 'lock':
+      // The world clock stands still during combat, so there the lock lasts until the next combat round.
+      if (state.combat) return setObject({ combatLocks: { ...object.combatLocks, [action.id]: state.combat.round + 1 } })
       return setObject({ locks: { ...object.locks, [action.id]: state.world.time + effect.seconds } })
+    // Create Trait (Book p.288): create a trait, remove one, or change its Potency (Book p.252).
+    case 'addTrait': {
+      const others = state.scenario.traits.filter((trait) => traitKey(trait.name) !== traitKey(effect.name))
+      return withTraits(state, [...others, { name: effect.name, potency: effect.potency ?? 1, description: effect.description ?? '', source: definition.id }])
+    }
+    case 'removeTrait':
+      return withTraits(state, state.scenario.traits.filter((trait) => traitKey(trait.name) !== traitKey(effect.name)))
+    case 'changePotency':
+      return withTraits(
+        state,
+        state.scenario.traits
+          .map((trait) => (traitKey(trait.name) === traitKey(effect.name) ? { ...trait, potency: trait.potency + effect.change } : trait))
+          .filter((trait) => trait.potency > 0),
+      )
     case 'message':
       ctx.messages.push(effect.text)
       return state
@@ -159,26 +196,36 @@ const withMap = (state) => {
   return map === state.party.map ? state : { ...state, party: { ...state.party, map }, world: { ...state.world, map } }
 }
 
-// A player's attempt: { objectId, actionId, performerId, assistantId, assistIndex }. Returns the new state with
-// lastTask (what the panel shows) and a log entry; the state is unchanged when the attempt isn't allowed.
+// A player's attempt: { objectId, actionId, performerId, assistantId, assistIndex, purchase }. purchase (optional):
+// bonus d20s bought before the roll, { bonusDice, momentum } (rules/missionResources.js), paid from the mission's
+// group Momentum and/or by adding Threat. Afterwards the task's Momentum is saved to the group pool (bonus Momentum
+// never is: Book p.260). Returns the new state with lastTask (what the panel shows) and a log entry; the state is
+// unchanged when the attempt isn't allowed. In combat, request.combatAssist replaces assistantId (see previewChallenge)
+// and the caller has already put the fighters' positions into party.members.
 export function attemptChallenge(state, request) {
-  const { objectId, actionId, performerId, assistantId = null, assistIndex = 0 } = request
+  const { objectId, actionId, performerId, assistantId = null, assistIndex = 0, combatAssist = null } = request
   const definition = getDefinition(state.scenario, objectId)
   const offered = definition && getAvailableActions(state, objectId).find((entry) => entry.action.id === actionId)
   const inRange = definition ? membersInRange(state.party, definition).map((member) => member.id) : []
   if (!offered?.available || !inRange.includes(performerId)) return state
-  if (assistantId && (assistantId === performerId || !inRange.includes(assistantId) || !offered.action.assist?.[assistIndex])) return state
+  if (!combatAssist && assistantId && (assistantId === performerId || !inRange.includes(assistantId) || !offered.action.assist?.[assistIndex])) return state
   const { action } = offered
 
   const ctx = { performerId, messages: [] }
   let result = null
   let preview = { prepared: null, assist: null }
   let effects = action.onSuccess ?? []
+  let resources = state.resources
+  let purchase = null
+  let saving = null
   if (!action.routine) {
     preview = previewChallenge(state, request)
     if (!preview.prepared.possible) return state
+    purchase = checkDicePurchase(state.resources, request.purchase)
+    if (!purchase.valid) return state
+    resources = payForDice(resources, purchase)
     const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + state.scenario.taskCount))
-    const dice = rollDice(random)
+    const dice = rollDice(random, purchase.dice)
     const assistDie = preview.assist ? rollD20(random) : null
     result = resolveStaTask({
       leader: { task: preview.prepared.task, dice },
@@ -188,10 +235,13 @@ export function attemptChallenge(state, request) {
       bonusMomentum: preview.prepared.bonusMomentum,
     })
     effects = [...(action.always ?? []), ...((result.success ? action.onSuccess : action.onFailure) ?? []), ...(result.complications ? (action.onComplication ?? []) : [])]
+    // No Momentum spends on challenge results yet, so everything but bonus Momentum goes to the group pool.
+    saving = saveMomentum(resources, result.momentumGenerated - result.bonusMomentum)
+    resources = saving.resources
   }
 
   const key = state.scenario.taskCount
-  let next = { ...state, scenario: { ...state.scenario, taskCount: key + 1 } }
+  let next = { ...state, resources, scenario: { ...state.scenario, taskCount: key + 1 } }
   next = effects.reduce((current, effect) => applyEffect(current, definition, action, effect, ctx), next)
   const entry = {
     key,
@@ -199,12 +249,16 @@ export function attemptChallenge(state, request) {
     objectId,
     actionId,
     performerId,
-    assistantId: preview.assist ? assistantId : null,
+    assistantId: preview.assist ? (combatAssist?.helperId ?? assistantId) : null,
     routine: Boolean(action.routine),
     success: result ? result.success : true,
     successes: result?.successes ?? null,
-    // Hook for the future group Momentum pool: generated here, not yet spent or banked anywhere else.
     momentumGenerated: result?.momentumGenerated ?? 0,
+    momentumSaved: saving?.saved ?? 0,
+    momentumLost: saving?.lost ?? 0,
+    bonusDice: purchase?.bonusDice ?? 0,
+    momentumSpentOnDice: purchase?.momentum ?? 0,
+    threatAddedForDice: purchase?.threatAdded ?? 0,
     complications: result?.complications ?? 0,
   }
   next = { ...next, scenario: { ...next.scenario, log: [...next.scenario.log, entry] } }

@@ -4,18 +4,42 @@
 // in); endCombat writes the outcome back into the world and hands control back to exploration.
 // Pure functions over the exploration state (src/exploration/explorationState.js); no React.
 import { autoCombatReducer } from '../combat/autoCombat.js'
-import { tileKey } from '../combat/battleMap.js'
-import { addCombatant, canMove, combatReducer, createCombat, getActiveCombatant, getCombatantList, getOpponents, getReachable, isActive } from '../combat/combatState.js'
+import { tileKey, toBattleMap } from '../combat/battleMap.js'
+import {
+  addCombatant,
+  actionTypeOf,
+  applyInteraction,
+  awaitingDecision,
+  canInteract,
+  canMove,
+  combatReducer,
+  createCombat,
+  getActiveCombatant,
+  getEncounter,
+  getAssistFor,
+  getCombatantList,
+  getOpponents,
+  getReachable,
+  isActive,
+  secondMajorLines,
+  withStandardIssue,
+} from '../combat/combatState.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
+import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, joinsCombat, perceive, STATE } from './awareness.js'
+import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
 import { getMembers } from './partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
 
 export const MODE = { EXPLORATION: 'EXPLORATION', COMBAT: 'COMBAT' }
 const WORLD_ENCOUNTER_ID = 'explorationContact'
+// The character as they will fight if combat starts in the world (the world encounter's standard-issue weapon if they
+// bring none of their own).
+export const armedForWorldCombat = (character) => withStandardIssue(character, getEncounter(WORLD_ENCOUNTER_ID).standardIssueWeapon)
+
 // How far from the trigger the diagnostics list NPCs that stayed out of the fight.
 const NEARBY_DISTANCE = 14
 
@@ -33,9 +57,11 @@ const headingToFacing = (heading) => {
   return x || y ? { x, y } : { x: 1, y: 0 }
 }
 const facingToHeading = (facing) => Math.atan2(facing.y, facing.x)
-const isUp = (entity) => !entity.condition || entity.condition.status === 'active'
-const conditionOf = (combatant) => ({ status: combatant.status, hits: combatant.hits, injury: combatant.injury })
-const fromCondition = (entity) => (entity.condition ? { hits: entity.condition.hits, status: entity.condition.status, injury: entity.condition.injury } : {})
+// Each character's personal condition (rules/personalCondition.js: Stress, Injuries, Defeated) is the same object in the
+// world and in the fight: handed in when combat starts, handed back when it ends.
+const isUp = (entity) => !isDefeated(entity.condition)
+const conditionOf = (combatant) => combatant.condition
+const fromCondition = (entity) => ({ condition: normalizeCondition(entity.condition) })
 
 // ---------- who fights ----------
 
@@ -86,6 +112,8 @@ function spreadAlerts(world, joins, inFight) {
     if (searchPoint) searchPoints[npcId] = searchPoint
     if (!npc.alertGroupId) continue
     const call = alertFor(npc)
+    // Joining a fight calls the group by the NPC's usual, local way (its alertMethod's range and sight). Raising the
+    // alarm is an exploration response (awareness.js), not something combat starting does by itself.
     const after = alertGroup(next, npc.alertGroupId, { ...call, sourceNpcId: npcId, method: npc.alertMethod })
     next.npcIds.forEach((id) => {
       if (after.npcs[id] !== next.npcs[id] && joinsCombat(after.npcs[id])) queue.push({ npcId: id, reason: 'alertGroup', searchPoint: worldToGrid(call.position) })
@@ -166,12 +194,22 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
     .map((member) => ({ character: member.character, position: snaps[member.id].cell, facing: headingToFacing(member.heading), ...fromCondition(member) }))
   const enemies = npcIds
     .filter((id) => snaps[id])
-    .map((id) => ({ character: world.npcs[id].character, position: snaps[id].cell, facing: headingToFacing(world.npcs[id].heading), ...fromCondition(world.npcs[id]) }))
+    .map((id) => ({ id, character: world.npcs[id].character, position: snaps[id].cell, facing: headingToFacing(world.npcs[id].heading), ...fromCondition(world.npcs[id]) }))
 
-  // 3. Combat Type 1 on that moment, carrying over what each NPC knows.
+  // 3. Combat Type 1 on that moment, carrying over what each NPC knows. Each NPC fights as itself: the combatant has the
+  // world actor's id and the actor's own character and condition (no combat-only stat block).
   const combatCount = state.combatCount + 1
-  const knowledge = Object.fromEntries(enemies.map((enemy) => [enemy.character.id, knowledgeFromWorld(world.npcs[enemy.character.id], party.memberIds)]))
-  const created = createCombat({ encounterId: WORLD_ENCOUNTER_ID, map: party.map, players: [], seed: deriveSeed(state.seed, combatCount), placements: { players, enemies } })
+  const knowledge = Object.fromEntries(enemies.map((enemy) => [enemy.id, knowledgeFromWorld(world.npcs[enemy.id], party.memberIds)]))
+  // The fight holds the mission's Momentum and Threat while it runs (combatAction keeps state.resources equal to it).
+  const created = createCombat({
+    encounterId: WORLD_ENCOUNTER_ID,
+    map: party.map,
+    players: [],
+    seed: deriveSeed(state.seed, combatCount),
+    placements: { players, enemies },
+    resources: state.resources,
+    sceneTraits: state.scenario?.traits ?? [],
+  })
   const targetName = party.members[triggerTargetId]?.character.name ?? 'the away team'
   const lines = [
     `${trigger.character.name} engages ${targetName}.`,
@@ -211,7 +249,7 @@ export function requestCombat(state) {
 function searchStep(state) {
   const { combat, link } = state
   const self = getActiveCombatant(combat)
-  if (self.side !== 'enemy' || !combat.knowledge?.[self.id] || combat.pending || getOpponents(combat, self).length) return null
+  if (self.side !== 'enemy' || !combat.knowledge?.[self.id] || combat.pending || awaitingDecision(combat) || getOpponents(combat, self).length) return null
   const places = Object.values(combat.knowledge[self.id]).map((entry) => entry.lastKnownPosition).filter(Boolean)
   if (link.searchPoints[self.id]) places.push(link.searchPoints[self.id])
   const goal = places.sort((a, b) => tileDistance(self.position, a) - tileDistance(self.position, b))[0]
@@ -269,7 +307,7 @@ function joinFight(state, joins, searchPoints, seenBy) {
     const taken = new Set([...getCombatantList(combat).filter(isActive).map((c) => tileKey(c.position)), ...bystanderKeys(state.world, [...link.npcIds, npc.id])])
     const snap = nearestFreeCell(combat.map, npc.position, taken)
     if (!snap) return
-    combat = addCombatant(combat, { character: npc.character, position: snap.cell, facing: headingToFacing(npc.heading), ...fromCondition(npc) })
+    combat = addCombatant(combat, { id: npc.id, character: npc.character, position: snap.cell, facing: headingToFacing(npc.heading), ...fromCondition(npc) })
     const knowledge = knowledgeFromWorld(npc, state.party.memberIds)
     ;(seenBy[npc.id] ?? []).forEach((player) => {
       knowledge[player.id] = { ...knowledge[player.id], known: true, lastKnownPosition: { ...player.position }, source: 'sight' }
@@ -297,16 +335,161 @@ export function emitCombatNoise(state, kind, position, sourceId) {
   return { state: { ...state, world }, heard }
 }
 
-// Every combat action from the Combat Type 1 screen comes through here. action: a Combat Type 1 action, or
-// { type: 'aiStep', partyAI, enemyAI }.
+// ---------- challenge objects in combat ----------
+
+// The fighters' current cells as world positions (and their condition) on the party members, so the challenge
+// objects' own range and ability checks see where everyone stands in the fight.
+function withFightersInWorld(state) {
+  const members = { ...state.party.members }
+  state.party.memberIds.forEach((id) => {
+    const combatant = state.combat.combatants[id]
+    if (combatant) members[id] = { ...members[id], position: gridToWorld(combatant.position), condition: conditionOf(combatant) }
+  })
+  return { ...state, party: { ...state.party, members } }
+}
+
+const reachesObject = (definition, position) => Math.hypot(position.x - definition.position[0], position.y - definition.position[1]) <= INTERACT_RANGE
+
+// The objects the combatant whose turn it is can reach from their cell, with what each offers now and what it costs:
+// [{ definition, actions: [{ action, available, reason, cost, affordable }] }]. Empty outside a party turn.
+export function getCombatObjects(state) {
+  if (state.mode !== MODE.COMBAT || !state.scenario) return []
+  const { combat } = state
+  const actor = getActiveCombatant(combat)
+  if (!actor || actor.side !== 'player' || combat.pending || awaitingDecision(combat) || combat.outcome) return []
+  const position = gridToWorld(actor.position)
+  return state.scenario.definitions
+    .filter((definition) => reachesObject(definition, position))
+    .map((definition) => ({
+      definition,
+      actions: getAvailableActions(state, definition.id).map((entry) => ({
+        ...entry,
+        cost: combatCostOf(entry.action),
+        affordable: canInteract(combat, actor.id, combatCostOf(entry.action)),
+      })),
+    }))
+    .filter((entry) => entry.actions.length)
+}
+
+// Who would assist this object task in combat, prepared for challengeObjects (an Assist set up for the performer uses
+// the object's authored approach at assistIndex; the commander on a Direct uses Control + Command).
+export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0) {
+  const action = getDefinition(state.scenario, objectId)?.actions.find((candidate) => candidate.id === actionId)
+  if (!action || action.routine) return null
+  const actor = getActiveCombatant(state.combat)
+  const approach = action.assist?.[assistIndex] ?? null
+  const assist = getAssistFor(state.combat, actor.id, { approach })
+  return assist && { ...assist, approach: approach ?? { label: assist.label } }
+}
+
+// Difficulty lines combat adds to an object's task (a bought second major action's +1 on a major-cost task).
+export function getCombatObjectLines(state, objectId, actionId) {
+  const action = getDefinition(state.scenario, objectId)?.actions.find((candidate) => candidate.id === actionId)
+  if (!action || action.routine || actionTypeOf(combatCostOf(action)) !== 'major') return []
+  return secondMajorLines(state.combat, getActiveCombatant(state.combat).id)
+}
+
+// The object task's math for whoever acts, exactly as interactInCombat will attempt it: the fighters' current condition
+// (Fatigue gained in the fight), combat's assist and its Difficulty lines.
+export function previewCombatObject(state, objectId, actionId) {
+  return previewChallenge(withFightersInWorld(state), {
+    objectId,
+    actionId,
+    performerId: getActiveCombatant(state.combat).id,
+    combatAssist: getCombatObjectAssist(state, objectId, actionId),
+    combatLines: getCombatObjectLines(state, objectId, actionId),
+  })
+}
+
+// The same task for any party member with their current condition, without the actor's assist or bought extra action,
+// so members can be compared on their own merits (the best-choice highlight).
+export const compareCombatObject = (state, objectId, actionId, performerId) => previewChallenge(withFightersInWorld(state), { objectId, actionId, performerId })
+
+const taskLines = (task, prepared) => [
+  `${task.attribute.name} ${task.attribute.value} + ${task.department.name} ${task.department.value} = TN ${task.targetNumber}`,
+  `Focus: ${task.focus ? `${task.focus} (critical at or under ${task.criticalRange})` : 'None (critical only on a 1)'}`,
+  `Difficulty: ${prepared.difficulty} (${prepared.difficultyLines.map((line) => `${line.label} ${line.change >= 0 ? '+' : ''}${line.change}`).join(', ')})`,
+]
+
+// A challenge object's action taken by the combatant whose turn it is: { objectId, actionId, purchase, assistIndex }.
+// The object's own rules run unchanged (attemptChallenge: same definition, state, task and outcomes as in exploration);
+// the fight then records the action type spent, the mission pools, and the result. Outcomes reach the world at once:
+// the map (doors), NPC awareness (noise, alarm), Party Knowledge and scene traits.
+function interactInCombat(state, action) {
+  const { combat } = state
+  const actor = getActiveCombatant(combat)
+  const definition = getDefinition(state.scenario, action.objectId)
+  const objectAction = definition?.actions.find((candidate) => candidate.id === action.actionId)
+  if (!objectAction || actor.side !== 'player' || !state.party.members[actor.id]) return state
+  const cost = combatCostOf(objectAction)
+  if (!canInteract(combat, actor.id, cost)) return state
+  const combatAssist = getCombatObjectAssist(state, action.objectId, action.actionId, action.assistIndex ?? 0)
+  const synced = withFightersInWorld(state)
+  const combatLines = getCombatObjectLines(state, action.objectId, action.actionId)
+  const after = attemptChallenge(synced, { objectId: action.objectId, actionId: action.actionId, performerId: actor.id, purchase: action.purchase, combatAssist, combatLines })
+  if (after === synced) return state
+
+  const { lastTask } = after
+  const result = lastTask.result
+  const lines = result
+    ? [
+        ...taskLines(lastTask.prepared.task, lastTask.prepared),
+        ...(lastTask.bonusDice ? [`Bought ${lastTask.bonusDice} bonus d20${lastTask.bonusDice === 1 ? '' : 's'}`] : []),
+        `Rolls: ${result.dice.map((die) => `${die.value} = ${die.successes}${die.critical ? ' (critical)' : ''}${die.complication ? ' (complication)' : ''}`).join(', ')}`,
+        ...(result.assist ? [`${combatAssist.via === 'direct' ? 'Commander assists (Direct)' : 'Assist'}: ${combat.combatants[combatAssist.helperId].character.name} rolls ${result.assist.value}: ${!result.assist.successes ? 'no success' : result.assist.counted ? `counts (+${result.assist.successes})` : 'does not count (no leader success)'}`] : []),
+        `Successes: ${result.successes} vs Difficulty ${lastTask.prepared.difficulty}`,
+        `RESULT: ${result.success ? 'SUCCESS' : 'FAILURE'}`,
+        `Momentum generated: ${result.momentumGenerated}; ${lastTask.momentumSaved} saved to the group pool (now ${after.resources.momentum})`,
+        ...(result.complications ? [`Complications: ${result.complications}`] : []),
+        ...lastTask.messages,
+      ]
+    : ['Routine: no roll.', ...lastTask.messages]
+  let nextCombat = applyInteraction(combat, {
+    actorId: actor.id,
+    cost,
+    resources: after.resources,
+    label: `${definition.name}: ${objectAction.label}`,
+    passed: result ? result.success : null,
+    task: result ? { ...lastTask.prepared.task, difficulty: lastTask.prepared.difficulty } : null,
+    dice: result?.dice ?? [],
+    assist: result?.assist && combatAssist ? { helperId: combatAssist.helperId, task: combatAssist.task, via: combatAssist.via, die: result.assist.value, successes: result.assist.successes, counted: result.assist.counted } : null,
+    successes: result?.successes ?? 0,
+    complications: result?.complications ?? 0,
+    momentumGenerated: result?.momentumGenerated ?? 0,
+    momentumSaved: lastTask.momentumSaved,
+    assistUsed: Boolean(result?.assist && combatAssist?.via === 'assist'),
+    lines,
+  })
+  if (nextCombat === combat) return state
+  // A changed tile (a door opening) changes movement and line of fire at once; traits change every later task.
+  if (after.party.map !== state.party.map) nextCombat = { ...nextCombat, map: toBattleMap(after.party.map) }
+  nextCombat = { ...nextCombat, sceneTraits: after.scenario.traits }
+  // The world, scenario and Party Knowledge as the object left them; party positions stay owned by the fight.
+  let next = { ...after, party: { ...after.party, members: state.party.members }, combat: nextCombat, resources: nextCombat.resources }
+
+  // Noise from the object: NPCs outside the fight who heard it and would fight join, looking where it came from.
+  const oldEvents = new Set(state.world.events)
+  const heard = after.world.events.filter((event) => !oldEvents.has(event) && event.type === 'NOISE_HEARD').map((event) => event.npcId)
+  const joins = [...new Set(heard)].filter((id) => !next.link.npcIds.includes(id) && joinsCombat(next.world.npcs[id])).map((npcId) => ({ npcId, reason: 'heard' }))
+  const objectCell = worldToGrid({ x: definition.position[0], y: definition.position[1] })
+  const searchPoints = Object.fromEntries(joins.map((join) => [join.npcId, objectCell]))
+  next = { ...next, combat: refreshSight(next.combat, next.world) }
+  if (!joins.length || next.combat.outcome) return withPartyPerception(next)
+  const spread = spreadAlerts(next.world, joins.map((join) => ({ ...join, searchPoint: objectCell })), next.link.npcIds)
+  return withPartyPerception(joinFight({ ...next, world: spread.world }, spread.joined, { ...searchPoints, ...spread.searchPoints }, {}))
+}
+
+// Every combat action from the Combat Type 1 screen comes through here. action: a Combat Type 1 action,
+// { type: 'interact', objectId, actionId, purchase, assistIndex } (a challenge object), or { type: 'aiStep', partyAI, enemyAI }.
 export function combatAction(state, action) {
   if (state.mode !== MODE.COMBAT) return state
+  if (action.type === 'interact') return interactInCombat(state, action)
   const before = state.combat
   const search = action.type === 'aiStep' && !before.outcome ? searchStep(state) : null
   let combat = search ? combatReducer(before, search) : autoCombatReducer(before, action)
   if (search && combat === before) combat = combatReducer(before, { type: 'endTurn', decision: 'End turn', reason: 'Could not search; ending turn.' })
   if (combat === before) return state
-  let next = { ...state, combat }
+  let next = { ...state, combat, resources: combat.resources }
 
   // An attack reveals the attacker to its target and makes a noise others may hear.
   const joins = []
@@ -338,8 +521,10 @@ export function combatAction(state, action) {
 
 // ---------- end ----------
 
-// The single way out of combat: final cells become world positions, Hits and status stay with each character and NPC,
-// and exploration resumes from there (no return to earlier positions, no formation snap).
+// The single way out of combat: final cells become world positions, each character's and NPC's condition (Stress,
+// Injuries, Defeated) stays with them, and exploration resumes from there (no return to earlier positions, no formation
+// snap). Hook (Book p.292): a Dying character whose Deadly Injury had no medical attention dies at the end of the scene;
+// lastCombat.wouldDie lists them, and nobody is killed yet.
 export function endCombat(state) {
   if (state.mode !== MODE.COMBAT) return state
   const { combat, link, party, world } = state
@@ -391,8 +576,10 @@ export function endCombat(state) {
     rounds: combat.round,
     npcIds: link.npcIds,
     down: getCombatantList(combat).filter((c) => !isActive(c)).map((c) => c.id),
+    dying: getCombatantList(combat).filter((c) => c.condition.dying).map((c) => c.id),
+    wouldDie: getCombatantList(combat).filter((c) => wouldDieAtSceneEnd(c.condition)).map((c) => c.id),
   }
-  return { ...state, mode: MODE.EXPLORATION, party: { ...party, members }, world: { ...world, npcs }, combat: null, link: null, lastCombat }
+  return { ...state, mode: MODE.EXPLORATION, party: { ...party, members }, world: { ...world, npcs }, combat: null, link: null, lastCombat, resources: combat.resources }
 }
 
 // ---------- diagnostics ----------

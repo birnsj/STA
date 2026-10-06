@@ -1,7 +1,8 @@
 {
   "notes": [
     "Test NPCs for the exploration prototype (awareness validation scenario, Oct 2026). Placeholder setup until the map editor can place NPCs.",
-    "characterId: an enemy record in src/data/adaptation/combat/enemies.json (read only), used for the portrait now and for the hand-off to combat later.",
+    "Each entry is a world actor: it references the person it is (characterId: a full character in src/data/adaptation/characters.json) and holds only how this instance behaves in the world. The actor never copies or overrides the character's stats; the same character fights as the same combatant when combat starts.",
+    "controller (optional, default 'ai'): who decides the actor's actions. npcRules (optional, none by default): an explicit authored choice of the book's streamlined NPC rules for this actor ('minor' | 'notable' | 'major', Book p.291); without it the actor uses the full character rules like the away team (VIDEOGAME ADAPTATION, Oct 2026).",
     "maps: NPCs for one map, keyed by map file name. position [x, y] in tiles; facing in degrees (0 = toward increasing x, 90 = toward increasing y). disposition, alertGroupId, alertMethod, responseType and perception overrides: see awareness.json.",
     "patrol: waypoints walked in order, looping. wait in seconds; facing (optional) is turned to while waiting. Several waypoints on the same spot make a guard who stands and looks around.",
     "Vault of the Ancients: Guard A (Wary) stands in the west end of the pillared hall looking east; the party's room door opens behind him. Guard B (Hostile, raises the alarm) patrols the room north of the hall, same alert group. Guard C (Aggressive, separate group) watches the door of the south-east room.",

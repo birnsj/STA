@@ -1,7 +1,7 @@
 // Combat Type 2 action previews: what each action would need, which task it rolls, and why it can or cannot be used.
 // Pure functions of the combat state, used both by the UI (to explain the numbers) and by the reducer (to resolve).
 import encounterData from '../data/adaptation/combat2/encounter.json'
-import { buildTask } from '../rules/taskResolver.js'
+import { buildTask } from './captainsLogTask.js'
 import { findCover, rangedDifficulty } from './cover2.js'
 import { distance, isAdjacent, isInside, isSolid, lineOfSight, reachableTiles, samePosition, tileKey } from './map2.js'
 

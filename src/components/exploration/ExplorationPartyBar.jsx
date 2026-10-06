@@ -1,20 +1,85 @@
+import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
+import { getCharacterWeapons } from '../../combat/weaponSystem.js'
+import { armedForWorldCombat } from '../../exploration/combatLink.js'
 import { FORMATIONS } from '../../exploration/formations.js'
+import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
+import ConditionTrack from '../combat/ConditionTrack.jsx'
+import PartyTaskTag from '../task/PartyTaskTag.jsx'
+
+const short = (name) => name.slice(0, 3).toUpperCase()
+
+// The highest score (the first in data order on a tie).
+function topScore(ids, values, nameOf) {
+  const id = ids.reduce((best, next) => ((values[next] ?? 0) > (values[best] ?? 0) ? next : best), ids[0])
+  return { label: short(nameOf(id)), name: nameOf(id), value: values[id] ?? 0 }
+}
+
+// The weapons they will fight with: their own, or the world encounter's standard issue if they bring none (Unarmed
+// Strike, always available, is left out unless it is all they have).
+function carriedWeaponText(character) {
+  const weapons = getCharacterWeapons(armedForWorldCombat(character))
+  const own = weapons.filter((weapon) => !weapon.alwaysAvailable)
+  return (own.length ? own : weapons).map((weapon) => weapon.name).join(', ') || 'none'
+}
+
+// Compact: species / department and Stress. Hovering (or focusing) the card opens the rest around them.
+function CardDetails({ character, condition }) {
+  const attribute = topScore(ATTRIBUTE_IDS, character.attributes, getAttributeName)
+  const department = topScore(DISCIPLINE_IDS, character.disciplines, getDisciplineName)
+  const protection = getProtection(character, { injuryType: 'stun' }).value
+  const rankRole = [character.rank?.name, character.role?.name ?? character.assignment?.name].filter(Boolean).join(' · ')
+  const weapon = carriedWeaponText(character)
+  return (
+    <>
+      {rankRole && (
+        <span className="explore-card-more">
+          <span className="explore-card-detail is-rank">{rankRole}</span>
+        </span>
+      )}
+      <span className="explore-card-detail is-main">{[character.species?.name, character.department?.name].filter(Boolean).join(' / ')}</span>
+      <span className="explore-card-more">
+        <span className="explore-card-stats">
+          <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>
+          <span title={`Highest department: ${department.name}`}>{department.label} {department.value}</span>
+          <span title="Protection">PROT {protection}</span>
+        </span>
+        <span className="explore-card-detail">Weapon: {weapon}</span>
+      </span>
+      <ConditionTrack character={character} condition={condition} />
+      <span className="explore-card-more">
+        <span className="explore-card-detail">
+          Fatigue: {condition.fatigued ? 'yes' : 'no'} · Injuries: {condition.injuries.length || 'none'}
+        </span>
+        {character.values.length > 0 && (
+          <ul className="explore-card-values" aria-label="Values">
+            {character.values.map((value) => (
+              <li key={value}>{value}</li>
+            ))}
+          </ul>
+        )}
+      </span>
+    </>
+  )
+}
 
 // The away team in party order. Click selects one character; Shift / Ctrl + click adds or removes them. With more than
 // one selected, Make Lead picks who walks to the clicked point (the others keep formation around them).
-export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, onSetLeader }) {
+// recommendation: who is best at the approach being considered (rules/taskRecommendation.js), shown on the cards only
+// while it is considered (null otherwise).
+export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, onSetLeader, recommendation = null }) {
   const several = selectedIds.length > 1
   return (
     <div className="party-bar explore-party-bar">
       {members.map((member, index) => {
         const selected = selectedIds.includes(member.id)
         const lead = member.id === leaderId
+        const best = Boolean(recommendation?.bestIds.includes(member.id))
         return (
           <div key={member.id} className="explore-card-wrap">
             <button
               type="button"
-              className={`party-card explore-card${selected ? ' is-active' : ''}`}
+              className={`party-card explore-card${selected ? ' is-active' : ''}${best ? ' is-best' : ''}`}
               aria-pressed={selected}
               title={`${index + 1}: select ${member.character.name} (Shift + click to add or remove)`}
               onClick={(event) => onSelect(member.id, event.shiftKey || event.ctrlKey || event.metaKey)}
@@ -24,7 +89,8 @@ export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, 
               </span>
               <span className="party-info">
                 <span className="party-name">{member.character.name}</span>
-                <span className="explore-card-detail">{[member.character.species?.name, member.character.department?.name].filter(Boolean).join(' / ')}</span>
+                <CardDetails character={member.character} condition={normalizeCondition(member.condition)} />
+                <PartyTaskTag recommendation={recommendation} memberId={member.id} />
               </span>
               {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
             </button>
@@ -40,27 +106,52 @@ export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, 
   )
 }
 
+// A formation drawn from its own slots (the lead in front, at the top), all at one scale so Tight looks tight and
+// Spread wide.
+const SLOT_SCALE = 4
+function FormationIcon({ formation }) {
+  return (
+    <svg className="explore-formation-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {formation.slots.map((slot, index) => (
+        <circle key={index} className={index === 0 ? 'is-lead' : ''} cx={12 + slot.x * SLOT_SCALE} cy={4 + slot.y * SLOT_SCALE} r={index === 0 ? 2.6 : 2.2} />
+      ))}
+    </svg>
+  )
+}
+
+const REGROUP_ICON = 'M4 4l5 5M9 5v4H5M20 4l-5 5M15 5v4h4M4 20l5-5M9 19v-4H5M20 20l-5-5M15 19v-4h4'
+
 export function FormationPanel({ formationId, onFormation, onRegroup }) {
+  const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
-      <p className="combat-panel-title">Formation</p>
+      <p className="combat-panel-title">Formation{current ? `: ${current.name}` : ''}</p>
       <div className="explore-formation-options">
         {FORMATIONS.map((formation) => (
           <button
             key={formation.id}
             type="button"
-            className={`combat-button is-small${formation.id === formationId ? ' is-primary' : ''}`}
+            className={`explore-formation-button${formation.id === formationId ? ' is-active' : ''}`}
             aria-pressed={formation.id === formationId}
-            title={formation.description}
+            aria-label={formation.name}
+            title={`${formation.name}: ${formation.description}`}
             onClick={() => onFormation(formation.id)}
           >
-            {formation.name}
+            <FormationIcon formation={formation} />
           </button>
         ))}
+        <button
+          type="button"
+          className="explore-formation-button is-regroup"
+          aria-label="Select All / Regroup"
+          title="Select All / Regroup: select the whole away team; everyone walks back into formation around the lead character"
+          onClick={onRegroup}
+        >
+          <svg className="explore-formation-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d={REGROUP_ICON} />
+          </svg>
+        </button>
       </div>
-      <button type="button" className="combat-button is-small explore-regroup" title="Select the whole away team; everyone walks back into formation around the lead character" onClick={onRegroup}>
-        Select All / Regroup
-      </button>
     </div>
   )
 }

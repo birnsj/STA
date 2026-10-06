@@ -1,4 +1,4 @@
-import { TURN_AP } from '../../combat/combatState.js'
+import { actionsLeft } from '../../combat/combatState.js'
 
 // Check-in-circle marker for a character whose turn is used up. Pass svg when drawing inside the battlefield SVG.
 export function DoneIcon({ size = 14, svg = false, className = '' }) {
@@ -16,15 +16,15 @@ export function DoneIcon({ size = 14, svg = false, className = '' }) {
   )
 }
 
-// This turn's action points counting down as they are spent: "AP 1 / 2" plus a lit pip per unspent point.
+// This turn's actions (Book p.288: one Major and one Minor): a lit pip for each still unspent.
 export default function ActionPoints({ turn, className = '' }) {
-  const left = turn.ap
+  const left = actionsLeft(turn)
   return (
-    <span className={`action-points${left === 0 ? ' is-empty' : ''} ${className}`} aria-label={`${left} of ${TURN_AP} AP left`}>
-      <span className="action-points-count">AP {left} / {TURN_AP}</span>
-      {Array.from({ length: TURN_AP }, (_, index) => (
-        <span key={index} className={`action-point is-pip${index < left ? '' : ' is-used'}`} />
-      ))}
+    <span className={`action-points${left === 0 ? ' is-empty' : ''} ${className}`} aria-label={`${turn.major} Major and ${turn.minor} Minor action left`}>
+      <span className="action-points-count">Major</span>
+      <span className={`action-point is-pip${turn.major > 0 ? '' : ' is-used'}`} />
+      <span className="action-points-count">Minor</span>
+      <span className={`action-point is-pip${turn.minor > 0 ? '' : ' is-used'}`} />
     </span>
   )
 }

@@ -9,6 +9,7 @@
 // Prototype: talent and role effects apply only when the authored task lists them (their conditions are prose in the
 // talent data), and only for effect types the resolver supports; species ability effects apply when their own task
 // tags match the task's tags. Anything else recognised is shown but not applied.
+import { getAttributeName } from '../character/runtimeCharacter.js'
 import { getEquippedItems } from './equipment.js'
 import { buildStaTask } from './taskResolver.js'
 
@@ -46,8 +47,11 @@ function describeApplied(applied) {
 
 // spec (authored task): { attribute, department, difficulty, focuses: [names], tags: [task tags], complicationRange,
 //   equipment: { label, tags, itemIds, without: 'impossible' | { difficulty }, bonus: [{ label, tags, itemIds, difficulty }] },
-//   talentIds, roleIds, traitRules: [{ trait, difficulty } | { trait, impossible: true }] }
-// context: { traits: [scene trait names], difficultyMod: authored change from the object's state (e.g. a complication) }
+//   talentIds, roleIds, traitRules: [{ trait, difficulty, side? } | { trait, impossible: true }] }
+// context: { traits: [scene trait names or { name, potency }], side: the performer's side ('player' | 'enemy') for
+//   side-limited trait rules, difficultyMod: authored change from the object's state (e.g. a complication),
+//   extraLines: [{ label, change }] situational Difficulty changes from the caller (e.g. combat's bought second Major),
+//   condition: the performer's personal condition (rules/personalCondition.js) for Fatigue and Stress complications }
 export function prepareTask(character, spec, context = {}) {
   const focus = findTaskFocus(character, spec.focuses)
   const blockers = []
@@ -108,20 +112,31 @@ export function prepareTask(character, spec, context = {}) {
   ability?.effects
     .filter((effect) => effect.tasks?.some((tag) => spec.tags?.includes(tag)))
     .forEach((effect) => {
-      const note = effect.type === 'freeDie' ? 'First bonus d20 bought is free (buying dice is not in yet)' : `Not automated yet (${effect.type})`
+      const note = effect.type === 'freeDie' ? 'First bonus d20 bought is free (not automated yet)' : `Not automated yet (${effect.type})`
       effects.push({ source: 'Species ability', name: ability.name, applied: false, note })
     })
 
-  // Traits: explicit authored rules against the scene's traits and the character's own.
-  const traits = [...(context.traits ?? []), ...character.traits.map((trait) => trait.name)].map(lower)
+  // Traits: explicit authored rules against the scene's traits and the character's own. A rule with a side applies only
+  // to that side's tasks. Potency (Book p.252: a potent trait counts as that many identical traits) multiplies the change.
+  const potencyOf = new Map()
+  const complications = (context.condition?.complications ?? []).map((complication) => complication.name)
+  ;[...(context.traits ?? []), ...character.traits.map((trait) => trait.name), ...complications].forEach((trait) => {
+    const { name, potency = 1 } = typeof trait === 'string' ? { name: trait } : trait
+    potencyOf.set(lower(name), Math.max(potencyOf.get(lower(name)) ?? 0, potency))
+  })
   ;(spec.traitRules ?? [])
-    .filter((rule) => traits.includes(lower(rule.trait)))
+    .filter((rule) => potencyOf.has(lower(rule.trait)) && (!rule.side || rule.side === context.side))
     .forEach((rule) => {
+      const potency = potencyOf.get(lower(rule.trait))
       if (rule.impossible) blockers.push(`Impossible: ${rule.trait}`)
-      if (rule.difficulty) difficultyLines.push({ label: `Trait: ${rule.trait}`, change: rule.difficulty })
+      if (rule.difficulty) difficultyLines.push({ label: `Trait: ${rule.trait}${potency > 1 ? ` (Potency ${potency})` : ''}`, change: rule.difficulty * potency })
     })
 
   if (context.difficultyMod) difficultyLines.push({ label: context.difficultyModLabel ?? 'Situation', change: context.difficultyMod })
+  ;(context.extraLines ?? []).filter((line) => line.change).forEach((line) => difficultyLines.push(line))
+  const fatigue = fatigueOf(context.condition, spec.attribute)
+  if (fatigue.difficulty) difficultyLines.push({ label: 'Fatigued', change: fatigue.difficulty })
+  if (fatigue.note) effects.push({ source: 'Condition', name: 'Fatigued', applied: true, note: fatigue.note })
 
   const rawDifficulty = difficultyLines.reduce((total, line) => total + line.change, 0)
   const difficulty = Math.max(rawDifficulty, minimum, 0)
@@ -132,12 +147,13 @@ export function prepareTask(character, spec, context = {}) {
     criticalRange: dedicated ? character.disciplines[spec.department] * 2 : null,
     complicationRange,
   })
+  if (fatigue.autoFail) task.autoFail = true
   return { possible: blockers.length === 0, blockers, task, focus, difficulty, difficultyLines, equipment, effects, ignoreComplications, bonusMomentum }
 }
 
 // The assistant's side: their own target number and focus for the approach they help with (Book: assistants need not
 // use the leader's attribute, department or focus).
-export function prepareAssist(character, approach) {
+export function prepareAssist(character, approach, condition = null) {
   const focus = findTaskFocus(character, approach.focuses)
   const dedicated = character.talents.find((talent) => widensCriticalRange(talent, focus))
   const task = buildStaTask(character, {
@@ -146,5 +162,14 @@ export function prepareAssist(character, approach) {
     focus,
     criticalRange: dedicated ? character.disciplines[approach.department] * 2 : null,
   })
+  if (fatigueOf(condition, approach.attribute).autoFail) task.autoFail = true
   return { task, focus }
+}
+
+// Book p.277: while Fatigued, +1 Difficulty on all task rolls, and any task using the shut-down attribute automatically
+// fails. Read from the performer's condition ({ fatigued, fatiguedAttribute }).
+function fatigueOf(condition, attributeId) {
+  if (!condition?.fatigued) return { difficulty: 0, autoFail: false, note: null }
+  const autoFail = Boolean(condition.fatiguedAttribute) && condition.fatiguedAttribute === attributeId
+  return { difficulty: 1, autoFail, note: autoFail ? `${getAttributeName(attributeId)} shut down: automatically fails` : null }
 }

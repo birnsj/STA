@@ -8,13 +8,15 @@ import { getRoleRecord } from '../rules/roles.js'
 
 // Bump when the exported structure changes so future loaders can detect old files.
 // 0.8.0: final.rank / department / assignment / role (STA 2E role with its Role Benefit).
-export const SCHEMA_VERSION = '0.8.0'
+// 0.9.0: character.faction and final.faction (every authored person in the game shares this record shape).
+export const SCHEMA_VERSION = '0.9.0'
 
 const ref = (value) => (value ? { id: value.id, name: value.name } : null)
 
 // Derived from the choices at export time (null until Finishing Touches resolves them); loaders can recompute it.
 function buildFinal(character) {
   return {
+    faction: ref(character.faction),
     attributes: getFinalScores(character, 'attributes'),
     disciplines: getFinalScores(character, 'disciplines'),
     values: getCharacterValues(character).map((value) => value.text.trim()),

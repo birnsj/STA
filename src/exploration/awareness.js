@@ -10,6 +10,7 @@
 // Tuning: src/data/adaptation/exploration/awareness.json.
 import { blocksLineOfFire } from '../combat/battleMap.js'
 import data from '../data/adaptation/exploration/awareness.json'
+import { isDefeated } from '../rules/personalCondition.js'
 import { distance, planRoute, RADIUS, slide } from './navigation.js'
 
 export const STATE = { UNAWARE: 'UNAWARE', SUSPICIOUS: 'SUSPICIOUS', INVESTIGATING: 'INVESTIGATING', ALERTED: 'ALERTED', COMBAT_READY: 'COMBAT_READY' }
@@ -101,6 +102,8 @@ export function perceive(map, npc, member) {
 }
 
 // config: one NPC from npcs.json (position and patrol as [x, y]); character: its RuntimeCharacter, if any.
+// The NPC is the world actor: who controls it, how it feels about the away team, what it knows and where it is. Who the
+// person is (stats, species, faction, equipment) is only ever its character; nothing here copies or overrides it.
 export function createNpc(config, character = null) {
   const position = toPoint(config.position)
   const heading = toRadians(config.facing ?? 0)
@@ -110,7 +113,10 @@ export function createNpc(config, character = null) {
   return {
     id: config.id,
     name: config.name ?? character?.name ?? config.id,
+    characterId: character?.id ?? null,
     character,
+    // 'ai' for every NPC today; who controls an actor is never read from its character.
+    controller: config.controller ?? 'ai',
     disposition: DISPOSITIONS[config.disposition] ? config.disposition : 'neutral',
     responseType: config.responseType ?? null,
     alertGroupId: config.alertGroupId ?? null,
@@ -141,13 +147,13 @@ export function createNpc(config, character = null) {
     alarmAt: null,
     // Latched once reached: { targetId, time }.
     combatReady: null,
-    // After a fight: { status, hits, injury } (Combat Type 1 values). null = never fought.
+    // After a fight: { stress, injuries, defeated, dying } (rules/personalCondition.js). null = never fought.
     condition: null,
   }
 }
 
-// Taken out in a fight (incapacitated or defeated): stays where it fell and no longer perceives, moves or reacts.
-export const isDown = (npc) => Boolean(npc.condition && npc.condition.status !== 'active')
+// Defeated in a fight (rules/personalCondition.js): stays where it fell and no longer perceives, moves or reacts.
+export const isDown = (npc) => isDefeated(npc.condition)
 export const joinsCombat = (npc) => Boolean(DISPOSITIONS[npc.disposition]?.joinsCombat)
 // Identified by the NPC itself (Alerted and not merely told about by its group).
 export const hasIdentified = (npc, characterId) => {

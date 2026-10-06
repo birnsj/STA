@@ -1,7 +1,7 @@
 import { project } from '../../maps/iso.js'
 import { ACTION_ICONS } from './actionIcons.js'
 
-// Buttons in an arc around a unit on the map: down its left side, under it and up its right side, leaving its Hits
+// Buttons in an arc around a unit on the map: down its left side, under it and up its right side, leaving its Stress
 // and AP markers above clear. Radius and spread are world pixels at the unit's scale.
 const CENTRE_Y = -28
 const RADIUS = 50
@@ -10,23 +10,27 @@ const ARC_END = -20
 const BUTTON_R = 13
 // Long rings (the acting character's own actions) widen so neighbouring buttons and labels don't overlap.
 const SPACING = 40
+// Buttons with detail lines under their label (attack modes) need more room so the lines clear the next button.
+const DETAIL_SPACING = 52
 const ARC_RADIANS = ((ARC_START - ARC_END) * Math.PI) / 180
 
-const ringRadius = (count) => Math.max(RADIUS, ((count - 1) * SPACING) / ARC_RADIANS)
+const ringRadius = (count, spacing) => Math.max(RADIUS, ((count - 1) * spacing) / ARC_RADIANS)
 
-function buttonPosition(index, count) {
+function buttonPosition(index, count, spacing) {
   const angle = count === 1 ? 90 : ARC_START + ((ARC_END - ARC_START) * index) / (count - 1)
   const radians = (angle * Math.PI) / 180
-  const radius = ringRadius(count)
+  const radius = ringRadius(count, spacing)
   return { x: Math.cos(radians) * radius, y: CENTRE_Y + Math.sin(radians) * radius }
 }
 
 // Clicks on the ring must not reach the tiles or units underneath.
 const stop = (event) => event.stopPropagation()
 
-// buttons: [{ id, label, icon, tone, enabled, active, title, onClick }]; info: { title, rows: [[label, value]] } or null.
+// buttons: [{ id, label, details, icon, tone, enabled, active, title, onClick }], details: smaller lines under the label
+// (e.g. an attack's Severity and Threat); info: { title, rows: [[label, value]] } or null.
 export default function UnitActionRing({ position, buttons, info, onPointerEnter, onPointerLeave }) {
   const centre = project(position)
+  const spacing = buttons.some((button) => button.details?.length) ? DETAIL_SPACING : SPACING
   return (
     <g
       className="unit-ring"
@@ -37,7 +41,7 @@ export default function UnitActionRing({ position, buttons, info, onPointerEnter
       onPointerLeave={onPointerLeave}
     >
       {buttons.map((button, index) => {
-        const { x, y } = buttonPosition(index, buttons.length)
+        const { x, y } = buttonPosition(index, buttons.length, spacing)
         return (
           <g
             key={button.id}
@@ -55,11 +59,16 @@ export default function UnitActionRing({ position, buttons, info, onPointerEnter
             <text y={BUTTON_R + 9} textAnchor="middle">
               {button.label}
             </text>
+            {button.details?.map((line, lineIndex) => (
+              <text key={line} className="unit-ring-detail" y={BUTTON_R + 18 + lineIndex * 8} textAnchor="middle">
+                {line}
+              </text>
+            ))}
           </g>
         )
       })}
       {info && (
-        <foreignObject x={ringRadius(buttons.length) + 22} y={CENTRE_Y - 52} width="168" height="124">
+        <foreignObject x={ringRadius(buttons.length, spacing) + 22} y={CENTRE_Y - 52} width="168" height="124">
           <div className="unit-ring-info">
             <p className="unit-ring-info-title">{info.title}</p>
             {info.rows.map(([label, value]) => (

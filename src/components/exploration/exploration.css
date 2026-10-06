@@ -40,15 +40,77 @@
 }
 
 .explore-card {
-  width: 150px;
+  width: 178px;
+  padding: 6px 10px 6px 6px;
+}
+
+.explore-card .party-info {
+  flex: 1;
+  gap: 3px;
 }
 
 .explore-card-detail {
-  overflow: hidden;
   font-size: 10px;
+  line-height: 1.25;
   color: var(--text-dim, #9fb4dc);
+}
+
+.explore-card-detail.is-main {
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* Small by default; hovering or focusing the card grows it upward (the bar sits on its bottom edge) to show the rest. */
+.explore-card-more {
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.explore-card:hover,
+.explore-card:focus-visible {
+  z-index: 30;
+  align-items: flex-start;
+}
+
+.explore-card:hover .explore-card-more,
+.explore-card:focus-visible .explore-card-more {
+  display: flex;
+}
+
+.explore-card:hover .explore-card-detail.is-main,
+.explore-card:focus-visible .explore-card-detail.is-main {
+  white-space: normal;
+}
+
+.explore-card-detail.is-rank {
+  color: #cfe0ff;
+}
+
+.explore-card-stats {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.explore-card-values {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 3px 0 0;
+  border-top: 1px solid var(--panel-border);
+  list-style: none;
+}
+
+.explore-card-values li {
+  font-size: 9px;
+  font-style: italic;
+  line-height: 1.25;
+  color: #b9c8e6;
 }
 
 .explore-make-lead {
@@ -65,6 +127,110 @@
   text-transform: uppercase;
 }
 
+.explore-party-bar {
+  position: absolute;
+  left: 8px;
+  bottom: 24px;
+  z-index: 26;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.explore-minimap-column {
+  position: absolute;
+  top: 40px;
+  right: 8px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 240px;
+  pointer-events: none;
+}
+
+.explore-minimap {
+  padding: 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.88);
+}
+
+.explore-minimap svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.minimap-area-label {
+  fill: rgba(225, 240, 245, 0.85);
+  font-size: 0.75px;
+  font-weight: 700;
+  letter-spacing: 0.04px;
+  paint-order: stroke;
+  stroke: rgba(3, 6, 14, 0.85);
+  stroke-width: 0.25px;
+}
+
+/* The map is drawn one unit per tile; strokes stay in screen pixels. */
+.minimap-marker circle,
+.minimap-marker path {
+  vector-effect: non-scaling-stroke;
+}
+
+.minimap-marker circle {
+  stroke: #03060e;
+  stroke-width: 1px;
+}
+
+.minimap-marker.is-party circle {
+  fill: #4fa3ff;
+}
+
+.minimap-marker.is-party.is-selected circle {
+  fill: #9fd3ff;
+  stroke: var(--yellow);
+  stroke-width: 2px;
+}
+
+.minimap-marker.is-enemy circle {
+  fill: #e04848;
+}
+
+.minimap-marker.is-enemy.is-down-stunned circle {
+  fill: #ffd23f;
+}
+
+.minimap-marker.is-unseen {
+  opacity: 0.45;
+}
+
+.minimap-marker.is-last-seen circle {
+  fill: none;
+  stroke: #e04848;
+  stroke-width: 1.5px;
+  stroke-dasharray: 2 2;
+}
+
+.minimap-marker.is-last-seen text {
+  fill: #ff8a8a;
+  font-size: 1.2px;
+  font-weight: 700;
+}
+
+.minimap-down {
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke: #e04848;
+}
+
+.minimap-marker.is-party .minimap-down {
+  stroke: #4fa3ff;
+}
+
+.minimap-marker.is-party.is-dying .minimap-down {
+  stroke: #ff9d2e;
+}
+
 .explore-formation-panel {
   position: absolute;
   right: 8px;
@@ -72,17 +238,62 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  width: 196px;
 }
 
 .explore-formation-options {
   display: flex;
-  flex-wrap: wrap;
   gap: 4px;
 }
 
-.explore-regroup {
-  width: 100%;
+.explore-formation-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(10, 22, 48, 0.9);
+  cursor: pointer;
+}
+
+.explore-formation-button:hover {
+  border-color: var(--yellow);
+}
+
+.explore-formation-button.is-active {
+  border-color: var(--yellow);
+  background: rgba(70, 55, 10, 0.75);
+}
+
+.explore-formation-button.is-regroup {
+  margin-left: 6px;
+}
+
+.explore-formation-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.explore-formation-icon circle {
+  fill: #9fb4dc;
+}
+
+.explore-formation-icon circle.is-lead,
+.explore-formation-button.is-active .explore-formation-icon circle {
+  fill: var(--yellow);
+}
+
+.explore-formation-button.is-active .explore-formation-icon circle:not(.is-lead) {
+  fill: #fff2c2;
+}
+
+.explore-formation-icon path {
+  fill: none;
+  stroke: #9fb4dc;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .explore-setup-list {
@@ -302,10 +513,11 @@
   gap: 6px;
 }
 
-/* Combat started in the world: developer readout of how the fight links to the world (Link Debug). */
+/* Combat started in the world: developer readout of how the fight links to the world, opened with Debug beside the
+   combat debug panel (.debug-panel, 330px wide at left 8px). */
 .world-combat-debug {
   position: absolute;
-  left: 8px;
+  left: 346px;
   top: 180px;
   z-index: 30;
   display: flex;
@@ -404,6 +616,31 @@
 .challenge-marker .challenge-marker-state {
   font-size: 9px;
   font-weight: 600;
+}
+
+/* Click-to-move marker: a ground ring that grows and fades quickly. */
+.explore-click-pulse {
+  pointer-events: none;
+}
+
+.explore-click-pulse circle {
+  fill: rgba(255, 210, 63, 0.25);
+  stroke: var(--yellow);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: explore-click-pulse 380ms ease-out forwards;
+}
+
+@keyframes explore-click-pulse {
+  from {
+    opacity: 1;
+    transform: scale(0.25);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.2);
+  }
 }
 
 /* "Interact: <object>" prompts while someone stands in reach. */

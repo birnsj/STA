@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
-import { canAimReroll } from '../../combat/combatState.js'
+import { ADAPTATION_MOMENTUM_SPENDS, canAimReroll } from '../../combat/combatState.js'
+import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
+import { evaluateStaDie } from '../../rules/taskResolver.js'
+import { criticalText, dieVerdict, formulaText, successesText } from '../task/taskText.js'
 
 // Presentation only: a freshly rolled die flicks through random numbers before stopping on the value the rules already
 // rolled (seeded, in combatState). Divided by the Auto Combat speed so it stops before the result is shown.
 const ROLL_MS = 550
 const FACE_MS = 35
 
-// Mounted again (new key) for every new roll or reroll, so each one rolls once.
-function Die({ value, targetNumber, speed = 1 }) {
+// Mounted again (new key) for every new roll or reroll, so each one rolls once. task: the STA 2E task the die is rolled
+// against (its target number, critical range and complication range).
+function Die({ value, task, speed = 1 }) {
   const [face, setFace] = useState(((value * 7) % 20) + 1)
   const [rolling, setRolling] = useState(true)
   useEffect(() => {
@@ -23,38 +27,64 @@ function Die({ value, targetNumber, speed = 1 }) {
     }
   }, [speed])
   if (rolling) return <span className="roll-die is-rolling">{face}</span>
-  const success = value <= targetNumber
-  return <span className={`roll-die${success ? ' is-success' : ' is-fail'}${value === 20 ? ' is-twenty' : ''}`}>{value}</span>
+  const die = evaluateStaDie(task, value)
+  const look = die.critical ? ' is-critical' : die.successes ? ' is-success' : ' is-fail'
+  return <span className={`roll-die${look}${die.complication ? ' is-twenty' : ''}`}>{value}</span>
+}
+
+// Under each die: what it scored (Success / Critical / Failure / Complication, and how many successes).
+function DieScore({ value, task }) {
+  const verdict = dieVerdict(evaluateStaDie(task, value))
+  return <span className={`roll-die-score is-${verdict.kind}`}>{verdict.short}</span>
 }
 
 // The attack being rolled (with any rerolls still open to the player) or the last attack's result.
 // awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or No Reroll instead of resolving itself.
-export default function RollPanel({ state, speed = 1, playerControls, awaitingChoice, onReroll, onResolve, onSpendMomentumHit }) {
+export default function RollPanel({ state, speed = 1, playerControls, awaitingChoice, onReroll, onResolve }) {
   const roll = state.pending ?? state.result
   if (!roll) return null
   const ambush = roll.kind === 'ambush'
-  // One id per attack (the attack count only changes when a new attack is rolled), plus rerolls per die.
-  const rollId = ambush ? 'ambush' : state.stats.attacks
+  // Guard, First Aid and challenge object tasks: no weapon, maybe no target.
+  const taskRoll = roll.kind === 'task'
+  // A routine object action has no roll to show.
+  if (taskRoll && !roll.task) return null
+  // One id per roll (attacks and other tasks are counted separately), plus rerolls per die.
+  const rollId = ambush ? 'ambush' : taskRoll ? `task${roll.key}` : state.stats.attacks
   const dieKey = (index) => `${rollId}-${index}-${roll.rerolls.filter((reroll) => reroll.index === index).length}`
   const attacker = state.combatants[roll.attackerId]
-  const target = state.combatants[roll.targetId]
+  const target = roll.targetId ? state.combatants[roll.targetId] : null
   const values = state.pending ? state.pending.dice : roll.dice.map((die) => die.value)
-  const { task, cover } = roll
+  const { task, opposition } = roll
   const pending = Boolean(state.pending)
   const aimRerollOpen = (index) =>
-    pending && playerControls && awaitingChoice && values[index] > task.targetNumber && canAimReroll(state.pending, index)
-  const canMomentumReroll = pending && playerControls && awaitingChoice && state.momentum > 0
-  const canExtraHit = !pending && !ambush && playerControls && roll.passed && !roll.extraHit && !roll.closed && state.momentum > 0 && target.status === 'active'
+    pending && playerControls && awaitingChoice && !evaluateStaDie(task, values[index]).successes && canAimReroll(state.pending, index)
+  const canMomentumReroll = ADAPTATION_MOMENTUM_SPENDS && pending && playerControls && awaitingChoice && state.resources.momentum > 0
+  const { injury } = roll
+  // A Minor NPC stores no Injury: the hit leaves it unconscious (Stun) or dead (Deadly).
+  const minorOutcome = injury?.decided === 'suffered' && target && minorDefeatText(target.condition)
+  const injuryOutcome = injury && (minorOutcome ? `${minorOutcome} (Minor NPC: no Injury)` : { pending: 'Avoid Injury?', avoided: 'Injury avoided', suffered: 'Defeated' }[injury.decided])
+  const resultText = ambush ? (roll.passed ? 'Ambushed: automatic hit' : 'Spotted: Klingons act first') : taskRoll ? (roll.passed ? 'Success' : 'Failure') : roll.passed ? 'Hit' : 'Miss'
 
   return (
     <section className={`roll-panel${pending ? ' is-pending' : roll.passed ? ' is-hit' : ' is-miss'}`} aria-live="polite">
       <p className="roll-heading">
         {ambush && 'Ambush: '}
-        {attacker.character.name} &rsaquo; {target.character.name}
-        {!ambush && <span className="roll-weapon"> {getWeapon(roll.weaponId).name}</span>}
+        {taskRoll ? (
+          <>
+            {attacker.character.name} &rsaquo; {roll.label}
+          </>
+        ) : (
+          <>
+            {attacker.character.name} &rsaquo; {target.character.name}
+          </>
+        )}
+        {!ambush && !taskRoll && <span className="roll-weapon"> {getWeapon(roll.weaponId).name}</span>}
       </p>
       <p className="roll-task">
-        TN {task.targetNumber} &middot; Difficulty {task.difficulty}
+        <b>{formulaText(task)}</b> &middot; Critical {criticalText(task)}
+        {task.focus ? ` (Focus: ${task.focus})` : ' (no Focus)'} &middot; Difficulty {task.difficulty}
+        {task.difficulty > 0 ? ` (need ${successesText(task.difficulty)})` : ''}
+        {task.autoFail && ` · ${task.attribute.name} shut down by Fatigue: automatic failure`}
         {roll.rerolls
           .filter((reroll) => reroll.source === 'focus')
           .map((reroll) => (
@@ -63,12 +93,18 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
               &middot; {task.focus} reroll {reroll.from} &rarr; {reroll.to}
             </span>
           ))}
-        {cover && <span> &middot; Cover roll {cover.dice.join(', ')} ({cover.successes})</span>}
       </p>
+      {opposition && (
+        <p className="roll-task roll-defender">
+          {opposition.when === 'targetInCover' ? 'Defender in cover' : 'Defender'} {target.character.name}: {formulaText(opposition.task)} &middot; rolled{' '}
+          {opposition.dice.map((die) => die.value).join(', ')} = {successesText(opposition.successes)} &middot; your Difficulty {task.difficulty}
+        </p>
+      )}
       <div className="roll-dice">
         {values.map((value, index) => (
           <div key={index} className="roll-die-slot">
-            <Die key={dieKey(index)} value={value} targetNumber={task.targetNumber} speed={speed} />
+            <Die key={dieKey(index)} value={value} task={task} speed={speed} />
+            {!pending && <DieScore value={value} task={task} />}
             {aimRerollOpen(index) && (
               <button type="button" className="roll-reroll" onClick={() => onReroll(index, 'aim')}>
                 Aim reroll
@@ -83,8 +119,8 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
         ))}
         {roll.assist && (
           <div className="roll-die-slot roll-assist" title={`${state.combatants[roll.assist.helperId].character.name}'s assist die (TN ${roll.assist.task.targetNumber})`}>
-            <Die key={`${rollId}-assist`} value={roll.assist.die} targetNumber={roll.assist.task.targetNumber} speed={speed} />
-            <span className="roll-assist-label">Assist</span>
+            <Die key={`${rollId}-assist`} value={roll.assist.die} task={roll.assist.task} speed={speed} />
+            <span className="roll-assist-label">{roll.assist.via === 'direct' ? 'Direct' : 'Assist'}</span>
           </div>
         )}
         <div className="roll-outcome">
@@ -98,22 +134,27 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
             )
           ) : (
             <>
-              <span className="roll-result-text">{ambush ? (roll.passed ? 'Ambushed: 1 Hit' : 'Spotted: Klingons act first') : roll.passed ? 'Hit' : 'Miss'}</span>
+              <span className="roll-result-text">{resultText}</span>
               <span className="roll-result-sub">
-                {roll.successes} {roll.successes === 1 ? 'success' : 'successes'}
-                {roll.momentumGained && ' · Momentum'}
-                {roll.threatGained && ' · Threat'}
-                {roll.extraHit && ' · +1 Hit'}
+                {successesText(roll.successes)} of {task.difficulty} needed
+                {roll.passed && ` · ${Math.max(0, roll.successes - task.difficulty)} excess`}
+                {roll.momentumGenerated > 0 && ` · +${roll.momentumGenerated} Momentum`}
+                {roll.momentumSaved > 0 && ` (${roll.momentumSaved} saved)`}
+                {roll.momentumUnsaved > 0 && ` (${roll.momentumUnsaved} over the pool max)`}
+                {roll.complications > 0 && ` · ${roll.complications} ${roll.complications === 1 ? 'complication' : 'complications'}`}
+                {roll.threatAdded > 0 && ` · +${roll.threatAdded} Threat`}
               </span>
+              {injury && (
+                <span className={`roll-result-sub roll-injury is-${injury.type}`}>
+                  {injuryTypeName(injury.type)} {minorOutcome ? 'hit' : 'Injury'}, Severity {injury.severity}
+                  {injury.protection > 0 && ` (Protection ${injury.protection})`}
+                  {injuryOutcome && ` · ${injuryOutcome}`}
+                </span>
+              )}
             </>
           )}
         </div>
       </div>
-      {canExtraHit && (
-        <button type="button" className="roll-momentum-hit" onClick={onSpendMomentumHit}>
-          Spend Momentum: +1 Hit
-        </button>
-      )}
     </section>
   )
 }

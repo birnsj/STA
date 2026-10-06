@@ -5,21 +5,26 @@
 //
 // Profiles:
 // Cover is automatic next to a cover object (no Take Cover action), so "taking cover" always means moving there.
-// Both profiles spend 2 AP a turn, 1 per action (actions.json).
-// - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (with 2 AP, first moving into cover if
-//   a covered tile keeps the shot, else aiming); otherwise move to the best reachable firing position (lower Difficulty,
-//   covered preferred, fewer steps); otherwise close the distance. Prefers Deadly.
-// - player (Auto Combat spec): best available shot across all enemies (lowest Difficulty, exposed, most Hits, nearest);
-//   with 2 AP, when exposed to fire, move next to cover if a shot is still available from there, otherwise Aim when it
-//   can still change the result; after attacking with AP left, move into cover if possible, else attack again; with no
-//   shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly; spends Momentum
-//   (see pendingStep etc.).
+// Both profiles have one Major and one Minor action a turn (Book p.288; actions.json). Neither uses Guard, First Aid,
+// Direct or challenge objects yet.
+// - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (with the Minor action free, first
+//   moving into cover if a covered tile keeps the shot, else aiming); otherwise move to the best reachable firing position
+//   (lower Difficulty, covered preferred, fewer steps); otherwise close the distance. Prefers Deadly.
+// - player (Auto Combat spec): best available shot across all enemies (lowest Difficulty, exposed, a hit that would
+//   Defeat (no Avoid Injury possible), nearest);
+//   with the Minor action free, when exposed to fire, move next to cover if a shot is still available from there,
+//   otherwise Aim when it can still change the result; after attacking, move into cover with the Minor action if
+//   possible; with no shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly.
+// Neither profile buys bonus d20s yet (conservative default): attacks go out with no purchase. The attack action already
+// takes one (purchase: { bonusDice, momentum }; an NPC pays in Threat), so a later AI rule can opt in.
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getReachableTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { getWeapon } from './weaponSystem.js'
 import {
+  actionsLeft,
+  ADAPTATION_MOMENTUM_SPENDS,
   canAfford,
   canAimReroll,
   canMove,
@@ -32,17 +37,18 @@ import {
   getHitChance,
   getOpponents,
   getReachable,
-  isActive,
-  MAX_HITS,
+  injuryFor,
   previewAttack,
+  statusText,
 } from './combatState.js'
-import { TASK_DICE } from '../rules/taskResolver.js'
+import { getAvoidOption } from '../rules/personalCondition.js'
+import { staDieOdds, TASK_DICE } from '../rules/taskResolver.js'
 
 // AI tuning (implementation detail, not rules): how much a covered firing position is worth in Difficulty steps x10,
 // and the lowest chance a single rerolled die must have of succeeding before Momentum is spent on it.
 const COVER_PREFERENCE = 2
 const MOMENTUM_REROLL_MIN_CHANCE = 0.3
-// The smallest rise in an ally's chance to hit that is worth an AP on Assist.
+// The smallest rise in an ally's chance to hit that is worth the Major action on Assist.
 const MIN_ASSIST_GAIN = 0.05
 
 const PROFILES = {
@@ -51,17 +57,6 @@ const PROFILES = {
 }
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
-const dieChance = (targetNumber) => Math.min(20, Math.max(0, targetNumber)) / 20
-
-// Chance that at least `needed` of TASK_DICE dice succeed (binomial).
-function passChance(targetNumber, needed) {
-  if (needed <= 0) return 1
-  const p = dieChance(targetNumber)
-  const choose = (n, k) => (k === 0 || k === n ? 1 : choose(n - 1, k - 1) + choose(n - 1, k))
-  let chance = 0
-  for (let k = needed; k <= TASK_DICE; k++) chance += choose(TASK_DICE, k) * p ** k * (1 - p) ** (TASK_DICE - k)
-  return chance
-}
 
 // Injury modes this combatant's AI may use with a weapon, in preference order.
 // Enemies prefer Deadly (Klingon disruptors have nothing else). Player characters use Stun, and Deadly only if the encounter sets
@@ -73,13 +68,21 @@ export function injuryModesFor(state, self, weapon) {
   return preference.filter((mode) => weapon.injuryModes.includes(mode))
 }
 
-// A shot needing more successes than dice rolled cannot pass, so it does not count as usable.
+// AI tuning (not a rule): a shot needing more successes than dice rolled can only pass on critical successes, so the AI
+// doesn't count it as usable and looks for a better position instead.
 export function bestShot(state, self, target, fromPosition) {
   const shots = self.weaponIds
     .filter((weaponId) => injuryModesFor(state, self, getWeapon(weaponId)).length)
     .map((weaponId) => previewAttack(state, self.id, target.id, weaponId, fromPosition))
     .filter((shot) => shot.available && shot.task.difficulty <= TASK_DICE)
   return shots.sort((a, b) => a.task.difficulty - b.task.difficulty || b.task.targetNumber - a.task.targetNumber)[0] ?? null
+}
+
+// Whether a hit with this shot would Defeat the target: the same Injury and Avoid Injury rules the resolver uses (a Minor
+// NPC always; a main character without the Stress left to avoid it; an NPC without the Threat).
+export function hitDefeats(state, self, target, shot) {
+  const injury = injuryFor(state, self, target, shot.weapon, injuryModesFor(state, self, shot.weapon)[0])
+  return !getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene }).possible
 }
 
 const byDistanceFrom = (position) => (a, b) => tileDistance(position, a.position) - tileDistance(position, b.position)
@@ -97,7 +100,7 @@ function bestShotTarget(state, self) {
     (a, b) =>
       a.shot.task.difficulty - b.shot.task.difficulty ||
       Number(a.target.inCover) - Number(b.target.inCover) ||
-      b.target.hits - a.target.hits ||
+      Number(hitDefeats(state, self, b.target, b.shot)) - Number(hitDefeats(state, self, a.target, a.shot)) ||
       tileDistance(self.position, a.target.position) - tileDistance(self.position, b.target.position),
   )
   return options[0] ?? null
@@ -122,48 +125,40 @@ function attackAction(state, self, target, shot) {
     weaponId: shot.weapon.id,
     injuryMode: injuryModesFor(state, self, shot.weapon)[0],
     decision: `Target ${target.character.name}`,
-    reason: `${shotSummary(shot)}; target ${target.inCover ? 'in cover (it rolls to raise the Difficulty)' : 'exposed'}, ${plural(target.hits, 'Hit')}.`,
+    reason: `${shotSummary(shot)}; target ${target.inCover ? 'in cover (it rolls to raise the Difficulty)' : 'exposed'}, ${statusText(target)}${hitDefeats(state, self, target, shot) ? '; a hit Defeats' : ''}.`,
   }
 }
 
 export function pendingStep(state, self) {
   const { pending } = state
   const { targetNumber, difficulty } = pending.task
-  const { successes, passed } = evaluateAttack(pending)
+  const { successes, success } = evaluateAttack(pending)
   const failed = pending.dice.map((value, index) => ({ value, index })).filter((die) => die.value > targetNumber)
   const worst = failed.sort((a, b) => b.value - a.value)[0]
-  if (!passed && worst) {
+  if (!success && worst) {
     const aimDie = failed.find((die) => canAimReroll(pending, die.index))
     if (aimDie) return { type: 'reroll', source: 'aim', dieIndex: aimDie.index, decision: 'Aim reroll', reason: `Attack failing; rerolling the failed ${aimDie.value}.` }
-    // Only when one more success would pass and the new die has a fair chance of giving it.
-    const chance = dieChance(targetNumber)
-    if (self.side === 'player' && state.momentum && successes + 1 >= difficulty && chance >= MOMENTUM_REROLL_MIN_CHANCE) {
+    // Only when one new die could pass (a success, or a critical when 2 are missing) with a fair chance.
+    const [, single, critical] = staDieOdds(pending.task)
+    const needed = difficulty - successes
+    const chance = needed <= 1 ? single + critical : needed === 2 ? critical : 0
+    if (ADAPTATION_MOMENTUM_SPENDS && self.side === 'player' && state.resources.momentum > 0 && chance >= MOMENTUM_REROLL_MIN_CHANCE) {
       return {
         type: 'reroll',
         source: 'momentum',
         dieIndex: worst.index,
         decision: 'Momentum reroll',
-        reason: `One more success would hit; a new die succeeds ${Math.round(chance * 100)}% of the time (TN ${targetNumber}).`,
+        reason: `A new die would hit ${Math.round(chance * 100)}% of the time (TN ${targetNumber}, ${plural(needed, 'success')} missing).`,
       }
     }
   }
   return { type: 'resolveAttack', decision: 'Resolve attack', reason: `${self.character.name} resolves the attack.` }
 }
 
-// After a hit: +1 Hit from Momentum only when it removes the target from the fight.
-export function momentumHitStep(state, self) {
-  const { result } = state
-  if (self.side !== 'player' || !state.momentum || !result || result.kind === 'ambush' || result.closed || result.attackerId !== self.id || !result.passed || result.extraHit) return null
-  const target = state.combatants[result.targetId]
-  if (!isActive(target) || target.hits !== MAX_HITS - 1) return null
-  return { type: 'spendMomentumHit', decision: 'Spend Momentum: +1 Hit', reason: `${target.character.name} has ${plural(target.hits, 'Hit')}; one more removes them from the fight.` }
-}
-
-// Threat adds +1 Difficulty to the party's next attack, which with two dice costs far more than a single reroll is worth,
-// so Momentum cancels it whenever this character still has an attack to make.
-export function cancelThreatStep(state, self) {
-  if (self.side !== 'player' || !state.momentum || !state.threat || !state.turn.ap) return null
-  return { type: 'cancelThreat', decision: 'Spend Momentum: cancel Threat', reason: 'Threat would add +1 Difficulty to the next attack.' }
+// The AI never spends Momentum to cancel Threat: Threat has no automatic effect in combat yet (NPC Threat spends are
+// still to come), so it would only waste Momentum. Kept as a step so the planners' order of checks stays the same.
+export function cancelThreatStep() {
+  return null
 }
 
 // Best reachable tile to shoot one of the targets from (lower Difficulty, covered preferred, fewer steps); else close the distance.
@@ -224,7 +219,7 @@ function moveIntoCoverWithShot(state, self, target, shot, why) {
   }
 }
 
-// After attacking with AP left: Move into the nearest cover.
+// After attacking with the Minor action left: Move into the nearest cover.
 function coverAfterAttackStep(state, self) {
   if (self.inCover || !canMove(state, self)) return null
   const covered = [...getReachable(state, self).values()]
@@ -234,11 +229,8 @@ function coverAfterAttackStep(state, self) {
   return { type: 'move', destination: covered.position, decision: 'Move into cover', reason: `Attack made; ${plural(covered.steps, 'tile')} away is next to cover.` }
 }
 
-// Chance a shot hits, counting a target in cover as one Difficulty harder (its cover roll usually raises it).
-export function expectedChance(state, attackerId, shot) {
-  const task = shot.targetInCover ? { ...shot.task, difficulty: shot.task.difficulty + 1 } : shot.task
-  return getHitChance(state, attackerId, { ...shot, task })
-}
+// Chance a shot hits, the target's opposed roll (cover, or defending in melee) included.
+export const expectedChance = (state, attackerId, shot) => getHitChance(state, attackerId, shot)
 
 // Assist the ally (who can still attack this round) whose chance to hit it raises most, judged on their best shot from
 // where they stand, else from a firing position they can walk to. Chosen only when that gain beats ownChance, the
@@ -269,7 +261,7 @@ function assistStep(state, self, ownChance) {
   }
 }
 
-// Player profile preparation before shooting (with AP for both), or null to attack straight away.
+// Player profile preparation before shooting (with the Minor action still free), or null to attack straight away.
 function tacticalMinor(state, self, target, shot) {
   const threats = self.inCover ? [] : threatsTo(state, self)
   const planned = { targetId: target.id, weaponId: shot.weapon.id }
@@ -277,7 +269,7 @@ function tacticalMinor(state, self, target, shot) {
     const move = moveIntoCoverWithShot(state, self, target, shot, `Exposed to fire from ${threats.map((threat) => threat.character.name).join(', ')}`)
     if (move) return move
   }
-  if (passChance(shot.task.targetNumber, shot.task.difficulty) < 1) {
+  if (getHitChance(state, self.id, shot) < 1) {
     return { type: 'aim', ...planned, decision: 'Aim', reason: `Shot is not certain (${shotSummary(shot)}); Aim allows one reroll.` }
   }
   return null
@@ -287,10 +279,8 @@ export function nextAIStep(state) {
   const self = getActiveCombatant(state)
   const profile = PROFILES[self.side]
   if (state.pending) return pendingStep(state, self)
-  const extraHit = momentumHitStep(state, self)
-  if (extraHit) return extraHit
 
-  if (!state.turn.ap) return { type: 'endTurn', decision: 'End turn', reason: 'No AP left.' }
+  if (!actionsLeft(state.turn)) return { type: 'endTurn', decision: 'End turn', reason: 'No actions left.' }
   const cancel = cancelThreatStep(state, self)
   if (cancel) return cancel
 
@@ -302,8 +292,8 @@ export function nextAIStep(state) {
     const { target, shot } = choice
     const assist = assistStep(state, self, expectedChance(state, self.id, shot))
     if (assist) return assist
-    // With AP for both, one goes on preparing the shot (cover or Aim) and the last on the attack.
-    if (state.turn.ap > 1 && !state.turn.attacks) {
+    // With the Minor action still free, it goes on preparing the shot (cover or Aim) before the attack (the Major action).
+    if (state.turn.minor > 0 && state.turn.major > 0 && !state.turn.attacks) {
       if (profile.minorAction === 'coverThenAim') {
         const planned = { targetId: target.id, weaponId: shot.weapon.id }
         const move = moveIntoCoverWithShot(state, self, target, shot, `${target.character.name} is in range (${shot.band.name})`)
@@ -313,12 +303,13 @@ export function nextAIStep(state) {
       const minor = tacticalMinor(state, self, target, shot)
       if (minor) return minor
     }
-    // After attacking with AP left, the player profile first gets into cover; otherwise it attacks again.
+    // After attacking with the Minor action left, the player profile gets into cover; there is no second attack.
     if (state.turn.attacks && profile.coverAfterAttack) {
       const cover = coverAfterAttackStep(state, self)
       if (cover) return cover
     }
-    return attackAction(state, self, target, shot)
+    if (canAfford(state, self, 'attack')) return attackAction(state, self, target, shot)
+    return { type: 'endTurn', decision: 'End turn', reason: 'Major action used; nothing useful left for the Minor action.' }
   }
   // No shot from here: walk to a firing position, else close the distance; with no move left, Assist an ally instead,
   // else Sprint (still unused this turn) on the same terms.

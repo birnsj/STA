@@ -2,16 +2,17 @@
 // together each frame. Party actions go to the party reducer unchanged; NPCs only read the party's positions.
 // mode is the authority on what is running: EXPLORATION (real time) or COMBAT (Combat Type 1 on the same world, which
 // stays frozen until the fight ends; see combatLink.js).
-import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
-import enemyData from '../data/adaptation/combat/enemies.json'
+import { getAuthoredCharacter } from '../character/authoredCharacters.js'
 import npcData from '../data/adaptation/exploration/npcs.json'
+import { createMissionResources } from '../rules/missionResources.js'
+import { isDefeated } from '../rules/personalCondition.js'
 import { createNpc, createWorld, emitNoise, getNpcs, tickWorld } from './awareness.js'
 import { applyScenarioTiles, attemptChallenge, createScenario } from './challengeObjects.js'
 import { combatAction, endCombat, MODE, requestCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 
-const isUp = (entity) => !entity.condition || entity.condition.status === 'active'
+const isUp = (entity) => !isDefeated(entity.condition)
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -22,11 +23,10 @@ function perceive(state) {
   return { ...state, partyKnowledge: updatePartyKnowledge(state.partyKnowledge, state.party.map, observers, entities, state.world.time) }
 }
 
-// The NPC's character takes the NPC's id, so the same character is the same combatant in any fight.
-const enemyCharacter = (characterId, npcId) => {
-  const template = enemyData.enemies.find((enemy) => enemy.id === characterId)
-  return template ? normalizeCharacterRecord(template.record, { id: npcId }).character : null
-}
+// Each world actor uses an authored character (characterId) and keeps it as its own for the whole mission: the same
+// character fights as the same combatant (the actor's id) in any fight. npcRules: an explicit authored choice of the
+// book's streamlined NPC rules for this actor (rules/personalCondition.js npcCategoryOf); none by default.
+const actorCharacter = (config) => (config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: config.npcRules ?? null }) : null)
 
 // The test NPCs for a map: its own entry in npcs.json, or the fallback NPCs on its enemy spawns.
 export function npcConfigsFor(map) {
@@ -39,7 +39,7 @@ export function npcConfigsFor(map) {
   })
 }
 
-const createNpcWorld = (map) => createWorld(map, npcConfigsFor(map).map((config) => createNpc(config, enemyCharacter(config.characterId, config.id))))
+const createNpcWorld = (map) => createWorld(map, npcConfigsFor(map).map((config) => createNpc(config, actorCharacter(config))))
 
 // seed: a whole number; each fight's (and task roll's) seed is derived from it.
 export function createExplorationState(map, characters, seed = 0) {
@@ -53,6 +53,9 @@ export function createExplorationState(map, characters, seed = 0) {
     scenario,
     // The last challenge attempt, for the interaction panel (attemptChallenge).
     lastTask: null,
+    // The mission's group Momentum and Threat (rules/missionResources.js): challenge objects and Combat Type 1 use this
+    // one pair; a fight holds it while it runs and hands it back (combatLink.js).
+    resources: createMissionResources(),
     // What the away team knows of the NPCs (shared), and what each member perceives now (partyKnowledge.js).
     partyKnowledge: createPartyKnowledge(),
     // While mode is COMBAT: the Combat Type 1 state and what links it to the world (trigger, participants, snaps).

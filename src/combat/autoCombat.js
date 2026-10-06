@@ -16,6 +16,7 @@ import {
 } from './combatState.js'
 import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
+import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
 import { randomStep } from './randomAI.js'
@@ -101,10 +102,34 @@ export function chooseAIStep(state, { partyAI = 'classic', enemyAI = 'classic', 
   return normalStep(state, self, ai)
 }
 
+// The Avoid Injury decision for a party member when the AI plays the party (combat/injuryPolicy.js).
+function injuryDecisionStep(state) {
+  const { targetId, injury, option } = state.incomingInjury
+  const target = state.combatants[targetId]
+  const avoid = chooseAvoidInjury({ state, target, injury, option })
+  return {
+    type: 'injuryDecision',
+    avoid,
+    reason: avoid
+      ? `Auto Combat policy: avoid whenever possible (${option.cost} Stress instead of a Severity ${injury.severity} Injury and Defeat${option.overflow ? '; the track fills and a complication follows' : ''}).`
+      : 'Auto Combat policy: cannot avoid.',
+  }
+}
+
+// The attribute a newly Fatigued party member shuts down when the AI plays the party (combat/injuryPolicy.js).
+function fatigueChoiceStep(state) {
+  const { attributeId, reason } = chooseFatigueAttribute({ combatant: state.combatants[state.pendingFatigue.combatantId] })
+  return { type: 'chooseFatigueAttribute', attribute: attributeId, reason }
+}
+
 // One AI step for whoever is acting. A rejected step (state unchanged) ends the turn instead of stalling.
-// options: { partyAI, enemyAI, partyAmbush } (AI ids from PARTY_AIS / ENEMY_AIS).
-export function stepAI(state, options) {
+// options: { partyAI, enemyAI, partyAmbush, partyAuto } (AI ids from PARTY_AIS / ENEMY_AIS). An incoming Injury or a
+// Fatigue attribute choice on a party member waits for the player (state unchanged) unless partyAuto: the AI plays the
+// party.
+export function stepAI(state, options = {}) {
   if (!state || state.outcome) return state
+  if (state.incomingInjury) return options.partyAuto ? combatReducer(state, injuryDecisionStep(state)) : state
+  if (state.pendingFatigue) return options.partyAuto ? combatReducer(state, fatigueChoiceStep(state)) : state
   const action = chooseAIStep(state, options)
   const next = combatReducer(state, action)
   if (next !== state) return next
@@ -112,7 +137,8 @@ export function stepAI(state, options) {
 }
 
 // The screen's reducer: the normal combat reducer plus { type: 'aiStep' }.
-export const autoCombatReducer = (state, action) => (action.type === 'aiStep' ? stepAI(state, { partyAI: action.partyAI, enemyAI: action.enemyAI }) : combatReducer(state, action))
+export const autoCombatReducer = (state, action) =>
+  action.type === 'aiStep' ? stepAI(state, { partyAI: action.partyAI, enemyAI: action.enemyAI, partyAuto: action.partyAuto }) : combatReducer(state, action)
 
 // Runs a whole fight with every combatant AI-controlled, without any UI. Same inputs + seed -> same result.
 // map: a parsed map file.
@@ -120,7 +146,7 @@ export function runAutoCombat({ encounterId, map, players, seed, partyAI, enemyA
   let state = createCombat({ encounterId, map, players, seed })
   let steps = 0
   while (!state.outcome && steps < maxSteps) {
-    state = stepAI(state, { partyAI, enemyAI, partyAmbush })
+    state = stepAI(state, { partyAI, enemyAI, partyAmbush, partyAuto: true })
     steps += 1
   }
   return { state, steps, outcome: state.outcome ?? 'unfinished', rounds: state.round }

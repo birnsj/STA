@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { dispositionName, getNpcs, isDown, stateName } from '../../exploration/awareness.js'
 import { getFormation, slotPoint } from '../../exploration/formations.js'
 import { getFollowTargets, getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
+import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import { isBlock, project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import useCamera from '../combat/useCamera.js'
@@ -17,6 +18,10 @@ const HUD_MARGIN = { x: 200, top: 150, bottom: 130 }
 const HOLD_INTERVAL_MS = 90
 // ...and only when the point under the pointer moved this far (in tiles).
 const HOLD_MIN_CHANGE = 0.2
+// A press released this quickly, without steering, is a click: it gets the ground ring. Holds don't.
+const CLICK_MAX_MS = 250
+// How long the ring stays (its CSS animation, explore-click-pulse, runs 380ms).
+const CLICK_PULSE_MS = 400
 
 const worldBounds = (map) => ({
   minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
@@ -40,7 +45,7 @@ function FacingArrow({ facing }) {
 }
 
 // Down after a fight (incapacitated or defeated): drawn as Combat Type 1 draws a downed combatant.
-const isDownAfterFight = (entity) => Boolean(entity.condition && entity.condition.status !== 'active')
+const isDownAfterFight = (entity) => isDefeated(entity.condition)
 const DownBody = () => <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
 
 function Explorer({ member, selected, lead, onPress }) {
@@ -262,6 +267,16 @@ function PerceptionDebugOverlay({ party, world, knowledge }) {
   )
 }
 
+// Where a click-to-move landed: a ring on the ground that grows and fades (CSS).
+function ClickPulse({ point }) {
+  const centre = project(point)
+  return (
+    <g className="explore-click-pulse" transform={`translate(${centre.x} ${centre.y}) scale(1 0.5)`}>
+      <circle r="26" />
+    </g>
+  )
+}
+
 // onMove(point, fresh): a move order to a world point in tiles; fresh is false for the repeats while the button is held.
 // onSelect(id, additive): a character was clicked (Shift or Ctrl adds / removes them from the selection).
 // world: the NPCs (awareness.js). knowledge: what the away team knows of them (partyKnowledge.js): an NPC is drawn only
@@ -275,6 +290,13 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')
+  const [pulses, setPulses] = useState([])
+  const pulseIdRef = useRef(0)
+  const addPulse = (point) => {
+    const id = ++pulseIdRef.current
+    setPulses((list) => [...list, { id, point }])
+    setTimeout(() => setPulses((list) => list.filter((pulse) => pulse.id !== id)), CLICK_PULSE_MS)
+  }
   const onMoveRef = useRef(onMove)
   useEffect(() => {
     onMoveRef.current = onMove
@@ -305,7 +327,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     const point = toTiles(event.clientX, event.clientY)
     if (!point) return
     onMoveRef.current(point, true)
-    const hold = { client: { x: event.clientX, y: event.clientY }, sent: point }
+    const hold = { client: { x: event.clientX, y: event.clientY }, sent: point, startedAt: performance.now(), steered: false }
     const move = (moveEvent) => {
       if (moveEvent.pointerId === event.pointerId) hold.client = { x: moveEvent.clientX, y: moveEvent.clientY }
     }
@@ -313,6 +335,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       const next = toTiles(hold.client.x, hold.client.y)
       if (!next || Math.hypot(next.x - hold.sent.x, next.y - hold.sent.y) < HOLD_MIN_CHANGE) return
       hold.sent = next
+      hold.steered = true
       onMoveRef.current(next, false)
     }, HOLD_INTERVAL_MS)
     const stop = () => {
@@ -322,7 +345,11 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       window.removeEventListener('pointercancel', end)
       holdRef.current = null
     }
-    const end = (endEvent) => endEvent.pointerId === event.pointerId && stop()
+    const end = (endEvent) => {
+      if (endEvent.pointerId !== event.pointerId) return
+      if (endEvent.type === 'pointerup' && !hold.steered && performance.now() - hold.startedAt <= CLICK_MAX_MS) addPulse(point)
+      stop()
+    }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
@@ -339,7 +366,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   const handleClick = (event) => {
     if (pointerTypeRef.current !== 'touch') return
     const point = toTiles(event.clientX, event.clientY)
-    if (point) onMove(point, true)
+    if (!point) return
+    onMove(point, true)
+    addPulse(point)
   }
 
   const pressMember = (id) => (event) => {
@@ -388,6 +417,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       {floor}
       {lastKnown.map(({ npc, entry }) => (
         <LastKnownMarker key={`lk${npc.id}`} position={entry.lastKnownPosition} label={debug ? npc.name : entry.identified ? null : 'Life sign'} />
+      ))}
+      {pulses.map((pulse) => (
+        <ClickPulse key={pulse.id} point={pulse.point} />
       ))}
       {depthItems.map((item) => item.element)}
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}

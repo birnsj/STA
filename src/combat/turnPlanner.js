@@ -1,18 +1,21 @@
 // Turn Planner: alternative Auto Combat AIs for the party (chosen in the Auto Combat test dropdown).
-// Instead of a fixed checklist, it lists every plan for the AP left (stay, or move to any reachable tile, combined with
+// Instead of a fixed checklist, it lists every plan for the actions left (stay, or move to any reachable tile, combined with
 // Attack, Aim + Attack, Attack twice, Attack then move, Assist...), scores each and takes the first action of the best one.
 // It replans after every action, so dice results and fallen enemies are always taken into account.
 //
-// Score = expected Hits dealt - dangerWeight x expected Hits taken back at the end position + a little for closing in.
+// Score = expected value of hits landed - dangerWeight x expected value of hits taken back at the end position + a little
+// for closing in. A hit's value: 1, plus killBonus when it would Defeat (Minor NPC, or not enough Stress / Threat left to
+// Avoid the Injury; the same rules the resolver uses).
 // Expected values come from the same rules the attack uses (previewAttack / getHitChance); nothing is rolled here.
 // Enemies are judged by the enemy AI's own habits: each walks then shoots, and targets the nearest party member.
 // The profiles below only change weights and add optional terms. All of it is AI tuning (implementation detail), not rules.
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
-import { findPath, getMovementTiles, getReachableTiles, getSprintTiles } from './movementSystem.js'
+import { getMovementTiles, getReachableTiles } from './movementSystem.js'
 import { RANGE_BANDS, tileDistance } from './rangeSystem.js'
 import { getWeapon } from './weaponSystem.js'
 import {
+  actionsLeft,
   canAfford,
   canAim,
   canMove,
@@ -22,17 +25,18 @@ import {
   getCombatantList,
   getOpponents,
   getReachable,
+  injuryFor,
   isActive,
-  MAX_HITS,
   previewAttack,
 } from './combatState.js'
-import { bestShot, cancelThreatStep, expectedChance, injuryModesFor, momentumHitStep, pendingStep, shotSummary } from './combatAI.js'
+import { bestShot, cancelThreatStep, expectedChance, injuryModesFor, pendingStep, shotSummary } from './combatAI.js'
+import { getAvoidOption, getMaxStress } from '../rules/personalCondition.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
 const BASE_PROFILE = {
-  // A Hit that removes a combatant is worth 1 + killBonus (it also ends everything that combatant would have done).
+  // A hit that Defeats a combatant is worth 1 + killBonus (it also ends everything that combatant would have done).
   killBonus: 1,
-  // How much a Hit taken counts against a Hit dealt.
+  // How much a hit taken counts against a hit landed.
   dangerWeight: 0.8,
   // Per tile closer to the nearest enemy (walking distance), so a turn with no shot still advances.
   approachWeight: 0.04,
@@ -77,16 +81,30 @@ const pct = (chance) => `${Math.round(chance * 100)}%`
 const maxRangeTiles = (weapon) => RANGE_BANDS.find((band) => band.id === weapon.maximumRange)?.maxTiles ?? Infinity
 const teammates = (state, self) => getCombatantList(state).filter((other) => other.side === self.side && other.id !== self.id && isActive(other))
 
-// What one Hit on a combatant is worth to this profile.
+// Whether the hardest-hitting weapon on the other side would Defeat this combatant with one hit (no Avoid Injury possible).
+function hitWouldDefeat(state, target) {
+  const injuries = getCombatantList(state)
+    .filter((other) => other.side !== target.side && isActive(other))
+    .flatMap((attacker) =>
+      attacker.weaponIds.map(getWeapon).flatMap((weapon) => injuryModesFor(state, attacker, weapon).slice(0, 1).map((mode) => injuryFor(state, attacker, target, weapon, mode))),
+    )
+  if (!injuries.length) return false
+  const worst = injuries.reduce((a, b) => (b.severity > a.severity ? b : a))
+  return !getAvoidOption(target.character, target.condition, worst, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene }).possible
+}
+
+// What one hit on a combatant is worth to this profile.
 function createValuer(state, self, profile) {
   const allies = teammates(state, self)
   const cache = new Map()
   return (target) => {
     if (cache.has(target.id)) return cache.get(target.id)
-    let value = 1 + (target.hits >= MAX_HITS - 1 ? profile.killBonus : 0)
+    let value = 1 + (hitWouldDefeat(state, target) ? profile.killBonus : 0)
     if (profile.focusWeight && target.side !== self.side) {
       const sharers = allies.filter((ally) => bestShot(state, ally, target)).length
-      value *= 1 + profile.focusWeight * (target.hits / MAX_HITS + (allies.length ? sharers / allies.length : 0))
+      const max = getMaxStress(target.character).value
+      const worn = max ? target.condition.stress / max : 0
+      value *= 1 + profile.focusWeight * (worn + (allies.length ? sharers / allies.length : 0))
     }
     cache.set(target.id, value)
     return value
@@ -128,7 +146,8 @@ function bestAssist(state, self, valueOf, profile) {
   return best && best.value > 0 ? best : null
 }
 
-// Expected Hits this character takes next round if it ends its turn at position, and walking distance to the nearest enemy.
+// Expected value of the hits this character takes next round if it ends its turn at position, and walking distance to
+// the nearest enemy.
 function createDangerMap(state, self, valueOf) {
   const opponents = getOpponents(state, self).map((opponent) => {
     const tiles = [...getReachableTiles(state.map, opponent.position, getMovementTiles(opponent.character), getBlockers(state, opponent)).values()].map(
@@ -154,6 +173,7 @@ function createDangerMap(state, self, valueOf) {
         for (const tile of tiles) {
           if (tileDistance(tile, position) > reach) continue
           const shot = previewAttack(placed, opponent.id, self.id, weapon.id, tile)
+          // AI tuning, as in combatAI's bestShot: shots that only critical successes could land don't count as threats.
           if (!shot.available || shot.task.difficulty > TASK_DICE) continue
           chance = Math.max(chance, expectedChance(placed, opponent.id, shot))
         }
@@ -201,14 +221,13 @@ export function plannerStep(state, self, profileId = 'planner') {
     ? { ...chosen, ...IMPATIENT, dangerWeight: Math.min(chosen.dangerWeight, IMPATIENT.dangerWeight), approachWeight: Math.max(chosen.approachWeight, IMPATIENT.approachWeight) }
     : chosen
   if (state.pending) return pendingStep(state, self)
-  const extraHit = momentumHitStep(state, self)
-  if (extraHit) return extraHit
-  if (!state.turn.ap) return { type: 'endTurn', decision: 'End turn', reason: 'No AP left.' }
+  if (!actionsLeft(state.turn)) return { type: 'endTurn', decision: 'End turn', reason: 'No actions left.' }
   if (!getOpponents(state, self).length) return { type: 'endTurn', decision: 'End turn', reason: 'No targets left.' }
   const cancel = cancelThreatStep(state, self)
   if (cancel) return cancel
 
-  const { ap } = state.turn
+  // Two-step plans pair the Major action with the Minor one (Book p.288: one of each per turn; no second attack).
+  const both = state.turn.major > 0 && state.turn.minor > 0
   const here = self.position
   const valueOf = createValuer(state, self, profile)
   const map = createDangerMap(state, self, valueOf)
@@ -216,7 +235,7 @@ export function plannerStep(state, self, profileId = 'planner') {
   const allies = teammates(state, self)
   const tiles = canMove(state, self) ? [...getReachable(state, self).values()].filter((entry) => entry.steps > 0) : []
   const attack = canAfford(state, self, 'attack') ? bestAttack(state, self, valueOf, profile) : null
-  const assist = bestAssist(state, self, valueOf, profile)
+  const assist = canAfford(state, self, 'assist') ? bestAssist(state, self, valueOf, profile) : null
   const plans = []
   const add = (first, steps, offence, end = { position: here, steps: 0 }) => plans.push({ first, steps, offence, end })
   const moveTo = (entry, extra = {}) => ({ type: 'move', destination: entry.position, ...extra })
@@ -224,9 +243,7 @@ export function plannerStep(state, self, profileId = 'planner') {
   add({ type: 'endTurn' }, ['End turn'], 0)
   if (attack) {
     add(attackAction(state, self, attack), [attackText(attack)], attack.value)
-    if (ap >= 2) {
-      add(attackAction(state, self, attack), [attackText(attack), 'Attack again'], attack.value * 2)
-      if (assist) add(attackAction(state, self, attack), [attackText(attack), assistText(assist)], attack.value + assist.value)
+    if (both) {
       for (const entry of tiles) add(attackAction(state, self, attack), [attackText(attack), `Move ${plural(entry.steps, 'tile')}`], attack.value, entry)
       const aimed = canAim(state, self) ? bestAttack(state, self, valueOf, profile, undefined, { aimed: true }) : null
       if (aimed) add({ type: 'aim', targetId: aimed.target.id, weaponId: aimed.shot.weapon.id }, ['Aim', attackText(aimed)], aimed.value)
@@ -234,44 +251,22 @@ export function plannerStep(state, self, profileId = 'planner') {
   }
   if (assist) {
     add({ type: 'assist', allyId: assist.ally.id }, [assistText(assist)], assist.value)
-    if (ap >= 2) {
-      if (attack) add({ type: 'assist', allyId: assist.ally.id }, [assistText(assist), attackText(attack)], assist.value + attack.value)
+    if (both) {
       for (const entry of tiles) add({ type: 'assist', allyId: assist.ally.id }, [assistText(assist), `Move ${plural(entry.steps, 'tile')}`], assist.value, entry)
     }
   }
   for (const entry of tiles) {
     add(moveTo(entry), [`Move ${plural(entry.steps, 'tile')}`], 0, entry)
-    if (ap < 2) continue
+    if (!both) continue
     const from = canAfford(state, self, 'attack') ? bestAttack(state, self, valueOf, profile, entry.position) : null
     if (from) add(moveTo(entry, { targetId: from.target.id, weaponId: from.shot.weapon.id }), [`Move ${plural(entry.steps, 'tile')}`, attackText(from)], from.value, entry)
     if (assist) add(moveTo(entry), [`Move ${plural(entry.steps, 'tile')}`, assistText(assist)], assist.value, entry)
   }
 
-  // Sprint (half movement, once per turn): alone, with an attack before or after, or after a Move to go further.
+  // Sprint (a major action, so never with an attack), alone: Book p.288 forbids Move and Sprint in the same turn.
   const sprintTiles = canSprint(state, self) ? [...getReachable(state, self, 'sprint').values()].filter((entry) => entry.steps > 0) : []
   const sprintTo = (entry, extra = {}) => ({ type: 'sprint', destination: entry.position, ...extra })
-  for (const entry of sprintTiles) {
-    const label = `Sprint ${plural(entry.steps, 'tile')}`
-    add(sprintTo(entry), [label], 0, entry)
-    if (ap < 2) continue
-    const from = canAfford(state, self, 'attack') ? bestAttack(state, self, valueOf, profile, entry.position) : null
-    if (from) add(sprintTo(entry, { targetId: from.target.id, weaponId: from.shot.weapon.id }), [label, attackText(from)], from.value, entry)
-    if (attack) add(attackAction(state, self, attack), [attackText(attack), label], attack.value, entry)
-  }
-  // Move + Sprint: tiles only both together reach. The first step is a Move as far along the route as it can stop
-  // (allies can be passed but not stopped on); the planner replans before the Sprint.
-  if (ap >= 2 && tiles.length && sprintTiles.length) {
-    const moveTiles = getMovementTiles(self.character)
-    const blockers = getBlockers(state, self)
-    const far = getReachableTiles(state.map, here, moveTiles + getSprintTiles(self.character), blockers)
-    for (const entry of far.values()) {
-      if (entry.steps <= moveTiles) continue
-      const path = findPath(state.map, here, entry.position, entry.steps, blockers)
-      const stop = path && path.slice(1, moveTiles + 1).reverse().find((position) => !blockers.occupiedKeys.has(tileKey(position)))
-      if (!stop) continue
-      add(moveTo({ position: stop }), [`Move ${plural(path.indexOf(stop), 'tile')}`, `Sprint to ${plural(entry.steps, 'tile')} away`], 0, entry)
-    }
-  }
+  for (const entry of sprintTiles) add(sprintTo(entry), [`Sprint ${plural(entry.steps, 'tile')}`], 0, entry)
 
   for (const plan of plans) {
     const end = plan.end.position
@@ -302,8 +297,8 @@ export function plannerStep(state, self, profileId = 'planner') {
     decision: `Plan: ${best.steps.join(' > ')}`,
     reason:
       (impatient ? `Out of patience (Daring ${self.character.attributes.daring}: ${plural(patience, 'round')} without attacking): taking any shot and closing in. ` : '') +
-      `Best of ${plans.length} plans (score ${best.score.toFixed(2)}): expected ${best.offence.toFixed(2)} Hits dealt, ` +
-      `${best.danger.toFixed(2)} Hits risked next round; ${ending}.${lookahead}` +
+      `Best of ${plans.length} plans (score ${best.score.toFixed(2)}): expected hit value ${best.offence.toFixed(2)} landed, ` +
+      `${best.danger.toFixed(2)} risked next round; ${ending}.${lookahead}` +
       (runnerUp ? ` Next best: ${runnerUp.steps.join(' > ')} (${runnerUp.score.toFixed(2)}).` : ''),
   }
 }
