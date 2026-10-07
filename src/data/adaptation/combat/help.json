@@ -51,9 +51,9 @@
         "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there. You can Move once per turn, up to your full movement (shown as >> 5/5 above your character); tiles you don't use are lost. You can't Move while a Klingon is right next to you.",
         "Sprint (Major, no roll): point at your acting character and pick Sprint, then click a blue tile. It goes up to half your movement (rounded up; shown as +3 beside >> 5/5), once per turn, and never in the same turn as Move. Klingons sprint too. Sprinting is not an attack, so it doesn't spoil an Ambush.",
         "Aim lets you reroll one die on your next attack this turn; with an Accurate weapon (such as a phaser rifle), up to two dice. A focus doesn't change Aim. Aiming twice doesn't give more rerolls.",
-        "Assist (Major): click a party member who still has a turn this round, then Assist (or use Assist on the right). Their next task this round (an attack, Guard, First Aid or an object task) rolls your 1d20 as well, against your own Target Number; it adds a success only if they score at least one themselves. One assist per task; unused assists end with the round.",
-        "For actions on the right, choose one, set it up, then press the large yellow button. Right-click the battlefield to release your selection.",
-        "Your turn ends by itself when both actions are used. The small End Turn button under the actions ends it early."
+        "Assist (Major): click a party member who still has a turn this round, then Assist (or point at your character, pick Assist and choose the ally in the Task panel). Their next task this round (an attack, Guard, First Aid or an object task) rolls your 1d20 as well, against your own Target Number; it adds a success only if they score at least one themselves. One assist per task; unused assists end with the round.",
+        "Guard, First Aid, Direct, object tasks, Assist from your own character and a firing mode picked on your own character open in the Task panel on the right: set them up, then press the large yellow button that appears there. Your character's weapon is shown on their party card: click it to switch weapons. Right-click the battlefield to release your selection.",
+        "Your turn ends by itself when both actions are used. The End Turn button under the Task panel ends it early."
       ]
     },
     {

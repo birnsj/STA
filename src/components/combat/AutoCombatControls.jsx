@@ -7,7 +7,8 @@ function AIPicker({ label, options, value, onChange }) {
   return (
     <label className="auto-ai">
       <span className="auto-ai-label">{label}</span>
-      <select className="auto-ai-select" value={value} onChange={(event) => onChange(event.target.value)}>
+      {/* The box is narrower than the longest AI name, so the full name is on the tooltip. */}
+      <select className="auto-ai-select" title={options.find((ai) => ai.id === value)?.name} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((ai) => (
           <option key={ai.id} value={ai.id}>
             {ai.name}

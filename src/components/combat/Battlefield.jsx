@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
@@ -43,6 +43,43 @@ function useMoveAnimation(lastMove, msPerTile) {
   const next = lastMove.path[step.index + 1]
   return { id: lastMove.combatantId, position: here, facing: { x: Math.sign(next.x - here.x), y: Math.sign(next.y - here.y) } }
 }
+
+// Two tile-key sets (either of which may be absent) holding the same keys.
+const sameKeys = (a, b) => a === b || (a?.size === b?.size && [...(a ?? [])].every((key) => b.has(key)))
+
+// The floor the player clicks: one polygon per walkable tile, carrying the move highlight and the tile's pointer
+// handlers. There are hundreds of them and they only change when the highlight does, so the layer is memoised on the
+// highlight itself and reads the handlers through a ref (the screen above hands down a new onTileClick every render).
+const FloorGrid = memo(
+  function FloorGrid({ tiles, reachableKeys, pathKeys, destinationKey, handlersRef, pointerTypeRef }) {
+    return (
+      <g className="iso-floor">
+        {tiles.map(({ x, y }) => {
+          const key = tileKey({ x, y })
+          const reachable = reachableKeys?.has(key)
+          return (
+            <polygon
+              key={key}
+              className={`iso-tile${reachable ? ' is-reachable' : ''}${pathKeys?.has(key) ? ' is-path' : ''}${key === destinationKey ? ' is-destination' : ''}`}
+              points={points(diamond({ x, y }))}
+              data-ui-press={reachable ? '' : undefined}
+              onPointerDown={(event) => {
+                pointerTypeRef.current = event.pointerType
+              }}
+              onClick={() => handlersRef.current.onTileClick({ x, y }, { touch: pointerTypeRef.current === 'touch' })}
+              onMouseEnter={() => handlersRef.current.onTileHover({ x, y })}
+            />
+          )
+        })}
+      </g>
+    )
+  },
+  (before, after) =>
+    before.tiles === after.tiles &&
+    before.destinationKey === after.destinationKey &&
+    sameKeys(before.reachableKeys, after.reachableKeys) &&
+    sameKeys(before.pathKeys, after.pathKeys),
+)
 
 // Arrow on the ground ring pointing along a grid direction, drawn in the same isometric projection as the tiles.
 function FacingArrow({ facing }) {
@@ -309,15 +346,24 @@ export default function Battlefield({
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
   // Click events don't reliably say whether they came from a finger, so the tile remembers the last pointer that pressed it.
   const pointerTypeRef = useRef('mouse')
+  // Read when a tile is actually clicked or hovered, so the memoised floor never holds an old render's handler.
+  const tileHandlers = useRef({ onTileClick, onTileHover })
+  useLayoutEffect(() => {
+    tileHandlers.current = { onTileClick, onTileHover }
+  })
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
-  const tiles = []
-  const blocks = []
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      if (isBlock(map.tiles[y][x])) blocks.push({ x, y })
-      else tiles.push({ x, y })
+  // Stable as long as the map is: the memoised floor and block tiles compare these by identity.
+  const { tiles, blocks } = useMemo(() => {
+    const floor = []
+    const solid = []
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (isBlock(map.tiles[y][x])) solid.push({ x, y })
+        else floor.push({ x, y })
+      }
     }
-  }
+    return { tiles: floor, blocks: solid }
+  }, [map])
   const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
   const depthItems = [
     ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <BlockTile key={`b${block.x},${block.y}`} map={map} position={block} /> })),
@@ -371,27 +417,14 @@ export default function Battlefield({
       onMouseLeave={() => onTileHover(null)}
     >
       <FloorTiles map={map} />
-      <g className="iso-floor">
-        {tiles.map(({ x, y }) => {
-          const key = tileKey({ x, y })
-          const reachable = overlay.reachableKeys?.has(key)
-          const onPath = overlay.pathKeys?.has(key)
-          const isDestination = overlay.path && key === tileKey(overlay.path[overlay.path.length - 1])
-          return (
-            <polygon
-              key={key}
-              className={`iso-tile${reachable ? ' is-reachable' : ''}${onPath ? ' is-path' : ''}${isDestination ? ' is-destination' : ''}`}
-              points={points(diamond({ x, y }))}
-              data-ui-press={reachable ? '' : undefined}
-              onPointerDown={(event) => {
-                pointerTypeRef.current = event.pointerType
-              }}
-              onClick={() => onTileClick({ x, y }, { touch: pointerTypeRef.current === 'touch' })}
-              onMouseEnter={() => onTileHover({ x, y })}
-            />
-          )
-        })}
-      </g>
+      <FloorGrid
+        tiles={tiles}
+        reachableKeys={overlay.reachableKeys}
+        pathKeys={overlay.pathKeys}
+        destinationKey={overlay.path ? tileKey(overlay.path[overlay.path.length - 1]) : null}
+        handlersRef={tileHandlers}
+        pointerTypeRef={pointerTypeRef}
+      />
       {overlay.path && <MovePathLine path={overlay.path} />}
       {snapMarks && (
         <g className="snap-marks" pointerEvents="none">

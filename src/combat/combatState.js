@@ -15,7 +15,6 @@
 // Direct and Assist here, and challenge objects in the world (exploration/combatLink.js, the same objects and rules as
 // in exploration), all through the same shared task.
 import actionData from '../data/adaptation/combat/actions.json'
-import encounterData from '../data/adaptation/combat/encounters.json'
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import { findAuthority } from '../rules/authority.js'
@@ -46,15 +45,11 @@ import { evaluateStaDie, rerollDie, resolveStaTask, rollDice, staSuccessOdds, st
 import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
 import { tileKey, toBattleMap } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
+import { DEFAULT_ENCOUNTER_ID, getEncounter } from './encounters.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { findPath, getMovementTiles, getReachableTiles, getSprintTiles } from './movementSystem.js'
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
-import { getAttackTaskSpec, getCharacterWeapons, getInjuryMode, getRangeModifier, getWeapon } from './weaponSystem.js'
-
-export const getEncounter = (encounterId) => encounterData.encounters.find((encounter) => encounter.id === encounterId) ?? null
-export const DEFAULT_ENCOUNTER_ID = encounterData.encounters[0].id
-export const DEFAULT_MAP_ID = encounterData.encounters[0].defaultMapId
-export const ENEMY_SPAWNS_NEEDED = encounterData.encounters[0].roster.length
+import { getAttackTaskSpec, getCharacterWeapons, getInjuryMode, getRangeModifier, getWeapon, withStandardIssue } from './weaponSystem.js'
 
 // major / minor: actions of each type left this turn (Book p.288: one of each; see actions.json). Move or Sprint, once,
 // never both (Book p.288). done: the character pressed End Turn with actions left. attacks: attacks made this turn (for
@@ -158,13 +153,6 @@ const turnHeader = (combatant) => [
   combatant.character.name,
   `Initiative: Daring ${combatant.character.attributes.daring}, Control ${combatant.character.attributes.control}`,
 ]
-
-// A party member with no weapon of their own gets the encounter's standard-issue weapon for this fight only.
-export function withStandardIssue(character, weaponId) {
-  const weapon = weaponId && getWeapon(weaponId)
-  if (!weapon || getCharacterWeapons(character).some((carried) => !carried.alwaysAvailable)) return character
-  return { ...character, equipment: [...character.equipment, { itemId: weapon.itemId, name: weapon.name }] }
-}
 
 // players: RuntimeCharacters controlled by the player, in party order; each stands on the map's player start of the same
 // index (members beyond the map's player starts are left out). map: a parsed map file (src/maps/mapFormat.js).

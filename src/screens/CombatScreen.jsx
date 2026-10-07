@@ -5,15 +5,8 @@ import {
   ACTION_TYPE_NAMES,
   actionTypeOf,
   ADAPTATION_MOMENTUM_SPENDS,
-  directBlock,
-  getAssistFor,
-  getAuthority,
-  getDirectableAllies,
-  getFirstAidOptions,
-  getGuardTargets,
   previewFirstAid,
   previewGuard,
-  canAct,
   canAfford,
   AIM_TEXT,
   aimRerollsFor,
@@ -22,48 +15,35 @@ import {
   canAmbush,
   canAssist,
   canMove,
-  canSprint,
   EXTRA_ACTIONS,
-  extraMinorBlock,
   getActiveCombatant,
   getMovementBlock,
-  previewInjuries,
-  secondMajorBlock,
   statusText,
-  getAmbusher,
-  getAmbushTargets,
-  getAssistableAllies,
-  getEncounter,
   getHitChance,
   getMovementLeft,
   getOpponents,
-  getPathTo,
-  getReachable,
   getTurnGroup,
   getTurnGroupRange,
   getTurnOf,
-  hasTargetInRange,
   isActive,
   isTurnFinished,
   previewAmbush,
   previewAttack,
   rollAwaitsPlayer,
-  DEFAULT_ENCOUNTER_ID,
   COMBAT_TASKS,
-  getAttackTask,
 } from '../combat/combatState.js'
+import { buildCombatView } from '../combat/combatView.js'
+import { DEFAULT_ENCOUNTER_ID, getEncounter } from '../combat/encounters.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { prepareAssist } from '../rules/taskPreparation.js'
 import { autoCombatReducer, chooseAIStep } from '../combat/autoCombat.js'
-import { canTakeCover } from '../combat/coverSystem.js'
 import { getMovementTiles, getSprintTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import { getInjuryMode, getWeapon } from '../combat/weaponSystem.js'
-import { checkDicePurchase } from '../rules/missionResources.js'
 import Battlefield from '../components/combat/Battlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
-import { ActionsPanel, SelectedCharacterPanel, TargetPanel, TaskPanel } from '../components/combat/CombatSidebar.jsx'
+import { EndTurnButton, SelectedCharacterPanel, TargetPanel, TaskPanel } from '../components/combat/CombatSidebar.jsx'
 import DebugPanel from '../components/combat/DebugPanel.jsx'
 import HowToPlay from '../components/combat/HowToPlay.jsx'
 import FatigueChoice from '../components/combat/FatigueChoice.jsx'
@@ -371,61 +351,17 @@ export function Battle({
     return () => clearTimeout(timer)
   }, [state, aiControlled, dispatch, helpOpen, openingDone, auto, speed, hasPlan, partyAI, enemyAI])
 
-  // Move and Sprint share the tile picking; moveKind is whichever of them is selected.
-  const moveKind = mode === 'move' || mode === 'sprint' ? mode : null
-  const reachable = moveKind && isPlayerTurn ? getReachable(state, active, moveKind) : null
-  const pathTarget = destination ?? hoverTile
-  const movePath =
-    reachable && pathTarget && reachable.has(tileKey(pathTarget)) && !samePosition(pathTarget, active.position) ? getPathTo(state, active, pathTarget, moveKind) : null
-  const routeInCover = Boolean(movePath && canTakeCover(state.map, movePath[movePath.length - 1]))
-  const preview = mode === 'attack' && target ? { ...previewAttack(state, active.id, target.id, weapon.id), injuries: previewInjuries(state, active.id, target.id, weapon.id) } : null
-  // The attack the ring buttons label: against the current target when there is one (range, Guard and cover count),
-  // else the attacker's own task before any target.
-  const targetAttack = isPlayerTurn && target ? (preview ?? previewAttack(state, active.id, target.id, weapon.id)) : null
-  const ownAttack = isPlayerTurn && !targetAttack ? getAttackTask(state, active.id, weapon.id) : null
-  const ringAttackRoll = targetAttack
-    ? { task: targetAttack.task, opposed: Boolean(targetAttack.opposition) }
-    : ownAttack && { task: { ...ownAttack.task, difficulty: ownAttack.difficulty }, opposed: false }
-  // The pool can shrink after the choice (another spend), so the Momentum part never exceeds what it holds now.
-  const purchase = { bonusDice: dicePurchase.bonusDice, momentum: Math.min(dicePurchase.momentum, state.resources.momentum) }
-  const purchaseCheck = checkDicePurchase(state.resources, purchase)
-  const ambushPreview = mode === 'ambush' ? previewAmbush(state, ringId) : null
-  const ambusher = ambushOpen ? getAmbusher(state) : null
-  const ambushTargets = ambushOpen ? getAmbushTargets(state) : []
-
-  const overlay = {
-    reachableKeys: reachable ? new Set([...reachable.keys()].filter((key) => key !== tileKey(active.position))) : null,
-    pathKeys: movePath ? new Set(movePath.slice(1).map(tileKey)) : null,
-    path: movePath,
-    shot: preview ? { from: active.position, to: target.position, available: preview.available } : null,
-  }
-
-  const targetInRange = hasTargetInRange(state, active.id, weapon.id)
-  const assistAllies = isPlayerTurn ? getAssistableAllies(state, active) : []
-  const assistAlly = assistAllies.find((ally) => ally.id === assistAllyId) ?? null
-  // Who assists the acting character's next attack: an Assist set up for them, or the commander on a Direct.
-  const attackAssist = getAssistFor(state, active.id, { weapon })
-  const assistHelper = attackAssist ? { ...state.combatants[attackAssist.helperId], via: attackAssist.via } : null
-  // Why the previewed attack can't be fired now (null = it can): from the enemy's ring buttons or the task panel.
-  const maxAttackSuccesses = purchaseCheck.dice * 2 + (assistHelper ? 2 : 0)
-  const attackBlock = !preview?.available
-    ? (preview?.reason ?? 'Not a valid target.')
-    : !purchaseCheck.valid
-      ? purchaseCheck.reason
-      : preview.task.difficulty > maxAttackSuccesses
-        ? `Needs ${preview.task.difficulty} successes; at most ${maxAttackSuccesses} are possible from ${purchaseCheck.dice}d20: cannot succeed.`
-        : null
-
-  // Guard, First Aid, Direct and challenge objects: only what this character could do now is offered.
-  const objectList = isPlayerTurn ? (objects?.list ?? []) : []
-  const guardTargets = isPlayerTurn ? getGuardTargets(state, active) : []
-  const firstAidOptions = isPlayerTurn ? getFirstAidOptions(state, active) : []
-  const authority = getAuthority(state, active.side)
-  const isCommander = isPlayerTurn && !state.directed && authority?.id === active.id
-  const directAllies = isCommander ? getDirectableAllies(state, active) : []
-  const directReason = isCommander ? directBlock(state, active) : null
-  const extraMinorReason = isPlayerTurn ? extraMinorBlock(state, active) : 'Not your turn.'
-  const secondMajorReason = isPlayerTurn ? secondMajorBlock(state, active) : 'Not your turn.'
+  // Everything the HUD shows about this moment: movement range, the attack preview, who can be guarded, treated,
+  // directed or assisted, and why an action is closed. Worked out in combat/combatView.js so this screen keeps only its
+  // UI state, handlers and layout.
+  const {
+    moveKind, reachable, movePath, routeInCover, overlay,
+    preview, targetAttack, ringAttackRoll, attackBlock, targetInRange, purchase, purchaseCheck,
+    ambushPreview, ambusher, ambushTargets,
+    assistAllies, assistAlly, assistHelper,
+    objectList, guardTargets, firstAidOptions, authority, isCommander, directAllies, directReason,
+    extraMinorReason, secondMajorReason, availability, unavailableReasons,
+  } = buildCombatView({ state, active, isPlayerTurn, mode, target, weapon, destination, hoverTile, dicePurchase, ringId, ambushOpen, assistAllyId, objectList: objects?.list ?? [] })
   const describeAssist = (assist) =>
     assist && { name: state.combatants[assist.helperId].character.name, label: assist.via === 'direct' ? 'Direct: Control + Command' : 'Assist', task: assist.task }
   const fromPreview = (task, focusOptions = []) => ({ label: task.label, cost: typeName(task.kind), prepared: task.prepared, assist: describeAssist(task.assist), available: task.available, reason: task.reason, focusOptions })
@@ -532,16 +468,6 @@ export function Battle({
     setDestination(null)
     closeRing()
   }
-  const availability = {
-    move: canMove(state, active),
-    sprint: canSprint(state, active),
-    assist: canAfford(state, active, 'assist') && assistAllies.length > 0,
-    endTurn: canAct(state, active),
-  }
-  const unavailableReasons = {
-    ...(canAfford(state, active, 'assist') && !assistAllies.length ? { assist: 'No party member left to assist: they have all acted or are already assisted this round.' } : {}),
-  }
-
   const closeRing = () => {
     setRingId(null)
     setRingInfo(false)
@@ -565,7 +491,9 @@ export function Battle({
     ...(taskConfirm ? { [mode]: taskConfirm } : {}),
   }
   const confirmation = confirmations[mode]
+  // Move and Sprint commit by clicking a tile, so Confirm is only shown for a task being set up (or Assist's ally pick).
   const confirm = {
+    shown: Boolean(taskConfirm) || mode === 'assist',
     enabled: Boolean(confirmation?.enabled),
     onConfirm: () => {
       confirmation.run()
@@ -979,6 +907,7 @@ export function Battle({
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
+  const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getWeapon(weaponIds[member.id] ?? member.weaponIds[0])]))
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
@@ -1098,16 +1027,6 @@ export function Battle({
       </div>
       <div className="combat-sidebar">
         <SelectedCharacterPanel combatant={shownCharacter} />
-        <ActionsPanel
-          availability={isPlayerTurn ? availability : {}}
-          unavailableReasons={isPlayerTurn ? unavailableReasons : {}}
-          mode={mode}
-          weapon={weapon}
-          canCycleWeapon={isPlayerTurn && active.weaponIds.length > 1}
-          autoEndMs={turnUsedUp && !helpOpen ? autoEndMs : null}
-          onSelect={selectAction}
-          onCycleWeapon={cycleWeapon}
-        />
         <TargetPanel target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null} />
         <TaskPanel
           mode={mode}
@@ -1127,6 +1046,11 @@ export function Battle({
           rolling={Boolean(state.pending)}
           aiTurn={auto !== 'off' && !isPlayerTurn && !state.outcome ? aiTurnTask(state, active) : null}
         />
+        <EndTurnButton
+          enabled={isPlayerTurn && availability.endTurn}
+          autoEndMs={turnUsedUp && !helpOpen ? autoEndMs : null}
+          onEnd={() => selectAction('endTurn')}
+        />
       </div>
       <div className="combat-bottom-left">
         <RollPanel
@@ -1137,7 +1061,10 @@ export function Battle({
           onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
-        <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null} />
+        <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
+          weapons={partyWeapons}
+          onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
+        />
       </div>
       {!state.outcome && (
         <AutoCombatControls

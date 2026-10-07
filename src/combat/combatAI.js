@@ -33,7 +33,6 @@ import {
   getActiveCombatant,
   getAssistableAllies,
   getBlockers,
-  getEncounter,
   getHitChance,
   getOpponents,
   getReachable,
@@ -41,6 +40,7 @@ import {
   previewAttack,
   statusText,
 } from './combatState.js'
+import { getEncounter } from './encounters.js'
 import { getAvoidOption } from '../rules/personalCondition.js'
 import { staDieOdds, TASK_DICE } from '../rules/taskResolver.js'
 

@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
+import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
-import { armedForWorldCombat } from '../../exploration/combatLink.js'
 import { FORMATIONS } from '../../exploration/formations.js'
 import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
@@ -23,13 +24,20 @@ function carriedWeaponText(character) {
   return (own.length ? own : weapons).map((weapon) => weapon.name).join(', ') || 'none'
 }
 
+// Everything on the card that depends only on the character, not on their condition: worked out once per character
+// rather than on every frame of movement.
+const cardFacts = (character) => ({
+  attribute: topScore(ATTRIBUTE_IDS, character.attributes, getAttributeName),
+  department: topScore(DISCIPLINE_IDS, character.disciplines, getDisciplineName),
+  protection: getProtection(character, { injuryType: 'stun' }).value,
+  rankRole: [character.rank?.name, character.role?.name ?? character.assignment?.name].filter(Boolean).join(' · '),
+  weapon: carriedWeaponText(character),
+  speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
+})
+
 // Compact: species / department and Stress. Hovering (or focusing) the card opens the rest around them.
 function CardDetails({ character, condition }) {
-  const attribute = topScore(ATTRIBUTE_IDS, character.attributes, getAttributeName)
-  const department = topScore(DISCIPLINE_IDS, character.disciplines, getDisciplineName)
-  const protection = getProtection(character, { injuryType: 'stun' }).value
-  const rankRole = [character.rank?.name, character.role?.name ?? character.assignment?.name].filter(Boolean).join(' · ')
-  const weapon = carriedWeaponText(character)
+  const { attribute, department, protection, rankRole, weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
     <>
       {rankRole && (
@@ -37,7 +45,7 @@ function CardDetails({ character, condition }) {
           <span className="explore-card-detail is-rank">{rankRole}</span>
         </span>
       )}
-      <span className="explore-card-detail is-main">{[character.species?.name, character.department?.name].filter(Boolean).join(' / ')}</span>
+      <span className="explore-card-detail is-main">{speciesLine}</span>
       <span className="explore-card-more">
         <span className="explore-card-stats">
           <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>

@@ -4,8 +4,8 @@
     "Book (p.288, p.260): a second major action for 2 Momentum (the task is +1 Difficulty; Swift Action), and an Extra Minor Action for 1 Momentum (once per turn: each minor action may only be performed once per turn). Nobody attempts more than two major actions in a round; Direct gives an ally a second one with no +1 but never a third. NPCs pay with Threat (hook: the AI doesn't buy them yet).",
     "Book (p.288): the Movement minor action (Move) cannot be taken in the same turn as the Movement major action (Sprint), nor while any enemy is within Reach. The book gives no disengage rule and none is added: Sprint is still allowed next to an enemy.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically.",
-    "panel: the actions shown in the Actions panel. selfRing: the acting character's own actions around them; only the ones possible right now are shown (contextual actions: First Aid, Direct, Guard, challenge objects in reach, Extra Minor, Second Major).",
-    "Designer decision (Oct 2026): Attack and Aim are not in the panel. Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim and Info. Clicking a party member shows Assist (and Switch, to hand them the turn).",
+    "selfRing: the acting character's own actions around them; only the ones possible right now are shown (contextual actions: First Aid, Direct, Guard, challenge objects in reach, Extra Minor, Second Major).",
+    "Designer decision (Oct 2026): there is no Actions panel. Actions are picked from the rings around units; End Turn is a button under the task panel, the task panel's Confirm button only appears while a task is set up (Guard, First Aid, Direct, object tasks, Assist, Fire), and each party card shows that character's weapon (the acting character's is clickable to switch). Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim and Info. Clicking a party member shows Assist (and Switch, to hand them the turn).",
     "Designer decision (Oct 2026): the acting character's own ring also offers Attack as one button per firing mode the current weapon allows (its injuryModes: Stun and/or Deadly), showing the weapon's Severity and, for Deadly, +1 Threat. Picking one chooses the mode for the next attack only; the player then picks the target and fires from the task panel (Fire). The Threat is charged when the attack resolves, never on picking the mode.",
     "tasks: the predefined combat tasks (Book p.288: Guard, First Aid, Direct). Attribute, department and Difficulty are book rules; 'focuses' are VIDEOGAME ADAPTATION (designer-authored lists of the focus names that apply, matched exactly, Oct 2026).",
     "communication (Direct): Book p.288 'select one ally who can hear you'. Prototype hook: an ally hears the commander when within audibleRangeTiles (implementation detail, placeholder value; flag for designer), or when both carry a working communicator (an item tagged 'communication'). A scene can block communicators (combat state comms.remoteBlocked: jamming, comms disabled, isolation).",
@@ -15,7 +15,6 @@
   "adaptationMomentumSpends": false,
   "extraActions": { "extraMinorCost": 1, "secondMajorCost": 2, "secondMajorDifficulty": 1 },
   "communication": { "audibleRangeTiles": 8, "itemTag": "communication" },
-  "panel": ["move", "assist", "endTurn"],
   "selfRing": ["move", "sprint", "attack", "aim", "guard", "firstAid", "direct", "assist", "interact", "extraMinor", "secondMajor", "endTurn"],
   "tasks": {
     "guard": {

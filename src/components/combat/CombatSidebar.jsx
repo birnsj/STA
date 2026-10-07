@@ -1,7 +1,7 @@
 import actionData from '../../data/adaptation/combat/actions.json'
 import { getMovementTiles } from '../../combat/movementSystem.js'
 import { describeRange, getInjuryMode } from '../../combat/weaponSystem.js'
-import { ACTION_TYPE_NAMES, AMBUSH_FOCUSES, isAccurate } from '../../combat/combatState.js'
+import { AMBUSH_FOCUSES, isAccurate } from '../../combat/combatState.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
 import BonusDicePicker from '../BonusDicePicker.jsx'
 import { RecommendationLine, TaskBlockers, TaskDevDetails, TaskDice, TaskDifficulty, TaskFocus, TaskFormula, TaskModifiers } from '../task/TaskMath.jsx'
@@ -37,64 +37,25 @@ export function SelectedCharacterPanel({ combatant }) {
   )
 }
 
-// Actions and movement left are shown above the figures and on the party cards, not repeated here.
-// autoEndMs: the turn is about to end by itself (no action left); End Turn shows a bar running down over this many ms (null = not ending).
-// End Turn is a small button under the list: the turn ends by itself with no action left, so it is only for ending early.
-// unavailableReasons: { [actionId]: text } shown as the tooltip of an action that is greyed out for a reason the player can fix.
-export function ActionsPanel({ availability, unavailableReasons = {}, mode, weapon, canCycleWeapon, autoEndMs, onSelect, onCycleWeapon }) {
-  const endTurn = ACTIONS.endTurn
+// The turn ends by itself with no action left, so End Turn is only for ending early.
+// autoEndMs: the turn is about to end by itself; a bar runs down over this many ms (null = not ending).
+export function EndTurnButton({ enabled, autoEndMs, onEnd }) {
   return (
-    <section className="combat-panel actions-panel">
-      <h2 className="combat-panel-title actions-panel-title">Actions</h2>
-      <ul className="actions-list">
-        {weapon && (
-          <li className="actions-row actions-weapon-row">
-            <span className="actions-weapon-label">Weapon</span>
-            <button type="button" className="actions-weapon" disabled={!canCycleWeapon} onClick={onCycleWeapon} title="Change weapon">
-              {weapon.name}
-              {canCycleWeapon && <span aria-hidden="true"> &rsaquo;</span>}
-            </button>
-          </li>
-        )}
-        {actionData.panel.filter((id) => id !== 'endTurn').map((id) => {
-          const action = ACTIONS[id]
-          const enabled = action.implemented && availability[id]
-          const cost = ACTION_TYPE_NAMES[action.type]
-          return (
-            <li key={id} className="actions-row">
-              <button
-                type="button"
-                className={`actions-button${mode === id ? ' is-selected' : ''}`}
-                disabled={!enabled}
-                title={!action.implemented ? 'Not in this prototype yet' : (unavailableReasons[id] ?? `${action.name} (${cost})${action.description ? `: ${action.description}` : ''}`)}
-                onClick={() => onSelect(id)}
-              >
-                <svg className="actions-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d={ICONS[id]} />
-                </svg>
-                <span className="actions-name">{action.name}</span>
-                <span className="actions-slot">{cost}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-      <button
-        type="button"
-        className="actions-end-turn"
-        disabled={!availability.endTurn}
-        title="End this turn now, giving up any action left. The turn ends by itself once the Major and Minor actions are used."
-        onClick={() => onSelect('endTurn')}
-      >
-        <svg className="actions-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d={ICONS.endTurn} />
-        </svg>
-        {endTurn.name}
-        {autoEndMs && availability.endTurn && (
-          <span key={autoEndMs} className="actions-auto-end" style={{ animationDuration: `${autoEndMs}ms` }} aria-hidden="true" />
-        )}
-      </button>
-    </section>
+    <button
+      type="button"
+      className="task-end-turn"
+      disabled={!enabled}
+      title="End this turn now, giving up any action left. The turn ends by itself once the Major and Minor actions are used."
+      onClick={onEnd}
+    >
+      <svg className="actions-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d={ICONS.endTurn} />
+      </svg>
+      {ACTIONS.endTurn.name}
+      {autoEndMs && enabled && (
+        <span key={autoEndMs} className="task-auto-end" style={{ animationDuration: `${autoEndMs}ms` }} aria-hidden="true" />
+      )}
+    </button>
   )
 }
 
@@ -337,7 +298,7 @@ function AiTurnTask({ aiTurn }) {
   )
 }
 
-// confirm: { enabled, onConfirm }; routeInCover: the chosen route ends next to cover
+// confirm: { shown, enabled, onConfirm }; Confirm only appears on the player's turn while shown; routeInCover: the chosen route ends next to cover
 // assist: { allies, allyId, onAlly } for the Assist pick list, and helper: who is assisting the acting character's next attack.
 // ambush: the opening Ambush preview on the chosen Klingon (mode 'ambush').
 // dicePurchase: { resources, value, onChange } for buying bonus d20s on the attack or task (BonusDicePicker).
@@ -407,9 +368,11 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
           />
         )}
       </div>
-      <button type="button" className="task-confirm" disabled={!isPlayerTurn || !confirm.enabled} onClick={confirm.onConfirm}>
-        {label}
-      </button>
+      {isPlayerTurn && confirm.shown && (
+        <button type="button" className="task-confirm" disabled={!confirm.enabled} onClick={confirm.onConfirm}>
+          {label}
+        </button>
+      )}
     </section>
   )
 }

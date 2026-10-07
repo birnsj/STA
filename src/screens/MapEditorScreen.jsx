@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ENEMY_SPAWNS_NEEDED as TYPE1_SPAWNS } from '../combat/combatState.js'
+import { ENEMY_SPAWNS_NEEDED as TYPE1_SPAWNS } from '../combat/encounters.js'
 import { ENEMY_SPAWNS_NEEDED as TYPE2_SPAWNS } from '../combat2/combat2State.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'

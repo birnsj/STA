@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test": "node --import ./tools/jsonLoader.mjs --test \"tests/**/*.test.js\"",
     "preview": "vite preview",
     "app": "vite build && electron .",
     "dist:win": "vite build && electron-builder --win portable"

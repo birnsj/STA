@@ -8,7 +8,8 @@ const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
 // The party, in pick order. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { ap }, movement: { left, total, sprintLeft, sprintTotal } } }
 // for members whose turn status is known this round; clicking a Ready member hands them the turn.
 // recommendation: who is best at the object task being considered (rules/taskRecommendation.js), or null.
-export default function PartyBar({ party, activeId, selectedId, turnInfo, onSelect, recommendation = null }) {
+// weapons: { [id]: weapon } each member's current weapon. onCycleWeapon switches the acting member's weapon (null = can't switch now).
+export default function PartyBar({ party, activeId, selectedId, turnInfo, onSelect, recommendation = null, weapons = {}, onCycleWeapon = null }) {
   return (
     <div className="party-bar">
       {party.map((member) => {
@@ -29,6 +30,7 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
             </span>
             <span className="party-info">
               <span className="party-name">{member.character.name}</span>
+              <PartyWeapon weapon={weapons[member.id]} onCycle={member.id === activeId ? onCycleWeapon : null} />
               <ConditionTrack character={member.character} condition={member.condition} />
               {!down && info && (
                 <span className="party-hits-row">
@@ -51,5 +53,29 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
         )
       })}
     </div>
+  )
+}
+
+// The card is itself a button, so the switch is a span with button behaviour rather than a nested <button>.
+function PartyWeapon({ weapon, onCycle }) {
+  if (!weapon) return null
+  if (!onCycle) return <span className="party-weapon">{weapon.name}</span>
+  const cycle = (event) => {
+    event.stopPropagation()
+    event.preventDefault()
+    onCycle()
+  }
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      className="party-weapon is-switchable"
+      title="Change weapon"
+      onClick={cycle}
+      onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && cycle(event)}
+    >
+      {weapon.name}
+      <span aria-hidden="true"> &rsaquo;</span>
+    </span>
   )
 }

@@ -15,15 +15,14 @@ import {
   combatReducer,
   createCombat,
   getActiveCombatant,
-  getEncounter,
   getAssistFor,
   getCombatantList,
   getOpponents,
   getReachable,
   isActive,
   secondMajorLines,
-  withStandardIssue,
 } from '../combat/combatState.js'
+import { WORLD_ENCOUNTER_ID } from '../combat/encounters.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
@@ -35,11 +34,6 @@ import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnow
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
 
 export const MODE = { EXPLORATION: 'EXPLORATION', COMBAT: 'COMBAT' }
-const WORLD_ENCOUNTER_ID = 'explorationContact'
-// The character as they will fight if combat starts in the world (the world encounter's standard-issue weapon if they
-// bring none of their own).
-export const armedForWorldCombat = (character) => withStandardIssue(character, getEncounter(WORLD_ENCOUNTER_ID).standardIssueWeapon)
-
 // How far from the trigger the diagnostics list NPCs that stayed out of the fight.
 const NEARBY_DISTANCE = 14
 

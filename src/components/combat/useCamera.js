@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 // Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan, the mouse wheel zooms; when focus.key changes
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
@@ -50,10 +50,24 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const heldRef = useRef(new Set())
   const svgRef = useRef(null)
   const followRef = useRef({ follow, point: focus.point })
+  // True while a glide, key-pan or drag is in flight (see writeViewBox).
+  const movingRef = useRef(false)
   const { minX, maxX, minY, maxY } = bounds
   const width = view.width / zoom
   const height = view.height / zoom
   const { x: focusX, y: focusY } = focus.point
+
+  // A camera move changes nothing on the board except which part of it is on screen, but it happens on every animation
+  // frame of a glide or drag. Writing the viewBox straight onto the element keeps those frames out of React, which would
+  // otherwise rebuild the board's hundreds of tiles each time; the state is committed once the move settles.
+  const writeViewBox = (point) => {
+    svgRef.current?.setAttribute('viewBox', `${point.x} ${point.y} ${width} ${height}`)
+  }
+
+  // React renders the viewBox from state, which lags behind during a move: put the live camera back after every render.
+  useLayoutEffect(() => {
+    if (movingRef.current) writeViewBox(cameraRef.current)
+  })
 
   useEffect(() => {
     const element = svgRef.current
@@ -139,7 +153,12 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       }
       if (next && (next.x !== current.x || next.y !== current.y)) {
         cameraRef.current = next
-        setCamera(next)
+        movingRef.current = true
+        svgRef.current?.setAttribute('viewBox', `${next.x} ${next.y} ${size.width} ${size.height}`)
+      } else if (movingRef.current) {
+        // Settled: one render to put the element's viewBox and React's idea of the camera back in step.
+        movingRef.current = false
+        setCamera(cameraRef.current)
       }
       frame = requestAnimationFrame(tick)
     }
@@ -176,13 +195,18 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
         { width, height },
       )
       cameraRef.current = next
-      setCamera(next)
+      movingRef.current = true
+      writeViewBox(next)
     }
     const end = (endEvent) => {
       if (endEvent.pointerId !== event.pointerId) return
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
+      if (movingRef.current) {
+        movingRef.current = false
+        setCamera(cameraRef.current)
+      }
       if (isTouch && panning) swallowNextClick()
       if (!isTouch && !dragged) onRightClick?.()
     }

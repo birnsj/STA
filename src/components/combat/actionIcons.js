@@ -1,4 +1,4 @@
-// 24 x 24 stroke icons for combat actions, shared by the Actions panel and the buttons around a selected unit.
+// 24 x 24 stroke icons for combat actions, shared by the End Turn button and the buttons around a selected unit.
 export const ACTION_ICONS = {
   attack: 'M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 1 0 0.01 0',
   stun: 'M13 3L6 13h5l-1 8 7-10h-5z',

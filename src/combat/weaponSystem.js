@@ -15,6 +15,14 @@ export function getCharacterWeapons(character) {
   return [...new Set([...carried, ...always])]
 }
 
+// A character with no weapon of their own gets the encounter's standard-issue weapon (combat/encounters.js) for that
+// fight only: the character's own record and export are never changed.
+export function withStandardIssue(character, weaponId) {
+  const weapon = weaponId && getWeapon(weaponId)
+  if (!weapon || getCharacterWeapons(character).some((carried) => !carried.alwaysAvailable)) return character
+  return { ...character, equipment: [...character.equipment, { itemId: weapon.itemId, name: weapon.name }] }
+}
+
 // Within optimal range: +0. Each band beyond optimal: +1 Difficulty. Beyond maximum range: unavailable.
 export function getRangeModifier(weapon, band) {
   const index = getBandIndex(band.id)

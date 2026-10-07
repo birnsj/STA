@@ -91,11 +91,18 @@ const fog = {
   },
   draw(ctx, state, layer) {
     for (const bank of state.banks) {
-      const gradient = ctx.createRadialGradient(bank.x, bank.y, 0, bank.x, bank.y, bank.size)
-      gradient.addColorStop(0, layer.colour)
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-      ctx.fillStyle = gradient
-      ctx.fillRect(bank.x - bank.size, bank.y - bank.size, bank.size * 2, bank.size * 2)
+      // A bank's gradient only ever moves, so it is built once around the origin and then translated into place rather
+      // than rebuilt every frame (make() runs again on a resize, which drops these with the old banks).
+      if (!bank.fill) {
+        bank.fill = ctx.createRadialGradient(0, 0, 0, 0, 0, bank.size)
+        bank.fill.addColorStop(0, layer.colour)
+        bank.fill.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      }
+      ctx.save()
+      ctx.translate(bank.x, bank.y)
+      ctx.fillStyle = bank.fill
+      ctx.fillRect(-bank.size, -bank.size, bank.size * 2, bank.size * 2)
+      ctx.restore()
     }
   },
 }

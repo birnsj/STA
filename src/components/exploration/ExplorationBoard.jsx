@@ -292,10 +292,16 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   const pointerTypeRef = useRef('mouse')
   const [pulses, setPulses] = useState([])
   const pulseIdRef = useRef(0)
+  const pulseTimers = useRef(new Set())
+  useEffect(() => () => pulseTimers.current.forEach(clearTimeout), [])
   const addPulse = (point) => {
     const id = ++pulseIdRef.current
     setPulses((list) => [...list, { id, point }])
-    setTimeout(() => setPulses((list) => list.filter((pulse) => pulse.id !== id)), CLICK_PULSE_MS)
+    const timer = setTimeout(() => {
+      pulseTimers.current.delete(timer)
+      setPulses((list) => list.filter((pulse) => pulse.id !== id))
+    }, CLICK_PULSE_MS)
+    pulseTimers.current.add(timer)
   }
   const onMoveRef = useRef(onMove)
   useEffect(() => {

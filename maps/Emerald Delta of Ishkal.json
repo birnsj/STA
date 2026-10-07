@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "name": "Emerald Delta of Ishkal",
+  "episodeName": "The Ishkal Accord",
+  "card": "/art/episodes/Emerald%20Delta%20of%20Ishkal.png?v=1791332096084",
+  "mapType": "wilderness",
+  "biome": "jungle",
+  "weather": "pollen",
+  "rows": [
+    "JJJJJJJJJJmJJJJJJJJJJJJJmJJm",
+    "JNNNNJJmJJJJJJJNNNJJJJmJJJJJ",
+    "JNNNJJJJJJJJJJNNNNJJJJJJJJmJ",
+    "NNNNJJJJJJJJNJNNJJJJJJJJJJJJ",
+    "NJJNJJJJJJJNNJJNNJJJJJmJJJJJ",
+    "NmJJJJJJJJNNNNNN~~~~~q~~JJJJ",
+    ",,,,,,,,,,NNNNN,,,,J~~~~~JJJ",
+    "JJNNNNNN~,,,,,,,NN,,NNNN~~~~",
+    "JJJmNN~~~JJJJJNJNNN,,,NNNNNN",
+    "~~~JJ~~JJJJJJJNNNmNNq,,,,,,,",
+    "JJ~~J~mJmNJJmJJNJJNJJJJmJJJN",
+    "JJJJJJJJNNJJJJNNJJNJJJJJJJNN",
+    "JJJJJJJJJNJJJJNNNJJJJJJJJJNN",
+    "JJJJqmmJNNNJJNNNJJJJJJJJJmJN",
+    "JJJJJJJJNJJJJNNJJJmJJJJJJmJN",
+    "JJJNNJJJJJJJJJmJJJmJJJJJJJJJ",
+    "JJNNNJJJJJmJJJJJJJJNJmJJJJJJ",
+    "JmNNNNJJJJJJJJJmJNNNJmJJJJJJ",
+    "mJJNJJJmJJJJJJJJJNNNqJJJJJmJ",
+    "JJJJJqJJmJJJJJJmJJNNNNJJJJJJ"
+  ],
+  "areas": [
+    {
+      "name": "Mudbank",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Hunter's Trail",
+      "position": [
+        19,
+        14
+      ]
+    },
+    {
+      "name": "River Bend",
+      "position": [
+        9,
+        6
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        3,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "enemySpawns": [
+      [
+        26,
+        17
+      ],
+      [
+        27,
+        17
+      ],
+      [
+        27,
+        19
+      ],
+      [
+        24,
+        18
+      ]
+    ]
+  }
+}
