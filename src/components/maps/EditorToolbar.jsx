@@ -147,6 +147,9 @@ export default function EditorToolbar({
   onLoad,
   onSave,
   onSaveAs,
+  enemiesActive,
+  onEnemiesActive,
+  onPlay,
   onBack,
 }) {
   const saveNote = canSave ? undefined : 'Saving map files only works from the dev server (npm run dev).'
@@ -179,6 +182,12 @@ export default function EditorToolbar({
       <button type="button" className="me-button" disabled={!canSave} title={saveNote} onClick={onSaveAs}>
         Save As
       </button>
+      <button type="button" className="me-button is-primary" title="Explore this map with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
+        Play
+      </button>
+      <label className="me-check" title="Off: enemies stand on their spawns and never notice the away team or start a fight.">
+        <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies active
+      </label>
     </div>
   )
 }

@@ -16,12 +16,18 @@ release
 # Source-book PDFs (local reference only)
 reference/
 
-# Copyrighted soundtrack (local only) and test exports
+# Copyrighted soundtrack (local only; lives in public/music/ so the page fetches it at runtime) and test exports
 music/
 /character.json
 
 # Desktop app saved characters (local only)
 /characters/
+
+# Local map backups taken before bulk edits (git history already has the maps)
+/backups/
+
+# Scratch files written by scripts (contact sheets, screenshots)
+/.tmp-*
 
 # Editor directories and files
 .vscode/*

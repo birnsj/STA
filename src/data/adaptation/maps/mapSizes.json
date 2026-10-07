@@ -10,7 +10,7 @@
   "byType": {
     "starshipDeck": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
     "spaceStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30], "gigantic": [88, 60] },
-    "colony": { "small": [18, 14], "medium": [26, 18], "large": [34, 24], "huge": [48, 34], "gigantic": [96, 68] },
+    "colony": { "small": [20, 17], "medium": [26, 18], "large": [34, 24], "huge": [48, 34], "gigantic": [96, 68] },
     "outpost": { "small": [14, 12], "medium": [20, 16], "large": [28, 22], "huge": [38, 30], "gigantic": [76, 60] },
     "surfaceSite": { "small": [16, 12], "medium": [24, 18], "large": [32, 24], "huge": [48, 36], "gigantic": [96, 72] },
     "cave": { "small": [16, 14], "medium": [22, 20], "large": [30, 28], "huge": [44, 44], "gigantic": [88, 88] },
@@ -19,7 +19,7 @@
     "derelict": { "small": [16, 10], "medium": [22, 14], "large": [30, 20], "huge": [42, 28], "gigantic": [84, 56] },
     "farm": { "small": [22, 16], "medium": [30, 22], "large": [38, 28], "huge": [48, 38], "gigantic": [96, 76] },
     "miningSite": { "small": [20, 16], "medium": [28, 20], "large": [36, 26], "huge": [46, 36], "gigantic": [92, 72] },
-    "landingField": { "small": [18, 14], "medium": [26, 18], "large": [34, 24], "huge": [46, 32], "gigantic": [92, 64] },
+    "landingField": { "small": [28, 22], "medium": [34, 24], "large": [42, 30], "huge": [52, 36], "gigantic": [96, 70] },
     "fieldCamp": { "small": [16, 14], "medium": [22, 18], "large": [30, 24], "huge": [40, 32], "gigantic": [80, 64] },
     "crashSite": { "small": [20, 14], "medium": [28, 18], "large": [36, 24], "huge": [48, 32], "gigantic": [96, 64] },
     "laboratory": { "small": [16, 12], "medium": [22, 16], "large": [30, 22], "huge": [40, 30], "gigantic": [80, 60] },

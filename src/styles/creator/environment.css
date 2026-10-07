@@ -1,0 +1,123 @@
+/* Environment screen. */
+
+/* ---------- Environment ---------- */
+
+.env-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.env-tab {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 2px 12px;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--blue-deep);
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.env-tab.is-active {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #111;
+}
+
+.env-tab-icon {
+  font-size: 22px;
+}
+
+.env-tab-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.env-tab-label {
+  white-space: nowrap;
+}
+
+/* Zero width so the centred icon + label stay put when a choice name appears; the name overflows rightward. */
+.env-tab-choice {
+  width: 0;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.env-details {
+  height: 155px;
+}
+
+/* Selected-item portraits are 15% larger than they started (180 × 114); same shape. */
+.env-details .portrait-detail {
+  width: 207px;
+  height: 131px;
+}
+
+/* Same shape as the scrolling event cards above it (114 × 92), at the same height as the others. */
+.career-history-screen .env-details .portrait-detail {
+  width: auto;
+  aspect-ratio: 114 / 92;
+}
+
+/* Same shape as the detail portrait below it (180:114). */
+.environment-screen .carousel-environment .portrait-card,
+.early-outlook-screen .carousel-environment .portrait-card,
+.education-screen .carousel-environment .portrait-card,
+.career-screen .carousel-environment .portrait-card {
+  height: auto;
+  aspect-ratio: 180 / 114;
+}
+.env-mechanics {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 12px;
+}
+
+.env-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 6px 8px;
+}
+
+.env-column-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.step-badge {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: #111;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.env-column-title {
+  font-size: 17px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  line-height: 1.1;
+}

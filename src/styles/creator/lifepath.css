@@ -1,0 +1,102 @@
+/* Early Outlook, Education and Career screens. */
+
+/* ---------- Early Outlook ---------- */
+
+.outlook-tabs {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.env-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Sections waiting on an earlier one (see getLockedSections); `inert` blocks their input. */
+.panel.is-locked {
+  opacity: 0.45;
+}
+
+.outlook-path-text {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* ---------- Education ---------- */
+
+.education-lower {
+  flex: 0 0 200px;
+  grid-template-columns: 1.4fr 1fr;
+}
+
+.education-list-instruction {
+  margin-bottom: 6px;
+}
+
+.education-options .choice {
+  align-items: flex-start;
+  padding: 1px 8px;
+}
+
+.education-options .choice-list {
+  gap: 2px;
+}
+
+.education-options .choice-label {
+  flex: 0 0 200px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.education-options .choice-suffix {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.education-detail-description {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.education-detail-caption {
+  margin: 6px 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--label);
+}
+
+.education-book-rules {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.education-book-rule + .education-book-rule {
+  margin-top: 3px;
+}
+
+.education-book-label {
+  font-weight: 700;
+  color: var(--label);
+}
+
+.education-mechanics {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr) minmax(0, 1.05fr) minmax(0, 1.2fr);
+  gap: 8px;
+}
+
+.education-mechanics .swap-row {
+  margin-top: 2px;
+}
+
+/* ---------- Career ---------- */
+
+.career-mechanics {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap: 10px;
+}

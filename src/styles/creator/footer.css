@@ -1,0 +1,105 @@
+/* Creator footer and its navigation buttons. */
+
+/* ---------- Footer ---------- */
+
+.screen-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.nav-button {
+  min-width: 170px;
+  padding: 10px 26px;
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: transparent;
+  border: 2px solid var(--blue);
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.nav-next {
+  min-width: 280px;
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* Same pulse as the summary popup's CLOSE: signals the player can move on. */
+.nav-next:not(:disabled) {
+  animation: summary-close-pulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-next:not(:disabled) {
+    animation: none;
+  }
+}
+
+.footer-forward {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-summary,
+.nav-auto {
+  min-width: 0;
+}
+
+.nav-button:disabled {
+  opacity: 0.35;
+}
+
+.nav-button:not(:disabled):hover {
+  background: var(--blue-deep);
+}
+
+.footer-back {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-quit {
+  min-width: 0;
+  background: var(--blue);
+  color: var(--text);
+}
+
+.nav-button.nav-quit:not(:disabled):hover {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+  color: #000;
+}
+
+.dev-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dev-buttons-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+  margin-right: 2px;
+}
+
+.dev-buttons .dev-button {
+  padding: 2px 7px;
+  font-size: 11px;
+}
+
+.dev-button {
+  padding: 4px 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px dashed var(--text-muted);
+  border-radius: 4px;
+  color: var(--text-muted);
+}

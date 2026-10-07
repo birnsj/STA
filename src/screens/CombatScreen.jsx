@@ -971,7 +971,7 @@ export function Battle({
           if (open) openTask('interact', `${objectId}:${open.action.id}`)
         }}
       />
-      <WeatherFx fx={weatherFor(state.weather).fx} />
+      <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />
       <div className="combat-top-left">
         <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} />
         <ResourceIndicators

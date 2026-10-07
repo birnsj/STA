@@ -1,0 +1,293 @@
+/* Main menu notice, the saved-character picker and dialogs over the menu and creator stages. */
+
+/* ---------- Main menu notice (menu stage, 1024x576 coordinates) ---------- */
+
+.menu-notice-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(2, 6, 16, 0.7);
+}
+
+.menu-notice {
+  width: 460px;
+  text-align: center;
+}
+
+.menu-notice-title {
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  line-height: 1;
+}
+
+.menu-notice-text {
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.menu-notice-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* nav-button is sized for the 1920x1080 creator; the menu stage is roughly half that scale. */
+.menu-notice .nav-button {
+  min-width: 0;
+  padding: 8px 18px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* One saved character at a time: portrait + full stat card, stepped with the side arrows. */
+.import-carousel {
+  width: 800px;
+  gap: 8px;
+  padding: 18px 20px 12px;
+}
+
+.import-carousel-stage {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-carousel-arrow {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 64px;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--yellow);
+  background: #040a18;
+  border: 2px solid #1f4f8c;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.import-carousel-arrow:hover:not(:disabled),
+.import-carousel-arrow:focus-visible {
+  outline: none;
+  border-color: var(--yellow);
+}
+
+.import-carousel-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.import-card {
+  flex: 1;
+  min-width: 0;
+  min-height: 330px;
+  display: flex;
+  gap: 14px;
+  padding: 10px;
+  text-align: left;
+  background: #040a18;
+  border: 2px solid var(--yellow);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.portrait-import-card {
+  flex: 0 0 auto;
+  width: 172px;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  align-self: flex-start;
+}
+
+.portrait-import-card .portrait-caption {
+  display: none;
+}
+
+.import-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.import-card-name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.import-card-service {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fb8ff;
+}
+
+.import-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.import-card-lists {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid #1f4f8c;
+}
+
+.import-card-profile {
+  display: grid;
+  gap: 2px;
+}
+
+.import-card-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.import-card-row dt {
+  color: var(--yellow);
+}
+
+.import-card-row dd,
+.import-card-names li {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.import-card-heading {
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.import-card-count {
+  color: var(--text-muted);
+}
+
+.import-card-scores,
+.import-card-names {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.import-card-scores li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  background: #0b1a36;
+  border-left: 2px solid #4f9cf5;
+}
+
+.import-card-scores strong {
+  color: var(--yellow);
+}
+
+.import-carousel-status {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: #7a8396;
+}
+
+.import-carousel-counter {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.import-delete:not(:disabled) {
+  border-color: var(--red);
+  color: #ff7a80;
+}
+
+.menu-notice .nav-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Shown over the 1920x1080 creator, so roughly twice the menu-stage sizes. */
+.quit-confirm {
+  width: 760px;
+  gap: 24px;
+  padding: 44px 64px;
+  border-color: var(--red);
+}
+
+.quit-confirm .menu-notice-title {
+  font-size: 48px;
+  color: #ff7a80;
+}
+
+.quit-confirm .menu-notice-text {
+  font-size: 26px;
+}
+
+.quit-confirm .menu-notice-actions {
+  gap: 20px;
+}
+
+.quit-confirm .nav-button {
+  min-width: 220px;
+  padding: 14px 32px;
+  font-size: 26px;
+}
+
+.quit-confirm .quit-confirm-button {
+  border-color: var(--red);
+  color: #ff7a80;
+}
+
+.quit-confirm .quit-confirm-button:hover,
+.quit-confirm .quit-confirm-button:focus-visible {
+  outline: none;
+  background: var(--red);
+  color: #000;
+}
+
+.delete-confirm {
+  width: 380px;
+  border-color: var(--red);
+}
+
+.delete-confirm .menu-notice-title {
+  color: #ff7a80;
+}
+
+.import-duplicate {
+  font-size: 11px;
+  padding: 2px 10px;
+}
+
+.import-duplicate:disabled {
+  opacity: 0.4;
+}
+
+.import-dev-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* The pulse belongs to the creator's Next button; a dialog choice shouldn't nag. */
+.menu-notice .nav-next:not(:disabled) {
+  animation: none;
+}

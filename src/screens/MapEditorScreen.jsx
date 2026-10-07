@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED as TYPE1_SPAWNS } from '../combat/encounters.js'
 import { ENEMY_SPAWNS_NEEDED as TYPE2_SPAWNS } from '../combat2/combat2State.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
@@ -20,10 +21,36 @@ import WeatherFx from '../effects/WeatherFx.jsx'
 // Dev map editor (opened from the Main Menu's Dev Edit). Edits combat-independent map files in the project's maps/ folder,
 // which both combat types play.
 
+const ExplorationPlaytest = lazy(() => import('./ExplorationScreen.jsx').then((module) => ({ default: module.ExplorationPlaytest })))
+const PLAY_TEAM_SIZE = 4
+
+// Play's away team: up to PLAY_TEAM_SIZE saved characters picked at random (no more than the map has player starts),
+// as RuntimeCharacters. Characters whose saved JSON doesn't load are skipped.
+function randomTeam(savedCharacters, starts) {
+  const roster = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
+  for (let i = roster.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[roster[i], roster[j]] = [roster[j], roster[i]]
+  }
+  return roster.slice(0, Math.min(PLAY_TEAM_SIZE, starts))
+}
+
+// A Generate Map size slider, in percent of the generators' own sizes.
+// min: below it the size minimums (shared.js MIN_ROOM / MIN_BUILDING) make the slider do nothing.
+function ScaleSlider({ label, title, min, value, onChange }) {
+  return (
+    <label className="me-scale" title={title}>
+      <span className="me-scale-label">{label}</span>
+      <input type="range" min={min} max="200" step="10" value={value} aria-label={label} onChange={(event) => onChange(Number(event.target.value))} />
+      <span className="me-ambient-value">{value}%</span>
+    </label>
+  )
+}
+
 // A new map keeps the current location and biome and starts at the location's Medium size.
 const blankMap = (mapType, biome = DEFAULT_BIOME) => ({ ...createBlankMap(sizeFor(mapType, DEFAULT_SIZE)), mapType, biome })
 
-export default function MapEditorScreen({ onBack }) {
+export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   // The map being edited, and fileId: which file it was opened from or saved as (null = never saved).
   const [map, setMap] = useState(() => blankMap(DEFAULT_MAP_TYPE))
   const [fileId, setFileId] = useState(null)
@@ -34,7 +61,17 @@ export default function MapEditorScreen({ onBack }) {
   // The tile brush paints rotated tiles (right click on the board toggles it).
   const [rotated, setRotated] = useState(false)
   const [ghostBlocks, setGhostBlocks] = useState(false)
+  // The palette's animated tile previews (the board is drawn still).
+  const [animateTiles, setAnimateTiles] = useState(true)
+  // Shadows, light pools and darkness are view only here; the map's ambient light is still saved.
+  const [showLighting, setShowLighting] = useState(true)
   const [showWeather, setShowWeather] = useState(true)
+  // Generate Map's Room size and Building size sliders, in percent of each generator's own sizes. Not saved with the map.
+  const [roomScale, setRoomScale] = useState(100)
+  const [buildingScale, setBuildingScale] = useState(100)
+  // Play: the away team exploring the open map (null = editing), and whether its enemies notice them.
+  const [playTeam, setPlayTeam] = useState(null)
+  const [enemiesActive, setEnemiesActive] = useState(true)
   const [hover, setHover] = useState(null)
   const [status, setStatus] = useState(null)
   const [showLoad, setShowLoad] = useState(false)
@@ -63,7 +100,7 @@ export default function MapEditorScreen({ onBack }) {
   }, [notice])
   // Escape puts the brush down (no tool selected), unless a dialog is open (its own Escape cancels it) or a text box
   // has focus.
-  const dialogOpen = Boolean(question) || showLoad
+  const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam)
   useEffect(() => {
     if (dialogOpen) return undefined
     const onKey = (event) => {
@@ -115,8 +152,11 @@ export default function MapEditorScreen({ onBack }) {
   const onNew = async () => (await confirmDiscard()) && replaceMap(blankMap(map.mapType, map.biome), null, 'New map.')
 
   // Only the location, biome, weather or size changed since the map was opened or saved: nothing worth asking about.
-  const withoutSetup = (other) => JSON.stringify({ ...other, mapType: null, biome: null, weather: null })
-  const onlySetupChanged = Boolean(cleanMap) && withoutSetup(map) === withoutSetup(resizeMap(cleanMap, map.width, map.height))
+  // Memoised (as are the warnings) because comparing a large map is slow and the screen re-renders on every hovered tile.
+  const onlySetupChanged = useMemo(() => {
+    const withoutSetup = (other) => JSON.stringify({ ...other, mapType: null, biome: null, weather: null })
+    return Boolean(cleanMap) && withoutSetup(map) === withoutSetup(resizeMap(cleanMap, map.width, map.height))
+  }, [map, cleanMap])
   // A map Generate just made and nobody has touched: changing its location, biome or size rebuilds it straight away.
   // The same changes on a hand-made or loaded map only re-tag / resize it.
   const rebuildable = generated && onlySetupChanged
@@ -157,7 +197,7 @@ export default function MapEditorScreen({ onBack }) {
         return
       }
     }
-    let next = generateNamedMap(source, taken.map((entry) => entry.id))
+    let next = generateNamedMap(source, taken.map((entry) => entry.id), Math.random, { rooms: roomScale / 100, buildings: buildingScale / 100 })
     next = { ...next, weather: randomWeather(next) }
     // A freshly drawn picture, kept with the map until Save; if drawing fails the map keeps the catalogue card Generate picked.
     if (canDrawEpisodeArt) {
@@ -243,16 +283,36 @@ export default function MapEditorScreen({ onBack }) {
     }
   }
 
-  const warnings = [
-    ...new Set([
-      ...validateMap(map, { enemySpawns: TYPE1_SPAWNS, label: 'Combat Type 1' }),
-      ...validateMap(map, { enemySpawns: TYPE2_SPAWNS, label: 'Combat Type 2' }),
-    ]),
-  ]
+  const warnings = useMemo(
+    () => [
+      ...new Set([
+        ...validateMap(map, { enemySpawns: TYPE1_SPAWNS, label: 'Combat Type 1' }),
+        ...validateMap(map, { enemySpawns: TYPE2_SPAWNS, label: 'Combat Type 2' }),
+      ]),
+    ],
+    [map],
+  )
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
+  const onPlay = () => {
+    const starts = map.markers.playerStarts.length
+    if (!starts) return setStatus('Play needs at least one player start on the map.')
+    const team = randomTeam(savedCharacters, starts)
+    if (!team.length) return setStatus('Play needs a saved character. Create one first.')
+    setPlayTeam(team)
+  }
+
+  // The editor stays mounted underneath, so Exit comes back to the same map, unsaved edits and all.
+  if (playTeam) {
+    return (
+      <Suspense fallback={null}>
+        <ExplorationPlaytest map={map} characters={playTeam} enemiesActive={enemiesActive} onExit={() => setPlayTeam(null)} />
+      </Suspense>
+    )
+  }
+
   return (
-    <div className="me-screen">
+    <div className={`me-screen${animateTiles ? '' : ' is-still'}`}>
       <EditorToolbar
         map={map}
         canSave={canSaveMaps}
@@ -270,22 +330,36 @@ export default function MapEditorScreen({ onBack }) {
         onLoad={onShowLoad}
         onSave={onSave}
         onSaveAs={onSaveAs}
+        enemiesActive={enemiesActive}
+        onEnemiesActive={setEnemiesActive}
+        onPlay={onPlay}
         onBack={async () => (await confirmDiscard()) && onBack()}
       />
       <div className="me-body">
-        <EditorPalette tool={tool} onTool={setTool} ghostBlocks={ghostBlocks} onGhostBlocks={setGhostBlocks} onStatus={setStatus} />
+        <EditorPalette
+          tool={tool}
+          onTool={setTool}
+          ghostBlocks={ghostBlocks}
+          onGhostBlocks={setGhostBlocks}
+          animateTiles={animateTiles}
+          onAnimateTiles={setAnimateTiles}
+          showLighting={showLighting}
+          onShowLighting={setShowLighting}
+          onStatus={setStatus}
+        />
         <div className="me-board-area">
           <EditorBoard
             key={boardKey}
             map={map}
             ghostBlocks={ghostBlocks}
+            lighting={showLighting}
             brush={tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
             rotated={rotated}
             onPaint={onPaint}
             onHover={setHover}
             onRotate={() => tool?.startsWith('tile:') && setRotated((value) => !value)}
           />
-          {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} />}
+          {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} follow=".me-board" />}
           {notice && (
             <div key={notice.id} className={`me-notice${notice.failed ? ' is-failed' : ''}`} role="status">
               {notice.text}
@@ -319,6 +393,14 @@ export default function MapEditorScreen({ onBack }) {
           <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, name: randomMapName(map) })}>
             Generate Name
           </button>
+          <ScaleSlider label="Room size" title="How big Generate Map makes rooms (starship decks, stations, derelicts, labs, alien vessels, cantinas, detention blocks, temples)." min="70" value={roomScale} onChange={setRoomScale} />
+          <ScaleSlider
+            label="Building size"
+            title="How big Generate Map makes buildings and city blocks (colonies, outposts, cities, farms, mining sites, landing fields)."
+            min="100"
+            value={buildingScale}
+            onChange={setBuildingScale}
+          />
           <button
             type="button"
             className="me-button me-generate"
@@ -327,7 +409,10 @@ export default function MapEditorScreen({ onBack }) {
           >
             Generate Map
           </button>
-          <p className="me-text">Uses the location, biome and size next to the name. Nothing is saved until you press Save.</p>
+          <p className="me-text">
+            Uses the location, biome and size next to the name, and the room and building sizes above (rooms never go below 4 tiles
+            across). Nothing is saved until you press Save.
+          </p>
           <p className="me-heading">File</p>
           <p className="me-text">{fileId ? `maps/${fileId}.json` : 'Not saved yet'}</p>
           {fileId && mapFileId(map.name) && mapFileId(map.name) !== fileId && (

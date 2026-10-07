@@ -7,9 +7,10 @@ import finishingAdaptation from '../data/adaptation/finishingTouches.json'
 import { getAttributeTotals, getDisciplineTotals } from './characterTotals.js'
 import { getPortraitById, isPortraitAvailable } from './appearance.js'
 import { areAllMet } from './requirements.js'
-import { isTalentSlotMet } from './talents.js'
+import { getFixedCareerTalentId, getTalentById, isTalentSlotMet } from './talents.js'
 
 const limits = startingPoints.finishedCharacterLimits
+const TALENT_CAP_KEYS = { attributes: 'attributeMax', disciplines: 'departmentMax' }
 const complete = finishingSource.completeCharacter
 
 // Attributes and disciplines follow the same Step Seven procedure with different lists and limits.
@@ -45,9 +46,20 @@ export function createEmptyIdentity() {
 
 export const getCategories = () => finishingAdaptation.categories
 export const getBookText = () => finishingSource
+// The maximum depends on the character (see getScoreLimits), so it is deliberately not part of this.
 export function getKindInfo(kind) {
-  const { entries, max, increaseCount, total } = KINDS[kind]
-  return { entries, max, increaseCount, total }
+  const { entries, increaseCount, total } = KINDS[kind]
+  return { entries, increaseCount, total }
+}
+
+// Book p.129: max 12 / 5 with only one score at the maximum. Core p.131: a character with Untapped Potential
+// (every Novice) may not have any attribute above 11 or any department above 4 "instead"; that cap replaces the
+// one-at-max rule rather than adding to it. The cap is read from the career-length talent's `limits`.
+export function getScoreLimits(character, kind) {
+  const talent = getTalentById(getFixedCareerTalentId(character))
+  const cap = talent?.limits?.enforced ? talent.limits[TALENT_CAP_KEYS[kind]] : undefined
+  if (cap === undefined) return { max: KINDS[kind].max, oneAtMax: true, reason: null }
+  return { max: cap, oneAtMax: false, reason: `${talent.name} (${talent.source.book} p.${talent.source.page})` }
 }
 export const getValueMatrix = () => valuesMatrix.values
 export const isCustomValueAllowed = () => finishingAdaptation.allowCustomValue
@@ -74,31 +86,39 @@ function getRawScores(character, kind) {
   return scores
 }
 
-// Book p.129: nothing above max and only one score at max. Every score at or above max except one keeper
-// drops to max - 1, so the points to hand out don't depend on which score keeps the maximum.
+// `ceiling` is the most any score may hold unless it is the one keeper allowed at the maximum. With the book's
+// one-at-max rule that is max - 1: every score at or above max except the keeper drops to it, so the points to hand
+// out don't depend on which score keeps the maximum. Under a flat cap (Untapped Potential) there is no keeper and
+// the ceiling is the cap itself.
 export function getLimitAnalysis(character, kind) {
-  const { entries, max } = KINDS[kind]
+  const { entries } = KINDS[kind]
+  const { max, oneAtMax, reason } = getScoreLimits(character, kind)
+  const ceiling = oneAtMax ? max - 1 : max
   const step = character.finishingTouches[kind]
   const raw = getRawScores(character, kind)
-  const atOrOverMax = entries.map((entry) => entry.id).filter((id) => raw[id] >= max)
-  const needsKeeperChoice = atOrOverMax.length > 1
-  const keeper = atOrOverMax.length === 1 ? atOrOverMax[0] : atOrOverMax.includes(step.keepAtMax) ? step.keepAtMax : null
-  const excess = atOrOverMax.length ? atOrOverMax.reduce((sum, id) => sum + raw[id] - (max - 1), 0) - 1 : 0
+  const overLimit = entries.map((entry) => entry.id).filter((id) => raw[id] > ceiling)
+  const needsKeeperChoice = oneAtMax && overLimit.length > 1
+  const keeper = !oneAtMax ? null : overLimit.length === 1 ? overLimit[0] : overLimit.includes(step.keepAtMax) ? step.keepAtMax : null
+  const excess = overLimit.reduce((sum, id) => sum + raw[id] - ceiling, 0) - (oneAtMax && overLimit.length ? 1 : 0)
 
   const capped = { ...raw }
-  for (const id of atOrOverMax) capped[id] = id === keeper ? max : max - 1
+  for (const id of overLimit) capped[id] = id === keeper ? max : ceiling
   const received = Object.fromEntries(entries.map((entry) => [entry.id, 0]))
   for (const id of step.redistribution) received[id] += 1
 
-  // Reduced scores can't take points back, and no recipient may reach the maximum (the keeper holds it).
-  const canReceive = (id) => !atOrOverMax.includes(id) && capped[id] + received[id] + 1 <= max - 1
+  // Reduced scores can't take points back, and no recipient may pass the ceiling.
+  const canReceive = (id) => !overLimit.includes(id) && capped[id] + received[id] + 1 <= ceiling
   const resolved = (!needsKeeperChoice || keeper !== null) && step.redistribution.length === excess
   const final = resolved ? Object.fromEntries(entries.map((entry) => [entry.id, capped[entry.id] + received[entry.id]])) : null
   const finalTotal = final ? Object.values(final).reduce((sum, score) => sum + score, 0) : null
 
   return {
+    max,
+    oneAtMax,
+    ceiling,
+    reason,
     raw,
-    atOrOverMax,
+    overLimit,
     needsKeeperChoice,
     keeper,
     excess,
@@ -118,8 +138,8 @@ function normalizeScoreStep(character, kind) {
   const increases = step.increases.filter((id, index) => KINDS[kind].entries.some((entry) => entry.id === id) && step.increases.indexOf(id) === index)
   let next = { ...step, increases: increases.slice(0, KINDS[kind].increaseCount), redistribution: [] }
   const probe = (candidate) => ({ ...character, finishingTouches: { ...character.finishingTouches, [kind]: candidate } })
-  const { atOrOverMax, needsKeeperChoice } = getLimitAnalysis(probe(next), kind)
-  if (!needsKeeperChoice || !atOrOverMax.includes(step.keepAtMax)) next = { ...next, keepAtMax: null }
+  const { overLimit, needsKeeperChoice } = getLimitAnalysis(probe(next), kind)
+  if (!needsKeeperChoice || !overLimit.includes(step.keepAtMax)) next = { ...next, keepAtMax: null }
   for (const id of step.redistribution) {
     if (getLimitAnalysis(probe(next), kind).canReceive(id)) next = { ...next, redistribution: [...next.redistribution, id] }
   }
@@ -183,15 +203,18 @@ export function getLimitAdjustment(character, kind) {
   const analysis = getLimitAnalysis(character, kind)
   const entries = KINDS[kind].entries
   return {
+    max: analysis.max,
+    oneAtMax: analysis.oneAtMax,
+    reason: analysis.reason,
     needed: analysis.needsAdjustment,
     keeperOptions: analysis.needsKeeperChoice
-      ? entries.filter((entry) => analysis.atOrOverMax.includes(entry.id)).map((entry) => ({ ...entry, score: analysis.raw[entry.id] }))
+      ? entries.filter((entry) => analysis.overLimit.includes(entry.id)).map((entry) => ({ ...entry, score: analysis.raw[entry.id] }))
       : [],
     keeperId: analysis.keeper,
     excess: analysis.excess,
     assigned: analysis.assigned,
     rows: entries
-      .filter((entry) => !analysis.atOrOverMax.includes(entry.id))
+      .filter((entry) => !analysis.overLimit.includes(entry.id))
       .map((entry) => ({
         id: entry.id,
         name: entry.name,

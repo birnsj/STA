@@ -50,8 +50,8 @@ export function generateFarm(map, random, areaNames, biome) {
 
   // Farmhouse and barn face the track.
   const doorSide = (rect) => (horizontal ? (rect.y1 < track ? 'bottom' : 'top') : rect.x1 < track ? 'right' : 'left')
-  const [house] = placeBuildings(tiles, keep, 1, { minW: 4, maxW: 6, minH: 4, maxH: 5 }, random, ground, doorSide, { wall: biome.walls.prefab })
-  const [barn] = placeBuildings(tiles, keep, 1, { minW: 5, maxW: 8, minH: 4, maxH: 6 }, random, ground, doorSide, { wall: 'barnWall' })
+  const [house] = placeBuildings(tiles, keep, 1, { minW: 6, maxW: 7, minH: 6, maxH: 6 }, random, ground, doorSide, { wall: biome.walls.prefab })
+  const [barn] = placeBuildings(tiles, keep, 1, { minW: 6, maxW: 8, minH: 6, maxH: 7 }, random, ground, doorSide, { wall: 'barnWall' })
   const buildings = [house, barn].filter(Boolean)
   buildings.forEach((building) => {
     layLine(tiles, building.outside, DOOR_STEP[doorSide(building.rect)], path, ground)

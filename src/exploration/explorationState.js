@@ -42,7 +42,9 @@ export function npcConfigsFor(map) {
 const createNpcWorld = (map) => createWorld(map, npcConfigsFor(map).map((config) => createNpc(config, actorCharacter(config))))
 
 // seed: a whole number; each fight's (and task roll's) seed is derived from it.
-export function createExplorationState(map, characters, seed = 0) {
+// enemiesActive false (the map editor's play-test checkbox): NPCs stand on their posts and never notice the away team or
+// start a fight, so a map can be walked freely.
+export function createExplorationState(map, characters, seed = 0, { enemiesActive = true } = {}) {
   // Challenge objects and scenario flags (challengeObjects.js); the world map shows each object's current tile.
   const scenario = createScenario(map)
   const worldMap = applyScenarioTiles(map, scenario)
@@ -64,16 +66,18 @@ export function createExplorationState(map, characters, seed = 0) {
     lastCombat: null,
     combatCount: 0,
     seed: seed >>> 0,
+    enemiesActive,
   }
 }
 
 export function explorationReducer(state, action) {
   switch (action.type) {
     case 'reset':
-      return createExplorationState(action.map, action.characters, action.seed)
+      return createExplorationState(action.map, action.characters, action.seed, { enemiesActive: action.enemiesActive ?? true })
     case 'tick': {
       if (state.mode === MODE.COMBAT) return state
       const party = partyReducer(state.party, action)
+      if (state.enemiesActive === false) return perceive({ ...state, party })
       return requestCombat(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }))
     }
     // action: a Combat Type 1 action (or aiStep) from the combat screen.

@@ -8,7 +8,7 @@
     "Descriptions and requirement lines are verbatim from the books. 'requirements' is the structured form the rules layer checks; every entry must hold for the talent to be available.",
     "Designer decision: the pool is the Core General talents, the six department lists, and the species talents for the prototype's species (Andorian, Human, Tellarite, Trill, Vulcan from Core; Caitian from the Species Sourcebook). Augment/Cybernetic and Esoteric talents are left out.",
     "Designer decision: species talents are species-only (the book's 'or gamemaster's permission' is not offered); a mixed-heritage character counts as both parent species.",
-    "Designer decision: Untapped Potential and Veteran follow the book's Step Five: Novice receives Untapped Potential, Veteran receives Veteran, Experienced chooses freely. Their score/rank caps are kept as 'limits' data and are not enforced yet.",
+    "Designer decision: Untapped Potential and Veteran follow the book's Step Five: Novice receives Untapped Potential, Veteran receives Veteran, Experienced chooses freely. Their 'limits' are enforced: Untapped Potential caps attributes at 11 and departments at 4 at Finishing Touches (Core p.131, replacing the one-at-max rule), and rank at lieutenant (junior grade) / petty officer; Veteran requires at least lieutenant commander / chief petty officer (Core p.128). The rank limits are applied by rules/career.js from career.json.",
     "Designer decision: 'era' is present on every talent for later filtering; null means available in every era. Nothing is filtered yet.",
     "Prototype: the player character is always a main character. Role requirements are checked against the Captain's Log assignment (the same senior-staff posts the book calls roles).",
     "Prototype: Personal Effects is selectable once; the book's per-item repeats need an item choice the prototype does not have yet.",
@@ -1216,7 +1216,7 @@
       "requirementText": "Novice (only available during character creation)",
       "requirements": [{ "type": "careerLength", "id": "novice" }],
       "choice": { "kind": "attribute" },
-      "limits": { "attributeMax": 11, "departmentMax": 4, "maxRank": "lieutenantJuniorGrade", "maxEnlistedRate": "pettyOfficer", "enforced": false },
+      "limits": { "attributeMax": 11, "departmentMax": 4, "maxRank": "lieutenantJuniorGrade", "maxEnlistedRate": "pettyOfficer", "enforced": true },
       "description": "Select one of your attributes when you receive this talent. You’re inexperienced, but talented and with a bright future. You may not have or increase any attribute to above 11, or any department to above 4 while you have this talent (and may have to adjust attributes and departments accordingly at the end of character creation). Whenever you succeed at a task for which you bought one or more additional dice (by any means), roll a d20 after the roll. If you roll equal to or less than the chosen attribute, gain 1 bonus Momentum; if you roll higher, add 1 Threat instead. While you possess this talent, you cannot gain any higher rank than Lieutenant (junior grade), or a higher enlisted rate than Petty Officer.",
       "effects": [{ "type": "bonusMomentum", "amount": 1, "check": { "roll": "d20", "atOrUnder": "chosenAttribute", "otherwise": { "threat": 1 } }, "when": "you succeed after buying extra dice" }],
       "era": null, "source": { "book": "Core Rulebook", "page": 127 }
@@ -1225,7 +1225,7 @@
       "id": "veteran", "name": "Veteran", "category": "career",
       "requirementText": "Veteran (during character creation, or at gamemaster’s discretion)",
       "requirements": [{ "type": "careerLength", "id": "veteran" }],
-      "limits": { "minRank": "lieutenantCommander", "minEnlistedRate": "chiefPettyOfficer", "enforced": false },
+      "limits": { "minRank": "lieutenantCommander", "minEnlistedRate": "chiefPettyOfficer", "enforced": true },
       "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
       "effects": [{ "type": "determination", "action": "regainOnRoll", "check": { "roll": "d20", "atOrUnder": "control" }, "when": "you spend Determination" }],
       "era": null, "source": { "book": "Core Rulebook", "page": 128 }

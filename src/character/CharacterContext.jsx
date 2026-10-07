@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useReducer } from 'react'
+import { useEffect, useReducer } from 'react'
+import { CharacterContext } from './characterContext.js'
 import { creatorReducer, createRestoredState } from './characterReducer.js'
 import { loadCharacter, saveCharacter } from './persistence.js'
-
-const CharacterContext = createContext(null)
 
 // A restored character that fails to load (e.g. data the rules can't read) falls back to a fresh one.
 function restoreState() {
@@ -24,12 +23,4 @@ export function CharacterProvider({ children }) {
       {children}
     </CharacterContext.Provider>
   )
-}
-
-export function useCharacter() {
-  const context = useContext(CharacterContext)
-  if (!context) {
-    throw new Error('useCharacter must be used inside a CharacterProvider')
-  }
-  return context
 }

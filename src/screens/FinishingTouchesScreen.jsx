@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import {
   getBookText,
   getCategories,
@@ -79,10 +79,11 @@ function FinalValuePanels({ character, dispatch, met }) {
 
 function ScorePanels({ character, dispatch, kind, met }) {
   const label = KIND_LABELS[kind]
-  const { increaseCount, max } = getKindInfo(kind)
+  const { increaseCount } = getKindInfo(kind)
   const book = getBookText()[kind]
   const increases = character.finishingTouches[kind].increases
   const adjustment = getLimitAdjustment(character, kind)
+  const { max, oneAtMax, reason } = adjustment
   return (
     <>
       <Panel title={`${label} Increases (${increases.length}/${increaseCount})`} helpId={`${label.toLowerCase()}Increases`} met={met}>
@@ -96,10 +97,13 @@ function ScorePanels({ character, dispatch, kind, met }) {
       <Panel title={`${label} Details`} helpId={`${label.toLowerCase()}Details`}>
         <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
         <p className="education-detail-description">{book.text}</p>
-        <p className="education-detail-caption">Limits (max {max}, only one at {max}):</p>
+        <p className="education-detail-caption">
+          {oneAtMax ? `Limits (max ${max}, only one at ${max}):` : `Limits (max ${max}; ${reason}):`}
+        </p>
         {adjustment.needed ? (
           <LimitAdjuster
             max={max}
+            oneAtMax={oneAtMax}
             keeperOptions={adjustment.keeperOptions}
             keeperId={adjustment.keeperId}
             onKeeper={(id) => dispatch({ type: 'setFinalKeepAtMax', kind, id })}

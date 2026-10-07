@@ -36,7 +36,7 @@ export function generateMiningSite(map, random, areaNames, biome) {
   const keep = new Set()
   const area = width * height
 
-  const huts = placeBuildings(tiles, keep, randomInt(random, 1, 2), { minW: 4, maxW: 6, minH: 4, maxH: 5 }, random, ground, () => SIDES[randomInt(random, 0, 3)], { wall })
+  const huts = placeBuildings(tiles, keep, randomInt(random, 1, 2), { minW: 6, maxW: 7, minH: 6, maxH: 6 }, random, ground, () => SIDES[randomInt(random, 0, 3)], { wall })
   huts.forEach((hut) => {
     furnishRoom(tiles, keep, hut.room, random, { floor: FLOOR_TILE, walls: new Set([wall]), density: 6 })
     shuffle(ringAround(tiles, hut.rect), random)

@@ -28,6 +28,7 @@ import { generateSpaceStation } from './generators/spaceStation.js'
 import { generateStarshipDeck } from './generators/starshipDeck.js'
 import { generateSurfaceSite } from './generators/surfaceSite.js'
 import { generateWilderness } from './generators/wilderness.js'
+import { withLayoutScale } from './generators/shared.js'
 import { pickCard } from './episodeCards.js'
 import { DEFAULT_BIOME, mapFileId } from './mapFormat.js'
 
@@ -117,18 +118,19 @@ export function sizeIdOf(map) {
 }
 
 // Layout only (tiles, areas, markers) for the map's location and biome, at its size. random: injectable so a layout can
-// be reproduced.
-export function generateMap(map, random = Math.random) {
+// be reproduced. scale: { rooms, buildings }, the editor's size sliders as multipliers (1 = each generator's own sizes).
+export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
-  return { ...generator.generate(map, random, areaNamesOf(map), biome), mapType: generator.id, biome: biome.id }
+  const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
+  return { ...layout, mapType: generator.id, biome: biome.id }
 }
 
 // A complete, playable map: a layout plus a location name no existing map file uses, an episode name and a card.
 // takenIds: the ids (file names) of the maps already saved.
-export function generateNamedMap(map, takenIds, random = Math.random) {
+export function generateNamedMap(map, takenIds, random = Math.random, scale = {}) {
   const taken = new Set(takenIds.map((id) => id.toLowerCase()))
   const name = randomUnusedLocationName(nameCategoryOf(map), (candidate) => taken.has(mapFileId(candidate).toLowerCase()), random)
-  const layout = generateMap(map, random)
+  const layout = generateMap(map, random, scale)
   return { ...layout, name, id: mapFileId(name), episodeName: randomEpisodeName('', random, name), card: randomEpisodeCard({ ...layout, card: null }, random) }
 }

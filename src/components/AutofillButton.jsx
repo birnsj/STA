@@ -1,4 +1,4 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 
 // Temporary: speeds up testing by replacing the character with a complete random one on every press.
 export default function AutofillButton() {

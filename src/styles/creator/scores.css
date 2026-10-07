@@ -1,0 +1,84 @@
+/* Attribute adjustment rows and the step summary rows. */
+
+/* ---------- Attribute adjustments ---------- */
+
+.attribute-instruction {
+  font-size: 14px;
+  line-height: 1.1;
+  color: var(--text-muted);
+}
+
+.choice-list.attribute-choices {
+  gap: 2px;
+}
+
+.choice.attribute-choice {
+  padding-top: 1px;
+  padding-bottom: 1px;
+  line-height: 1.1;
+}
+
+.choice.is-static,
+.choice.is-static:hover {
+  cursor: default;
+  border-color: var(--blue-deep);
+}
+
+.choice.is-static.is-selected,
+.choice.is-static.is-selected:hover {
+  border-color: var(--yellow);
+}
+
+.choice:disabled {
+  opacity: 0.45;
+}
+
+.choice:disabled:hover {
+  border-color: var(--blue-deep);
+}
+
+/* ---------- Summary ---------- */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.summary-heading {
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  margin-bottom: 8px;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 106px 1fr;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+/* Single line (full text on hover) so a long entry never pushes the rows below it. */
+.summary-row dt,
+.summary-row dd {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary-row dt {
+  color: var(--text-muted);
+}
+
+.summary-row.is-heading dt {
+  color: var(--label);
+}
+
+.summary-row.is-sub dt {
+  padding-left: 8px;
+}

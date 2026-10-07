@@ -108,20 +108,35 @@ export function getAssignmentBlock(character, assignmentId) {
 export const isAssignmentAllowed = (character, assignmentId) =>
   Boolean(getAssignmentById(assignmentId)) && !getAssignmentBlock(character, assignmentId)
 
-// Prototype: a Novice's rank is capped (career.json noviceMaxRank). Ranks are listed lowest first.
-export function isAboveNoviceCap(character, rankId) {
+// Position of a rank within its own ladder (officer or enlisted), lowest first; -1 for No Rank.
+function rankPosition(character, rankId) {
   const rank = getRankOptions(character).find((option) => option.id === rankId)
-  const capId = careerAdaptation.noviceMaxRank[rank?.type]
-  if (character.career.length?.id !== 'novice' || !capId) return false
-  const ids = (rank.type === 'enlisted' ? enlistedRanks : officerRanks).map((option) => option.id)
-  return ids.indexOf(rankId) > ids.indexOf(capId)
+  const ladder = rank?.type === 'enlisted' ? enlistedRanks : rank?.type === 'officer' ? officerRanks : []
+  return { type: rank?.type, index: ladder.findIndex((option) => option.id === rankId), ladder }
 }
 
-// Prototype: minimum ranks apply to officer ranks only; the book gives none for enlisted or unranked characters.
+// Core p.127 (Untapped Potential): a Novice's rank is capped at lieutenant (junior grade) / petty officer
+// (career.json noviceMaxRank).
+export function isAboveNoviceCap(character, rankId) {
+  const { type, index, ladder } = rankPosition(character, rankId)
+  const capId = careerAdaptation.noviceMaxRank[type]
+  if (character.career.length?.id !== 'novice' || !capId) return false
+  return index > ladder.findIndex((option) => option.id === capId)
+}
+
+// Core p.128 (Veteran): a Veteran holds at least lieutenant commander / chief petty officer (career.json veteranMinRank).
+export function isBelowVeteranFloor(character, rankId) {
+  const { type, index, ladder } = rankPosition(character, rankId)
+  const floorId = careerAdaptation.veteranMinRank[type]
+  if (character.career.length?.id !== 'veteran' || !floorId) return false
+  return index < ladder.findIndex((option) => option.id === floorId)
+}
+
+// Prototype: assignment minimum ranks apply to officer ranks only; the book gives none for enlisted or unranked characters.
 export function isRankAllowed(character, rankId) {
   const { career } = character
   const rank = getRankOptions(character).find((option) => option.id === rankId)
-  if (!career.assignment || !rank || isAboveNoviceCap(character, rankId)) return false
+  if (!career.assignment || !rank || isAboveNoviceCap(character, rankId) || isBelowVeteranFloor(character, rankId)) return false
   if (rank.type !== 'officer') return true
   return rankOrder.indexOf(rankId) >= rankOrder.indexOf(getMinimumRank(career.assignment.id).id)
 }

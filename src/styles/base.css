@@ -1,0 +1,121 @@
+/* Design tokens, page defaults, scrollbars and the reduced-motion baseline. */
+
+:root {
+  --yellow: #f6b928;
+  --red: #e2463d;
+  --blue: #2c66d8;
+  --blue-deep: #10295f;
+  --panel: #060c1c;
+  --panel-border: #1d4aa8;
+  --text: #e8ecf5;
+  --text-muted: #8fb3ff;
+  --label: #f1c75b;
+  --display-font: 'Bahnschrift SemiCondensed', 'Bahnschrift', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+
+  font-family: var(--display-font);
+  line-height: 1.35;
+  color: var(--text);
+  background-color: #000;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Art is part of the interface: no drag, no selection, and no iPad/iPhone press-and-hold menu (Save Image, Copy...). */
+img {
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Scrollbars in the interface colours. Chromium (browser and Electron) uses the ::-webkit rules; setting the standard
+   scrollbar-color there would override them, so it is only given to browsers without ::-webkit-scrollbar. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #040a18;
+  border-radius: 5px;
+}
+
+/* Scrollbar pseudo-elements can't run animations themselves, so the pulse animates an inherited colour property
+   on the root that every thumb reads. */
+@property --scrollbar-pulse {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2c66d8;
+}
+
+:root {
+  animation: scrollbar-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes scrollbar-pulse {
+  0%,
+  100% { --scrollbar-pulse: #2c66d8; }
+  50% { --scrollbar-pulse: #6a9cff; }
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-pulse);
+  border: 2px solid #040a18;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: var(--yellow);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    animation: none;
+  }
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: var(--blue) #040a18;
+    scrollbar-width: thin;
+  }
+}
+
+input,
+textarea {
+  cursor: text;
+  user-select: text;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd {
+  margin: 0;
+}

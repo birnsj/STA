@@ -1,11 +1,11 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import creationSteps from '../data/adaptation/creationSteps.json'
 import { getCareerLengths } from '../rules/career.js'
 import { getCareerEvents } from '../rules/careerHistory.js'
 import { getChosenEntry } from '../rules/environment.js'
 import { getFocusEntries, getTraitEntries, getValueEntries } from '../rules/characterSheet.js'
 import { validateCharacter } from '../rules/characterValidation.js'
-import { getFinalScores, getKindInfo, getPortraitById, getRequiredFocusCount, getRequiredValueCount } from '../rules/finishingTouches.js'
+import { getFinalScores, getKindInfo, getPortraitById, getRequiredFocusCount, getRequiredValueCount, getScoreLimits } from '../rules/finishingTouches.js'
 import { getCardTip, getScoreTip } from '../rules/infoTips.js'
 import { getRequiredTalentCount, getRequirementSummary, getTalentEntries } from '../rules/talents.js'
 import { getSpeciesAbilityLabel, getSpeciesAbilityTitle, getSpeciesDisplayName } from '../rules/species.js'
@@ -54,7 +54,8 @@ function Fields({ rows }) {
 }
 
 function ScorePanel({ title, helpId, kind, character }) {
-  const { entries, max, total } = getKindInfo(kind)
+  const { entries, total } = getKindInfo(kind)
+  const { max } = getScoreLimits(character, kind)
   const scores = getFinalScores(character, kind)
   const sum = scores ? entries.reduce((acc, entry) => acc + scores[entry.id], 0) : null
   const tip = useInfoTip()

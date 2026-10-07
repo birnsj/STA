@@ -1,18 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { getBigObjects } from '../../maps/bigObjects.js'
-import { diamond, isBlock, mapBounds, project, pts } from '../../maps/iso.js'
+import { useEffect, useRef, useState } from 'react'
+import { diamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
 import { brushPositions, paintBrush } from '../../maps/mapEdits.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import useCamera from '../combat/useCamera.js'
-import { AmbientDarkness, FloorTiles, LoneTile, WallBlock } from './IsoTiles.jsx'
+import EditorCanvas from './EditorCanvas.jsx'
+import { AmbientDarkness, LoneTile } from './IsoTiles.jsx'
 
-// The map editor's board: the tile PNGs plus a clickable floor-level diamond for every tile (blocks never take clicks,
-// so a tile is picked by where its floor would be). Markers and the hover outline are drawn on top of everything.
-// Blocks are drawn as exploration and Combat Type 1 draw them (tall walls with panels, tall and big objects); nothing
-// fades here, See-through blocks shows what is behind them.
+// The map editor's board: the tiles drawn into one canvas (EditorCanvas: floor, shadows and light pools, blocks as
+// exploration and Combat Type 1 draw them, but still rather than animated) under one clickable floor-level outline of the
+// whole map; the tile under the pointer is worked out from where its floor would be (blocks never take clicks). The
+// darkness, markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what
+// is behind blocks.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
-const NOTHING_FADED = new Set()
+
+// The tile whose floor diamond is under a pointer event's position, or null off the map.
+function tileAt(event, map) {
+  const svg = event.currentTarget.ownerSVGElement
+  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse())
+  const tile = unproject(point)
+  const position = { x: Math.round(tile.x), y: Math.round(tile.y) }
+  return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
+}
 
 function Marker({ position, kind, label }) {
   const p = project(position)
@@ -44,11 +53,14 @@ function BrushPreview({ map, position, tileId, rotated }) {
 // onPaint(position, { first }): a left press on a tile (first) or dragging onto another tile while held.
 // onHover(position or null): the tile under the pointer. brush: the tile id being painted, or null (no tile tool).
 // rotated: the brush paints tiles rotated (mapFormat.js rotated); onRotate: a right click without dragging.
-export default function EditorBoard({ map, ghostBlocks, brush, rotated, onPaint, onHover, onRotate }) {
+// lighting: draw shadows, light pools and the map's darkness.
+export default function EditorBoard({ map, ghostBlocks, lighting = true, brush, rotated, onPaint, onHover, onRotate }) {
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, onRotate)
   const [hover, setHoverState] = useState(null)
+  // Only a move onto another tile counts, so the board re-renders once per tile crossed rather than per pointer move.
   const setHover = (position) => {
+    if (position?.x === hover?.x && position?.y === hover?.y) return
     setHoverState(position)
     onHover(position)
   }
@@ -60,17 +72,18 @@ export default function EditorBoard({ map, ghostBlocks, brush, rotated, onPaint,
     return () => window.removeEventListener('pointerup', stop)
   }, [])
 
-  const cells = []
-  const blocks = []
-  map.tiles.forEach((row, y) =>
-    row.forEach((id, x) => {
-      cells.push({ x, y })
-      if (isBlock(id)) blocks.push({ x, y })
+  const [right, bottom] = [map.width - 0.5, map.height - 0.5]
+  const outline = pts(
+    [
+      [-0.5, -0.5],
+      [right, -0.5],
+      [right, bottom],
+      [-0.5, bottom],
+    ].map(([x, y]) => {
+      const corner = project({ x, y })
+      return [corner.x, corner.y]
     }),
   )
-  blocks.sort((a, b) => a.x + a.y - (b.x + b.y))
-  const panels = useMemo(() => getWallPanels(map), [map])
-  const bigGroups = useMemo(() => getBigObjects(map), [map])
 
   return (
     <svg
@@ -79,28 +92,26 @@ export default function EditorBoard({ map, ghostBlocks, brush, rotated, onPaint,
       {...dragHandlers}
       onPointerLeave={() => setHover(null)}
     >
-      <FloorTiles map={map} />
-      <g className="me-cells">
-        {cells.map((position) => (
-          <polygon
-            key={`${position.x},${position.y}`}
-            points={pts(diamond(position))}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return
-              painting.current = true
-              onPaint(position, { first: true })
-            }}
-            onPointerEnter={() => {
-              setHover(position)
-              if (painting.current) onPaint(position, { first: false })
-            }}
-          />
-        ))}
-      </g>
-      {blocks.map((position) => (
-        <WallBlock key={`${position.x},${position.y}`} map={map} position={position} faded={NOTHING_FADED} panels={panels} bigGroups={bigGroups} ghost={ghostBlocks} />
-      ))}
-      <AmbientDarkness map={map} />
+      <EditorCanvas map={map} ghost={ghostBlocks} lighting={lighting} />
+      <polygon
+        className="me-cells"
+        points={outline}
+        onPointerDown={(event) => {
+          const position = event.button === 0 ? tileAt(event, map) : null
+          if (!position) return
+          painting.current = true
+          setHover(position)
+          onPaint(position, { first: true })
+        }}
+        onPointerMove={(event) => {
+          const position = tileAt(event, map)
+          const moved = position?.x !== hover?.x || position?.y !== hover?.y
+          setHover(position)
+          if (position && moved && painting.current) onPaint(position, { first: false })
+        }}
+        onPointerLeave={() => setHover(null)}
+      />
+      {lighting && <AmbientDarkness map={map} />}
       <g className="me-overlay">
         {map.areas.map((area) => {
           const p = project(area.position)

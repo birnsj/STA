@@ -60,7 +60,7 @@ export function generateLandingField(map, random, areaNames, biome) {
     .slice(0, randomInt(random, 2, 4))
     .forEach((cell) => placeSolid(tiles, [cell], 'fuelTank'))
 
-  const huts = placeBuildings(tiles, keep, 1, { minW: 4, maxW: 5, minH: 4, maxH: 5 }, random, ground, () => SIDES[randomInt(random, 0, 3)], { wall })
+  const huts = placeBuildings(tiles, keep, 1, { minW: 6, maxW: 6, minH: 6, maxH: 6 }, random, ground, () => SIDES[randomInt(random, 0, 3)], { wall })
   huts.forEach((hut) => {
     furnishRoom(tiles, keep, hut.room, random, { floor: FLOOR_TILE, walls: new Set([wall]), density: 5 })
     roomCells(grow(tiles, hut.rect, 1)).forEach((cell) => keep.add(key(cell)))

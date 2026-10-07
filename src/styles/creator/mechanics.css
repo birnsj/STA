@@ -1,0 +1,160 @@
+/* MechanicsColumn panels and the requirement markers shared by every creator screen. */
+
+/* Reserved heights for changing instructions come from MechanicsColumn's instructionLines. */
+.env-column-instruction {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.env-column-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+/* One heading size and list-row density for every mechanics column and panel, on every screen. */
+.mechanics-panel .panel-heading {
+  padding: 5px 10px;
+  font-size: 17px;
+}
+
+.env-column .choice-list,
+.mechanics-panel .choice-list,
+.env-column .value-picker,
+.mechanics-panel .value-picker,
+.env-column .focus-source-picker {
+  gap: 3px;
+}
+
+.env-column .choice,
+.mechanics-panel .choice {
+  gap: 8px;
+  padding: 2px 8px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.env-column .choice-suffix,
+.mechanics-panel .choice-suffix {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.env-column .custom-value-input,
+.mechanics-panel .custom-value-input {
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+.env-column .env-select {
+  margin-bottom: 3px;
+  padding: 3px 6px;
+  font-size: 14px;
+}
+
+/* ---------- Requirement markers ---------- */
+
+.requirement-tag {
+  display: inline-block;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  /* Zero so the tag appearing never makes its heading line taller. */
+  line-height: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.requirement-tag.is-met {
+  font-size: 18px;
+  color: var(--yellow);
+}
+
+/* Takes no space (cancelling the flex gap) so the centred tab contents don't shift when it appears. */
+.env-tab .requirement-tag {
+  width: 0;
+  margin-left: -12px;
+  text-indent: 4px;
+}
+
+.env-tab.is-active .requirement-tag.is-met {
+  color: #111;
+}
+
+/* Fades the yellow text colour (not opacity) so differently coloured text inside the heading stays still. */
+@keyframes requirement-pulse {
+  50% {
+    color: color-mix(in srgb, var(--yellow) 30%, transparent);
+  }
+}
+
+.screen-heading.is-missing,
+.env-column.is-missing .env-column-title,
+.panel.is-missing > .panel-heading,
+.species-details-name.is-missing,
+.species-gender.is-missing .species-gender-heading {
+  animation: requirement-pulse 1.4s ease-in-out infinite;
+}
+
+/* Tab labels aren't yellow (blue, or black on the active tab), so they fade instead. */
+@keyframes requirement-fade {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.env-tab.is-missing .env-tab-label {
+  animation: requirement-fade 1.4s ease-in-out infinite;
+}
+
+/* Outlines the active (next unfinished) area. A shadow ring rather than a thicker border, so nothing resizes. */
+@keyframes requirement-border {
+  50% {
+    border-color: var(--text-muted);
+    box-shadow: 0 0 0 1px var(--text-muted), 0 0 10px rgba(143, 179, 255, 0.5);
+  }
+}
+
+.panel.is-missing,
+.env-tab.is-missing,
+.carousel.is-missing .option-card,
+.env-select.is-missing,
+.species-gender.is-missing .species-gender-option,
+.chip-group.is-missing .chip:not(:disabled) {
+  animation: requirement-border 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-heading.is-missing,
+  .env-column.is-missing .env-column-title,
+  .panel.is-missing > .panel-heading,
+  .species-details-name.is-missing,
+  .species-gender.is-missing .species-gender-heading,
+  .species-gender.is-missing .species-gender-option,
+  .env-tab.is-missing .env-tab-label,
+  .panel.is-missing,
+  .env-tab.is-missing,
+  .carousel.is-missing .option-card,
+  .env-select.is-missing,
+  .chip-group.is-missing .chip {
+    animation: none;
+  }
+}
+
+.env-select {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--blue-deep);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+}

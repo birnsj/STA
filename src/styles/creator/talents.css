@@ -1,0 +1,254 @@
+/* Talent columns and panel, chip groups, and the shared details panel under a card row. */
+
+/* ---------- Talents (Early Outlook, Education, Career columns; Finishing Touches panel) ---------- */
+
+.outlook-mechanics {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.education-mechanics.education-mechanics {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1.15fr);
+}
+
+.career-mechanics.career-mechanics:not(.career-history-mechanics) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 1.2fr);
+}
+
+/* The talent list scrolls; the filter above and the chosen talent below stay in place. */
+.env-column-body:has(> .talent-picker),
+.panel-body:has(> .talent-picker) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.talent-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.talent-list.choice-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.choice.talent-row {
+  align-items: flex-start;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.talent-row .choice-radio {
+  margin-top: 2px;
+}
+
+.talent-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.talent-row-meta {
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--text-muted);
+}
+
+.choice.talent-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.choice.talent-row.is-invalid {
+  border-color: var(--red, #e5483f);
+}
+
+.talent-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.talent-details-kind {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.talent-details-name {
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.talent-details-requirements {
+  color: var(--text-muted);
+}
+
+.talent-details-text {
+  margin: 2px 0;
+}
+
+.talent-details-requirements.is-missing-text {
+  color: var(--yellow);
+}
+
+.talent-chips {
+  margin-bottom: 6px;
+}
+
+/* ---------- Chip groups (ChipGroup.jsx), used instead of dropdowns ---------- */
+
+.chip-group {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.chip {
+  padding: 2px 7px;
+  background: #040a18;
+  border: 1px solid #1f4f8c;
+  border-radius: 10px;
+  color: #6fb2ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: #4f9cf5;
+}
+
+.chip.is-on {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #040a18;
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.focus-group-chips {
+  margin-bottom: 5px;
+}
+
+.raised-among {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.raised-among-label,
+.swap-chips-label {
+  font-size: 12px;
+  color: var(--label);
+}
+
+/* The held talent's row opens below itself: short text, then any choice it needs. */
+.talent-row-wrap.is-open {
+  flex-shrink: 0;
+  border: 1px solid var(--yellow);
+  border-radius: 4px;
+  background: rgba(246, 185, 40, 0.06);
+}
+
+.talent-row-wrap.is-open > .choice.talent-row {
+  border-color: transparent;
+}
+
+/* Picked, but its department/attribute/focus choice is still missing. */
+.talent-row-wrap.is-open.is-pending {
+  border-style: dashed;
+  background: rgba(246, 185, 40, 0.03);
+}
+
+.talent-row-wrap.is-pending .talent-row-meta {
+  color: var(--yellow);
+  font-weight: 700;
+}
+
+.talent-choice-label.is-pending {
+  color: var(--yellow);
+}
+
+.talent-choice .chip:disabled {
+  text-decoration: line-through;
+}
+
+.talent-choice-blocked {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.talent-row-expand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 6px 30px;
+}
+
+.talent-row-description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.talent-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.talent-choice-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.talent-details-empty {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.finishing-list-source {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.career-assignment-details .env-column-title {
+  margin-bottom: 6px;
+}
+
+/* Shared by every details panel under a card row (Career's Veteran text plus value prompt must fit unscrolled). */
+.env-details .species-details-text {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.env-details .species-details-name {
+  font-size: 24px;
+}

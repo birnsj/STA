@@ -283,6 +283,18 @@
 .me-ambient input { width: 90px; accent-color: #f2a33a; }
 .me-ambient-value { min-width: 3.2em; font-variant-numeric: tabular-nums; }
 
+/* Generate Map's Room size / Building size sliders, in the side panel. */
+.me-scale {
+  display: grid;
+  grid-template-columns: 1fr 3.2em;
+  align-items: center;
+  gap: 2px 6px;
+  margin-bottom: 6px;
+  color: #9fb9bd;
+}
+.me-scale-label { grid-column: 1 / -1; }
+.me-scale input { width: 100%; accent-color: #f2a33a; }
+
 .me-board-area {
   position: relative;
   flex: 1;
@@ -325,7 +337,13 @@
   shape-rendering: crispEdges;
 }
 
-.me-cells polygon {
+/* Tile animations off: the palette previews and the brush stop animating (the board itself is drawn still). */
+.me-screen.is-still .me-board *,
+.me-screen.is-still .me-palette * {
+  animation: none !important;
+}
+
+.me-cells {
   fill: transparent;
   cursor: crosshair;
 }

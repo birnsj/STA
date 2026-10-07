@@ -12,6 +12,8 @@ import {
   labelRegions,
   markerCells,
   markersAtEnds,
+  MIN_BUILDING,
+  scaledBuilding,
   neighboursOf,
   placeBuilding,
   placeHazard,
@@ -25,11 +27,12 @@ import {
 const ROAD = 'path'
 const PAVEMENT = 'pavement'
 const ROAD_WIDTH = 2
-// A block is at least this many tiles across: a one-tile pavement margin around a building of at least 4 (a 2 x 2 room).
-const MIN_BLOCK = 6
+// A block is at least this many tiles across: a one-tile pavement margin around a building of at least MIN_BUILDING.
+const MIN_BLOCK = MIN_BUILDING + 2
 
 // Splits a run of tiles into blocks about `span` across separated by roads; returns [first, last] per block.
-function blocksAlong(length, random, span = 9) {
+function blocksAlong(length, random, baseSpan = 9) {
+  const span = Math.max(MIN_BLOCK, scaledBuilding(baseSpan))
   const count = Math.max(1, Math.min(Math.round((length + ROAD_WIDTH) / (span + ROAD_WIDTH)), Math.floor((length + ROAD_WIDTH) / (MIN_BLOCK + ROAD_WIDTH))))
   const total = length - (count - 1) * ROAD_WIDTH
   const sizes = Array.from({ length: count }, (_, i) => Math.floor(total / count) + (i < total % count ? 1 : 0))
@@ -53,15 +56,16 @@ function buildingRects(block, random) {
   const inner = { x0: block.x0 + 1, x1: block.x1 - 1, y0: block.y0 + 1, y1: block.y1 - 1 }
   const width = inner.x1 - inner.x0 + 1
   const height = inner.y1 - inner.y0 + 1
-  if (width < 4 || height < 4) return []
-  if (width >= 9 && width >= height && random() < 0.7) {
+  if (width < MIN_BUILDING || height < MIN_BUILDING) return []
+  const splits = (length) => length >= Math.max(MIN_BUILDING, scaledBuilding(MIN_BUILDING)) * 2 + 1
+  if (splits(width) && width >= height && random() < 0.7) {
     const split = inner.x0 + Math.floor((width - 1) / 2)
     return [
       { ...inner, x1: split - 1 },
       { ...inner, x0: split + 1 },
     ]
   }
-  if (height >= 9 && random() < 0.7) {
+  if (splits(height) && random() < 0.7) {
     const split = inner.y0 + Math.floor((height - 1) / 2)
     return [
       { ...inner, y1: split - 1 },

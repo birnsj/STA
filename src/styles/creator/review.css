@@ -1,0 +1,468 @@
+/* Review screen. */
+
+/* ---------- Review ---------- */
+
+.frame-body-review {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Three equal columns of panels beside a full-height character column. */
+.review-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 390px repeat(3, minmax(0, 1fr));
+  /* Attributes and Disciplines rows take their natural height; Equipment and Focuses get the rest. */
+  grid-template-rows: 164px auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'left identity traits right'
+    'left attributes traits right'
+    'left disciplines values right'
+    'left focuses values right';
+  gap: 12px;
+}
+
+/* Values keeps its natural height so Equipment gets the rest of the column for larger icons. */
+.review-values-equipment {
+  grid-area: values;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-values-equipment > .review-area-values {
+  flex: 0 0 auto;
+}
+
+.review-values-equipment > .review-area-notes {
+  flex: 1 1 auto;
+}
+
+/* The lifepath panels stack on their own, so Career Events can take its natural height instead of a shared row's. */
+.review-right-column {
+  grid-area: right;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-right-column > .review-panel {
+  flex: 1 1 auto;
+}
+
+.review-right-column > .review-area-history {
+  flex: 0 0 auto;
+}
+
+.review-identity-column {
+  grid-area: left;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Traits keeps its natural height; Talents takes the rest of the column. */
+.review-traits-talents {
+  grid-area: traits;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-traits-talents > .review-area-traits {
+  flex: 0 0 auto;
+}
+
+.review-traits-talents > .review-area-talents {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.review-traits-talents > .review-area-role-benefit {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.review-area-role-benefit .review-panel-body {
+  overflow-y: auto;
+}
+
+.review-role-benefit-name {
+  margin: 0 0 2px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.review-role-benefit-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.review-area-identity { grid-area: identity; }
+.review-area-attributes { grid-area: attributes; }
+.review-area-disciplines { grid-area: disciplines; }
+.review-area-focuses { grid-area: focuses; }
+.review-area-attributes > .review-panel,
+.review-area-disciplines > .review-panel {
+  height: 100%;
+}
+
+.review-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-panel .panel-heading {
+  padding: 4px 10px;
+  font-size: 18px;
+}
+
+.review-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+/* The column's shape depends on the window. Full-body art is wide (700x1000) with the figure in the middle,
+   so cropping it to the box only trims backdrop. */
+.portrait-review {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #050a16;
+}
+
+.portrait-review .portrait-image {
+  object-fit: cover;
+}
+
+/* One size for every Review thumbnail (origin, education, career, career events). */
+.portrait-review-thumb {
+  flex: 0 0 auto;
+  width: 192px;
+  height: 108px;
+}
+
+.portrait-review-thumb .portrait-label {
+  font-size: 12px;
+}
+
+.portrait-review-thumb .portrait-caption {
+  display: none;
+}
+
+
+.review-nameplate {
+  padding: 8px 12px;
+  border-left: 12px solid var(--yellow);
+  border-radius: 6px;
+  background: var(--blue-deep);
+}
+
+.review-name {
+  font-size: 26px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.review-service {
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.review-status {
+  flex: 0 0 auto;
+  max-height: 240px;
+}
+
+.review-status.is-valid .panel-heading,
+.review-status.is-confirmed .panel-heading {
+  color: var(--text-muted);
+}
+
+.review-status.is-invalid {
+  border-color: var(--red);
+}
+
+.review-status.is-invalid .panel-heading {
+  color: var(--red);
+}
+
+.review-status-message {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.review-status-note {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+.review-issues {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-issue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.review-issue-link {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.review-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-field {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
+  line-height: 1.2;
+}
+
+/* Seven identity rows (with Species Ability) must fit the panel's fixed grid height without scrolling. */
+.review-area-identity .review-fields {
+  gap: 1px;
+}
+
+.review-area-identity .review-field {
+  line-height: 1.05;
+}
+
+.review-field dt,
+.review-label {
+  color: var(--label);
+}
+
+.review-field dd {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The large thumbnail leaves little width beside it, but these panels have height to spare. */
+.review-with-image .review-field dd {
+  white-space: normal;
+}
+
+.review-with-image {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.review-scores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Compact enough that Attributes, Disciplines and Equipment stack in one column without scrolling. */
+.review-score {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  background: var(--blue-deep);
+  border-left: 6px solid var(--blue);
+  border-radius: 3px;
+}
+
+.review-score strong {
+  color: var(--yellow);
+}
+
+.review-score.is-max {
+  border-left-color: var(--yellow);
+}
+
+.review-total {
+  margin-top: 4px;
+  font-size: 13px;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.review-total.is-invalid {
+  color: var(--red);
+}
+
+.review-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-event {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.review-event-name {
+  font-weight: 700;
+}
+
+.review-event-effects {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.review-heading-count {
+  float: right;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.review-heading-count.is-invalid {
+  color: var(--red);
+}
+
+.review-list-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-list-source {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.review-traits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-traits li {
+  display: flex;
+  flex-direction: column;
+}
+
+.review-trait-text {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.review-notes {
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+
+.review-items {
+  margin: 0 0 2px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 48px keeps the 64px pixel-art icons on whole art pixels (each is drawn 4px wide, shown 3px). */
+.review-item-icon {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.review-item-text {
+  min-width: 0;
+}
+
+.review-item-name {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.review-item-stats {
+  margin-left: 8px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--label);
+}
+
+.review-item-description {
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

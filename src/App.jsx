@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { music } from './audio/music.js'
 import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
-import { CharacterProvider, useCharacter } from './character/CharacterContext.jsx'
+import { CharacterProvider } from './character/CharacterContext.jsx'
+import { useCharacter } from './character/useCharacter.js'
 import { loadLocation, loadSettings, saveLocation, saveSettings } from './character/persistence.js'
 import {
   deleteAllSavedCharacters,
@@ -9,146 +10,33 @@ import {
   duplicateSavedCharacter,
   getSavedCharacterData,
   getSavedCharacters,
-  saveConfirmedCharacter,
 } from './character/savedCharacters.js'
 import creationSteps from './data/adaptation/creationSteps.json'
-import CharacterStepSummaryModal from './components/CharacterStepSummaryModal.jsx'
-import CharacterSummary from './components/CharacterSummary.jsx'
-import Header from './components/Header.jsx'
-import QuitConfirm from './components/QuitConfirm.jsx'
+import combatEncounters from './data/adaptation/combat/encounters.json'
+import combat2Encounter from './data/adaptation/combat2/encounter.json'
 import ScaledStage from './components/ScaledStage.jsx'
-import StepNav from './components/StepNav.jsx'
-import { useStepSummaryPopup } from './components/useStepSummaryPopup.js'
-import GuideHighlight from './effects/GuideHighlight.jsx'
-import { GUIDE_ARRIVAL_MS } from './effects/guideTiming.js'
-import { isCharacterValid } from './rules/characterValidation.js'
-import { getCompletedStepIds, hasUnsavedProgress, isStepComplete } from './rules/creationProgress.js'
-import { hasAutoChoice } from './character/autoChoice.js'
-import { buildStepSummary } from './rules/stepSummary.js'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
-import CareerHistoryScreen from './screens/CareerHistoryScreen.jsx'
-import CareerScreen from './screens/CareerScreen.jsx'
-import { DEFAULT_MAP_ID as COMBAT1_DEFAULT_MAP } from './combat/encounters.js'
-import { DEFAULT_MAP_ID as COMBAT2_DEFAULT_MAP } from './combat2/combat2State.js'
-import CombatScreen from './screens/CombatScreen.jsx'
-import Combat2Screen from './screens/Combat2Screen.jsx'
-import EpisodeSelectScreen from './screens/EpisodeSelectScreen.jsx'
-import ExplorationScreen from './screens/ExplorationScreen.jsx'
-import EarlyOutlookScreen from './screens/EarlyOutlookScreen.jsx'
-import EducationScreen from './screens/EducationScreen.jsx'
-import EnvironmentScreen from './screens/EnvironmentScreen.jsx'
-import FinishingTouchesScreen from './screens/FinishingTouchesScreen.jsx'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
-import MapEditorScreen from './screens/MapEditorScreen.jsx'
-import PlaceholderScreen from './screens/PlaceholderScreen.jsx'
-import ReviewScreen from './screens/ReviewScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ShipBuilderPlaceholder from './screens/ShipBuilderPlaceholder.jsx'
-import SpeciesScreen from './screens/SpeciesScreen.jsx'
+
+// Everything beyond the menu loads on demand, so opening the app downloads the menu alone and each part (the creator,
+// the episode prototypes, the dev map editor) arrives the first time it is opened.
+const CharacterCreator = lazy(() => import('./CharacterCreator.jsx'))
+const EpisodeSelectScreen = lazy(() => import('./screens/EpisodeSelectScreen.jsx'))
+const CombatScreen = lazy(() => import('./screens/CombatScreen.jsx'))
+const Combat2Screen = lazy(() => import('./screens/Combat2Screen.jsx'))
+const ExplorationScreen = lazy(() => import('./screens/ExplorationScreen.jsx'))
+const MapEditorScreen = lazy(() => import('./screens/MapEditorScreen.jsx'))
 
 const { steps } = creationSteps
-const SCREENS = {
-  species: SpeciesScreen,
-  environment: EnvironmentScreen,
-  earlyOutlook: EarlyOutlookScreen,
-  education: EducationScreen,
-  career: CareerScreen,
-  careerHistory: CareerHistoryScreen,
-  finishingTouches: FinishingTouchesScreen,
-  review: ReviewScreen,
-}
+// The map each prototype opens when Load Episode hasn't picked one. Read from the data files directly so the menu
+// doesn't pull in the combat modules that also export them (combat/encounters.js, combat2/combat2State.js).
+const COMBAT1_DEFAULT_MAP = combatEncounters.encounters[0].defaultMapId
+const COMBAT2_DEFAULT_MAP = combat2Encounter.encounter.defaultMapId
+
 const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'combat2', 'exploration', 'mapEditor']
-
-const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
-
-function CharacterCreator({ onExit, onConfirmed, showGuide }) {
-  const { character, dispatch } = useCharacter()
-  const [currentStepId, setCurrentStepId] = useState(() => {
-    const { stepId } = loadLocation()
-    return isKnownStep(stepId) ? stepId : steps[0].id
-  })
-
-  useEffect(() => saveLocation({ ...loadLocation(), stepId: currentStepId }), [currentStepId])
-
-  const index = steps.findIndex((step) => step.id === currentStepId)
-  const step = steps[index]
-  const previousStep = steps[index - 1]
-  const nextStep = steps[index + 1]
-  const Screen = SCREENS[step.id] ?? PlaceholderScreen
-  const summaryPopup = useStepSummaryPopup(step.id, character, showGuide ? GUIDE_ARRIVAL_MS : 0)
-  // UI state: whether the Quit confirmation is showing.
-  const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
-  const requestQuit = () => (hasUnsavedProgress(character) ? setQuitConfirmOpen(true) : onExit())
-  const quitConfirm = quitConfirmOpen && <QuitConfirm onQuit={onExit} onCancel={() => setQuitConfirmOpen(false)} />
-
-  const navigation = {
-    // Back on the first screen leaves character creation for the Main Menu.
-    canGoBack: true,
-    canGoNext: Boolean(nextStep),
-    nextLabel: nextStep ? `Next: ${nextStep.title}` : 'Next',
-    onBack: () => (previousStep ? setCurrentStepId(previousStep.id) : requestQuit()),
-    // The first screen's Back already returns to the Main Menu, so it has no Quit.
-    onQuit: previousStep ? requestQuit : undefined,
-    onNext: () => nextStep && setCurrentStepId(nextStep.id),
-    onGoToStep: (stepId) => isKnownStep(stepId) && setCurrentStepId(stepId),
-    // Dev: every later screen depends on earlier choices, so a cleared character restarts at the first screen.
-    onClear: () => {
-      dispatch({ type: 'resetCharacter' })
-      setCurrentStepId(steps[0].id)
-    },
-    // Each screen's options depend on the earlier screens, so Auto waits until those are complete.
-    canAuto: hasAutoChoice(step.id) && steps.slice(0, index).every((earlier) => isStepComplete(earlier.id, character)),
-    showAuto: hasAutoChoice(step.id),
-    onAuto: () => dispatch({ type: 'autoChooseStep', stepId: step.id, seed: Math.random() }),
-    canShowSummary: summaryPopup.canShow,
-    onShowSummary: summaryPopup.show,
-    // Saves the confirmed character (again, if it already was), then returns to the Main Menu. savedCharacterId (UI state) remembers which saved
-    // entry this draft is, so going back to edit and confirming again updates it rather than adding a copy.
-    onConfirm: () => {
-      if (!isCharacterValid(character)) return
-      // An already-confirmed character (e.g. just imported) keeps its original confirmation time.
-      const confirmedAt = character.confirmedAt ?? new Date().toISOString()
-      dispatch({ type: 'confirmCharacter', confirmedAt })
-      const saved = saveConfirmedCharacter({ ...character, confirmedAt }, loadLocation().savedCharacterId)
-      saveLocation({ ...loadLocation(), savedCharacterId: saved.id })
-      onConfirmed(saved.characters)
-    },
-  }
-
-  // Review is the finished character sheet: full width, without the step list or the running summary.
-  if (step.id === 'review') {
-    return (
-      <div className="frame">
-        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" />
-        <div className="frame-body frame-body-review" inert={quitConfirmOpen}>
-          <Screen step={step} navigation={navigation} />
-        </div>
-        {quitConfirm}
-        {showGuide && <GuideHighlight enterFromFull />}
-      </div>
-    )
-  }
-
-  return (
-    <div className="frame">
-      <Header />
-      <div className="frame-body" inert={summaryPopup.open || quitConfirmOpen}>
-        <StepNav
-          steps={steps}
-          currentStepId={currentStepId}
-          completedStepIds={getCompletedStepIds(steps, character)}
-          onSelectStep={navigation.onGoToStep}
-        />
-        <Screen step={step} navigation={navigation} />
-        <CharacterSummary character={character} />
-      </div>
-      {summaryPopup.open && <CharacterStepSummaryModal summary={buildStepSummary(step.id, character)} onClose={summaryPopup.close} />}
-      {quitConfirm}
-      {showGuide && <GuideHighlight />}
-    </div>
-  )
-}
 
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
@@ -216,8 +104,9 @@ function Views() {
     },
   }
 
+  // While a view's code is still arriving the stage stays black, as it is between views anyway.
   return (
-    <>
+    <Suspense fallback={null}>
       {view === 'menu' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <MainMenuScreen {...MENU_STAGE} savedCharacters={savedCharacters} onOpen={openView} savedCharacterActions={savedCharacterActions} />
@@ -274,7 +163,7 @@ function Views() {
       )}
       {view === 'mapEditor' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <MapEditorScreen onBack={openMenu} />
+          <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
         </ScaledStage>
       )}
       {view === 'creator' && (
@@ -282,7 +171,7 @@ function Views() {
           <CharacterCreator onExit={openMenu} onConfirmed={handleConfirmed} showGuide={displaySettings.guideHighlight} />
         </ScaledStage>
       )}
-    </>
+    </Suspense>
   )
 }
 

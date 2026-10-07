@@ -1,6 +1,8 @@
 // The weather overlay's layer kinds (see the fx notes in weather.json). Each kind makes its own state for the screen
 // size, advances it every frame (skipped under reduced motion) and draws it:
 //   make(layer, width, height) -> state; step(state, layer, dt, time, width, height); draw(ctx, state, layer, time, width, height)
+// Ground-level kinds also give period(width, height) -> [x, y], the span their state wraps around in, so an overlay that
+// follows a board can repeat them seamlessly across the map. Kinds without one (sky and screen effects) stay on screen.
 const AREA_UNIT = 10000
 const TAU = Math.PI * 2
 
@@ -37,8 +39,11 @@ function stepDrifting(particles, dt, time, width, height, sway) {
   }
 }
 
+const driftingPeriod = (width, height) => [width + 80, height + 80]
+
 const streaks = {
   make: (layer, width, height) => ({ particles: driftingParticles(layer, width, height) }),
+  period: driftingPeriod,
   step: (state, layer, dt, time, width, height) => stepDrifting(state.particles, dt, time, width, height, 0),
   draw(ctx, state, layer) {
     ctx.strokeStyle = layer.colour
@@ -55,6 +60,7 @@ const streaks = {
 
 const flakes = {
   make: streaks.make,
+  period: driftingPeriod,
   step: (state, layer, dt, time, width, height) => stepDrifting(state.particles, dt, time, width, height, layer.sway ?? 18),
   draw(ctx, state, layer, time) {
     ctx.fillStyle = layer.colour
@@ -85,6 +91,7 @@ const fog = {
       size: between([0.18, 0.4]) * Math.min(width, height),
     })),
   }),
+  period: (width, height) => [width + Math.min(width, height) * 0.8, height],
   step(state, layer, dt, time, width, height) {
     const margin = Math.min(width, height) * 0.4
     for (const bank of state.banks) bank.x = wrap(bank.x + bank.vx * dt, width, margin)
@@ -115,6 +122,7 @@ const sparks = {
     const particles = Array.from({ length: countFor(layer, width, height) }, (_, index) => ({ emitter: index % emitters.length, life: 0, maxLife: 1, x: 0, y: 0, vx: 0, vy: 0 }))
     return { emitters, particles }
   },
+  period: (width, height) => [width, height],
   step(state, layer, dt) {
     for (const emitter of state.emitters) {
       emitter.burst -= dt
@@ -231,6 +239,7 @@ const glints = {
       size: between(layer.size ?? [1.5, 3.5]),
     })),
   }),
+  period: (width, height) => [width + 20, height],
   step(state, layer, dt, time, width) {
     for (const p of state.particles) p.x = wrap(p.x + (layer.speed ?? 0) * dt, width, 10)
   },
@@ -280,6 +289,7 @@ const aurora = {
 // Ripple: rings (flattened to the isometric ground) spreading from random points and fading, every [min, max] seconds.
 const ripple = {
   make: (layer) => ({ rings: [], wait: between(layer.every) }),
+  period: (width, height) => [width, height],
   step(state, layer, dt, time, width, height) {
     state.wait -= dt
     if (state.wait <= 0) {
@@ -314,6 +324,7 @@ const vortex = {
       grains: Array.from({ length: layer.grains ?? 50 }, () => ({ angle: Math.random() * TAU, radius: between([0.15, 1]), lift: Math.random() })),
     })),
   }),
+  period: (width, height) => [width + 120, height],
   step(state, layer, dt, time, width) {
     for (const devil of state.devils) {
       devil.x = wrap(devil.x + devil.vx * dt, width, 60)

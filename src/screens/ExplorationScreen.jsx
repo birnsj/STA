@@ -13,7 +13,7 @@ import WeatherFx from '../effects/WeatherFx.jsx'
 import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady, getNpcs, isDown, stateName } from '../exploration/awareness.js'
 import { getAvailableActions, getChallengeViews, getDefinition, objectsInReach } from '../exploration/challengeObjects.js'
 import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
-import { explorationReducer } from '../exploration/explorationState.js'
+import { createExplorationState, explorationReducer } from '../exploration/explorationState.js'
 import { getFormation } from '../exploration/formations.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
@@ -494,7 +494,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         onMove={move}
         onSelect={select}
       />
-      <WeatherFx fx={weatherFor(party.map.weather).fx} />
+      <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
       <div className="combat-top-left">
         <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
       </div>
@@ -540,9 +540,11 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={() => setDebugOpen(!debugOpen)}>
           Debug
         </button>
-        <button type="button" className="combat-button is-small" onClick={onChangeParty}>
-          Away Team
-        </button>
+        {onChangeParty && (
+          <button type="button" className="combat-button is-small" onClick={onChangeParty}>
+            Away Team
+          </button>
+        )}
         <button type="button" className="combat-button is-small" onClick={onExit}>
           Exit
         </button>
@@ -602,4 +604,13 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
     )
   }
   return <Exploration state={state} dispatch={dispatch} onChangeParty={() => setPhase('setup')} onExit={onExit} />
+}
+
+// The map editor's Play: a ready-made away team (RuntimeCharacters) on the open map, straight into exploration with no
+// setup screen. onExit returns to the editor.
+export function ExplorationPlaytest({ map, characters, enemiesActive, onExit }) {
+  const [state, dispatch] = useReducer(explorationReducer, null, () =>
+    createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
+  )
+  return <Exploration state={state} dispatch={dispatch} onChangeParty={null} onExit={onExit} />
 }

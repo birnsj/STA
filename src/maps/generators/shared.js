@@ -10,8 +10,24 @@ export const MACHINERY_TILE = 'machinery'
 export const HAZARD_TILE = 'grating'
 export const CONTROL_TILE = 'epsControl'
 export const PREFAB_WALL_TILE = 'prefabWall'
-// A room's floor is at least MIN_ROOM tiles across.
-export const MIN_ROOM = 3
+// A room's floor is at least MIN_ROOM tiles across, so there is space to walk around whatever stands in it (designer
+// request, Oct 2026: no small rooms that are hard to navigate). A building's outer walls are MIN_BUILDING across.
+export const MIN_ROOM = 4
+export const MIN_BUILDING = MIN_ROOM + 2
+
+// The map editor's Room size and Building size sliders: multipliers on the sizes each generator aims for (1 = its own).
+// Set only for the length of one build by withLayoutScale; the minimums above still apply.
+let layoutScale = { rooms: 1, buildings: 1 }
+export function withLayoutScale(scale, build) {
+  const previous = layoutScale
+  layoutScale = { ...previous, ...scale }
+  try {
+    return build()
+  } finally {
+    layoutScale = previous
+  }
+}
+export const scaledBuilding = (size) => Math.round(size * layoutScale.buildings)
 
 export const NEIGHBOURS = [
   [1, 0],
@@ -74,12 +90,47 @@ export function placeSolid(tiles, cells, tileId) {
   return false
 }
 
+const blocks = (tiles, { x, y }) => tiles[y]?.[x] === undefined || getTile(tiles[y][x]).solid
+// A walkable tile with solid tiles on two opposite sides: a one-tile squeeze or a dead-end pocket.
+const isPinched = (tiles, { x, y }) =>
+  (blocks(tiles, { x: x - 1, y }) && blocks(tiles, { x: x + 1, y })) || (blocks(tiles, { x, y: y - 1 }) && blocks(tiles, { x, y: y + 1 }))
+
+// True when the walkable tiles inside rect can all reach each other without leaving it.
+function isRoomConnected(tiles, rect) {
+  const inside = (cell) => cell.x >= rect.x0 && cell.x <= rect.x1 && cell.y >= rect.y0 && cell.y <= rect.y1 && !blocks(tiles, cell)
+  const open = roomCells(rect).filter(inside)
+  if (!open.length) return true
+  const seen = new Set([key(open[0])])
+  const queue = [open[0]]
+  for (let i = 0; i < queue.length; i++) {
+    for (const next of neighboursOf(queue[i])) {
+      if (seen.has(key(next)) || !inside(next)) continue
+      seen.add(key(next))
+      queue.push(next)
+    }
+  }
+  return seen.size === open.length
+}
+
+// Furniture in `room` (a rect): like placeSolid, but also refused when it would squeeze a walkable tile beside it to one
+// tile wide, or split the room's floor so part of it (a doorway's approach, say) is only reachable from outside.
+export function placeProp(tiles, cells, tileId, room) {
+  const previous = cells.map(({ x, y }) => tiles[y][x])
+  if (!placeSolid(tiles, cells, tileId)) return false
+  const placed = new Set(cells.map(key))
+  const beside = cells.flatMap(neighboursOf).filter((cell) => !placed.has(key(cell)) && !blocks(tiles, cell))
+  if (!beside.some((cell) => isPinched(tiles, cell)) && isRoomConnected(tiles, room)) return true
+  cells.forEach(({ x, y }, i) => (tiles[y][x] = previous[i]))
+  return false
+}
+
 // floor: the tile id that counts as empty ground here. keep: tiles (by key) that must stay clear, like doorway approaches.
 export const isFree = (tiles, keep, cell, floor) => tiles[cell.y]?.[cell.x] === floor && !keep.has(key(cell))
 const against = (tiles, cell, walls) => neighboursOf(cell).some(({ x, y }) => walls.has(tiles[y]?.[x]))
 
 // Splits a run of floor into rooms about `span` tiles across, separated by one-tile walls; returns [first, last] per room.
-export function splitAxis(start, length, random, span = 6) {
+export function splitAxis(start, length, random, baseSpan = 6) {
+  const span = Math.max(MIN_ROOM, Math.round(baseSpan * layoutScale.rooms))
   const count = Math.max(1, Math.min(Math.round((length + 1) / (span + 1)), Math.floor((length + 1) / (MIN_ROOM + 1))))
   const floor = length - (count - 1)
   const sizes = Array.from({ length: count }, (_, i) => Math.floor(floor / count) + (i < floor % count ? 1 : 0))
@@ -110,7 +161,7 @@ export function furnishRoom(tiles, keep, room, random, { floor, walls, density =
       const horizontal = walls.has(tiles[start.y - 1]?.[start.x]) || walls.has(tiles[start.y + 1]?.[start.x])
       const run = Array.from({ length: randomInt(random, 2, 3) }, (_, i) => (horizontal ? { x: start.x + i, y: start.y } : { x: start.x, y: start.y + i }))
       const fits = run.every((cell) => cell.x <= room.x1 && cell.y <= room.y1 && isFree(tiles, keep, cell, floor) && against(tiles, cell, walls))
-      if (fits && placeSolid(tiles, run, machinery)) {
+      if (fits && placeProp(tiles, run, machinery, room)) {
         budget -= run.length
         break
       }
@@ -118,7 +169,7 @@ export function furnishRoom(tiles, keep, room, random, { floor, walls, density =
   }
   for (const cell of wallSide()) {
     if (budget <= 0) break
-    if (isFree(tiles, keep, cell, floor) && placeSolid(tiles, [cell], crate)) budget--
+    if (isFree(tiles, keep, cell, floor) && placeProp(tiles, [cell], crate, room)) budget--
   }
 }
 
@@ -138,7 +189,7 @@ export function placeHazard(tiles, keep, rects, random, floor) {
       patch.forEach(({ x, y }) => (tiles[y][x] = HAZARD_TILE))
       const inPatch = new Set(patch.map(key))
       const beside = patch.flatMap(neighboursOf).filter((cell) => !inPatch.has(key(cell)) && isFree(tiles, keep, cell, floor))
-      if (shuffle(beside, random).some((cell) => placeSolid(tiles, [cell], CONTROL_TILE))) return true
+      if (shuffle(beside, random).some((cell) => placeProp(tiles, [cell], CONTROL_TILE, rect))) return true
       patch.forEach(({ x, y }) => (tiles[y][x] = floor))
     }
   }
@@ -226,14 +277,20 @@ export function rectIsClear(tiles, rect, floor) {
 
 // Tries random spots for up to `count` buildings whose outer size falls in `size` ({ minW, maxW, minH, maxH }), on clear
 // `floor` with a gap around each so the ground between them stays connected. doorSide(rect) picks the doorway's wall.
-// Returns the placed buildings: { rect, room, door, outside }.
+// No side is ever below MIN_BUILDING. Returns the placed buildings: { rect, room, door, outside }.
 export function placeBuildings(tiles, keep, count, size, random, floor, doorSide, { wall } = {}) {
   const width = tiles[0].length
   const height = tiles.length
   const placed = []
+  // Enlarged buildings that keep failing to fit step back toward the generator's own size, so a big Building size
+  // gives fewer-but-big buildings rather than none.
+  const side = (min, max, attempt) => {
+    const scale = Math.max(Math.min(layoutScale.buildings, 1), layoutScale.buildings - Math.floor(attempt / 40) * 0.25)
+    return randomInt(random, Math.max(Math.round(min * scale), MIN_BUILDING), Math.max(Math.round(max * scale), MIN_BUILDING))
+  }
   for (let attempt = 0; attempt < 200 && placed.length < count; attempt++) {
-    const w = randomInt(random, size.minW, size.maxW)
-    const h = randomInt(random, size.minH, size.maxH)
+    const w = side(size.minW, size.maxW, attempt)
+    const h = side(size.minH, size.maxH, attempt)
     if (w > width - 2 || h > height - 2) continue
     const x0 = randomInt(random, 1, width - 1 - w)
     const y0 = randomInt(random, 1, height - 1 - h)

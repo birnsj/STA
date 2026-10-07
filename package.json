@@ -19,7 +19,8 @@
     "electronDist": "node_modules/electron/dist",
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "tools/characterStore.cjs"
     ],
     "directories": {
       "output": "release"

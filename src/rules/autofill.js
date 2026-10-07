@@ -260,17 +260,17 @@ export function fillCareerHistory(character, chooser) {
 function fillFinishingScores(character, kind, chooser) {
   let next = character
   const apply = (finishingTouches) => (next = { ...next, finishingTouches })
-  const { entries, max, increaseCount } = finishingRules.getKindInfo(kind)
+  const { entries, increaseCount } = finishingRules.getKindInfo(kind)
   const ids = entries.map((entry) => entry.id)
   while (next.finishingTouches[kind].increases.length < increaseCount) {
-    const { raw } = finishingRules.getLimitAnalysis(next, kind)
+    const { raw, ceiling } = finishingRules.getLimitAnalysis(next, kind)
     const chosen = next.finishingTouches[kind].increases
     const pool = chooser.order(ids).filter((id) => !chosen.includes(id))
-    const target = pool.find((id) => raw[id] + 1 < max) ?? pool[0]
+    const target = pool.find((id) => raw[id] + 1 <= ceiling) ?? pool[0]
     apply(finishingRules.toggleIncrease(next, kind, target))
   }
   let analysis = finishingRules.getLimitAnalysis(next, kind)
-  if (analysis.needsKeeperChoice && !analysis.keeper) apply(finishingRules.setKeepAtMax(next, kind, chooser.order(analysis.atOrOverMax)[0]))
+  if (analysis.needsKeeperChoice && !analysis.keeper) apply(finishingRules.setKeepAtMax(next, kind, chooser.order(analysis.overLimit)[0]))
   analysis = finishingRules.getLimitAnalysis(next, kind)
   while (analysis.assigned < analysis.excess) {
     const target = chooser.order(ids).find((id) => analysis.canReceive(id))

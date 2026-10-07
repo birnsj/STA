@@ -7,6 +7,7 @@ import { getFocusEntries, getTraitEntries, getValueEntries } from './characterSh
 import {
   getFinalScores,
   getKindInfo,
+  getScoreLimits,
   getRequiredFocusCount,
   getRequiredValueCount,
   hasPronouns,
@@ -50,8 +51,10 @@ function validateStepsComplete(character) {
 }
 
 // Book p.92 / p.129: attributes max 12 (only one at 12), total 56; disciplines max 5 (only one at 5), total 16.
+// Core p.131: Untapped Potential lowers the maximum to 11 / 4 with no one-at-max rule (getScoreLimits).
 function validateScores(character, kind) {
-  const { entries, max, total } = getKindInfo(kind)
+  const { entries, total } = getKindInfo(kind)
+  const { max, oneAtMax, reason } = getScoreLimits(character, kind)
   const { plural, singular, atMaxLimit } = KIND_LABELS[kind]
   const final = getFinalScores(character, kind)
   if (!final) return [issue('finishingTouches', `${plural} are not finalized: choose both increases and resolve any scores over the limit.`)]
@@ -60,9 +63,12 @@ function validateScores(character, kind) {
   const sum = entries.reduce((acc, entry) => acc + final[entry.id], 0)
   if (sum !== total) issues.push(issue('finishingTouches', `${plural} total ${sum}; the book requires ${total}.`))
   const over = entries.filter((entry) => final[entry.id] > max)
-  if (over.length) issues.push(issue('finishingTouches', `${over.map((entry) => entry.name).join(', ')} above the maximum of ${max}.`))
+  if (over.length) {
+    const why = reason ? ` (${reason})` : ''
+    issues.push(issue('finishingTouches', `${over.map((entry) => entry.name).join(', ')} above the maximum of ${max}${why}.`))
+  }
   const atMax = entries.filter((entry) => final[entry.id] === max)
-  if (atMax.length > atMaxLimit) {
+  if (oneAtMax && atMax.length > atMaxLimit) {
     issues.push(issue('finishingTouches', `Only one ${singular} may be at ${max}; ${atMax.map((entry) => entry.name).join(', ')} all are.`))
   }
   return issues

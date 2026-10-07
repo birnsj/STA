@@ -1,0 +1,271 @@
+/* Finishing Touches screen. */
+
+/* ---------- Finishing Touches ---------- */
+
+.finishing-lower {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.finishing-lower .attribute-instruction {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.finishing-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.score-increase-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.score-increase-row {
+  display: grid;
+  grid-template-columns: 1fr 32px 44px 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  font-size: 15px;
+  border: 2px solid var(--blue-deep);
+  border-radius: 4px;
+}
+
+.score-increase-row.is-selected {
+  border-color: var(--yellow);
+  background: rgba(246, 185, 40, 0.08);
+}
+
+.score-increase-score,
+.score-increase-result {
+  text-align: center;
+  font-weight: 700;
+}
+
+.score-increase-result {
+  color: var(--yellow);
+}
+
+.score-increase-toggle {
+  padding: 1px 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--blue-deep);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}
+
+.score-increase-toggle.is-selected {
+  color: #111;
+  background: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.limit-adjuster {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.limit-adjuster-instruction {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.finishing-total {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+.finishing-total.is-error {
+  color: var(--red, #e5484d);
+}
+
+.finishing-stack {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.finishing-stack > .panel:first-child {
+  flex: 1;
+}
+
+.finishing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.finishing-field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--label);
+}
+
+.name-randomizer {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.name-randomizer-button {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.name-randomizer-button:hover,
+.name-randomizer-button:focus-visible,
+.name-randomizer-button.is-selected {
+  outline: none;
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.finishing-notes {
+  height: 100%;
+  min-height: 120px;
+  resize: none;
+}
+
+.finishing-portrait-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Mixed Heritage and New Species offer every species' set (30 presets), so the grid scrolls past ~3.5 rows. */
+.portrait-picker {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.portrait-picker-option {
+  padding: 2px;
+  background: transparent;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.portrait-picker-option.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow), 0 0 8px rgba(246, 185, 40, 0.5);
+}
+
+/* Same 4:5 shape as the portrait art, so the whole image (and its label) shows. */
+.portrait-preset {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+}
+
+.portrait-finishing-preview {
+  width: 200px;
+  aspect-ratio: 4 / 5;
+  margin: 0 auto 10px;
+}
+
+.portrait-preset .portrait-label {
+  font-size: 11px;
+}
+
+.portrait-preset .portrait-caption {
+  display: none;
+}
+
+.finishing-portrait-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.finishing-preset-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.finishing-preset-counter {
+  min-width: 110px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.finishing-portrait-details .panel-body {
+  overflow-y: auto;
+}
+
+.finishing-portrait-details .portrait-finishing-preview {
+  width: 120px;
+  margin-bottom: 6px;
+}
+
+.finishing-portrait-details .finishing-preset-row {
+  margin-bottom: 8px;
+}
+
+.finishing-portrait-details .source-ref {
+  margin: 0;
+  text-align: center;
+}
+
+.finishing-life-track {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--blue);
+}
+
+.finishing-life-track-heading {
+  margin: 0 0 4px;
+  color: var(--yellow);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.finishing-life-track p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.summary-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  column-gap: 8px;
+  white-space: normal;
+}
+
+.summary-score-grid span {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.summary-score-grid strong {
+  color: var(--yellow);
+}

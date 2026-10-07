@@ -61,7 +61,7 @@ function FlagBox({ tile, box, onStatus }) {
   )
 }
 
-export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks, onStatus }) {
+export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks, animateTiles, onAnimateTiles, showLighting, onShowLighting, onStatus }) {
   // UI state: which categories are open. Starts with just the selected tile's category open.
   const [open, setOpen] = useState(() => new Set(GROUPS.filter((group) => group.tiles.some((tile) => tool === `tile:${tile.id}`)).map((group) => group.id)))
   const toggle = (id) =>
@@ -122,6 +122,14 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
       <label className="me-check">
         <input type="checkbox" checked={ghostBlocks} onChange={(event) => onGhostBlocks(event.target.checked)} />
         See-through blocks
+      </label>
+      <label className="me-check" title="Blinking lights and window stars in the tile list and the brush. The map itself is drawn still.">
+        <input type="checkbox" checked={animateTiles} onChange={(event) => onAnimateTiles(event.target.checked)} />
+        Tile animations
+      </label>
+      <label className="me-check" title="Contact shadows, light pools and the map's darkness (the Light level is still saved). Turn off to keep large maps responsive.">
+        <input type="checkbox" checked={showLighting} onChange={(event) => onShowLighting(event.target.checked)} />
+        Lighting
       </label>
       {TILE_ART_SETS.map((set) => (
         <label key={set.id} className="me-check">

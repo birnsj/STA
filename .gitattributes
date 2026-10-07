@@ -1,0 +1,14 @@
+# Text files are stored with LF line endings whatever the editor on Windows writes, so git stops warning about CRLF.
+* text=auto eol=lf
+
+# Binary assets: never normalised.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp3 binary
+*.pdf binary
+*.ico binary
+*.woff binary
+*.woff2 binary

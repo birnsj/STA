@@ -42,7 +42,7 @@ export function generateOutpost(map, random, areaNames, biome) {
     sides.set(rect, side)
     return side
   }
-  const huts = placeBuildings(tiles, keep, randomInt(random, 1, 2), { minW: 4, maxW: 6, minH: 4, maxH: 5 }, random, ground, doorSide, { wall })
+  const huts = placeBuildings(tiles, keep, randomInt(random, 1, 2), { minW: 6, maxW: 7, minH: 6, maxH: 6 }, random, ground, doorSide, { wall })
   huts.forEach((hut) => {
     layLine(tiles, hut.outside, DOOR_STEP[sides.get(hut.rect)], path, ground, randomInt(random, 2, 4))
     furnishRoom(tiles, keep, hut.room, random, { floor: FLOOR_TILE, walls: new Set([wall]), density: 6 })

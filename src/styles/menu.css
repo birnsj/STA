@@ -1,0 +1,452 @@
+/* Main menu (1024x576 stage): buttons, starfield, ambience and the Enterprise details. */
+
+/* ---------- Main menu (1024x576, positions match the reference image) ---------- */
+
+.main-menu,
+.ship-builder-placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-size: cover;
+  background-position: top left;
+}
+
+.cover-art {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  background-size: 100% 100%;
+}
+
+/* Row pitch matches the menu painted into the art, so the rows cover it exactly; eight rows end at y=560. */
+.main-menu-list {
+  position: absolute;
+  top: 192px;
+  left: 49px;
+  display: flex;
+  flex-direction: column;
+  gap: 4.6px;
+}
+
+.main-menu-row {
+  display: flex;
+  gap: 2px;
+  height: 42px;
+}
+
+.main-menu-accent {
+  width: 15px;
+  border-radius: 4px 0 0 4px;
+}
+
+.accent-yellow { background: #fbd02a; }
+.accent-blue { background: #03aefc; }
+.accent-cyan { background: #00ccfc; }
+.accent-red { background: #ec3740; }
+
+.main-menu-button {
+  width: 237px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 0 15px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #2f8cf0;
+  background: #040a18;
+  border: 1px solid #1f4f8c;
+  border-radius: 6px;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.main-menu-button:not(:disabled):hover,
+.main-menu-button:focus-visible {
+  outline: none;
+  background: #0d2a5c;
+  border-color: #6fb2ff;
+  color: #d6e8ff;
+  box-shadow: 0 0 10px rgba(79, 156, 245, 0.55), inset 0 0 12px rgba(79, 156, 245, 0.25);
+}
+
+/* The colored tab beside a highlighted button brightens with it. */
+.main-menu-row:has(.main-menu-button:not(:disabled):hover) .main-menu-accent,
+.main-menu-row:has(.main-menu-button:focus-visible) .main-menu-accent {
+  filter: brightness(1.3);
+}
+
+.main-menu-button.is-primary {
+  color: #111;
+  background: linear-gradient(90deg, #f7b733, #eaa62a);
+  border-color: #f7b733;
+  /* Holds the light sweep (::after, below). */
+  position: relative;
+  overflow: hidden;
+}
+
+.main-menu-button.is-primary:hover,
+.main-menu-button.is-primary:focus-visible {
+  color: #000;
+  background: linear-gradient(90deg, #ffd46a, #f7b733);
+  border-color: #fff0b8;
+  box-shadow: 0 0 12px rgba(247, 183, 51, 0.7);
+}
+
+.main-menu-chevron {
+  width: 10px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Sits beside the chevron at the right edge rather than in the middle of the space-between row. */
+.main-menu-check {
+  margin-left: auto;
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.main-menu-dev {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7fd6e2;
+  background: rgba(4, 10, 24, 0.75);
+  border: 1px solid #1f4f8c;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.main-menu-dev:hover,
+.main-menu-dev:focus-visible {
+  outline: none;
+  color: #d6e8ff;
+  border-color: #6fb2ff;
+}
+
+.main-menu-row.is-disabled .main-menu-accent {
+  background: #4a4f5a;
+}
+
+.main-menu-button:disabled,
+.main-menu-button:disabled:hover {
+  color: #5d6370;
+  border-color: #2a2f3a;
+  cursor: default;
+}
+
+/* ---------- Ambient starfield ---------- */
+
+.starfield,
+.star-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  opacity: var(--star-opacity);
+  box-shadow: 0 0 2px rgba(200, 220, 255, 0.7);
+}
+
+.star.is-twinkling {
+  animation: star-twinkle var(--twinkle-duration) ease-in-out var(--twinkle-delay) infinite alternate;
+}
+
+.star.is-sparkle {
+  background: #fff;
+  box-shadow: 0 0 4px 1px rgba(210, 225, 255, 0.9), 0 0 10px 2px rgba(150, 185, 255, 0.45);
+  animation: star-sparkle var(--twinkle-duration) ease-in-out var(--twinkle-delay) infinite;
+}
+
+/* Thin horizontal and vertical glints centred on the star. */
+.star.is-sparkle::before,
+.star.is-sparkle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: linear-gradient(90deg, rgba(220, 232, 255, 0), rgba(255, 255, 255, 0.95), rgba(220, 232, 255, 0));
+  transform: translate(-50%, -50%);
+}
+
+.star.is-sparkle::before {
+  width: 18px;
+  height: 1px;
+}
+
+.star.is-sparkle::after {
+  width: 1px;
+  height: 18px;
+  background: linear-gradient(180deg, rgba(220, 232, 255, 0), rgba(255, 255, 255, 0.95), rgba(220, 232, 255, 0));
+}
+
+@keyframes star-sparkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.5); }
+  45% { opacity: var(--star-opacity); transform: scale(1.15); }
+  60% { opacity: calc(var(--star-opacity) * 0.8); transform: scale(0.95); }
+}
+
+/* Nearer layers drift slightly further and faster, giving parallax depth. */
+.star-drift-far { animation: star-drift-far 200s ease-in-out infinite alternate; }
+.star-drift-mid { animation: star-drift-mid 150s ease-in-out infinite alternate; }
+.star-drift-near { animation: star-drift-near 110s ease-in-out infinite alternate; }
+
+@keyframes star-twinkle {
+  from { opacity: var(--star-opacity); }
+  to { opacity: calc(var(--star-opacity) * 0.1); }
+}
+
+/* ---------- Menu ambience: glows and shooting stars ---------- */
+
+.menu-ambience {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ambient-sun,
+.ambient-nacelle {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+}
+
+.ambient-sun {
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(255, 236, 190, 0.85) 0%, rgba(255, 170, 60, 0.35) 30%, rgba(255, 140, 40, 0) 70%);
+  animation: sun-pulse 8s ease-in-out infinite;
+}
+
+.ambient-nacelle {
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle, rgba(255, 190, 120, 0.9) 0%, rgba(255, 90, 40, 0.45) 35%, rgba(255, 60, 20, 0) 70%);
+  animation: nacelle-pulse 3.6s ease-in-out infinite;
+}
+
+.ambient-nacelle.is-offset {
+  animation-delay: -1.3s;
+}
+
+@keyframes sun-pulse {
+  0%, 100% { opacity: 0.45; transform: translate(-50%, -50%) scale(0.92); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+@keyframes nacelle-pulse {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.9); }
+  50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* ---------- Enterprise details ---------- */
+
+.ambient-deflector,
+.ambient-nav-light,
+.ambient-window {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+}
+
+.ambient-deflector {
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle, rgba(235, 245, 255, 0.95) 0%, rgba(140, 190, 255, 0.5) 35%, rgba(90, 150, 255, 0) 70%);
+  animation: deflector-pulse 5s ease-in-out infinite;
+}
+
+@keyframes deflector-pulse {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.85); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.ambient-nacelle-streak {
+  position: absolute;
+  height: 3px;
+  margin-top: -1.5px;
+  overflow: hidden;
+  border-radius: 2px;
+  mix-blend-mode: screen;
+  transform-origin: left center;
+}
+
+.ambient-nacelle-streak::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: linear-gradient(90deg, rgba(255, 80, 50, 0), rgba(255, 190, 150, 0.95), rgba(255, 80, 50, 0));
+  animation: nacelle-streak 2.8s ease-in infinite;
+}
+
+.ambient-nacelle-streak.is-offset::after {
+  animation-delay: -1.1s;
+}
+
+/* Travels from the rear of the nacelle toward the glowing forward dome. */
+@keyframes nacelle-streak {
+  0% { transform: translateX(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(340%); opacity: 0; }
+}
+
+.ambient-nav-light {
+  width: 7px;
+  height: 7px;
+  animation: nav-blink 2.4s steps(1, end) infinite;
+}
+
+.ambient-nav-light.is-red {
+  background: #ff4a3a;
+  box-shadow: 0 0 6px 2px rgba(255, 60, 40, 0.8);
+}
+
+.ambient-nav-light.is-green {
+  background: #5dff7a;
+  box-shadow: 0 0 6px 2px rgba(70, 255, 110, 0.8);
+  animation-delay: -1.2s;
+}
+
+/* A short double flash, then dark for the rest of the cycle. */
+@keyframes nav-blink {
+  0% { opacity: 1; }
+  6% { opacity: 0; }
+  12% { opacity: 1; }
+  18%, 100% { opacity: 0; }
+}
+
+.ambient-window {
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, rgba(255, 240, 200, 0.95) 0%, rgba(255, 210, 140, 0.4) 45%, rgba(255, 200, 120, 0) 75%);
+  opacity: 0;
+  animation: window-glow var(--window-duration) ease-in-out var(--window-delay) infinite;
+}
+
+@keyframes window-glow {
+  0%, 70%, 100% { opacity: 0; }
+  80% { opacity: 1; }
+  90% { opacity: 0.6; }
+}
+
+.ambient-shooting-star {
+  position: absolute;
+  width: 110px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(170, 200, 255, 0));
+  opacity: 0;
+  transform-origin: left center;
+  animation: shooting-star 13s linear 3s infinite;
+}
+
+.ambient-shooting-star.is-late {
+  animation-duration: 21s;
+  animation-delay: 10s;
+}
+
+/* Visible for only the first ~8% of each cycle; the rest of the cycle is empty sky. */
+@keyframes shooting-star {
+  0% { opacity: 0; transform: rotate(-20deg) translateX(0); }
+  1% { opacity: 1; }
+  7% { opacity: 0; transform: rotate(-20deg) translateX(-200px); }
+  100% { opacity: 0; transform: rotate(-20deg) translateX(-200px); }
+}
+
+.logo-sheen {
+  position: absolute;
+  left: 45px;
+  top: 30px;
+  width: 455px;
+  height: 150px;
+  pointer-events: none;
+}
+
+/* A brightened copy of the logo region, revealed only through a moving diagonal band, so the bright artwork
+   flares while the dark sky behind it barely changes. Offsets match .logo-sheen's position. */
+.logo-sheen-band {
+  position: absolute;
+  inset: 0;
+  background-size: 1024px 576px;
+  background-position: -45px -30px;
+  filter: brightness(2) saturate(0.35);
+  mask-image: linear-gradient(100deg, transparent 42%, #000 50%, transparent 58%);
+  mask-size: 300% 100%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 0;
+  animation: logo-sheen 1.6s ease-in-out forwards;
+}
+
+@keyframes logo-sheen {
+  to { mask-position: 0% 0; }
+}
+
+/* A slow light sweep across the primary menu action (the button itself is positioned where it is styled, above). */
+.main-menu-button.is-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0));
+  animation: button-sheen 6s ease-in-out 1.5s infinite;
+}
+
+@keyframes button-sheen {
+  0% { left: -60%; }
+  25%, 100% { left: 130%; }
+}
+
+@keyframes star-drift-far {
+  to { transform: translate(-8px, 2px); }
+}
+
+@keyframes star-drift-mid {
+  to { transform: translate(-14px, 4px); }
+}
+
+@keyframes star-drift-near {
+  to { transform: translate(-22px, 6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-layer,
+  .star.is-twinkling,
+  .star.is-sparkle,
+  .ambient-sun,
+  .ambient-nacelle,
+  .ambient-deflector,
+  .ambient-nacelle-streak::after,
+  .ambient-nav-light,
+  .ambient-window,
+  .ambient-shooting-star,
+  .main-menu-button.is-primary::after {
+    animation: none;
+  }
+
+  .logo-sheen {
+    display: none;
+  }
+}

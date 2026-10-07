@@ -1,4 +1,4 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import {
   getAssignmentBlock,
   getAssignmentById,
@@ -12,6 +12,7 @@ import {
   getRankOptions,
   getRankType,
   isAboveNoviceCap,
+  isBelowVeteranFloor,
   getValueMatrix,
   isCustomValueAllowed,
   isDepartmentChoice,
@@ -242,7 +243,7 @@ export default function CareerScreen({ step, navigation }) {
               id: rank.id,
               label: rank.name,
               disabled: !isRankAllowed(character, rank.id),
-              suffix: isAboveNoviceCap(character, rank.id) ? 'Not for Novice' : undefined,
+              suffix: isAboveNoviceCap(character, rank.id) ? 'Not for Novice' : isBelowVeteranFloor(character, rank.id) ? 'Not for Veteran' : undefined,
               tip: getRankTip(rank.id),
             }))}
             selectedId={career.rank?.id}

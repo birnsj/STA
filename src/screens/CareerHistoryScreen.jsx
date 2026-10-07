@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import {
   getAttributes,
   getCareerEventById,

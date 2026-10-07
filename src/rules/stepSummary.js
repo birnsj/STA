@@ -363,17 +363,19 @@ function careerHistorySummary(character) {
 
 // Finishing Touches changes scores through its increases and the limit adjustments, not through contributions.
 function finishingScoreChanges(character, kind) {
-  const { entries, max } = finishingRules.getKindInfo(kind)
+  const { entries } = finishingRules.getKindInfo(kind)
   const lifepath = kind === 'attributes' ? getAttributeTotals(character) : getDisciplineTotals(character)
   const final = finishingRules.getFinalScores(character, kind)
   const analysis = finishingRules.getLimitAnalysis(character, kind)
+  const { max, oneAtMax, reason } = analysis
   const { increases } = character.finishingTouches[kind]
   return entries
     .map((entry) => {
       const reasons = []
       if (increases.includes(entry.id)) reasons.push('+1: one of your two Finishing Touches increases.')
-      if (analysis.atOrOverMax.includes(entry.id)) {
-        if (entry.id === analysis.keeper) {
+      if (analysis.overLimit.includes(entry.id)) {
+        if (!oneAtMax) reasons.push(`Reduced to ${max}: ${reason} allows nothing higher.`)
+        else if (entry.id === analysis.keeper) {
           if (analysis.raw[entry.id] > max) reasons.push(`Reduced to the maximum of ${max}.`)
         } else {
           reasons.push(`Reduced to ${max - 1}: only one score may be at ${max}.`)
@@ -386,17 +388,19 @@ function finishingScoreChanges(character, kind) {
 }
 
 function scoreChecks(character, kind, label) {
-  const { entries, max, total } = finishingRules.getKindInfo(kind)
+  const { entries, total } = finishingRules.getKindInfo(kind)
+  const { max, oneAtMax, reason } = finishingRules.getScoreLimits(character, kind)
   const final = finishingRules.getFinalScores(character, kind)
   const sum = entries.reduce((acc, entry) => acc + final[entry.id], 0)
   const atMax = entries.filter((entry) => final[entry.id] === max)
   const over = entries.filter((entry) => final[entry.id] > max)
+  const atMaxText = atMax.length ? `${oneAtMax ? 'only ' : ''}${atMax.map((entry) => entry.name).join(', ')} at ${max}` : `none at ${max}`
   return [
     { label: `${label}: ${sum} / ${total}`, ok: sum === total, detail: `The book's finished character totals ${total}.` },
     {
       label: `${label} limits`,
-      ok: !over.length && atMax.length <= 1,
-      detail: `None above ${max}; ${atMax.length ? `only ${atMax.map((entry) => entry.name).join(', ')} at ${max}` : `none at ${max}`}.`,
+      ok: !over.length && (!oneAtMax || atMax.length <= 1),
+      detail: `None above ${max}${reason ? ` (${reason})` : ''}; ${atMaxText}.`,
     },
   ]
 }

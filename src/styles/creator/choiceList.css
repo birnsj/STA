@@ -1,0 +1,83 @@
+/* Choice lists. */
+
+/* ---------- Choice list ---------- */
+
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 15px;
+  text-align: left;
+  background: transparent;
+  border: 2px solid var(--blue-deep);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.choice:hover {
+  border-color: var(--text-muted);
+}
+
+.choice.is-selected {
+  border-color: var(--yellow);
+  background: rgba(246, 185, 40, 0.08);
+}
+
+.choice-radio {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+}
+
+.choice.is-selected .choice-radio {
+  border-color: var(--yellow);
+  background: radial-gradient(circle, var(--yellow) 0 4px, transparent 5px);
+}
+
+.choice-label {
+  flex: 1;
+  line-height: 1.2;
+}
+
+.choice-suffix {
+  color: var(--text-muted);
+}
+
+.value-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-value {
+  padding: 3px 8px;
+}
+
+.choice-radio-button {
+  padding: 0;
+  background: none;
+  border: none;
+  display: flex;
+}
+
+.custom-value-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--blue-deep);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}

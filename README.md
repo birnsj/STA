@@ -1,0 +1,76 @@
+# ST-Adventures
+
+A single-player Star Trek RPG prototype built on the *Star Trek Adventures* 2nd edition rules and the *Captain's Log*
+solo lifepath. It exists to prove the game design, the rules adaptation, the interaction flow and the data model before
+production work in Unreal. React + Vite + plain JavaScript; no backend, no database, no state-management framework.
+
+## Running it
+
+```
+npm install
+npm run dev        # Vite dev server at http://localhost:5173/
+npm test           # node --test, 136 rule tests (tests/*.test.js)
+npm run lint       # oxlint
+npm run build      # production bundle in dist/
+npm run app        # build, then open it in Electron
+npm run dist:win   # portable Windows .exe (electron-builder)
+```
+
+The dev server also saves files for you: characters to `characters/`, maps to `maps/`, tile edits to the tile catalogue
+and episode cards to `public/art/episodes/` (endpoints in `vite.config.js`, stores in `tools/`). The Electron build does
+the same through `electron/characterFiles.cjs`.
+
+The soundtrack is not in the repository. Drop the MP3s into `public/music/` (gitignored) and the menu plays them; without
+them the app runs silently.
+
+## The five parts
+
+| Part | Where | What it does |
+| --- | --- | --- |
+| Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the Captain's Log lifepath (Species → Environment → Early Outlook → Education → Career → Career History → Finishing Touches → Review). Exports a character as JSON. |
+| Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat on the game's maps: the STA 2E task roll, Momentum and Threat, Injuries, Guard / First Aid / Direct / Assist, an AI for both sides, and a seeded reducer so any fight replays exactly. |
+| Exploration | `src/exploration/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll; hands off to combat and back (`combatLink.js`). |
+| Map editor | `src/maps/`, `src/components/maps/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`). |
+| Combat Type 2 | `src/combat2/` | An earlier combat experiment, kept frozen for comparison (see `docs/design-tracker.md`). Not developed further. |
+
+`src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
+
+## Book vs. Prototype
+
+The rules come from two places and the code keeps them apart:
+
+- `src/data/source/` is **what the books say**: every file carries a `source: { book, page }` citation to the PDFs in
+  `reference/` and `reference/core-pdf/`.
+- `src/data/adaptation/` is **what the prototype decided**: videogame changes, content lists, screen order, UI text.
+- `src/rules/` applies both. It is plain JavaScript with no React in it, so the tests can run it headless.
+
+Comments and tests say which is which ("Book p.129" vs "Prototype" / "Designer decision"). Open questions for the
+designer, and decisions already made, are in `docs/design-tracker.md`.
+
+## The character model
+
+The creator holds one canonical draft (`src/character/characterModel.js`) that every screen edits through the reducer
+(`src/character/characterReducer.js`). Export (`src/export/serializeCharacter.js`, schema `0.9.0`) writes the draft plus
+the derived `final` scores, values, focuses, talents and service details. Everyone in the game, player or NPC, is then
+read back through `src/character/runtimeCharacter.js` into the same runtime shape, so combat and exploration never care
+where a character came from.
+
+## Layout
+
+```
+src/
+  data/source        book data, with page citations
+  data/adaptation    prototype decisions and content
+  rules              pure rule functions (creator, tasks, condition, resources)
+  character          the creator's state, reducer and the runtime character
+  screens            one component per screen
+  components         shared UI
+  styles.css         imports src/styles/*.css in cascade order
+  combat, combat2, exploration, maps     the other parts
+tests/               node --test suites; tests/support/ has fixtures
+tools/               dev-server stores and the JSON loader for tests
+scripts/             tile and episode-card art generators (Node, write PNGs into public/art)
+electron/            desktop wrapper
+docs/                design-tracker.md, tiles.md
+reference/           the rulebook PDFs (not committed)
+```

@@ -64,7 +64,7 @@ export function generateColony(map, random, areaNames, biome) {
   // Buildings face the main path.
   const doorSide = (rect) => (horizontal ? (rect.y1 < pathStart ? 'bottom' : 'top') : rect.x1 < pathStart ? 'right' : 'left')
   const count = Math.max(2, Math.min(5, Math.round((width * height) / 110)))
-  const buildings = placeBuildings(tiles, keep, count, { minW: 4, maxW: 8, minH: 4, maxH: 6 }, random, ground, doorSide, { wall })
+  const buildings = placeBuildings(tiles, keep, count, { minW: 6, maxW: 8, minH: 6, maxH: 6 }, random, ground, doorSide, { wall })
   buildings.forEach((building) => {
     const side = doorSide(building.rect)
     layLine(tiles, building.outside, DOOR_STEP[side], path, ground)

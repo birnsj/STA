@@ -1,4 +1,4 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import { serializeCharacter } from '../export/serializeCharacter.js'
 import { downloadJson, toSafeFilename } from '../export/downloadJson.js'
 

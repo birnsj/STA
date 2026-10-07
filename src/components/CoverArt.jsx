@@ -1,4 +1,4 @@
-import { useStageSize } from './ScaledStage.jsx'
+import { useStageSize } from './stageSize.js'
 
 // How much of the art (in its own pixels) to crop from the start of one axis: centred where possible, but shifted
 // so the safe span [safeStart, safeEnd] stays on screen. If the span cannot fit, it is centred instead.

@@ -1,12 +1,8 @@
-import { createContext, useContext, useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { DEFAULT_DISPLAY_SETTINGS, DESIGN_RESOLUTION, getStageLayout } from '../settings/displaySettings.js'
-
-const StageSizeContext = createContext(DESIGN_RESOLUTION)
+import { StageSizeContext } from './stageSize.js'
 
 const getViewport = () => ({ width: window.innerWidth, height: window.innerHeight })
-
-// The stage's current size in design pixels; in fill mode it can be larger than the authored size.
-export const useStageSize = () => useContext(StageSizeContext)
 
 // Each view is authored at a fixed size (character creation: the design resolution); scaled per the display settings.
 export default function ScaledStage({ width = DESIGN_RESOLUTION.width, height = DESIGN_RESOLUTION.height, settings = DEFAULT_DISPLAY_SETTINGS, children }) {

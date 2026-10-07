@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { app, ipcMain } = require('electron')
-const { listCharacters, putCharacter, removeCharacter } = require('./characterStore.cjs')
+// The store is shared with the dev server (vite.config.js), so it lives with the other stores in tools/.
+const { listCharacters, putCharacter, removeCharacter } = require('../tools/characterStore.cjs')
 
 // The portable .exe runs from a temporary unpack folder, so its real location comes from PORTABLE_EXECUTABLE_DIR.
 const gameFolder = () => {

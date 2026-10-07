@@ -1,4 +1,4 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import { getChoiceOptions, getFixedCareerTalentId, getTalentById, getTalentOptions, getTalentStepTitle } from '../rules/talents.js'
 import MechanicsColumn from './MechanicsColumn.jsx'
 import TalentPicker from './TalentPicker.jsx'

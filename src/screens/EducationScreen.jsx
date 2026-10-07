@@ -1,4 +1,4 @@
-import { useCharacter } from '../character/CharacterContext.jsx'
+import { useCharacter } from '../character/useCharacter.js'
 import { getAttributes } from '../rules/species.js'
 import {
   canDecreaseAttribute,

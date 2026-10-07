@@ -2,7 +2,7 @@
 // decks (a grid of rooms), a cantina, a detention block and an alien temple are stations (a central hall with rooms
 // opening onto it), and an alien hive is a cave. None of them uses a biome.
 import { generateCave } from './cave.js'
-import { furnishRoom, isFree, key, placeSolid, randomInt, roomCells, shuffle } from './shared.js'
+import { furnishRoom, isFree, key, placeProp, placeSolid, randomInt, roomCells, shuffle } from './shared.js'
 import { makeStationGenerator } from './spaceStation.js'
 import { makeDeckGenerator } from './starshipDeck.js'
 
@@ -18,7 +18,7 @@ function spacedProps(tiles, keep, rect, random, floor, tileId, every) {
     if (budget <= 0) break
     const crowded = [-1, 0, 1].some((dy) => [-1, 0, 1].some((dx) => placed.has(key({ x: cell.x + dx, y: cell.y + dy }))))
     if (crowded || !isFree(tiles, keep, cell, floor)) continue
-    if (placeSolid(tiles, [cell], tileId)) {
+    if (placeProp(tiles, [cell], tileId, rect)) {
       placed.add(key(cell))
       budget--
     }
@@ -53,7 +53,7 @@ export const generateCantina = makeStationGenerator({
 function furnishCells(tiles, keep, cells, random, { floor }) {
   cells.forEach((cell) => {
     const spots = shuffle(roomCells(cell), random).filter((spot) => isFree(tiles, keep, spot, floor))
-    spots.some((spot) => placeSolid(tiles, [spot], 'cellBunk'))
+    spots.some((spot) => placeProp(tiles, [spot], 'cellBunk', cell))
   })
 }
 
