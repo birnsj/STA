@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "name": "Outpost Kappa 7",
+  "episodeName": "Boarding Party",
+  "card": "/art/episodes/Outpost%20Kappa%207.png?v=1791338212058",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "clear",
+  "rows": [
+    "**********=*********",
+    "*********QDDQQ***k**",
+    "*QQQQQQc*Q...Q**k***",
+    "*Qc...D**Q..cQ****k*",
+    "*Q....D==QQQQQ*kk***",
+    "*QQQQQQ*************",
+    "c****c**V***********",
+    "*******IV*k*********",
+    "*********k**********",
+    "*I*****I************",
+    "*III***VV***I*******",
+    "III*****V**I****k***",
+    "********V***********",
+    "*****II*V*****I***I*",
+    "****IIIIV******k****",
+    "********VV**********"
+  ],
+  "areas": [
+    {
+      "name": "Relay Hut",
+      "position": [
+        3,
+        3
+      ]
+    },
+    {
+      "name": "Generator Hut",
+      "position": [
+        10,
+        2
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        19,
+        4
+      ],
+      [
+        19,
+        1
+      ],
+      [
+        19,
+        10
+      ],
+      [
+        19,
+        11
+      ]
+    ],
+    "enemySpawns": [
+      [
+        0,
+        8
+      ],
+      [
+        0,
+        12
+      ],
+      [
+        0,
+        15
+      ],
+      [
+        0,
+        4
+      ]
+    ]
+  }
+}

@@ -130,10 +130,345 @@
 .explore-party-bar {
   position: absolute;
   left: 8px;
-  bottom: 24px;
+  bottom: 8px;
   z-index: 26;
   align-items: flex-end;
   gap: 8px;
+}
+
+.character-sheet {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* On the map: left side, between the top bar and the party cards (which overlap it on hover). */
+.character-sheet.is-on-map {
+  position: absolute;
+  top: 76px;
+  bottom: 100px;
+  left: 8px;
+  z-index: 25;
+  width: 330px;
+}
+
+/* On the away-team screen: beside the roster. */
+.character-sheet.is-in-setup {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Compact: labels beside their content, smaller type, one line per rule (full text on hover). */
+.character-sheet.is-compact .sheet-header {
+  padding: 6px 8px;
+  gap: 8px;
+}
+
+.character-sheet.is-compact .sheet-portrait {
+  width: 44px;
+  height: 44px;
+}
+
+.character-sheet.is-compact .sheet-name {
+  font-size: 16px;
+}
+
+.character-sheet.is-compact .sheet-body {
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.character-sheet.is-compact .sheet-condition {
+  grid-template-columns: repeat(4, auto);
+  justify-content: space-between;
+  padding: 3px 6px;
+}
+
+.character-sheet.is-compact .sheet-section {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  align-items: start;
+  gap: 6px;
+}
+
+.character-sheet.is-compact .sheet-heading {
+  margin: 0;
+  padding: 3px 0 0;
+  border: none;
+  font-size: 11px;
+}
+
+.character-sheet.is-compact .sheet-scores {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+}
+
+.character-sheet.is-compact .sheet-score {
+  flex-direction: column;
+  align-items: center;
+  padding: 1px 2px;
+}
+
+.character-sheet.is-compact .sheet-score-name {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.character-sheet.is-compact .sheet-score-value {
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.character-sheet.is-compact .sheet-chips li {
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+
+.character-sheet.is-compact .sheet-values,
+.character-sheet.is-compact .sheet-rules {
+  gap: 1px;
+}
+
+.character-sheet.is-compact .sheet-values li {
+  font-size: 10.5px;
+}
+
+.character-sheet.is-compact .sheet-rules li {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.character-sheet.is-compact .sheet-rule-name {
+  flex: none;
+  font-size: 11px;
+}
+
+.character-sheet.is-compact .sheet-rule-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+}
+
+.character-sheet.is-compact .sheet-empty {
+  padding-top: 2px;
+  font-size: 10.5px;
+}
+
+.explore-setup-hint {
+  flex: 1;
+  align-self: center;
+  text-align: center;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--panel-border);
+  background: linear-gradient(to right, rgba(16, 41, 95, 0.9), rgba(6, 12, 28, 0.6));
+}
+
+.sheet-portrait {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--yellow);
+  border-radius: 3px;
+}
+
+.sheet-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet-name {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.sheet-subtitle {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--yellow);
+}
+
+.sheet-origin {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sheet-close {
+  align-self: flex-start;
+  padding: 0 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+.sheet-close:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  overflow-y: auto;
+}
+
+.sheet-condition {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 10px;
+  padding: 5px 7px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: rgba(16, 41, 95, 0.35);
+  font-size: 11px;
+}
+
+.sheet-condition b {
+  margin-right: 4px;
+  font-weight: normal;
+  color: var(--label);
+}
+
+.sheet-heading {
+  margin: 0 0 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--panel-border);
+  font-family: var(--display-font);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.sheet-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.sheet-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border: 1px solid rgba(29, 74, 168, 0.6);
+  border-radius: 3px;
+  background: rgba(6, 12, 28, 0.6);
+}
+
+.sheet-score-name {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sheet-score-value {
+  font-family: var(--display-font);
+  font-size: 16px;
+  color: var(--text);
+}
+
+.sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet-chips li {
+  padding: 1px 7px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(16, 41, 95, 0.5);
+  font-size: 11px;
+}
+
+.sheet-values,
+.sheet-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet-values li {
+  font-size: 11px;
+  font-style: italic;
+  color: #b9c8e6;
+}
+
+.sheet-rules li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sheet-rule-name {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.sheet-rule-text {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.sheet-empty {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* The action buttons are stacked on top of the Formation panel. */
+.explore-bottom-right {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.explore-action-stack {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.explore-action-stack .combat-button {
+  width: 100%;
+}
+
+.explore-action-stack .combat-button[aria-pressed='true'] {
+  border-color: var(--yellow);
+  color: var(--yellow);
 }
 
 .explore-minimap-column {
@@ -232,9 +567,6 @@
 }
 
 .explore-formation-panel {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -296,9 +628,45 @@
   stroke-linejoin: round;
 }
 
+/* Away-team screen: roster and character sheet side by side, the team and the buttons on one line underneath. */
+.explore-setup-panel {
+  width: 860px;
+}
+
+.explore-setup-panel .combat-setup-body {
+  height: 400px;
+}
+
 .explore-setup-list {
-  max-height: 260px;
-  margin-bottom: 10px;
+  max-height: none;
+  height: 100%;
+}
+
+.explore-setup-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.explore-setup-footer .combat-setup-party {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.explore-setup-footer .combat-setup-party-label {
+  width: auto;
+  white-space: nowrap;
+}
+
+.explore-setup-footer .combat-setup-actions {
+  flex: none;
+  margin: 0;
 }
 
 .explore-debug-column {

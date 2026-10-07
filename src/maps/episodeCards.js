@@ -9,7 +9,8 @@ export const CARD_IMAGE = catalogue.imageSize
 // The width (px) a card's weather overlay is drawn at before shrinking to the card, so it looks like the board's weather.
 export const CARD_WEATHER_WIDTH = 600
 
-export const isDrawnCard = (card) => typeof card === 'string' && card.startsWith('/')
+// A picture Generate Card drew: its saved path ('/art/episodes/...'), or a PNG data URL until the map is saved.
+export const isDrawnCard = (card) => typeof card === 'string' && (card.startsWith('/') || card.startsWith('data:image/png'))
 
 // The file name (without .png) of a picture Generate Card drew, or null for catalogue cards.
 export const drawnCardFileId = (card) => {

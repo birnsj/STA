@@ -167,12 +167,30 @@
 }
 
 /* Tile PNGs are 64x96; the thumbnail shows the drawn part at half size. */
-.me-thumb {
-  width: 32px;
-  height: 48px;
-  object-fit: cover;
-  object-position: bottom;
-  image-rendering: pixelated;
+.me-thumb-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 56px;
+}
+
+.me-thumb-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.me-thumb-badge {
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: rgba(10, 22, 26, 0.85);
+  color: #ffb347;
+  font-size: 9px;
+  line-height: 12px;
 }
 
 /* Episode card art is 16:9. */
@@ -203,14 +221,21 @@
   margin-bottom: 4px;
 }
 
-/* The Cover checkbox sits over the top of the tile's thumbnail, which is empty on flat tiles (a sibling of the tool
-   button, not inside it). */
+/* The Cover and Fade checkboxes sit in a strip across the top of the tile's button, above the thumbnail (tall walls
+   and objects fill the thumbnail to the top), as siblings of the tool button, not inside it. */
 .me-tile { position: relative; }
 
-.me-cover {
+.me-tile .me-tool { padding-top: 16px; }
+
+.me-flags {
   position: absolute;
   left: 3px;
-  top: 4px;
+  top: 3px;
+  display: flex;
+  gap: 4px;
+}
+
+.me-cover {
   display: flex;
   align-items: center;
   gap: 1px;
@@ -250,10 +275,46 @@
 
 .me-size .me-check { margin-top: 0; gap: 3px; }
 
+.me-ambient {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.me-ambient input { width: 90px; accent-color: #f2a33a; }
+.me-ambient-value { min-width: 3.2em; font-variant-numeric: tabular-nums; }
+
 .me-board-area {
   position: relative;
   flex: 1;
   min-width: 0;
+}
+
+/* The save confirmation: shown over the top of the board for a few seconds. */
+.me-notice {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border: 1px solid #5fbf7f;
+  border-radius: 3px;
+  background: rgba(10, 30, 20, 0.92);
+  color: #9fe6b4;
+  font-size: 13px;
+  pointer-events: none;
+  animation: me-notice-in 0.2s ease-out;
+}
+
+.me-notice.is-failed {
+  border-color: #e07060;
+  background: rgba(40, 12, 10, 0.92);
+  color: #f2a596;
+}
+
+@keyframes me-notice-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .me-board {
@@ -267,6 +328,11 @@
 .me-cells polygon {
   fill: transparent;
   cursor: crosshair;
+}
+
+.me-brush {
+  opacity: 0.75;
+  pointer-events: none;
 }
 
 .me-hover {

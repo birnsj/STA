@@ -734,6 +734,102 @@ function EXTRA_BIOME_TILES() {
   }
 }
 
+// A point on a block's front faces: 'left' runs from the left corner to the front corner, 'right' from the front corner
+// to the right corner; u 0..1 along the face, v pixels above the floor.
+function facePoint(face, u, v) {
+  const [, r, b, l] = diamond()
+  const [from, to] = face === 'left' ? [l, b] : [b, r]
+  return [from[0] + (to[0] - from[0]) * u, from[1] + (to[1] - from[1]) * u - v]
+}
+// A patch on a face; colours: [left face, right face] (the right face is in shadow).
+function facePatch(canvas, face, u0, u1, v0, v1, colours) {
+  const colour = face === 'left' ? colours[0] : colours[1]
+  fill(canvas, [facePoint(face, u0, v0), facePoint(face, u1, v0), facePoint(face, u1, v1), facePoint(face, u0, v1)], hex(colour))
+}
+const bothFaces = (draw) => ['left', 'right'].forEach(draw)
+
+// Walls and floors for the locations and biomes that had none of their own (designer request, Oct 2026).
+function MORE_WALL_TILES() {
+  const wall = (top, left, right, detail, height = 46) => ({
+    full: () => block({ top, left, right, height, detail }),
+    mid: () => block({ top, left, right, height: Math.round(height / 2) }),
+    low: () => block({ top, left, right, height: 10 }),
+  })
+  // Horizontal bands across both faces at the given heights.
+  const strata = (bands, colours, thick = 2) => (canvas) => bothFaces((face) => bands.forEach((v) => facePatch(canvas, face, 0, 1, v, v + thick, colours)))
+  // Vertical strips on both faces at the given positions along them.
+  const posts = (us, width, colours, v0 = 0, v1 = null) => (canvas, h) =>
+    bothFaces((face) => us.forEach((u) => facePatch(canvas, face, u, u + width, v0, v1 ?? h, colours)))
+  // Small blobs scattered over both faces (a fixed pattern, so every copy of the tile matches).
+  const spots = (count, size, colours, seed = 1) => (canvas, h) =>
+    bothFaces((face, f) => {
+      for (let i = 0; i < count; i++) {
+        const u = ((i * 37 + seed * 11 + f * 5) % 89) / 89
+        const v = 3 + (((i * 53 + seed * 7 + f * 3) % 97) / 97) * (h - 6)
+        facePatch(canvas, face, u, Math.min(1, u + size / 32), v, v + size, colours)
+      }
+    })
+  const all = (...details) => (canvas, h) => details.forEach((detail) => detail(canvas, h))
+
+  const walls = {
+    breachedBulkhead: wall(
+      '#4a5258',
+      '#30383d',
+      '#232a2e',
+      all(spots(9, 3, ['#1c2124', '#161a1c'], 3), (canvas) => {
+        facePatch(canvas, 'left', 0.42, 0.7, 14, 30, ['#c25a12', '#c25a12'])
+        facePatch(canvas, 'left', 0.46, 0.66, 16, 28, ['#050608', '#050608'])
+      }),
+    ),
+    shoredWall: wall('#5a5048', '#3e362e', '#2e2822', all(posts([0.12, 0.8], 0.09, ['#7a5a34', '#5e4428']), strata([38], ['#7a5a34', '#5e4428'], 3))),
+    blastBarrier: wall(
+      '#9a9a92',
+      '#74746c',
+      '#5c5c56',
+      (canvas, h) => {
+        bothFaces((face) => {
+          for (let i = 0; i < 10; i++) facePatch(canvas, face, i / 10, (i + 1) / 10, 3, 8, i % 2 ? ['#262626', '#1c1c1c'] : ['#d8b020', '#a88818'])
+        })
+        ring(canvas, h, 0.85, hex('#b0b0a8'))
+      },
+      40,
+    ),
+    hullBarricade: wall('#6a7680', '#4a545c', '#3a4248', all(strata([14, 28], ['#2e353b', '#252b30'], 1), spots(6, 3, ['#24292d', '#1c2023'], 5)), 40),
+    campBarricade: wall('#6a6a3a', '#4e4e2a', '#3c3c20', all(strata([16], ['#34341c', '#2a2a16'], 1), posts([0.5], 0.04, ['#34341c', '#2a2a16']), posts([0.04, 0.54], 0.03, ['#7e7e48', '#5e5e34'])), 32),
+    cellWall: wall('#4a5258', '#343b40', '#262c30', all(strata([20], ['#c03030', '#902424'], 3), posts([0.33, 0.66], 0.02, ['#262c30', '#1c2024']))),
+    rootWall: wall('#4a4630', '#3a3424', '#2c271b', all(posts([0.1, 0.38, 0.7], 0.07, ['#5a4a30', '#46392a']), spots(10, 2, ['#4a6a2a', '#3a5420'], 2))),
+    vineWall: wall('#4e4a40', '#36322a', '#28251f', all(posts([0.18, 0.5, 0.82], 0.05, ['#2e6a2a', '#245a22'], 8), spots(14, 2, ['#3e8a36', '#2e6e2a'], 4))),
+    stoneWall: wall('#8a8478', '#686258', '#524d45', all(strata([8, 17, 26], ['#4a463e', '#3c3832'], 1), spots(8, 2, ['#9a9488', '#7a756a'], 6)), 34),
+    frostRockWall: wall('#e8f0f4', '#6e767a', '#565e62', all(strata([38, 41], ['#c8d4da', '#a8b4ba'], 2), spots(8, 2, ['#d8e4ea', '#b8c4ca'], 7))),
+    seaCliff: wall('#6a8a4a', '#80705a', '#665a48', strata([6, 15, 24, 33], ['#a89878', '#86785e'], 2)),
+    sinterWall: wall('#e8dcb8', '#b8a070', '#9a845a', all(strata([9, 22, 35], ['#d08a3a', '#a86c2a'], 2), strata([15, 29], ['#f0e8d0', '#d0c8b0'], 1))),
+    regolithRidge: wall('#8a8478', '#666058', '#4e4a44', spots(12, 3, ['#4e4a44', '#3c3934'], 8)),
+    fungalWall: wall('#4a3a4c', '#34283a', '#281e2c', all(spots(7, 3, ['#c8506a', '#9a3a50'], 9), spots(9, 1, ['#f0e0e0', '#c8b8b8'], 10))),
+    corrodedWall: wall('#5a5a40', '#40402c', '#303020', posts([0.15, 0.42, 0.68, 0.88], 0.03, ['#a8c040', '#7a9a2a'], 10)),
+    glowRootWall: wall('#1e2a34', '#141e26', '#0e161c', all(posts([0.2, 0.55, 0.85], 0.025, ['#40e0d0', '#2ab0a0'], 4), spots(8, 2, ['#80fff0', '#50d0c0'], 11))),
+    obsidianWall: wall('#2a2834', '#1a1824', '#121018', posts([0.25, 0.3], 0.03, ['#6a68a0', '#4a4878'], 6)),
+  }
+  const tiles = {}
+  for (const [id, set] of Object.entries(walls)) {
+    tiles[id] = set.full
+    tiles[`${id}-mid`] = set.mid
+    tiles[`${id}-low`] = set.low
+  }
+  // Floors: a derelict's dark, cracked plating and a brig's deck.
+  tiles.derelictDeck = () => {
+    const canvas = speckle(floorTile({ fill: '#262c30', stroke: '#141a1c' }), '#1a1f22', 7)
+    for (let i = 0; i < 18; i++) setPixel(canvas, 20 + i, 74 + Math.round(Math.sin(i / 2) * 2), hex('#0c0f10'))
+    return canvas
+  }
+  tiles.cellFloor = () => {
+    const canvas = floorTile({ fill: '#30363a', stroke: '#1a2023' })
+    ring(canvas, 0, 0.7, hex('#3c4448'))
+    return canvas
+  }
+  return tiles
+}
+Object.assign(TILES, MORE_WALL_TILES())
+
 fs.mkdirSync(OUT, { recursive: true })
 for (const [id, draw] of Object.entries(TILES)) {
   const file = path.join(OUT, `${id}.png`)

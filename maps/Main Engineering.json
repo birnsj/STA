@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Main Engineering",
+  "episodeName": "Siege of Main Engineering",
+  "card": "/art/episodes/Main%20Engineering.png?v=1791340892864",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "gravityFailure",
+  "rows": [
+    "####################",
+    "#.MMM.c#.c...c.#...#",
+    "#......#.......#c..#",
+    "#......#......c#...#",
+    "#.....c#......c#...#",
+    "#......D.......#..c#",
+    "#c.....D.......D..c#",
+    "#....c.#ccc....D...#",
+    "##DD#########DD##DD#",
+    "#......#...c...D...#",
+    "#.....M#chh....D...#",
+    "#......D.hhE..M#c..#",
+    "#...cc.D......M#...#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Warp Core Ejection Gantry",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Shuttlebay 2",
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "Deck 10 Brig",
+      "position": [
+        16,
+        1
+      ]
+    },
+    {
+      "name": "Main Bridge",
+      "position": [
+        1,
+        9
+      ]
+    },
+    {
+      "name": "Computer Core Access",
+      "position": [
+        8,
+        9
+      ]
+    },
+    {
+      "name": "Battle Bridge",
+      "position": [
+        17,
+        9
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        18,
+        9
+      ],
+      [
+        18,
+        11
+      ],
+      [
+        16,
+        12
+      ],
+      [
+        17,
+        10
+      ]
+    ],
+    "enemySpawns": [
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        4,
+        6
+      ]
+    ]
+  }
+}

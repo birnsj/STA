@@ -4,9 +4,10 @@
 import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
 import {
   CRATE_TILE,
+  cutDoorway,
   DOOR_TILE,
+  doorwayOffsets,
   furnishRoom,
-  key,
   labelRegions,
   MACHINERY_TILE,
   MARKERS_PER_SIDE,
@@ -14,27 +15,24 @@ import {
   markerCells,
   pickMarkers,
   placeHazard,
-  randomInt,
   roomCells,
   shuffle,
   splitAxis,
 } from './shared.js'
 
-// One doorway in every wall two rooms share, so each room is reachable. Returns the tiles either side of each
+// One two-tile doorway in every wall two rooms share, so each room is reachable. Returns the tiles either side of each
 // doorway, which stay clear floor.
 function connectRooms(tiles, grid, random) {
   const keep = new Set()
   grid.forEach((row) =>
     row.forEach((room, col) => {
       if (row[col + 1]) {
-        const door = { x: room.x1 + 1, y: randomInt(random, room.y0, room.y1) }
-        tiles[door.y][door.x] = DOOR_TILE
-        keep.add(key({ x: door.x - 1, y: door.y })).add(key({ x: door.x + 1, y: door.y }))
+        const cells = doorwayOffsets(random, room.y0, room.y1).map((y) => ({ x: room.x1 + 1, y }))
+        cutDoorway(tiles, keep, cells, [1, 0], DOOR_TILE)
       }
       if (grid[room.row + 1]?.[col]) {
-        const door = { x: randomInt(random, room.x0, room.x1), y: room.y1 + 1 }
-        tiles[door.y][door.x] = DOOR_TILE
-        keep.add(key({ x: door.x, y: door.y - 1 })).add(key({ x: door.x, y: door.y + 1 }))
+        const cells = doorwayOffsets(random, room.x0, room.x1).map((x) => ({ x, y: room.y1 + 1 }))
+        cutDoorway(tiles, keep, cells, [0, 1], DOOR_TILE)
       }
     }),
   )

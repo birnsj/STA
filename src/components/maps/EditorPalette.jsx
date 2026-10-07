@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import { PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
-import { canEditTiles, setTileCover } from '../../maps/tileFiles.js'
+import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
+import { ACTIVE_TILE_ART, setTileArt, TILE_ART_SETS } from '../../maps/tileArt.js'
+import { TilePreview } from './IsoTiles.jsx'
 
-// The map editor's tool list: catalogue tiles in collapsible categories (each tile's PNG as its thumbnail, with a Cover
-// checkbox that edits the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'area' | 'erase'.
+// The art set is applied when the tile catalogue loads, so switching reloads the page.
+function switchTileArt(id) {
+  if (window.confirm('Switching tile art reloads the page. Unsaved map changes will be lost. Continue?')) setTileArt(id)
+}
+
+// The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
+// and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'area' | 'erase'.
 const MARKER_TOOLS = [
   { id: 'playerStarts', label: 'Player Start', swatch: 'player' },
   { id: 'enemySpawns', label: 'Enemy Spawn', swatch: 'enemy' },
@@ -27,24 +34,29 @@ function ToolButton({ selected, onClick, children }) {
   )
 }
 
-// Cover is a property of the tile type, so ticking it changes every map that uses the tile.
-function CoverBox({ tile, onStatus }) {
-  const [cover, setCover] = useState(tile.cover)
+const FLAG_BOXES = [
+  { flag: 'cover', label: 'Cover', title: 'Standing next to this tile gives cover', on: 'now gives cover', off: 'no longer gives cover' },
+  { flag: 'fade', label: 'Fade', title: 'Turns see-through when a party member is behind it (exploration and Combat Type 1)', on: 'now fades', off: 'no longer fades' },
+]
+
+// Cover and Fade are properties of the tile type, so ticking one changes every map that uses the tile.
+function FlagBox({ tile, box, onStatus }) {
+  const [value, setValue] = useState(Boolean(tile[box.flag]))
   const [saving, setSaving] = useState(false)
   const change = (next) => {
     setSaving(true)
-    setTileCover(tile.id, next)
+    setTileFlag(tile.id, box.flag, next)
       .then(() => {
-        setCover(next)
-        onStatus(`${tile.label} ${next ? 'now gives' : 'no longer gives'} cover (saved to tiles.json).`)
+        setValue(next)
+        onStatus(`${tile.label} ${next ? box.on : box.off} (saved to tiles.json).`)
       })
-      .catch((error) => onStatus(`Could not change cover for ${tile.label}: ${error.message}`))
+      .catch((error) => onStatus(`Could not change ${box.label.toLowerCase()} for ${tile.label}: ${error.message}`))
       .finally(() => setSaving(false))
   }
   return (
-    <label className="me-cover" title={canEditTiles ? 'Standing next to this tile gives cover' : 'Cover can only be changed in the dev build'}>
-      <input type="checkbox" checked={cover} disabled={!canEditTiles || saving} onChange={(event) => change(event.target.checked)} />
-      Cover
+    <label className="me-cover" title={canEditTiles ? box.title : `${box.label} can only be changed in the dev build`}>
+      <input type="checkbox" checked={value} disabled={!canEditTiles || saving} onChange={(event) => change(event.target.checked)} />
+      {box.label}
     </label>
   )
 }
@@ -80,10 +92,21 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
               group.tiles.map((tile) => (
                 <div key={tile.id} className="me-tile">
                   <ToolButton selected={tool === `tile:${tile.id}`} onClick={() => onTool(`tile:${tile.id}`)}>
-                    <img className="me-thumb" src={tile.image} alt="" />
+                    <span className="me-thumb-wrap">
+                      <TilePreview tile={tile} className="me-thumb-preview" />
+                      {tile.big && (
+                        <span className="me-thumb-badge" title="Four in a 2x2 square are drawn as one big object">
+                          2x2
+                        </span>
+                      )}
+                    </span>
                     <span>{tile.label}</span>
                   </ToolButton>
-                  <CoverBox tile={tile} onStatus={onStatus} />
+                  <div className="me-flags">
+                    {FLAG_BOXES.map((box) => (
+                      <FlagBox key={box.flag} tile={tile} box={box} onStatus={onStatus} />
+                    ))}
+                  </div>
                 </div>
               ))}
           </div>
@@ -100,6 +123,12 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
         <input type="checkbox" checked={ghostBlocks} onChange={(event) => onGhostBlocks(event.target.checked)} />
         See-through blocks
       </label>
+      {TILE_ART_SETS.map((set) => (
+        <label key={set.id} className="me-check">
+          <input type="checkbox" checked={ACTIVE_TILE_ART?.id === set.id} onChange={(event) => switchTileArt(event.target.checked ? set.id : null)} />
+          {set.label}
+        </label>
+      ))}
     </div>
   )
 }

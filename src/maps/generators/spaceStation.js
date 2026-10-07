@@ -4,9 +4,10 @@
 import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
 import {
   CRATE_TILE,
+  cutDoorway,
   DOOR_TILE,
+  doorwayOffsets,
   furnishRoom,
-  key,
   labelRegions,
   MACHINERY_TILE,
   makeGrid,
@@ -75,9 +76,8 @@ function buildStation(map, random, areaNames, style) {
       for (let y = rows[0]; y <= rows[1]; y++) tiles[y][room.x1 + 1] = wall
     })
     rooms.forEach((room) => {
-      const door = { x: randomInt(random, room.x0, room.x1), y: wallY }
-      tiles[door.y][door.x] = doorTile
-      keep.add(key({ x: door.x, y: door.y - 1 })).add(key({ x: door.x, y: door.y + 1 }))
+      const cells = doorwayOffsets(random, room.x0, room.x1).map((x) => ({ x, y: wallY }))
+      cutDoorway(tiles, keep, cells, [0, 1], doorTile)
     })
     return rooms
   }

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "name": "Taleth Survey Camp",
+  "episodeName": "Boarding Party",
+  "card": "/art/episodes/Taleth%20Survey%20Camp.png?v=1791338213243",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "snow",
+  "rows": [
+    "***k*********VV**k**",
+    "*k*******k*k*VV*****",
+    "*****I********V*****",
+    "**************V*****",
+    "k*****c******IV****i",
+    "******QQQQQQ**V**i*i",
+    "******Q..c.Q**V**i*i",
+    "***I**Q....Q*****iii",
+    "****I*QQQDDQ********",
+    "****I****=*c*QQQQQQ*",
+    "*********=***Q..c.Q*",
+    "********I*kI*Q....Q*",
+    "*******I*****QQQDDQ*",
+    "****************=***",
+    "**k**********V**=***",
+    "********I***kV**=***"
+  ],
+  "areas": [
+    {
+      "name": "Field Lab",
+      "position": [
+        14,
+        10
+      ]
+    },
+    {
+      "name": "Generator Hut",
+      "position": [
+        7,
+        6
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        19,
+        6
+      ],
+      [
+        19,
+        3
+      ],
+      [
+        19,
+        11
+      ],
+      [
+        19,
+        0
+      ]
+    ],
+    "enemySpawns": [
+      [
+        0,
+        7
+      ],
+      [
+        0,
+        11
+      ],
+      [
+        0,
+        14
+      ],
+      [
+        0,
+        15
+      ]
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "name": "Corvanis Weather Station",
+  "episodeName": "Ion Tide",
+  "card": "/art/episodes/Corvanis%20Weather%20Station.png?v=1791338210427",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "clear",
+  "rows": [
+    "****III*******V*iI**",
+    "*****III*k**k*V*i***",
+    "***********I**V*i***",
+    "**************V*ii*k",
+    "*************VV**iii",
+    "***k****=*I**V*i*ii*",
+    "k**k****=k***VViiiiI",
+    "********=*I***V**iII",
+    "*******c==c***VV**II",
+    "******QQDDQQ**VV****",
+    "******Q....Q**VV****",
+    "**I***Qc...Q**I*****",
+    "******QQQQQQ***VV***",
+    "*i*ii***************",
+    "*i*iiii***k****VV***",
+    "*iiiiiii**Ik****VV**"
+  ],
+  "areas": [
+    {
+      "name": "Sensor Shack",
+      "position": [
+        7,
+        10
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        19,
+        4
+      ],
+      [
+        19,
+        9
+      ],
+      [
+        19,
+        15
+      ],
+      [
+        19,
+        5
+      ]
+    ],
+    "enemySpawns": [
+      [
+        0,
+        10
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        14
+      ],
+      [
+        0,
+        9
+      ]
+    ]
+  }
+}

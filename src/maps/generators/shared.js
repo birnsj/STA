@@ -176,24 +176,43 @@ export function labelRegions(tiles, regions, names, random) {
   })
 }
 
-// A prefab building on `rect` (its outer walls): wall ring, deck-plating interior, one doorway on `side`
+// Doorways are two tiles wide (designer decision, Oct 2026), so a door is as wide as a wall panel. Picks where one
+// starts along a wall whose open stretch runs first..last: anywhere it fits two wide, or one wide on a one-tile stretch.
+// Returns the offsets the doorway covers.
+export function doorwayOffsets(random, first, last) {
+  if (last <= first) return [first]
+  const start = randomInt(random, first, last - 1)
+  return [start, start + 1]
+}
+
+// Cuts a doorway through a wall: `cells` become `tile`, and the tiles either side of each (along `step`, the direction
+// through the wall) are added to keep so props never block it.
+export function cutDoorway(tiles, keep, cells, step, tile = DOOR_TILE) {
+  cells.forEach(({ x, y }) => {
+    tiles[y][x] = tile
+    keep.add(key({ x: x - step[0], y: y - step[1] })).add(key({ x: x + step[0], y: y + step[1] }))
+  })
+}
+
+// A prefab building on `rect` (its outer walls): wall ring, deck-plating interior, one two-tile doorway on `side`
 // ('top' | 'bottom' | 'left' | 'right'), never in a corner. Adds the tiles either side of the doorway to keep.
-// Returns { room: interior rect, door, outside: the tile just outside the doorway }.
+// Returns { room: interior rect, door (its first tile), outside: the tile just outside that }.
 export function placeBuilding(tiles, keep, rect, side, random, { wall = PREFAB_WALL_TILE, floor = 'floor' } = {}) {
   roomCells(rect).forEach(({ x, y }) => (tiles[y][x] = x === rect.x0 || x === rect.x1 || y === rect.y0 || y === rect.y1 ? wall : floor))
   const along = side === 'top' || side === 'bottom'
-  const offset = along ? randomInt(random, rect.x0 + 1, rect.x1 - 1) : randomInt(random, rect.y0 + 1, rect.y1 - 1)
-  const door = {
-    top: { x: offset, y: rect.y0 },
-    bottom: { x: offset, y: rect.y1 },
-    left: { x: rect.x0, y: offset },
-    right: { x: rect.x1, y: offset },
-  }[side]
+  const offsets = along ? doorwayOffsets(random, rect.x0 + 1, rect.x1 - 1) : doorwayOffsets(random, rect.y0 + 1, rect.y1 - 1)
+  const cellAt = (offset) =>
+    ({
+      top: { x: offset, y: rect.y0 },
+      bottom: { x: offset, y: rect.y1 },
+      left: { x: rect.x0, y: offset },
+      right: { x: rect.x1, y: offset },
+    })[side]
+  const cells = offsets.map(cellAt)
   const step = DOOR_STEP[side]
+  cutDoorway(tiles, keep, cells, step)
+  const door = cells[0]
   const outside = { x: door.x + step[0], y: door.y + step[1] }
-  const inside = { x: door.x - step[0], y: door.y - step[1] }
-  tiles[door.y][door.x] = DOOR_TILE
-  keep.add(key(outside)).add(key(inside))
   return { room: { x0: rect.x0 + 1, x1: rect.x1 - 1, y0: rect.y0 + 1, y1: rect.y1 - 1 }, door, outside }
 }
 

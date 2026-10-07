@@ -1632,14 +1632,13 @@
 .party-weapon {
   margin-top: -3px;
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--yellow);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .party-weapon.is-switchable {
-  color: var(--yellow);
   cursor: pointer;
 }
 

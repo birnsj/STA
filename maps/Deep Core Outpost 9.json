@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "name": "Deep Core Outpost 9",
+  "episodeName": "Shadows on Deck Twelve",
+  "card": "/art/episodes/Deep%20Core%20Outpost%209.png?v=1791338206147",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "glassHail",
+  "rows": [
+    "iii*k*V*************",
+    "iiii**V*************",
+    "iiii**V********k****",
+    "i*****V**k**********",
+    "*****VV*****I*******",
+    "************III*k***",
+    "************I*******",
+    "**iiVV****k*I**I****",
+    "*iiiV*******I**I****",
+    "ii*iic****c*III*****",
+    "i**ii*QQQQ*k***I****",
+    "***VV*D..Q*********I",
+    "****==D..Q**********",
+    "*I**VcQc.Q*****k*I**",
+    "***VV*QQQQ*******k**",
+    "*******c********k**I"
+  ],
+  "areas": [
+    {
+      "name": "Field Lab",
+      "position": [
+        7,
+        11
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        8
+      ],
+      [
+        19,
+        4
+      ],
+      [
+        19,
+        7
+      ],
+      [
+        19,
+        12
+      ]
+    ]
+  }
+}

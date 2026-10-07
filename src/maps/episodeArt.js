@@ -1,6 +1,6 @@
-// Generate Card: draws a new random picture for an episode (cardArt.js) with the map's weather painted on, and saves it
-// through the dev server as public/art/episodes/{map id}.png, replacing that map's previous picture. Built copies can't
-// write files.
+// Generate Card: draws a new random picture for an episode (cardArt.js) with the map's weather painted on. It is saved
+// with the map (through the dev server, as public/art/episodes/{map id}.png, replacing that map's previous picture), not
+// when drawn. Built copies can't write files.
 import { paintWeatherStill } from '../effects/weatherStill.js'
 import { CARD_HEIGHT, CARD_WIDTH, drawEpisodeCard } from './cardArt.js'
 import { biomeFor, generatorFor } from './mapGenerators.js'
@@ -27,11 +27,20 @@ function toPngBase64(data, weatherFx) {
   return canvas.toDataURL('image/png').slice('data:image/png;base64,'.length)
 }
 
-// id: the map's file id, which names the picture. Returns the card value to store on the map: the picture's path, with
-// a version so the browser shows the new picture instead of a cached old one.
-export async function generateEpisodeArt(map, id, random = Math.random) {
+// Draws a new picture for the map without saving it. Returns it as a PNG data URL, which the editor keeps as the map's
+// card until the map is saved (savePendingEpisodeArt).
+export function drawEpisodeArt(map, random = Math.random) {
   const data = drawEpisodeCard(generatorFor(map.mapType).id, biomeFor(map.biome).card, random, map.name, cardSkiesFor(map.weather))
-  await callEndpoint('PUT', { id, png: toPngBase64(data, weatherFor(map.weather).fx) })
+  return `${PNG_PREFIX}${toPngBase64(data, weatherFor(map.weather).fx)}`
+}
+
+const PNG_PREFIX = 'data:image/png;base64,'
+export const isPendingArt = (card) => typeof card === 'string' && card.startsWith(PNG_PREFIX)
+
+// Writes a drawn-but-unsaved picture as public/art/episodes/{id}.png (id: the map's file id). Returns the card value to
+// store on the map: the picture's path, with a version so the browser shows the new picture instead of a cached old one.
+export async function savePendingEpisodeArt(card, id) {
+  await callEndpoint('PUT', { id, png: card.slice(PNG_PREFIX.length) })
   return `/art/episodes/${encodeURIComponent(id)}.png?v=${Date.now()}`
 }
 

@@ -100,7 +100,7 @@ export const randomMapName = (map, random = Math.random) => randomLocationName(n
 export const randomEpisodeCard = (map, random = Math.random) =>
   pickCard(generatorFor(map.mapType).id, usesBiome(map) ? biomeFor(map.biome).id : null, map.card, random)?.id ?? null
 
-// Size presets: each location has its own dimensions for Small / Medium / Large / Huge (the biome doesn't change them).
+// Size presets: each location has its own dimensions for Small / Medium / Large / Huge / Gigantic (the biome doesn't change them).
 export const MAP_SIZES = mapSizes.sizes
 export const DEFAULT_SIZE = 'medium'
 export function sizeFor(typeId, sizeId) {

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "name": "Pellucid Seismic Outpost",
+  "episodeName": "The Final Hold",
+  "card": "/art/episodes/Pellucid%20Seismic%20Outpost.png?v=1791338263281",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "snowSquall",
+  "rows": [
+    "k*******************",
+    "********************",
+    "**************c****I",
+    "**********QQQQQQ*I*i",
+    "VVV*VV**V*Qc...Q**ii",
+    "*VV**VVVV*Qc...D*iii",
+    "******VV**Q....D====",
+    "**********QQQQQQ****",
+    "*****kI*******c*****",
+    "*****************I**",
+    "************k*******",
+    "**************kk****",
+    "********k***k*I*****",
+    "**********k*********",
+    "***I***IIIIII*******",
+    "***********IIIIk****"
+  ],
+  "areas": [
+    {
+      "name": "Relay Hut",
+      "position": [
+        12,
+        4
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        9
+      ],
+      [
+        0,
+        8
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        0,
+        7
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        6
+      ],
+      [
+        19,
+        8
+      ],
+      [
+        19,
+        10
+      ],
+      [
+        19,
+        7
+      ]
+    ]
+  }
+}

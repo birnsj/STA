@@ -4,25 +4,36 @@
 // mapType: the location (a Generate Map layout id, see mapGenerators.js); it picks the names and layout Generate uses.
 // biome: the terrain a ground location is built in (an id from biomes.json).
 // weather: the outdoor weather shown over the map (an id from weather.json); indoor locations are always clear.
+// ambient: the light level, 0 (pitch dark) to 100 (normal); glowing tiles stay lit in the dark. Presentation only.
 // card: the episode's picture in Load Episode: an id from episodeCards.json, the path of a picture Generate Card drew, or null.
-// In memory a map is { id, name, episodeName, card, mapType, biome, weather, width, height, tiles: tile id grid [y][x], areas, markers } with { x, y } positions;
-// on disk the tiles are rows of catalogue symbols and positions are [x, y].
+// rotated: tiles turned with the editor's right click. A rotated wall with panels runs its panels along y; any other
+// rotated tile is drawn mirrored left to right (iso art has one viewing angle). Presentation only.
+// In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
+// rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers } with { x, y } positions;
+// on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
 import catalogue from '../data/adaptation/maps/tiles.json'
+import { applyTileArt } from './tileArt.js'
+
+applyTileArt(catalogue.tiles)
 
 export const MAP_SCHEMA_VERSION = 1
 export const TILES = catalogue.tiles
 export const TILE_IMAGE = catalogue.imageSize
+export const WALL_HEIGHT_SCALE = catalogue.wallHeightScale ?? 1
 export const PALETTE_GROUPS = catalogue.paletteGroups ?? []
 export const FLOOR_TILE = 'floor'
 export const WALL_TILE = 'bulkhead'
 export const MIN_SIZE = 4
-export const MAX_SIZE = 48
+export const MAX_SIZE = 96
 // Maps saved before map types existed are starship decks.
 export const DEFAULT_MAP_TYPE = 'starshipDeck'
 // Maps saved before biomes existed are temperate (ships and stations keep a biome too, but don't use it).
 export const DEFAULT_BIOME = 'temperate'
 // Maps saved before weather existed are clear (an id from weather.json).
 const CLEAR_WEATHER = 'clear'
+// Maps saved before ambient light existed are fully lit.
+export const FULL_LIGHT = 100
+export const clampAmbient = (value) => (Number.isFinite(value) ? Math.min(FULL_LIGHT, Math.max(0, Math.round(value))) : FULL_LIGHT)
 // Map types from before the location / biome split that were really biomes: they load as Wilderness in that biome.
 const BIOME_MAP_TYPES = new Set(['forest', 'swamp', 'desert', 'iceField', 'volcanic'])
 
@@ -34,6 +45,9 @@ export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id ?? FLOOR_TI
 const toPosition = ([x, y]) => ({ x, y })
 const fromPosition = ({ x, y }) => [x, y]
 const isInside = (width, height, { x, y }) => x >= 0 && y >= 0 && x < width && y < height
+
+export const isRotated = (map, { x, y }) => Boolean(map.rotated?.[y]?.[x])
+const rotationGrid = (width, height, isOn) => Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => isOn(x, y)))
 
 // A map's id is its file name (maps/{id}.json): the map name without the characters Windows forbids in file names.
 // Mirrors tools/mapStore.cjs, which refuses anything else.
@@ -64,6 +78,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     mapType: DEFAULT_MAP_TYPE,
     biome: DEFAULT_BIOME,
     weather: CLEAR_WEATHER,
+    ambient: FULL_LIGHT,
     width,
     height,
     tiles,
@@ -78,6 +93,7 @@ export function parseMapFile(file, id) {
   const width = Math.max(...rows.map((row) => row.length), 0)
   const tiles = rows.map((row) => Array.from({ length: width }, (_, x) => tileIdForSymbol(row[x] ?? '.')))
   const inside = (position) => isInside(width, rows.length, position)
+  const rotatedKeys = new Set((file.rotated ?? []).map(toPosition).filter(inside).map(({ x, y }) => `${x},${y}`))
   const oldBiomeType = BIOME_MAP_TYPES.has(file.mapType)
   return {
     id,
@@ -87,9 +103,11 @@ export function parseMapFile(file, id) {
     mapType: oldBiomeType ? 'wilderness' : (file.mapType ?? DEFAULT_MAP_TYPE),
     biome: oldBiomeType ? file.mapType : (file.biome ?? DEFAULT_BIOME),
     weather: file.weather ?? CLEAR_WEATHER,
+    ambient: clampAmbient(file.ambient),
     width,
     height: rows.length,
     tiles,
+    rotated: rotationGrid(width, rows.length, (x, y) => rotatedKeys.has(`${x},${y}`)),
     areas: (file.areas ?? []).map((area) => ({ name: area.name, position: toPosition(area.position) })).filter((area) => inside(area.position)),
     markers: {
       playerStarts: (file.markers?.playerStarts ?? []).map(toPosition).filter(inside),
@@ -107,7 +125,9 @@ export function serializeMap(map) {
     mapType: map.mapType ?? DEFAULT_MAP_TYPE,
     biome: map.biome ?? DEFAULT_BIOME,
     weather: map.weather ?? CLEAR_WEATHER,
+    ambient: clampAmbient(map.ambient),
     rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
+    rotated: map.tiles.flatMap((row, y) => row.flatMap((_, x) => (isRotated(map, { x, y }) ? [[x, y]] : []))),
     areas: map.areas.map((area) => ({ name: area.name, position: fromPosition(area.position) })),
     markers: {
       playerStarts: map.markers.playerStarts.map(fromPosition),
@@ -126,6 +146,7 @@ export function resizeMap(map, width, height) {
     width: w,
     height: h,
     tiles: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => map.tiles[y]?.[x] ?? FLOOR_TILE)),
+    rotated: rotationGrid(w, h, (x, y) => isRotated(map, { x, y })),
     areas: map.areas.filter((area) => inside(area.position)),
     markers: { playerStarts: map.markers.playerStarts.filter(inside), enemySpawns: map.markers.enemySpawns.filter(inside) },
   }

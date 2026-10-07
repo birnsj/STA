@@ -8,9 +8,10 @@ function carveChambers(tiles, random, floor) {
   const width = tiles[0].length
   const height = tiles.length
   const area = width * height
-  const count = Math.max(area >= 300 ? 3 : 1, Math.min(6, Math.round(area / 90)))
-  const maxRx = Math.max(1, Math.min(5, Math.floor((width - 2) / 3)))
-  const maxRy = Math.max(1, Math.min(4, Math.floor((height - 2) / 3)))
+  // The caps grow only past Huge sizes, so the very large maps aren't mostly solid rock.
+  const count = Math.max(area >= 300 ? 3 : 1, Math.min(Math.max(6, Math.round(area / 500)), Math.round(area / 90)))
+  const maxRx = Math.max(1, Math.min(Math.max(5, Math.floor(width / 10)), Math.floor((width - 2) / 3)))
+  const maxRy = Math.max(1, Math.min(Math.max(4, Math.floor(height / 12)), Math.floor((height - 2) / 3)))
   const chambers = []
   for (let attempt = 0; attempt < 150 && chambers.length < count; attempt++) {
     const rx = randomInt(random, Math.min(2, maxRx), maxRx)

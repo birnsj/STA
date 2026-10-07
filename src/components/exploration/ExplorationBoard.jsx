@@ -6,8 +6,11 @@ import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '.
 import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import { isBlock, project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
+import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
-import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
+import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -26,7 +29,7 @@ const CLICK_PULSE_MS = 400
 const worldBounds = (map) => ({
   minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
   maxX: (map.width * TILE_W) / 2 + HUD_MARGIN.x,
-  minY: -TILE_H / 2 - HUD_MARGIN.top,
+  minY: -TILE_H / 2 - TALL_WALL_EXTRA - HUD_MARGIN.top,
   maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
 })
 
@@ -309,15 +312,27 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   }, [onMove])
 
   const floor = useMemo(() => <FloorTiles map={map} />, [map])
-  const blocks = useMemo(() => {
+  const blockPositions = useMemo(() => {
     const list = []
     map.tiles.forEach((row, y) =>
       row.forEach((id, x) => {
-        if (isBlock(id)) list.push({ depth: x + y, key: `b${x},${y}`, element: <BlockTile key={`b${x},${y}`} map={map} position={{ x, y }} /> })
+        if (isBlock(id)) list.push({ x, y })
       }),
     )
     return list
   }, [map])
+  const panels = useMemo(() => getWallPanels(map), [map])
+  const bigGroups = useMemo(() => getBigObjects(map), [map])
+  const hidden = fadedBlockKeys(map, getMembers(state).map((member) => member.position), true, bigGroups)
+  const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
+  const blocks = blockPositions.map((position) => {
+    const key = `${position.x},${position.y}`
+    return {
+      depth: position.x + position.y,
+      key: `b${key}`,
+      element: <WallBlock key={`b${key}`} map={map} position={position} faded={faded} panels={panels} bigGroups={bigGroups} />,
+    }
+  })
 
   const toTiles = (clientX, clientY) => {
     const svg = svgRef.current
@@ -428,6 +443,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         <ClickPulse key={pulse.id} point={pulse.point} />
       ))}
       {depthItems.map((item) => item.element)}
+      <AmbientDarkness map={map} />
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}

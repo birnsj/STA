@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "name": "Quartermaster's Stores",
+  "episodeName": "No Safe Harbor",
+  "card": "/art/episodes/Quartermaster's%20Stores.png?v=1791340886067",
+  "mapType": "spaceStation",
+  "biome": "temperate",
+  "weather": "gravityFailure",
+  "rows": [
+    "########################",
+    "#..MMM.#.....c#.....E..#",
+    "#c.....#c.....#....hhhM#",
+    "#......#c.....#....hhhM#",
+    "#......#......#....hhhM#",
+    "#.c....#c.c...#..c..c..#",
+    "#####DD####DD##DD#######",
+    "#............cc....c...#",
+    "#......................#",
+    "#......................#",
+    "#......cc............c.#",
+    "##DD############DD#DD###",
+    "#....cc.#.c.c.c...#..c.#",
+    "#.......#.........#....#",
+    "#......c#.c.......#.c..#",
+    "########################"
+  ],
+  "areas": [
+    {
+      "name": "Security Office",
+      "position": [
+        1,
+        7
+      ]
+    },
+    {
+      "name": "Cargo Processing Bay",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Upper Pylon Access",
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "Promenade",
+      "position": [
+        15,
+        1
+      ]
+    },
+    {
+      "name": "Commander's Office",
+      "position": [
+        1,
+        12
+      ]
+    },
+    {
+      "name": "Customs Inspection Hall",
+      "position": [
+        9,
+        12
+      ]
+    },
+    {
+      "name": "Shuttle Repair Bay",
+      "position": [
+        19,
+        12
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        1,
+        5
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        6,
+        5
+      ]
+    ],
+    "enemySpawns": [
+      [
+        20,
+        13
+      ],
+      [
+        19,
+        14
+      ],
+      [
+        22,
+        14
+      ],
+      [
+        19,
+        12
+      ]
+    ]
+  }
+}

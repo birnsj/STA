@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { listCharacters, putCharacter, removeCharacter } from './electron/characterStore.cjs'
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
-import { setTileCover } from './tools/tileStore.cjs'
+import { setTileFlag } from './tools/tileStore.cjs'
 import { putEpisodeArt, removeEpisodeArt } from './tools/episodeArtStore.cjs'
 
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
@@ -75,7 +75,7 @@ function tileFilesEndpoint() {
   const endpoint = jsonEndpoint('tile-files-endpoint', '/__tiles', {
     PUT: (change) => {
       savedAt = Date.now()
-      return setTileCover(TILES_FILE, change)
+      return setTileFlag(TILES_FILE, change)
     },
   })
   return {

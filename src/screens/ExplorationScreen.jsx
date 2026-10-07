@@ -2,8 +2,9 @@ import { useCallback, useEffect, useReducer, useState } from 'react'
 import CharacterInspector from '../components/CharacterInspector.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
+import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
-import { ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
+import { ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import Minimap from '../components/exploration/Minimap.jsx'
 import '../components/exploration/exploration.css'
@@ -14,6 +15,7 @@ import { getAvailableActions, getChallengeViews, getDefinition, objectsInReach }
 import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
 import { explorationReducer } from '../exploration/explorationState.js'
 import { getFormation } from '../exploration/formations.js'
+import { recommendPartyAction } from '../exploration/partyActions.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
@@ -405,6 +407,10 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const updateRecommendation = useCallback((next) => {
     setRecommendation((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
   }, [])
+  // UI state: the action button being considered (the party cards show who is best at it).
+  const [consideredActionId, setConsideredActionId] = useState(null)
+  // UI state: the character sheet shows whenever exactly one member is selected, until closed; selecting reopens it.
+  const [sheetClosed, setSheetClosed] = useState(false)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   const challengeViews = getChallengeViews(state.scenario)
@@ -425,7 +431,14 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => cancelAnimationFrame(frame)
   }, [dispatch])
 
-  const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
+  const select = useCallback(
+    (id, additive) => {
+      setSheetClosed(false)
+      dispatch({ type: additive ? 'toggleSelect' : 'select', id })
+    },
+    [dispatch],
+  )
+  const sheetMember = !sheetClosed && !debugOpen && party.selectedIds.length === 1 ? party.members[party.selectedIds[0]] : null
 
   // Number keys 1-n pick party members (Shift adds / removes), like clicking their portraits.
   useEffect(() => {
@@ -534,6 +547,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           Exit
         </button>
       </div>
+      {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetClosed(true)} />}
       {!openId && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} debug={debugOpen} />}
       <ExplorationPartyBar
         members={members}
@@ -541,14 +555,17 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         leaderId={party.leaderId}
         onSelect={select}
         onSetLeader={(id) => dispatch({ type: 'setLeader', id })}
-        recommendation={openId ? recommendation : null}
+        recommendation={openId ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
       />
       {!openId && (
-        <FormationPanel
-          formationId={party.formationId}
-          onFormation={(formationId) => dispatch({ type: 'setFormation', formationId })}
-          onRegroup={() => dispatch({ type: 'regroup' })}
-        />
+        <div className="explore-bottom-right">
+          <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />
+          <FormationPanel
+            formationId={party.formationId}
+            onFormation={(formationId) => dispatch({ type: 'setFormation', formationId })}
+            onRegroup={() => dispatch({ type: 'regroup' })}
+          />
+        </div>
       )}
       {debugOpen && (
         <div className="explore-debug-column">

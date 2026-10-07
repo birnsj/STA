@@ -2,7 +2,10 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
-import { BlockTile, FloorTiles } from '../maps/IsoTiles.jsx'
+import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
+import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
+import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -21,7 +24,7 @@ const HUD_MARGIN = { x: 200, top: 150, bottom: 110 }
 const worldBounds = (map) => ({
   minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
   maxX: (map.width * TILE_W) / 2 + HUD_MARGIN.x,
-  minY: -TILE_H / 2 - HUD_MARGIN.top,
+  minY: -TILE_H / 2 - TALL_WALL_EXTRA - HUD_MARGIN.top,
   maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
 })
 const tileCentre = (position) => project(position)
@@ -364,9 +367,17 @@ export default function Battlefield({
     }
     return { tiles: floor, blocks: solid }
   }, [map])
+  const panels = useMemo(() => getWallPanels(map), [map])
+  const bigGroups = useMemo(() => getBigObjects(map), [map])
   const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
+  const hidden = fadedBlockKeys(map, units.filter((unit) => unit.side === 'player').map(shownPosition), true, bigGroups)
+  const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
   const depthItems = [
-    ...blocks.map((block) => ({ depth: block.x + block.y, key: `b${block.x},${block.y}`, render: () => <BlockTile key={`b${block.x},${block.y}`} map={map} position={block} /> })),
+    ...blocks.map((block) => ({
+      depth: block.x + block.y,
+      key: `b${block.x},${block.y}`,
+      render: () => <WallBlock key={`b${block.x},${block.y}`} map={map} position={block} faded={faded} panels={panels} bigGroups={bigGroups} />,
+    })),
     ...units.map((unit) => ({
       depth: shownPosition(unit).x + shownPosition(unit).y + (unit.condition.defeated ? 0.1 : 0.5),
       key: `u${unit.id}`,
@@ -445,6 +456,7 @@ export default function Battlefield({
         <ObjectMarker key={mark.id} mark={mark} onClick={() => onObjectClick(mark.id)} />
       ))}
       {depthItems.map((item) => item.render())}
+      <AmbientDarkness map={map} />
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {shot && (
         <line

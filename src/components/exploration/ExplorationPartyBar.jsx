@@ -3,6 +3,7 @@ import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } fr
 import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
 import { FORMATIONS } from '../../exploration/formations.js'
+import { PARTY_ACTIONS } from '../../exploration/partyActions.js'
 import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import ConditionTrack from '../combat/ConditionTrack.jsx'
@@ -35,7 +36,7 @@ const cardFacts = (character) => ({
   speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
 })
 
-// Compact: species / department and Stress. Hovering (or focusing) the card opens the rest around them.
+// Compact: species / department, weapon and Stress. Hovering (or focusing) the card opens the rest around them.
 function CardDetails({ character, condition }) {
   const { attribute, department, protection, rankRole, weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
@@ -46,13 +47,13 @@ function CardDetails({ character, condition }) {
         </span>
       )}
       <span className="explore-card-detail is-main">{speciesLine}</span>
+      <span className="party-weapon" title="Weapon">{weapon}</span>
       <span className="explore-card-more">
         <span className="explore-card-stats">
           <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>
           <span title={`Highest department: ${department.name}`}>{department.label} {department.value}</span>
           <span title="Protection">PROT {protection}</span>
         </span>
-        <span className="explore-card-detail">Weapon: {weapon}</span>
       </span>
       <ConditionTrack character={character} condition={condition} />
       <span className="explore-card-more">
@@ -113,6 +114,35 @@ export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, 
     </div>
   )
 }
+
+// Stacked above the Formation panel: the general actions (exploration/partyActions.js). Clicking one considers it, so the
+// party cards show who is best at it; clicking it again stops. Nothing is rolled yet.
+export function ExplorationActionButtons({ consideredId, onConsider }) {
+  return (
+    <div className="explore-action-stack" aria-label="Actions: who is best at it">
+      {PARTY_ACTIONS.map((action) => {
+        const considered = action.id === consideredId
+        return (
+          <button
+            key={action.id}
+            type="button"
+            className="combat-button is-small"
+            aria-pressed={considered}
+            title={
+              action.task
+                ? `${action.label}: ${action.description} ${getAttributeName(action.task.attribute)} + ${getDisciplineName(action.task.department)}. Click to see who is best at it.`
+                : `${action.label}: ${action.description} Anyone can do this.`
+            }
+            onClick={() => onConsider(considered ? null : action.id)}
+          >
+            {action.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 
 // A formation drawn from its own slots (the lead in front, at the top), all at one scale so Tight looks tight and
 // Spread wide.

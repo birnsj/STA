@@ -8,13 +8,12 @@ import EpisodeCardPicker from '../components/maps/EpisodeCardPicker.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
-import { areaAt, eraseMarkers, paintTile, setAreaLabel, toggleMarker } from '../maps/mapEdits.js'
+import { areaAt, eraseMarkers, paintBrush, setAreaLabel, toggleMarker } from '../maps/mapEdits.js'
 import { canSaveMaps, listMaps, loadMap, saveMap } from '../maps/mapFiles.js'
 import { randomEpisodeName } from '../rules/locationNames.js'
-import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, getTile, mapFileId, resizeMap, validateMap } from '../maps/mapFormat.js'
+import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, getTile, isRotated, mapFileId, resizeMap, validateMap } from '../maps/mapFormat.js'
 import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, randomMapName, sizeFor, sizeIdOf } from '../maps/mapGenerators.js'
-import { canDrawEpisodeArt, generateEpisodeArt, removeEpisodeArt } from '../maps/episodeArt.js'
-import { isDrawnCard } from '../maps/episodeCards.js'
+import { canDrawEpisodeArt, drawEpisodeArt, isPendingArt, savePendingEpisodeArt } from '../maps/episodeArt.js'
 import { randomWeather, settleWeather, weatherFor } from '../maps/mapWeather.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
 
@@ -32,6 +31,8 @@ export default function MapEditorScreen({ onBack }) {
   const [dirty, setDirty] = useState(false)
   const [maps, setMaps] = useState([])
   const [tool, setTool] = useState('tile:bulkhead')
+  // The tile brush paints rotated tiles (right click on the board toggles it).
+  const [rotated, setRotated] = useState(false)
   const [ghostBlocks, setGhostBlocks] = useState(false)
   const [showWeather, setShowWeather] = useState(true)
   const [hover, setHover] = useState(null)
@@ -40,11 +41,13 @@ export default function MapEditorScreen({ onBack }) {
   const [drawingCard, setDrawingCard] = useState(false)
   // The open confirm popup: { title, message, confirmLabel, resolve }.
   const [question, setQuestion] = useState(null)
-  // The map as last opened or saved (null when the open map exists nowhere else), so switching only the location, biome or size
-  // before Generate Map doesn't count as work to lose.
+  // The map as last opened, saved or generated (null when the open map exists nowhere else), so switching only the
+  // location, biome or size before Generate Map doesn't count as work to lose.
   const [cleanMap, setCleanMap] = useState(map)
-  // The file Generate wrote last (cleared by any save, load or new map), so only its own output is rebuilt in place.
-  const [generatedId, setGeneratedId] = useState(null)
+  // The open map came from Generate Map (cleared by any save, load or new map), so changing its setup rebuilds it.
+  const [generated, setGenerated] = useState(false)
+  // The save confirmation shown over the board for a moment: { id, text }.
+  const [notice, setNotice] = useState(null)
   // Remounts the board (re-centring the camera) whenever a different map is loaded.
   const [boardKey, setBoardKey] = useState(0)
 
@@ -53,6 +56,23 @@ export default function MapEditorScreen({ onBack }) {
       .then(setMaps)
       .catch((error) => setStatus(`Could not list maps: ${error.message}`))
   }, [])
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 3000)
+    return () => clearTimeout(timer)
+  }, [notice])
+  // Escape puts the brush down (no tool selected), unless a dialog is open (its own Escape cancels it) or a text box
+  // has focus.
+  const dialogOpen = Boolean(question) || showLoad
+  useEffect(() => {
+    if (dialogOpen) return undefined
+    const onKey = (event) => {
+      if (event.key !== 'Escape' || event.target.closest?.('input, textarea, select')) return
+      setTool(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dialogOpen])
 
   const edit = (next) => {
     if (next === map) return
@@ -69,7 +89,7 @@ export default function MapEditorScreen({ onBack }) {
     !dirty || askConfirm({ title: 'Unsaved Changes', message, confirmLabel })
   const replaceMap = (next, nextFileId, message, { unsaved = false } = {}) => {
     setMap(next)
-    setGeneratedId(null)
+    setGenerated(false)
     setCleanMap(unsaved ? null : next)
     setFileId(nextFileId)
     setDirty(unsaved)
@@ -78,8 +98,9 @@ export default function MapEditorScreen({ onBack }) {
   }
 
   const onPaint = (position, { first }) => {
+    if (!tool) return
     if (tool.startsWith('tile:')) {
-      edit(paintTile(map, position, tool.slice('tile:'.length)))
+      edit(paintBrush(map, position, tool.slice('tile:'.length), rotated))
       return
     }
     // Marker tools act on the pressed tile only, not on every tile dragged over.
@@ -96,12 +117,12 @@ export default function MapEditorScreen({ onBack }) {
   // Only the location, biome, weather or size changed since the map was opened or saved: nothing worth asking about.
   const withoutSetup = (other) => JSON.stringify({ ...other, mapType: null, biome: null, weather: null })
   const onlySetupChanged = Boolean(cleanMap) && withoutSetup(map) === withoutSetup(resizeMap(cleanMap, map.width, map.height))
-  // A map Generate just made and nobody has touched: changing its location, biome or size rebuilds it straight away,
-  // replacing its file. The same changes on a hand-made or loaded map only re-tag / resize it.
-  const rebuildable = Boolean(generatedId) && generatedId === fileId && onlySetupChanged
+  // A map Generate just made and nobody has touched: changing its location, biome or size rebuilds it straight away.
+  // The same changes on a hand-made or loaded map only re-tag / resize it.
+  const rebuildable = generated && onlySetupChanged
   const changeSetup = (changed) => {
     const next = settleWeather(changed)
-    if (rebuildable) return onGenerate(next, { replace: true })
+    if (rebuildable) return onGenerate(next)
     edit(next)
     if (next.mapType !== map.mapType) setStatus(`Location set to ${generatorFor(next.mapType).label}. Generate Map builds a new one of this type.`)
     else if (next.biome !== map.biome) setStatus(`Biome set to ${biomeFor(next.biome).label}. Generate Map builds a new map in it.`)
@@ -121,15 +142,12 @@ export default function MapEditorScreen({ onBack }) {
     changeSetup(resizeMap(retyped, width, height))
   }
 
-  // Builds a complete map of source's type and size and saves it, so it is ready in Load Episode: as a new file, or with
-  // replace, in place of the untouched map Generate made last. The re-list keeps the generated name clear of files added
-  // outside the editor.
-  const onGenerate = async (source = map, { replace = false } = {}) => {
+  // Builds a complete map of source's type and size with a fresh name and card. Nothing is written until Save (designer
+  // decision, Oct 2026). The re-list keeps the generated name clear of files added outside the editor.
+  const onGenerate = async (source = map) => {
     const proceed =
-      onlySetupChanged ||
-      (await confirmDiscard('The open map has unsaved changes. Generating saves a new map as a new file, and those changes will be lost.', 'Generate'))
+      onlySetupChanged || (await confirmDiscard('The open map has unsaved changes. Generating replaces it, and those changes will be lost.', 'Generate'))
     if (!proceed) return
-    const replacing = replace && rebuildable ? fileId : null
     let taken = maps
     if (canSaveMaps) {
       try {
@@ -139,30 +157,19 @@ export default function MapEditorScreen({ onBack }) {
         return
       }
     }
-    let generated = generateNamedMap(source, taken.map((entry) => entry.id))
-    generated = { ...generated, weather: randomWeather(generated) }
-    if (!canSaveMaps) {
-      replaceMap(generated, null, `Generated ${generated.name}. Saving only works from the dev server.`, { unsaved: true })
-      return
+    let next = generateNamedMap(source, taken.map((entry) => entry.id))
+    next = { ...next, weather: randomWeather(next) }
+    // A freshly drawn picture, kept with the map until Save; if drawing fails the map keeps the catalogue card Generate picked.
+    if (canDrawEpisodeArt) {
+      try {
+        next = { ...next, card: drawEpisodeArt(next) }
+      } catch {
+        // keep the catalogue card
+      }
     }
-    // A freshly drawn picture; if drawing fails the map keeps the catalogue card Generate picked.
-    try {
-      generated = { ...generated, card: await generateEpisodeArt(generated, generated.id) }
-    } catch {
-      // keep the catalogue card
-    }
-    if (replacing && isDrawnCard(map.card) && replacing.toLowerCase() !== generated.id.toLowerCase()) removeEpisodeArt(replacing).catch(() => {})
-    try {
-      setMaps(await saveMap(generated, replacing))
-      replaceMap(
-        generated,
-        generated.id,
-        replacing ? `Rebuilt as maps/${generated.id}.json (replaces ${replacing}.json).` : `Generated and saved maps/${generated.id}.json.`,
-      )
-      setGeneratedId(generated.id)
-    } catch (error) {
-      replaceMap(generated, null, `Generated ${generated.name} but could not save: ${error.message}`, { unsaved: true })
-    }
+    replaceMap(next, null, `Generated ${next.name}. Not saved yet: press Save to keep it.`, { unsaved: true })
+    setCleanMap(next)
+    setGenerated(true)
   }
   // Re-lists on open so files added or removed outside the editor show up.
   const onShowLoad = () => {
@@ -192,18 +199,22 @@ export default function MapEditorScreen({ onBack }) {
       const overwrite = await askConfirm({ title: 'Map Exists', message: `A map named ${id} already exists. Overwrite it?`, confirmLabel: 'Overwrite' })
       if (!overwrite) return
     }
-    const named = { ...map, name: name.trim(), id }
-    saveMap(named, previousId)
-      .then((list) => {
-        setMaps(list)
-        setMap(named)
-        setCleanMap(named)
-        setGeneratedId(null)
-        setFileId(id)
-        setDirty(false)
-        setStatus(`Saved maps/${id}.json.`)
-      })
-      .catch((error) => setStatus(`Could not save: ${error.message}`))
+    try {
+      // A card drawn since the last save is written now, named after the map.
+      const card = isPendingArt(map.card) ? await savePendingEpisodeArt(map.card, id) : map.card
+      const named = { ...map, name: name.trim(), id, card }
+      setMaps(await saveMap(named, previousId))
+      setMap(named)
+      setCleanMap(named)
+      setGenerated(false)
+      setFileId(id)
+      setDirty(false)
+      setStatus(`Saved maps/${id}.json.`)
+      setNotice({ id: Date.now(), text: `Saved maps/${id}.json` })
+    } catch (error) {
+      setStatus(`Could not save: ${error.message}`)
+      setNotice({ id: Date.now(), text: `Could not save: ${error.message}`, failed: true })
+    }
   }
   const askName = (question) => {
     const name = window.prompt(question, map.name)
@@ -219,18 +230,12 @@ export default function MapEditorScreen({ onBack }) {
     const name = askName('Save a copy of this map as:')
     if (name !== null) saveAs(name, null)
   }
-  // Draws a new picture named after the map, replacing the one Generate Card drew for it before.
-  const onGenerateCard = async () => {
-    const id = mapFileId(map.name)
-    if (!id) {
-      setStatus('Give the map a name first: its picture is saved under that name.')
-      return
-    }
+  // Draws a new picture for the map; Save writes it under the map's name, replacing the one drawn for it before.
+  const onGenerateCard = () => {
     setDrawingCard(true)
     try {
-      const card = await generateEpisodeArt(map, id)
-      edit({ ...map, card })
-      setStatus(`Drew a new card as public/art/episodes/${id}.png. Save the map to keep it on this episode.`)
+      edit({ ...map, card: drawEpisodeArt(map) })
+      setStatus('Drew a new card. Save the map to keep it.')
     } catch (error) {
       setStatus(`Could not draw a card: ${error.message}`)
     } finally {
@@ -258,6 +263,7 @@ export default function MapEditorScreen({ onBack }) {
         onWeather={(weather) => edit({ ...map, weather })}
         showWeather={showWeather}
         onShowWeather={setShowWeather}
+        onAmbient={(ambient) => edit({ ...map, ambient })}
         onSize={onSize}
         onResize={(width, height) => edit(resizeMap(map, width, height))}
         onNew={onNew}
@@ -269,8 +275,22 @@ export default function MapEditorScreen({ onBack }) {
       <div className="me-body">
         <EditorPalette tool={tool} onTool={setTool} ghostBlocks={ghostBlocks} onGhostBlocks={setGhostBlocks} onStatus={setStatus} />
         <div className="me-board-area">
-          <EditorBoard key={boardKey} map={map} ghostBlocks={ghostBlocks} onPaint={onPaint} onHover={setHover} />
+          <EditorBoard
+            key={boardKey}
+            map={map}
+            ghostBlocks={ghostBlocks}
+            brush={tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
+            rotated={rotated}
+            onPaint={onPaint}
+            onHover={setHover}
+            onRotate={() => tool?.startsWith('tile:') && setRotated((value) => !value)}
+          />
           {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} />}
+          {notice && (
+            <div key={notice.id} className={`me-notice${notice.failed ? ' is-failed' : ''}`} role="status">
+              {notice.text}
+            </div>
+          )}
         </div>
         <div className="me-side">
           <p className="me-heading">Episode Name</p>
@@ -294,7 +314,7 @@ export default function MapEditorScreen({ onBack }) {
             onCard={(card) => edit({ ...map, card })}
             onGenerate={onGenerateCard}
           />
-          <p className="me-text">Shown in Load Episode. Generate Card draws a new picture for the location, biome and weather, saved under the map name.</p>
+          <p className="me-text">Shown in Load Episode. Generate Card draws a new picture for the location, biome and weather; Save keeps it under the map name.</p>
           <p className="me-heading">Generate</p>
           <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, name: randomMapName(map) })}>
             Generate Name
@@ -302,19 +322,22 @@ export default function MapEditorScreen({ onBack }) {
           <button
             type="button"
             className="me-button me-generate"
-            title="Builds a new map of this type at the current size with a random name, episode name and episode card, and saves it as a new file"
+            title="Builds a new map of this type at the current size with a random name, episode name and episode card. Nothing is saved until you press Save."
             onClick={() => onGenerate()}
           >
             Generate Map
           </button>
-          <p className="me-text">Uses the location, biome and size next to the name. Generate Map saves the new map as a new file.</p>
+          <p className="me-text">Uses the location, biome and size next to the name. Nothing is saved until you press Save.</p>
           <p className="me-heading">File</p>
           <p className="me-text">{fileId ? `maps/${fileId}.json` : 'Not saved yet'}</p>
           {fileId && mapFileId(map.name) && mapFileId(map.name) !== fileId && (
             <p className="me-text">Renamed to maps/{mapFileId(map.name)}.json on Save.</p>
           )}
           <p className="me-heading">Tile</p>
-          <p className="me-text">{hoverTile ? `${hoverTile.x}, ${hoverTile.y}: ${getTile(map.tiles[hoverTile.y][hoverTile.x]).label}` : '-'}</p>
+          <p className="me-text">
+            {hoverTile ? `${hoverTile.x}, ${hoverTile.y}: ${getTile(map.tiles[hoverTile.y][hoverTile.x]).label}${isRotated(map, hoverTile) ? ' (rotated)' : ''}` : '-'}
+          </p>
+          <p className="me-text">Brush: {rotated ? 'rotated' : 'not rotated'}</p>
           <p className="me-heading">Warnings</p>
           {warnings.length ? (
             <ul className="me-warnings">
@@ -327,7 +350,9 @@ export default function MapEditorScreen({ onBack }) {
           )}
           <p className="me-heading">Controls</p>
           <p className="me-text">
-            Left click or drag: paint. Marker tools: click to place, click again to remove. Right drag or WASD: pan. Wheel: zoom.
+            Left click or drag: paint (a long wall lays both of its tiles). Right click: rotate the tile brush (long walls run the
+            other way, other tiles are mirrored). Marker tools: click to place, click again to remove. Escape: put the tool down.
+            Right drag or WASD: pan. Wheel: zoom.
           </p>
           {!canSaveMaps && <p className="me-text is-warning">Saving only works from the dev server.</p>}
           {status && <p className="me-status">{status}</p>}

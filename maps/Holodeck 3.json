@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "name": "Holodeck 3",
+  "episodeName": "Plasma and Steel",
+  "card": "/art/episodes/Holodeck%203.png?v=1791341342468",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "rows": [
+    "########################################",
+    "#...c.D..c....#....cMM.#..c#...#MMc.cc.#",
+    "#c....D......c#c.......#...#...#.......#",
+    "#.....#M.hhh.c#........#..M#...D.......#",
+    "#.....#MEhhh..D.......c#..M#c..D.......#",
+    "#....c#c.hhh..D........#...#..M#......c#",
+    "#....c#.......#c.......D...D..M#.......#",
+    "#..c..#..c....#...cc...D...D...#....c..#",
+    "#DD#######DD########DD####DD#DD###DD####",
+    "#..cc.D..c...c#cMMMc...#c..D...#cc...c.#",
+    "#M....D......c#........#...#...#.......#",
+    "#M....#c.....c#........D...#..M#c......#",
+    "#.....#c......#c.......D...#..M#......c#",
+    "#....c#.......D.......c#..M#...D.......#",
+    "#.....#...c...D...c....#..M#...D...c..c#",
+    "####DD##DD###########DD#DD##DD######DD##",
+    "#c....#.....cc#cMMMc...#..c#..c#......c#",
+    "#.....#.......#........#...#...#c......#",
+    "#c....#c......D........#c..D..c#.......#",
+    "#.....#.......D.......c#...D...D.......#",
+    "#.....D......c#........D..c#...D......M#",
+    "#.cM..D.c....c#...c....D...#...#.....cM#",
+    "####DD###DD##########DD##DD##DD#DD######",
+    "#.c...#c......D........#c..#...#.....cc#",
+    "#.....D.......D........D...D...D.......#",
+    "#.....D......M#........D...D...D.......#",
+    "#....M#......M#..MMcc.c#c..#c.c#c...c..#",
+    "########################################"
+  ],
+  "areas": [
+    {
+      "name": "Astrometrics Lab",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Ten Forward Lounge",
+      "position": [
+        7,
+        1
+      ]
+    },
+    {
+      "name": "Deck 6 Crew Quarters",
+      "position": [
+        15,
+        1
+      ]
+    },
+    {
+      "name": "Holodeck 3",
+      "position": [
+        24,
+        1
+      ]
+    },
+    {
+      "name": "Phaser Control Room",
+      "position": [
+        28,
+        1
+      ]
+    },
+    {
+      "name": "Auxiliary Control Room",
+      "position": [
+        35,
+        1
+      ]
+    },
+    {
+      "name": "Deck 8 Jefferies Tube Junction",
+      "position": [
+        1,
+        9
+      ]
+    },
+    {
+      "name": "Deck 10 Brig",
+      "position": [
+        7,
+        9
+      ]
+    },
+    {
+      "name": "Cargo Bay 3",
+      "position": [
+        20,
+        9
+      ]
+    },
+    {
+      "name": "Warp Core Ejection Gantry",
+      "position": [
+        25,
+        9
+      ]
+    },
+    {
+      "name": "Shuttlebay 2",
+      "position": [
+        28,
+        9
+      ]
+    },
+    {
+      "name": "Battle Bridge",
+      "position": [
+        34,
+        9
+      ]
+    },
+    {
+      "name": "Torpedo Bay",
+      "position": [
+        2,
+        16
+      ]
+    },
+    {
+      "name": "Deck 12 EPS Maintenance Section",
+      "position": [
+        7,
+        16
+      ]
+    },
+    {
+      "name": "Deck 15 Hydroponics Bay",
+      "position": [
+        20,
+        16
+      ]
+    },
+    {
+      "name": "Deck 4 Sickbay",
+      "position": [
+        24,
+        16
+      ]
+    },
+    {
+      "name": "Computer Core Access",
+      "position": [
+        28,
+        16
+      ]
+    },
+    {
+      "name": "Transporter Room 1",
+      "position": [
+        32,
+        16
+      ]
+    },
+    {
+      "name": "Main Engineering",
+      "position": [
+        1,
+        23
+      ]
+    },
+    {
+      "name": "Main Bridge",
+      "position": [
+        8,
+        23
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        37,
+        2
+      ],
+      [
+        32,
+        5
+      ],
+      [
+        37,
+        5
+      ],
+      [
+        32,
+        3
+      ]
+    ],
+    "enemySpawns": [
+      [
+        2,
+        24
+      ],
+      [
+        4,
+        26
+      ],
+      [
+        4,
+        24
+      ],
+      [
+        3,
+        25
+      ]
+    ]
+  }
+}

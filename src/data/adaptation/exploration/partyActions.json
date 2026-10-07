@@ -1,0 +1,71 @@
+{
+  "notes": [
+    "Party actions: the buttons stacked above the Formation panel in exploration. Clicking one highlights the party member best suited to it (rules/taskRecommendation.js, the same odds as the roll). Presentation only for now: nothing is rolled.",
+    "Designer decision (Oct 2026): the core actions taken on the map (the environment only; social actions such as persuading happen in conversation): Scan, Search, Analyze Tech, Repair, Force, Translate, First Aid, Attack, Interact and Use Item. Interact (e.g. pushing a button) and Use Item (using an object on something) have no task: anyone can do them, so they highlight nobody.",
+    "Designer plan (Oct 2026), not built yet: once actions work on objects, scanning an object first is how the player learns what it is and does.",
+    "PROTOTYPE PROPOSAL (Oct 2026), for the designer to edit: the labels, Attribute + Department pairings and focus lists are implementation suggestions, except where a note says Book. Difficulty is a placeholder (2) used only to rank the party; a real action would take its Difficulty from the situation.",
+    "Book: First Aid = Daring + Medicine, Difficulty 2 (STA 2e Core p.292); Ranged Attack = Control + Security, Difficulty 2 (p.289). Both match the combat data (combat/actions.json, combat/weapons.json).",
+    "Scan, Repair and Force reuse the pairings authored for the Vault of the Ancients objects (challenges.json): Sensor Sweep, Bypass Controls, Force the Door. Translate uses Reason + Science like Scan and is told apart by its focuses.",
+    "Entry: id, label, description, task = { attribute, department, difficulty, focuses [exact focus names], tags [task tags; species abilities match on these] } or no task (anyone can do it)."
+  ],
+  "actions": [
+    {
+      "id": "scan",
+      "label": "Scan",
+      "description": "Sweep the area or an object with sensors.",
+      "task": { "attribute": "reason", "department": "science", "difficulty": 2, "focuses": ["Sensor Operations", "Sensor Calibration", "Astrometrics", "Planetary Surveys", "Imaging Equipment", "Computer Science"], "tags": ["sensors", "analysis"] }
+    },
+    {
+      "id": "search",
+      "label": "Search",
+      "description": "Search the area for clues, tracks or hidden things.",
+      "task": { "attribute": "insight", "department": "security", "difficulty": 2, "focuses": ["Forensics", "Tracking", "Lead Investigator", "Law Enforcement", "Patrol", "Criminal Minds"], "tags": ["search"] }
+    },
+    {
+      "id": "analyzeTech",
+      "label": "Analyze Tech",
+      "description": "Work out how an unfamiliar device or system works.",
+      "task": { "attribute": "reason", "department": "engineering", "difficulty": 2, "focuses": ["Reverse Engineering", "Diagnostics", "Troubleshooting", "Exploit Engineering Flaw", "Prototyping", "Artificial Intelligence Systems"], "tags": ["analysis", "engineering"] }
+    },
+    {
+      "id": "repair",
+      "label": "Repair",
+      "description": "Fix or jury-rig a damaged system.",
+      "task": { "attribute": "control", "department": "engineering", "difficulty": 2, "focuses": ["Emergency Repairs", "Jury-Rigging", "Electro-Plasma Systems", "Repairs and Maintenance", "Percussive Maintenance", "Power Management"], "tags": ["electronics", "repair"] }
+    },
+    {
+      "id": "force",
+      "label": "Force",
+      "description": "Break, lift or wrench something by strength.",
+      "task": { "attribute": "fitness", "department": "security", "difficulty": 2, "focuses": ["Percussive Maintenance", "Structural Engineering", "Martial Arts"], "tags": ["physical", "strength"] }
+    },
+    {
+      "id": "translate",
+      "label": "Translate",
+      "description": "Decipher alien writing, symbols or records.",
+      "task": { "attribute": "reason", "department": "science", "difficulty": 2, "focuses": ["Linguistics", "Archaeology", "Anthropology", "Cultural Expert", "Galactic History", "History"], "tags": ["analysis", "language"] }
+    },
+    {
+      "id": "firstAid",
+      "label": "First Aid",
+      "description": "Tend an injured or defeated person.",
+      "task": { "attribute": "daring", "department": "medicine", "difficulty": 2, "focuses": ["First Aid", "Emergency Medicine", "Field Medic", "Combat Medic", "Triage"], "tags": ["medical", "firstAid"] }
+    },
+    {
+      "id": "attack",
+      "label": "Attack",
+      "description": "Open fire on someone, starting a fight.",
+      "task": { "attribute": "control", "department": "security", "difficulty": 2, "focuses": ["Hand Phasers", "Phasers", "Energy Weapons", "Deadeye Marksman", "Precision Targeting"], "tags": ["attack", "rangedAttack"] }
+    },
+    {
+      "id": "interact",
+      "label": "Interact",
+      "description": "Use something directly: push a button, pull a lever, open a hatch."
+    },
+    {
+      "id": "useItem",
+      "label": "Use Item",
+      "description": "Use a carried item on something."
+    }
+  ]
+}

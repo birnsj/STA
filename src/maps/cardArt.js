@@ -1,12 +1,26 @@
-// Draws a random episode card picture (Generate Card): a flat 320 x 180 scene built from the map's location and, on the
-// ground, its biome's card colours (biomes.json). Pure pixel code (no DOM), so the placeholder script can use it too.
-// Prototype placeholder art, not from the books.
-export const CARD_WIDTH = 320
-export const CARD_HEIGHT = 180
-const W = CARD_WIDTH
-const H = CARD_HEIGHT
+// Draws a random episode card picture (Generate Card): a scene built from the map's location and, on the ground, its
+// biome's card colours (biomes.json). Scenes are laid out on a 320 x 180 grid (design units) and rendered CARD_SCALE
+// times larger with smooth edges, top-lit shading on every shape, light that blooms (glows, lamps, screens, stars) and a
+// final grade (contrast, vignette, a faint paint texture). Pure pixel code (no DOM), so the placeholder script can use
+// it too. Prototype placeholder art, not from the books.
+const W = 320
+const H = 180
+export const CARD_SCALE = 3
+export const CARD_WIDTH = W * CARD_SCALE
+export const CARD_HEIGHT = H * CARD_SCALE
+const S = CARD_SCALE
+const OW = CARD_WIDTH
+const OH = CARD_HEIGHT
 
-const hex = (value) => [parseInt(value.slice(1, 3), 16), parseInt(value.slice(3, 5), 16), parseInt(value.slice(5, 7), 16)]
+const RGB = new Map()
+function hex(value) {
+  let rgb = RGB.get(value)
+  if (!rgb) {
+    rgb = [parseInt(value.slice(1, 3), 16), parseInt(value.slice(3, 5), 16), parseInt(value.slice(5, 7), 16)]
+    RGB.set(value, rgb)
+  }
+  return rgb
+}
 const mix = (a, b, t) => {
   const [x, y] = [hex(a), hex(b)]
   return `#${[0, 1, 2].map((i) => Math.round(x[i] + (y[i] - x[i]) * t).toString(16).padStart(2, '0')).join('')}`
@@ -27,24 +41,74 @@ export function seededRandom(seed) {
 }
 
 // ---- Pixel primitives ----
+// Coordinates are design units; every primitive rasterises at CARD_SCALE with anti-aliased edges. The canvas c holds
+// rgb (the picture) and light (what blooms), both float RGB at full size.
 
-function plot(c, x, y, colour, alpha = 1) {
-  x = Math.floor(x)
-  y = Math.floor(y)
-  if (x < 0 || y < 0 || x >= W || y >= H) return
-  const i = (y * W + x) * 4
-  const rgb = hex(colour)
-  for (let k = 0; k < 3; k++) c.data[i + k] = Math.round(rgb[k] * alpha + c.data[i + k] * (1 - alpha))
+function createCanvas(random) {
+  return { rgb: new Float32Array(OW * OH * 3), light: new Float32Array(OW * OH * 3), cover: new Float32Array(OW + 2), random, emitting: 0, sky: null }
+}
+
+// Shapes are lit from above: a little lighter at the top, darker at the bottom (t: 0 top .. 1 bottom).
+const shadeAt = (t) => 1.08 - 0.2 * Math.min(1, Math.max(0, t))
+// Shapes shorter than this (design units) are drawn flat.
+const SHADE_MIN = 4
+
+function blend(c, p, rgb, a, shade) {
+  const i = p * 3
+  const col = c.rgb
+  col[i] += (rgb[0] * shade - col[i]) * a
+  col[i + 1] += (rgb[1] * shade - col[i + 1]) * a
+  col[i + 2] += (rgb[2] * shade - col[i + 2]) * a
+  if (c.emitting) {
+    const e = a * c.emitting
+    c.light[i] += rgb[0] * e
+    c.light[i + 1] += rgb[1] * e
+    c.light[i + 2] += rgb[2] * e
+  } else if (a > 0) {
+    // Whatever is drawn over a light hides it, so it no longer blooms there.
+    const keep = 1 - a
+    c.light[i] *= keep
+    c.light[i + 1] *= keep
+    c.light[i + 2] *= keep
+  }
+}
+
+// Draws what fn draws as light (lamps, screens, flames, stars): it blooms, and isn't shaded. strength scales the bloom.
+function light(c, fn, strength = 1) {
+  const before = c.emitting
+  c.emitting = strength
+  const result = fn()
+  c.emitting = before
+  return result
+}
+
+// A small round point (stars, sparks), radius in design units.
+function dot(c, x, y, colour, alpha = 1, radius = 0.45) {
+  ellipse(c, x, y, radius, radius, colour, alpha)
 }
 
 function rect(c, x, y, w, h, colour, alpha = 1) {
-  for (let py = Math.max(0, Math.floor(y)); py < Math.min(H, y + h); py++) {
-    for (let px = Math.max(0, Math.floor(x)); px < Math.min(W, x + w); px++) plot(c, px, py, colour, alpha)
+  const [x0, x1, y0, y1] = [x * S, (x + w) * S, y * S, (y + h) * S]
+  if (x1 <= x0 || y1 <= y0) return
+  const rgb = hex(colour)
+  const shaded = !c.emitting && h >= SHADE_MIN
+  const [px0, px1] = [Math.max(0, Math.floor(x0)), Math.min(OW, Math.ceil(x1))]
+  for (let py = Math.max(0, Math.floor(y0)); py < Math.min(OH, Math.ceil(y1)); py++) {
+    const cy = Math.min(py + 1, y1) - Math.max(py, y0)
+    const shade = shaded ? shadeAt((py + 0.5 - y0) / (y1 - y0)) : 1
+    for (let px = px0; px < px1; px++) blend(c, py * OW + px, rgb, alpha * cy * (Math.min(px + 1, x1) - Math.max(px, x0)), shade)
   }
 }
 
 function gradient(c, top, bottom, y0 = 0, y1 = H) {
-  for (let y = Math.max(0, Math.floor(y0)); y < Math.min(H, y1); y++) rect(c, 0, y, W, 1, mix(top, bottom, (y - y0) / Math.max(1, y1 - y0 - 1)))
+  const [a, b] = [hex(top), hex(bottom)]
+  const [o0, o1] = [y0 * S, y1 * S]
+  for (let py = Math.max(0, Math.floor(o0)); py < Math.min(OH, Math.ceil(o1)); py++) {
+    const t = Math.min(1, Math.max(0, (py + 0.5 - o0) / Math.max(1, o1 - o0)))
+    const rgb = [0, 1, 2].map((k) => a[k] + (b[k] - a[k]) * t)
+    const cover = Math.min(py + 1, o1) - Math.max(py, o0)
+    for (let px = 0; px < OW; px++) blend(c, py * OW + px, rgb, cover, 1)
+  }
 }
 
 function inside(points, px, py) {
@@ -57,30 +121,98 @@ function inside(points, px, py) {
   return result
 }
 
+// Adds weight to cover[] for the part of each pixel the span a..b covers (lo..hi: the pixels being filled).
+function addSpan(cover, a, b, weight, lo, hi) {
+  a = Math.max(a, lo)
+  b = Math.min(b, hi)
+  if (b <= a) return
+  const [ia, ib] = [Math.floor(a), Math.floor(b)]
+  if (ia === ib) {
+    cover[ia] += (b - a) * weight
+    return
+  }
+  cover[ia] += (ia + 1 - a) * weight
+  for (let k = ia + 1; k < ib; k++) cover[k] += weight
+  cover[ib] += (b - ib) * weight
+}
+
+// Scanline fill (even-odd, like inside()) with SUBROWS sub-rows per pixel and exact coverage across.
+const SUBROWS = 4
 function poly(c, points, colour, alpha = 1) {
-  const xs = points.map((p) => p[0])
-  const ys = points.map((p) => p[1])
-  for (let y = Math.max(0, Math.floor(Math.min(...ys))); y <= Math.min(H - 1, Math.ceil(Math.max(...ys))); y++) {
-    for (let x = Math.max(0, Math.floor(Math.min(...xs))); x <= Math.min(W - 1, Math.ceil(Math.max(...xs))); x++) {
-      if (inside(points, x + 0.5, y + 0.5)) plot(c, x, y, colour, alpha)
+  const pts = points.map(([x, y]) => [x * S, y * S])
+  let [minX, maxX, minY, maxY] = [Infinity, -Infinity, Infinity, -Infinity]
+  for (const [x, y] of pts) {
+    minX = Math.min(minX, x)
+    maxX = Math.max(maxX, x)
+    minY = Math.min(minY, y)
+    maxY = Math.max(maxY, y)
+  }
+  const [x0, x1] = [Math.max(0, Math.floor(minX)), Math.min(OW - 1, Math.ceil(maxX))]
+  const [y0, y1] = [Math.max(0, Math.floor(minY)), Math.min(OH - 1, Math.ceil(maxY))]
+  if (x0 > x1 || y0 > y1) return
+  const rgb = hex(colour)
+  const shaded = !c.emitting && maxY - minY >= SHADE_MIN * S
+  const cover = c.cover
+  const xs = []
+  for (let py = y0; py <= y1; py++) {
+    cover.fill(0, x0, x1 + 2)
+    for (let s = 0; s < SUBROWS; s++) {
+      const sy = py + (s + 0.5) / SUBROWS
+      xs.length = 0
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const [xi, yi] = pts[i]
+        const [xj, yj] = pts[j]
+        if (yi > sy !== yj > sy) xs.push(xi + ((sy - yi) * (xj - xi)) / (yj - yi))
+      }
+      xs.sort((a, b) => a - b)
+      for (let k = 0; k + 1 < xs.length; k += 2) addSpan(cover, xs[k], xs[k + 1], 1 / SUBROWS, x0, x1 + 1)
     }
+    const shade = shaded ? shadeAt((py + 0.5 - minY) / (maxY - minY)) : 1
+    for (let px = x0; px <= x1; px++) if (cover[px] > 0) blend(c, py * OW + px, rgb, alpha * Math.min(1, cover[px]), shade)
   }
 }
 
-function ellipse(c, cx, cy, rx, ry, colour, alpha = 1, keep = () => true) {
-  for (let y = Math.max(0, Math.floor(cy - ry)); y <= Math.min(H - 1, cy + ry); y++) {
-    for (let x = Math.max(0, Math.floor(cx - rx)); x <= Math.min(W - 1, cx + rx); x++) {
-      const dx = (x + 0.5 - cx) / rx
-      const dy = (y + 0.5 - cy) / ry
-      if (dx * dx + dy * dy <= 1 && keep(x, y)) plot(c, x, y, colour, alpha)
+// keep(x, y): an extra mask in design units, called with a pixel's corner (its centre is x + 0.5, y + 0.5).
+function ellipse(c, cx, cy, rx, ry, colour, alpha = 1, keep = null) {
+  if (rx <= 0 || ry <= 0) return
+  const [ox, oy, orx, ory] = [cx * S, cy * S, rx * S, ry * S]
+  const rgb = hex(colour)
+  const shaded = !c.emitting && ry * 2 >= SHADE_MIN
+  const edge = Math.min(orx, ory)
+  const [x0, x1] = [Math.max(0, Math.floor(ox - orx)), Math.min(OW - 1, Math.ceil(ox + orx))]
+  for (let py = Math.max(0, Math.floor(oy - ory)); py <= Math.min(OH - 1, Math.ceil(oy + ory)); py++) {
+    const dy = (py + 0.5 - oy) / ory
+    const shade = shaded ? shadeAt((py + 0.5 - oy + ory) / (2 * ory)) : 1
+    for (let px = x0; px <= x1; px++) {
+      const dx = (px + 0.5 - ox) / orx
+      const a = Math.min(1, (1 - Math.sqrt(dx * dx + dy * dy)) * edge + 0.5)
+      if (a <= 0) continue
+      if (keep && !keep((px + 0.5) / S - 0.5, (py + 0.5) / S - 0.5)) continue
+      blend(c, py * OW + px, rgb, alpha * a, shade)
     }
   }
 }
 const circle = (c, cx, cy, r, colour, alpha, keep) => ellipse(c, cx, cy, r, r, colour, alpha, keep)
 
-function glow(c, cx, cy, r, colour, strength = 0.12) {
-  for (let k = 4; k >= 1; k--) circle(c, cx, cy, (r * k) / 4, colour, strength)
+// A soft-edged disc, strongest (peak) in the middle and fading to nothing at r.
+function softDisc(c, cx, cy, r, colour, peak, falloff) {
+  const [ox, oy, or] = [cx * S, cy * S, r * S]
+  const rgb = hex(colour)
+  for (let py = Math.max(0, Math.floor(oy - or)); py <= Math.min(OH - 1, Math.ceil(oy + or)); py++) {
+    for (let px = Math.max(0, Math.floor(ox - or)); px <= Math.min(OW - 1, Math.ceil(ox + or)); px++) {
+      const d = Math.hypot(px + 0.5 - ox, py + 0.5 - oy) / or
+      if (d < 1) blend(c, py * OW + px, rgb, peak * (1 - d) ** falloff, 1)
+    }
+  }
 }
+
+// A soft round light. It blooms.
+function glow(c, cx, cy, r, colour, strength = 0.12) {
+  light(c, () => softDisc(c, cx, cy, r, colour, 1 - (1 - strength) ** 4, 1.6))
+}
+
+// A soft puff of smoke, steam or dust.
+const puff = (c, cx, cy, r, colour, alpha) => softDisc(c, cx, cy, r, colour, alpha, 0.8)
 
 function line(c, x0, y0, x1, y1, width, colour, alpha = 1) {
   const len = Math.hypot(x1 - x0, y1 - y0) || 1
@@ -89,13 +221,41 @@ function line(c, x0, y0, x1, y1, width, colour, alpha = 1) {
   poly(c, [[x0 + nx, y0 + ny], [x1 + nx, y1 + ny], [x1 - nx, y1 - ny], [x0 - nx, y0 - ny]], colour, alpha)
 }
 
-// Fills everything below the curve y = top(x).
+// Fills everything below the curve y = top(x): a lit rim along the edge, darkening with depth below it.
 function band(c, top, colour) {
-  for (let x = 0; x < W; x++) rect(c, x, top(x), 1, H, colour)
+  const rgb = hex(colour)
+  const rim = rgb.map((v) => Math.min(255, v * 1.06 + 4))
+  for (let px = 0; px < OW; px++) {
+    const ty = top((px + 0.5) / S) * S
+    for (let py = Math.max(0, Math.floor(ty)); py < OH; py++) {
+      const depth = (py + 0.5 - ty) / S
+      const shade = c.emitting ? 1 : 1 - 0.18 * Math.min(1, depth / 50)
+      blend(c, py * OW + px, depth < 0.6 ? rim : rgb, Math.min(1, py + 1 - ty), shade)
+    }
+  }
 }
 
 function stars(c, count, maxY = H) {
-  for (let i = 0; i < count; i++) plot(c, c.random() * W, c.random() * maxY, '#ffffff', 0.35 + c.random() * 0.65)
+  light(
+    c,
+    () => {
+      for (let i = 0; i < count; i++) {
+        const [x, y, b] = [c.random() * W, c.random() * maxY, c.random()]
+        dot(c, x, y, '#ffffff', 0.35 + b * 0.65, b > 0.92 ? 0.75 : 0.4)
+      }
+    },
+    0.6,
+  )
+}
+
+// A soft haze across the picture between y0 and y1, thickest at peak (0..1 of the way down).
+function haze(c, y0, y1, colour, strength, peak = 0.5) {
+  const rgb = hex(colour)
+  for (let py = Math.max(0, Math.floor(y0 * S)); py < Math.min(OH, Math.ceil(y1 * S)); py++) {
+    const t = (py + 0.5 - y0 * S) / ((y1 - y0) * S)
+    const a = strength * (t < peak ? t / peak : (1 - t) / (1 - peak)) ** 1.3
+    if (a > 0) for (let px = 0; px < OW; px++) blend(c, py * OW + px, rgb, a, 1)
+  }
 }
 
 // A random rolling curve.
@@ -106,7 +266,7 @@ function hills(random, base, amp) {
 
 // A shaded sphere lit from a random side.
 function planet(c, cx, cy, r, colour) {
-  glow(c, cx, cy, r * 1.15, mix(colour, '#ffffff', 0.4), 0.05)
+  glow(c, cx, cy, r * 1.3, mix(colour, '#ffffff', 0.5), 0.07)
   circle(c, cx, cy, r, colour)
   for (let i = 0; i < 4; i++) {
     const y = cy - r + c.random() * r * 2
@@ -114,7 +274,11 @@ function planet(c, cx, cy, r, colour) {
     circle(c, cx, cy, r, mix(colour, '#ffffff', 0.2), 0.35, (_, py) => py >= y && py < y + h)
   }
   const side = c.random() < 0.5 ? -1 : 1
-  circle(c, cx + side * r * 0.35, cy + r * 0.2, r, '#000000', 0.5, (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r)
+  const onPlanet = (x, y) => (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r
+  // A soft terminator: night side darkening in steps, then a thin lit rim on the day side.
+  for (let k = 0; k < 4; k++) circle(c, cx + side * r * (0.2 + k * 0.1), cy + r * 0.15, r, '#000000', 0.2, onPlanet)
+  const rim = mix(colour, '#ffffff', 0.65)
+  light(c, () => circle(c, cx, cy, r, rim, 0.55, (x, y) => onPlanet(x, y) && (x + 0.5 - cx) * side < 0 && Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > r * 0.9), 0.4)
 }
 
 function nebula(c, colours) {
@@ -143,17 +307,20 @@ const PLANET_COLOURS = ['#3d6ea8', '#a85a3a', '#5a8a5a', '#8a6aa8', '#c8a060', '
 
 function drawSky(c, skyId, horizon) {
   const sky = SKIES[skyId] ?? SKIES.day
+  c.sky = sky
   gradient(c, sky.top, sky.bottom, 0, horizon + 10)
   if (sky.stars) stars(c, 140, horizon)
   if (sky.sun) {
     const [x, y] = [between(c.random, 30, 290), sky.low ? horizon - between(c.random, 4, 18) : between(c.random, 18, 50)]
+    glow(c, x, y, 70, sky.sun, 0.08)
     glow(c, x, y, 26, sky.sun, 0.2)
-    circle(c, x, y, sky.low ? 16 : 10, sky.sun)
+    light(c, () => circle(c, x, y, sky.low ? 16 : 10, sky.sun), 0.8)
   }
   if (sky.moon) {
     const [x, y, r] = [between(c.random, 30, 290), between(c.random, 18, 50), between(c.random, 7, 16)]
-    circle(c, x, y, r, sky.moon)
-    circle(c, x + r * 0.4, y - r * 0.2, r, sky.top, 0.85, (px, py) => (px - x) ** 2 + (py - y) ** 2 <= r * r)
+    glow(c, x, y, r * 2.2, sky.moon, 0.05)
+    light(c, () => circle(c, x, y, r, sky.moon), 0.35)
+    circle(c, x + r * 0.4, y - r * 0.2, r, sky.top, 0.85, (px, py) => (px + 0.5 - x) ** 2 + (py + 0.5 - y) ** 2 <= r * r)
   }
   if (sky.glowColour) glow(c, between(c.random, 60, 260), horizon, 70, sky.glowColour, 0.07)
   // Alien skies: sometimes a planet or moon hangs overhead.
@@ -164,21 +331,33 @@ function mountains(c, horizon, colour) {
   const peaks = []
   for (let x = -20; x <= W + 20; x += between(c.random, 25, 60)) peaks.push([x, horizon - between(c.random, 12, 48)])
   poly(c, [[-20, horizon + 6], ...peaks, [W + 20, horizon + 6]], colour)
+  // Light from the left: slopes falling to the right are in shade, with a pale ridge line on the sunny ones.
+  for (let i = 0; i + 1 < peaks.length; i++) {
+    const [[x0, y0], [x1, y1]] = [peaks[i], peaks[i + 1]]
+    if (y1 > y0) poly(c, [[x0, y0], [x1, y1], [x1, horizon + 6], [x0 + (x1 - x0) * 0.3, horizon + 6]], '#000000', 0.16)
+    else line(c, x0, y0, x1, y1, 0.8, mix(colour, '#ffffff', 0.3), 0.6)
+  }
 }
 
 function volcano(c, horizon, palette) {
   const [x, h, w] = [between(c.random, 60, 260), between(c.random, 50, 80), between(c.random, 80, 130)]
   poly(c, [[x - w, horizon + 4], [x - 18, horizon - h], [x + 18, horizon - h], [x + w, horizon + 4]], palette.rock)
-  poly(c, [[x - 18, horizon - h], [x + 18, horizon - h], [x + 12, horizon - h + 6], [x - 12, horizon - h + 6]], '#ff6a1a')
+  light(c, () => poly(c, [[x - 18, horizon - h], [x + 18, horizon - h], [x + 12, horizon - h + 6], [x - 12, horizon - h + 6]], '#ff6a1a'))
   glow(c, x, horizon - h, 22, '#ff6a1a', 0.12)
 }
 
 // Returns the near-ground curve so structures and plants can stand on it.
 function drawTerrain(c, palette, horizon, { mountainChance = 0.45, volcanoChance = 0 } = {}) {
   const [far, middle, near] = palette.ground
-  if (c.random() < mountainChance) mountains(c, horizon, mix(palette.rock, SKIES.day.bottom, 0.35))
+  const air = c.sky?.bottom ?? SKIES.day.bottom
+  if (c.random() < mountainChance) {
+    mountains(c, horizon, mix(palette.rock, air, 0.45))
+    haze(c, horizon - 50, horizon + 6, air, 0.35, 0.85)
+  }
   if (c.random() < volcanoChance) volcano(c, horizon, palette)
-  band(c, hills(c.random, horizon - 6, between(c.random, 3, 10)), far)
+  band(c, hills(c.random, horizon - 6, between(c.random, 3, 10)), mix(far, air, 0.2))
+  // Distance haze where the far ground meets the sky.
+  haze(c, horizon - 16, horizon + 14, air, 0.4, 0.45)
   // A sea fills the middle distance, so the near ground reads as the shore in front of it.
   if (palette.extra === 'sea') drawSea(c, horizon + 2)
   else band(c, hills(c.random, horizon + 8, between(c.random, 2, 7)), middle)
@@ -224,7 +403,7 @@ function drawRiver(c, horizon, colour, light) {
   for (let y = horizon + 2; y < H; y += 4) {
     const next = x + (c.random() - 0.5) * 14
     const width = 2 + ((y - horizon) / (H - horizon)) * 14
-    line(c, x, y, next, y + 4, width, colour)
+    light(c, () => line(c, x, y, next, y + 4, width, colour), 0.5)
     glow(c, next, y, width, light, 0.04)
     x = next
   }
@@ -329,7 +508,7 @@ function plants(c, palette, ground, count, minY = 0) {
 // ---- Ground locations ----
 
 const isDark = (skyId) => DARK_SKIES.has(skyId)
-const lit = (c, skyId, x, y, w = 4, h = 3) => isDark(skyId) && c.random() < 0.8 && rect(c, x, y, w, h, '#ffd27a')
+const lit = (c, skyId, x, y, w = 4, h = 3) => isDark(skyId) && c.random() < 0.8 && light(c, () => rect(c, x, y, w, h, '#ffd27a'), 0.8)
 
 function colony(c, palette, skyId, base) {
   const dome = mix(palette.building, '#ffffff', 0.45)
@@ -386,7 +565,9 @@ function city(c, palette, skyId, base) {
       rect(c, x, base - h, w - 2, h, colour)
       if (c.random() < 0.15) poly(c, [[x + w * 0.3, base - h], [x + w * 0.45, base - h - 22], [x + w * 0.6, base - h]], colour)
       for (let wy = base - h + 6; wy < base - 4; wy += 8) {
-        for (let wx = x + 4; wx < x + w - 6; wx += 6) if (c.random() < chance) rect(c, wx, wy, 3, 3, night ? '#ffd27a' : '#cfe2ee', night ? 0.9 : 0.45)
+        for (let wx = x + 4; wx < x + w - 6; wx += 6) {
+          if (c.random() < chance) light(c, () => rect(c, wx, wy, 3, 3, night ? '#ffd27a' : '#cfe2ee', night ? 0.9 : 0.45), night ? 0.5 : 0)
+        }
       }
       x += w
     }
@@ -426,9 +607,10 @@ function caveInterior(c, palette) {
   for (let i = 0; i < crystals; i++) {
     const [x, y, h, w] = [c.random() * W, between(c.random, 125, 180), between(c.random, 14, 55), between(c.random, 3, 9)]
     const colour = pick(c.random, colours)
-    glow(c, x, y - h / 2, h * 0.5, colour, 0.03)
-    poly(c, [[x - w, y], [x, y - h], [x + w, y]], colour, 0.85)
-    poly(c, [[x, y], [x, y - h], [x + w, y]], '#ffffff', 0.25)
+    glow(c, x, y - h / 2, h * 0.7, colour, 0.04)
+    light(c, () => poly(c, [[x - w, y], [x, y - h], [x + w, y]], colour, 0.85), 0.35)
+    poly(c, [[x, y], [x, y - h], [x + w, y]], '#000000', 0.25)
+    light(c, () => line(c, x - w * 0.35, y - h * 0.3, x - w * 0.05, y - h * 0.9, 0.6, '#ffffff', 0.5), 0.4)
   }
   stalactites(c, mix(rock, '#000000', 0.45))
 }
@@ -440,9 +622,18 @@ function stalactites(c, colour) {
 function caveMouth(c, palette) {
   const rock = mix(palette.rock, '#000000', 0.5)
   const [cx, cy, rx, ry] = [between(c.random, 110, 210), between(c.random, 105, 130), between(c.random, 80, 125), between(c.random, 55, 85)]
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 > 1) plot(c, x, y, mix(rock, '#000000', y / H / 2))
+  // Rock everywhere outside the mouth's ellipse, with a smooth edge and a lighter lip just round it.
+  const [dark, lip] = [hex('#000000'), hex(mix(rock, '#ffffff', 0.18))]
+  const base = hex(rock)
+  for (let py = 0; py < OH; py++) {
+    const t = py / OH / 2
+    const colour = base.map((v, k) => v + (dark[k] - v) * t)
+    const dy = (py + 0.5 - cy * S) / (ry * S)
+    for (let px = 0; px < OW; px++) {
+      const dx = (px + 0.5 - cx * S) / (rx * S)
+      const outside = (Math.sqrt(dx * dx + dy * dy) - 1) * Math.min(rx, ry) * S
+      if (outside <= -0.5) continue
+      blend(c, py * OW + px, outside < 2.5 * S ? lip : colour, Math.min(1, outside + 0.5), 1)
     }
   }
   stalactites(c, mix(rock, '#000000', 0.3))
@@ -527,8 +718,10 @@ function fieldCamp(c, palette, skyId, base) {
   }
   const fy = base + 22
   glow(c, fire, fy - 6, 30, '#ff8a2a', isDark(skyId) ? 0.12 : 0.05)
-  poly(c, [[fire - 6, fy], [fire, fy - 14], [fire + 6, fy]], '#ff8a2a')
-  poly(c, [[fire - 3, fy], [fire, fy - 8], [fire + 3, fy]], '#ffd27a')
+  light(c, () => {
+    poly(c, [[fire - 6, fy], [fire, fy - 14], [fire + 6, fy]], '#ff8a2a')
+    poly(c, [[fire - 3, fy], [fire, fy - 8], [fire + 3, fy]], '#ffd27a')
+  })
   const mx = fire > 160 ? between(c.random, 30, 90) : between(c.random, 230, 290)
   line(c, mx, base + 4, mx, base - 70, 2, '#b8c0c6')
   rect(c, mx - 8, base - 72, 16, 2, '#d0d6da')
@@ -546,8 +739,8 @@ function crashSite(c, palette, skyId, base) {
   for (let i = 0; i < 3; i++) {
     const [fx, fy] = [cx + between(c.random, -50, 50), cy - between(c.random, 4, 14)]
     glow(c, fx, fy, 10, '#ff8a2a', 0.18)
-    poly(c, [[fx - 4, fy + 2], [fx, fy - 10], [fx + 4, fy + 2]], '#ffb347')
-    for (let k = 1; k < 7; k++) circle(c, fx + k * 4 + (c.random() - 0.5) * 6, fy - k * 10, 4 + k * 1.6, '#3a3a3c', 0.25)
+    light(c, () => poly(c, [[fx - 4, fy + 2], [fx, fy - 10], [fx + 4, fy + 2]], '#ffb347'))
+    for (let k = 1; k < 7; k++) puff(c, fx + k * 4 + (c.random() - 0.5) * 6, fy - k * 10, (4 + k * 1.6) * 1.5, '#3a3a3c', 0.32 - k * 0.03)
   }
   for (let i = 0; i < 14; i++) {
     const [x, y, s] = [between(c.random, 0, W), between(c.random, base, H), between(c.random, 3, 8)]
@@ -569,7 +762,7 @@ function alienVessel(c) {
   for (let i = 0; i < 5; i++) {
     const [x, y] = [between(c.random, g.l + 6, g.r - 6), between(c.random, g.t + 6, g.b - 6)]
     glow(c, x, y, 8, accent, 0.15)
-    circle(c, x, y, 2.5, accent)
+    light(c, () => circle(c, x, y, 2.5, accent))
   }
   line(c, g.vx, g.b, g.vx, H, 3, accent, 0.5)
 }
@@ -587,8 +780,10 @@ function alienTemple(c) {
   }
   rect(c, g.vx - 14, g.b - 12, 28, 12, '#5a4a3a')
   glow(c, g.vx, g.b - 18, 26, '#d8b040', 0.12)
-  circle(c, g.vx, g.b - 18, 4, '#fff0a0')
-  for (let i = 0; i < 12; i++) rect(c, between(c.random, g.l + 4, g.r - 6), between(c.random, g.t + 4, g.b - 20), 2, 2, '#d8b040', 0.8)
+  light(c, () => {
+    circle(c, g.vx, g.b - 18, 4, '#fff0a0')
+    for (let i = 0; i < 12; i++) rect(c, between(c.random, g.l + 4, g.r - 6), between(c.random, g.t + 4, g.b - 20), 2, 2, '#d8b040', 0.8)
+  }, 0.6)
 }
 
 // Resin-walled tunnels with strands hanging down and glowing egg pods on the floor.
@@ -604,7 +799,7 @@ function alienHive(c) {
     const [x, y, r] = [c.random() * W, between(c.random, 140, 178), between(c.random, 6, 14)]
     glow(c, x, y - r, r * 1.4, '#a8e060', 0.06)
     ellipse(c, x, y - r * 0.8, r * 0.7, r, '#8a6a48')
-    ellipse(c, x, y - r * 1.4, r * 0.35, r * 0.3, '#a8e060')
+    light(c, () => ellipse(c, x, y - r * 1.4, r * 0.35, r * 0.3, '#a8e060'), 0.6)
   }
 }
 
@@ -631,16 +826,41 @@ function room(c, hull, { width = [50, 110], top = [28, 56], bottom = [112, 136] 
   poly(c, [[0, 0], [l, t], [l, b], [0, H]], hull.wall)
   poly(c, [[W, 0], [r, t], [r, b], [W, H]], hull.side)
   rect(c, l, t, r - l, b - t, hull.back)
+  roomDetail(c, hull, { l, r, t, b, vx })
   return { l, r, t, b, vx }
 }
 
+// Floor plates receding to the back wall, panel seams down the side walls, and a kick strip and trim on the back wall.
+function roomDetail(c, hull, g) {
+  const seam = mix(hull.floor, '#000000', 0.35)
+  for (let k = -4; k <= 4; k++) line(c, g.vx + (k / 4) * (g.r - g.vx) * 1.05, g.b, g.vx + k * 60, H, 0.5, seam, 0.6)
+  for (let k = 1; k <= 5; k++) {
+    const y = g.b + (H - g.b) * (k / 5) ** 1.8
+    const f = (y - g.b) / (H - g.b)
+    line(c, g.l * (1 - f), y, W - (W - g.r) * (1 - f), y, 0.5, seam, 0.5)
+  }
+  // Floor sheen in front of the back wall.
+  puff(c, g.vx, g.b + 6, (g.r - g.l) * 0.6, mix(hull.back, '#ffffff', 0.4), 0.12)
+  for (const [x, f] of [[g.l * 0.35, 0.35], [g.l * 0.7, 0.7]]) line(c, x, g.t * f, x, H - (H - g.b) * f, 0.6, mix(hull.wall, '#000000', 0.3), 0.7)
+  for (const [x, f] of [[W - (W - g.r) * 0.35, 0.35], [W - (W - g.r) * 0.7, 0.7]]) line(c, x, g.t * f, x, H - (H - g.b) * f, 0.6, mix(hull.side, '#000000', 0.3), 0.7)
+  rect(c, g.l, g.b - 3, g.r - g.l, 3, mix(hull.back, '#000000', 0.3))
+  rect(c, g.l, g.t + 3, g.r - g.l, 1, mix(hull.back, '#ffffff', 0.2), 0.7)
+}
+
 function ceilingStrips(c, g, colour) {
-  poly(c, [[0, 8], [g.l, g.t + 2], [g.l, g.t + 5], [0, 16]], colour)
-  poly(c, [[W, 8], [g.r, g.t + 2], [g.r, g.t + 5], [W, 16]], colour)
+  light(c, () => {
+    poly(c, [[0, 8], [g.l, g.t + 2], [g.l, g.t + 5], [0, 16]], colour)
+    poly(c, [[W, 8], [g.r, g.t + 2], [g.r, g.t + 5], [W, 16]], colour)
+  }, 0.6)
 }
 
 function starsIn(c, x0, y0, x1, y1, count) {
-  for (let i = 0; i < count; i++) plot(c, between(c.random, x0, x1), between(c.random, y0, y1), '#ffffff', 0.4 + c.random() * 0.6)
+  light(c, () => {
+    for (let i = 0; i < count; i++) {
+      const [x, y, b] = [between(c.random, x0, x1), between(c.random, y0, y1), c.random()]
+      dot(c, x, y, '#ffffff', 0.4 + b * 0.6, b > 0.9 ? 0.7 : 0.4)
+    }
+  }, 0.6)
 }
 
 function viewPlanet(c, x0, y0, x1, y1) {
@@ -665,12 +885,14 @@ function corridor(c, hull, accent) {
     poly(c, window, '#03060e')
     for (let i = 0; i < 25; i++) {
       const [x, y] = [between(c.random, x0, x1), between(c.random, 40, 120)]
-      if (inside(window, x, y)) plot(c, x, y, '#ffffff', 0.8)
+      if (inside(window, x, y)) light(c, () => dot(c, x, y, '#ffffff', 0.8), 0.6)
     }
   }
   ceilingStrips(c, g, accent)
   poly(c, [[g.vx - 10, H], [g.vx + 10, H], [g.vx + 1, g.b], [g.vx - 1, g.b]], mix(hull.floor, accent, 0.35))
-  rect(c, g.l, g.t, g.r - g.l, 2, accent)
+  light(c, () => rect(c, g.l, g.t, g.r - g.l, 2, accent), 0.6)
+  // Light spilling from the far end of the corridor.
+  glow(c, g.vx, (g.t + g.b) / 2, (g.r - g.l) * 1.4, mix(accent, '#ffffff', 0.5), 0.05)
 }
 
 function bridge(c, hull, accent) {
@@ -684,7 +906,7 @@ function bridge(c, hull, accent) {
   poly(c, [[0, 140], [100, 128], [220, 128], [W, 140], [W, H], [0, H]], hull.floor)
   for (const [x, w] of [[20, 70], [125, 70], [230, 70]]) {
     poly(c, [[x, 150], [x + w, 150], [x + w - 8, 136], [x + 8, 136]], hull.wall)
-    rect(c, x + 12, 139, w - 24, 3, accent)
+    light(c, () => rect(c, x + 12, 139, w - 24, 3, accent), 0.7)
   }
   ellipse(c, 160, 168, 26, 10, mix(hull.side, '#5c3a2e', 0.6))
   rect(c, 150, 150, 20, 18, mix(hull.wall, '#6e3a2e', 0.6))
@@ -698,15 +920,18 @@ function engineering(c, hull, accent) {
   const cw = between(c.random, 12, 22)
   glow(c, g.vx, (g.t + g.b) / 2, 70, core, 0.06)
   rect(c, g.vx - cw, 0, cw * 2, g.b + 8, mix(core, '#000000', 0.55))
-  for (let y = 0; y < g.b + 8; y += 8) rect(c, g.vx - cw + 2, y, cw * 2 - 4, 5, core, 0.5 + c.random() * 0.5)
-  rect(c, g.vx - cw * 0.3, 0, cw * 0.6, g.b + 8, '#ffffff', 0.35)
+  light(c, () => {
+    for (let y = 0; y < g.b + 8; y += 8) rect(c, g.vx - cw + 2, y, cw * 2 - 4, 5, core, 0.5 + c.random() * 0.5)
+    rect(c, g.vx - cw * 0.3, 0, cw * 0.6, g.b + 8, '#ffffff', 0.35)
+  }, 0.8)
+  glow(c, g.vx, (g.t + g.b) / 2, cw * 3, core, 0.1)
   const walk = between(c.random, g.t + 20, g.b - 20)
   rect(c, g.l, walk, g.r - g.l, 4, hull.side)
   for (let x = g.l; x < g.r; x += 10) rect(c, x, walk - 10, 1, 10, hull.side)
   rect(c, g.l, walk - 10, g.r - g.l, 1, hull.side)
   for (const x of [g.l * 0.4, W - (W - g.r) * 0.4]) {
     poly(c, [[x - 30, H], [x + 30, H], [x + 22, H - 34], [x - 22, H - 34]], hull.wall)
-    rect(c, x - 18, H - 31, 36, 4, accent)
+    light(c, () => rect(c, x - 18, H - 31, 36, 4, accent), 0.7)
   }
   ceilingStrips(c, g, accent)
 }
@@ -723,11 +948,14 @@ function transporter(c, hull, accent) {
     ellipse(c, x, y, 11, 3.5, mix(accent, '#ffffff', 0.4))
     if (beam && c.random() < 0.7) {
       rect(c, x - 8, g.t + 10, 16, y - g.t - 10, mix(accent, '#ffffff', 0.6), 0.25)
-      for (let i = 0; i < 20; i++) plot(c, between(c.random, x - 8, x + 8), between(c.random, g.t + 10, y), '#ffffff', 0.9)
+      light(c, () => {
+        rect(c, x - 8, g.t + 10, 16, y - g.t - 10, mix(accent, '#ffffff', 0.6), 0.12)
+        for (let i = 0; i < 20; i++) dot(c, between(c.random, x - 8, x + 8), between(c.random, g.t + 10, y), '#ffffff', 0.9)
+      }, 0.7)
     }
   }
   poly(c, [[20, H], [110, H], [100, H - 28], [30, H - 28]], hull.wall)
-  rect(c, 36, H - 25, 58, 4, accent)
+  light(c, () => rect(c, 36, H - 25, 58, 4, accent), 0.7)
 }
 
 function shuttlebay(c, hull, accent) {
@@ -736,7 +964,7 @@ function shuttlebay(c, hull, accent) {
   starsIn(c, g.l, g.t, g.r, g.b, 80)
   if (c.random() < 0.6) viewPlanet(c, g.l, g.t, g.r, g.b)
   rect(c, g.l, g.t, g.r - g.l, g.b - g.t, '#5fb0ff', 0.1)
-  rect(c, g.l, g.t, g.r - g.l, 2, accent)
+  light(c, () => rect(c, g.l, g.t, g.r - g.l, 2, accent), 0.7)
   for (const dx of [-60, -20, 20, 60]) line(c, g.vx + dx * 0.3, g.b, g.vx + dx * 2.5, H, 2, accent, 0.6)
   const shuttles = Math.floor(between(c.random, 1, 3))
   for (let i = 0; i < shuttles; i++) {
@@ -800,7 +1028,9 @@ function sickbay(c, hull, accent) {
   for (let i = 0; i < beds; i++) {
     const x = g.l + ((i + 0.5) / beds) * (g.r - g.l)
     rect(c, x - 14, g.t + 14, 28, 16, '#0c1418')
-    for (let k = 0; k < 24; k += 2) plot(c, x - 12 + k, g.t + 22 + Math.sin(k + i) * 4, accent)
+    light(c, () => {
+      for (let k = 0; k < 22; k += 2) line(c, x - 12 + k, g.t + 22 + Math.sin(k + i) * 4, x - 10 + k, g.t + 22 + Math.sin(k + 2 + i) * 4, 0.8, accent)
+    }, 0.7)
   }
   for (let i = 0; i < beds; i++) {
     const x = 40 + ((i + 0.5) / beds) * 240
@@ -808,7 +1038,7 @@ function sickbay(c, hull, accent) {
     const s = 0.7 + ((y - 130) / 50) * 0.6
     rect(c, x - 6 * s, y - 14 * s, 12 * s, 14 * s, hull.side)
     poly(c, [[x - 30 * s, y - 14 * s], [x + 30 * s, y - 14 * s], [x + 26 * s, y - 22 * s], [x - 26 * s, y - 22 * s]], mix(bright.back, '#ffffff', 0.4))
-    rect(c, x - 30 * s, y - 14 * s, 60 * s, 2, accent)
+    light(c, () => rect(c, x - 30 * s, y - 14 * s, 60 * s, 2, accent), 0.5)
   }
 }
 
@@ -827,7 +1057,7 @@ function jefferies(c, hull, accent) {
   for (let k = 0; k < 6; k++) {
     const y = vy + 100 * 0.75 ** k
     const half = 40 * 0.75 ** k
-    rect(c, vx - half, y, half * 2, Math.max(1, 3 * 0.8 ** k), accent)
+    light(c, () => rect(c, vx - half, y, half * 2, Math.max(1, 3 * 0.8 ** k), accent), 0.6)
   }
 }
 
@@ -840,8 +1070,10 @@ function brig(c, hull, accent) {
     rect(c, x0, g.t + 10, x1 - x0, g.b - g.t - 10, mix(hull.back, '#000000', 0.45))
     rect(c, x0 + 4, g.b - 14, x1 - x0 - 8, 5, hull.side)
     rect(c, x0, g.t + 10, x1 - x0, g.b - g.t - 10, field, 0.22)
-    rect(c, x0, g.t + 10, x1 - x0, 2, field)
-    rect(c, x0, g.b - 2, x1 - x0, 2, field)
+    light(c, () => {
+      rect(c, x0, g.t + 10, x1 - x0, 2, field)
+      rect(c, x0, g.b - 2, x1 - x0, 2, field)
+    }, 0.8)
   }
   for (const side of [0, 1]) {
     const [a, b2] = side ? [W - (W - g.r) * 0.75, W - (W - g.r) * 0.25] : [g.l * 0.25, g.l * 0.75]
@@ -879,7 +1111,7 @@ function damage(c) {
     poly(c, breach, '#03060e')
     for (let i = 0; i < 20; i++) {
       const [px, py] = [between(c.random, x - s, x + s), between(c.random, y - s, y + s)]
-      if (inside(breach, px, py)) plot(c, px, py, '#ffffff', 0.8)
+      if (inside(breach, px, py)) light(c, () => dot(c, px, py, '#ffffff', 0.8), 0.6)
     }
   }
   for (let i = 0; i < 14; i++) {
@@ -905,7 +1137,9 @@ function stationRing(c, cx, cy, s) {
   ellipse(c, cx, cy, 54 * s, 17 * s, '#8a949c', 1, (x, y) => ((x + 0.5 - cx) / (48 * s)) ** 2 + ((y + 0.5 - cy) / (12 * s)) ** 2 > 1)
   rect(c, cx - 4 * s, cy - 34 * s, 8 * s, 68 * s, '#9aa4ac')
   circle(c, cx, cy, 13 * s, '#b4bec6')
-  for (let i = 0; i < 10; i++) plot(c, cx + Math.cos(i * 0.63) * 51 * s, cy + Math.sin(i * 0.63) * 15.5 * s, '#ffd27a')
+  light(c, () => {
+    for (let i = 0; i < 10; i++) dot(c, cx + Math.cos(i * 0.63) * 51 * s, cy + Math.sin(i * 0.63) * 15.5 * s, '#ffd27a', 1, 0.6)
+  }, 0.8)
   glow(c, cx, cy - 34 * s, 4, '#ff5040', 0.3)
 }
 
@@ -914,7 +1148,9 @@ function stationSpindle(c, cx, cy, s) {
   for (const [dy, rx] of [[-30, 22], [0, 34], [26, 18]]) {
     ellipse(c, cx, cy + dy * s, rx * s, 6 * s, '#8a949c')
     ellipse(c, cx, cy + dy * s - 2 * s, rx * s * 0.8, 3 * s, '#b4bec6')
-    for (let i = 0; i < 6; i++) plot(c, cx - rx * s * 0.8 + i * rx * s * 0.32, cy + dy * s + 2, '#ffd27a')
+    light(c, () => {
+      for (let i = 0; i < 6; i++) dot(c, cx - rx * s * 0.8 + i * rx * s * 0.32, cy + dy * s + 2, '#ffd27a', 1, 0.6)
+    }, 0.8)
   }
   glow(c, cx, cy - 50 * s, 4, '#ff5040', 0.3)
 }
@@ -967,7 +1203,7 @@ function derelict(c) {
 // picks a matching ship or station room when it names one. skies: the sky ids the weather allows (null = any of the
 // biome's). Returns RGBA bytes, rows top to bottom.
 export function drawEpisodeCard(location, palette, random = Math.random, name = '', skies = null) {
-  const c = { data: new Uint8Array(W * H * 4).fill(255), random }
+  const c = createCanvas(random)
   const namedRoom = Boolean(sceneForName(name))
   if (location === 'starshipDeck') interior(c, name)
   else if (location === 'spaceStation') {
@@ -1005,7 +1241,121 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
     else if (location === 'fieldCamp') fieldCamp(c, palette, skyId, base)
     else if (location === 'crashSite') crashSite(c, palette, skyId, base)
     if (location === 'cave') caveMouth(c, palette)
-    else plants(c, palette, ground, wild ? Math.floor(between(random, 10, 22)) : Math.floor(between(random, 2, 7)), location === 'city' ? base + 12 : 0)
+    else     plants(c, palette, ground, wild ? Math.floor(between(random, 10, 22)) : Math.floor(between(random, 2, 7)), location === 'city' ? base + 12 : 0)
   }
-  return c.data
+  return finish(c)
+}
+
+// ---- Finishing: bloom, then a grade ----
+
+// Bloom works on a copy DOWNSAMPLE times smaller: what is lit (c.light) plus anything very bright, blurred twice (a
+// tight halo and a wide one) and added back.
+const DOWNSAMPLE = 4
+const BLOOM = { threshold: 0.78, bright: 0.5, light: 0.8, tight: { radius: 2, gain: 0.85 }, wide: { radius: 7, gain: 0.5 } }
+
+// Three box blurs each way (close to a Gaussian). Returns a new buffer.
+function boxBlur(src, w, h, radius) {
+  const a = Float32Array.from(src)
+  const b = new Float32Array(src.length)
+  const pass = (from, to, horizontal) => {
+    const [lines, length] = horizontal ? [h, w] : [w, h]
+    const at = (line, i) => (horizontal ? (line * w + i) * 3 : (i * w + line) * 3)
+    const span = radius * 2 + 1
+    for (let line = 0; line < lines; line++) {
+      for (let k = 0; k < 3; k++) {
+        let sum = 0
+        for (let i = -radius; i <= radius; i++) sum += from[at(line, Math.min(length - 1, Math.max(0, i))) + k]
+        for (let i = 0; i < length; i++) {
+          to[at(line, i) + k] = sum / span
+          sum += from[at(line, Math.min(length - 1, i + radius + 1)) + k] - from[at(line, Math.max(0, i - radius)) + k]
+        }
+      }
+    }
+  }
+  for (let n = 0; n < 3; n++) {
+    pass(a, b, true)
+    pass(b, a, false)
+  }
+  return a
+}
+
+function bloom(c) {
+  const [bw, bh] = [OW / DOWNSAMPLE, OH / DOWNSAMPLE]
+  const small = new Float32Array(bw * bh * 3)
+  const n = DOWNSAMPLE * DOWNSAMPLE
+  for (let py = 0; py < OH; py++) {
+    for (let px = 0; px < OW; px++) {
+      const i = (py * OW + px) * 3
+      const lum = (0.2126 * c.rgb[i] + 0.7152 * c.rgb[i + 1] + 0.0722 * c.rgb[i + 2]) / 255
+      const bright = (Math.max(0, lum - BLOOM.threshold) / (1 - BLOOM.threshold)) * BLOOM.bright
+      const j = (Math.floor(py / DOWNSAMPLE) * bw + Math.floor(px / DOWNSAMPLE)) * 3
+      for (let k = 0; k < 3; k++) small[j + k] += (c.light[i + k] * BLOOM.light + c.rgb[i + k] * bright) / n
+    }
+  }
+  const tight = boxBlur(small, bw, bh, BLOOM.tight.radius)
+  const wide = boxBlur(small, bw, bh, BLOOM.wide.radius)
+  // Bilinear upsample back onto the picture.
+  for (let py = 0; py < OH; py++) {
+    const fy = Math.min(bh - 1, Math.max(0, (py + 0.5) / DOWNSAMPLE - 0.5))
+    const [y0, ty] = [Math.floor(fy), fy - Math.floor(fy)]
+    const y1 = Math.min(bh - 1, y0 + 1)
+    for (let px = 0; px < OW; px++) {
+      const fx = Math.min(bw - 1, Math.max(0, (px + 0.5) / DOWNSAMPLE - 0.5))
+      const [x0, tx] = [Math.floor(fx), fx - Math.floor(fx)]
+      const x1 = Math.min(bw - 1, x0 + 1)
+      const i = (py * OW + px) * 3
+      for (let k = 0; k < 3; k++) {
+        const sample = (buffer) => {
+          const top = buffer[(y0 * bw + x0) * 3 + k] * (1 - tx) + buffer[(y0 * bw + x1) * 3 + k] * tx
+          const bottom = buffer[(y1 * bw + x0) * 3 + k] * (1 - tx) + buffer[(y1 * bw + x1) * 3 + k] * tx
+          return top * (1 - ty) + bottom * ty
+        }
+        c.rgb[i + k] += sample(tight) * BLOOM.tight.gain + sample(wide) * BLOOM.wide.gain
+      }
+    }
+  }
+}
+
+// Smooth value noise in 0..1 (a faint paint texture over the whole card).
+function valueNoise(x, y, seed) {
+  const cell = (cx, cy) => {
+    let h = Math.imul(cx, 374761393) ^ Math.imul(cy, 668265263) ^ Math.imul(seed, 982451653)
+    h = Math.imul(h ^ (h >>> 13), 1274126177)
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296
+  }
+  const [ix, iy] = [Math.floor(x), Math.floor(y)]
+  const [fx, fy] = [x - ix, y - iy]
+  const [sx, sy] = [fx * fx * (3 - 2 * fx), fy * fy * (3 - 2 * fy)]
+  const top = cell(ix, iy) + (cell(ix + 1, iy) - cell(ix, iy)) * sx
+  const bottom = cell(ix, iy + 1) + (cell(ix + 1, iy + 1) - cell(ix, iy + 1)) * sx
+  return top + (bottom - top) * sy
+}
+
+// The paint texture also hides banding in smooth skies, so no dither (which would double the file size).
+const GRADE = { contrast: 0.22, vignette: 0.3, texture: 0.022, shoulder: 205 }
+
+// Returns the finished picture as RGBA bytes.
+function finish(c) {
+  bloom(c)
+  const out = new Uint8Array(OW * OH * 4)
+  const seed = Math.floor(c.random() * 1e6)
+  for (let py = 0; py < OH; py++) {
+    for (let px = 0; px < OW; px++) {
+      const i = py * OW + px
+      const [nx, ny] = [(px + 0.5) / OW - 0.5, (py + 0.5) / OH - 0.5]
+      const edge = Math.hypot(nx * 1.15, ny) * 2
+      const vignette = 1 - GRADE.vignette * Math.min(1, Math.max(0, (edge - 0.55) / 0.75)) ** 1.5
+      const texture = 1 + GRADE.texture * (valueNoise(px / 40, py / 40, seed) * 2 - 1)
+      for (let k = 0; k < 3; k++) {
+        let v = c.rgb[i * 3 + k]
+        // Bright light rolls off towards white instead of clipping.
+        if (v > GRADE.shoulder) v = GRADE.shoulder + (v - GRADE.shoulder) / (1 + (v - GRADE.shoulder) / (255 - GRADE.shoulder))
+        let n = Math.min(1, Math.max(0, v / 255))
+        n += GRADE.contrast * (n * n * (3 - 2 * n) - n)
+        out[i * 4 + k] = Math.min(255, Math.max(0, Math.round(n * vignette * texture * 255)))
+      }
+      out[i * 4 + 3] = 255
+    }
+  }
+  return out
 }

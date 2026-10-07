@@ -4,6 +4,11 @@
   image-rendering: pixelated;
 }
 
+/* The v2 sample art is drawn at 4x resolution, so it is scaled smoothly rather than as pixel art. */
+image[href*='/art/tiles-v2/'] {
+  image-rendering: auto;
+}
+
 .tilemap-tile.is-live {
   animation: tilemap-blink 0.6s steps(2) infinite;
 }
@@ -18,4 +23,140 @@
 
 .tilemap-block.is-ghost {
   opacity: 0.35;
+}
+
+.tilemap-block {
+  transition: opacity 0.2s;
+}
+
+.tilemap-block.is-faded {
+  opacity: 0.3;
+}
+
+/* Two-tile wall panels (maps/wallPanels.js): dark see-through lines so they suit every wall colour. */
+.wall-panel-edge {
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 1.5;
+}
+
+.wall-panel-trim {
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 1;
+}
+
+.wall-window-frame {
+  fill: rgba(28, 34, 40, 0.92);
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 0.8;
+}
+
+.wall-window-frame-light {
+  stroke: rgba(210, 225, 240, 0.35);
+  stroke-width: 0.8;
+}
+
+.wall-window {
+  fill: rgb(8, 16, 30);
+}
+
+/* Interior light falling on the lower glass. */
+.wall-window-glow {
+  fill: rgba(90, 150, 220, 0.16);
+}
+
+.wall-window-reflection {
+  fill: rgba(190, 225, 255, 0.13);
+}
+
+.wall-window-mullion {
+  stroke: rgba(28, 34, 40, 0.95);
+  stroke-width: 2.2;
+}
+
+.wall-window-sill {
+  stroke: rgba(225, 235, 245, 0.4);
+  stroke-width: 1.2;
+}
+
+.wall-star {
+  fill: rgba(235, 242, 255, 0.9);
+  animation: wall-star-twinkle 4s ease-in-out infinite;
+}
+
+@keyframes wall-star-twinkle {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.25; }
+}
+
+/* Long Star Trek wall fittings (tiles.json panelFitting). */
+.wall-fit-frame {
+  fill: rgba(22, 28, 33, 0.94);
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 0.8;
+}
+
+.wall-fit-blink {
+  animation: tilemap-status 1.4s steps(1) infinite;
+}
+
+.wall-fit-pulse {
+  animation: tilemap-pulse 2.8s ease-in-out infinite;
+}
+
+/* Animated light overlays (tileArtSets.json animations): light-only images screened over their tile. */
+.tilemap-light {
+  mix-blend-mode: screen;
+}
+
+.tilemap-light.is-pulse {
+  animation: tilemap-pulse 2.8s ease-in-out infinite;
+}
+
+.tilemap-light.is-blink {
+  animation: tilemap-status 1.4s steps(1) infinite;
+}
+
+.tilemap-light.is-flicker {
+  animation: tilemap-flicker 3.2s linear infinite;
+}
+
+@keyframes tilemap-pulse {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.95; }
+}
+
+@keyframes tilemap-status {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes tilemap-flicker {
+  0%, 100% { opacity: 0.45; }
+  8% { opacity: 0.9; }
+  10% { opacity: 0.25; }
+  12% { opacity: 0.85; }
+  40% { opacity: 0.6; }
+  70% { opacity: 0.95; }
+  72% { opacity: 0.35; }
+  74% { opacity: 0.8; }
+}
+
+/* Light pools round glowing tiles breathe with them. */
+.tilemap-glows ellipse {
+  animation: tilemap-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes tilemap-glow {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilemap-light,
+  .tilemap-glows ellipse,
+  .wall-fit-blink,
+  .wall-fit-pulse,
+  .wall-star {
+    animation: none;
+  }
 }

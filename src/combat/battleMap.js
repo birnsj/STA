@@ -3,7 +3,7 @@
 import { getTile, WALL_TILE } from '../maps/mapFormat.js'
 
 // Combat only needs the grid of a parsed map file.
-export const toBattleMap = (mapFile) => ({ width: mapFile.width, height: mapFile.height, tiles: mapFile.tiles })
+export const toBattleMap = (mapFile) => ({ width: mapFile.width, height: mapFile.height, tiles: mapFile.tiles, rotated: mapFile.rotated, ambient: mapFile.ambient })
 
 export const tileKey = ({ x, y }) => `${x},${y}`
 export const samePosition = (a, b) => a.x === b.x && a.y === b.y

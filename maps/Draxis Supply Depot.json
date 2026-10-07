@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "name": "Draxis Supply Depot",
+  "episodeName": "A Spark in the Dark",
+  "card": "/art/episodes/Draxis%20Supply%20Depot.png?v=1791338209799",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "snowSquall",
+  "rows": [
+    "********I***I***i***",
+    "*k*************ii***",
+    "***************i****",
+    "***k**********iii***",
+    "*****QQQQQ***ii**kk*",
+    "*****Q...D==*****k**",
+    "*****Q...D***I*I****",
+    "*VVV*Q.c.QcVVV*****V",
+    "VV***QQQQQc*=VV**VVV",
+    "**k*********=***VV**",
+    "**********QDDQ*II***",
+    "k*********Q..Q******",
+    "**i*******Q..Q******",
+    "kii*i**II*QQQQ******",
+    "*iiiii**I***********",
+    "iiii*k**I***********"
+  ],
+  "areas": [
+    {
+      "name": "Field Lab",
+      "position": [
+        6,
+        5
+      ]
+    },
+    {
+      "name": "Equipment Shed",
+      "position": [
+        11,
+        11
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        7
+      ],
+      [
+        0,
+        12
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        9
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        3
+      ],
+      [
+        19,
+        13
+      ],
+      [
+        19,
+        10
+      ],
+      [
+        19,
+        15
+      ]
+    ]
+  }
+}

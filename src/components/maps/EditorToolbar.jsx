@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
+import { FULL_LIGHT, MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
 import { BIOME_WORLDS, BIOMES, LOCATION_GROUPS, MAP_GENERATORS, MAP_SIZES, sizeFor, sizeIdOf, usesBiome } from '../../maps/mapGenerators.js'
 import { isIndoors, weatherOptions } from '../../maps/mapWeather.js'
 
@@ -119,6 +119,17 @@ function WeatherControls({ map, onWeather, showWeather, onShowWeather }) {
   )
 }
 
+// The map's light level, saved with it (mapFormat.js ambient): 0 is pitch dark, 100 normal.
+function AmbientSlider({ map, onAmbient }) {
+  return (
+    <label className="me-ambient" title="Ambient light: how dark the map is. Glowing tiles stay lit in the dark.">
+      Light
+      <input type="range" min="0" max={FULL_LIGHT} step="5" value={map.ambient ?? FULL_LIGHT} aria-label="Ambient light" onChange={(event) => onAmbient(Number(event.target.value))} />
+      <span className="me-ambient-value">{map.ambient ?? FULL_LIGHT}%</span>
+    </label>
+  )
+}
+
 export default function EditorToolbar({
   map,
   canSave,
@@ -129,6 +140,7 @@ export default function EditorToolbar({
   onWeather,
   showWeather,
   onShowWeather,
+  onAmbient,
   onSize,
   onResize,
   onNew,
@@ -153,6 +165,7 @@ export default function EditorToolbar({
         onShowWeather={onShowWeather}
         onSize={onSize}
       />
+      <AmbientSlider map={map} onAmbient={onAmbient} />
       <SizeFields width={map.width} height={map.height} onResize={onResize} />
       <button type="button" className="me-button" onClick={onNew}>
         New

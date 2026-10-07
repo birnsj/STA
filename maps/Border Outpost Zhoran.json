@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "name": "Border Outpost Zhoran",
+  "episodeName": "The Final Hold",
+  "card": "/art/episodes/Border%20Outpost%20Zhoran.png?v=1791338262099",
+  "mapType": "outpost",
+  "biome": "iceField",
+  "weather": "diamondDust",
+  "rows": [
+    "***********c*VV*****",
+    "*****QQQQQQ*********",
+    "**===D..c.Q*VV*I****",
+    "Ii***D....Q*VV******",
+    "iiii*Q.c..Q*V*******",
+    "ii***QQQQQQc*******k",
+    "********c***VV***k**",
+    "********I****V*iI***",
+    "k************V*i***I",
+    "*************Vii*k**",
+    "***********I*ii****k",
+    "**************ii****",
+    "**********k**iiV****",
+    "k********I*****VV***",
+    "**********II***kV***",
+    "*k********II****V***"
+  ],
+  "areas": [
+    {
+      "name": "Generator Hut",
+      "position": [
+        6,
+        2
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        14
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        4
+      ],
+      [
+        19,
+        7
+      ],
+      [
+        19,
+        3
+      ],
+      [
+        19,
+        13
+      ]
+    ]
+  }
+}

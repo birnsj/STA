@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Main Bridge",
+  "episodeName": "Siege of Main Bridge",
+  "card": "/art/episodes/Main%20Bridge.png?v=1791340856894",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "redAlert",
+  "rows": [
+    "####################",
+    "#.c...#c.c....c#...#",
+    "#.....#c......c#c..#",
+    "#....c#.......c#...#",
+    "#.....#........#...#",
+    "#....c#M.......D...#",
+    "#c....D........D..c#",
+    "#...c.D.c......#c..#",
+    "##DD#####DD######DD#",
+    "#.....#cc..Ec..#...#",
+    "#M....D...hh...D..c#",
+    "#M....D...hh...D...#",
+    "#M....#....c...#.c.#",
+    "####################"
+  ],
+  "areas": [
+    {
+      "name": "Astrometrics Lab",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Deck 10 Brig",
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "name": "Shuttlebay 2",
+      "position": [
+        16,
+        1
+      ]
+    },
+    {
+      "name": "Deck 12 EPS Maintenance Section",
+      "position": [
+        1,
+        9
+      ]
+    },
+    {
+      "name": "Deck 8 Jefferies Tube Junction",
+      "position": [
+        9,
+        9
+      ]
+    },
+    {
+      "name": "Phaser Control Room",
+      "position": [
+        16,
+        9
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        18,
+        7
+      ],
+      [
+        17,
+        3
+      ],
+      [
+        16,
+        6
+      ],
+      [
+        18,
+        2
+      ]
+    ],
+    "enemySpawns": [
+      [
+        5,
+        12
+      ],
+      [
+        4,
+        10
+      ],
+      [
+        2,
+        12
+      ],
+      [
+        3,
+        10
+      ]
+    ]
+  }
+}
