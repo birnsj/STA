@@ -7,10 +7,11 @@ import { getTile, isRotated } from './mapFormat.js'
 // half: 0 or 1 (which tile of the panel). window: whether the panel has a window.
 const key = (x, y) => `${x},${y}`
 
-// Pairs up a run of tiles (in order along it) into panels, alternating plain and window panels.
-function pairRun(run, axis, panels) {
+// Pairs up a run of tiles (in order along it) into panels, alternating plain and window panels (or all plain for a
+// wall without windows).
+function pairRun(run, axis, panels, windows) {
   for (let index = 0; index + 1 < run.length; index += 2) {
-    const window = (index / 2) % 2 === 1
+    const window = windows && (index / 2) % 2 === 1
     panels.set(run[index], { axis, half: 0, window })
     panels.set(run[index + 1], { axis, half: 1, window })
   }
@@ -30,7 +31,7 @@ export function getWallPanels(map) {
       let run = []
       let runTile = null
       const flush = () => {
-        if (run.length > 1) pairRun(run, axis, panels)
+        if (run.length > 1) pairRun(run, axis, panels, getTile(runTile).windows !== false)
         run = []
         runTile = null
       }

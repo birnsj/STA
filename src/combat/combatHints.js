@@ -1,5 +1,5 @@
 // The one-line instruction shown during combat: what the player can do next, from the combat state and the UI selection.
-import { actionsLeft, actionsLeftText, ADAPTATION_MOMENTUM_SPENDS, canAimReroll, getActiveCombatant, getMovementBlock, getMovementLeft, rollAwaitsPlayer } from './combatState.js'
+import { actionsLeft, actionsLeftText, ADAPTATION_MOMENTUM_SPENDS, canAimReroll, canAssistReroll, getActiveCombatant, getMovementBlock, getMovementLeft, rollAwaitsPlayer } from './combatState.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 import { getInjuryMode } from './weaponSystem.js'
 
@@ -12,6 +12,7 @@ function rollHint(state) {
     const options = []
     const aimDice = pending.dice.filter((value, index) => value > pending.task.targetNumber && canAimReroll(pending, index)).length
     if (aimDice) options.push(pending.aimRerolls > 1 ? `Aim reroll (${pending.aimRerolls} left)` : 'Aim reroll')
+    if (canAssistReroll(pending)) options.push('Student of War reroll')
     if (ADAPTATION_MOMENTUM_SPENDS && state.resources.momentum) options.push('Momentum reroll (1 Momentum)')
     return `This misses: you need ${plural(pending.task.difficulty, 'success')}. Use ${options.join(' or ')} on a red die, or click No Reroll.`
   }

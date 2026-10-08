@@ -27,6 +27,7 @@
 body {
   margin: 0;
   overflow: hidden;
+  cursor: default;
 }
 
 /* Art is part of the interface: no drag, no selection, and no iPad/iPhone press-and-hold menu (Save Image, Copy...). */
@@ -109,6 +110,10 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+label:has(> input:is([type='checkbox'], [type='radio'])) {
+  cursor: pointer;
 }
 
 h1,

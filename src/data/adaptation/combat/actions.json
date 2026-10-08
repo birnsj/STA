@@ -1,7 +1,7 @@
 {
   "notes": [
     "Book (STA 2e Core p.288): in any turn a combatant attempts one major action and one minor action (actionsPerTurn). Designer decision (Oct 2026, replacing the earlier 2 AP rule): Combat Type 1 uses this. Each action's type is 'major', 'minor' or 'free'.",
-    "Book (p.288, p.260): a second major action for 2 Momentum (the task is +1 Difficulty; Swift Action), and an Extra Minor Action for 1 Momentum (once per turn: each minor action may only be performed once per turn). Nobody attempts more than two major actions in a round; Direct gives an ally a second one with no +1 but never a third. NPCs pay with Threat (hook: the AI doesn't buy them yet).",
+    "Book (p.288, p.260): a second major action for 2 Momentum (the task is +1 Difficulty; Swift Action), and an Extra Minor Action for 1 Momentum (once per turn: each minor action may only be performed once per turn). Nobody attempts more than two major actions in a round; Direct gives an ally a second one with no +1 but never a third. NPCs pay with Threat (Book p.264, p.324: Threat mirrors group Momentum). Designer decision (Oct 2026): enemies buy both, and bonus d20s, with Threat; when they do so is enemy AI tuning in combatAI.js.",
     "Book (p.288): the Movement minor action (Move) cannot be taken in the same turn as the Movement major action (Sprint), nor while any enemy is within Reach. The book gives no disengage rule and none is added: Sprint is still allowed next to an enemy.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically.",
     "selfRing: the acting character's own actions around them; only the ones possible right now are shown (contextual actions: First Aid, Direct, Guard, challenge objects in reach, Extra Minor, Second Major).",
@@ -59,10 +59,10 @@
       "name": "Sprint",
       "type": "major",
       "implemented": true,
-      "description": "Once per turn, not in a turn you Move: run up to half your movement (rounded up), no roll. End next to a cover object to be in cover.",
+      "description": "Once per turn, not in a turn you Move: run up to twice your movement, no roll. End next to a cover object to be in cover.",
       "notes": [
-        "Book (STA 2e Core p.288): Sprint is a major action (move two zones); not in the same turn as the Movement minor action.",
-        "Designer decision (Oct 2026): no roll, ceil(movement / 2) tiles; everyone (party and Klingons) and every AI can use it. Not an attack, so it doesn't end the Ambush chance."
+        "Book (STA 2e Core p.289): Sprint is a major action (move two zones, within Long range; Move goes one zone, within Medium range, p.288); not in the same turn as the Movement minor action.",
+        "Designer decision (Oct 2026): no roll, movement x 2 tiles (two zones to Move's one); everyone (party and Klingons) and every AI can use it. Not an attack, so it doesn't end the Ambush chance."
       ]
     },
     { "id": "assist", "name": "Assist", "type": "major", "implemented": true, "description": "Pick an ally who still has a turn this round. Their next task this round (an attack, Guard, First Aid or an object task) adds your 1d20; its successes count if they score at least one." },

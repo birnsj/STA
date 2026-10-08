@@ -22,22 +22,16 @@
   },
   "equipSlotsNote": "Provisional slot names, not yet an approved design: body, sidearm, scanner, communicator. null = carried in inventory, not equipped.",
   "statDisplay": {
-    "note": "Display order and labels for stats. 'bands' turns a numeric value into a word on screen; the number stays the tuning value.",
-    "order": ["damage", "range", "accuracy", "charges", "scan", "medical", "engineering", "security", "protection"],
+    "note": "Display order and labels for stats. 'bands' turns a numeric value into a word on screen; the number stays the tuning value. Weapon stats (severity, range) are not kept here: combat/weapons.json owns them, linked by itemId, and the display reads them from there.",
+    "order": ["scan", "medical", "engineering", "security", "protection"],
     "labels": {
-      "damage": "Damage",
-      "range": "Range",
-      "accuracy": "Accuracy",
-      "charges": "Charges",
       "scan": "Scan",
       "medical": "Medical",
       "engineering": "Engineering",
       "security": "Security",
       "protection": "Protection"
     },
-    "bands": {
-      "range": { "1": "Close", "2": "Medium", "3": "Long" }
-    }
+    "bands": {}
   },
   "items": [
     {
@@ -105,8 +99,7 @@
       "icon": "/art/items/phaser_type1.png",
       "description": "Compact Starfleet hand phaser.",
       "tags": ["phaser", "energyWeapon", "sidearm", "stun"],
-      "equipSlot": "sidearm",
-      "stats": { "damage": 3, "range": 1, "accuracy": 2, "charges": 6 }
+      "equipSlot": "sidearm"
     },
     {
       "id": "phaserType2",
@@ -115,8 +108,7 @@
       "icon": "/art/items/phaser_type2.png",
       "description": "Larger hand phaser for serious tactical situations.",
       "tags": ["phaser", "energyWeapon", "sidearm", "stun"],
-      "equipSlot": "sidearm",
-      "stats": { "damage": 4, "range": 2, "accuracy": 2, "charges": 10 }
+      "equipSlot": "sidearm"
     },
     {
       "id": "medkit",

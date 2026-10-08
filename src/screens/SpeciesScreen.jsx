@@ -89,8 +89,9 @@ export default function SpeciesScreen({ step, navigation }) {
             <div className="species-ability">
               <p className="species-ability-head">
                 <span className="species-ability-label">Species Ability</span>
+                <span className="species-ability-name">{abilityGap.label}</span>
               </p>
-              <p className="species-ability-text">Not yet defined for this option.</p>
+              <p className="species-ability-text">{abilityGap.note}</p>
             </div>
           )}
           <div className="species-details-scroll">
@@ -133,6 +134,7 @@ export default function SpeciesScreen({ step, navigation }) {
                 selection={selection}
                 genderId={gender?.id}
                 onParentChange={(index, speciesId) => dispatch({ type: 'setSpeciesParent', index, speciesId })}
+                onPrimaryChange={(speciesId) => dispatch({ type: 'setSpeciesPrimary', speciesId })}
                 onNameChange={(name) => dispatch({ type: 'setNewSpeciesName', name })}
                 onDescriptionChange={(description) => dispatch({ type: 'setNewSpeciesDescription', description })}
               />

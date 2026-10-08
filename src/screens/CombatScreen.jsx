@@ -39,7 +39,7 @@ import { prepareAssist } from '../rules/taskPreparation.js'
 import { autoCombatReducer, chooseAIStep } from '../combat/autoCombat.js'
 import { getMovementTiles, getSprintTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
-import { getInjuryMode, getWeapon } from '../combat/weaponSystem.js'
+import { getCombatantWeapon, getInjuryMode, getWeapon } from '../combat/weaponSystem.js'
 import Battlefield from '../components/combat/Battlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
@@ -202,7 +202,7 @@ function choiceRing(state, choice) {
     info: null,
     buttons: buttons.map((button) => ({ ...button, enabled: false, active: button.id === chosenId, title: button.id === chosenId ? `${actor.character.name} chose ${button.label}` : button.label })),
   })
-  const weapon = getWeapon(choice.weaponId ?? actor.weaponIds[0])
+  const weapon = getCombatantWeapon(actor, choice.weaponId ?? actor.weaponIds[0])
   if (choice.type === 'attack') return show(choice.targetId, enemyButtonDefs(weapon), choice.injuryMode)
   if (choice.type === 'aim' && choice.targetId) return show(choice.targetId, enemyButtonDefs(weapon), 'aim')
   if (choice.type === 'assist') return show(choice.allyId, [{ id: 'assist', label: 'Assist', icon: 'assist' }], 'assist')
@@ -311,7 +311,7 @@ export function Battle({
     onHelpSeen()
   }
 
-  const weapon = getWeapon(weaponIds[active.id] ?? active.weaponIds[0])
+  const weapon = getCombatantWeapon(active, weaponIds[active.id] ?? active.weaponIds[0])
   const target = targetId && isActive(state.combatants[targetId]) ? state.combatants[targetId] : null
   const attackMode = mode === 'attack' && attackChoice && weapon.injuryModes.includes(attackChoice) ? attackChoice : null
   if (attackChoice && !attackMode) setAttackChoice(null)
@@ -907,7 +907,7 @@ export function Battle({
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
-  const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getWeapon(weaponIds[member.id] ?? member.weaponIds[0])]))
+  const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getCombatantWeapon(member, weaponIds[member.id] ?? member.weaponIds[0])]))
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')

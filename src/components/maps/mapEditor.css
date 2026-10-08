@@ -12,14 +12,31 @@
 /* Wraps onto a second row when the window is too narrow, rather than squeezing labels onto two lines. */
 .me-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   min-height: 40px;
   padding: 4px 10px;
   box-sizing: border-box;
   border-bottom: 1px solid #23434a;
   background: #0c1719;
+}
+
+.me-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Light, Room size and Building size kept together as one group. */
+.me-sliders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 2px 8px;
+  border: 1px solid #23434a;
+  border-radius: 2px;
 }
 
 .me-button,
@@ -43,6 +60,8 @@
 .me-name { width: 170px; }
 .me-name.me-episode { width: 100%; box-sizing: border-box; margin-bottom: 3px; }
 .me-generate { width: 100%; margin-bottom: 4px; }
+.me-place { min-width: 118px; }
+.me-place.is-on { border-color: #ffb347; background: #3a2a12; color: #ffb347; }
 .me-number { width: 46px; padding: 4px; }
 .me-select { max-width: 140px; }
 .me-size {
@@ -91,6 +110,20 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+.me-collapse-all {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid #3f6f78;
+  border-radius: 2px;
+  background: #13272b;
+  color: #ffb347;
+  font: inherit;
+  font-size: 10px;
+  line-height: 14px;
+  cursor: pointer;
+}
+.me-collapse-all:disabled { opacity: 0.35; cursor: default; }
 
 .me-text {
   margin: 0 0 4px;
@@ -283,17 +316,15 @@
 .me-ambient input { width: 90px; accent-color: #f2a33a; }
 .me-ambient-value { min-width: 3.2em; font-variant-numeric: tabular-nums; }
 
-/* Generate Map's Room size / Building size sliders, in the side panel. */
+/* Generate Map's Room size / Building size sliders, in the top bar like Light. */
 .me-scale {
-  display: grid;
-  grid-template-columns: 1fr 3.2em;
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 2px 6px;
-  margin-bottom: 6px;
-  color: #9fb9bd;
+  gap: 6px;
+  white-space: nowrap;
 }
-.me-scale-label { grid-column: 1 / -1; }
-.me-scale input { width: 100%; accent-color: #f2a33a; }
+.me-scale input { width: 90px; accent-color: #f2a33a; }
 
 .me-board-area {
   position: relative;
@@ -337,7 +368,54 @@
   shape-rendering: crispEdges;
 }
 
-/* Tile animations off: the palette previews and the brush stop animating (the board itself is drawn still). */
+/* The board's canvas, with a light layer canvas per animation and timing group stacked over it (EditorCanvas.jsx).
+   Each layer's opacity runs the game's animation (maps.css); its resting opacity is the steady brightness shown with
+   Tile animations off, roughly the animation's average. */
+.me-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.me-canvas canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.me-light-layer {
+  mix-blend-mode: screen;
+}
+
+.me-light-layer.is-pulse {
+  opacity: 0.55;
+  animation: tilemap-pulse 2.8s ease-in-out infinite;
+}
+
+.me-light-layer.is-blink {
+  opacity: 1;
+  animation: tilemap-status 1.4s steps(1) infinite;
+}
+
+.me-light-layer.is-flicker {
+  opacity: 0.65;
+  animation: tilemap-flicker 3.2s linear infinite;
+}
+
+.me-light-layer.is-twinkle {
+  opacity: 0.8;
+  animation: wall-star-twinkle 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me-light-layer {
+    animation: none;
+  }
+}
+
+/* Tile animations off: the board's lights, the palette previews and the brush stop animating. */
 .me-screen.is-still .me-board *,
 .me-screen.is-still .me-palette * {
   animation: none !important;

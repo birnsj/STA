@@ -54,7 +54,7 @@
     "Screen 07 is Book Step Seven. Assignment and Rank from Step Seven are on Screen 05.",
     "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step. Pronouns are from p.132 and, as in the book, required.",
     "Player-facing text never labels anything as a book rule, adaptation, or original system; provenance stays in data (sourceType) and these notes.",
-    "Prototype: the mockup's Service Motto and Personal Goals are not implemented (Service Motto would duplicate Values).",
+    "Designer decision (Oct 2026): the mockup's Service Motto and Personal Goals are dropped from the design (Service Motto would duplicate Values).",
     "Limits follow the book: when scores exceed them, the player chooses which tied score keeps the maximum and where each reduced point goes.",
     "The mockup's Randomize category is replaced by the per-screen Auto button. Category images point into public/; missing files fall back to the placeholder portrait."
   ]

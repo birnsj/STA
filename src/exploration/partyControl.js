@@ -7,6 +7,7 @@
 // A move order goes to the selected characters only: the lead character walks to the point and the other selected
 // characters follow in formation. Characters outside the selection keep whatever they were doing.
 import data from '../data/adaptation/exploration/partyControl.json'
+import { isDefeated } from '../rules/personalCondition.js'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
 import { distance, isClearLine, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
@@ -69,6 +70,19 @@ export function createPartyState(map, characters) {
 export const getMembers = (state) => state.memberIds.map((id) => state.members[id])
 export const isSelected = (state, id) => state.selectedIds.includes(id)
 
+// A Defeated character stays where they fell: they can't be selected, lead or follow.
+export const canAct = (member) => Boolean(member) && !isDefeated(member.condition)
+
+// After a fight: anyone Defeated drops out of the selection and the lead. If no one selected can act, the whole team
+// that can is selected. With everyone down the lead stays put (the camera follows it) and nothing is selected.
+export function withAbleSelection(state) {
+  const able = state.memberIds.filter((id) => canAct(state.members[id]))
+  const kept = state.selectedIds.filter((id) => able.includes(id))
+  const selectedIds = kept.length ? kept : able
+  const leaderId = selectedIds.includes(state.leaderId) ? state.leaderId : (selectedIds[0] ?? state.leaderId)
+  return { ...state, selectedIds, leaderId }
+}
+
 // Where every following character is heading right now: { [id]: point }. Worked out per leader so the followers'
 // spots never coincide, and kept clear of anyone standing still outside the group.
 export function getFollowTargets(state) {
@@ -93,7 +107,7 @@ export function getFollowTargets(state) {
 export function getCohesion(state) {
   const leader = state.members[state.leaderId]
   if (!leader) return 'separated'
-  const members = getMembers(state)
+  const members = getMembers(state).filter(canAct)
   const groupOf = (member) => (member.order?.type === 'follow' ? member.order.leaderId : member.id)
   if (new Set(members.map(groupOf)).size === 1) return 'grouped'
   const field = walkingDistances(state.map, tileOf(leader.position))
@@ -160,11 +174,12 @@ function moveSelection(state, target, fresh) {
 }
 
 function regroup(state) {
-  const leaderId = state.members[state.leaderId] ? state.leaderId : state.memberIds[0]
+  const able = state.memberIds.filter((id) => canAct(state.members[id]))
+  const leaderId = able.includes(state.leaderId) ? state.leaderId : able[0]
   if (!leaderId) return state
   const leader = state.members[leaderId]
-  const followerIds = state.memberIds.filter((id) => id !== leaderId)
-  return { ...state, selectedIds: [...state.memberIds], leaderId, members: formUp(state, state.members, leaderId, followerIds, leader.heading) }
+  const followerIds = able.filter((id) => id !== leaderId)
+  return { ...state, selectedIds: able, leaderId, members: formUp(state, state.members, leaderId, followerIds, leader.heading) }
 }
 
 function changeFormation(state, formationId) {
@@ -356,10 +371,10 @@ export function partyReducer(state, action) {
       return createPartyState(action.map, action.characters)
     // Selects one character only: they lead, and only they receive move orders.
     case 'select':
-      return state.members[action.id] ? { ...state, selectedIds: [action.id], leaderId: action.id } : state
+      return canAct(state.members[action.id]) ? { ...state, selectedIds: [action.id], leaderId: action.id } : state
     // Adds a character to the selection or takes them out of it; the last selected character stays selected.
     case 'toggleSelect': {
-      if (!state.members[action.id]) return state
+      if (!canAct(state.members[action.id])) return state
       if (!isSelected(state, action.id)) {
         const selectedIds = state.memberIds.filter((id) => id === action.id || isSelected(state, id))
         return { ...state, selectedIds, leaderId: state.selectedIds.length ? state.leaderId : action.id }

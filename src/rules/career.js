@@ -94,10 +94,13 @@ export function getMinimumRank(assignmentId) {
 }
 
 // Why an assignment can't be taken, or null. Book p.132: enlisted never get CO or XO.
-// Prototype: a Novice can't take the roles listed in career.json.
+// Prototype: a Novice can't take the roles listed in career.json, and nor can a character who can only be No Rank.
 export function getAssignmentBlock(character, assignmentId) {
   if (getRankType(character) === 'enlisted' && rankSource.enlistedExcludedAssignments.assignments.includes(assignmentId)) {
     return 'Not for enlisted'
+  }
+  if (getRankType(character) === 'none' && careerAdaptation.noRankExcludedAssignments.includes(assignmentId)) {
+    return 'Not for No Rank'
   }
   if (character.career.length?.id === 'novice' && careerAdaptation.noviceExcludedAssignments.includes(assignmentId)) {
     return 'Not for Novice'
@@ -133,10 +136,12 @@ export function isBelowVeteranFloor(character, rankId) {
 }
 
 // Prototype: assignment minimum ranks apply to officer ranks only; the book gives none for enlisted or unranked characters.
+// No Rank is never allowed for the assignments in career.json noRankExcludedAssignments (a Diplomat must take a rank).
 export function isRankAllowed(character, rankId) {
   const { career } = character
   const rank = getRankOptions(character).find((option) => option.id === rankId)
   if (!career.assignment || !rank || isAboveNoviceCap(character, rankId) || isBelowVeteranFloor(character, rankId)) return false
+  if (rank.type === 'none') return !careerAdaptation.noRankExcludedAssignments.includes(career.assignment.id)
   if (rank.type !== 'officer') return true
   return rankOrder.indexOf(rankId) >= rankOrder.indexOf(getMinimumRank(career.assignment.id).id)
 }

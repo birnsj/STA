@@ -18,28 +18,33 @@ import {
   takeHit,
 } from '../rules/personalCondition.js'
 import { updateCombatant, withStats } from './combatLog.js'
-import { statusText } from './combatSelectors.js'
+import { getTurnOf, knowsAbout, statusText } from './combatSelectors.js'
+import { talentSeverityLines } from './combatTalents.js'
 import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
-import { getWeapon } from './weaponSystem.js'
+import { getCombatantWeapon } from './weaponSystem.js'
 
-// The Injury a successful hit with this weapon would inflict on this target: the weapon's severity, plus severity bought
-// with Momentum (hook), less the target's Protection (minimum 1).
-export function injuryFor(state, attacker, target, weapon, injuryModeId, addedSeverity = 0) {
+// The Injury a successful hit with this weapon would inflict on this target: the weapon's severity, plus the attacker's
+// talents (combatTalents.js) and severity bought with Momentum (hook), less the target's Protection (minimum 1).
+// situation: { aimed, targetUnaware } as the attack was made; by default, as things stand now (previews, the AI).
+export function injuryFor(state, attacker, target, weapon, injuryModeId, addedSeverity = 0, situation = {}) {
+  const { aimed = getTurnOf(state, attacker.id).aimReroll, targetUnaware = !knowsAbout(state, target, attacker) } = situation
   const protection = getProtection(target.character, { injuryType: injuryModeId, inCover: target.inCover })
-  return buildInjury({ id: `${state.seed}-${state.log.length}-${target.id}`, type: injuryModeId, weapon, attacker, addedSeverity, protection })
+  const talentSeverity = talentSeverityLines(attacker.character, weapon, { aimed, targetUnaware })
+  return buildInjury({ id: `${state.seed}-${state.log.length}-${target.id}`, type: injuryModeId, weapon, attacker, addedSeverity, protection, talentSeverity })
 }
 
 // The Injury a hit would inflict with each of the weapon's settings (for the Task panel).
 export function previewInjuries(state, attackerId, targetId, weaponId) {
   const attacker = state.combatants[attackerId]
   const target = state.combatants[targetId]
-  const weapon = getWeapon(weaponId)
+  const weapon = attacker && getCombatantWeapon(attacker, weaponId)
   if (!attacker || !target || !weapon) return []
   return weapon.injuryModes.map((mode) => injuryFor(state, attacker, target, weapon, mode))
 }
 
 const severityText = (injury) => {
   const parts = [`${injury.source.weaponName ?? 'weapon'} ${injury.baseSeverity}`]
+  ;(injury.talentSeverity ?? []).forEach((line) => parts.push(`+${line.change} ${line.label}`))
   if (injury.addedSeverity) parts.push(`+${injury.addedSeverity} Momentum`)
   if (injury.protection) parts.push(`-${injury.protection} Protection`)
   return parts.length > 1 ? ` (${parts.join(' ')}, minimum 1)` : ''

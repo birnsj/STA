@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
-import { ACTIVE_TILE_ART, setTileArt, TILE_ART_SETS } from '../../maps/tileArt.js'
 import { TilePreview } from './IsoTiles.jsx'
-
-// The art set is applied when the tile catalogue loads, so switching reloads the page.
-function switchTileArt(id) {
-  if (window.confirm('Switching tile art reloads the page. Unsaved map changes will be lost. Continue?')) setTileArt(id)
-}
 
 // The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
 // and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'area' | 'erase'.
@@ -61,6 +55,7 @@ function FlagBox({ tile, box, onStatus }) {
   )
 }
 
+// The tile list only chooses which tile the brush holds; the toolbar's Place Tiles turns painting on.
 export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks, animateTiles, onAnimateTiles, showLighting, onShowLighting, onStatus }) {
   // UI state: which categories are open. Starts with just the selected tile's category open.
   const [open, setOpen] = useState(() => new Set(GROUPS.filter((group) => group.tiles.some((tile) => tool === `tile:${tile.id}`)).map((group) => group.id)))
@@ -80,7 +75,16 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
         const startsSection = group.section && group.section !== GROUPS[index - 1]?.section
         return (
           <div key={group.id} className="me-group">
-            {startsSection && <p className="me-section">{group.section}</p>}
+            {startsSection && (
+              <p className="me-section">
+                {group.section}
+                {index === 0 && (
+                  <button type="button" className="me-collapse-all" title="Collapse all groups" aria-label="Collapse all groups" disabled={!open.size} onClick={() => setOpen(new Set())}>
+                    ▴
+                  </button>
+                )}
+              </p>
+            )}
             <button type="button" className="me-group-tag" aria-expanded={isOpen} onClick={() => toggle(group.id)}>
               <span className="me-group-arrow" aria-hidden="true">
                 {isOpen ? '▾' : '▸'}
@@ -123,7 +127,7 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
         <input type="checkbox" checked={ghostBlocks} onChange={(event) => onGhostBlocks(event.target.checked)} />
         See-through blocks
       </label>
-      <label className="me-check" title="Blinking lights and window stars in the tile list and the brush. The map itself is drawn still.">
+      <label className="me-check" title="Blinking lights and window stars on the map, in the tile list and in the brush. Off, the map's lights hold a steady brightness.">
         <input type="checkbox" checked={animateTiles} onChange={(event) => onAnimateTiles(event.target.checked)} />
         Tile animations
       </label>
@@ -131,12 +135,6 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
         <input type="checkbox" checked={showLighting} onChange={(event) => onShowLighting(event.target.checked)} />
         Lighting
       </label>
-      {TILE_ART_SETS.map((set) => (
-        <label key={set.id} className="me-check">
-          <input type="checkbox" checked={ACTIVE_TILE_ART?.id === set.id} onChange={(event) => switchTileArt(event.target.checked ? set.id : null)} />
-          {set.label}
-        </label>
-      ))}
     </div>
   )
 }

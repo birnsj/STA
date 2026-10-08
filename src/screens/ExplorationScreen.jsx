@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import CharacterInspector from '../components/CharacterInspector.jsx'
+import FrameRate from '../components/FrameRate.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
@@ -34,6 +35,7 @@ function DebugPanel({ state, mode, lastCombat, onSpacing, onClose }) {
     <div className="combat-panel explore-debug-panel">
       <p className="combat-panel-title">Party Debug</p>
       <dl className="explore-debug-facts">
+        <FrameRate />
         <dt>Game mode</dt>
         <dd>{mode}</dd>
         {lastCombat && (

@@ -15,33 +15,41 @@
 //   with the Minor action free, when exposed to fire, move next to cover if a shot is still available from there,
 //   otherwise Aim when it can still change the result; after attacking, move into cover with the Minor action if
 //   possible; with no shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly.
-// Neither profile buys bonus d20s yet (conservative default): attacks go out with no purchase. The attack action already
-// takes one (purchase: { bonusDice, momentum }; an NPC pays in Threat), so a later AI rule can opt in.
+// Threat (designer decision, Oct 2026: enemies spend it): the enemy profile buys bonus d20s for a doubtful shot, an
+// Extra Minor to Aim after moving into cover, and a Second Major for another shot after attacking, all paid in Threat
+// (Book p.264, p.324). When it does so is AI tuning (thresholds below). The party profile buys nothing.
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getReachableTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
-import { getWeapon } from './weaponSystem.js'
+import { getCombatantWeapon } from './weaponSystem.js'
 import {
   actionsLeft,
   ADAPTATION_MOMENTUM_SPENDS,
   canAfford,
   canAimReroll,
+  canAssistReroll,
   canMove,
   canSprint,
   evaluateAttack,
+  EXTRA_ACTIONS,
+  extraMinorBlock,
   getActiveCombatant,
   getAssistableAllies,
   getBlockers,
+  getCombatantList,
   getHitChance,
   getOpponents,
   getReachable,
   injuryFor,
+  isActive,
   previewAttack,
+  secondMajorBlock,
   statusText,
 } from './combatState.js'
 import { getEncounter } from './encounters.js'
-import { getAvoidOption } from '../rules/personalCondition.js'
+import { bonusDiceCost, MAX_BONUS_DICE } from '../rules/missionResources.js'
+import { getAvoidOption, npcCategoryOf } from '../rules/personalCondition.js'
 import { staDieOdds, TASK_DICE } from '../rules/taskResolver.js'
 
 // AI tuning (implementation detail, not rules): how much a covered firing position is worth in Difficulty steps x10,
@@ -50,10 +58,72 @@ const COVER_PREFERENCE = 2
 const MOMENTUM_REROLL_MIN_CHANCE = 0.3
 // The smallest rise in an ally's chance to hit that is worth the Major action on Assist.
 const MIN_ASSIST_GAIN = 0.05
+// Enemy Threat spending (AI tuning): bonus d20s are bought while the chance to hit is below DICE_TARGET_CHANCE and each
+// die adds at least MIN_DIE_GAIN; a Second Major is bought when the second shot (at +1 Difficulty) hits at least
+// SECOND_SHOT_MIN_CHANCE. While a Notable or Major NPC is still fighting, AVOID_RESERVE Threat is kept for its Avoid
+// Injury (it costs the Injury's Severity; 4 is a Type-2 Phaser's).
+const DICE_TARGET_CHANCE = 0.75
+const MIN_DIE_GAIN = 0.05
+const SECOND_SHOT_MIN_CHANCE = 0.4
+const AVOID_RESERVE = 4
 
 const PROFILES = {
-  enemy: { targeting: 'nearest', minorAction: 'coverThenAim', coverAfterAttack: false, assists: false },
-  player: { targeting: 'bestShot', minorAction: 'tactical', coverAfterAttack: true, assists: true },
+  enemy: { targeting: 'nearest', minorAction: 'coverThenAim', coverAfterAttack: false, assists: false, spendsThreat: true },
+  player: { targeting: 'bestShot', minorAction: 'tactical', coverAfterAttack: true, assists: true, spendsThreat: false },
+}
+
+// Threat this combatant's side may spend now, after the reserve for Avoid Injury.
+function spendableThreat(state, self) {
+  const needsReserve = getCombatantList(state).some(
+    (combatant) => combatant.side === self.side && isActive(combatant) && ['notable', 'major'].includes(npcCategoryOf(combatant.character)),
+  )
+  return Math.max(0, state.resources.threat - (needsReserve ? AVOID_RESERVE : 0))
+}
+
+// Bonus d20s to buy with Threat for this shot: { bonusDice, chance, cost } (bonusDice 0 = none).
+function threatDice(state, self, shot) {
+  let best = { bonusDice: 0, chance: getHitChance(state, self.id, shot), cost: 0 }
+  if (!PROFILES[self.side].spendsThreat) return best
+  const budget = spendableThreat(state, self)
+  for (let bonusDice = 1; bonusDice <= MAX_BONUS_DICE && best.chance < DICE_TARGET_CHANCE; bonusDice++) {
+    const cost = bonusDiceCost(bonusDice)
+    if (cost > budget) break
+    const chance = getHitChance(state, self.id, shot, { bonusDice })
+    if (chance - best.chance < MIN_DIE_GAIN) break
+    best = { bonusDice, chance, cost }
+  }
+  return best
+}
+
+// After moving into cover the Minor action is gone: buy an Extra Minor with Threat to Aim before the shot.
+function extraMinorStep(state, self, target, shot) {
+  const { turn } = state
+  if (!PROFILES[self.side].spendsThreat || turn.minor > 0 || turn.major <= 0 || turn.attacks || turn.aimed) return null
+  if (extraMinorBlock(state, self) || spendableThreat(state, self) < EXTRA_ACTIONS.extraMinorCost) return null
+  if (getHitChance(state, self.id, shot) >= 1) return null
+  return {
+    type: 'buyExtraMinor',
+    targetId: target.id,
+    weaponId: shot.weapon.id,
+    decision: 'Spend Threat: extra minor action',
+    reason: `${EXTRA_ACTIONS.extraMinorCost} Threat to Aim at ${target.character.name} (${shotSummary(shot)}).`,
+  }
+}
+
+// After attacking: buy a Second Major with Threat for another shot, when that shot (at +1 Difficulty) is worth it.
+function secondMajorStep(state, self, target) {
+  if (!PROFILES[self.side].spendsThreat || !state.turn.attacks || state.turn.major > 0) return null
+  if (secondMajorBlock(state, self) || spendableThreat(state, self) < EXTRA_ACTIONS.secondMajorCost) return null
+  const bought = { ...state, turn: { ...state.turn, major: 1, secondMajor: true } }
+  const shot = bestShot(bought, self, target)
+  if (!shot) return null
+  const chance = getHitChance(bought, self.id, shot)
+  if (chance < SECOND_SHOT_MIN_CHANCE) return null
+  return {
+    type: 'buySecondMajor',
+    decision: 'Spend Threat: second major action',
+    reason: `${EXTRA_ACTIONS.secondMajorCost} Threat for another shot at ${target.character.name}: ${shotSummary(shot)}, ${Math.round(chance * 100)}% to hit.`,
+  }
 }
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`
@@ -72,7 +142,7 @@ export function injuryModesFor(state, self, weapon) {
 // doesn't count it as usable and looks for a better position instead.
 export function bestShot(state, self, target, fromPosition) {
   const shots = self.weaponIds
-    .filter((weaponId) => injuryModesFor(state, self, getWeapon(weaponId)).length)
+    .filter((weaponId) => injuryModesFor(state, self, getCombatantWeapon(self, weaponId)).length)
     .map((weaponId) => previewAttack(state, self.id, target.id, weaponId, fromPosition))
     .filter((shot) => shot.available && shot.task.difficulty <= TASK_DICE)
   return shots.sort((a, b) => a.task.difficulty - b.task.difficulty || b.task.targetNumber - a.task.targetNumber)[0] ?? null
@@ -119,13 +189,18 @@ function threatsTo(state, self) {
 export const shotSummary = (shot) => `${shot.band.name} range, Difficulty ${shot.task.difficulty} with ${shot.weapon.name} (TN ${shot.task.targetNumber})`
 
 function attackAction(state, self, target, shot) {
+  const dice = threatDice(state, self, shot)
+  const bought = dice.bonusDice
+    ? `; buys ${plural(dice.bonusDice, 'bonus d20')} for ${dice.cost} Threat (${Math.round(dice.chance * 100)}% to hit)`
+    : ''
   return {
     type: 'attack',
     targetId: target.id,
     weaponId: shot.weapon.id,
     injuryMode: injuryModesFor(state, self, shot.weapon)[0],
+    ...(dice.bonusDice ? { purchase: { bonusDice: dice.bonusDice, momentum: 0 } } : {}),
     decision: `Target ${target.character.name}`,
-    reason: `${shotSummary(shot)}; target ${target.inCover ? 'in cover (it rolls to raise the Difficulty)' : 'exposed'}, ${statusText(target)}${hitDefeats(state, self, target, shot) ? '; a hit Defeats' : ''}.`,
+    reason: `${shotSummary(shot)}; target ${target.inCover ? 'in cover (it rolls to raise the Difficulty)' : 'exposed'}, ${statusText(target)}${hitDefeats(state, self, target, shot) ? '; a hit Defeats' : ''}${bought}.`,
   }
 }
 
@@ -138,6 +213,7 @@ export function pendingStep(state, self) {
   if (!success && worst) {
     const aimDie = failed.find((die) => canAimReroll(pending, die.index))
     if (aimDie) return { type: 'reroll', source: 'aim', dieIndex: aimDie.index, decision: 'Aim reroll', reason: `Attack failing; rerolling the failed ${aimDie.value}.` }
+    if (canAssistReroll(pending)) return { type: 'reroll', source: 'assist', dieIndex: worst.index, decision: 'Student of War reroll', reason: `Attack failing; rerolling the failed ${worst.value}.` }
     // Only when one new die could pass (a success, or a critical when 2 are missing) with a fair chance.
     const [, single, critical] = staDieOdds(pending.task)
     const needed = difficulty - successes
@@ -155,8 +231,8 @@ export function pendingStep(state, self) {
   return { type: 'resolveAttack', decision: 'Resolve attack', reason: `${self.character.name} resolves the attack.` }
 }
 
-// The AI never spends Momentum to cancel Threat: Threat has no automatic effect in combat yet (NPC Threat spends are
-// still to come), so it would only waste Momentum. Kept as a step so the planners' order of checks stays the same.
+// The AI never spends Momentum to cancel Threat (AI tuning; the spend is an adaptation, off by default). Kept as a step
+// so the planners' order of checks stays the same.
 export function cancelThreatStep() {
   return null
 }
@@ -303,6 +379,10 @@ export function nextAIStep(state) {
       const minor = tacticalMinor(state, self, target, shot)
       if (minor) return minor
     }
+    const extraMinor = extraMinorStep(state, self, target, shot)
+    if (extraMinor) return extraMinor
+    const secondMajor = secondMajorStep(state, self, target)
+    if (secondMajor) return secondMajor
     // After attacking with the Minor action left, the player profile gets into cover; there is no second attack.
     if (state.turn.attacks && profile.coverAfterAttack) {
       const cover = coverAfterAttackStep(state, self)

@@ -3,9 +3,11 @@
 // or cover corner, and allies can be passed through but not stopped on.
 import { blocksMovement, NEIGHBOUR_OFFSETS, samePosition, tileKey } from './battleMap.js'
 
+// Book (Core pp.288–289): Move goes up to one zone (within Medium range), Sprint two zones (within Long range); no
+// attribute sets the distance.
 export const getMovementTiles = (character) => Math.floor(character.attributes.fitness / 2) + 1
-// Designer decision (Oct 2026): Sprint (1 AP, no roll, once per turn) goes half the movement allowance, rounded up.
-export const getSprintTiles = (character) => Math.ceil(getMovementTiles(character) / 2)
+// Designer decision (Oct 2026): Sprint (no roll, once per turn) goes twice the movement allowance, as two zones are twice one.
+export const getSprintTiles = (character) => getMovementTiles(character) * 2
 
 function canStep(map, from, offset, blockedKeys) {
   const [dx, dy] = offset

@@ -29,7 +29,7 @@
 //   combatLog.js        shared state helpers and the log's wording
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import { canCommunicate } from '../rules/communication.js'
-import { addThreat, checkDicePurchase, npcMomentumToThreat, payForDice, saveMomentum, spendMomentum } from '../rules/missionResources.js'
+import { addThreat, checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum, spendMomentum, spendThreat } from '../rules/missionResources.js'
 import { chooseFatiguedAttribute, injuryText, needsFatigueAttribute, reviveCondition, treatInjury } from '../rules/personalCondition.js'
 import { evaluateStaDie, rerollDie, rollDice } from '../rules/taskResolver.js'
 import { ambushStep } from './combatAmbush.js'
@@ -40,6 +40,7 @@ import {
   attackDifficulty,
   canAimReroll,
   canAssist,
+  canAssistReroll,
   difficultyBreakdown,
   evaluateAttack,
   previewAttack,
@@ -47,15 +48,15 @@ import {
   withoutUsedAssist,
 } from './combatAttacks.js'
 import { affordAddedSeverity, inflictInjury, injuryFor, resolveInjury } from './combatInjuries.js'
-import { addLog, assistLine, diceText, focusText, formatPosition, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from './combatLog.js'
+import { addLog, assistLine, bonusMomentumLine, diceText, focusText, formatPosition, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from './combatLog.js'
 import { canMove, canSprint, getPathTo } from './combatMovement.js'
-import { canAfford, canAim, extraMinorBlock, facingToward, getActiveCombatant, getTurnGroup, isActive, isTurnFinished, secondMajorBlock } from './combatSelectors.js'
+import { canAfford, canAim, extraActionPool, extraMinorBlock, facingToward, getActiveCombatant, getTurnGroup, isActive, isTurnFinished, secondMajorBlock } from './combatSelectors.js'
 import { createCombat } from './combatSetup.js'
 import { directBlock, getAuthority, getDirectableAllies, previewFirstAid, previewGuard, rollCombatTask } from './combatTasks.js'
 import { advanceTurn, settleDirected, switchToMember, withOutcome } from './combatTurnOrder.js'
 import { canTakeCover } from './coverSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, ADAPTATION_MOMENTUM_SPENDS, EXTRA_ACTIONS, freshTurn, spendTurnAction } from './turnActions.js'
-import { getInjuryMode, getWeapon } from './weaponSystem.js'
+import { getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
 
 export { ACTIONS_PER_TURN, ACTION_TYPE_NAMES, ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS, EXTRA_ACTIONS, MAX_MAJORS_PER_ROUND, actionTypeOf, actionsLeft, actionsLeftText, majorsTaken } from './turnActions.js'
 export {
@@ -85,6 +86,7 @@ export {
   attackDifficulty,
   canAimReroll,
   canAssist,
+  canAssistReroll,
   evaluateAttack,
   getAssistFor,
   getAssistableAllies,
@@ -152,6 +154,25 @@ export function applyInteraction(state, interaction) {
   return withOutcome(settleDirected(next))
 }
 
+// Pays for an Extra Minor or Second Major: the party from group Momentum, an NPC by spending Threat (Book p.264).
+// Returns { state, text } with the log wording for what was paid.
+function payForExtraAction(state, actor, cost, countTask) {
+  if (extraActionPool(actor) === 'momentum') {
+    const resources = spendMomentum(state.resources, cost)
+    const next = withStats({ ...state, resources }, (stats) => {
+      countTask(stats)
+      stats.momentum.spentExtraActions = (stats.momentum.spentExtraActions ?? 0) + cost
+    })
+    return { state: next, text: `Momentum spent: ${cost} (group pool now ${resources.momentum})` }
+  }
+  const resources = spendThreat(state.resources, cost)
+  const next = withStats({ ...state, resources }, (stats) => {
+    countTask(stats)
+    stats.threat.spentByNpcs += cost
+  })
+  return { state: next, text: `Threat spent: ${cost} (Threat now ${resources.threat})` }
+}
+
 // ---------- reducer ----------
 
 export function combatReducer(state, action) {
@@ -199,30 +220,26 @@ function reduceAction(state, action) {
       ])
       return withOutcome(next)
     }
-    // Book p.260: 1 Momentum, one more minor action this turn (once per turn).
+    // Book p.260: 1 Momentum (an NPC: 1 Threat), one more minor action this turn (once per turn).
     case 'buyExtraMinor': {
       if (extraMinorBlock(state, actor)) return state
-      const resources = spendMomentum(state.resources, EXTRA_ACTIONS.extraMinorCost)
+      const decided = recordDecision(state, actor, action)
       const turn = { ...state.turn, minor: state.turn.minor + 1, extraMinor: true }
-      const next = withStats({ ...state, resources, turn }, (stats) => {
-        stats.tasks.extraMinor += 1
-        stats.momentum.spentExtraActions = (stats.momentum.spentExtraActions ?? 0) + EXTRA_ACTIONS.extraMinorCost
-      })
-      return addLog(markAction(next, 'extraMinor', actor.id), [
-        `Momentum spent: ${EXTRA_ACTIONS.extraMinorCost} for an extra minor action (group pool now ${resources.momentum}; ${actionsLeftText(turn)})`,
+      const paid = payForExtraAction(decided.state, actor, EXTRA_ACTIONS.extraMinorCost, (stats) => (stats.tasks.extraMinor += 1))
+      return addLog(markAction({ ...paid.state, turn }, 'extraMinor', actor.id), [
+        ...decided.lines,
+        `${paid.text} for an extra minor action (${actionsLeftText(turn)})`,
       ])
     }
-    // Book p.288: 2 Momentum, a second major action this turn; its task is +1 Difficulty.
+    // Book p.288: 2 Momentum (an NPC: 2 Threat), a second major action this turn; its task is +1 Difficulty.
     case 'buySecondMajor': {
       if (secondMajorBlock(state, actor)) return state
-      const resources = spendMomentum(state.resources, EXTRA_ACTIONS.secondMajorCost)
+      const decided = recordDecision(state, actor, action)
       const turn = { ...state.turn, major: state.turn.major + 1, secondMajor: true }
-      const next = withStats({ ...state, resources, turn }, (stats) => {
-        stats.tasks.secondMajor += 1
-        stats.momentum.spentExtraActions = (stats.momentum.spentExtraActions ?? 0) + EXTRA_ACTIONS.secondMajorCost
-      })
-      return addLog(markAction(next, 'secondMajor', actor.id), [
-        `Momentum spent: ${EXTRA_ACTIONS.secondMajorCost} for a second major action (group pool now ${resources.momentum}; ${actionsLeftText(turn)}). Its task is +${EXTRA_ACTIONS.secondMajorDifficulty} Difficulty.`,
+      const paid = payForExtraAction(decided.state, actor, EXTRA_ACTIONS.secondMajorCost, (stats) => (stats.tasks.secondMajor += 1))
+      return addLog(markAction({ ...paid.state, turn }, 'secondMajor', actor.id), [
+        ...decided.lines,
+        `${paid.text} for a second major action (${actionsLeftText(turn)}). Its task is +${EXTRA_ACTIONS.secondMajorDifficulty} Difficulty.`,
       ])
     }
     case 'ambush':
@@ -275,7 +292,7 @@ function reduceAction(state, action) {
       const preview = previewAttack(state, actor.id, action.targetId, action.weaponId)
       if (!preview.available || !preview.weapon.injuryModes.includes(action.injuryMode)) return state
       // Buy d20s (Book p.259): action.purchase = { bonusDice, momentum }; the party pays from the group pool and/or adds
-      // Threat, an NPC spends Threat (hook: the AI doesn't buy dice yet).
+      // Threat, an NPC spends Threat.
       const purchase = checkDicePurchase(state.resources, action.purchase, actor.side)
       if (!purchase.valid) return state
       const decided = recordDecision(state, actor, action)
@@ -301,13 +318,22 @@ function reduceAction(state, action) {
         purchase,
         rerolls: [],
         aimRerolls: state.turn.aimReroll ? aimRerollsFor(preview.weapon) : 0,
+        assistRerolls: 0,
         assist: null,
+        // Talents (combatTalents.js): Steady Hands needs the Aim; Ambush Tactics, a target unaware as the shot is taken
+        // (the attack reveals the attacker before it resolves).
+        aimed: state.turn.aimReroll,
+        targetUnaware: preview.targetUnaware,
+        ignoreComplications: preview.ignoreComplications,
+        bonusMomentum: preview.bonusMomentum,
       }
       // The helper (an Assist, or the commander on a Direct) rolls after the attacker, against their own Target Number.
       const assistFor = assistTaskFor(state, actor.id, preview.weapon)
       if (assistFor) {
         const [die] = rollDice(random, 1)
-        pending.assist = { helperId: assistFor.helperId, task: assistFor.task, via: assistFor.via, die }
+        pending.assist = { helperId: assistFor.helperId, task: assistFor.task, via: assistFor.via, die, talentNotes: assistFor.talents?.notes ?? [] }
+        pending.bonusMomentum += assistFor.talents?.bonusMomentum ?? 0
+        pending.assistRerolls = assistFor.talents?.rerolls ?? 0
       }
       const used = spendTurnAction(withoutUsedAssist(updateCombatant(afterDraw, actor.id, { facing: facingToward(actor.position, target.position) }), actor.id, assistFor), actor.id, 'attack')
       let next = {
@@ -342,6 +368,7 @@ function reduceAction(state, action) {
         `Difficulty: ${task.difficulty} (${difficultyBreakdown(pending)})`,
         `Rolls: ${diceText(pending.dice.map((value) => evaluateStaDie(task, value)))}`,
         ...(pending.assist ? [assistLine(next, pending.assist)] : []),
+        ...(pending.assist?.talentNotes.length ? [`Assist talents: ${pending.assist.talentNotes.join('; ')}`] : []),
         ...(opposition?.complications ? [`Defender complications: ${opposition.complications}`] : []),
       ])
     }
@@ -350,6 +377,7 @@ function reduceAction(state, action) {
       if (!pending || action.dieIndex < 0 || action.dieIndex >= pending.dice.length) return state
       const attacker = state.combatants[pending.attackerId]
       if (action.source === 'aim' && !canAimReroll(pending, action.dieIndex)) return state
+      if (action.source === 'assist' && !canAssistReroll(pending)) return state
       // VIDEOGAME ADAPTATION (off unless actions.json turns it on): 1 Momentum from the group pool rerolls one die.
       if (action.source === 'momentum' && !ADAPTATION_MOMENTUM_SPENDS) return state
       const resources = action.source === 'momentum' ? attacker.side === 'player' && spendMomentum(state.resources, 1) : state.resources
@@ -361,12 +389,19 @@ function reduceAction(state, action) {
       let next = {
         ...afterDraw,
         resources,
-        pending: { ...pending, dice, rerolls: [...pending.rerolls, reroll], aimRerolls: pending.aimRerolls - (action.source === 'aim' ? 1 : 0) },
+        pending: {
+          ...pending,
+          dice,
+          rerolls: [...pending.rerolls, reroll],
+          aimRerolls: pending.aimRerolls - (action.source === 'aim' ? 1 : 0),
+          assistRerolls: (pending.assistRerolls ?? 0) - (action.source === 'assist' ? 1 : 0),
+        },
       }
       if (action.source === 'momentum') next = withStats(next, (stats) => (stats.momentum.spentReroll += 1))
+      const sourceText = { aim: 'Aim', assist: 'Student of War', momentum: 'Momentum spent:' }[action.source]
       return addLog(markAction(next, 'reroll', attacker.id, { source: action.source }), [
         ...decided.lines,
-        `${action.source === 'aim' ? 'Aim' : 'Momentum spent:'} reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`,
+        `${sourceText} reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`,
         `Rolls: ${dice.join(', ')}`,
       ])
     }
@@ -375,15 +410,15 @@ function reduceAction(state, action) {
       if (!pending) return state
       const attacker = state.combatants[pending.attackerId]
       const target = state.combatants[pending.targetId]
-      const weapon = getWeapon(pending.weaponId)
+      const weapon = getCombatantWeapon(attacker, pending.weaponId)
       const evaluation = evaluateAttack(pending)
       const passed = evaluation.success
       const playerSide = attacker.side === 'player'
       // Book p.289: a Deadly attack by a player character is escalation (+1 Threat). Enemy Deadly attacks cost nothing yet.
       const deadlyThreat = playerSide && getInjuryMode(pending.injuryMode).generatesThreat ? 1 : 0
-      // A party task saves its Momentum to the group pool; an NPC's Momentum becomes Threat (Book p.264). Complications
-      // stay complications on the result.
-      const saving = playerSide ? saveMomentum(state.resources, evaluation.momentumGenerated) : { resources: state.resources, saved: 0, lost: 0 }
+      // A party task saves its Momentum to the group pool (bonus Momentum too: PROTOTYPE RULE, missionResources.js
+      // savableMomentum); an NPC's Momentum becomes Threat (Book p.264). Complications stay complications on the result.
+      const saving = playerSide ? saveMomentum(state.resources, savableMomentum(evaluation)) : { resources: state.resources, saved: 0, lost: 0 }
       const npcThreat = playerSide ? 0 : evaluation.momentumGenerated
       let resources = addThreat(npcMomentumToThreat(saving.resources, npcThreat), deadlyThreat)
       // Hook: action.addedSeverity (Momentum for +severity, Book p.291); no UI or AI asks for it yet.
@@ -393,7 +428,7 @@ function reduceAction(state, action) {
       let injuryLines = []
       let injury = null
       if (passed) {
-        injury = injuryFor(next, attacker, target, weapon, pending.injuryMode, added.added)
+        injury = injuryFor(next, attacker, target, weapon, pending.injuryMode, added.added, { aimed: pending.aimed, targetUnaware: pending.targetUnaware })
         const hit = inflictInjury(next, attacker.id, target.id, injury)
         next = hit.state
         injuryLines = hit.lines
@@ -424,6 +459,7 @@ function reduceAction(state, action) {
         `RESULT: ${passed ? 'SUCCESS' : 'FAILURE'}`,
         ...(added.cost ? [`Momentum spent: ${added.cost} for +${added.added} severity`] : []),
         ...(passed ? [...injuryLines, momentumText] : []),
+        ...(playerSide && evaluation.bonusMomentum ? [bonusMomentumLine(evaluation.bonusMomentum)] : []),
         ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
         ...(deadlyThreat ? [`Threat +1 (Deadly attack), now ${resources.threat}`] : []),
       ]

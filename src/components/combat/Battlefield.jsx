@@ -203,7 +203,7 @@ const UNIT_HEAD = 30
 
 function actionLabel(action) {
   if (action.type === 'attack') return getWeapon(action.weaponId).name
-  if (action.type === 'reroll') return action.source === 'aim' ? 'Aim Reroll' : 'Momentum Reroll'
+  if (action.type === 'reroll') return { aim: 'Aim Reroll', assist: 'Student of War Reroll' }[action.source] ?? 'Momentum Reroll'
   if (action.type === 'move' && action.inCover) return 'Move to Cover'
   if (action.type === 'sprint' && action.inCover) return 'Sprint to Cover'
   if (TASK_LABELS[action.type]) return action.passed === false ? TASK_LABELS[action.type][1] : TASK_LABELS[action.type][0]

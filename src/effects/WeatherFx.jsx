@@ -22,14 +22,28 @@ function flashAlpha(state, dt, range) {
 // Extra room drawn around the view when following a board, so streaks, fog banks and sparks near an edge aren't cut off.
 const FOLLOW_PAD = 200
 
-// Where a board's world origin sits on the canvas and how many canvas pixels one world pixel takes, read live from the
-// board's SVG every frame (its camera pans by writing the viewBox directly, outside React).
-function boardView(board, canvas) {
-  const matrix = board?.getScreenCTM()
+// The board's box on the canvas, in canvas CSS pixels. Measuring forces a style and layout pass, so it is only done when
+// something is resized, never per frame.
+function measureBoard(board, canvas) {
   const rect = canvas.getBoundingClientRect()
-  if (!matrix || !rect.width) return null
+  const boardRect = board.getBoundingClientRect()
+  if (!rect.width) return null
   const css = canvas.clientWidth / rect.width
-  return { scale: matrix.a * css, x: (matrix.e - rect.left) * css, y: (matrix.f - rect.top) * css }
+  return { left: (boardRect.left - rect.left) * css, top: (boardRect.top - rect.top) * css, width: boardRect.width * css, height: boardRect.height * css }
+}
+
+// Where a board's world origin sits on the canvas and how many canvas pixels one world pixel takes. The camera pans by
+// writing the viewBox directly (outside React), so it is read from there each frame; reading the attribute forces no
+// layout, unlike getScreenCTM. The SVG's default preserveAspectRatio (xMidYMid meet) centres the viewBox in its box.
+function boardView(board, box) {
+  const viewBox = board.viewBox.baseVal
+  if (!box || !viewBox?.width || !viewBox.height) return null
+  const scale = Math.min(box.width / viewBox.width, box.height / viewBox.height)
+  return {
+    scale,
+    x: box.left + (box.width - viewBox.width * scale) / 2 - viewBox.x * scale,
+    y: box.top + (box.height - viewBox.height * scale) / 2 - viewBox.y * scale,
+  }
 }
 
 // Draws one layer repeated across the view, offset and scaled with the board, so it stays over the same tiles.
@@ -70,6 +84,28 @@ export default function WeatherFx({ fx, virtualWidth = null, follow = null }) {
     let ratio = 1
     let baseScale = null
     const flash = { wait: fx.flash ? between(fx.flash.every) : Infinity }
+    // The followed board and its measured box; measured again after a resize or when the board element is replaced.
+    let board = null
+    let boardBox = null
+    const followedView = () => {
+      const current = canvas.parentElement?.querySelector(follow)
+      if (!current) return null
+      // observe() reports once straight away, so it is only called for a new board element; calling it on every
+      // remeasure would clear the box again and measure every frame.
+      if (current !== board) {
+        board = current
+        boardBox = null
+        boardObserver.disconnect()
+        boardObserver.observe(board)
+      }
+      boardBox ??= measureBoard(board, canvas)
+      return boardView(board, boardBox)
+    }
+    const remeasure = () => {
+      boardBox = null
+    }
+    const boardObserver = new ResizeObserver(remeasure)
+    window.addEventListener('resize', remeasure)
 
     const resize = () => {
       ratio = window.devicePixelRatio || 1
@@ -91,7 +127,7 @@ export default function WeatherFx({ fx, virtualWidth = null, follow = null }) {
         ctx.fillStyle = fx.tint
         ctx.fillRect(0, 0, width, height)
       }
-      const view = follow ? boardView(canvas.parentElement?.querySelector(follow), canvas) : null
+      const view = follow ? followedView() : null
       if (view) baseScale ??= view.scale
       for (const entry of layers) {
         const { layer, kind, state } = entry
@@ -125,6 +161,7 @@ export default function WeatherFx({ fx, virtualWidth = null, follow = null }) {
     const drawOnce = still && !follow
     const observer = new ResizeObserver(() => {
       resize()
+      remeasure()
       if (drawOnce) draw(0, 0)
     })
     observer.observe(canvas)
@@ -135,6 +172,8 @@ export default function WeatherFx({ fx, virtualWidth = null, follow = null }) {
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      boardObserver.disconnect()
+      window.removeEventListener('resize', remeasure)
       ctx.clearRect(0, 0, width, height)
     }
   }, [fx, virtualWidth, follow])

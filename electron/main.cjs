@@ -4,7 +4,7 @@ const { app, BrowserWindow, net, protocol, screen } = require('electron')
 const { registerCharacterFiles } = require('./characterFiles.cjs')
 
 // The built app is served from app://bundle/ rather than opened as a file: the data refers to art by root paths
-// (/art/tiles/...), which on file:// would point at the root of the drive instead of the app's dist folder.
+// (/art/sprites/...), which on file:// would point at the root of the drive instead of the app's dist folder.
 const SCHEME = 'app'
 const DIST = path.join(__dirname, '..', 'dist')
 protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }])

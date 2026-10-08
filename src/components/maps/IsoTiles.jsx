@@ -3,9 +3,9 @@ import { FULL_LIGHT, getTile, isRotated, TILE_IMAGE } from '../../maps/mapFormat
 import { isBlock, mapBounds, project, pts, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { BIG_SCALE } from '../../maps/bigObjects.js'
 import { joinedImage } from '../../maps/railJoins.js'
-import { animationDelay, tileActiveGlow, tileAnimations, tileEffectsOn, tileGlow, usesSetArt, wallVariant } from '../../maps/tileArt.js'
+import { animationDelay, PANEL_IMAGE, panelArt, tileActiveGlow, tileAnimations, tileGlow, wallVariant } from '../../maps/tileArt.js'
 import { drawnHeight } from '../../maps/wallFade.js'
-import { edgeStrip, FITTINGS, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
+import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
 import './maps.css'
 
 // Tile PNGs for any map view. Floors are one layer under everything; blocks are drawn one at a time so the caller can
@@ -22,7 +22,7 @@ function TileImage({ href, position, className, style, mirror = false }) {
   return <image className={className} href={href} {...tileImageBox(position)} preserveAspectRatio="none" style={style} transform={mirror ? mirrorTransform(position) : undefined} />
 }
 
-// The active art set's animated light overlays for a tile (tileArt.js), drawn over it. timing: the tile whose position
+// The animated light overlays for a tile (tileArt.js), drawn over it. timing: the tile whose position
 // sets the animation offset (a big object's origin, so all its strips stay in step).
 function TileLights({ tile, position, timing = position, mirror = false }) {
   return tileAnimations(tile).map((light) => (
@@ -55,14 +55,14 @@ export const FloorTiles = memo(function FloorTiles({ map, hazardLive = false }) 
   return (
     <g className="tilemap-floor">
       {tiles}
-      {tileEffectsOn() && <FloorLighting map={map} hazardLive={hazardLive} />}
+      <FloorLighting map={map} hazardLive={hazardLive} />
     </g>
   )
 })
 
 const pathOf = (quads) => quads.map((quad) => `M${quad.map((point) => `${point.x},${point.y}`).join('L')}Z`).join('')
 
-// The active tile art set's effects (tileArt.js): contact shadows, then light pools round glowing tiles.
+// The tile lighting effects (tileArt.js): contact shadows, then light pools round glowing tiles.
 function FloorLighting({ map, hazardLive }) {
   const uid = useId()
   const bands = SHADE_BANDS.map(() => [])
@@ -124,7 +124,7 @@ function FloorLighting({ map, hazardLive }) {
   )
 }
 
-// Darkness over a dim map (mapFormat.js ambient), drawn above the tiles and units. Glowing tiles (the art set's glows)
+// Darkness over a dim map (mapFormat.js ambient), drawn above the tiles and units. Glowing tiles (tileEffects.json glows)
 // and lit wall fittings cut soft holes in it so their light shows through. Pitch dark (0) still leaves the map faintly
 // visible, so units can be found.
 const MAX_DARKNESS = 0.9
@@ -174,8 +174,9 @@ function ImageBand({ href, x, y, height, sourceY, sourceHeight }) {
   )
 }
 
-// This tile's half of a two-tile wall panel (wallPanels.js), drawn over the wall's front face: the panel's outer edge,
-// trim lines (unless the wall's art paints its own) and, on window panels, its share of the window.
+// This tile's half of a two-tile wall panel (wallPanels.js), drawn over the wall's front face: the panel's outer edge
+// and, on window panels, its share of the window (just the stars where the wall's panel art paints the window). Long
+// wall fittings are all in their panel art (tileArt.js panelArt).
 // Points are (U along the panel 0..2, height above the floor).
 function PanelFace({ tile, position, panel, height }) {
   const c = project(position)
@@ -186,54 +187,20 @@ function PanelFace({ tile, position, panel, height }) {
     return [start.x + (end.x - start.x) * u, start.y + (end.y - start.y) * u - v]
   }
   const line = (a, b) => ({ x1: a[0], y1: a[1], x2: b[0], y2: b[1] })
-  const lo = panel.half
-  const hi = panel.half + 1
   const edgeU = panel.half === 0 ? 0 : 2
   return (
     <g className="wall-panel" pointerEvents="none">
       <line className="wall-panel-edge" {...line(at(edgeU, 0), at(edgeU, height))} />
-      {!usesSetArt(tile) && (
-        <>
-          <line className="wall-panel-trim" {...line(at(lo, height - 5), at(hi, height - 5))} />
-          <line className="wall-panel-trim" {...line(at(lo, 4), at(hi, 4))} />
-        </>
-      )}
-      {tile.panelFitting ? (
-        <FittingHalf kind={tile.panelFitting} position={position} half={panel.half} height={height} at={at} />
-      ) : (
-        panel.window && <WindowHalf tile={tile} position={position} half={panel.half} height={height} at={at} />
-      )}
+      {!tile.panelFitting && panel.window && <WindowHalf tile={tile} position={position} half={panel.half} height={height} at={at} />}
     </g>
   )
 }
 
-// One tile's half of a long Star Trek wall fitting (tiles.json panelFitting), drawn across the whole panel on every
-// panel instead of a window. Each half draws only its own stretch (U lo..hi) so the nearer tile's faces never cover the
-// farther half's share. Shapes: [u0, u1, v0, v1 (fractions of the wall height), className, colour, animated].
-function FittingHalf({ kind, position, half, height, at }) {
-  const lo = half
-  const hi = half + 1
-  const seed = position.x * 7 + position.y * 13
-  return FITTINGS[kind](seed).map(([u0, u1, v0, v1, className, colour, animated, animation = 'wall-fit-blink'], i) => {
-    const from = Math.max(u0, lo)
-    const to = Math.min(u1, hi)
-    if (from >= to) return null
-    const points = pts([at(from, v0 * height), at(to, v0 * height), at(to, v1 * height), at(from, v1 * height)])
-    return (
-      <polygon
-        key={i}
-        className={[className, animated && animation].filter(Boolean).join(' ') || undefined}
-        points={points}
-        fill={colour}
-        style={animated ? { animationDelay: animationDelay({ x: position.x + i, y: position.y }) } : undefined}
-      />
-    )
-  })
-}
-
 // One tile's half of a panel window: a bevelled frame, tinted glass lit softly from inside, a reflection band, the
-// centre mullion and a sill. Walls with windowView 'space' (starships) show a star field through the glass.
+// centre mullion and a sill. Walls with windowView 'space' (starships) show a star field through the glass. A wall with
+// panel art (tiles.json panelImages) has the rest painted in, so only the stars are drawn.
 function WindowHalf({ tile, position, half, height, at }) {
+  const painted = Boolean(tile.panelImages)
   const lo = half
   const hi = half + 1
   const from = Math.max(WINDOW.from, lo)
@@ -255,16 +222,18 @@ function WindowHalf({ tile, position, half, height, at }) {
           return { u: from + 0.05 + ((seed * 13) % 89) / 89 * (to - from - 0.1), v: bottom + 3 + ((seed * 29) % 97) / 97 * (top - bottom - 6), size: i % 3 === 0 ? 0.9 : 0.55, delay: `${-((seed % 7) / 7) * 4}s` }
         })
       : []
+  const starDots = stars.map((star, i) => {
+    const [x, y] = at(star.u, star.v)
+    return <circle key={i} className="wall-star" cx={x} cy={y} r={star.size} style={{ animationDelay: star.delay }} />
+  })
+  if (painted) return starDots
   return (
     <>
       <polygon className="wall-window-frame" points={quad(frameFrom, frameTo, bottom - FRAME.height, top + FRAME.height)} />
       <line className="wall-window-frame-light" {...line(at(frameFrom, top + FRAME.height), at(frameTo, top + FRAME.height))} />
       <polygon className="wall-window" points={quad(from, to, bottom, top)} />
       <polygon className="wall-window-glow" points={quad(from, to, bottom, glow)} />
-      {stars.map((star, i) => {
-        const [x, y] = at(star.u, star.v)
-        return <circle key={i} className="wall-star" cx={x} cy={y} r={star.size} style={{ animationDelay: star.delay }} />
-      })}
+      {starDots}
       <polygon className="wall-window-reflection" points={pts([at(band[0], top), at(band[1], top), at(band[1] - band[2] * 2, bottom), at(band[0] - band[2] * 2, bottom)])} />
       {half === 1 && <line className="wall-window-mullion" {...line(at(1, bottom), at(1, top))} />}
       <line className="wall-window-sill" {...line(at(frameFrom, bottom - FRAME.height), at(frameTo, bottom - FRAME.height))} />
@@ -292,16 +261,22 @@ function TallBlock({ tile, position }) {
 // (an affine map that keeps lines along the face parallel to its edges: seams and trim keep their slope), and the top
 // face is moved up unchanged. Faces are cut out of the PNG with clip paths in image coordinates.
 // A wall variant (tileArt.js wallVariant: Star Trek wall fittings) replaces the image, never on a window half, and its
-// light overlays (or the wall's own, tileArt.js tileAnimations) are drawn through the same faces.
+// light overlays (or the wall's own, tileArt.js tileAnimations) are drawn through the same faces. Panel art (tileArt.js
+// panelArt) replaces both with this tile's slot of the two-tile image: the image is placed offset so the slot lands on
+// the tile, and the face clips (relative to the image's own box) move with it.
+const NO_OFFSET = { x: 0, y: 0 }
 function TallWall({ tile, position, panel }) {
-  const variant = panel?.window ? null : wallVariant(tile, position)
+  const art = panelArt(tile, panel, position)
+  const variant = (art || panel?.window) ? null : wallVariant(tile, position)
+  const imageSize = art ? PANEL_IMAGE : TILE_IMAGE
+  const offset = art?.offset ?? NO_OFFSET
   const layers = [
-    { key: 'wall', href: variant?.href ?? tile.image },
-    ...(variant?.lights ?? tileAnimations(tile)).map((light) => ({
+    { key: 'wall', href: art?.href ?? variant?.href ?? tile.image },
+    ...(art?.lights ?? variant?.lights ?? tileAnimations(tile)).map((light) => ({
       key: light.style,
       href: light.href,
       className: `tilemap-light is-${light.style}`,
-      style: { animationDelay: animationDelay(position) },
+      style: { animationDelay: animationDelay(art?.timing ?? position) },
     })),
   ]
   const box = tileImageBox(position)
@@ -315,7 +290,7 @@ function TallWall({ tile, position, panel }) {
   const middle = width / 2
   // y' = k * y + (1 - k) * bottomEdge(x), with bottomEdge(x) = c + m * x.
   const stretch = (c, m) => `matrix(1 ${(1 - k) * m} 0 ${k} 0 ${(1 - k) * c})`
-  const polygon = (points) => `polygon(${points.map(([x, y]) => `${x}px ${y}px`).join(', ')})`
+  const polygon = (points) => `polygon(${points.map(([x, y]) => `${x + offset.x}px ${y + offset.y}px`).join(', ')})`
   // The side clips reach 1 px into the top face and past the front corner so no hairline shows between faces.
   const faces = [
     { clip: polygon([[0, corners - h - 1], [middle + 1, front - h - 1], [middle + 1, front], [0, corners]]), transform: stretch(corners, slope) },
@@ -328,7 +303,15 @@ function TallWall({ tile, position, panel }) {
         {layers.map((layer) =>
           faces.map((face, i) => (
             <g key={`${layer.key}${i}`} transform={face.transform}>
-              <image className={layer.className} href={layer.href} width={width} height={height} style={{ ...layer.style, clipPath: face.clip }} />
+              <image
+                className={layer.className}
+                href={layer.href}
+                x={-offset.x}
+                y={-offset.y}
+                width={imageSize.width}
+                height={imageSize.height}
+                style={{ ...layer.style, clipPath: face.clip }}
+              />
             </g>
           )),
         )}
@@ -456,11 +439,12 @@ export function LoneTile({ map, position, panel = null }) {
 }
 
 // A tile as the tall-wall views draw it, for the editor palette: walls and tall objects at their drawn height, and a
-// wall with panels as a two-tile window panel.
+// wall with panels as a two-tile panel, with a window unless the wall has none (tiles.json windows).
 export function TilePreview({ tile, className }) {
   const positions = tile.panels ? [{ x: 0, y: 0 }, { x: 1, y: 0 }] : [{ x: 0, y: 0 }]
   const map = { width: positions.length, height: 1, tiles: [positions.map(() => tile.id)] }
-  const panels = new Map(positions.map((position, half) => [`${position.x},${position.y}`, { axis: 'x', half, window: true }]))
+  const hasWindow = tile.windows !== false
+  const panels = new Map(positions.map((position, half) => [`${position.x},${position.y}`, { axis: 'x', half, window: hasWindow }]))
   const extra = drawnHeight(tile, true) - tile.height
   const boxes = positions.map(tileImageBox)
   const minX = Math.min(...boxes.map((box) => box.x))

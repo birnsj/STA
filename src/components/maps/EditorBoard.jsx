@@ -7,7 +7,7 @@ import EditorCanvas from './EditorCanvas.jsx'
 import { AmbientDarkness, LoneTile } from './IsoTiles.jsx'
 
 // The map editor's board: the tiles drawn into one canvas (EditorCanvas: floor, shadows and light pools, blocks as
-// exploration and Combat Type 1 draw them, but still rather than animated) under one clickable floor-level outline of the
+// exploration and Combat Type 1 draw them, the lights on CSS-animated layers over it) under one clickable floor-level outline of the
 // whole map; the tile under the pointer is worked out from where its floor would be (blocks never take clicks). The
 // darkness, markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what
 // is behind blocks.

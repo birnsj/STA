@@ -29,7 +29,7 @@ import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/per
 import { deriveSeed } from '../rules/seededRandom.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, joinsCombat, perceive, STATE } from './awareness.js'
 import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
-import { getMembers } from './partyControl.js'
+import { getMembers, withAbleSelection } from './partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
 
@@ -573,7 +573,22 @@ export function endCombat(state) {
     dying: getCombatantList(combat).filter((c) => c.condition.dying).map((c) => c.id),
     wouldDie: getCombatantList(combat).filter((c) => wouldDieAtSceneEnd(c.condition)).map((c) => c.id),
   }
-  return { ...state, mode: MODE.EXPLORATION, party: { ...party, members }, world: { ...world, npcs }, combat: null, link: null, lastCombat, resources: combat.resources }
+  // Combat locks count rounds of this fight; the next fight starts again at round 1.
+  const scenario = state.scenario && {
+    ...state.scenario,
+    objects: Object.fromEntries(Object.entries(state.scenario.objects).map(([id, object]) => [id, object.combatLocks ? { ...object, combatLocks: {} } : object])),
+  }
+  return {
+    ...state,
+    mode: MODE.EXPLORATION,
+    party: withAbleSelection({ ...party, members }),
+    world: { ...world, npcs },
+    scenario,
+    combat: null,
+    link: null,
+    lastCombat,
+    resources: combat.resources,
+  }
 }
 
 // ---------- diagnostics ----------

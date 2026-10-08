@@ -8,7 +8,7 @@
 // complications; the object decides what that means. The same objects stay usable in combat (exploration/combatLink.js):
 // same definitions, same state, same rules; combat only decides who acts, what it costs and who assists.
 import data from '../data/adaptation/exploration/challenges.json'
-import { checkDicePurchase, payForDice, saveMomentum } from '../rules/missionResources.js'
+import { checkDicePurchase, payForDice, savableMomentum, saveMomentum } from '../rules/missionResources.js'
 import { isDefeated } from '../rules/personalCondition.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
@@ -122,7 +122,9 @@ export function previewChallenge(state, { objectId, actionId, performerId, assis
   if (action.routine) return { prepared: null, assist: null }
   const performer = state.party.members[performerId]
   const prepared = prepareTask(performer.character, action.task, taskContext(state.scenario, objectId, actionId, performer.condition, combatLines))
-  if (combatAssist) return { prepared, assist: combatAssist }
+  // A combat Assist may carry the helper's talents (combat/combatTalents.js: Pack Tactics' bonus Momentum).
+  const talentBonus = combatAssist?.talents?.bonusMomentum ?? 0
+  if (combatAssist) return { prepared: talentBonus ? { ...prepared, bonusMomentum: prepared.bonusMomentum + talentBonus } : prepared, assist: combatAssist }
   const approach = assistantId && action.assist?.[assistIndex]
   const assistant = assistantId && state.party.members[assistantId]
   const assist = approach ? { approach, ...prepareAssist(assistant.character, approach, assistant.condition) } : null
@@ -235,8 +237,9 @@ export function attemptChallenge(state, request) {
       bonusMomentum: preview.prepared.bonusMomentum,
     })
     effects = [...(action.always ?? []), ...((result.success ? action.onSuccess : action.onFailure) ?? []), ...(result.complications ? (action.onComplication ?? []) : [])]
-    // No Momentum spends on challenge results yet, so everything but bonus Momentum goes to the group pool.
-    saving = saveMomentum(resources, result.momentumGenerated - result.bonusMomentum)
+    // No Momentum spends on challenge results yet, so it all goes to the group pool (bonus Momentum too: PROTOTYPE
+    // RULE, missionResources.js savableMomentum).
+    saving = saveMomentum(resources, savableMomentum(result))
     resources = saving.resources
   }
 

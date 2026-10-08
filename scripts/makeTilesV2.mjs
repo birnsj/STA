@@ -1,17 +1,16 @@
-// Sample "v2" art for the Starship & Station tiles, written to public/art/tiles-v2/ so it can be compared with the
-// placeholder tiles (the map editor's "New tile art" switch).
+// v2 art for the Starship & Station tiles, written to their palette-group folder (engine.mjs outFile).
 // Run with: node scripts/makeTilesV2.mjs   (existing files are kept unless --force is passed)
 //
-// Same layout as scripts/makeTiles.mjs (a 64 x 96 design grid with the 64 x 32 floor diamond across the bottom, the
+// Same layout as the original placeholder tiles (a 64 x 96 design grid with the 64 x 32 floor diamond across the bottom, the
 // same block heights) but rendered RESOLUTION times larger with anti-aliasing; the map views scale every tile image to
 // the 64 x 96 slot, so the extra pixels become detail. Each surface is a small material: a height map (grooves, bevels,
 // rivets, pipes, vents) that is lit by a key and fill light with specular highlights, plus an emission colour that
 // gets a bloom pass. Light comes from the top left as in the original tiles.
 import fs from 'node:fs'
-import path from 'node:path'
 import { encodePng } from './png.mjs'
+import { fittingFeature, onPanelFace, panelScene, renderPanel, renderPanelLights, windowFeature } from './v2/panels.mjs'
 
-import { RESOLUTION, OUT_W, OUT_H, OUT, FORCE, WALL_STRETCH, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, render, renderLights } from './v2/engine.mjs'
+import { RESOLUTION, OUT_W, OUT_H, outFile, FORCE, WALL_STRETCH, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, render, renderLights } from './v2/engine.mjs'
 
 // ---------- materials ----------
 const STEEL = rgb('#9aa3aa')
@@ -94,7 +93,7 @@ function gratingPlate({ live }) {
 function bulkheadMaterial(drawnHeight, fitting = null) {
   const H = drawnHeight
   const sideHeight = (u, z, face) => {
-    const fitted = fitting?.height(u, z)
+    const fitted = fitting?.height(u, z, face)
     if (fitted != null) {
       const front = face === 'left' ? 32 - u : u
       return fitted + bevel(front, 2.2, 1.6) + groove(face === 'left' ? u : 32 - u, 0.35, 0.3)
@@ -120,14 +119,14 @@ function bulkheadMaterial(drawnHeight, fitting = null) {
       if (face === 'top') return { albedo: scale(rgb('#7d8a94'), 0.92 + noise(u / 6, v / 6, 71) * 0.1), spec: 0.25, shininess: 22 }
       const z = v
       const ao = 0.62 + 0.38 * smoothstep(0, 16, z)
+      const fitted = fitting?.surface(u, z, face)
+      if (fitted) return { ao, ...fitted }
       // Full-height walls carry a lit strip in the trim band and a dim guide light just above the kick plate.
       if (H > 40 && Math.abs(z - (H - 3.4)) < 0.9) return { albedo: rgb('#dff0ff'), emit: scale(rgb('#bfe2ff'), 0.55) }
       if (H > 40 && Math.abs(z - 8.6) < 0.55) return { albedo: rgb('#9fd0ff'), emit: scale(rgb('#7fc0ff'), 0.4) }
       if (z < 7) return { albedo: rgb('#3c444b'), spec: 0.3, shininess: 30, ao }
       if (z > H - 6) return { albedo: rgb('#8d99a2'), spec: 0.35, shininess: 30, ao }
       if (H > 40 && Math.abs(z - (H - 8.5)) < 1) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 20, ao }
-      const fitted = fitting?.surface(u, z)
-      if (fitted) return { ao, ...fitted }
       const base = inside(u, z, 2.5, 11, 29.5, H - 10) > 0 ? rgb('#66747f') : rgb('#717f8a')
       return { albedo: scale(base, 0.9 + brushed(u, z, face === 'left' ? 72 : 73, 'v') * 0.12), spec: 0.3, shininess: 28, ao }
     },
@@ -436,6 +435,10 @@ function renderOverlay(scene) {
   return bytes
 }
 
+// A full-height bulkhead panel along axis with a feature (v2/panels.mjs) built into the face it runs along.
+const bulkheadPanel = (axis, feature) =>
+  panelScene(axis, (half) => blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, onPanelFace(axis, half, feature)), WALL_STRETCH))
+
 const TILES = {
   floor: () => render(floorScene(deckPlating({ tint: rgb('#3c4853'), seed: 1 }))),
   'floor-alt': () => render(floorScene(deckPlating({ tint: rgb('#3f4b56'), seed: 2 }))),
@@ -449,7 +452,7 @@ const TILES = {
   crate: () => render(blockScene(16, crateMaterial())),
   epsControl: () => render(blockScene(22, epsMaterial())),
   'epsControl-lit': () => renderOverlay(epsLitScene),
-  // Bulkhead variants with Star Trek wall fittings (tileArtSets.json wallVariants), each with its light overlay.
+  // Bulkhead variants with Star Trek wall fittings (tileEffects.json wallVariants), each with its light overlay.
   ...Object.fromEntries(
     Object.entries(WALL_FITTINGS).flatMap(([name, fitting]) => {
       const scene = (alt) => blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, fitting({ alt })), WALL_STRETCH)
@@ -459,21 +462,34 @@ const TILES = {
       ]
     }),
   ),
+  // Two-tile panels (tiles.json panelImages, v2/panels.mjs), one per direction: the bulkhead's window panel, and the long
+  // wall fittings with their light overlays (panelLights).
+  ...Object.fromEntries(
+    ['x', 'y'].flatMap((axis) => [
+      [`bulkhead-window-${axis}`, () => renderPanel(bulkheadPanel(axis, windowFeature(46 * WALL_STRETCH)))],
+      ...['lcars', 'conduit', 'hatch', 'computer'].flatMap((kind) => [
+        [`${kind}Panel-${axis}`, () => renderPanel(bulkheadPanel(axis, fittingFeature(kind, 46 * WALL_STRETCH)))],
+        [`${kind}Panel-${axis}-lights`, () => renderPanelLights(bulkheadPanel(axis, fittingFeature(kind, 46 * WALL_STRETCH, { lights: true })), ['lights'], { gain: 1.2 })],
+      ]),
+    ]),
+  ),
   'bulkhead-conduit-core': () =>
     renderLights(blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, WALL_FITTINGS.conduit({ alt: true })), WALL_STRETCH), ['core'], { gain: 1.1 }),
-  // Light overlays animated by the map views (tileArtSets.json animations).
+  // Light overlays animated by the map views (tileEffects.json animations).
   'machinery-glow': () => renderLights(blockScene(40, machineryMaterial()), ['core', 'vent'], { gain: 1.2 }),
   'machinery-blink': () => renderLights(blockScene(40, machineryMaterial({ blink: true })), ['panel'], { gain: 1.3 }),
   'epsControl-screen': () => renderLights(blockScene(22, epsMaterial()), ['screen'], { gain: 1.2 }),
 }
 
-fs.mkdirSync(OUT, { recursive: true })
 for (const [id, draw] of Object.entries(TILES)) {
-  const file = path.join(OUT, `${id}.png`)
+  const file = outFile(`${id}.png`)
   if (fs.existsSync(file) && !FORCE) {
     console.log(`kept   ${id}.png (already exists)`)
     continue
   }
-  fs.writeFileSync(file, encodePng(OUT_W, OUT_H, draw()))
+  // A draw returns a tile image's bytes, or { width, height, bytes } for a larger one (a two-tile panel).
+  const drawn = draw()
+  const { width = OUT_W, height = OUT_H, bytes = drawn } = drawn.bytes ? drawn : {}
+  fs.writeFileSync(file, encodePng(width, height, bytes))
   console.log(`wrote  ${id}.png`)
 }

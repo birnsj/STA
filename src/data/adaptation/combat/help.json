@@ -49,7 +49,7 @@
         "Extra actions: point at your character for Extra Minor (1 Momentum, once per turn) or, after your Major action, Second Major (2 Momentum; that task is +1 Difficulty).",
         "Objects in the world (the Power Relay, Alarm Panel, Sensor Console, Damaged Door, Injured Crewmember) work in combat exactly as outside it. Stand within reach, point at your character and pick Interact (or click the object's marker). Each approach shows its cost (Major or Minor) and the full roll before you commit; its effect on the world is immediate.",
         "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there. You can Move once per turn, up to your full movement (shown as >> 5/5 above your character); tiles you don't use are lost. You can't Move while a Klingon is right next to you.",
-        "Sprint (Major, no roll): point at your acting character and pick Sprint, then click a blue tile. It goes up to half your movement (rounded up; shown as +3 beside >> 5/5), once per turn, and never in the same turn as Move. Klingons sprint too. Sprinting is not an attack, so it doesn't spoil an Ambush.",
+        "Sprint (Major, no roll): point at your acting character and pick Sprint, then click a blue tile. It goes up to twice your movement (shown as +10 beside >> 5/5), once per turn, and never in the same turn as Move. Klingons sprint too. Sprinting is not an attack, so it doesn't spoil an Ambush.",
         "Aim lets you reroll one die on your next attack this turn; with an Accurate weapon (such as a phaser rifle), up to two dice. A focus doesn't change Aim. Aiming twice doesn't give more rerolls.",
         "Assist (Major): click a party member who still has a turn this round, then Assist (or point at your character, pick Assist and choose the ally in the Task panel). Their next task this round (an attack, Guard, First Aid or an object task) rolls your 1d20 as well, against your own Target Number; it adds a success only if they score at least one themselves. One assist per task; unused assists end with the round.",
         "Guard, First Aid, Direct, object tasks, Assist from your own character and a firing mode picked on your own character open in the Task panel on the right: set them up, then press the large yellow button that appears there. Your character's weapon is shown on their party card: click it to switch weapons. Right-click the battlefield to release your selection.",
@@ -80,7 +80,7 @@
       "lines": [
         "Momentum is the away team's shared pool (0-6), the same one used outside combat. Each success beyond the Difficulty adds 1; anything over 6 is lost. Spend it on bonus d20s, 1 to Direct an ally, 1 for an Extra Minor action or 2 for a Second Major action.",
         "Before an attack, buy bonus d20s in the Task panel: the first costs 1, the second 2 more, the third 3 more (5d20 at most). Pay from Momentum, or add the same amount of Threat instead.",
-        "Threat is the opposition's pool for the mission. It grows when you make a Deadly attack, when you pay for dice with Threat, and from Momentum the Klingons generate. It does nothing on its own yet."
+        "Threat is the opposition's pool for the mission. It grows when you make a Deadly attack, when you pay for dice with Threat, and from Momentum the Klingons generate. The Klingons spend it the way you spend Momentum: on bonus d20s, an extra minor action, or a second major action."
       ]
     },
     {

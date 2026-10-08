@@ -1,6 +1,6 @@
 // Object tiles for the v2 world art: props, plants and boulders as distance-field scenes (kit.mjs objectScene) standing
 // on their ground. Each maker takes the ground material and returns { ground, parts, top }. Sizes follow the original
-// tiles (scripts/makeTiles.mjs): heights are the tile's height in design pixels, the tile spans 0..32 texels across.
+// placeholder tiles: heights are the tile's height in design pixels, the tile spans 0..32 texels across.
 import { clamp01, hash, mix, rgb, scale, smoothstep } from './engine.mjs'
 import { box, capsule, cone, cylinder, ellipsoid, fbm3, noise3, smin, sphere, taper, torus } from './kit.mjs'
 

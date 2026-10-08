@@ -2,6 +2,7 @@
 // stats (prototype tuning), and the starting loadout all live in data; this file only reads them.
 import itemData from '../data/adaptation/items.json'
 import loadoutData from '../data/adaptation/startingEquipment.json'
+import { describeRange, getWeaponForItem } from '../combat/weaponSystem.js'
 
 const items = itemData.items.map((item) => ({ ...itemData.itemDefaults, ...item }))
 const itemsById = new Map(items.map((item) => [item.id, item]))
@@ -32,10 +33,21 @@ export function reconcileEquipment(character) {
 // Resolves the character's references; unknown IDs (e.g. an item removed from the data) are skipped.
 export const getEquippedItems = (character) => character.equipment.map((entry) => getItemById(entry.itemId)).filter(Boolean)
 
-// [{ id, label, value }] for display, in the data's order; banded stats show their word (Range 2 -> Medium).
+// [{ id, label, value }] for display, in the data's order; banded stats show their word. A weapon's severity and range
+// come from the combat weapon it is (weapons.json), so what the player reads is what combat uses.
 export function getItemStatLines(item) {
   const { order, labels, bands } = itemData.statDisplay
-  return order
-    .filter((statId) => item.stats[statId] !== undefined)
-    .map((statId) => ({ id: statId, label: labels[statId], value: bands[statId]?.[item.stats[statId]] ?? String(item.stats[statId]) }))
+  const weapon = getWeaponForItem(item.id)
+  const weaponLines = weapon
+    ? [
+        { id: 'severity', label: 'Severity', value: String(weapon.severity) },
+        { id: 'range', label: 'Range', value: describeRange(weapon) },
+      ]
+    : []
+  return [
+    ...weaponLines,
+    ...order
+      .filter((statId) => item.stats[statId] !== undefined)
+      .map((statId) => ({ id: statId, label: labels[statId], value: bands[statId]?.[item.stats[statId]] ?? String(item.stats[statId]) })),
+  ]
 }

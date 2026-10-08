@@ -17,6 +17,8 @@ import { canIncreaseAttribute, createEmptyEducation, getAttributePointsTotal, ge
 import { getFinalScores, getLimitAnalysis, getRequiredFocusCount, getRequiredValueCount, getScoreLimits } from '../src/rules/finishingTouches.js'
 import { getFixedCareerTalentId, getRequiredTalentCount, getTalentEntries, isTalentSlotMet, TALENT_STEPS } from '../src/rules/talents.js'
 import { SCHEMA_VERSION, serializeCharacter } from '../src/export/serializeCharacter.js'
+import { createRandomChooser, fillSpecies } from '../src/rules/autofill.js'
+import { createSpeciesSelection, getSpeciesAbility, getSpeciesAbilityLabel, getSpeciesRequirements, setMixedParent, setPrimaryParent } from '../src/rules/species.js'
 import startingPoints from '../src/data/source/startingPoints.json'
 
 const SEEDS = [0.05, 0.17, 0.29, 0.42, 0.61, 0.73, 0.88, 0.95]
@@ -294,10 +296,66 @@ describe('Assignment and rank (Book p.132)', () => {
     }
   })
 
+  it('Prototype (designer decision): No Rank is never Commanding or Executive Officer', () => {
+    const asEducation = (category) => ({ ...asOfficer(BUILT[0].character), education: { ...BUILT[0].character.education, category: { id: category, name: category }, option: null } })
+    const civilian = asEducation('civilian')
+    for (const id of ['commandingOfficer', 'executiveOfficer']) assert.equal(getAssignmentBlock(civilian, id), 'Not for No Rank')
+    assert.equal(getAssignmentBlock(civilian, 'scienceOfficer'), null)
+    assert.equal(isRankAllowed(withAssignment(civilian, 'scienceOfficer'), 'noRank'), true)
+    // A Diplomat may hold the post, but only with an officer rank.
+    const diplomatXO = withAssignment(asEducation('diplomatic'), 'executiveOfficer')
+    assert.equal(getAssignmentBlock(diplomatXO, 'executiveOfficer'), null)
+    assert.equal(isRankAllowed(diplomatXO, 'noRank'), false)
+    assert.equal(isRankAllowed(diplomatXO, 'lieutenant'), true)
+  })
+
   it('every built character holds an allowed assignment and rank', () => {
     for (const { seed, character } of BUILT) {
       assert.equal(getAssignmentBlock(character, character.career.assignment.id), null, `seed ${seed}`)
       assert.ok(isRankAllowed(character, character.career.rank.id), `seed ${seed}: ${character.career.rank.id} as ${character.career.assignment.id}`)
+    }
+  })
+})
+
+describe('Species Ability for Mixed Heritage and New Species', () => {
+  const mixed = (...parentIds) => parentIds.reduce((selection, id, index) => setMixedParent(selection, index, id), createSpeciesSelection('mixedHeritage'))
+
+  it('Book (Core p.99): mixed heritage has the primary species\u2019 ability; Prototype: the player picks the primary parent', () => {
+    const selection = mixed('human', 'vulcan')
+    assert.equal(getSpeciesAbility(selection), null)
+    assert.equal(getSpeciesAbilityLabel(selection), 'Choose primary species')
+    const vulcanPrimary = setPrimaryParent(selection, 'vulcan')
+    assert.equal(getSpeciesAbility(vulcanPrimary).id, getSpeciesAbility(createSpeciesSelection('vulcan')).id)
+    assert.equal(vulcanPrimary.speciesAbility.id, getSpeciesAbility(vulcanPrimary).id)
+    assert.equal(getSpeciesAbility(setPrimaryParent(vulcanPrimary, 'human')).id, getSpeciesAbility(createSpeciesSelection('human')).id)
+  })
+
+  it('the primary must be one of the parents, and replacing that parent clears it', () => {
+    const selection = setPrimaryParent(mixed('human', 'vulcan'), 'vulcan')
+    assert.equal(setPrimaryParent(selection, 'andorian'), selection)
+    const replaced = setMixedParent(selection, 1, 'andorian')
+    assert.equal(replaced.primarySpeciesId, null)
+    assert.equal(replaced.speciesAbility, null)
+  })
+
+  it('the Species screen is not complete until the primary parent is chosen', () => {
+    const character = { ...createEmptyCharacter(), species: mixed('human', 'vulcan'), identity: { ...createEmptyCharacter().identity, gender: { id: 'female', name: 'Female' } } }
+    assert.equal(getSpeciesRequirements(character).traits, false)
+    assert.equal(getSpeciesRequirements({ ...character, species: setPrimaryParent(character.species, 'human') }).traits, true)
+  })
+
+  it('Prototype (designer decision): a New Species has no Species Ability', () => {
+    const selection = createSpeciesSelection('newSpecies')
+    assert.equal(getSpeciesAbility(selection), null)
+    assert.equal(getSpeciesAbilityLabel(selection), 'None')
+  })
+
+  it('autofill picks a primary parent', () => {
+    for (const seed of SEEDS) {
+      const character = { ...createEmptyCharacter(), species: createSpeciesSelection('mixedHeritage') }
+      const { species } = fillSpecies(character, createRandomChooser(seed))
+      assert.ok(species.parents.some((parent) => parent.id === species.primarySpeciesId), `seed ${seed}`)
+      assert.ok(getSpeciesAbility(species), `seed ${seed}`)
     }
   })
 })

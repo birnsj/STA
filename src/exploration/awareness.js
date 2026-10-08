@@ -452,7 +452,8 @@ export function tickWorld(world, party, rawSeconds) {
   const seconds = Math.min(MAX_TICK_SECONDS, Math.max(0, rawSeconds))
   if (!seconds) return world
   const time = world.time + seconds
-  const members = party.memberIds.map((id) => party.members[id])
+  // A Defeated party member draws no attention: NPCs only notice those still up.
+  const members = party.memberIds.map((id) => party.members[id]).filter((member) => !isDefeated(member.condition))
   const events = []
   const emit = (event) => events.push(event)
   const npcs = {}

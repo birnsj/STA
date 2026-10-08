@@ -8,8 +8,10 @@ import {
   getSpeciesById,
   isMixedHeritage,
   isNewSpecies,
+  isPrimaryParentChosen,
   setMixedParent,
   setNewSpeciesName,
+  setPrimaryParent,
   toggleAttributeChoice,
 } from './species.js'
 import * as environmentRules from './environment.js'
@@ -56,6 +58,7 @@ export function fillSpecies(character, chooser) {
         species = setMixedParent(species, index, free.id)
       }
     })
+    if (!isPrimaryParentChosen(species)) species = setPrimaryParent(species, chooser.order(species.parents)[0].id)
   }
   if (isNewSpecies(definition) && !species.customName.trim()) species = setNewSpeciesName(species, definition.name)
   const missing = getRequiredAttributeChoices(definition) - species.attributeBonuses.length

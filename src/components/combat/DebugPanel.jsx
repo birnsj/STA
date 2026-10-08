@@ -4,6 +4,7 @@ import { getActiveCombatant, getCombatantList, majorsTaken, statusText as condit
 import { getInjuryMode, getWeapon } from '../../combat/weaponSystem.js'
 import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import CharacterInspector from '../CharacterInspector.jsx'
+import FrameRate from '../FrameRate.jsx'
 
 const statusText = (combatant) => `${conditionText(combatant)}${combatant.inCover ? ', in cover' : ''}${combatant.guard ? ', guarded' : ''}`
 const formatPosition = (position) => `(${position.x},${position.y})`
@@ -84,6 +85,7 @@ export default function DebugPanel({ state, auto, worldActors = null, onClose })
         </button>
       </div>
       <dl className="debug-grid">
+        <FrameRate />
         <dt>Seed</dt>
         <dd>{state.seed}</dd>
         <dt>Auto Combat</dt>

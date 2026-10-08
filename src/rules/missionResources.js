@@ -5,7 +5,8 @@
 //
 // Book (STA 2e Core):
 // - p.259-260: unspent Momentum is saved to the group pool; any player character may use it; the pool holds at most 6;
-//   Momentum that can't be saved is lost unless spent immediately. Bonus Momentum (from talents etc.) is never saved.
+//   Momentum that can't be saved is lost unless spent immediately. Bonus Momentum (from talents etc.) is never saved
+//   (PROTOTYPE RULE below: the prototype saves it).
 // - p.259 Create Opportunity (buy d20s, Immediate, Repeatable): before the roll, the first bonus d20 costs 1, the second
 //   2 more, the third 3 more; no task rolls more than 5d20.
 // - p.260, p.263: any Immediate Momentum spend can be paid in part or in full by adding Threat instead, one for one.
@@ -24,6 +25,15 @@ export const createMissionResources = ({ momentum = 0, threat = 0 } = {}) => ({ 
 
 // Total cost of buying `count` bonus d20s: 1, 3, 6.
 export const bonusDiceCost = (count) => BONUS_DIE_COSTS.slice(0, count).reduce((total, cost) => total + cost, 0)
+
+// PROTOTYPE RULE (designer, Oct 2026), not the book: bonus Momentum is saved to the group pool like any other.
+// Book p.260: bonus Momentum can't be saved and must be spent at once, but nothing in the prototype spends Momentum
+// at the moment of a roll yet, so under the book rule it would always be lost (and talents such as Call Out Targets
+// and Pack Tactics would do nothing). Set to false to restore the book rule once immediate spends exist.
+export const PROTOTYPE_SAVE_BONUS_MOMENTUM = true
+
+// The part of a successful player task's Momentum (a taskResolver.js result) that goes to the group pool.
+export const savableMomentum = (result) => result.momentumGenerated - (PROTOTYPE_SAVE_BONUS_MOMENTUM ? 0 : result.bonusMomentum)
 
 // Saving a player task's unspent Momentum: { resources, saved, lost } (lost: what didn't fit under the maximum).
 export function saveMomentum(resources, amount) {

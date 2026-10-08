@@ -2,12 +2,12 @@
 // Task panel shows, and exactly what the roll uses) and they share one roll, rollCombatTask, which the reducer calls.
 import { findAuthority } from '../rules/authority.js'
 import { canCommunicate } from '../rules/communication.js'
-import { checkDicePurchase, npcMomentumToThreat, payForDice, saveMomentum } from '../rules/missionResources.js'
+import { checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum } from '../rules/missionResources.js'
 import { injuryTypeName } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { getAssistFor, taskContext, withoutUsedAssist } from './combatAttacks.js'
-import { assistLine, diceText, focusText, momentumLine, purchaseLine, takeRandom, taskText, withStats } from './combatLog.js'
+import { assistLine, bonusMomentumLine, diceText, focusText, momentumLine, purchaseLine, takeRandom, taskText, withStats } from './combatLog.js'
 import { canAfford, getCombatantList, isActive, secondMajorLines } from './combatSelectors.js'
 import { tileDistance } from './rangeSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, COMBAT_TASKS, majorsTaken, MAX_MAJORS_PER_ROUND, spendTurnAction } from './turnActions.js'
@@ -121,12 +121,13 @@ export function rollCombatTask(state, actor, preview, requestedPurchase, taskKin
     assist: assist && { task: assist.task, die: assist.die },
     difficulty: task.difficulty,
     ignoreComplications: prepared.ignoreComplications,
-    bonusMomentum: prepared.bonusMomentum,
+    bonusMomentum: (prepared.bonusMomentum ?? 0) + (preview.assist?.talents?.bonusMomentum ?? 0),
   })
   const passed = evaluation.success
   const playerSide = actor.side === 'player'
   const paid = payForDice(state.resources, purchase)
-  const saving = playerSide ? saveMomentum(paid, evaluation.momentumGenerated) : { resources: paid, saved: 0, lost: 0 }
+  // Bonus Momentum is saved too: PROTOTYPE RULE (missionResources.js savableMomentum; Book p.260 says it can't be).
+  const saving = playerSide ? saveMomentum(paid, savableMomentum(evaluation)) : { resources: paid, saved: 0, lost: 0 }
   const npcThreat = playerSide ? 0 : evaluation.momentumGenerated
   const resources = npcMomentumToThreat(saving.resources, npcThreat)
   let next = withoutUsedAssist(spendTurnAction({ ...afterDraw, resources }, actor.id, taskKind), actor.id, preview.assist)
@@ -175,6 +176,8 @@ export function rollCombatTask(state, actor, preview, requestedPurchase, taskKin
     ...(purchase.bonusDice ? [purchaseLine(purchase)] : []),
     `Rolls: ${diceText(evaluation.dice)}`,
     ...(resultAssist ? [assistLine(next, resultAssist), `Assist die: ${!resultAssist.successes ? 'no success' : resultAssist.counted ? `counts (+${resultAssist.successes})` : 'does not count (the leader scored no success)'}`] : []),
+    ...(preview.assist?.talents?.notes.length ? [`Assist talents: ${preview.assist.talents.notes.join('; ')}`] : []),
+    ...(playerSide && evaluation.bonusMomentum ? [bonusMomentumLine(evaluation.bonusMomentum)] : []),
     `Successes: ${evaluation.successes} vs Difficulty ${task.difficulty}`,
     `RESULT: ${passed ? 'SUCCESS' : 'FAILURE'}`,
     playerSide ? momentumLine(evaluation.momentumGenerated, saving, resources) : `Momentum generated: ${evaluation.momentumGenerated}${npcThreat ? ` (NPC: added to Threat, now ${resources.threat})` : ''}`,

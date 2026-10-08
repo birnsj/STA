@@ -12,9 +12,6 @@
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers } with { x, y } positions;
 // on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
 import catalogue from '../data/adaptation/maps/tiles.json'
-import { applyTileArt } from './tileArt.js'
-
-applyTileArt(catalogue.tiles)
 
 export const MAP_SCHEMA_VERSION = 1
 export const TILES = catalogue.tiles

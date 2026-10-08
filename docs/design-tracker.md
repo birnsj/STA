@@ -29,12 +29,21 @@ Open design decisions for the designer. Each entry separates what the book says 
 - Promotion as progression during play.
 
 **Related questions:**
-- A civilian (No Rank) or Diplomatic No Rank character can currently hold any assignment, including Executive Officer, because the book's minimum ranks apply to officer ranks only. Should No Rank be restricted from command roles?
 - Should the Novice rank cap stay once rank has gameplay effects?
 
-### No Rank characters: keep, limit, or remove? (opened 2026-10-02)
+## Decided
 
-**Decision needed:** what role No Rank (civilian and non-ranked diplomatic) characters have in the videogame, especially once rank matters.
+### Sprint goes twice as far as Move (decided 2026-10-07)
+
+**Decision:** Sprint goes twice the Move distance, like the book.
+
+**Book (STA 2e Core Rulebook):** p.288: Move (minor action) goes up to one zone, anywhere within Medium range. p.289: Sprint (major action) goes two zones, anywhere within Long range. The two can't be taken in the same turn.
+
+**Prototype:** Move is floor(Fitness ÷ 2) + 1 tiles (5 at Fitness 9); Sprint is twice that (10 at Fitness 9), with no roll. It used to be half of Move, left over from the 2 AP rule when Sprint cost 1 AP. `getSprintTiles` in `combat/movementSystem.js`.
+
+### No Rank characters are kept, but never command (decided 2026-10-07)
+
+**Decision:** keep No Rank (civilian and unranked diplomat), but bar it from Commanding Officer and Executive Officer, like enlisted characters. Honorary rank is not offered.
 
 **Book (Captain's Log):**
 - p.120 (Civilian Career Training): "Civilian characters hold no Starfleet rank or other military rank, though they may be granted an honorary rank." Purpose: "Building a Captain's Log story around a civilian character offers a chance to shine a light on life outside of Starfleet." Examples: Sarek, Dal R'El. Types: Freight and Transport, Law Enforcement, Physician, Politician or Bureaucrat, Scientific or Technical Expert, Trader or Merchant.
@@ -42,19 +51,67 @@ Open design decisions for the designer. Each entry separates what the book says 
 - p.132: rank is chosen "unless you are creating a civilian character or a character in a non-militaristic organization."
 - The book is a solo tabletop game that supports any story, Starfleet or not; it does not say whether a civilian can hold a Starfleet assignment.
 
-**Prototype (current):**
+- p.132 (Enlisted Personnel sidebar): enlisted characters never get Commanding Officer or Executive Officer. The book says nothing about unranked characters in command.
+
+**Prototype:**
 - Civilian education: No Rank is the only option (set automatically). Diplomatic education: No Rank or Ensign through Captain.
 - "No Rank" is a prototype label (`src/data/adaptation/career.json`); the book has no name for it.
 - Honorary rank (p.120) is not offered.
-- No Rank characters can take any assignment, including command roles.
+- A Civilian cannot take Commanding Officer or Executive Officer ("Not for No Rank"). A Diplomat can, but must then choose an officer rank. Data: `noRankExcludedAssignments` in `career.json`; rules: `getAssignmentBlock` and `isRankAllowed` in `rules/career.js`.
 
-**Options (for the designer to choose; none implemented):**
-- Keep No Rank as an alternative way to play, with its own trade-offs once rank matters (e.g. no authority over crew, but not bound by orders or protocol).
-- Limit No Rank characters to certain assignments (e.g. counselor, science specialist).
-- Offer an honorary rank for civilians, and decide whether it counts as a real rank.
-- Remove Civilian education (and Diplomatic No Rank) from the creator if the game centres on Starfleet service.
+### Species Ability for Mixed Heritage and New Species (decided 2026-10-07)
 
-## Decided
+**Decision:** a Mixed Heritage player picks which parent is the primary species and gets that species' ability. A New Species has no Species Ability.
+
+**Book (STA 2e Core Rulebook):**
+- p.99: each species gives a Species Ability; a mixed-heritage character has the ability of their primary species.
+- The book gives no ability for a species the player invents.
+
+**Prototype:**
+- Each parent on the Species screen has a "Make primary" button. The Species screen is not complete until one is chosen. Changing that parent clears the choice. Stored as `species.primarySpeciesId`.
+- New Species shows Species Ability "None".
+- Rules: `getSpeciesAbility`, `setPrimaryParent` in `rules/species.js`; player-facing text in `withoutAbility` in `data/source/speciesAbilities.json`.
+
+### Enemies spend Threat (decided 2026-10-07)
+
+**Decision:** enemies buy bonus d20s, the Extra Minor Action and the Second Major Action with Threat, the way the party uses Momentum.
+
+**Book (STA 2e Core Rulebook):** p.264, p.324: NPCs have no Momentum pool; Threat mirrors it, and they pay for the same spends with Threat. Costs: bonus d20s 1, 2, 3 (p.259); Extra Minor 1 (p.260); Second Major 2, with the task +1 Difficulty (p.288).
+
+**Prototype:**
+- Rules: `extraMinorBlock` and `secondMajorBlock` in `combat/combatSelectors.js` charge the party Momentum and enemies Threat.
+- Enemy AI (tuning, not rules, in `combat/combatAI.js`): it buys bonus d20s while its chance to hit is under 75% and each die adds at least 5%. It buys an Extra Minor to Aim after moving into cover, and a Second Major after attacking when the second shot hits at least 40%. While a Notable or Major NPC is fighting, it keeps 4 Threat for that NPC's Avoid Injury.
+- The party's Auto Combat still buys nothing. Enemies still don't spend Threat on anything else (complications, reinforcements, Avoid Injury for main-rules NPCs).
+
+### Direct's earshot stays at 8 tiles (decided 2026-10-07)
+
+**Book (STA 2e Core Rulebook):** p.288: Direct an ally "who can hear you"; no distance.
+
+**Prototype:** within 8 tiles (no line of sight needed), or any distance when both carry communicators and the scene doesn't jam them. `communication.audibleRangeTiles` in `data/adaptation/combat/actions.json`.
+
+### Service Motto and Personal Goals are dropped (decided 2026-10-07)
+
+**Book:** no rule for either. **Prototype:** the two fields from the Finishing Touches mockup are not part of the design; the Service Motto would repeat the Values.
+
+### Combat talents automated in personal combat (decided 2026-10-07)
+
+**Decision:** automate three groups of talents in Combat Type 1: the attacker's own, Defensive Training, and the Assist talents. Each is applied by talent id in `combat/combatTalents.js`, since the talents' conditions are prose in `talents.json`.
+
+**Book (STA 2e Core Rulebook):**
+- p.161 Applied Force: a Melee Attack may use Fitness instead of Daring; +1 Severity to Unarmed Attacks.
+- p.162 Mean Right Hook: the Unarmed Strike gains Intense. p.162 Martial Artist: the Unarmed Strike may inflict Deadly Injuries as well as Stun.
+- p.162 Steady Hands: +1 Severity on a Ranged Attack after Aim. p.161 Ambush Tactics: +2 Severity against an enemy unaware of you, or suffering a weakness trait or complication.
+- p.161 Defensive Training: Attacks of the chosen type (Melee or Ranged) against you are +1 Difficulty.
+- p.157 Call Out Targets: an Attack you Assist generates 2 bonus Momentum if it succeeds. p.162 Pack Tactics: a task you Assist in combat gains 1 bonus Momentum on success. p.163 Student of War: an Attack or Guard you Assist may reroll one d20.
+- p.260: bonus Momentum cannot be saved to the group pool.
+
+**Prototype:**
+- Applied Force uses whichever of Fitness and Daring is higher; an attribute shut down by Fatigue never counts as higher.
+- Ambush Tactics counts a target as unaware when its combat knowledge has not found the attacker (fights started in exploration) and on the opening Ambush hit. The weakness-trait half is not modelled yet.
+- The Assist talents apply to the Assist action, not to a commander's Direct. Student of War's reroll applies to attacks only, because Guard has no reroll step.
+- Mean Right Hook's Intense only lowers the Momentum cost of buying extra Severity, and nothing buys extra Severity yet, so it has no effect in play for now.
+- PROTOTYPE RULE (decided 2026-10-07), not the book: bonus Momentum is saved to the group pool like any other Momentum, because nothing can spend it at the moment of the roll yet. Switch: `PROTOTYPE_SAVE_BONUS_MOMENTUM` in `rules/missionResources.js`; set it to `false` to restore p.260 once immediate spends exist. The combat log marks every save of bonus Momentum as a prototype rule.
+- Not automated: talents that need systems the prototype lacks (Quick to Action, Zero-G Combat, Saboteur, Follow My Lead, starship talents), Momentum-spend talents (Close Protection, Fire at Will), species talents (Nerve Pinch, The Ushaan) and First Response.
 
 ### Career-length talent limits are enforced (decided 2026-10-07)
 

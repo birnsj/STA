@@ -6,7 +6,8 @@ import { resolveStaTask, rollDice, staSuccessOdds, staTaskChance, TASK_DICE } fr
 import { getCombatantList, getOpponents, getTurnGroup, getTurnOf, isActive, isTurnFinished, knowsAbout, secondMajorLines } from './combatSelectors.js'
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS } from './turnActions.js'
-import { getAttackTaskSpec, getRangeModifier, getWeapon } from './weaponSystem.js'
+import { assistTalents, attackAttribute, defenceLines } from './combatTalents.js'
+import { getAttackTaskSpec, getCombatantWeapon, getRangeModifier } from './weaponSystem.js'
 
 // Book (STA 2e Core p.288): Aim (minor action) lets the next Attack this turn reroll a single d20; with an Accurate
 // weapon (p.241: the Accurate quality) up to two d20s. A focus does nothing extra for Aim: its only effect is the critical
@@ -20,13 +21,17 @@ export const AIM_TEXT = 'may reroll one die on the next attack this turn (two wi
 export const canAimReroll = (pending, dieIndex) =>
   pending.aimRerolls > 0 && !pending.rerolls.some((reroll) => reroll.source === 'aim' && reroll.index === dieIndex)
 
+// Student of War (combatTalents.js): the assisted attack may reroll one d20, any die.
+export const canAssistReroll = (pending) => (pending.assistRerolls ?? 0) > 0
+
 // A player's rolled attack waits for the player only when it would miss and a reroll could still save it; otherwise
 // it resolves on its own (prototype: no Resolve click for a roll with nothing left to decide).
 export function rollAwaitsPlayer(state) {
   const { pending } = state
   if (!pending || state.combatants[pending.attackerId].side !== 'player') return false
   const evaluation = evaluateAttack(pending)
-  const canReroll = (ADAPTATION_MOMENTUM_SPENDS && state.resources.momentum > 0) || evaluation.dice.some((die, index) => !die.successes && canAimReroll(pending, index))
+  const canReroll =
+    (ADAPTATION_MOMENTUM_SPENDS && state.resources.momentum > 0) || canAssistReroll(pending) || evaluation.dice.some((die, index) => !die.successes && canAimReroll(pending, index))
   return canReroll && !evaluation.success
 }
 
@@ -51,8 +56,10 @@ function prepareAttack(state, combatant, weapon) {
   const key = `${weapon.id}#${combatant.side}#${traitsKey(state, combatant)}`
   if (!cache.has(key)) {
     const spec = getAttackTaskSpec(weapon)
-    const task = { attribute: spec.attribute, department: spec.department, difficulty: spec.baseDifficulty, focuses: weapon.focuses, tags: spec.tags, traitRules: spec.traitRules }
-    cache.set(key, prepareTask(character, task, taskContext(state, combatant)))
+    const { attribute, effect } = attackAttribute(character, weapon, spec.attribute, combatant.condition)
+    const task = { attribute, department: spec.department, difficulty: spec.baseDifficulty, focuses: weapon.focuses, tags: spec.tags, traitRules: spec.traitRules }
+    const prepared = prepareTask(character, task, taskContext(state, combatant))
+    cache.set(key, effect ? { ...prepared, effects: [...prepared.effects, effect] } : prepared)
   }
   return cache.get(key)
 }
@@ -61,7 +68,7 @@ function prepareAttack(state, combatant, weapon) {
 // prepared task the action ring labels with Attribute + Department and Target Number.
 export function getAttackTask(state, attackerId, weaponId) {
   const attacker = state.combatants[attackerId]
-  const weapon = getWeapon(weaponId)
+  const weapon = attacker && getCombatantWeapon(attacker, weaponId)
   return attacker && weapon ? prepareAttack(state, attacker, weapon) : null
 }
 
@@ -110,7 +117,7 @@ export function attackDifficulty(preview, defenderSuccesses = 0) {
 export function previewAttack(state, attackerId, targetId, weaponId, fromPosition) {
   const attacker = state.combatants[attackerId]
   const target = state.combatants[targetId]
-  const weapon = getWeapon(weaponId)
+  const weapon = attacker && getCombatantWeapon(attacker, weaponId)
   if (!attacker || !target || !weapon) return { available: false, reason: 'Choose a target.' }
   const position = fromPosition ?? attacker.position
   const distance = tileDistance(position, target.position)
@@ -120,7 +127,8 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   const prepared = prepareAttack(state, attacker, weapon)
   // Book p.288: a Guard on the target raises the Difficulty of attacks against it by 1.
   const guardModifier = target.guard ? 1 : 0
-  const extraLines = secondMajorLines(state, attackerId)
+  // A bought second major action's +1, and the target's Defensive Training: both apply after any opposed roll, like Guard.
+  const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon)]
   const extraModifier = extraLines.reduce((total, line) => total + line.change, 0)
   const task = { ...prepared.task, difficulty: prepared.difficulty + range.modifier + guardModifier + extraModifier }
   const opposition = getOpposition(state, attacker, target, spec, weapon)
@@ -145,10 +153,15 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
     equipment: prepared.equipment,
     task,
     effects: prepared.effects,
+    ignoreComplications: prepared.ignoreComplications,
+    bonusMomentum: prepared.bonusMomentum,
     opposition,
     targetInCover: target.inCover,
+    // Ambush Tactics (combatTalents.js): whether the target is unaware of the attacker as the shot is taken.
+    targetUnaware: !knowsAbout(state, target, attacker),
   }
   if (!isActive(target) || target.side === attacker.side) return { ...base, available: false, reason: 'Not a valid target.' }
+  if (!prepared.possible) return { ...base, available: false, reason: prepared.blockers.join('; ') }
   if (!range.available) return { ...base, available: false, reason: `Out of range (${band.name}).` }
   if (!hasLineOfFire(state.map, position, target.position)) return { ...base, available: false, reason: 'No line of fire.' }
   return { ...base, available: true, reason: null }
@@ -167,9 +180,16 @@ export const getAssistableAllies = (state, helper) => getCombatantList(state).fi
 
 // The attack's STA 2E task result (taskResolver.js), counting the assist die (Book: an assistant's successes count only
 // if the leader scores at least 1; an assistant's 20 is a complication too).
+// ignoreComplications and bonusMomentum: the attacker's prepared effects, plus what the helper's talents add.
 export function evaluateAttack(pending) {
   const { assist } = pending
-  return resolveStaTask({ leader: { task: pending.task, dice: pending.dice }, assist: assist && { task: assist.task, die: assist.die }, difficulty: pending.task.difficulty })
+  return resolveStaTask({
+    leader: { task: pending.task, dice: pending.dice },
+    assist: assist && { task: assist.task, die: assist.die },
+    difficulty: pending.task.difficulty,
+    ignoreComplications: pending.ignoreComplications ?? 0,
+    bonusMomentum: pending.bonusMomentum ?? 0,
+  })
 }
 
 // Who assists this combatant's next task, and with what: { helperId, task, focus, via ('assist' | 'direct'), label } or
@@ -190,17 +210,19 @@ export function getAssistFor(state, actorId, source) {
   }
   const helper = state.assists[actorId] && state.combatants[state.assists[actorId]]
   if (!helper || !isActive(helper)) return null
+  // The helper's Assist talents (combatTalents.js): { bonusMomentum, rerolls, notes }.
+  const talents = assistTalents(helper, source.weapon ? 'attack' : 'task')
   if (source.weapon) {
     const { task, focus } = prepareAttack(state, helper, source.weapon)
-    return { helperId: helper.id, task, focus, via: 'assist', label: 'Assist' }
+    return { helperId: helper.id, task, focus, via: 'assist', label: 'Assist', talents }
   }
   if (source.spec) {
     const { task, focus } = prepareTask(helper.character, source.spec, taskContext(state, helper))
-    return { helperId: helper.id, task, focus, via: 'assist', label: 'Assist' }
+    return { helperId: helper.id, task, focus, via: 'assist', label: 'Assist', talents }
   }
   if (!source.approach) return null
   const { task, focus } = prepareAssist(helper.character, source.approach, helper.condition)
-  return { helperId: helper.id, task, focus, via: 'assist', label: `Assist (${source.approach.label})` }
+  return { helperId: helper.id, task, focus, via: 'assist', label: `Assist (${source.approach.label})`, talents }
 }
 
 // Takes the assist off the table once it has been rolled (a Direct's assist isn't a set-up Assist).
@@ -218,8 +240,9 @@ export const assistTaskFor = (state, actorId, weapon) => getAssistFor(state, act
 export function getHitChance(state, attackerId, preview, { bonusDice = 0 } = {}) {
   if (!preview?.available) return 0
   const turn = getTurnOf(state, attackerId)
-  const rerolls = turn.aimReroll ? aimRerollsFor(preview.weapon) : 0
-  const assistTask = assistTaskFor(state, attackerId, preview.weapon)?.task ?? null
+  const assist = assistTaskFor(state, attackerId, preview.weapon)
+  const rerolls = (turn.aimReroll ? aimRerollsFor(preview.weapon) : 0) + (assist?.talents?.rerolls ?? 0)
+  const assistTask = assist?.task ?? null
   const chanceAt = (difficulty) => staTaskChance({ task: preview.task, difficulty, dice: TASK_DICE + bonusDice, rerolls, assistTask })
   if (!preview.opposition) return chanceAt(preview.task.difficulty)
   return staSuccessOdds(preview.opposition.task).reduce((total, chance, successes) => total + chance * chanceAt(attackDifficulty(preview, successes)), 0)

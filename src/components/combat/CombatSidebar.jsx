@@ -31,6 +31,8 @@ export function SelectedCharacterPanel({ combatant }) {
           Move {getMovementTiles(character)} &middot; {combatant.inCover ? 'In Cover' : 'No Cover'}
           {combatant.guard && <> &middot; Guarded</>}
         </p>
+      </div>
+      <div className="panel-condition">
         <ConditionTrack character={character} condition={combatant.condition} showCategory />
       </div>
     </section>
@@ -68,11 +70,11 @@ export function TargetPanel({ target }) {
           <CombatPortrait character={target.character} className="target-portrait" />
           <div className="target-info">
             <span className="target-name">{target.character.name}</span>
-            <span className="target-row">
-              <ConditionTrack character={target.character} condition={target.condition} showCategory />
-            </span>
             <span className={`target-row target-cover${target.inCover ? ' is-covered' : ''}`}>Cover: {target.inCover ? 'In Cover' : 'No Cover'}</span>
             {target.guard && <span className="target-row target-cover is-covered">Guarded: attacks +1 Difficulty</span>}
+          </div>
+          <div className="panel-condition">
+            <ConditionTrack character={target.character} condition={target.condition} showCategory />
           </div>
         </div>
       ) : (

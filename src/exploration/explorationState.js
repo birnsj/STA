@@ -77,7 +77,8 @@ export function explorationReducer(state, action) {
     case 'tick': {
       if (state.mode === MODE.COMBAT) return state
       const party = partyReducer(state.party, action)
-      if (state.enemiesActive === false) return perceive({ ...state, party })
+      // The clock still runs (challenge-object locks expire on it); only the NPCs stand still.
+      if (state.enemiesActive === false) return perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } })
       return requestCombat(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }))
     }
     // action: a Combat Type 1 action (or aiStep) from the combat screen.

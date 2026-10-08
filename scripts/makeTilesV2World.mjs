@@ -1,5 +1,5 @@
-// v2 art for every tile outside the Starship & Station sample (which scripts/makeTilesV2.mjs draws), written to
-// public/art/tiles-v2/ under the same file names as public/art/tiles/, so the "New tile art" set swaps them in.
+// v2 art for every tile outside Starship & Station (scripts/makeTilesV2.mjs) and Bridge (TOS) (scripts/makeTilesBridge.mjs),
+// written to each tile's palette-group folder (engine.mjs outFile).
 // Floors and walls are lit materials (engine.mjs); objects are ray-marched distance fields standing on their ground
 // (v2/kit.mjs objectScene). File names come from the tile catalogue (image, altImage, heightVariants).
 //
@@ -7,11 +7,11 @@
 //   existing files are kept unless --force; --only renders just those tile ids; --sheet also writes .tmp-sheet.png
 //   (a contact sheet of what was rendered) for checking.
 import fs from 'node:fs'
-import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { encodePng } from './png.mjs'
-import { blockScene, FORCE, floorScene, OUT, OUT_H, OUT_W, render, rgb, WALL_STRETCH } from './v2/engine.mjs'
+import { blockScene, FORCE, floorScene, OUT_H, OUT_W, outFile, render, rgb, WALL_STRETCH } from './v2/engine.mjs'
 import { objectScene, writeSheet } from './v2/kit.mjs'
+import { onPanelFace, panelScene, renderPanel, windowFeature, withFitting } from './v2/panels.mjs'
 import { flagstones, ground, liquid, overlay, planks, plating, slabs } from './v2/grounds.mjs'
 import { breach, builtWall, crateStack, drips, rockWall, shelves, strands, timbers } from './v2/walls.mjs'
 import * as O from './v2/objects.mjs'
@@ -242,15 +242,24 @@ const OBJ = {
 
 // ---------- jobs from the catalogue ----------
 const file = (image) => image?.split('/').pop()
+// Tiles whose art the other two scripts draw.
+const groupOf = new Map(catalogue.paletteGroups.flatMap((group) => group.tiles.map((id) => [id, group.id])))
+const OTHER_SCRIPTS = new Set(['starship', 'tosBridge'])
+const ours = (tile) => !OTHER_SCRIPTS.has(groupOf.get(tile.id))
 const jobs = []
 for (const tile of catalogue.tiles) {
-  if (!tile.image.startsWith('/art/tiles/')) continue
+  if (!ours(tile)) continue
   if (G[tile.id]) {
     jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(floorScene(G[tile.id](false))) })
     if (tile.altImage) jobs.push({ id: tile.id, file: file(tile.altImage), draw: () => render(floorScene(G[tile.id](true))) })
   } else if (W[tile.id]) {
     const h = tile.height
     jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(blockScene(h, W[tile.id](h * WALL_STRETCH), WALL_STRETCH)) })
+    // Window panels (tiles.json panelImages, v2/panels.mjs): the window built into the wall, one image per direction.
+    for (const axis of Object.keys(tile.panelImages ?? {})) {
+      const wall = (half) => withFitting(W[tile.id](h * WALL_STRETCH), onPanelFace(axis, half, windowFeature(h * WALL_STRETCH)))
+      jobs.push({ id: tile.id, file: file(tile.panelImages[axis]), draw: () => renderPanel(panelScene(axis, (half) => blockScene(h, wall(half), WALL_STRETCH))) })
+    }
     if (tile.heightVariants) {
       const mid = Math.round(h * 0.52)
       jobs.push({ id: tile.id, file: file(tile.heightVariants.mid), draw: () => render(blockScene(mid, W[tile.id](mid))) })
@@ -260,19 +269,17 @@ for (const tile of catalogue.tiles) {
     jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(objectScene(OBJ[tile.id]()), { subsamples: 2 }) })
   }
 }
-// Starship & Station tiles are makeTilesV2.mjs's; anything else without v2 art is reported.
+// Any of this script's tiles without v2 art defined is reported.
 const handled = new Set(jobs.map((job) => job.id))
-const STARSHIP = new Set(['floor', 'doorway', 'grating', 'bulkhead', 'machinery', 'crate', 'epsControl'])
-const missing = catalogue.tiles.filter((tile) => tile.image.startsWith('/art/tiles/') && !handled.has(tile.id) && !STARSHIP.has(tile.id)).map((tile) => tile.id)
+const missing = catalogue.tiles.filter((tile) => ours(tile) && !handled.has(tile.id)).map((tile) => tile.id)
 if (missing.length) console.log(`no v2 art defined for: ${missing.join(', ')}`)
 
 const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length).split(',')
 const sheet = process.argv.includes('--sheet')
 const rendered = []
-fs.mkdirSync(OUT, { recursive: true })
 for (const job of jobs) {
   if (only && !only.includes(job.id)) continue
-  const target = path.join(OUT, job.file)
+  const target = outFile(job.file)
   if (fs.existsSync(target) && !FORCE && !only) {
     console.log(`kept   ${job.file} (already exists)`)
     continue
@@ -282,9 +289,11 @@ for (const job of jobs) {
     if (!sheet) continue
   }
   const started = Date.now()
-  const bytes = job.draw()
-  if (!fs.existsSync(target) || FORCE) fs.writeFileSync(target, encodePng(OUT_W, OUT_H, bytes))
-  rendered.push({ id: job.id, bytes })
+  // A draw returns a tile image's bytes, or { width, height, bytes } for a two-tile panel (left off the contact sheet).
+  const drawn = job.draw()
+  const { width = OUT_W, height = OUT_H, bytes = drawn } = drawn.bytes ? drawn : {}
+  if (!fs.existsSync(target) || FORCE) fs.writeFileSync(target, encodePng(width, height, bytes))
+  if (!drawn.bytes) rendered.push({ id: job.id, bytes })
   console.log(`wrote  ${job.file} (${Date.now() - started} ms)`)
 }
 if (sheet && rendered.length) writeSheet(fileURLToPath(new URL('../.tmp-sheet.png', import.meta.url)), rendered)

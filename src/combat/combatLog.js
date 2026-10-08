@@ -1,7 +1,7 @@
 // Small state transitions every combat step shares (log entries, the last action marker, a combatant update, the stats
 // block, the next seeded roll) and the log's wording for tasks, dice and Momentum, so every step reads the same way.
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
-import { MAX_MOMENTUM } from '../rules/missionResources.js'
+import { MAX_MOMENTUM, PROTOTYPE_SAVE_BONUS_MOMENTUM } from '../rules/missionResources.js'
 import { evaluateStaDie } from '../rules/taskResolver.js'
 import { previewAttack } from './combatAttacks.js'
 
@@ -43,6 +43,11 @@ export const purchaseLine = (purchase) => {
 
 export const momentumLine = (generated, saving, resources) =>
   `Momentum generated: ${generated}; ${saving.saved} saved to the group pool (now ${resources.momentum}/${MAX_MOMENTUM})${saving.lost ? `; ${saving.lost} over the maximum, lost unless spent now` : ''}`
+
+export const bonusMomentumLine = (bonus) =>
+  PROTOTYPE_SAVE_BONUS_MOMENTUM
+    ? `Bonus Momentum: ${bonus} of that (saved to the pool: prototype rule; Book p.260 says it can't be saved)`
+    : `Bonus Momentum: ${bonus} of that (cannot be saved to the pool, Book p.260)`
 
 export const assistLine = (state, assist) => {
   const die = evaluateStaDie(assist.task, assist.die)

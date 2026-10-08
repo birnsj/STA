@@ -11,8 +11,9 @@ function Trait({ name, text }) {
   )
 }
 
-function ParentCarousel({ selection, index, genderId, onChange }) {
+function ParentCarousel({ selection, index, genderId, onChange, onPrimaryChange }) {
   const parent = selection.parents[index]
+  const isPrimary = Boolean(parent) && parent.id === selection.primarySpeciesId
   const options = getParentOptions(selection, index).map((species) => ({
     id: species.id,
     name: species.name,
@@ -20,7 +21,20 @@ function ParentCarousel({ selection, index, genderId, onChange }) {
   }))
   return (
     <div className="parent-slot">
-      <span className="parent-slot-label">Parent species {index + 1}{parent ? `: ${parent.name}` : ''}</span>
+      <div className="parent-slot-text">
+        <span className="parent-slot-label">Parent species {index + 1}{parent ? `: ${parent.name}` : ''}</span>
+        {parent && (
+          <button
+            type="button"
+            className={`parent-primary${isPrimary ? ' is-selected' : ''}`}
+            aria-pressed={isPrimary}
+            title="Your primary species gives your Species Ability."
+            onClick={() => onPrimaryChange(parent.id)}
+          >
+            {isPrimary ? 'Primary species' : 'Make primary'}
+          </button>
+        )}
+      </div>
       <PortraitCarousel
         portraits={options}
         selectedId={parent?.id}
@@ -34,15 +48,16 @@ function ParentCarousel({ selection, index, genderId, onChange }) {
   )
 }
 
-export default function SpeciesTraits({ selection, genderId, onParentChange, onNameChange, onDescriptionChange }) {
+export default function SpeciesTraits({ selection, genderId, onParentChange, onPrimaryChange, onNameChange, onDescriptionChange }) {
   const species = getSpeciesById(selection.id)
 
   if (isMixedHeritage(species)) {
     return (
       <div className="species-traits is-mixed">
         <div className="parent-selects">
-          <ParentCarousel selection={selection} index={0} genderId={genderId} onChange={onParentChange} />
-          <ParentCarousel selection={selection} index={1} genderId={genderId} onChange={onParentChange} />
+          {[0, 1].map((index) => (
+            <ParentCarousel key={index} selection={selection} index={index} genderId={genderId} onChange={onParentChange} onPrimaryChange={onPrimaryChange} />
+          ))}
         </div>
         <div className="mixed-traits">
           {selection.traits.map((trait) => (

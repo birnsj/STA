@@ -1,25 +1,61 @@
 // The map editor's board drawn into one canvas: floor tiles, contact shadows and light pools, then every block in
 // painter's order (x + y), drawn as IsoTiles.jsx draws them in the tall-wall views (tall walls with their panel faces,
 // windows and fittings, tall objects, 2x2 big objects, joined railings). A canvas is one element for the browser to
-// draw however big the map, and a brush stroke only repaints the area it changed. Light overlays, stars and glows are
-// drawn still, at a steady brightness, rather than animated. Presentation only.
+// draw however big the map, and a brush stroke only repaints the area it changed. The animated parts (light overlays,
+// blinking fittings, window stars) go on light layers instead (LIGHT_LAYERS: one per animation and timing group), which
+// EditorCanvas stacks over the board and animates with CSS; light pools are drawn steady. Presentation only.
 import { BIG_SCALE, getBigObjects } from '../../maps/bigObjects.js'
 import { isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { getTile, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
 import { joinedImage } from '../../maps/railJoins.js'
-import { tileAnimations, tileEffectsOn, tileGlow, usesSetArt, wallVariant } from '../../maps/tileArt.js'
+import { PANEL_IMAGE, panelArt, tileAnimations, tileGlow, wallVariant } from '../../maps/tileArt.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import { drawnHeight, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
-import { edgeStrip, FITTINGS, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
+import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
 
 const { width: IMAGE_W, height: IMAGE_H } = TILE_IMAGE
 const GHOST_OPACITY = 0.35
-// Steady stand-ins for the CSS animations (maps.css): roughly each animation's average brightness.
-const LIGHT_OPACITY = { pulse: 0.55, blink: 1, flicker: 0.65 }
-const STAR_OPACITY = 0.8
+// A steady stand-in for the glow pools' CSS animation (maps.css tilemap-glow): roughly its average brightness.
 const GLOW_OPACITY = 0.8
+// A light whose style has no animation is drawn steady on the board at this brightness.
+const STEADY_LIGHT_OPACITY = 0.7
 
 const keyOf = ({ x, y }) => `${x},${y}`
+
+// ---------------------------------------------------------------- light layers
+
+// The game gives each tile its own animation delay (tileArt.js animationDelay, IsoTiles stars); the editor sorts tiles
+// into this many timing groups instead, a layer each, so that not every light blinks together.
+export const LIGHT_PHASES = 3
+const LIGHT_STYLES = ['pulse', 'blink', 'flicker']
+// spread: the seconds the game's delays are spread over (lights 3s, stars 4s).
+export const LIGHT_LAYERS = [...LIGHT_STYLES.map((style) => ({ style, spread: 3 })), { style: 'twinkle', spread: 4 }].flatMap(({ style, spread }) =>
+  Array.from({ length: LIGHT_PHASES }, (_, phase) => ({ id: `${style}-${phase}`, style, phase, delay: -((phase + 0.5) / LIGHT_PHASES) * spread })),
+)
+const phaseOf = (fraction) => Math.min(LIGHT_PHASES - 1, Math.floor(fraction * LIGHT_PHASES))
+const lightPhase = ({ x, y }) => phaseOf(((x * 7 + y * 13) % 17) / 17)
+const starSeed = (position, i) => position.x * 73 + position.y * 151 + i * 37
+const starPhase = (seed) => phaseOf((seed % 7) / 7)
+
+// Whether an animated part (style, phase) belongs to this pass: a light layer ({ style, phase }) takes its own; the
+// board (pass null) takes none of them, only lights whose style has no animation.
+function inPass(pass, style, phase) {
+  if (!pass) return !LIGHT_STYLES.includes(style)
+  return pass.style === style && pass.phase === phase
+}
+
+// A tile's own drawing: on the board, as it is; on a light layer, cut out of the layer so that the lights of tiles
+// behind it stay hidden, as they are in the game.
+function solid(context, pass, draw) {
+  if (!pass) {
+    draw()
+    return
+  }
+  context.save()
+  context.globalCompositeOperation = 'destination-out'
+  draw()
+  context.restore()
+}
 
 // ---------------------------------------------------------------- images
 
@@ -66,12 +102,9 @@ function mirroredImage(href) {
   return canvas
 }
 
-// The v2 art is drawn at 4x and scaled smoothly; the original tiles are pixel art (maps.css).
-const smooth = (href) => href.includes('/art/tiles-v2/')
 function drawImage(context, href, ...box) {
   const image = loaded.get(href)
   if (!image) return
-  context.imageSmoothingEnabled = smooth(href)
   context.drawImage(image, ...box)
 }
 
@@ -91,6 +124,8 @@ export function imagesFor(map) {
       if (variant) [variant.href, ...variant.lights.map((light) => light.href)].forEach((href) => hrefs.add(href))
       tileAnimations(tile).forEach((light) => hrefs.add(light.href))
       if (tile.activeImage) hrefs.add(tile.activeImage)
+      Object.values(tile.panelImages ?? {}).forEach((href) => hrefs.add(href))
+      ;(tile.panelLights ?? []).forEach((light) => [light.x, light.y].forEach((href) => hrefs.add(href)))
     }),
   )
   return [...hrefs]
@@ -192,21 +227,24 @@ function strokeLine(context, a, b, stroke, lineWidth) {
   context.stroke()
 }
 
-// Light-only overlay images screened over a tile at a steady brightness. draw(href) draws one image.
-function drawLights(context, lights, draw) {
+// Light-only overlay images screened over a tile, those of this pass only (inPass). draw(href) draws one image.
+function drawLights(context, lights, draw, pass, phase) {
   for (const light of lights) {
+    if (!inPass(pass, light.style, phase)) continue
     context.save()
     context.globalCompositeOperation = 'screen'
-    context.globalAlpha *= LIGHT_OPACITY[light.style] ?? 0.7
+    if (!pass) context.globalAlpha *= STEADY_LIGHT_OPACITY
     draw(light.href)
     context.restore()
   }
 }
 
 // IsoTiles TallWall: each side face stretched upward from its own bottom edge, the top face lifted unchanged; the wall
-// variant (if any) replaces the image and its lights are drawn through the same faces.
-function drawTallWall(context, tile, position, panel) {
-  const variant = panel?.window ? null : wallVariant(tile, position)
+// variant (if any) or this tile's slot of its panel art (tileArt.js panelArt) replaces the image; lights go through the
+// same faces.
+function drawTallWall(context, tile, position, panel, pass) {
+  const art = panelArt(tile, panel, position)
+  const variant = (art || panel?.window) ? null : wallVariant(tile, position)
   const box = tileImageBox(position)
   const h = tile.height
   const extra = drawnHeight(tile, true) - h
@@ -228,17 +266,18 @@ function drawTallWall(context, tile, position, panel) {
       context.transform(...face.transform)
       path(context, face.clip)
       context.clip()
-      drawImage(context, href, 0, 0, IMAGE_W, IMAGE_H)
+      if (art) drawImage(context, href, -art.offset.x, -art.offset.y, PANEL_IMAGE.width, PANEL_IMAGE.height)
+      else drawImage(context, href, 0, 0, IMAGE_W, IMAGE_H)
       context.restore()
     }
   }
-  throughFaces(variant?.href ?? tile.image)
-  drawLights(context, variant?.lights ?? tileAnimations(tile), throughFaces)
-  if (panel) drawPanelFace(context, tile, position, panel, h + extra)
+  solid(context, pass, () => throughFaces(art?.href ?? variant?.href ?? tile.image))
+  drawLights(context, art?.lights ?? variant?.lights ?? tileAnimations(tile), throughFaces, pass, lightPhase(art?.timing ?? position))
+  if (panel) drawPanelFace(context, tile, position, panel, h + extra, pass)
 }
 
 // IsoTiles PanelFace: this tile's half of a two-tile panel. Points are (U along the panel 0..2, height above the floor).
-function drawPanelFace(context, tile, position, panel, height) {
+function drawPanelFace(context, tile, position, panel, height, pass) {
   const c = project(position)
   const start = panel.axis === 'x' ? { x: c.x - TILE_W / 2, y: c.y } : { x: c.x + TILE_W / 2, y: c.y }
   const end = { x: c.x, y: c.y + TILE_H / 2 }
@@ -246,36 +285,14 @@ function drawPanelFace(context, tile, position, panel, height) {
     const u = U - panel.half
     return [start.x + (end.x - start.x) * u, start.y + (end.y - start.y) * u - v]
   }
-  const lo = panel.half
-  const hi = panel.half + 1
   const edgeU = panel.half === 0 ? 0 : 2
-  strokeLine(context, at(edgeU, 0), at(edgeU, height), 'rgba(0, 0, 0, 0.5)', 1.5)
-  if (!usesSetArt(tile)) {
-    strokeLine(context, at(lo, height - 5), at(hi, height - 5), 'rgba(0, 0, 0, 0.28)', 1)
-    strokeLine(context, at(lo, 4), at(hi, 4), 'rgba(0, 0, 0, 0.28)', 1)
-  }
-  if (tile.panelFitting) drawFittingHalf(context, tile.panelFitting, position, panel.half, height, at)
-  else if (panel.window) drawWindowHalf(context, tile, position, panel.half, height, at)
+  solid(context, pass, () => strokeLine(context, at(edgeU, 0), at(edgeU, height), 'rgba(0, 0, 0, 0.5)', 1.5))
+  if (!tile.panelFitting && panel.window) drawWindowHalf(context, tile, position, panel.half, height, at, pass)
 }
 
-function drawFittingHalf(context, kind, position, half, height, at) {
-  const lo = half
-  const hi = half + 1
-  const seed = position.x * 7 + position.y * 13
-  FITTINGS[kind](seed).forEach(([u0, u1, v0, v1, className, colour, animated, animation = 'wall-fit-blink']) => {
-    const from = Math.max(u0, lo)
-    const to = Math.min(u1, hi)
-    if (from >= to) return
-    const points = [at(from, v0 * height), at(to, v0 * height), at(to, v1 * height), at(from, v1 * height)]
-    context.save()
-    if (animated && animation === 'wall-fit-pulse') context.globalAlpha *= LIGHT_OPACITY.pulse
-    if (className === 'wall-fit-frame') fillShape(context, points, 'rgba(22, 28, 33, 0.94)', 'rgba(0, 0, 0, 0.55)', 0.8)
-    else fillShape(context, points, colour)
-    context.restore()
-  })
-}
-
-function drawWindowHalf(context, tile, position, half, height, at) {
+// IsoTiles WindowHalf; a wall with panel art (tiles.json panelImages) only gets the stars.
+function drawWindowHalf(context, tile, position, half, height, at, pass) {
+  const painted = Boolean(tile.panelImages)
   const lo = half
   const hi = half + 1
   const from = Math.max(WINDOW.from, lo)
@@ -287,14 +304,20 @@ function drawWindowHalf(context, tile, position, half, height, at) {
   const quad = (u0, u1, v0, v1) => [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)]
   const glow = bottom + (top - bottom) * 0.38
   const band = half === 0 ? [0.5, 0.66, 0.08] : [1.25, 1.31, 0.05]
-  fillShape(context, quad(frameFrom, frameTo, bottom - FRAME.height, top + FRAME.height), 'rgba(28, 34, 40, 0.92)', 'rgba(0, 0, 0, 0.55)', 0.8)
-  strokeLine(context, at(frameFrom, top + FRAME.height), at(frameTo, top + FRAME.height), 'rgba(210, 225, 240, 0.35)', 0.8)
-  fillShape(context, quad(from, to, bottom, top), 'rgb(8, 16, 30)')
-  fillShape(context, quad(from, to, bottom, glow), 'rgba(90, 150, 220, 0.16)')
-  if (tile.windowView === 'space') {
-    context.fillStyle = `rgba(235, 242, 255, ${0.9 * STAR_OPACITY})`
+  if (!painted) solid(context, pass, () => {
+    fillShape(context, quad(frameFrom, frameTo, bottom - FRAME.height, top + FRAME.height), 'rgba(28, 34, 40, 0.92)', 'rgba(0, 0, 0, 0.55)', 0.8)
+    strokeLine(context, at(frameFrom, top + FRAME.height), at(frameTo, top + FRAME.height), 'rgba(210, 225, 240, 0.35)', 0.8)
+    fillShape(context, quad(from, to, bottom, top), 'rgb(8, 16, 30)')
+    fillShape(context, quad(from, to, bottom, glow), 'rgba(90, 150, 220, 0.16)')
+  })
+  // The stars twinkle (maps.css wall-star), so they only go on the twinkle layers.
+  if (pass?.style === 'twinkle' && tile.windowView === 'space') {
+    context.save()
+    context.globalCompositeOperation = 'screen'
+    context.fillStyle = 'rgba(235, 242, 255, 0.9)'
     for (let i = 0; i < 5; i++) {
-      const seed = position.x * 73 + position.y * 151 + i * 37
+      const seed = starSeed(position, i)
+      if (starPhase(seed) !== pass.phase) continue
       const u = from + 0.05 + (((seed * 13) % 89) / 89) * (to - from - 0.1)
       const v = bottom + 3 + (((seed * 29) % 97) / 97) * (top - bottom - 6)
       const [x, y] = at(u, v)
@@ -302,10 +325,14 @@ function drawWindowHalf(context, tile, position, half, height, at) {
       context.arc(x, y, i % 3 === 0 ? 0.9 : 0.55, 0, Math.PI * 2)
       context.fill()
     }
+    context.restore()
   }
-  fillShape(context, [at(band[0], top), at(band[1], top), at(band[1] - band[2] * 2, bottom), at(band[0] - band[2] * 2, bottom)], 'rgba(190, 225, 255, 0.13)')
-  if (half === 1) strokeLine(context, at(1, bottom), at(1, top), 'rgba(28, 34, 40, 0.95)', 2.2)
-  strokeLine(context, at(frameFrom, bottom - FRAME.height), at(frameTo, bottom - FRAME.height), 'rgba(225, 235, 245, 0.4)', 1.2)
+  if (painted) return
+  solid(context, pass, () => {
+    fillShape(context, [at(band[0], top), at(band[1], top), at(band[1] - band[2] * 2, bottom), at(band[0] - band[2] * 2, bottom)], 'rgba(190, 225, 255, 0.13)')
+    if (half === 1) strokeLine(context, at(1, bottom), at(1, top), 'rgba(28, 34, 40, 0.95)', 2.2)
+    strokeLine(context, at(frameFrom, bottom - FRAME.height), at(frameTo, bottom - FRAME.height), 'rgba(225, 235, 245, 0.4)', 1.2)
+  })
 }
 
 // IsoTiles TallBlock: the image in three bands, only the middle (straight sides) stretched.
@@ -317,7 +344,6 @@ function drawTallBlock(context, tile, position) {
   const image = loaded.get(tile.image)
   if (!image) return
   const sy = image.naturalHeight / IMAGE_H
-  context.imageSmoothingEnabled = smooth(tile.image)
   const band = (from, height, y, drawn) => context.drawImage(image, 0, from * sy, image.naturalWidth, height * sy, box.x, y, IMAGE_W, drawn)
   band(0, faceTop, box.y - extra, faceTop)
   band(faceTop, sidesEnd - faceTop, box.y + faceTop - extra, sidesEnd - faceTop + extra)
@@ -326,35 +352,27 @@ function drawTallBlock(context, tile, position) {
 
 // IsoTiles BigObjectStrip: the left, middle or right strip of a 2x2 object's doubled image, drawn by the tile it stands on.
 const BIG_STRIPS = { '0,1': [0, 0.25], '1,1': [0.25, 0.75], '1,0': [0.75, 1] }
-function drawBigStrip(context, tile, position, origin, mirror) {
+function drawBigStrip(context, tile, position, origin, mirror, pass) {
   const strip = BIG_STRIPS[`${position.x - origin.x},${position.y - origin.y}`]
   if (!strip) return
   const [from, to] = strip
   const centre = project({ x: origin.x + 0.5, y: origin.y + 0.5 })
   const width = IMAGE_W * BIG_SCALE
   const height = IMAGE_H * BIG_SCALE
-  const drawStrip = (href, alpha = 1) => {
+  const drawStrip = (href) => {
     const source = mirror ? mirroredImage(href) : loaded.get(href)
     if (!source) return
     const w = source.naturalWidth ?? source.width
     const h = source.naturalHeight ?? source.height
-    context.save()
-    context.globalAlpha *= alpha
-    context.imageSmoothingEnabled = smooth(href)
     context.drawImage(source, from * w, 0, (to - from) * w, h, centre.x - width / 2 + from * width, centre.y + TILE_H - height, (to - from) * width, height)
-    context.restore()
   }
-  drawStrip(tile.image)
-  for (const light of tileAnimations(tile)) {
-    context.save()
-    context.globalCompositeOperation = 'screen'
-    drawStrip(light.href, LIGHT_OPACITY[light.style] ?? 0.7)
-    context.restore()
-  }
+  solid(context, pass, () => drawStrip(tile.image))
+  drawLights(context, tileAnimations(tile), drawStrip, pass, lightPhase(origin))
 }
 
-// IsoTiles WallBlock / BlockTile, as the editor draws a block (tall, never faded; ghost: See-through blocks).
-function drawBlock(context, layout, position, ghost) {
+// IsoTiles WallBlock / BlockTile, as the editor draws a block (tall, never faded; ghost: See-through blocks). pass: null
+// for the board, or the light layer being drawn (LIGHT_LAYERS).
+function drawBlock(context, layout, position, ghost, pass) {
   const { map, panels, bigGroups } = layout
   const tile = getTile(map.tiles[position.y][position.x])
   const at = keyOf(position)
@@ -362,7 +380,7 @@ function drawBlock(context, layout, position, ghost) {
   if (ghost) context.globalAlpha = GHOST_OPACITY
   const origin = bigGroups.get(at)
   if (origin) {
-    drawBigStrip(context, tile, position, origin, isRotated(map, origin))
+    drawBigStrip(context, tile, position, origin, isRotated(map, origin), pass)
     context.restore()
     return
   }
@@ -375,14 +393,14 @@ function drawBlock(context, layout, position, ghost) {
   }
   const box = tileImageBox(position)
   const boxArgs = [box.x, box.y, box.width, box.height]
-  if (tile.wall) drawTallWall(context, tile, position, panel)
-  else if (tile.tall) drawTallBlock(context, tile, position)
-  else drawImage(context, href, ...boxArgs)
+  if (tile.wall) drawTallWall(context, tile, position, panel, pass)
+  else if (tile.tall) solid(context, pass, () => drawTallBlock(context, tile, position))
+  else solid(context, pass, () => drawImage(context, href, ...boxArgs))
   // A lowered wall (heightVariants) is plain bulkhead, so its fitting's lights would float above it.
   if (!tile.wall && !Object.values(tile.heightVariants ?? {}).includes(href)) {
-    drawLights(context, tileAnimations(tile), (light) => drawImage(context, light, ...boxArgs))
+    drawLights(context, tileAnimations(tile), (light) => drawImage(context, light, ...boxArgs), pass, lightPhase(position))
   }
-  if (tile.role === 'hazardControl' && tile.activeImage) drawImage(context, tile.activeImage, ...boxArgs)
+  if (tile.role === 'hazardControl' && tile.activeImage) solid(context, pass, () => drawImage(context, tile.activeImage, ...boxArgs))
   context.restore()
 }
 
@@ -450,8 +468,9 @@ function drawLighting(context, map, area) {
 // ---------------------------------------------------------------- the board
 
 // Repaints `area` (a world rect, or the whole board) of a canvas whose world-to-pixel transform is `transform`.
-// options: { ghost (See-through blocks), lighting (shadows and light pools) }.
-export function drawBoard(context, transform, layout, area, { ghost = false, lighting = true } = {}) {
+// options: { ghost (See-through blocks), lighting (shadows and light pools), pass (null: the board; or one of
+// LIGHT_LAYERS: only its lights, with the blocks in front cut out of it) }.
+export function drawBoard(context, transform, layout, area, { ghost = false, lighting = true, pass = null } = {}) {
   const { map } = layout
   context.save()
   context.setTransform(...transform)
@@ -468,6 +487,7 @@ export function drawBoard(context, transform, layout, area, { ghost = false, lig
         if (overlaps(tileArea(position, true), area)) blocks.push(position)
         return
       }
+      if (pass) return
       const box = tileImageBox(position)
       if (!overlaps(box, area)) return
       const href = tileImage(map, position)
@@ -482,8 +502,39 @@ export function drawBoard(context, transform, layout, area, { ghost = false, lig
       context.restore()
     }),
   )
-  if (lighting && tileEffectsOn()) drawLighting(context, map, area)
+  if (!pass && lighting) drawLighting(context, map, area)
   blocks.sort((a, b) => a.x + a.y - (b.x + b.y))
-  for (const position of blocks) drawBlock(context, layout, position, ghost)
+  for (const position of blocks) drawBlock(context, layout, position, ghost, pass)
   context.restore()
+}
+
+// The ids of the LIGHT_LAYERS this layout has anything on (a light, an animated fitting or a star window), so that no
+// canvas is made for an empty layer. May include a layer that turns out empty.
+export function lightLayersIn(layout) {
+  const { map, panels, bigGroups } = layout
+  const ids = new Set()
+  const add = (style, phase) => {
+    if (LIGHT_STYLES.includes(style) || style === 'twinkle') ids.add(`${style}-${phase}`)
+  }
+  map.tiles.forEach((row, y) =>
+    row.forEach((id, x) => {
+      if (!isBlock(id)) return
+      const position = { x, y }
+      const tile = getTile(id)
+      const at = keyOf(position)
+      const panel = panels.get(at)
+      const timing = bigGroups.get(at) ?? position
+      const art = tile.wall ? panelArt(tile, panel, position) : null
+      if (art) art.lights.forEach((light) => add(light.style, lightPhase(art.timing)))
+      else {
+        const lights = tile.wall && !panel?.window ? (wallVariant(tile, position)?.lights ?? tileAnimations(tile)) : tileAnimations(tile)
+        lights.forEach((light) => add(light.style, lightPhase(timing)))
+      }
+      if (!panel) return
+      if (!tile.panelFitting && panel.window && tile.windowView === 'space') {
+        for (let i = 0; i < 5; i++) add('twinkle', starPhase(starSeed(position, i)))
+      }
+    }),
+  )
+  return ids
 }

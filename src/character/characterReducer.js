@@ -14,6 +14,7 @@ import {
   setMixedParent,
   setNewSpeciesDescription,
   setNewSpeciesName,
+  setPrimaryParent,
   toggleAttributeChoice,
 } from '../rules/species.js'
 import {
@@ -80,6 +81,9 @@ function applyAction(character, action) {
     case 'setSpeciesParent':
       if (!character.species) return character
       return { ...character, species: setMixedParent(character.species, action.index, action.speciesId) }
+    case 'setSpeciesPrimary':
+      if (!character.species) return character
+      return { ...character, species: setPrimaryParent(character.species, action.speciesId) }
     case 'setNewSpeciesName':
       if (!character.species) return character
       return { ...character, species: setNewSpeciesName(character.species, action.name) }

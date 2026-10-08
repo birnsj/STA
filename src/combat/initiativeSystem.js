@@ -1,3 +1,5 @@
+// Book (Core p.277): one player character goes first (highest Daring if unclear), then the sides alternate one character
+// at a time; 2 Momentum Keeps the Initiative for one more player character. Not used here.
 // Designer spec: individual initiative fixed at the start of combat - highest Daring first, ties by Control, then random.
 // Designer decision (Oct 2026): firstSide puts that whole side ahead of the other each round (the party goes first), keeping
 // Daring order within each side. firstIds lets a later ambush/surprise rule put chosen combatants at the very front.

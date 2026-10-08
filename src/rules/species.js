@@ -74,19 +74,27 @@ export function getTraitDescription(selection) {
   return species?.description ?? ''
 }
 
+// Book (Core p.99): mixed heritage has the ability of the primary species. Prototype: the player picks which parent.
+function abilitySpeciesId(selection) {
+  if (!selection.parents) return selection.id
+  const primaryId = selection.primarySpeciesId ?? null
+  return selection.parents.some((parent) => parent?.id === primaryId) ? primaryId : null
+}
+
 // STA 2E Species Ability (see speciesAbilities.json). Looked up by species id rather than read from the saved
-// selection, so characters saved before abilities existed still get theirs. Null when undefined for the species.
+// selection, so characters saved before abilities existed still get theirs. Null when the species has none.
 export function getSpeciesAbility(selection) {
   if (!selection) return null
-  const ability = abilityBySpeciesId.get(selection.id)
+  const ability = abilityBySpeciesId.get(abilitySpeciesId(selection))
   if (!ability) return null
   const { id, name, description, effects, source } = ability
   return { id, name, description, effects, source }
 }
 
-// Why a species has no ability yet (mixed heritage, new species), or null.
+// Why there is no ability ({ label, note }: primary species not chosen yet, or a new species), or null.
 export function getSpeciesAbilityGap(selection) {
-  return selection ? speciesAbilitySource.unresolved[selection.id] ?? null : null
+  if (!selection || getSpeciesAbility(selection)) return null
+  return speciesAbilitySource.withoutAbility[selection.id] ?? null
 }
 
 // Sets the stored ability reference from the species id, so saves from before abilities existed (or edited files)
@@ -103,7 +111,7 @@ export function hasCurrentSpeciesAbility(selection) {
 
 // Display text for summary rows: the ability name, a pending note, or null before a species is chosen.
 export function getSpeciesAbilityLabel(selection) {
-  return getSpeciesAbility(selection)?.name ?? (getSpeciesAbilityGap(selection) ? 'Not yet defined' : null)
+  return getSpeciesAbility(selection)?.name ?? getSpeciesAbilityGap(selection)?.label ?? null
 }
 
 // Hover text for compact rows: "Name: description" (or why it is undefined).
@@ -126,7 +134,7 @@ export function createSpeciesSelection(speciesId) {
     name: species.name,
     attributeBonuses: toAttributeBonuses(bonusIds, attributeBonus.amount),
   }
-  if (isMixedHeritage(species)) selection.parents = [null, null]
+  if (isMixedHeritage(species)) Object.assign(selection, { parents: [null, null], primarySpeciesId: null })
   if (isNewSpecies(species)) Object.assign(selection, { customName: '', description: '' })
   return withSpeciesAbility({ ...selection, traits: deriveTraits(selection) })
 }
@@ -173,11 +181,19 @@ export function setMixedParent(selection, index, speciesId) {
   if (!selection.parents) return selection
   const parent = speciesId ? getSpeciesById(speciesId) : null
   const parents = selection.parents.map((existing, i) => (i === index ? (parent ? toRef(parent) : null) : existing))
-  const next = { ...selection, parents }
+  const keepsPrimary = parents.some((entry) => entry?.id === selection.primarySpeciesId)
+  const next = { ...selection, parents, primarySpeciesId: keepsPrimary ? selection.primarySpeciesId : null }
   const choosable = getChoosableAttributeIds(next)
   next.attributeBonuses = selection.attributeBonuses.filter((bonus) => choosable.includes(bonus.id))
-  return { ...next, traits: deriveTraits(next) }
+  return withSpeciesAbility({ ...next, traits: deriveTraits(next) })
 }
+
+export function setPrimaryParent(selection, speciesId) {
+  if (!selection.parents?.some((parent) => parent?.id === speciesId)) return selection
+  return withSpeciesAbility({ ...selection, primarySpeciesId: speciesId })
+}
+
+export const isPrimaryParentChosen = (selection) => !selection.parents || abilitySpeciesId(selection) !== null
 
 export function setNewSpeciesName(selection, customName) {
   if (!('customName' in selection)) return selection
@@ -218,7 +234,7 @@ export function getSpeciesRequirements(character) {
   const species = selection ? getSpeciesById(selection.id) : null
   const gender = Boolean(character.identity.gender)
   if (!species) return { species: false, gender, traits: false, attributes: false }
-  const parentsChosen = !isMixedHeritage(species) || selection.parents.every(Boolean)
+  const parentsChosen = !isMixedHeritage(species) || (selection.parents.every(Boolean) && isPrimaryParentChosen(selection))
   const nameGiven = !isNewSpecies(species) || Boolean(selection.customName.trim())
   return {
     species: true,

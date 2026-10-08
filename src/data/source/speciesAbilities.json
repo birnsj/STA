@@ -94,14 +94,19 @@
       ]
     }
   ],
-  "unresolved": {
+  "withoutAbility": {
+    "notes": [
+      "Book (Core p.99): a mixed-heritage character has the Species Ability of their primary species. Prototype (designer decision, Oct 2026): the player picks which parent is primary on the Species screen (species.primarySpeciesId); until then there is no ability.",
+      "Book: no Species Ability is given for a player-defined species. Prototype (designer decision, Oct 2026): a New Species has none.",
+      "label and note are player-facing."
+    ],
     "mixedHeritage": {
-      "status": "needsDesignDecision",
-      "note": "STA 2E (Core Rulebook p.99) gives a mixed-heritage character the Species Ability of their primary species. The Captain's Log flow has no primary-species choice, so which ability applies is not yet defined."
+      "label": "Choose primary species",
+      "note": "A mixed-heritage character has the Species Ability of their primary species. Choose which parent that is."
     },
     "newSpecies": {
-      "status": "needsDesignDecision",
-      "note": "A player-defined species has no Species Ability in the source material; whether and how one is chosen is not yet defined."
+      "label": "None",
+      "note": "A new species has no Species Ability."
     }
   }
 }

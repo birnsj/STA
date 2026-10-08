@@ -13,7 +13,7 @@ import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getMovementTiles, getReachableTiles } from './movementSystem.js'
 import { RANGE_BANDS, tileDistance } from './rangeSystem.js'
-import { getWeapon } from './weaponSystem.js'
+import { getCombatantWeapon } from './weaponSystem.js'
 import {
   actionsLeft,
   canAfford,
@@ -86,7 +86,7 @@ function hitWouldDefeat(state, target) {
   const injuries = getCombatantList(state)
     .filter((other) => other.side !== target.side && isActive(other))
     .flatMap((attacker) =>
-      attacker.weaponIds.map(getWeapon).flatMap((weapon) => injuryModesFor(state, attacker, weapon).slice(0, 1).map((mode) => injuryFor(state, attacker, target, weapon, mode))),
+      attacker.weaponIds.map((weaponId) => getCombatantWeapon(attacker, weaponId)).flatMap((weapon) => injuryModesFor(state, attacker, weapon).slice(0, 1).map((mode) => injuryFor(state, attacker, target, weapon, mode))),
     )
   if (!injuries.length) return false
   const worst = injuries.reduce((a, b) => (b.severity > a.severity ? b : a))
@@ -153,7 +153,7 @@ function createDangerMap(state, self, valueOf) {
     const tiles = [...getReachableTiles(state.map, opponent.position, getMovementTiles(opponent.character), getBlockers(state, opponent)).values()].map(
       (entry) => entry.position,
     )
-    const weapons = opponent.weaponIds.map(getWeapon).filter((weapon) => injuryModesFor(state, opponent, weapon).length)
+    const weapons = opponent.weaponIds.map((weaponId) => getCombatantWeapon(opponent, weaponId)).filter((weapon) => injuryModesFor(state, opponent, weapon).length)
     const walk = getReachableTiles(state.map, opponent.position, state.map.width * state.map.height)
     return { opponent, tiles, weapons, walk }
   })

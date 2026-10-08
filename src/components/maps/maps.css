@@ -1,12 +1,6 @@
 /* Shared isometric tile images (map editor and combat boards). Prefixed tilemap- so Combat Type 1's iso-* styles never apply. */
 .tilemap-tile {
   pointer-events: none;
-  image-rendering: pixelated;
-}
-
-/* The v2 sample art is drawn at 4x resolution, so it is scaled smoothly rather than as pixel art. */
-image[href*='/art/tiles-v2/'] {
-  image-rendering: auto;
 }
 
 .tilemap-tile.is-live {
@@ -88,22 +82,7 @@ image[href*='/art/tiles-v2/'] {
   50% { opacity: 0.25; }
 }
 
-/* Long Star Trek wall fittings (tiles.json panelFitting). */
-.wall-fit-frame {
-  fill: rgba(22, 28, 33, 0.94);
-  stroke: rgba(0, 0, 0, 0.55);
-  stroke-width: 0.8;
-}
-
-.wall-fit-blink {
-  animation: tilemap-status 1.4s steps(1) infinite;
-}
-
-.wall-fit-pulse {
-  animation: tilemap-pulse 2.8s ease-in-out infinite;
-}
-
-/* Animated light overlays (tileArtSets.json animations): light-only images screened over their tile. */
+/* Animated light overlays (tileEffects.json animations, tiles.json lights and panelLights): light-only images screened over their tile. */
 .tilemap-light {
   mix-blend-mode: screen;
 }
@@ -154,8 +133,6 @@ image[href*='/art/tiles-v2/'] {
 @media (prefers-reduced-motion: reduce) {
   .tilemap-light,
   .tilemap-glows ellipse,
-  .wall-fit-blink,
-  .wall-fit-pulse,
   .wall-star {
     animation: none;
   }

@@ -1,6 +1,8 @@
 // The v2 tile renderer shared by scripts/makeTilesV2.mjs (the Starship & Station sample) and
 // scripts/makeTilesV2World.mjs (every other tile): maths, value noise, height-map shapes, lighting, the 64 x 96 iso
 // design grid and the anti-aliased renderer with bloom. See makeTilesV2.mjs for how a material is lit.
+import fs from 'node:fs'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const DESIGN_W = 64
@@ -14,6 +16,24 @@ export const FORCE = process.argv.includes('--force')
 // Tall views draw walls this many times as tall (tiles.json wallHeightScale), so wall faces are designed in drawn
 // height and squashed into the image: rivets and panels come out the right shape once stretched.
 export const WALL_STRETCH = 2
+// Where a generated PNG goes: the palette-group folder (public/art/sprites/environment/<group>/) that tiles.json or
+// tileEffects.json gives a file of that name, so a new image has to be added to one of them before it can be drawn.
+const PUBLIC = fileURLToPath(new URL('../../public', import.meta.url))
+const ART_PATHS = ['tiles.json', 'tileEffects.json'].flatMap(
+  (name) => fs.readFileSync(new URL(`../../src/data/adaptation/maps/${name}`, import.meta.url), 'utf8').match(/\/art\/sprites\/environment\/[^"]+\.png/g) ?? [],
+)
+const named = (art, file) => {
+  const [before, after] = art.split('/').pop().split('{joins}')
+  return after === undefined ? before === file : file.startsWith(before) && file.endsWith(after)
+}
+export function outFile(file) {
+  const art = ART_PATHS.find((candidate) => named(candidate, file))
+  if (!art) throw new Error(`${file} isn't in tiles.json or tileEffects.json, so it has no folder`)
+  const folder = path.join(PUBLIC, path.dirname(art))
+  fs.mkdirSync(folder, { recursive: true })
+  return path.join(folder, file)
+}
+
 
 // ---------- maths ----------
 export const rgb = (hex) => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255]
@@ -112,16 +132,16 @@ export const blockScene = (h, material, stretch = 1) => (px, py) => {
   return shade(material, face.u, face.face === 'top' ? face.v : face.v * stretch, face.face)
 }
 
-// ---------- rendering ----------
-// subsamples: anti-aliasing samples per pixel along each axis (fewer for expensive scenes).
-export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES } = {}) {
-  const colour = new Float32Array(OUT_W * OUT_H * 3)
-  const emit = new Float32Array(OUT_W * OUT_H * 3)
-  const alpha = new Float32Array(OUT_W * OUT_H)
+// subsamples: anti-aliasing samples per pixel along each axis (fewer for expensive scenes). width, height: the image
+// size in pixels (a tile's by default; two-tile panels are larger, v2/panels.mjs).
+export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES, width = OUT_W, height = OUT_H } = {}) {
+  const colour = new Float32Array(width * height * 3)
+  const emit = new Float32Array(width * height * 3)
+  const alpha = new Float32Array(width * height)
   const samples = subsamples * subsamples
-  for (let oy = 0; oy < OUT_H; oy++) {
-    for (let ox = 0; ox < OUT_W; ox++) {
-      const i = oy * OUT_W + ox
+  for (let oy = 0; oy < height; oy++) {
+    for (let ox = 0; ox < width; ox++) {
+      const i = oy * width + ox
       let hits = 0
       for (let sy = 0; sy < subsamples; sy++) {
         for (let sx = 0; sx < subsamples; sx++) {
@@ -142,9 +162,9 @@ export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES } = {}) {
       }
     }
   }
-  const glow = blur(emit, 6, 3)
-  const bytes = new Uint8Array(OUT_W * OUT_H * 4)
-  for (let i = 0; i < OUT_W * OUT_H; i++) {
+  const glow = blur(emit, 6, 3, width, height)
+  const bytes = new Uint8Array(width * height * 4)
+  for (let i = 0; i < width * height; i++) {
     for (let k = 0; k < 3; k++) {
       const value = colour[i * 3 + k] + emit[i * 3 + k] + glow[i * 3 + k] * bloom
       bytes[i * 4 + k] = Math.round(clamp01(value) * 255)
@@ -156,12 +176,12 @@ export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES } = {}) {
 
 // A light-only overlay for animating a tile's lights: just the emission of the surfaces tagged with one of tags, plus
 // its bloom, with the brightness carried in the alpha so the overlay fades in and out cleanly over the tile.
-export function renderLights(scene, tags, { gain = 1 } = {}) {
-  const emit = new Float32Array(OUT_W * OUT_H * 3)
+export function renderLights(scene, tags, { gain = 1, width = OUT_W, height = OUT_H } = {}) {
+  const emit = new Float32Array(width * height * 3)
   const samples = SUBSAMPLES * SUBSAMPLES
-  for (let oy = 0; oy < OUT_H; oy++) {
-    for (let ox = 0; ox < OUT_W; ox++) {
-      const i = oy * OUT_W + ox
+  for (let oy = 0; oy < height; oy++) {
+    for (let ox = 0; ox < width; ox++) {
+      const i = oy * width + ox
       for (let sy = 0; sy < SUBSAMPLES; sy++) {
         for (let sx = 0; sx < SUBSAMPLES; sx++) {
           const result = scene((ox + (sx + 0.5) / SUBSAMPLES) / RESOLUTION, (oy + (sy + 0.5) / SUBSAMPLES) / RESOLUTION)
@@ -171,9 +191,9 @@ export function renderLights(scene, tags, { gain = 1 } = {}) {
       }
     }
   }
-  const glow = blur(emit, 6, 3)
-  const bytes = new Uint8Array(OUT_W * OUT_H * 4)
-  for (let i = 0; i < OUT_W * OUT_H; i++) {
+  const glow = blur(emit, 6, 3, width, height)
+  const bytes = new Uint8Array(width * height * 4)
+  for (let i = 0; i < width * height; i++) {
     const light = [0, 1, 2].map((k) => (emit[i * 3 + k] + glow[i * 3 + k] * 1.4) * gain)
     const peak = Math.max(...light)
     if (peak < 0.01) continue
@@ -183,27 +203,26 @@ export function renderLights(scene, tags, { gain = 1 } = {}) {
   return bytes
 }
 
-// Repeated box blur (close to a Gaussian) of an RGB buffer.
-export function blur(source, radius, passes) {
+export function blur(source, radius, passes, width = OUT_W, height = OUT_H) {
   let current = source
   for (let pass = 0; pass < passes; pass++) {
     const horizontal = new Float32Array(current.length)
     const result = new Float32Array(current.length)
-    for (let y = 0; y < OUT_H; y++) {
-      for (let x = 0; x < OUT_W; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         for (let k = 0; k < 3; k++) {
           let sum = 0
-          for (let d = -radius; d <= radius; d++) sum += current[(y * OUT_W + Math.min(OUT_W - 1, Math.max(0, x + d))) * 3 + k]
-          horizontal[(y * OUT_W + x) * 3 + k] = sum / (radius * 2 + 1)
+          for (let d = -radius; d <= radius; d++) sum += current[(y * width + Math.min(width - 1, Math.max(0, x + d))) * 3 + k]
+          horizontal[(y * width + x) * 3 + k] = sum / (radius * 2 + 1)
         }
       }
     }
-    for (let y = 0; y < OUT_H; y++) {
-      for (let x = 0; x < OUT_W; x++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         for (let k = 0; k < 3; k++) {
           let sum = 0
-          for (let d = -radius; d <= radius; d++) sum += horizontal[(Math.min(OUT_H - 1, Math.max(0, y + d)) * OUT_W + x) * 3 + k]
-          result[(y * OUT_W + x) * 3 + k] = sum / (radius * 2 + 1)
+          for (let d = -radius; d <= radius; d++) sum += horizontal[(Math.min(height - 1, Math.max(0, y + d)) * width + x) * 3 + k]
+          result[(y * width + x) * 3 + k] = sum / (radius * 2 + 1)
         }
       }
     }

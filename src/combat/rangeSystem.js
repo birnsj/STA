@@ -1,5 +1,6 @@
 // Designer spec range bands (tiles): Reach 1, Close 2-4, Medium 5-8, Long 9-12, Extreme 13+.
-// Implementation detail: distance counts diagonal steps as 1 (matching movement), and walls block line of fire.
+// Implementation detail: distance counts diagonal steps as 1 (matching movement). Book (Core p.290): a ranged attack
+// targets anyone you can see, so walls that block sight block the shot.
 import weaponData from '../data/adaptation/combat/weapons.json'
 import { blocksLineOfFire, samePosition } from './battleMap.js'
 

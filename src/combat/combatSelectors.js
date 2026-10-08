@@ -70,28 +70,32 @@ export function canAfford(state, combatant, actionId) {
   return canAct(state, combatant) && (type === 'free' || state.turn[type] > 0)
 }
 
+// Book p.264, p.324: NPCs pay with Threat for the spends the party pays for with group Momentum.
+export const extraActionPool = (combatant) => (combatant.side === 'player' ? 'momentum' : 'threat')
+
+function poolShortfall(state, combatant, cost) {
+  const pool = extraActionPool(combatant)
+  if (state.resources[pool] >= cost) return null
+  return pool === 'momentum' ? `Costs ${cost} Momentum; the group pool has ${state.resources.momentum}.` : `Costs ${cost} Threat; there is ${state.resources.threat}.`
+}
+
 // Book p.260: an Extra Minor Action for 1 Momentum, once per turn. Why it can't be bought now (null = it can).
-// Prototype: party members pay from the group Momentum; enemies (Threat) don't buy it yet.
 export function extraMinorBlock(state, combatant) {
   if (!canAct(state, combatant)) return 'Not this character\'s action.'
-  if (combatant.side !== 'player') return 'Only the party buys extra actions for now.'
   if (state.turn.done) return 'Turn ended.'
   if (state.turn.extraMinor) return 'Already bought an extra minor action this turn.'
-  if (state.resources.momentum < EXTRA_ACTIONS.extraMinorCost) return `Costs ${EXTRA_ACTIONS.extraMinorCost} Momentum; the group pool has ${state.resources.momentum}.`
-  return null
+  return poolShortfall(state, combatant, EXTRA_ACTIONS.extraMinorCost)
 }
 
 // Book p.288: a second major action for 2 Momentum; the task attempted with it is +1 Difficulty. Not while directed
 // (Direct is the ally's extra action), and never a third major action in a round.
 export function secondMajorBlock(state, combatant) {
   if (!canAct(state, combatant)) return 'Not this character\'s action.'
-  if (combatant.side !== 'player') return 'Only the party buys extra actions for now.'
   if (state.directed) return 'Not during a Direct.'
   if (state.turn.done) return 'Turn ended.'
   if (state.turn.major > 0) return 'Take your major action first.'
   if (majorsTaken(state, combatant.id) >= MAX_MAJORS_PER_ROUND) return `Already ${MAX_MAJORS_PER_ROUND} major actions this round.`
-  if (state.resources.momentum < EXTRA_ACTIONS.secondMajorCost) return `Costs ${EXTRA_ACTIONS.secondMajorCost} Momentum; the group pool has ${state.resources.momentum}.`
-  return null
+  return poolShortfall(state, combatant, EXTRA_ACTIONS.secondMajorCost)
 }
 
 // The Difficulty lines a bought second major action adds to this combatant's next major task ([] when none waits).

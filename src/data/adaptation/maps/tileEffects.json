@@ -1,0 +1,52 @@
+{
+  "notes": [
+    "Tile lighting effects drawn by every map view (src/maps/tileArt.js). Presentation only.",
+    "glows: tile id -> light colour (a coloured light pool round the tile, plus soft contact shadows on floors next to blocks); activeGlows: tile id -> light colour while the tile is active (a live hazard).",
+    "animations: tile id -> light-only overlay images drawn over the tile and animated: pulse (slow breathing glow), blink (status lights switching on and off), flicker (an unsteady screen). Each tile on a map is offset in time so machines don't flash together. Overrides the tile's own lights (tiles.json).",
+    "wallVariants: wall id -> { share, variants: [{ id, image, lights }] }. In the tall-wall views (exploration, Combat Type 1, the map editor) about share of that wall's tiles are drawn as one of the variants instead, chosen from the tile's position. Never on a panel half with a window. Empty by designer decision (Oct 2026): the bulkhead's random Star Trek wall fittings made placed walls look random, so fittings are placed by hand (lcarsWall etc.).",
+    "Tile art lives in public/art/sprites/environment/<palette group id>/ (tiles.json paletteGroups), drawn at 4x resolution (256 x 384; the views scale every tile image to the 64 x 96 slot)."
+  ],
+  "glows": {
+    "epsControl": "#5fd0ff",
+    "machinery": "#ff6b3d",
+    "lava": "#ff7a2a",
+    "campfire": "#ff8a3a",
+    "burningWreck": "#ff7a2a",
+    "glowMoss": "#40e0d0",
+    "glowTree": "#4af0e0",
+    "glowPod": "#80fff0",
+    "crystalSpire": "#c8a8ff",
+    "forceField": "#5fd0ff",
+    "glyphTile": "#d8b040",
+    "altar": "#ffe070",
+    "containmentPod": "#5ad0f0",
+    "alienConsole": "#c070ff",
+    "bioPod": "#ff7ad0",
+    "tosViewscreen": "#7ab8ff",
+    "tosHelm": "#ffb040",
+    "tosStation": "#ffd060",
+    "tosScience": "#5ad0ff"
+  },
+  "activeGlows": {
+    "grating": "#ff8a2a"
+  },
+  "animations": {
+    "machinery": [
+      {
+        "image": "/art/sprites/environment/starship/machinery-glow.png",
+        "style": "pulse"
+      },
+      {
+        "image": "/art/sprites/environment/starship/machinery-blink.png",
+        "style": "blink"
+      }
+    ],
+    "epsControl": [
+      {
+        "image": "/art/sprites/environment/starship/epsControl-screen.png",
+        "style": "flicker"
+      }
+    ]
+  },
+  "wallVariants": {}
+}

@@ -170,17 +170,20 @@ export function getProtection(character, { injuryType, inCover = false } = {}) {
 export const MAX_ADDED_SEVERITY = 2
 export const addedSeverityCost = (weapon) => (weapon.qualities?.some((quality) => quality.toLowerCase() === 'intense') ? 1 : 2)
 
-// The Injury a successful attack would inflict: weapon severity + Momentum added, less Protection (minimum 1).
-export function buildInjury({ id, type, weapon, attacker, addedSeverity = 0, protection }) {
+// The Injury a successful attack would inflict: weapon severity + the attacker's talents ([{ label, change }]) + Momentum
+// added, less Protection (minimum 1).
+export function buildInjury({ id, type, weapon, attacker, addedSeverity = 0, protection, talentSeverity = [] }) {
   const added = Math.min(MAX_ADDED_SEVERITY, Math.max(0, addedSeverity))
   const baseSeverity = weapon.severity
+  const fromTalents = talentSeverity.reduce((total, line) => total + line.change, 0)
   return {
     id,
     type,
     baseSeverity,
+    talentSeverity,
     addedSeverity: added,
     protection: protection.value,
-    severity: Math.max(1, baseSeverity + added - protection.value),
+    severity: Math.max(1, baseSeverity + fromTalents + added - protection.value),
     treated: false,
     recovering: false,
     source: { weaponId: weapon.id, weaponName: weapon.name, attackerId: attacker?.id ?? null, attackerName: attacker?.character.name ?? null },

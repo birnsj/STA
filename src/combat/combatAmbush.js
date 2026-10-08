@@ -16,7 +16,7 @@ import { getActiveCombatant, getCombatantList, getOpponents, isActive } from './
 import { endTurnsOf, startTurnOf, withOutcome } from './combatTurnOrder.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { freshTurn } from './turnActions.js'
-import { getInjuryMode, getWeapon } from './weaponSystem.js'
+import { getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
 
 export const AMBUSH_DIFFICULTY = 1
 export const AMBUSH_FOCUSES = ['Camouflage', 'Ambush Tactics']
@@ -88,9 +88,10 @@ export function ambushStep(state, action) {
   ]
   if (passed) {
     // The ambusher's first weapon with a shot, on Stun when it has a Stun setting (see actions.json ambush notes).
-    const weapon = getWeapon(ambusher.weaponIds.find((weaponId) => previewAttack(state, ambusher.id, target.id, weaponId).available))
+    const weapon = getCombatantWeapon(ambusher, ambusher.weaponIds.find((weaponId) => previewAttack(state, ambusher.id, target.id, weaponId).available))
     const mode = weapon.injuryModes.includes('stun') ? 'stun' : weapon.injuryModes[0]
-    const hit = inflictInjury(next, ambusher.id, target.id, injuryFor(next, ambusher, target, weapon, mode))
+    // The ambushed target is unaware of the ambusher (Ambush Tactics, combatTalents.js).
+    const hit = inflictInjury(next, ambusher.id, target.id, injuryFor(next, ambusher, target, weapon, mode, 0, { aimed: false, targetUnaware: true }))
     next = hit.state
     lines.push('RESULT: AMBUSHED', `Automatic hit: ${weapon.name} (${getInjuryMode(mode).name})`, ...hit.lines)
   } else {

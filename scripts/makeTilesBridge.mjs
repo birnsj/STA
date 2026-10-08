@@ -1,7 +1,7 @@
 // v2 art for the starship bridge tiles (TOS-inspired): a charcoal-and-warm-grey station ring with framed displays, the
 // main viewscreen, turbolift doors, a maroon command well, the captain's chair, helm and stations, and a red railing
 // that joins up (maps/railJoins.js). Same renderer and size as the other v2 art (engine.mjs, 256 x 384), written to
-// public/art/tiles-v2/; the tiles point at these files directly.
+// the Bridge (TOS) palette-group folder (engine.mjs outFile).
 //
 // Run with: node scripts/makeTilesBridge.mjs [--force] [--sheet]
 //   existing files are kept unless --force; --sheet also writes .tmp-sheet.png (a contact sheet) for checking.

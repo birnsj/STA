@@ -151,43 +151,64 @@ export default function EditorToolbar({
   onEnemiesActive,
   onPlay,
   onBack,
+  // placing / onPlacing: the Place Tiles toggle (the board only paints the chosen tile while it is on).
+  placing,
+  onPlacing,
+  // Generate Map's Room size and Building size sliders, grouped with Light.
+  children,
 }) {
   const saveNote = canSave ? undefined : 'Saving map files only works from the dev server (npm run dev).'
   return (
     <div className="me-toolbar">
-      <button type="button" className="me-button" onClick={onBack}>
-        Back
-      </button>
-      <input className="me-name" value={map.name} aria-label="Map name" title="The map's name is also its file name" onChange={(event) => onRename(event.target.value)} />
-      <MapTypeControls
-        map={map}
-        onMapType={onMapType}
-        onBiome={onBiome}
-        onWeather={onWeather}
-        showWeather={showWeather}
-        onShowWeather={onShowWeather}
-        onSize={onSize}
-      />
-      <AmbientSlider map={map} onAmbient={onAmbient} />
-      <SizeFields width={map.width} height={map.height} onResize={onResize} />
-      <button type="button" className="me-button" onClick={onNew}>
-        New
-      </button>
-      <button type="button" className="me-button" onClick={onLoad}>
-        Load
-      </button>
-      <button type="button" className="me-button is-primary" disabled={!canSave} title={saveNote} onClick={onSave}>
-        Save{dirty ? ' *' : ''}
-      </button>
-      <button type="button" className="me-button" disabled={!canSave} title={saveNote} onClick={onSaveAs}>
-        Save As
-      </button>
-      <button type="button" className="me-button is-primary" title="Explore this map with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
-        Play
-      </button>
-      <label className="me-check" title="Off: enemies stand on their spawns and never notice the away team or start a fight.">
-        <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies active
-      </label>
+      <div className="me-toolbar-row">
+        <button type="button" className="me-button" onClick={onBack}>
+          Back
+        </button>
+        <input className="me-name" value={map.name} aria-label="Map name" title="The map's name is also its file name" onChange={(event) => onRename(event.target.value)} />
+        <MapTypeControls
+          map={map}
+          onMapType={onMapType}
+          onBiome={onBiome}
+          onWeather={onWeather}
+          showWeather={showWeather}
+          onShowWeather={onShowWeather}
+          onSize={onSize}
+        />
+        <div className="me-sliders">
+          <AmbientSlider map={map} onAmbient={onAmbient} />
+          {children}
+        </div>
+      </div>
+      <div className="me-toolbar-row">
+        <button
+          type="button"
+          className={`me-button me-place${placing ? ' is-on' : ''}`}
+          aria-pressed={placing}
+          title="On: left click or drag on the map paints the tile chosen in the Tiles list. Off: the pointer is just a cursor."
+          onClick={() => onPlacing(!placing)}
+        >
+          Place Tiles: {placing ? 'On' : 'Off'}
+        </button>
+        <SizeFields width={map.width} height={map.height} onResize={onResize} />
+        <button type="button" className="me-button" onClick={onNew}>
+          New
+        </button>
+        <button type="button" className="me-button" onClick={onLoad}>
+          Load
+        </button>
+        <button type="button" className="me-button is-primary" disabled={!canSave} title={saveNote} onClick={onSave}>
+          Save{dirty ? ' *' : ''}
+        </button>
+        <button type="button" className="me-button" disabled={!canSave} title={saveNote} onClick={onSaveAs}>
+          Save As
+        </button>
+        <button type="button" className="me-button is-primary" title="Explore this map with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
+          Play
+        </button>
+        <label className="me-check" title="Off: enemies stand on their spawns and never notice the away team or start a fight.">
+          <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies active
+        </label>
+      </div>
     </div>
   )
 }

@@ -58,10 +58,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [dirty, setDirty] = useState(false)
   const [maps, setMaps] = useState([])
   const [tool, setTool] = useState('tile:bulkhead')
+  // Place Tiles: the board only paints the chosen tile while this is on; off, the pointer is just a cursor.
+  const [placing, setPlacing] = useState(false)
   // The tile brush paints rotated tiles (right click on the board toggles it).
   const [rotated, setRotated] = useState(false)
   const [ghostBlocks, setGhostBlocks] = useState(false)
-  // The palette's animated tile previews (the board is drawn still).
+  // The board's lights and the palette's tile previews animate (off: the board's lights hold a steady brightness).
   const [animateTiles, setAnimateTiles] = useState(true)
   // Shadows, light pools and darkness are view only here; the map's ambient light is still saved.
   const [showLighting, setShowLighting] = useState(true)
@@ -98,14 +100,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     const timer = setTimeout(() => setNotice(null), 3000)
     return () => clearTimeout(timer)
   }, [notice])
-  // Escape puts the brush down (no tool selected), unless a dialog is open (its own Escape cancels it) or a text box
-  // has focus.
+  // Escape puts the brush down (no tool selected, Place Tiles off), unless a dialog is open (its own Escape cancels it)
+  // or a text box has focus.
   const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam)
   useEffect(() => {
     if (dialogOpen) return undefined
     const onKey = (event) => {
       if (event.key !== 'Escape' || event.target.closest?.('input, textarea, select')) return
       setTool(null)
+      setPlacing(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -137,7 +140,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const onPaint = (position, { first }) => {
     if (!tool) return
     if (tool.startsWith('tile:')) {
-      edit(paintBrush(map, position, tool.slice('tile:'.length), rotated))
+      if (placing) edit(paintBrush(map, position, tool.slice('tile:'.length), rotated))
       return
     }
     // Marker tools act on the pressed tile only, not on every tile dragged over.
@@ -334,7 +337,18 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onEnemiesActive={setEnemiesActive}
         onPlay={onPlay}
         onBack={async () => (await confirmDiscard()) && onBack()}
-      />
+        placing={placing}
+        onPlacing={setPlacing}
+      >
+        <ScaleSlider label="Room size" title="How big Generate Map makes rooms (starship decks, stations, derelicts, labs, alien vessels, cantinas, detention blocks, temples)." min="70" value={roomScale} onChange={setRoomScale} />
+        <ScaleSlider
+          label="Building size"
+          title="How big Generate Map makes buildings and city blocks (colonies, outposts, cities, farms, mining sites, landing fields)."
+          min="100"
+          value={buildingScale}
+          onChange={setBuildingScale}
+        />
+      </EditorToolbar>
       <div className="me-body">
         <EditorPalette
           tool={tool}
@@ -353,11 +367,11 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             map={map}
             ghostBlocks={ghostBlocks}
             lighting={showLighting}
-            brush={tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
+            brush={placing && tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
             rotated={rotated}
             onPaint={onPaint}
             onHover={setHover}
-            onRotate={() => tool?.startsWith('tile:') && setRotated((value) => !value)}
+            onRotate={() => placing && tool?.startsWith('tile:') && setRotated((value) => !value)}
           />
           {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} follow=".me-board" />}
           {notice && (
@@ -393,14 +407,6 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           <button type="button" className="me-button me-generate" onClick={() => edit({ ...map, name: randomMapName(map) })}>
             Generate Name
           </button>
-          <ScaleSlider label="Room size" title="How big Generate Map makes rooms (starship decks, stations, derelicts, labs, alien vessels, cantinas, detention blocks, temples)." min="70" value={roomScale} onChange={setRoomScale} />
-          <ScaleSlider
-            label="Building size"
-            title="How big Generate Map makes buildings and city blocks (colonies, outposts, cities, farms, mining sites, landing fields)."
-            min="100"
-            value={buildingScale}
-            onChange={setBuildingScale}
-          />
           <button
             type="button"
             className="me-button me-generate"
@@ -410,7 +416,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             Generate Map
           </button>
           <p className="me-text">
-            Uses the location, biome and size next to the name, and the room and building sizes above (rooms never go below 4 tiles
+            Uses the location, biome and size next to the name, and the Room size and Building size in the top bar (rooms never go below 4 tiles
             across). Nothing is saved until you press Save.
           </p>
           <p className="me-heading">File</p>
@@ -422,7 +428,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           <p className="me-text">
             {hoverTile ? `${hoverTile.x}, ${hoverTile.y}: ${getTile(map.tiles[hoverTile.y][hoverTile.x]).label}${isRotated(map, hoverTile) ? ' (rotated)' : ''}` : '-'}
           </p>
-          <p className="me-text">Brush: {rotated ? 'rotated' : 'not rotated'}</p>
+          <p className="me-text">Brush: {placing ? (rotated ? 'rotated' : 'not rotated') : 'off (Place Tiles)'}</p>
           <p className="me-heading">Warnings</p>
           {warnings.length ? (
             <ul className="me-warnings">
@@ -435,8 +441,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           )}
           <p className="me-heading">Controls</p>
           <p className="me-text">
-            Left click or drag: paint (a long wall lays both of its tiles). Right click: rotate the tile brush (long walls run the
-            other way, other tiles are mirrored). Marker tools: click to place, click again to remove. Escape: put the tool down.
+            Place Tiles on, left click or drag: paint the chosen tile (a long wall lays both of its tiles). Right click: rotate the
+            tile brush (long walls run the other way, other tiles are mirrored). Marker tools: click to place, click again to
+            remove. Escape: put the tool down.
             Right drag or WASD: pan. Wheel: zoom.
           </p>
           {!canSaveMaps && <p className="me-text is-warning">Saving only works from the dev server.</p>}

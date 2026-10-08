@@ -44,8 +44,9 @@ The rules come from two places and the code keeps them apart:
 - `src/data/adaptation/` is **what the prototype decided**: videogame changes, content lists, screen order, UI text.
 - `src/rules/` applies both. It is plain JavaScript with no React in it, so the tests can run it headless.
 
-Comments and tests say which is which ("Book p.129" vs "Prototype" / "Designer decision"). Open questions for the
-designer, and decisions already made, are in `docs/design-tracker.md`.
+Comments and tests say which is which ("Book p.129" vs "Prototype" / "Designer decision"). Every prototype rule that
+departs from the books is listed in `docs/prototype-rules.md`. Open questions for the designer, and decisions already
+made, are in `docs/design-tracker.md`.
 
 ## The character model
 
@@ -71,6 +72,6 @@ tests/               node --test suites; tests/support/ has fixtures
 tools/               dev-server stores and the JSON loader for tests
 scripts/             tile and episode-card art generators (Node, write PNGs into public/art)
 electron/            desktop wrapper
-docs/                design-tracker.md, tiles.md
+docs/                design-tracker.md, prototype-rules.md, tiles.md
 reference/           the rulebook PDFs (not committed)
 ```

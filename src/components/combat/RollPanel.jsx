@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ADAPTATION_MOMENTUM_SPENDS, canAimReroll } from '../../combat/combatState.js'
+import { ADAPTATION_MOMENTUM_SPENDS, canAimReroll, canAssistReroll } from '../../combat/combatState.js'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { evaluateStaDie } from '../../rules/taskResolver.js'
@@ -59,6 +59,7 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
   const aimRerollOpen = (index) =>
     pending && playerControls && awaitingChoice && !evaluateStaDie(task, values[index]).successes && canAimReroll(state.pending, index)
   const canMomentumReroll = ADAPTATION_MOMENTUM_SPENDS && pending && playerControls && awaitingChoice && state.resources.momentum > 0
+  const assistRerollOpen = (index) => pending && playerControls && awaitingChoice && !evaluateStaDie(task, values[index]).successes && canAssistReroll(state.pending)
   const { injury } = roll
   // A Minor NPC stores no Injury: the hit leaves it unconscious (Stun) or dead (Deadly).
   const minorOutcome = injury?.decided === 'suffered' && target && minorDefeatText(target.condition)
@@ -108,6 +109,11 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
             {aimRerollOpen(index) && (
               <button type="button" className="roll-reroll" onClick={() => onReroll(index, 'aim')}>
                 Aim reroll
+              </button>
+            )}
+            {assistRerollOpen(index) && (
+              <button type="button" className="roll-reroll" onClick={() => onReroll(index, 'assist')}>
+                Student of War reroll
               </button>
             )}
             {canMomentumReroll && (
