@@ -84,7 +84,7 @@ export function TargetPanel({ target }) {
   )
 }
 
-// The defender's side of an opposed attack (Book p.256, p.289; the cover rule is a VIDEOGAME ADAPTATION, see
+// The defender's side of an opposed attack (Book p.256, p.290; the cover rule is a VIDEOGAME ADAPTATION, see
 // combatState attackDifficulty): their own Attribute + Department, and how their successes set the Difficulty.
 function OppositionBlock({ opposition, target, difficulty }) {
   const cover = opposition.when === 'targetInCover'
@@ -249,7 +249,7 @@ function AmbushTask({ ambush }) {
       <p className="task-line">Ambush by {ambush.ambusher.character.name}</p>
       <TaskBlockers task={task} />
       <TaskFormula task={task} />
-      <TaskDifficulty difficulty={task.difficulty} />
+      <TaskDifficulty difficulty={task.difficulty} lines={ambush.difficultyLines} />
       <TaskFocus task={task} focusOptions={AMBUSH_FOCUSES} />
       {task.focus && <p className="task-line task-sub">Focus also gives one free reroll of a failed die.</p>}
       <p className="task-line task-sub">{ACTIONS.ambush.description}</p>

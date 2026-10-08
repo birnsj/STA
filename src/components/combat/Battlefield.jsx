@@ -6,6 +6,7 @@ import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
 import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
 import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
+import useDarkBlocks from '../maps/useDarkBlocks.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -197,7 +198,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
 }
 
-const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', direct: 'Direct', cancelThreat: 'Cancel Threat', extraMinor: 'Extra Minor', secondMajor: 'Second Major' }
+const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', direct: 'Direct', cancelThreat: 'Cancel Threat', extraMinor: 'Extra Minor', secondMajor: 'Second Major', counterattack: 'Counterattack' }
 const TASK_LABELS = { guard: ['Guard', 'Guard failed'], firstAid: ['First Aid', 'First Aid failed'], interact: ['Task', 'Task failed'] }
 const UNIT_HEAD = 30
 
@@ -238,7 +239,8 @@ function FloatingLabel({ position, text, className, msPerTile }) {
 // Keyed by the action, so each new action replays its animation once.
 function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const action = state.lastAction
-  const attackSound = action?.type === 'attack' && action.targetId ? getWeapon(action.weaponId).attackSound : null
+  const shotTypes = ['attack', 'counterattack']
+  const attackSound = shotTypes.includes(action?.type) && action.targetId ? getWeapon(action.weaponId).attackSound : null
   // Speed is read from a ref so changing it mid-shot doesn't fire the sound a second time.
   const speedRef = useRef(speed)
   useEffect(() => {
@@ -252,12 +254,12 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
   const label = actionLabel(action)
-  const isShot = action.type === 'attack' && target
+  const isShot = shotTypes.includes(action.type) && target
   const weapon = isShot ? getWeapon(action.weaponId) : null
   const beamColor = weapon && (weapon.beamColors?.[action.injuryMode] ?? weapon.beamColor)
   const from = tileCentre(positionOf(actor))
   const to = target && tileCentre(positionOf(target))
-  const showsResult = (action.type === 'resolve' || action.type === 'injury') && target
+  const showsResult = ['resolve', 'injury', 'counterattack'].includes(action.type) && target
   return (
     <g key={action.key} className="fx" pointerEvents="none">
       {isShot && beamColor && (
@@ -370,8 +372,9 @@ export default function Battlefield({
   const panels = useMemo(() => getWallPanels(map), [map])
   const bigGroups = useMemo(() => getBigObjects(map), [map])
   const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
-  const hidden = fadedBlockKeys(map, units.filter((unit) => unit.side === 'player').map(shownPosition), true, bigGroups)
+  const hidden = fadedBlockKeys(map, units.filter((unit) => unit.side === 'player').map(shownPosition), bigGroups)
   const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
+  const darkBlocks = useDarkBlocks(faded, panels, bigGroups)
   const depthItems = [
     ...blocks.map((block) => ({
       depth: block.x + block.y,
@@ -456,7 +459,7 @@ export default function Battlefield({
         <ObjectMarker key={mark.id} mark={mark} onClick={() => onObjectClick(mark.id)} />
       ))}
       {depthItems.map((item) => item.render())}
-      <AmbientDarkness map={map} />
+      <AmbientDarkness map={map} blocks={darkBlocks} />
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {shot && (
         <line

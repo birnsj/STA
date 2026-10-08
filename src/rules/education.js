@@ -1,6 +1,5 @@
 import educationSource from '../data/source/education.json'
 import disciplineSource from '../data/source/disciplines.json'
-import valuesMatrix from '../data/source/valuesMatrix.json'
 import educationAdaptation from '../data/adaptation/education.json'
 import { areAllMet } from './requirements.js'
 import { withChoiceArt } from './choiceArt.js'
@@ -8,6 +7,7 @@ import { isBookFocus } from './focuses.js'
 import { getAttributes } from './species.js'
 import { getDisciplineTotalsBeforeEducation } from './characterTotals.js'
 import { isTalentSlotMet } from './talents.js'
+import { getSampleValues } from './values.js'
 
 const categoriesById = new Map(educationSource.categories.map((category) => [category.id, category]))
 const optionsById = new Map(educationSource.options.map((option) => [option.id, option]))
@@ -30,7 +30,10 @@ export function createEmptyEducation() {
     disciplineBonuses: [],
     // [{ name, custom }]: custom is true when the player wrote their own focus.
     focuses: [],
+    // { text, matrixId }: matrixId is a sample value id, a Core example id (getValueExamples), or null when written.
     value: null,
+    // { id, name }: set automatically when the option names one trait, picked when it names two.
+    trait: null,
   }
 }
 
@@ -39,7 +42,8 @@ export const getCategoryById = (id) => categoriesById.get(id) ?? null
 export const getOptions = (categoryId) => educationSource.options.filter((option) => option.category === categoryId)
 export const getOptionById = (id) => optionsById.get(id) ?? null
 export const getFocusCount = () => FOCUS_COUNT
-export const getValueMatrix = () => valuesMatrix.values
+export const getValueMatrix = () => getSampleValues()
+export const getTraitOptions = (optionId) => getOptionById(optionId)?.trait.options ?? []
 export const isCustomFocusAllowed = () => educationAdaptation.allowCustomFocus
 export const isCustomValueAllowed = () => educationAdaptation.allowCustomValue
 export const getAttributePointsTotal = () => ATTRIBUTE_POINTS
@@ -206,7 +210,7 @@ export function getOptionSummary(optionId) {
   const { major, pairedMajor, mustInclude } = option.disciplines
   const names = (ids) => ids.map((id) => disciplinesById.get(id).name)
   const parts = []
-  if (major === 'any') parts.push('+2 any discipline')
+  if (major === 'any') parts.push('+2 any department')
   else if (pairedMajor) parts.push(`${names(major).join(' & ')} +2/+1`)
   else parts.push(`+2 ${names(major).join(' or ')}`)
   if (mustInclude) parts.push(`must include ${disciplinesById.get(mustInclude).name}`)
@@ -263,8 +267,15 @@ export function removeFocus(education, name) {
   return { ...education, focuses: education.focuses.filter((focus) => focus.name !== name) }
 }
 
+// Core's example values for the option, listed ahead of the sample values.
+export const getValueExamples = (optionId) =>
+  (getOptionById(optionId)?.valueExamples ?? []).map((text, index) => ({ id: `${optionId}-value-${index + 1}`, text }))
+
+export const getValueChoiceById = (optionId, valueId) =>
+  [...getValueExamples(optionId), ...getValueMatrix()].find((value) => value.id === valueId) ?? null
+
 export function selectMatrixValue(education, valueId) {
-  const entry = getValueMatrix().find((value) => value.id === valueId)
+  const entry = getValueChoiceById(education.option?.id, valueId)
   if (!entry) return education
   return { ...education, value: { text: entry.text, matrixId: entry.id } }
 }
@@ -274,7 +285,27 @@ export function setCustomValue(education, text) {
   return { ...education, value: { text, matrixId: null } }
 }
 
+// ---------- Trait ----------
+
+function normalizeTrait(option, trait) {
+  const { options } = option.trait
+  if (options.length === 1) return toRef(options[0])
+  const kept = options.find((entry) => entry.id === trait?.id)
+  return kept ? toRef(kept) : null
+}
+
+export function selectTrait(education, traitId) {
+  const entry = getTraitOptions(education.option?.id).find((trait) => trait.id === traitId)
+  return entry ? { ...education, trait: toRef(entry) } : education
+}
+
 // ---------- Selection and revalidation ----------
+
+// Saved characters may hold ids from older value lists; keep the text but treat it as the player's own wording.
+function normalizeValue(option, value) {
+  if (!value?.matrixId || getValueChoiceById(option.id, value.matrixId)) return value
+  return { ...value, matrixId: null }
+}
 
 function buildEducation(character, option, previous) {
   const disciplinePicks = normalizeDisciplinePicks(character, option, previous.disciplinePicks)
@@ -285,6 +316,8 @@ function buildEducation(character, option, previous) {
     disciplinePicks,
     disciplineBonuses: computeDisciplineBonuses(option, disciplinePicks),
     focuses: normalizeFocuses(option, previous.focuses),
+    value: normalizeValue(option, previous.value),
+    trait: normalizeTrait(option, previous.trait),
   }
 }
 
@@ -319,10 +352,11 @@ export function toggleMinorDiscipline(character, disciplineId) {
 export const setSwapFrom = (character, disciplineId) => updateDisciplinePicks(character, { swapFrom: disciplineId || null })
 export const setSwapTo = (character, disciplineId) => updateDisciplinePicks(character, { swapTo: disciplineId || null })
 
-// Earlier steps can change prior discipline scores (Academy cap, swap minimum); re-check the picks.
+// Earlier steps can change prior discipline scores (stage cap, swap minimum); re-check the picks.
+// A saved option that no longer exists (e.g. a retired Captain's Log option) clears the step.
 export function reconcileEducation(character) {
   const option = getOptionById(character.education.option?.id)
-  if (!option) return character
+  if (!option) return character.education.option || character.education.category ? { ...character, education: createEmptyEducation() } : character
   const rebuilt = buildEducation(character, option, character.education)
   const unchanged = JSON.stringify(rebuilt) === JSON.stringify(character.education)
   return unchanged ? character : { ...character, education: rebuilt }
@@ -343,6 +377,7 @@ export function getEducationRequirements(character) {
   const option = getOptionById(education.option?.id)
   return {
     option: Boolean(option),
+    trait: Boolean(option) && getTraitOptions(option.id).some((trait) => trait.id === education.trait?.id),
     attributes: Boolean(option) && isAttributeAllocationComplete(education),
     disciplines: Boolean(option) && isDisciplineAllocationComplete(option, education.disciplinePicks),
     focuses: education.focuses.length === FOCUS_COUNT && education.focuses.every((focus) => focus.name.trim()),

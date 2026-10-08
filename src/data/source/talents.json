@@ -8,12 +8,12 @@
     "Descriptions and requirement lines are verbatim from the books. 'requirements' is the structured form the rules layer checks; every entry must hold for the talent to be available.",
     "Designer decision: the pool is the Core General talents, the six department lists, and the species talents for the prototype's species (Andorian, Human, Tellarite, Trill, Vulcan from Core; Caitian from the Species Sourcebook). Augment/Cybernetic and Esoteric talents are left out.",
     "Designer decision: species talents are species-only (the book's 'or gamemaster's permission' is not offered); a mixed-heritage character counts as both parent species.",
-    "Designer decision: Untapped Potential and Veteran follow the book's Step Five: Novice receives Untapped Potential, Veteran receives Veteran, Experienced chooses freely. Their 'limits' are enforced: Untapped Potential caps attributes at 11 and departments at 4 at Finishing Touches (Core p.131, replacing the one-at-max rule), and rank at lieutenant (junior grade) / petty officer; Veteran requires at least lieutenant commander / chief petty officer (Core p.128). The rank limits are applied by rules/career.js from career.json.",
+    "Designer decision: Untapped Potential and Veteran follow the book's Step Five: Novice receives Untapped Potential, Veteran receives Veteran, Experienced chooses freely. Their 'limits' are enforced: Untapped Potential caps attributes at 11 and departments at 4 at Finishing Touches (Core p.132, replacing the one-at-max rule), and rank at lieutenant (junior grade) / petty officer; Veteran requires at least lieutenant commander / chief petty officer (Core p.128). The rank limits are applied by rules/career.js from career.json.",
     "Designer decision: 'era' is present on every talent for later filtering; null means available in every era. Nothing is filtered yet.",
     "Prototype: the player character is always a main character. Role requirements are checked against the Captain's Log assignment (the same senior-staff posts the book calls roles).",
     "Prototype: Personal Effects is selectable once; the book's per-item repeats need an item choice the prototype does not have yet.",
     "Prototype: Psychoanalyst's 'psychology-related focus' is matched by a focus name containing 'psych'. Fellowship Specialty's focus is chosen from the character's own focuses.",
-    "Effects are structured descriptions for later systems; no talent effect is applied to gameplay yet. Types: reroll, freeDie, difficulty, ignoreDifficultyIncrease, bonusMomentum, groupMomentum, threatCost, maxStress, protection, impact, ignoreResistance, substitute, obtainInformation, complication, focus, value, trait, attack, determination, special."
+    "Effects are structured descriptions; only some are applied to gameplay so far: maxStress (Tough, Resolute) and protection in rules/personalCondition.js, effects an authored task lists in rules/taskPreparation.js, and the personal-combat talents (by id) in combat/combatTalents.js. The rest are for later systems. Types: reroll, freeDie, difficulty, ignoreDifficultyIncrease, bonusMomentum, groupMomentum, threatCost, maxStress, protection, impact, ignoreResistance, substitute, obtainInformation, complication, focus, value, trait, attack, determination, special."
   ],
   "careerLengthTalents": {
     "note": "Core p.127–128 Step Five: Novice and Veteran each receive a single fixed talent; Experienced chooses freely.",
@@ -22,7 +22,7 @@
   },
   "omitted": [
     { "name": "Constant Presence", "page": 149, "reason": "Supporting character only; the player character is a main character." },
-    { "name": "Aenar, Bajoran, Betazoid, Cardassian, Denobulan, Ferengi, Klingon, Orion and Romulan talents", "page": 151, "reason": "Species not in the prototype's species list." },
+    { "name": "Aenar, Bajoran, Betazoid, Cardassian, Denobulan, Ferengi, Klingon, Orion and Romulan talents", "pages": [151, 152, 153, 154], "reason": "Species not in the prototype's species list." },
     { "name": "Augment and Cybernetic talents", "page": 155, "reason": "Designer decision: excluded." },
     { "name": "Esoteric talents", "page": 155, "reason": "Designer decision: excluded." }
   ],

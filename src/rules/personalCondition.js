@@ -4,11 +4,11 @@
 // no AI choices (the Avoid Injury decision belongs to the player or to combat/injuryPolicy.js).
 //
 // Book (STA 2e Core):
-// - p.276: a character withstands Stress up to their Fitness; species, talents and other factors may change this maximum.
-//   p.277: at maximum Stress a character is Fatigued and cannot suffer more Stress. NPCs have no Stress; Notable and Major
-//   NPCs spend Threat instead.
-// - p.291: a successful Attack inflicts an Injury (Stun or Deadly) with a severity; 2 Momentum adds 1 severity
-//   (Repeatable, at most +2; p.241 Intense: 1 Momentum per point). Protection reduces the severity, to a minimum of 1.
+// - p.277: a character withstands Stress up to their Fitness; species, talents and other factors may change this maximum.
+//   p.278: at maximum Stress a character is Fatigued and cannot suffer more Stress; NPCs have no Stress; Notable
+//   and Major NPCs spend Threat instead.
+// - pp.290-292: a successful Attack inflicts an Injury (Stun or Deadly) with a severity; 2 Momentum adds 1 severity
+//   (Repeatable, at most +2; p.242 Intense: 1 Momentum per point). Protection reduces the severity, to a minimum of 1.
 //   Suffering an Injury makes the character Defeated: they fall prone and cannot act.
 //   A Minor NPC suffers no Injuries: any successful attack Defeats it, and it cannot Avoid Injury.
 // - p.292: Avoid Injury: suffer Stress equal to the severity to ignore the Injury (and the Defeat it would cause).
@@ -70,7 +70,7 @@ export const isDying = (condition) => Boolean(condition?.defeated && condition.i
 // Maximum Stress and where it comes from: { value, lines: [{ label, change }] }. 0 for NPCs (no Stress).
 // Structured effects only: the species ability's { type: 'stress', maxStressAttribute } (Vulcan Mental Discipline: Control
 // instead of Fitness) and talents' { type: 'maxStress', amount | amountFrom: { department | attribute } } (Tough, Resolute).
-// The attribute maximum Stress is based on: Fitness (Book p.276), unless a structured effect
+// The attribute maximum Stress is based on: Fitness (Book p.277), unless a structured effect
 // { type: 'stress', maxStressAttribute } on the species ability or a talent names another. { attributeId, sourceName }.
 export function getStressBaseAttribute(character) {
   const sources = [
@@ -102,7 +102,7 @@ export function getMaxStress(character) {
 }
 
 export const remainingStress = (character, condition) => Math.max(0, getMaxStress(character).value - condition.stress)
-// Book p.277: at maximum Stress the character is Fatigued: they cannot suffer more Stress, every task is +1 Difficulty,
+// Book p.278: at maximum Stress the character is Fatigued: they cannot suffer more Stress, every task is +1 Difficulty,
 // and one attribute they choose is shut down (its tasks automatically fail; rules/taskPreparation.js). condition.fatigued
 // is set when Stress reaches the maximum; fatiguedAttribute stays null until the choice is made.
 export const isFatigued = (condition) => Boolean(condition?.fatigued)
@@ -111,7 +111,7 @@ export const FATIGUE_ATTRIBUTES = ['control', 'daring', 'fitness', 'insight', 'p
 export const chooseFatiguedAttribute = (condition, attributeId) =>
   isFatigued(condition) && FATIGUE_ATTRIBUTES.includes(attributeId) ? { ...condition, fatiguedAttribute: attributeId } : condition
 
-// Book p.276: if the character can't endure the whole amount without going over the maximum, they suffer what they can
+// Book p.277: if the character can't endure the whole amount without going over the maximum, they suffer what they can
 // (filling the track) and suffer a complication. Returns { condition, taken, overflow, complication, becameFatigued }.
 // Prototype: the complication is a placeholder named trait on the character (STRESS_COMPLICATION); no authored rule
 // gives it an effect yet.
@@ -137,7 +137,7 @@ export function sufferStress(character, condition, amount, { id, source } = {}) 
   }
 }
 
-// Recovering Stress (Book p.277: Momentum, rest, an ally's help). Once below the maximum the character is no longer
+// Recovering Stress (Book p.278: Momentum, rest, an ally's help). Once below the maximum the character is no longer
 // Fatigued and the shut-down attribute is released. Prototype: nothing in play recovers Stress yet; this is the hook.
 export function recoverStress(character, condition, amount) {
   const stress = Math.max(0, condition.stress - amount)
@@ -166,7 +166,7 @@ export function getProtection(character, { injuryType, inCover = false } = {}) {
   return { value: lines.reduce((total, line) => total + line.change, 0), lines }
 }
 
-// Book p.291: 2 Momentum per +1 severity, at most +2 (p.241 Intense: 1 Momentum per point).
+// Book p.292: 2 Momentum per +1 severity, at most +2 (p.242 Intense: 1 Momentum per point).
 export const MAX_ADDED_SEVERITY = 2
 export const addedSeverityCost = (weapon) => (weapon.qualities?.some((quality) => quality.toLowerCase() === 'intense') ? 1 : 2)
 
@@ -194,7 +194,7 @@ export function buildInjury({ id, type, weapon, attacker, addedSeverity = 0, pro
 
 // Whether this character could Avoid this Injury, and what it costs: { possible, kind: 'stress' | 'threat' | null, cost,
 // reason }; a Stress avoid also gives { taken, overflow } (overflow > 0: the track fills and a complication follows,
-// Book p.276). scene: { threat (the Threat pool), avoidedThisScene (character ids of Notable NPCs that already avoided once) }.
+// Book p.277). scene: { threat (the Threat pool), avoidedThisScene (character ids of Notable NPCs that already avoided once) }.
 export function getAvoidOption(character, condition, injury, { threat = 0, avoidedThisScene = [] } = {}) {
   const category = npcCategoryOf(character)
   const cost = injury.severity
@@ -204,7 +204,7 @@ export function getAvoidOption(character, condition, injury, { threat = 0, avoid
     if (threat < cost) return { possible: false, kind: 'threat', cost, reason: `Needs ${cost} Threat (pool ${threat}).` }
     return { possible: true, kind: 'threat', cost, reason: null }
   }
-  if (isFatigued(condition)) return { possible: false, kind: 'stress', cost, reason: 'Fatigued: cannot suffer more Stress (Book p.277).' }
+  if (isFatigued(condition)) return { possible: false, kind: 'stress', cost, reason: 'Fatigued: cannot suffer more Stress (Book p.278).' }
   const room = Math.max(0, getMaxStress(character).value - condition.stress)
   return { possible: true, kind: 'stress', cost, taken: Math.min(cost, room), overflow: Math.max(0, cost - room), reason: null }
 }

@@ -1,7 +1,7 @@
 // v2 art for every tile outside Starship & Station (scripts/makeTilesV2.mjs) and Bridge (TOS) (scripts/makeTilesBridge.mjs),
 // written to each tile's palette-group folder (engine.mjs outFile).
 // Floors and walls are lit materials (engine.mjs); objects are ray-marched distance fields standing on their ground
-// (v2/kit.mjs objectScene). File names come from the tile catalogue (image, altImage, heightVariants).
+// (v2/kit.mjs objectScene). File names come from the tile catalogue (image, altImage, panelImages, big.image).
 //
 // Run with: node scripts/makeTilesV2World.mjs [--force] [--only=id,id] [--sheet]
 //   existing files are kept unless --force; --only renders just those tile ids; --sheet also writes .tmp-sheet.png
@@ -9,7 +9,7 @@
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { encodePng } from './png.mjs'
-import { blockScene, FORCE, floorScene, OUT_H, OUT_W, outFile, render, rgb, WALL_STRETCH } from './v2/engine.mjs'
+import { blockScene, DESIGN_H, FORCE, floorScene, imageHeightFor, OUT_H, OUT_W, outFile, render, renderBig, renderTile, rgb } from './v2/engine.mjs'
 import { objectScene, writeSheet } from './v2/kit.mjs'
 import { onPanelFace, panelScene, renderPanel, windowFeature, withFitting } from './v2/panels.mjs'
 import { flagstones, ground, liquid, overlay, planks, plating, slabs } from './v2/grounds.mjs'
@@ -175,69 +175,95 @@ const fernFronds = () => Array.from({ length: 9 }, (_, i) => {
   const a = (i / 9) * Math.PI * 2
   return [16, 16, 11 + (i % 3), Math.cos(a) * 10, Math.sin(a) * 10, 1.4]
 })
+// Each takes the options its tall version (TALL) changes, so the same model can be built at either size.
 const OBJ = {
   rock: () => O.boulder(g('ground'), { colour: hex('#7a7268'), seed: 3 }),
-  tree: () => O.tree(g('ground'), { trunk: hex('#5a3e26'), leaves: leaves('#24501f', '#5a9a48'), seed: 2 }),
+  tree: (t) => O.tree(g('ground'), { trunk: hex('#5a3e26'), leaves: leaves('#24501f', '#5a9a48'), seed: 2, ...t }),
   fence: () => O.fence(g('ground')),
   bush: () => O.bush(g('grass'), { leaves: leaves('#24501f', '#5aa04e'), h: 16, seed: 3, berries: hex('#c03a3a') }),
   log: () => O.log(g('grass'), {}),
   reeds: () => O.cluster(g('mud'), { stems: reeds(), mat: O.matte(hex('#7a8a3a'), { vary: 0.35 }), tipMat: O.matte(hex('#6a4a2a')), top: 24 }),
   planter: () => O.planter(g('pavement')),
   fountain: () => O.fountain(g('pavement')),
-  cactus: () => O.cactus(g('sand')),
+  cactus: (t) => O.cactus(g('sand'), t),
   iceBlock: () => O.block(g('snow'), { colour: hex('#a8d4e8'), h: 28, cracks: hex('#f0fbff'), translucent: true }),
-  basalt: () => O.basaltColumns(g('ash'), {}),
+  basalt: (t) => O.basaltColumns(g('ash'), { ...t }),
   debris: () => O.debris(g('scorched')),
-  broadleaf: () => O.tree(g('grass'), { trunk: hex('#5a3e26'), leaves: leaves('#2a5a24', '#6aaa50'), crownR: 12, seed: 5 }),
-  pine: () => O.conifer(g('grass'), { trunk: hex('#4a321e'), leaves: leaves('#14301a', '#3a7040'), seed: 6 }),
-  mangrove: () => O.mangrove(g('mud')),
+  broadleaf: (t) => O.tree(g('grass'), { trunk: hex('#5a3e26'), leaves: leaves('#2a5a24', '#6aaa50'), crownR: 12, seed: 5, ...t }),
+  pine: (t) => O.conifer(g('grass'), { trunk: hex('#4a321e'), leaves: leaves('#14301a', '#3a7040'), seed: 6, ...t }),
+  mangrove: (t) => O.mangrove(g('mud'), t),
   desertRock: () => O.boulder(g('sand'), { colour: hex('#b0784a'), seed: 7 }),
   snowRock: () => O.boulder(g('snow'), { colour: hex('#5e6670'), cap: hex('#eef4f8'), capFrom: 0.25, seed: 8 }),
   mossRock: () => O.boulder(g('grass'), { colour: hex('#625a50'), cap: hex('#5a8a48'), capFrom: 0.4, seed: 9 }),
   barrenRock: () => O.boulder(g('regolith'), { colour: hex('#7e7a76'), seed: 10 }),
-  jungleTree: () => O.tree(g('jungleFloor'), { trunk: hex('#5a3e26'), leaves: leaves('#18401a', '#3a8a34'), h: 46, crownR: 14, crownZ: 32, lumps: 6, seed: 11 }),
+  jungleTree: (t) => O.tree(g('jungleFloor'), { trunk: hex('#5a3e26'), leaves: leaves('#18401a', '#3a8a34'), h: 46, crownR: 14, crownZ: 32, lumps: 6, seed: 11, ...t }),
   fern: () => O.cluster(g('jungleFloor'), { stems: fernFronds(), mat: O.matte(hex('#3e9040'), { vary: 0.35 }), top: 16 }),
-  acacia: () => O.acacia(g('savanna')),
-  termiteMound: () => O.termiteMound(g('savanna')),
+  acacia: (t) => O.acacia(g('savanna'), t),
+  termiteMound: (t) => O.termiteMound(g('savanna'), t),
   lichenRock: () => O.boulder(g('tundra'), { colour: hex('#5e6258'), cap: hex('#9aaa80'), capFrom: 0.45, seed: 12 }),
   shrub: () => O.bush(g('tundra'), { leaves: leaves('#3a4a24', '#7a8a50'), h: 12, r: 8, seed: 13 }),
-  palm: () => O.palm(g('beach'), { trunk: hex('#8a6a44'), leaves: leaves('#205420', '#5aa04a') }),
+  palm: (t) => O.palm(g('beach'), { trunk: hex('#8a6a44'), leaves: leaves('#205420', '#5aa04a'), ...t }),
   driftwood: () => O.driftwood(g('beach')),
   screeRock: () => O.boulder(g('scree'), { colour: hex('#8e8e88'), seed: 14 }),
   geyser: () => O.geyser(g('sulphurCrust')),
-  crystalSpire: () => O.spire(g('crystalGround'), { colour: hex('#a888e0'), glowColour: hex('#f0e0ff'), h: 46, seed: 2 }),
+  crystalSpire: (t) => O.spire(g('crystalGround'), { colour: hex('#a888e0'), glowColour: hex('#f0e0ff'), h: 46, seed: 2, ...t }),
   crystalCluster: () => O.spire(g('crystalGround'), { colour: hex('#b898e8'), glowColour: hex('#f0e0ff'), h: 18, r: 3.6, shards: 4, seed: 3 }),
-  giantMushroom: () => O.mushroom(g('fungalGround'), { stem: hex('#d8d0c0'), cap: hex('#c8506a'), spots: hex('#f0e0e0') }),
+  giantMushroom: (t) => O.mushroom(g('fungalGround'), { stem: hex('#d8d0c0'), cap: hex('#c8506a'), spots: hex('#f0e0e0'), ...t }),
   puffball: () => O.pods(g('fungalGround'), { pods: [[16, 16, 6, 0.85], [22, 11, 3.5, 0.9], [10, 21, 3, 0.9]], mat: O.matte(hex('#b8a0c0'), { vary: 0.2, spec: 0.2 }) }),
   bloatPod: () => O.pods(g('toxicMud'), { pods: [[16, 16, 6, 1.1, 6], [22, 20, 3.2, 1, 3]], mat: () => ({ albedo: hex('#a8c040'), emit: hex('#a8c040').map((c) => c * 0.25), spec: 0.8, shininess: 50, tag: 'glow' }), stalk: { r: 0.9, mat: O.matte(hex('#4e5c22')) } }),
-  glowTree: () => O.tree(g('glowMoss'), { trunk: hex('#3a2a4a'), leaves: leaves('#0e4a48', '#2aa0a0'), h: 42, glowLeaves: hex('#4af0e0'), seed: 15 }),
+  glowTree: (t) => O.tree(g('glowMoss'), { trunk: hex('#3a2a4a'), leaves: leaves('#0e4a48', '#2aa0a0'), h: 42, glowLeaves: hex('#4af0e0'), seed: 15, ...t }),
   glowPod: () => O.pods(g('glowMoss'), { pods: [[12, 16, 2.4, 1.2, 4], [19, 12, 2, 1.2, 6], [19, 21, 2.2, 1.2, 3]], mat: O.glow(hex('#80fff0'), 0.9), stalk: { r: 0.5, mat: O.matte(hex('#209080')) } }),
   rustRock: () => O.boulder(g('rustDust'), { colour: hex('#a85a3a'), seed: 16 }),
   glassShard: () => O.glassShards(g('glassPlain')),
-  glassSpire: () => O.spire(g('glassPlain'), { colour: hex('#4a4868'), h: 42, r: 7, seed: 5 }),
+  glassSpire: (t) => O.spire(g('glassPlain'), { colour: hex('#4a4868'), h: 42, r: 7, seed: 5, ...t }),
   tallCrop: () => O.tallCrop(g('soil')),
-  silo: () => O.silo(g('soil')),
+  silo: (t) => O.silo(g('soil'), t),
   hayBale: () => O.hayBale(g('soil')),
   oreVein: () => O.oreVein(g('quarryFloor')),
   oreCart: () => O.oreCart(g('quarryFloor')),
-  drillRig: () => O.drillRig(g('quarryFloor')),
+  drillRig: (t) => O.drillRig(g('quarryFloor'), t),
   shuttleHull: () => O.shuttleHull(G.landingPad()),
   fuelTank: () => O.fuelTank(G.landingPad()),
   hullWreck: () => O.hullWreck(G.scorched()),
   burningWreck: () => O.burningWreck(G.scorched()),
   tent: () => O.tent(g('ground')),
   campfire: () => O.campfire(g('ground')),
-  sensorMast: () => O.sensorMast(g('ground')),
+  sensorMast: (t) => O.sensorMast(g('ground'), t),
   labBench: () => O.labBench(g('labFloor')),
-  containmentPod: () => O.containmentPod(g('labFloor')),
+  containmentPod: (t) => O.containmentPod(g('labFloor'), t),
   barCounter: () => O.barCounter(g('plankFloor')),
   table: () => O.table(g('plankFloor')),
   cellBunk: () => O.cellBunk(G.cellFloor()),
-  templePillar: () => O.templePillar(g('templeFloor')),
+  templePillar: (t) => O.templePillar(g('templeFloor'), t),
   altar: () => O.altar(g('templeFloor')),
   eggPod: () => O.eggPod(g('hiveFloor')),
   alienConsole: () => O.alienConsole(g('alienDeck')),
   bioPod: () => O.bioPod(g('alienDeck')),
+}
+
+// Tall objects (tiles.json tall) as they stand on a single tile: rebuilt at wall scale, their trunks, stems, columns
+// and masts longer and their crowns, caps and tops the size they were. A 2x2 square of one (tiles.json big) is the
+// original model drawn twice the size instead.
+const TALL = {
+  tree: { h: 88, crownZ: 74 },
+  broadleaf: { h: 88, crownZ: 74 },
+  jungleTree: { h: 92, crownZ: 78 },
+  glowTree: { h: 84, crownZ: 72 },
+  mangrove: { h: 80, crownZ: 70 },
+  pine: { h: 96, tiers: 8 },
+  palm: { h: 84 },
+  crystalSpire: { h: 92 },
+  glassSpire: { h: 84 },
+  giantMushroom: { h: 88 },
+  basalt: { h: 68 },
+  cactus: { h: 56, arms: [[22, 40], [30, 47]] },
+  termiteMound: { h: 56, sides: [30, 22] },
+  acacia: { fork: 52 },
+  silo: { h: 84 },
+  drillRig: { h: 92 },
+  sensorMast: { h: 88 },
+  containmentPod: { h: 81 },
+  templePillar: { h: 92 },
 }
 
 // ---------- jobs from the catalogue ----------
@@ -246,28 +272,38 @@ const file = (image) => image?.split('/').pop()
 const groupOf = new Map(catalogue.paletteGroups.flatMap((group) => group.tiles.map((id) => [id, group.id])))
 const OTHER_SCRIPTS = new Set(['starship', 'tosBridge'])
 const ours = (tile) => !OTHER_SCRIPTS.has(groupOf.get(tile.id))
+// A tile's image height has to match what its art reaches (engine.mjs imageHeightFor); a mismatch is reported.
+const mismatched = []
+const checkImageHeight = (tile, top) => {
+  const wanted = imageHeightFor(top)
+  if ((tile.imageHeight ?? DESIGN_H) !== wanted) mismatched.push(`${tile.id}: imageHeight should be ${wanted}`)
+}
 const jobs = []
 for (const tile of catalogue.tiles) {
   if (!ours(tile)) continue
+  const imageHeight = tile.imageHeight ?? DESIGN_H
   if (G[tile.id]) {
     jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(floorScene(G[tile.id](false))) })
     if (tile.altImage) jobs.push({ id: tile.id, file: file(tile.altImage), draw: () => render(floorScene(G[tile.id](true))) })
   } else if (W[tile.id]) {
     const h = tile.height
-    jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(blockScene(h, W[tile.id](h * WALL_STRETCH), WALL_STRETCH)) })
+    checkImageHeight(tile, h)
+    jobs.push({ id: tile.id, file: file(tile.image), draw: () => renderTile(blockScene(h, W[tile.id](h)), imageHeight) })
     // Window panels (tiles.json panelImages, v2/panels.mjs): the window built into the wall, one image per direction.
     for (const axis of Object.keys(tile.panelImages ?? {})) {
-      const wall = (half) => withFitting(W[tile.id](h * WALL_STRETCH), onPanelFace(axis, half, windowFeature(h * WALL_STRETCH)))
-      jobs.push({ id: tile.id, file: file(tile.panelImages[axis]), draw: () => renderPanel(panelScene(axis, (half) => blockScene(h, wall(half), WALL_STRETCH))) })
-    }
-    if (tile.heightVariants) {
-      const mid = Math.round(h * 0.52)
-      jobs.push({ id: tile.id, file: file(tile.heightVariants.mid), draw: () => render(blockScene(mid, W[tile.id](mid))) })
-      jobs.push({ id: tile.id, file: file(tile.heightVariants.low), draw: () => render(blockScene(10, W[tile.id](10))) })
+      const wall = (half) => withFitting(W[tile.id](h), onPanelFace(axis, half, windowFeature(h)))
+      jobs.push({ id: tile.id, file: file(tile.panelImages[axis]), panel: true, draw: () => renderPanel(panelScene(axis, (half) => blockScene(h, wall(half)), imageHeight), imageHeight) })
     }
   } else if (OBJ[tile.id]) {
-    jobs.push({ id: tile.id, file: file(tile.image), draw: () => render(objectScene(OBJ[tile.id]()), { subsamples: 2 }) })
+    const model = OBJ[tile.id](TALL[tile.id])
+    checkImageHeight(tile, model.top)
+    jobs.push({ id: tile.id, file: file(tile.image), draw: () => renderTile(objectScene(model), imageHeight, { subsamples: 2 }) })
+    if (tile.big) jobs.push({ id: tile.id, file: file(tile.big.image), draw: () => renderBig(objectScene(OBJ[tile.id]()), { subsamples: 2 }) })
   }
+}
+if (mismatched.length) {
+  console.log(`tiles.json image heights don't match the art:\n  ${mismatched.join('\n  ')}`)
+  process.exit(1)
 }
 // Any of this script's tiles without v2 art defined is reported.
 const handled = new Set(jobs.map((job) => job.id))
@@ -289,11 +325,12 @@ for (const job of jobs) {
     if (!sheet) continue
   }
   const started = Date.now()
-  // A draw returns a tile image's bytes, or { width, height, bytes } for a two-tile panel (left off the contact sheet).
+  // A draw returns a tile image's bytes, or { width, height, bytes } for a taller or larger one. Two-tile panels are
+  // left off the contact sheet.
   const drawn = job.draw()
   const { width = OUT_W, height = OUT_H, bytes = drawn } = drawn.bytes ? drawn : {}
   if (!fs.existsSync(target) || FORCE) fs.writeFileSync(target, encodePng(width, height, bytes))
-  if (!drawn.bytes) rendered.push({ id: job.id, bytes })
+  if (!job.panel) rendered.push({ id: job.id, bytes, width, height })
   console.log(`wrote  ${job.file} (${Date.now() - started} ms)`)
 }
 if (sheet && rendered.length) writeSheet(fileURLToPath(new URL('../.tmp-sheet.png', import.meta.url)), rendered)

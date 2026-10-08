@@ -20,6 +20,7 @@ import {
   getOpponents,
   getReachable,
   isActive,
+  reachLines,
   secondMajorLines,
 } from '../combat/combatState.js'
 import { WORLD_ENCOUNTER_ID } from '../combat/encounters.js'
@@ -376,11 +377,14 @@ export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0
   return assist && { ...assist, approach: approach ?? { label: assist.label } }
 }
 
-// Difficulty lines combat adds to an object's task (a bought second major action's +1 on a major-cost task).
+// Difficulty lines combat adds to an object's task: a bought second major action's +1 on a major-cost task, and an enemy
+// within Reach of the performer on any task (Book p.286). Routine actions have no task.
 export function getCombatObjectLines(state, objectId, actionId) {
   const action = getDefinition(state.scenario, objectId)?.actions.find((candidate) => candidate.id === actionId)
-  if (!action || action.routine || actionTypeOf(combatCostOf(action)) !== 'major') return []
-  return secondMajorLines(state.combat, getActiveCombatant(state.combat).id)
+  if (!action || action.routine) return []
+  const actor = getActiveCombatant(state.combat)
+  const secondMajor = actionTypeOf(combatCostOf(action)) === 'major' ? secondMajorLines(state.combat, actor.id) : []
+  return [...secondMajor, ...reachLines(state.combat, actor)]
 }
 
 // The object task's math for whoever acts, exactly as interactInCombat will attempt it: the fighters' current condition

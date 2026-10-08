@@ -8,7 +8,7 @@ import {
   grow,
   isFree,
   key,
-  labelRegions,
+  labelPlaces,
   layLine,
   makeGrid,
   markerCells,
@@ -88,6 +88,16 @@ export function generateFarm(map, random, areaNames, biome) {
   const outdoors = markerCells(tiles, tiles.flatMap((row, y) => row.map((_, x) => ({ x, y })))).filter(({ x, y }) => tiles[y][x] !== FLOOR_TILE)
   const markers = markersAtEnds(outdoors, (cell) => flip * (horizontal ? cell.x : cell.y), random)
 
-  const areas = labelRegions(tiles, [...buildings.map((building) => roomCells(building.room)), ...fields.map(roomCells)], areaNames, random)
+  // areaNames: { farmhouse, barn, field } lists.
+  const areas = labelPlaces(
+    tiles,
+    [
+      ...(house ? [{ kind: 'farmhouse', cells: roomCells(house.room) }] : []),
+      ...(barn ? [{ kind: 'barn', cells: roomCells(barn.room) }] : []),
+      ...fields.map((field) => ({ kind: 'field', cells: roomCells(field) })),
+    ],
+    areaNames,
+    random,
+  )
   return { ...map, tiles, areas, markers }
 }

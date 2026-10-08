@@ -1,167 +1,57 @@
 {
   "sourceType": "original",
-  "note": "Values Auto and the dev Autofill pick for each lifepath stage, so a generated value reflects the stage that grants it. Original prototype text, not from Captain's Log: the book only gives the 20 general sample values of the Values Matrix (p.90) plus a prompt per stage (Education valueText per option; Career Length valuePrompt: Novice 'inexperience and naivete', Experienced 'chosen freely', Veteran 'years of experience'; Finishing Touches p.129: 'might reflect the career events'). Players still choose from the Values Matrix or write their own on screen. Keyed by setting/condition id, education option id, career length id, and career event id (the final value draws from the character's two events). Draft copy for designer review.",
-  "environment": {
-    "homeworld": [
-      "The traditions of my people are worth carrying to the stars",
-      "I will honor the legacy of those who came before me",
-      "Every culture deserves the respect I give my own"
-    ],
-    "busyColony": [
-      "Pioneers build the future with their own hands",
-      "My colony's independence taught me to stand on my own",
-      "Pride in my home drives me to excel"
-    ],
-    "isolatedColony": [
-      "Solitude is where true understanding begins",
-      "Knowledge is worth any distance",
-      "Quiet reflection before decisive action"
-    ],
-    "frontierColony": [
-      "The frontier rewards the prepared",
-      "Stubbornness has kept my people alive",
-      "Someone has to stand watch at the edge of the map"
-    ],
-    "starshipOrStarbase": [
-      "A ship is a home, and its crew a family",
-      "I learned to fly before I learned to walk",
-      "Every system aboard matters, no matter how small"
-    ],
-    "anotherSpeciesWorld": [
-      "I belong to two worlds and fully to neither",
-      "Seeing my people through other eyes keeps me honest",
-      "Home is where you are accepted, not where you were born"
-    ],
-    "utopianParadise": [
-      "Abundance is a responsibility, not a privilege",
-      "Everyone deserves the chance to thrive",
-      "Paradise is worth protecting"
-    ],
-    "cosmopolitan": [
-      "Our differences are the Galaxy's greatest strength",
-      "Every culture has something to teach me",
-      "A conversation can bridge any gulf",
-      "Strangers are just friends I haven't met yet"
-    ],
-    "rigorousDiscipline": [
-      "Duty before self",
-      "I am capable of more than I believe",
-      "Discipline is the foundation of freedom"
-    ],
-    "asceticismAndIntrospection": [
-      "Know yourself before you judge others",
-      "Simplicity clears the mind",
-      "Possessions distract from what truly matters"
-    ],
-    "struggleAndHardship": [
-      "Nothing worth having comes easily",
-      "Waste nothing, especially a chance",
-      "I fight so others won't have to struggle as I did"
-    ],
-    "occupationOrWar": [
-      "Never again will I stand by while others suffer",
-      "Freedom is never guaranteed",
-      "Peace is worth any sacrifice"
-    ]
-  },
+  "note": "Values Auto and the dev Autofill pick for each lifepath stage, so a generated value reflects the stage that grants it. Original prototype text, not from Captain's Log: the book only gives the 20 general sample values of the Values Matrix (p.90) plus a prompt per stage (Education valueText per option; Finishing Touches p.129: 'might reflect the career events'). Players still choose from the Values Matrix or write their own on screen. Keyed by education option id and career event id (the final value draws from the character's two events). Draft copy for designer review. Where the STA 2E Core Rulebook gives examples, Auto uses those instead of this file (rules/stageValues.js): Environment draws on the species' sample values (Core pp.100-113 sidebars, data/source/speciesValues.json) and Experience on the Novice / Veteran examples (Core pp.127-128, data/source/careerLengths.json valueExamples); with none (e.g. Experienced, or a species the book doesn't cover) Auto picks from the book's Sample Values (Core p.96).",
+  "educationNote": "Unlike the other stages, these are book text: Core's example values per Career Path (pp.121-126), matching valueExamples in source/education.json.",
   "education": {
     "commandTrack": [
-      "A captain's first duty is to the crew",
-      "Lead by example, always",
-      "The hardest decisions are the ones that matter most"
+      "Starfleet is a promise: I’d give my life for you, you’d give your life for me, and nobody gets left behind",
+      "The first duty of every Starfleet officer is to the truth",
+      "The Prime Directive is there to remind us that we are not gods, and should not act like them"
     ],
     "operationsTrack": [
-      "If it's broken, I can fix it",
-      "A ship runs on the people nobody notices",
-      "Precision under pressure"
+      "Get it done right the first time",
+      "Sometimes, you just have to improvise",
+      "By the book isn’t worth much in practice"
     ],
     "sciencesTrack": [
-      "Every anomaly is a question waiting to be answered",
-      "The universe rewards curiosity",
-      "Follow the evidence, wherever it leads"
+      "No conclusions until I’ve run some tests",
+      "I want to see what nobody else has seen",
+      "First, do no harm"
     ],
-    "rankAndFile": [
-      "I enlisted to serve, not to be served",
-      "The chain of command exists for a reason",
-      "Look after the person beside you"
+    "starfleetEnlisted": [
+      "The satisfaction of a job well-done is worth the effort",
+      "Nowhere else can I get this experience",
+      "Don’t call me sir; I work for a living"
     ],
-    "officerTraining": [
-      "An officer's word is a promise",
-      "Command is earned, not given",
-      "Responsibility comes with the rank"
-    ],
-    "intelligenceTraining": [
-      "Trust is a resource; spend it wisely",
-      "What is unseen often matters most",
-      "Secrets protect lives"
-    ],
-    "militiaAndGuerillas": [
-      "I fight for those who cannot fight for themselves",
-      "Home is worth defending at any cost",
-      "Resourcefulness beats firepower"
+    "starfleetIntelligence": [
+      "Trust, but verify",
+      "Insufficient information can result in disaster",
+      "Secrets are my business"
     ],
     "diplomaticCorps": [
-      "Words are stronger than weapons",
-      "Understanding comes before agreement",
-      "Every treaty begins with listening"
-    ],
-    "honoraryStatus": [
-      "I must prove I deserve the trust I've been given",
-      "Respect is earned through service",
-      "My first career still guides my choices"
-    ],
-    "freightAndTransport": [
-      "Deliver on time, every time",
-      "The spaceways connect us all",
-      "A good pilot knows every shortcut"
-    ],
-    "lawEnforcement": [
-      "Justice must be fair to be justice",
-      "Protect the innocent first",
-      "The truth always comes out"
+      "Eventually, everyone comes back to the table to talk",
+      "The right words can shape countless lives",
+      "You don’t get a better world if you don’t work for it"
     ],
     "physician": [
-      "First, do no harm",
-      "Every life is worth saving",
-      "Healing is more than medicine"
+      "The Hippocratic Oath",
+      "I must respect my patient’s wishes",
+      "An ounce of prevention is worth a pound of cure"
     ],
     "politicianOrBureaucrat": [
-      "Good government serves its people",
-      "Compromise is how progress happens",
-      "Rules exist to protect the vulnerable"
+      "Keeping the wheels of civilization turning is vital",
+      "My decisions can affect a great many people; I must choose carefully",
+      "The law should serve the needs of the people"
     ],
     "scientificOrTechnicalExpert": [
-      "Every problem has a solution",
-      "Innovation means trying what others call impossible",
-      "The data does not lie"
+      "I have devoted my career to this research",
+      "Science allows us to seek truth and understanding",
+      "With the right tools, we can solve any problem"
     ],
     "traderOrMerchant": [
-      "A fair deal benefits both sides",
-      "Everything has value to someone",
-      "Know your partner and you'll know the deal"
-    ]
-  },
-  "careerLength": {
-    "novice": [
-      "I still have so much to learn",
-      "Everything out here is new and wonderful",
-      "I'll prove I belong here",
-      "Mistakes are how I learn",
-      "The regulations have an answer for everything"
-    ],
-    "experienced": [
-      "Confidence comes from competence",
-      "Trust your training",
-      "I've seen enough to know what matters",
-      "Good work speaks for itself",
-      "Balance duty with a life worth living"
-    ],
-    "veteran": [
-      "Experience is the best teacher",
-      "I've lost too many friends to take risks lightly",
-      "Young officers deserve the guidance I never had",
-      "There is no such thing as a routine mission",
-      "Patience wins more battles than bravado"
+      "Today’s strangers are tomorrow’s customers",
+      "When all your needs are met, it’s the experience that matters",
+      "You wouldn’t begrudge me a little profit in this venture?"
     ]
   },
   "careerEvent": {

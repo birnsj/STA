@@ -1,9 +1,11 @@
 // Big objects (exploration and Combat Type 1). A 2x2 square of the same object marked big in tiles.json (boulders,
-// trees, silos...) is drawn as one object at twice the size: a 2x2 footprint is exactly a single tile's diamond scaled
-// by 2, so the tile's own PNG drawn 2x fits it. Presentation only: movement, sight and cover still read the single tiles.
-import { getTile } from './mapFormat.js'
+// trees, silos...) is drawn as one object twice the size, from its own image (tiles.json big.image): a 2x2 footprint is
+// a single tile's diamond scaled by 2, so that image is BIG_IMAGE in size, its floor diamond covering the footprint.
+// Presentation only: movement, sight and cover still read the single tiles.
+import { getTile, TILE_IMAGE } from './mapFormat.js'
 
 export const BIG_SCALE = 2
+export const BIG_IMAGE = { width: TILE_IMAGE.width * BIG_SCALE, height: TILE_IMAGE.height * BIG_SCALE }
 
 const key = (x, y) => `${x},${y}`
 

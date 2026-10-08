@@ -1,4 +1,4 @@
 {
-  "note": "Prototype design decisions for Screen 02. Book (p.103): the player picks ONE setting OR condition, and that choice's options drive the attribute and discipline bonuses. Prototype follows the book: choosing a setting clears any condition and vice versa. Values use the book's Values Matrix plus a free-text custom value.",
+  "note": "Prototype design decisions for Screen 02 (Book Step Two, Core pp.115-116). The book's d20 roll is not offered; the player chooses one of the six settings. Captain's Log's Environment Conditions are not used. The value can be one of the species' sample values (Core pp.100-113 sidebars, offered because the book points to them: Homeworld 'the sidebars on each species' values can serve as inspiration', Another Species' World 'a value associated with the species your character was raised among'), one of the book's Sample Values (p.96), or the player's own.",
   "allowCustomValue": true
 }

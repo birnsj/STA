@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCharacter } from '../character/useCharacter.js'
 import {
+  getAgeGuidance,
   getBookText,
   getCategories,
   getCharacterValues,
@@ -8,6 +9,8 @@ import {
   getIncreaseRows,
   getKindInfo,
   getLimitAdjustment,
+  getLimitSummary,
+  getPastimeSuggestions,
   getPronounPresets,
   getRequiredValueCount,
   getValueMatrix,
@@ -32,7 +35,14 @@ import ValuePicker from '../components/ValuePicker.jsx'
 import TalentPicker, { TalentDetails } from '../components/TalentPicker.jsx'
 import { getChoiceOptions, getRequiredTalentCount, getTalentById, getTalentEntries, getTalentOptions } from '../rules/talents.js'
 
-const KIND_LABELS = { attributes: 'Attribute', disciplines: 'Discipline' }
+const KIND_LABELS = { attributes: 'Attribute', disciplines: 'Department' }
+const HELP_PREFIXES = { attributes: 'attribute', disciplines: 'discipline' }
+
+const BookCaption = ({ source }) => (
+  <p className="education-detail-caption">
+    As defined in {source.book === "Captain's Log" ? "Captain's Log" : `the ${source.book}`}, {source.pages ? `pp.${source.pages.join('–')}` : `p.${source.page}`}:
+  </p>
+)
 
 function Panel({ title, helpId, met, locked, className = '', children }) {
   const isMissing = met === false && !locked
@@ -65,7 +75,7 @@ function FinalValuePanels({ character, dispatch, met }) {
       </Panel>
       <div className="finishing-stack">
         <Panel title="Value Details" helpId="valueDetails">
-          <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
+          <BookCaption source={book.source} />
           <p className="education-detail-description">{book.text}</p>
           <p className="education-detail-caption">Your values ({values.length}/{getRequiredValueCount()}):</p>
           <ul className="finishing-list">
@@ -77,6 +87,17 @@ function FinalValuePanels({ character, dispatch, met }) {
   )
 }
 
+const listNames = (names) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
+
+// How the limits are resolved right now (the game places a default as soon as a score goes over; the player can change it).
+function LimitSummary({ character, kind }) {
+  const { reduced, placed } = getLimitSummary(character, kind)
+  if (!reduced.length) return null
+  const over = listNames(reduced.map((entry) => `${entry.name} ${entry.from} → ${entry.to}`))
+  const moved = placed.length ? ` Points moved to ${listNames(placed.map((entry) => `${entry.name} +${entry.points}`))}.` : ''
+  return <p className="limit-summary">Over the limit: {over}.{moved} Change it below.</p>
+}
+
 function ScorePanels({ character, dispatch, kind, met }) {
   const label = KIND_LABELS[kind]
   const { increaseCount } = getKindInfo(kind)
@@ -86,20 +107,24 @@ function ScorePanels({ character, dispatch, kind, met }) {
   const { max, oneAtMax, reason } = adjustment
   return (
     <>
-      <Panel title={`${label} Increases (${increases.length}/${increaseCount})`} helpId={`${label.toLowerCase()}Increases`} met={met}>
-        <p className="attribute-instruction">Add +1 to {increaseCount} different {label.toLowerCase()}s. Scores shown: current → final.</p>
+      <Panel title={`${label} Increases (${increases.length}/${increaseCount})`} helpId={`${HELP_PREFIXES[kind]}Increases`} met={met}>
+        <p className="attribute-instruction">
+          Any score over the limits has already been brought down (see Details). Now add +1 to {increaseCount} different {label.toLowerCase()}s; a
+          +1 can't take a score over the limits. Scores shown: after limits → final.
+        </p>
         <ScoreIncreasePicker
           label={`${label} increases`}
           rows={getIncreaseRows(character, kind)}
           onToggle={(id) => dispatch({ type: 'toggleFinalIncrease', kind, id })}
         />
       </Panel>
-      <Panel title={`${label} Details`} helpId={`${label.toLowerCase()}Details`}>
-        <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
+      <Panel title={`${label} Details`} helpId={`${HELP_PREFIXES[kind]}Details`}>
+        <BookCaption source={book.source} />
         <p className="education-detail-description">{book.text}</p>
         <p className="education-detail-caption">
           {oneAtMax ? `Limits (max ${max}, only one at ${max}):` : `Limits (max ${max}; ${reason}):`}
         </p>
+        {adjustment.needed && <LimitSummary character={character} kind={kind} />}
         {adjustment.needed ? (
           <LimitAdjuster
             max={max}
@@ -160,7 +185,8 @@ function TalentPanels({ character, dispatch, met }) {
 
 function IdentityPanels({ character, dispatch, met }) {
   const { name, pronouns } = character.identity
-  const book = getBookText().pronouns
+  const age = character.identity.age ?? ''
+  const book = getBookText()
   return (
     <>
       <Panel title="Name & Pronouns" helpId="nameAndPronouns" met={met}>
@@ -209,10 +235,57 @@ function IdentityPanels({ character, dispatch, met }) {
             </button>
           ))}
         </div>
+        <label className="finishing-field">
+          <span className="finishing-field-label">Age (optional)</span>
+          <input
+            className="text-field"
+            value={age}
+            maxLength={40}
+            placeholder="e.g. 34"
+            onChange={(event) => dispatch({ type: 'setCharacterAge', age: event.target.value })}
+          />
+        </label>
       </Panel>
       <Panel title="Identity Details" helpId="identityDetails">
-        <p className="education-detail-caption">As defined in Captain's Log, p.{book.source.page}:</p>
+        <BookCaption source={book.pronouns.source} />
+        <p className="education-detail-description">{book.pronouns.text}</p>
+        <BookCaption source={book.age.source} />
+        <p className="education-detail-description">{book.age.text}</p>
+        <p className="education-detail-description">{getAgeGuidance(character)}</p>
+      </Panel>
+    </>
+  )
+}
+
+function PastimePanels({ character, dispatch }) {
+  const pastime = character.identity.pastime ?? ''
+  const book = getBookText().pastime
+  return (
+    <>
+      <Panel title="Pastime (optional)" helpId="pastime">
+        <label className="finishing-field">
+          <span className="finishing-field-label">Pastime</span>
+          <input
+            className="text-field"
+            value={pastime}
+            maxLength={60}
+            placeholder="e.g. Klingon opera, 3D chess, rock climbing"
+            onChange={(event) => dispatch({ type: 'setCharacterPastime', pastime: event.target.value })}
+          />
+        </label>
+        <p className="education-detail-caption">The book's suggestion categories:</p>
+        <ul className="finishing-list">
+          {getPastimeSuggestions().map((suggestion) => (
+            <li key={suggestion.name}>
+              <strong>{suggestion.name}:</strong> {suggestion.text}
+            </li>
+          ))}
+        </ul>
+      </Panel>
+      <Panel title="Pastime Details" helpId="pastimeDetails">
+        <BookCaption source={book.source} />
         <p className="education-detail-description">{book.text}</p>
+        <p className="source-ref">Prototype: a pastime is saved and exported with your character but has no rule effect.</p>
       </Panel>
     </>
   )
@@ -311,7 +384,8 @@ export default function FinishingTouchesScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.finalValue ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Add the final value and attribute and discipline increases defined in Captain's Log and your fourth talent, choose a portrait, and finally name your character.
+            Add the final value, bring any attribute or department over the limits back within them and then add your increases, choose your fourth
+            talent and a portrait, and finally name your character.
           </p>
         </div>
       </div>
@@ -332,6 +406,7 @@ export default function FinishingTouchesScreen({ step, navigation }) {
         {activeId === 'talent' && <TalentPanels {...panelProps} />}
         {activeId === 'identity' && <IdentityPanels {...panelProps} />}
         {activeId === 'portrait' && <PortraitPanels {...panelProps} />}
+        {activeId === 'pastime' && <PastimePanels {...panelProps} />}
         {activeId === 'backgroundNotes' && <BackgroundNotesPanels {...panelProps} />}
       </div>
 

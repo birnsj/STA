@@ -127,7 +127,7 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
         <input type="checkbox" checked={ghostBlocks} onChange={(event) => onGhostBlocks(event.target.checked)} />
         See-through blocks
       </label>
-      <label className="me-check" title="Blinking lights and window stars on the map, in the tile list and in the brush. Off, the map's lights hold a steady brightness.">
+      <label className="me-check" title="Animated tiles (blinking lights, machinery, window stars) on the map, in the tile list and in the brush. Off, each shows its first frame.">
         <input type="checkbox" checked={animateTiles} onChange={(event) => onAnimateTiles(event.target.checked)} />
         Tile animations
       </label>

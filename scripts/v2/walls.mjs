@@ -1,5 +1,5 @@
 // Wall materials for the v2 world tiles. Each maker returns (H) => material, H being the face height the material is
-// designed at (a full wall is designed at its drawn height, twice the image height: engine.mjs WALL_STRETCH). Faces use
+// designed at (the wall's height, tiles.json height). Faces use
 // u 0..32 along the face (wrapping, so a run of walls joins up) and v = height above the floor; the top uses u, v 0..32.
 import { bevel, clamp01, dome, groove, hash, mix, rgb, scale, smoothstep } from './engine.mjs'
 import { cells, faceNoise, fbm, tileNoise } from './kit.mjs'

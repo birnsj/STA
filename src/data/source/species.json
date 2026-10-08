@@ -50,17 +50,17 @@
       "id": "mixedHeritage",
       "name": "Mixed Heritage",
       "variant": "mixedHeritage",
-      "description": "Many Starfleet officers have parents from different species. When creating such a character, you may choose three different attribute bonuses from across both species.",
-      "attributeBonus": { "type": "mixedChoice", "count": 3, "amount": 1 },
-      "source": { "page": 91, "section": "Mixed-Heritage Characters (sidebar)" }
+      "description": "Many Starfleet officers have parents from different species. Choose two species, one for each parent, and select one of those two as the primary species—the species which the character takes after the most. The character is treated as a member of the primary species for attribute bonuses and their Species Ability, and gains the species traits of both parent species.",
+      "attributeBonus": { "type": "primarySpecies", "amount": 1 },
+      "source": { "book": "Core Rulebook", "page": 99, "section": "Mixed-Heritage Characters" }
     },
     {
       "id": "newSpecies",
       "name": "New Species",
       "variant": "newSpecies",
-      "description": "Perhaps you would like to create a new, distinctive species. Your character might hail from a planet new to the United Federation of Planets. Or they might be the first of their kind to join Starfleet. Simply write a paragraph description of what sets your species apart from the rest and add one to three different attributes. The species may have certain physiological, technological, or mental specialties. These abilities are all wrapped up in your species trait that could provide certain advantages – or complications.",
+      "description": "Players may create unique species never seen on screen. Decide what the species is capable of, what their culture is like, and why the character might seek to join Starfleet; these provide the foundations for how to use the species' trait in play. Decide upon three attributes, each of which are increased by +1, as well as creating a Species Ability (comparable in effect to a talent).",
       "attributeBonus": { "type": "choice", "count": 3, "amount": 1 },
-      "source": { "page": 92, "section": "Creating New Species (sidebar); see also Unusual or Unique Characters, p.102: +1 to any three attributes" }
+      "source": { "book": "Core Rulebook", "page": 114, "section": "Unusual or Unique Characters" }
     }
   ]
 }

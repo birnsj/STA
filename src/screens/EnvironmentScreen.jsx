@@ -1,12 +1,10 @@
-import { useState } from 'react'
 import { useCharacter } from '../character/useCharacter.js'
 import {
   getAttributeOptionRule,
   getAttributeOptions,
-  getConditionById,
-  getConditions,
   getDisciplineOptions,
   getEnvironmentRequirements,
+  getEnvironmentValueExamples,
   getOtherSpeciesOptions,
   getSettingById,
   getSettings,
@@ -25,13 +23,7 @@ import HelpTip from '../components/HelpTip.jsx'
 import MechanicsColumn from '../components/MechanicsColumn.jsx'
 import ChipGroup from '../components/ChipGroup.jsx'
 import Portrait from '../components/Portrait.jsx'
-import RequirementTag from '../components/RequirementTag.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
-
-const TABS = [
-  { id: 'setting', label: 'Environment Setting', icon: '◍' },
-  { id: 'condition', label: 'Environment Conditions', icon: '◈' },
-]
 
 const ATTRIBUTE_INSTRUCTIONS = {
   speciesBonus: 'Choose one of your species’ improved Attributes to increase by +1. (You may only choose from the Attributes your species improved.)',
@@ -42,16 +34,13 @@ const ATTRIBUTE_INSTRUCTIONS = {
 export default function EnvironmentScreen({ step, navigation }) {
   const { character, dispatch } = useCharacter()
   const { environment } = character
-  const [activeTab, setActiveTab] = useState(environment.condition ? 'condition' : 'setting')
   const requirements = getEnvironmentRequirements(character)
   const locked = getLockedSections(requirements)
-  const isSettingTab = activeTab === 'setting'
-  const selectedId = environment[activeTab]?.id
-  const activeEntry = isSettingTab ? getSettingById(selectedId) : getConditionById(selectedId)
+  const selectedId = environment.setting?.id
+  const activeEntry = getSettingById(selectedId)
   const attributeRule = getAttributeOptionRule(environment)
 
-  const selectEntry = (id) =>
-    dispatch(isSettingTab ? { type: 'selectEnvironmentSetting', settingId: id } : { type: 'selectEnvironmentCondition', conditionId: id })
+  const selectEntry = (id) => dispatch({ type: 'selectEnvironmentSetting', settingId: id })
 
   return (
     <section className="screen environment-screen">
@@ -60,35 +49,15 @@ export default function EnvironmentScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.background ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose where you were raised or the conditions that shaped your early life. Your choice gives you one Attribute bonus, one Discipline bonus, and one Value.
+            Choose the kind of place where you were raised. Your choice gives you one Attribute bonus, one Department bonus, and one Value.
           </p>
         </div>
       </div>
 
-      <div className="env-tabs" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={tab.id === activeTab}
-            className={`env-tab${tab.id === activeTab ? ' is-active' : ''}${environment[tab.id] ? ' has-choice' : ''}${requirements.background ? '' : ' is-missing'}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <span className="env-tab-icon" aria-hidden="true">{tab.icon}</span>
-            <span className="env-tab-text">
-              <span className="env-tab-label">{tab.label}</span>
-              <span className="env-tab-choice">{environment[tab.id]?.name ?? '\u00a0'}</span>
-            </span>
-            {environment[tab.id] && <RequirementTag met />}
-          </button>
-        ))}
-      </div>
-
       <CardCarousel
-        label={isSettingTab ? 'Environment settings' : 'Environment conditions'}
+        label="Environments"
         variant={`carousel-environment${requirements.background ? '' : ' is-missing'}`}
-        items={isSettingTab ? getSettings() : getConditions()}
+        items={getSettings()}
         selectedId={selectedId}
         onSelect={selectEntry}
       />
@@ -96,18 +65,28 @@ export default function EnvironmentScreen({ step, navigation }) {
       <div className="species-details env-details panel">
         <Portrait label={activeEntry?.name} image={getChoiceArt('environment', activeEntry?.id)} className="portrait-detail" />
         <div className="species-details-text">
-          <h2 className="species-details-name">{activeEntry?.name ?? `No ${isSettingTab ? 'setting' : 'condition'} selected`}</h2>
-          <p>{activeEntry?.description ?? `Select an environment ${isSettingTab ? 'setting' : 'condition'} above.`}</p>
+          <h2 className="species-details-name">{activeEntry?.name ?? 'No environment selected'}</h2>
+          <p>{activeEntry?.description ?? 'Select an environment above.'}</p>
           {activeEntry && (
-            <p className="source-ref">Captain's Log, p.{activeEntry.source.page} · Choose one Setting or one Condition.</p>
+            <p className="source-ref">
+              {activeEntry.source.book}, p.{activeEntry.source.page} · Choose one environment.
+            </p>
           )}
         </div>
       </div>
 
       <div className="env-mechanics">
-        <MechanicsColumn number="1" title="Environment Value" helpId="environmentValue" instruction="Choose the value that reflects your upbringing." met={requirements.value} locked={locked.value}>
+        <MechanicsColumn
+          number="1"
+          title="Environment Value"
+          helpId="environmentValue"
+          instruction="Choose a value that reflects the environment and culture you were raised within. Your species’ example values are listed first."
+          met={requirements.value}
+          locked={locked.value}
+        >
           <ValuePicker
             value={environment.value}
+            examples={getEnvironmentValueExamples(character)}
             matrix={getValueMatrix()}
             allowCustom={isCustomValueAllowed()}
             onSelectMatrix={(valueId) => dispatch({ type: 'selectEnvironmentMatrixValue', valueId })}
@@ -120,7 +99,7 @@ export default function EnvironmentScreen({ step, navigation }) {
           number="2"
           title="Attribute Bonus"
           helpId="environmentAttribute"
-          instruction={attributeRule ? ATTRIBUTE_INSTRUCTIONS[attributeRule.type] : 'Select a Setting or Condition to see the available Attributes.'}
+          instruction={attributeRule ? ATTRIBUTE_INSTRUCTIONS[attributeRule.type] : 'Select an environment to see the available Attributes.'}
           instructionLines={4}
           met={requirements.attributeBonus}
           locked={locked.attributeBonus}
@@ -147,15 +126,15 @@ export default function EnvironmentScreen({ step, navigation }) {
 
         <MechanicsColumn
           number="3"
-          title="Discipline Bonus"
+          title="Department Bonus"
           helpId="environmentDiscipline"
-          instruction={attributeRule ? 'Choose one starting Discipline to increase by +1.' : 'Select a Setting or Condition to see the available Disciplines.'}
+          instruction={attributeRule ? 'Choose one of these Departments to increase by +1.' : 'Select an environment to see the available Departments.'}
           instructionLines={2}
           met={requirements.disciplineBonus}
           locked={locked.disciplineBonus}
         >
           <ChoiceList
-            label="Discipline bonus"
+            label="Department bonus"
             options={getDisciplineOptions(character).map((discipline) => ({ id: discipline.id, label: discipline.name, suffix: '(+1)', tip: getScoreTip(discipline.id) }))}
             selectedId={environment.disciplineBonus?.id}
             onSelect={(disciplineId) => dispatch({ type: 'selectEnvironmentDiscipline', disciplineId })}

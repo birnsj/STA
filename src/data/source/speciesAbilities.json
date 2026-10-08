@@ -86,7 +86,7 @@
       "speciesId": "klingon",
       "name": "Brak'lul",
       "description": "You gain 1 Protection which stacks with the benefits of any armor worn. Further, when another character attempts First Aid to heal you, they may re-roll a d20.",
-      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 107 },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 108 },
       "note": "Klingon is not a creator species (prototypeSpecies.json); this record serves authored Klingon characters (adaptation/characters.json).",
       "effects": [
         { "type": "protection", "amount": 1 },
@@ -96,17 +96,21 @@
   ],
   "withoutAbility": {
     "notes": [
-      "Book (Core p.99): a mixed-heritage character has the Species Ability of their primary species. Prototype (designer decision, Oct 2026): the player picks which parent is primary on the Species screen (species.primarySpeciesId); until then there is no ability.",
-      "Book: no Species Ability is given for a player-defined species. Prototype (designer decision, Oct 2026): a New Species has none.",
-      "label and note are player-facing."
+      "Book (Core p.99): a mixed-heritage character has the Species Ability of their primary species. Prototype (designer decision, Oct 2026): the player picks which parent is primary on the Species screen (species.primarySpeciesId); until then there is no ability and no attribute bonus.",
+      "Book (Core p.114): a new species' player creates a Species Ability, comparable in effect to a talent. Prototype (designer decision, Oct 2026): the player writes its name and description on the Species screen (species.speciesAbility, id 'custom'); it has no mechanical effects. Until both are written there is no ability.",
+      "label and note are player-facing. newSpecies.autoFill is prototype placeholder text the Auto button writes (not book text)."
     ],
     "mixedHeritage": {
       "label": "Choose primary species",
-      "note": "A mixed-heritage character has the Species Ability of their primary species. Choose which parent that is."
+      "note": "A mixed-heritage character takes the attribute bonuses and Species Ability of their primary species. Choose which parent that is."
     },
     "newSpecies": {
-      "label": "None",
-      "note": "A new species has no Species Ability."
+      "label": "Create a Species Ability",
+      "note": "A new species needs a Species Ability of your own: give it a name and describe what it does.",
+      "autoFill": {
+        "name": "Unique Physiology",
+        "description": "A trait of this species' physiology, psychology, or culture, to be defined with the gamemaster. It has no mechanical effect in the prototype."
+      }
     }
   }
 }

@@ -68,6 +68,11 @@
   border-color: var(--yellow);
 }
 
+.score-increase-toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .limit-adjuster {
   display: flex;
   flex-direction: column;
@@ -77,6 +82,12 @@
 .limit-adjuster-instruction {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.limit-summary {
+  margin: 4px 0 6px;
+  font-size: 13px;
+  color: var(--yellow);
 }
 
 .finishing-total {

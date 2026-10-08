@@ -28,7 +28,7 @@ function ParentCarousel({ selection, index, genderId, onChange, onPrimaryChange 
             type="button"
             className={`parent-primary${isPrimary ? ' is-selected' : ''}`}
             aria-pressed={isPrimary}
-            title="Your primary species gives your Species Ability."
+            title="Your primary species gives your attribute bonuses and Species Ability."
             onClick={() => onPrimaryChange(parent.id)}
           >
             {isPrimary ? 'Primary species' : 'Make primary'}
@@ -48,7 +48,7 @@ function ParentCarousel({ selection, index, genderId, onChange, onPrimaryChange 
   )
 }
 
-export default function SpeciesTraits({ selection, genderId, onParentChange, onPrimaryChange, onNameChange, onDescriptionChange }) {
+export default function SpeciesTraits({ selection, genderId, onParentChange, onPrimaryChange, onNameChange, onDescriptionChange, onAbilityChange }) {
   const species = getSpeciesById(selection.id)
 
   if (isMixedHeritage(species)) {
@@ -61,7 +61,7 @@ export default function SpeciesTraits({ selection, genderId, onParentChange, onP
         </div>
         <div className="mixed-traits">
           {selection.traits.map((trait) => (
-            <Trait key={trait.id} name={trait.name} text={getTraitDescription(selection)} />
+            <Trait key={trait.id} name={trait.name} text={getTraitDescription(selection, trait.id)} />
           ))}
         </div>
       </div>
@@ -85,6 +85,21 @@ export default function SpeciesTraits({ selection, genderId, onParentChange, onP
           placeholder="Describe what sets your species apart…"
           value={selection.description}
           onChange={(event) => onDescriptionChange(event.target.value)}
+        />
+        <input
+          type="text"
+          className="text-field"
+          aria-label="Species Ability name"
+          placeholder="Species Ability name (required)…"
+          value={selection.speciesAbility?.name ?? ''}
+          onChange={(event) => onAbilityChange({ name: event.target.value })}
+        />
+        <textarea
+          className="text-field text-area"
+          aria-label="Species Ability description"
+          placeholder="Describe what your Species Ability does (required)…"
+          value={selection.speciesAbility?.description ?? ''}
+          onChange={(event) => onAbilityChange({ description: event.target.value })}
         />
       </div>
     )

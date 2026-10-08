@@ -12,13 +12,13 @@
       "page": 74
     },
     "discipline": {
-      "name": "Disciplines",
+      "name": "Departments",
       "text": "Six areas of expertise (Command, Conn, Engineering, Security, Science, Medicine), matching a starship's departments. Each is rated from 0 to 5.",
       "page": 79
     },
     "focus": {
       "name": "Focus",
-      "text": "A short description of a narrower skill, topic, or activity. Focuses improve your odds at tasks they apply to and can be used with any discipline.",
+      "text": "A short description of a narrower skill, topic, or activity. Focuses improve your odds at tasks they apply to and can be used with any department.",
       "page": 84
     },
     "value": {
@@ -34,8 +34,9 @@
     },
     "assignment": {
       "name": "Assignment",
-      "text": "Your job aboard ship. The book lists the most common senior staff roles and says other roles are possible.",
-      "page": 130
+      "text": "Your job aboard ship. Core lists the senior staff roles main characters may fill; in this prototype each assignment gives the role of the same name.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 135
     },
     "role": {
       "name": "Role",
@@ -45,8 +46,9 @@
     },
     "rank": {
       "name": "Rank",
-      "text": "Your place in the chain of command. Starfleet officers run from Ensign to Captain; enlisted personnel have their own ranks.",
-      "page": 132
+      "text": "Your place in the chain of command. Starfleet officers run from Cadet to Fleet Admiral; enlisted personnel run from Crewman to Master Chief Petty Officer. Your Experience may limit which ranks you can choose, and civilians do not need a rank.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 140
     }
   },
   "sections": {
@@ -58,43 +60,49 @@
     "speciesGender": {
       "title": "Gender",
       "what": "Decides which portraits you can pick on Finishing Touches.",
-      "does": "Choose Male, Female, or Other. Other can use any portrait for the species. Gender has no effect on attributes, disciplines, values, focuses, traits, or any rule, and it is separate from pronouns."
+      "does": "Choose Male, Female, or Other. Other can use any portrait for the species. Gender has no effect on attributes, departments, values, focuses, traits, or any rule, and it is separate from pronouns."
     },
     "environmentScreen": {
       "title": "Environment",
-      "what": "Book Step Two. Where and how your character was raised: either a Setting or a Condition. It grants one value, +1 to one attribute, and +1 to one discipline.",
-      "page": 103,
-      "does": "Pick the Setting or Condition tab and a card, then choose the value, attribute, and discipline below."
+      "what": "Book Step Two. The kind of place where your character was raised. It grants one value, +1 to one attribute, and +1 to one department.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 115,
+      "does": "Pick an environment card, then choose the value, attribute, and department below."
     },
     "earlyOutlookScreen": {
-      "title": "Early Outlook",
-      "what": "Book Step Three. Your childhood, formative experiences, and key influences.",
-      "page": 107,
-      "does": "Choose an outlook card, then its attribute path, one discipline, one focus, and one talent (Star Trek Adventures 2E: Upbringing grants a talent)."
+      "title": "Upbringing",
+      "what": "Book Step Three. The culture your character grew up in and whether they accepted or rebelled against it. It grants three attribute points across two attributes, +1 to one department, one focus, and one talent.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 117,
+      "does": "Choose an Upbringing card, then accepted or rebelled, one department, one focus, and one talent."
     },
     "educationScreen": {
-      "title": "Education",
-      "what": "Book Step Four. Your training before your career. Each option grants one value, three attribute points, discipline increases, and three focuses.",
-      "page": 115,
-      "does": "Choose an education type card and one of its options, then make the choices in the numbered sections, ending with one talent."
+      "title": "Career Path",
+      "what": "Book Step Four: Career Path. Your higher education and current profession. Each Career Path grants a trait, one value, three attribute points, department increases, three focuses, and one talent.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 120,
+      "does": "Choose a Career Path card and one of its options, then its trait (where Core offers two names) and the choices in the numbered sections, ending with one talent."
     },
     "careerScreen": {
       "title": "Career",
-      "what": "Book Step Five sets how long your career has run and grants one value. Assignment and rank come from Book Step Seven (pp.130-132).",
-      "page": 122,
-      "does": "Choose a career length and its value, then your assignment and rank. Your career length also sets your talent: Novice receives Untapped Potential, Veteran receives Veteran, and Experienced chooses one."
+      "what": "Book Step Five: Experience (Novice, Experienced or Veteran) grants one value and one talent. Your assignment sets your department and role (Core pp.135–139), and your rank comes from Core p.140.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 127,
+      "does": "Choose your Experience and its value, then your assignment and rank. Your Experience also sets your talent: Novice receives Untapped Potential, Veteran receives Veteran, and Experienced chooses one."
     },
     "careerHistoryScreen": {
       "title": "Career History",
-      "what": "Book Step Six. Defining events in your career. Each raises one attribute and one discipline by 1 and grants one focus.",
-      "page": 123,
-      "does": "Choose two different events, then complete each one's attribute, discipline, and focus."
+      "what": "Book Step Six. Two defining events in your career. Each raises one attribute and one department by 1 and grants one focus.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 128,
+      "does": "Choose two different events, then complete each one's attribute, department, and focus."
     },
     "finishingTouchesScreen": {
       "title": "Finishing Touches",
-      "what": "Book Step Seven. One final value, and +1 to two attributes and two disciplines, kept within the book's limits.",
-      "page": 129,
-      "does": "Work through each card: final value, attributes, disciplines, your fourth talent (Star Trek Adventures 2E: Finishing Touches brings you to four talents), portrait, name and pronouns, and optional notes."
+      "what": "Book Step Seven. One final value; any attribute or department over the limits is brought back within them, then +1 to two attributes and two departments (still within the limits); personal details such as name and age, and an optional pastime.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 132,
+      "does": "Work through each card: final value, attributes, departments, your fourth talent, portrait, name, pronouns and age, an optional pastime, and optional notes."
     },
     "reviewScreen": {
       "title": "Character Complete",
@@ -103,7 +111,7 @@
     },
     "reviewStatus": {
       "title": "Status",
-      "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, disciplines total 16, four values, six focuses, four legal talents, and no duplicate values, focuses or talents.",
+      "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, departments total 16, four values, six focuses, four legal talents, and no duplicate values, focuses or talents.",
       "page": 129,
       "does": "Lists each problem with a link to the screen that fixes it. When nothing is listed, Confirm Character becomes available."
     },
@@ -114,8 +122,8 @@
     },
     "reviewOrigin": {
       "title": "Origin & Early Life",
-      "what": "Where your character was raised and the outlook they grew up with.",
-      "does": "Summary only. Change these on Environment and Early Outlook."
+      "what": "Where your character was raised and the culture they grew up in.",
+      "does": "Summary only. Change these on Environment and Upbringing."
     },
     "reviewAttributes": {
       "concept": "attribute",
@@ -123,16 +131,16 @@
     },
     "reviewDisciplines": {
       "concept": "discipline",
-      "does": "Your final scores. The book's finished character has a discipline total of 16, no discipline above 5, and only one at 5. Change them on Finishing Touches."
+      "does": "Your final scores. The book's finished character has a department total of 16, no department above 5, and only one at 5. Change them on Finishing Touches."
     },
     "reviewEducation": {
-      "title": "Education",
-      "what": "The education option your character trained in and its category.",
-      "does": "Summary only. Change it on Education."
+      "title": "Career Path",
+      "what": "Your character's Career Path option, its category, and the trait it grants.",
+      "does": "Summary only. Change it on Career Path."
     },
     "reviewCareer": {
       "title": "Career",
-      "what": "Your career length, assignment, department, rank, and role.",
+      "what": "Your Experience, assignment, department, rank, and role.",
       "does": "Summary only. Change these on Career. Posting will be chosen with your ship, which is not built yet."
     },
     "reviewEvents": {
@@ -158,12 +166,12 @@
     },
     "reviewTraits": {
       "concept": "trait",
-      "does": "Your traits and their descriptions. Change them on Species."
+      "does": "Your traits and their descriptions. Your species trait changes on Species; your Career Path trait changes with your Career Path."
     },
     "reviewEquipment": {
       "title": "Equipment",
-      "what": "Standard-issue gear, assigned automatically from your department, plus the background notes you wrote on Finishing Touches.",
-      "does": "Summary only. Equipment changes with your assignment and department on Career. Notes are free text the rules never read."
+      "what": "Standard-issue gear, assigned automatically from your department, assignment and rank, plus the background notes you wrote on Finishing Touches. Sidearm (Core p.141): Starfleet personnel receive a phaser type-1; security personnel and officers of lieutenant commander or higher receive a phaser type-2 instead; civilians receive none.",
+      "does": "Summary only. Equipment changes with your assignment, department and rank on Career. Notes are free text the rules never read."
     },
     "speciesTraits": {
       "concept": "trait",
@@ -175,70 +183,70 @@
     },
     "environmentValue": {
       "concept": "value",
-      "does": "Choose one value that reflects the place or circumstances you were raised in."
+      "does": "Choose one value that reflects the environment and culture you were raised in: an example value of your species (or, for Another Species' World, of the species you were raised among), one of the book's sample values, or your own."
     },
     "environmentAttribute": {
       "concept": "attribute",
-      "does": "Raise one attribute by +1. The attributes offered depend on the Setting or Condition you chose."
+      "does": "Raise one attribute by +1. The attributes offered depend on the environment you chose."
     },
     "environmentDiscipline": {
       "concept": "discipline",
-      "does": "Raise one discipline by +1."
+      "does": "Raise one department by +1, from those your environment offers."
     },
     "outlookAttribute": {
       "concept": "attribute",
-      "does": "Your early outlook offers different paths, each with its own attribute bonuses. Choose one path."
+      "does": "Choose whether you accepted or rebelled against your Upbringing; each gives its own attribute bonuses."
     },
     "outlookDiscipline": {
       "concept": "discipline",
-      "does": "Raise one discipline by +1, from those your early outlook offers."
+      "does": "Raise one department by +1, from those your Upbringing offers."
     },
     "outlookFocus": {
       "concept": "focus",
-      "does": "Choose one focus: a book example for your outlook, one from the Focus Matrix, or your own."
+      "does": "Choose one focus relating to your Upbringing: a book example, one of the book's sample focuses, or your own."
     },
     "educationOptions": {
-      "title": "Education Options",
-      "what": "Your training before your career began. Each option grants a value, attribute points, disciplines, and focuses.",
-      "does": "Pick one option from the education type chosen above. The numbered sections below then apply its benefits."
+      "title": "Career Path Options",
+      "what": "Your higher education and current profession. Each option grants a trait, a value, attribute points, departments, and focuses.",
+      "does": "Pick one option from the Career Path chosen above. The numbered sections below then apply its benefits."
     },
     "educationDetails": {
-      "title": "Education Details",
-      "what": "The book's description and rules for the option you selected.",
-      "does": "Reference only; nothing to choose here."
+      "title": "Career Path Details",
+      "what": "The book's description and rules for the option you selected, and the trait it grants.",
+      "does": "Where Core names two traits (Diplomat or Ambassador, Scientist or Engineer), pick one here. Otherwise reference only."
     },
     "educationAttributes": {
       "concept": "attribute",
-      "does": "Spend the attribute points your education gives. The instruction shows how many points and any limits."
+      "does": "Spend the attribute points your Career Path gives. The instruction shows how many points and any limits."
     },
     "educationDisciplines": {
       "concept": "discipline",
-      "does": "Choose the disciplines your education improves. Some options also allow an optional discipline swap."
+      "does": "Choose the departments your Career Path improves. Some options also allow an optional department swap."
     },
     "educationFocuses": {
       "concept": "focus",
-      "does": "Choose the focuses your education gives: book examples, the Focus Matrix, or your own."
+      "does": "Choose the focuses your Career Path gives: book examples, the Focus Matrix, or your own."
     },
     "educationValue": {
       "concept": "value",
-      "does": "Choose one value you gained from your education."
+      "does": "Choose one value you gained from your Career Path: one of Core's examples for your path (listed first), a sample value, or your own."
     },
     "careerValue": {
       "concept": "value",
-      "does": "Choose one value that fits how long your career has run."
+      "does": "Choose one value that fits your Experience: a Core example for Novice or Veteran (listed first), a sample value, or your own. Core says a Novice's value must reflect inexperience and a Veteran's their years of experience; an Experienced character's is chosen freely."
     },
     "careerAssignment": {
       "concept": "assignment",
-      "does": "Choose your job aboard ship. It sets your department, minimum officer rank, and your Star Trek Adventures 2E role (with its Role Benefit). Some assignments are closed to Novice or enlisted characters."
+      "does": "Choose your job aboard ship. It sets your department and your role (with its Role Benefit). Only Commanding Officer has a minimum rank (Commander), so it is closed to Novice and enlisted characters."
     },
     "assignmentDetails": {
       "title": "Assignment Details",
-      "what": "The department, minimum rank, and book description for your assignment, plus the Star Trek Adventures 2E role it gives you and that role's benefit.",
+      "what": "The department, any minimum rank, and description for your assignment, plus the role it gives you and that role's benefit (Core pp.135–139).",
       "does": "Reference only, except when the book names no department; then choose one here."
     },
     "careerRank": {
       "concept": "rank",
-      "does": "Choose your rank. What you can pick depends on your education (officer, enlisted, or civilian), your assignment's minimum rank, and your career length."
+      "does": "Choose your rank. Your Career Path decides the ladder: Starfleet (Officer) and Starfleet (Intelligence) use officer ranks, Starfleet (Enlisted) uses enlisted ranks, and diplomats and civilians hold No Rank by default but may take an officer rank. A Commanding Officer must be at least Commander; a Novice can rank no higher than Lieutenant (junior grade) or Petty Officer, and a Veteran no lower than Lieutenant Commander or Chief Petty Officer. Your rank and department also decide your sidearm (Core p.141)."
     },
     "eventAttribute": {
       "concept": "attribute",
@@ -246,20 +254,20 @@
     },
     "eventDiscipline": {
       "concept": "discipline",
-      "does": "Raise one discipline by +1. Most events set it; some let you choose."
+      "does": "Raise one department by +1. Most events set it; some let you choose."
     },
     "eventFocus": {
       "concept": "focus",
-      "does": "Choose one focus reflecting this event: a book example, the Focus Matrix, or your own."
+      "does": "Choose one focus reflecting this event: a book suggestion, one of the book's sample focuses, or your own."
     },
     "eventDetails": {
       "title": "Event Details",
-      "what": "The book's effects for the selected event, plus questions to help you imagine it.",
+      "what": "The book's description and effects for the selected event.",
       "does": "Reference only; nothing to choose here."
     },
     "finalValue": {
       "concept": "value",
-      "does": "Choose your last value. It might reflect your career events or who your character has become."
+      "does": "Choose your last value. It might reflect your career events, another part of your character, or a relationship with someone in the crew or another culture."
     },
     "talent": {
       "concept": "talent",
@@ -277,21 +285,21 @@
     },
     "attributeIncreases": {
       "concept": "attribute",
-      "does": "Add +1 to several different attributes. Each row shows the current score and the final score."
+      "does": "After any scores over the limits have been brought down, add +1 to two different attributes. Each row shows the score after the limits and the final score; a +1 that would break the limits is unavailable."
     },
     "attributeDetails": {
       "title": "Attribute Details",
       "what": "The book's text for this step and the attribute limits.",
-      "does": "If a score goes over the limit, choose where the extra points go here. The total must come out exactly right."
+      "does": "If a lifepath score is over the limit, it is reduced first; choose where each reduced point goes here. The total must come out exactly right."
     },
     "disciplineIncreases": {
       "concept": "discipline",
-      "does": "Add +1 to several different disciplines. Each row shows the current score and the final score."
+      "does": "After any departments over the limits have been brought down, add +1 to two different departments. Each row shows the score after the limits and the final score; a +1 that would break the limits is unavailable."
     },
     "disciplineDetails": {
-      "title": "Discipline Details",
-      "what": "The book's text for this step and the discipline limits.",
-      "does": "If a score goes over the limit, choose where the extra points go here. The total must come out exactly right."
+      "title": "Department Details",
+      "what": "The book's text for this step and the department limits.",
+      "does": "If a lifepath score is over the limit, it is reduced first; choose where each reduced point goes here. The total must come out exactly right."
     },
     "characterName": {
       "title": "Name",
@@ -300,12 +308,26 @@
     },
     "nameAndPronouns": {
       "title": "Name & Pronouns",
-      "what": "Your character's name and pronouns.",
-      "does": "Both are required. The name becomes the exported file's name. Pick a pronoun set or type your own."
+      "what": "Your character's name, pronouns, and age.",
+      "does": "Name and pronouns are required; age is optional. The name becomes the exported file's name. Pick a pronoun set or type your own."
     },
     "identityDetails": {
       "title": "Identity Details",
-      "what": "The book's guidance on pronouns.",
+      "what": "The book's guidance on pronouns and on age for your Experience.",
+      "does": "Reference only; nothing to choose here."
+    },
+    "pastime": {
+      "title": "Pastime",
+      "what": "A hobby or passion your character enjoys off duty, or an interest unrelated to their duties.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 132,
+      "does": "Optional. Type your own or start from one of the book's categories. Saved and exported with your character; it has no rule effect in this prototype."
+    },
+    "pastimeDetails": {
+      "title": "Pastime Details",
+      "what": "The book's text on pastimes and its suggestion categories.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 133,
       "does": "Reference only; nothing to choose here."
     },
     "portraitOptions": {

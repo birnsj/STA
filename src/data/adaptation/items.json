@@ -1,5 +1,5 @@
 {
-  "note": "Videogame adaptation, not Captain's Log rules. Book (p.137): Captain's Log does not use equipment; its conversion notes for Star Trek Adventures list standard issue as uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers), with no stats. Every stat below is PROTOTYPE TUNING for the future videogame systems and may be rebalanced freely. Keep all balance numbers here, never in UI or combat code.",
+  "note": "Videogame adaptation, not Captain's Log rules. Book (Core p.141 (CL p.137)): Captain's Log does not use equipment; its conversion notes for Star Trek Adventures list standard issue as uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers), with no stats. Every stat below is PROTOTYPE TUNING for the future videogame systems and may be rebalanced freely. Keep all balance numbers here, never in UI or combat code.",
   "itemDefaults": {
     "era": ["tos"],
     "faction": ["starfleet"],
@@ -11,7 +11,7 @@
     "sourceType": "captains-log",
     "statsSourceType": "adaptation"
   },
-  "sourceTypeNote": "Provenance for development only, never shown to the player. sourceType is where the item itself comes from; statsSourceType is where its stats come from. Values: 'captains-log' (book rules or content), 'adaptation' (our videogame version of a book element), 'original' (our own system). Every item here is named in the book without stats (pp.39-40: communicators, standard and specialty tricorders, type-1 phaser sidearms, medical tricorder, medkit, engineering toolkit; p.137: uniform, communicator, tricorder, type-1 or type-2 phaser). All stats, slots, and the automatic loadout are adaptation.",
+  "sourceTypeNote": "Provenance for development only, never shown to the player. sourceType is where the item itself comes from; statsSourceType is where its stats come from. Values: 'captains-log' (book rules or content), 'adaptation' (our videogame version of a book element), 'original' (our own system). Every item here is named in the book without stats (CL pp.39-40: communicators, standard and specialty tricorders, type-1 phaser sidearms, medical tricorder, medkit, engineering toolkit; Core p.141 (CL p.137): uniform, communicator, tricorder, type-1 or type-2 phaser). All stats, slots, and the automatic loadout are adaptation.",
   "categories": {
     "clothing": "Clothing",
     "utility": "Utility",
@@ -139,7 +139,7 @@
       "equipSlot": "sidearm",
       "sourceType": "book",
       "statsSourceType": "book",
-      "reference": "STA 2e Core Rulebook p.242 (weapons table), p.354 (Klingon Warrior). Combat stats live in combat/weapons.json; no art yet."
+      "reference": "STA 2e Core Rulebook p.243 (weapons table), p.355 (Klingon Warrior). Combat stats live in combat/weapons.json; no art yet."
     },
     {
       "id": "dkTahg",
@@ -152,7 +152,7 @@
       "equipSlot": null,
       "sourceType": "book",
       "statsSourceType": "book",
-      "reference": "STA 2e Core Rulebook p.354 (Klingon Warrior attacks). Combat stats live in combat/weapons.json; no art yet."
+      "reference": "STA 2e Core Rulebook p.355 (Klingon Warrior attacks). Combat stats live in combat/weapons.json; no art yet."
     }
   ]
 }

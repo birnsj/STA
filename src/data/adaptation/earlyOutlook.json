@@ -1,10 +1,4 @@
 {
-  "note": "Prototype decisions for Step Three. The book's d20 rolls are not offered; the player chooses. As in the book, the focus can be one of the outlook's examples, any focus from the Focus Probability Matrix (p.85-88), or the player's own.",
-  "approachOrder": ["upbringing", "aspiration", "caste"],
-  "allowCustomFocus": true,
-  "casteEligibility": {
-    "note": "Interpretation of the book's 'Klingon characters or those raised in a Klingon household': the character's species (or a mixed-heritage parent) is Klingon, or their Environment is Another Species' World raised among Klingons. No Klingon species is currently in the prototype list.",
-    "speciesIds": ["klingon"],
-    "raisedAmongSpeciesIds": ["klingon"]
-  }
+  "note": "Prototype decisions for Screen 03 (Book Step Three: Upbringing, Core pp.117-119). The book's d20 roll is not offered; the player chooses. Captain's Log's Aspiration and Caste approaches are not used, so there is one list of Upbringings with Accepted / Rebelled. The focus can be one of the Upbringing's book examples, any of the book's Sample Focuses (pp.94-95), or the player's own (the book: the focus 'should relate in some way to the Upbringing chosen (a few examples are provided in each case)'). The talent uses the existing Early Outlook talent slot.",
+  "allowCustomFocus": true
 }

@@ -1,7 +1,7 @@
 import { getAttributeName } from '../../character/runtimeCharacter.js'
 import { FATIGUE_ATTRIBUTES } from '../../rules/personalCondition.js'
 
-// Book p.277: a character at maximum Stress is Fatigued (+1 Difficulty on all tasks, no more Stress) and selects one
+// Book p.278: a character at maximum Stress is Fatigued (+1 Difficulty on all tasks, no more Stress) and selects one
 // attribute to shut down: while Fatigued, any task using it automatically fails.
 export default function FatigueChoice({ combatant, onChoose }) {
   const { attributes } = combatant.character

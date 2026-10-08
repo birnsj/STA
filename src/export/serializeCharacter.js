@@ -9,7 +9,9 @@ import { getRoleRecord } from '../rules/roles.js'
 // Bump when the exported structure changes so future loaders can detect old files.
 // 0.8.0: final.rank / department / assignment / role (STA 2E role with its Role Benefit).
 // 0.9.0: character.faction and final.faction (every authored person in the game shares this record shape).
-export const SCHEMA_VERSION = '0.9.0'
+// 0.10.0: Core Rulebook lifepath. education.trait (Career Path trait, also in final.traits), identity.age and
+// identity.pastime, two species traits for mixed heritage, and a player-written species ability (id 'custom').
+export const SCHEMA_VERSION = '0.10.0'
 
 const ref = (value) => (value ? { id: value.id, name: value.name } : null)
 

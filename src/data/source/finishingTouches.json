@@ -1,29 +1,45 @@
 {
   "source": {
-    "book": "Captain's Log 2026",
+    "book": "Star Trek Adventures 2E Core Rulebook",
     "section": "Step Seven: Finishing Touches",
-    "pages": [129, 130, 132]
+    "pages": [132, 133]
   },
   "finalValue": {
-    "text": "The character receives one final value. This might reflect the career events rolled in Step Six, or it may represent some other element.",
-    "source": { "book": "Captain's Log", "page": 129 }
+    "text": "The character receives one final value. This might reflect the Career Events from Step Six, or it may represent some other element of the character. It may be a relationship, connecting the character to another character in the crew, or to another organization or culture in some way.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 132 }
   },
   "attributes": {
     "increaseCount": 2,
-    "text": "Increase two attributes by 1 each. Your character may not have any attributes above 12, and only one attribute with a score of 12. For any attribute which has a rating above and beyond those limits, reduce it until it is within the limit. For each point reduced on an attribute, increase another attribute by one, obeying the limits above.",
-    "source": { "book": "Captain's Log", "page": 129 }
+    "text": "A character may not have any attributes above 12, and may not have more than one attribute at 12 (with the Untapped Potential talent, no attributes above 11 instead). For any attribute with a rating above those limits, reduce it until it is within the limit. For each point reduced on an attribute, increase another attribute by 1, though the limits must still be obeyed. Once this has been completed, the character may then increase two attributes by 1 each; again, the normal limits apply.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 132 }
   },
   "disciplines": {
     "increaseCount": 2,
-    "text": "Increase two disciplines by 1 each. Your character may not have any disciplines above 5, and only one discipline with a score of 5. For any discipline which has a rating above and beyond those limits, reduce it until it is within the limit. For each point reduced on a discipline, increase another discipline by one, obeying the above limits.",
-    "source": { "book": "Captain's Log", "page": 129 }
+    "text": "A character may not have any department ratings above 5, and may not have more than one department at 5 (with the Untapped Potential talent, no departments above 4 instead). For any department with a rating above those limits, reduce it until it is within the limit. For each point reduced on a department, increase another department by 1, though the limits must still be obeyed. Once this has been done, the character may then increase two departments by 1 each; again, the normal limits apply.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 132 }
   },
   "completeCharacter": {
     "attributeTotal": 56,
     "disciplineTotal": 16,
     "valueCount": 4,
     "focusCount": 6,
-    "source": { "book": "Captain's Log", "page": 129 }
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 132 }
+  },
+  "age": {
+    "text": "Choose the character’s name and age. A character can be of any age, though this should be guided by the choice made in Step Five: Experience.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 132 }
+  },
+  "pastime": {
+    "text": "You may select a pastime, which represents a hobby or passion the character enjoys when not on duty, or which they are interested in but which isn’t really related to their duties. If it becomes relevant to a task, the gamemaster is encouraged to let the player use the pastime as a focus. Characters may gain or change pastimes as the player sees fit.",
+    "suggestions": [
+      { "name": "Creative", "text": "Practicing or studying some form of artistic expression: painting, sculpture, writing fiction, photography or holography, or a fondness for the works of a specific era or culture." },
+      { "name": "Crafts", "text": "Making things which have a practical use: cooking, carpentry, fashion design, holo-programming, building model spaceships, tinkering with computers and other machines." },
+      { "name": "Knowledge", "text": "The joy of discovering things: reading up on history or a specific field of scientific inquiry." },
+      { "name": "Performance", "text": "Playing an instrument, singing, dance, theater, or enjoying performance art from various cultures and eras, such as Klingon opera or Andorian blues." },
+      { "name": "Self-improvement", "text": "Testing physical and mental limits: meditation, physical fitness, swimming, distance running, climbing, skydiving, horseback riding, wilderness survival, camping." },
+      { "name": "Sports and games", "text": "Chess (2D or 3D), kadis-kot, kal-toh, poker, dabo, tongo, baseball, water polo, ice hockey, or competitive martial arts." }
+    ],
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "pages": [132, 133] }
   },
   "pronouns": {
     "text": "Write your character’s pronouns on your character sheet. These pronouns help Starfleet personnel – and the other players in co-operative and guided modes – to use the proper address…",

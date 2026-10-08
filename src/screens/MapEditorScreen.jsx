@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED as TYPE1_SPAWNS } from '../combat/encounters.js'
-import { ENEMY_SPAWNS_NEEDED as TYPE2_SPAWNS } from '../combat2/combat2State.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
+import EditorMinimap from '../components/maps/EditorMinimap.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
 import EditorToolbar from '../components/maps/EditorToolbar.jsx'
 import EpisodeCardPicker from '../components/maps/EpisodeCardPicker.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import TextDialog from '../components/maps/TextDialog.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
 import { areaAt, eraseMarkers, paintBrush, setAreaLabel, toggleMarker } from '../maps/mapEdits.js'
@@ -63,7 +64,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   // The tile brush paints rotated tiles (right click on the board toggles it).
   const [rotated, setRotated] = useState(false)
   const [ghostBlocks, setGhostBlocks] = useState(false)
-  // The board's lights and the palette's tile previews animate (off: the board's lights hold a steady brightness).
+  // The board's animated tiles and the palette's tile previews play (off: each holds its first frame).
   const [animateTiles, setAnimateTiles] = useState(true)
   // Shadows, light pools and darkness are view only here; the map's ambient light is still saved.
   const [showLighting, setShowLighting] = useState(true)
@@ -80,6 +81,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [drawingCard, setDrawingCard] = useState(false)
   // The open confirm popup: { title, message, confirmLabel, resolve }.
   const [question, setQuestion] = useState(null)
+  // UI state: the open text box (area label or map name) and the promise waiting on it.
+  const [textQuestion, setTextQuestion] = useState(null)
   // The map as last opened, saved or generated (null when the open map exists nowhere else), so switching only the
   // location, biome or size before Generate Map doesn't count as work to lose.
   const [cleanMap, setCleanMap] = useState(map)
@@ -102,7 +105,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   }, [notice])
   // Escape puts the brush down (no tool selected, Place Tiles off), unless a dialog is open (its own Escape cancels it)
   // or a text box has focus.
-  const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam)
+  const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam) || Boolean(textQuestion)
   useEffect(() => {
     if (dialogOpen) return undefined
     const onKey = (event) => {
@@ -121,6 +124,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   }
   // Shows the in-editor confirm popup; resolves true when the user confirms.
   const askConfirm = (question) => new Promise((resolve) => setQuestion({ ...question, resolve }))
+  // Shows the in-editor text box; resolves with the text, or null when cancelled.
+  const askText = (question) => new Promise((resolve) => setTextQuestion({ ...question, resolve }))
+  const answerText = (value) => {
+    textQuestion.resolve(value)
+    setTextQuestion(null)
+  }
   const answer = (confirmed) => {
     question.resolve(confirmed)
     setQuestion(null)
@@ -147,8 +156,13 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     if (!first) return
     if (tool === 'erase') edit(eraseMarkers(map, position))
     else if (tool === 'area') {
-      const name = window.prompt('Area label (leave empty to remove):', areaAt(map, position)?.name ?? '')
-      if (name !== null) edit(setAreaLabel(map, position, name))
+      const current = areaAt(map, position)?.name ?? ''
+      askText({
+        title: current ? 'Edit Area Label' : 'New Area Label',
+        initialValue: current,
+        placeholder: 'e.g. Tool Shed',
+        removeLabel: current ? 'Remove' : null,
+      }).then((name) => name !== null && edit(setAreaLabel(map, position, name)))
     } else edit(toggleMarker(map, tool, position))
   }
 
@@ -259,18 +273,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
       setNotice({ id: Date.now(), text: `Could not save: ${error.message}`, failed: true })
     }
   }
-  const askName = (question) => {
-    const name = window.prompt(question, map.name)
-    return name === null ? null : name
-  }
+  const askName = (title, message) => askText({ title, message, initialValue: map.name, saveLabel: 'Save', maxLength: 80 })
   // A never-saved map asks for its name first; after that Save keeps the file in step with the name field.
-  const onSave = () => {
+  const onSave = async () => {
     if (fileId) return saveAs(map.name, fileId)
-    const name = askName('Name this map (it is saved as maps/<name>.json):')
+    const name = await askName('Save Map', 'Name this map (it is saved as maps/<name>.json):')
     if (name !== null) saveAs(name, null)
   }
-  const onSaveAs = () => {
-    const name = askName('Save a copy of this map as:')
+  const onSaveAs = async () => {
+    const name = await askName('Save Map As', 'Save a copy of this map as:')
     if (name !== null) saveAs(name, null)
   }
   // Draws a new picture for the map; Save writes it under the map's name, replacing the one drawn for it before.
@@ -286,15 +297,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     }
   }
 
-  const warnings = useMemo(
-    () => [
-      ...new Set([
-        ...validateMap(map, { enemySpawns: TYPE1_SPAWNS, label: 'Combat Type 1' }),
-        ...validateMap(map, { enemySpawns: TYPE2_SPAWNS, label: 'Combat Type 2' }),
-      ]),
-    ],
-    [map],
-  )
+  const warnings = useMemo(() => validateMap(map, { enemySpawns: TYPE1_SPAWNS, label: 'Combat Type 1' }), [map])
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
   const onPlay = () => {
@@ -367,13 +370,16 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             map={map}
             ghostBlocks={ghostBlocks}
             lighting={showLighting}
+            animate={animateTiles}
             brush={placing && tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
             rotated={rotated}
+            erasing={tool === 'erase'}
             onPaint={onPaint}
             onHover={setHover}
             onRotate={() => placing && tool?.startsWith('tile:') && setRotated((value) => !value)}
           />
           {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} follow=".me-board" />}
+          <EditorMinimap map={map} />
           {notice && (
             <div key={notice.id} className={`me-notice${notice.failed ? ' is-failed' : ''}`} role="status">
               {notice.text}
@@ -451,6 +457,19 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         </div>
       </div>
       {showLoad && <LoadMapDialog maps={maps} currentId={fileId} onLoad={onLoad} onCancel={() => setShowLoad(false)} />}
+      {textQuestion && (
+        <TextDialog
+          title={textQuestion.title}
+          message={textQuestion.message}
+          initialValue={textQuestion.initialValue}
+          placeholder={textQuestion.placeholder}
+          saveLabel={textQuestion.saveLabel}
+          removeLabel={textQuestion.removeLabel}
+          maxLength={textQuestion.maxLength}
+          onSave={answerText}
+          onCancel={() => answerText(null)}
+        />
+      )}
       {question && (
         <ConfirmDialog
           title={question.title}

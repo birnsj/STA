@@ -1,0 +1,136 @@
+{
+  "source": {
+    "book": "Star Trek Adventures 2E Core Rulebook",
+    "section": "Step One: Species, Sample Values sidebars",
+    "pages": [100, 113],
+    "note": "Book: each species' Sample Values sidebar, keyed by species id. Species the book doesn't cover (e.g. Caitian) have none."
+  },
+  "species": {
+    "andorian": {
+      "page": 100,
+      "values": [
+        { "id": "andorian-value-1", "text": "I always repay my debts" },
+        { "id": "andorian-value-2", "text": "No challenge unmet" },
+        { "id": "andorian-value-3", "text": "Proud child of Andoria" },
+        { "id": "andorian-value-4", "text": "Question my word, question my honor" }
+      ]
+    },
+    "aenar": {
+      "page": 101,
+      "values": [
+        { "id": "aenar-value-1", "text": "Do not mistake my blindness for helplessness" },
+        { "id": "aenar-value-2", "text": "I perceive things your eyes do not" },
+        { "id": "aenar-value-3", "text": "Life is incomplete without purpose" },
+        { "id": "aenar-value-4", "text": "Pacifism is not passive" }
+      ]
+    },
+    "bajoran": {
+      "page": 102,
+      "values": [
+        { "id": "bajoran-value-1", "text": "I help others to be closer to the Prophets" },
+        { "id": "bajoran-value-2", "text": "Survival at any cost" },
+        { "id": "bajoran-value-3", "text": "We are in the hands of the Prophets" },
+        { "id": "bajoran-value-4", "text": "You cannot explain faith to those who lack it" }
+      ]
+    },
+    "betazoid": {
+      "page": 103,
+      "values": [
+        { "id": "betazoid-value-1", "text": "A lie is a story told in bad faith" },
+        { "id": "betazoid-value-2", "text": "Do not be what others expect you to be" },
+        { "id": "betazoid-value-3", "text": "I can feel your pain" },
+        { "id": "betazoid-value-4", "text": "I’m just saying what you’re thinking" }
+      ]
+    },
+    "cardassian": {
+      "page": 104,
+      "values": [
+        { "id": "cardassian-value-1", "text": "Everyone is guilty of something, but who and of what?" },
+        { "id": "cardassian-value-2", "text": "State above family; family above self" },
+        { "id": "cardassian-value-3", "text": "If you don't want me knowing, hide it better" },
+        { "id": "cardassian-value-4", "text": "All my stories are true, especially the lies" }
+      ]
+    },
+    "denobulan": {
+      "page": 105,
+      "values": [
+        { "id": "denobulan-value-1", "text": "You cannot truly learn about people unless you talk to them" },
+        { "id": "denobulan-value-2", "text": "Comfort in numbers" },
+        { "id": "denobulan-value-3", "text": "There's always someone new to meet" },
+        { "id": "denobulan-value-4", "text": "My patience exceeds your stubbornness" }
+      ]
+    },
+    "ferengi": {
+      "page": 106,
+      "values": [
+        { "id": "ferengi-value-1", "text": "9th Rule: Opportunity plus instinct equals profit" },
+        { "id": "ferengi-value-2", "text": "62nd Rule: The riskier the road, the greater the profit" },
+        { "id": "ferengi-value-3", "text": "125th Rule: You can’t make a deal if you’re dead" },
+        { "id": "ferengi-value-4", "text": "263rd Rule: Never allow doubt to tarnish your lust for latinum" }
+      ]
+    },
+    "human": {
+      "page": 107,
+      "values": [
+        { "id": "human-value-1", "text": "I believe in what the Federation stands for" },
+        { "id": "human-value-2", "text": "Learn something new every day" },
+        { "id": "human-value-3", "text": "We are stronger together" },
+        { "id": "human-value-4", "text": "Seek out new life and new civilizations" }
+      ]
+    },
+    "klingon": {
+      "page": 108,
+      "values": [
+        { "id": "klingon-value-1", "text": "It is a good day to die!" },
+        { "id": "klingon-value-2", "text": "Own the day!" },
+        { "id": "klingon-value-3", "text": "Revenge is a dish best served cold" },
+        { "id": "klingon-value-4", "text": "I am a Klingon warrior; if you doubt it, a demonstration can be arranged!" }
+      ]
+    },
+    "orion": {
+      "page": 109,
+      "values": [
+        { "id": "orion-value-1", "text": "Everything has a price" },
+        { "id": "orion-value-2", "text": "Your expectations limit you" },
+        { "id": "orion-value-3", "text": "I am not who you expect me to be" },
+        { "id": "orion-value-4", "text": "I thrive because I do not ignore opportunities" }
+      ]
+    },
+    "romulan": {
+      "page": 110,
+      "values": [
+        { "id": "romulan-value-1", "text": "I give my life to the service of the Empire" },
+        { "id": "romulan-value-2", "text": "Secrecy is a shield against betrayal" },
+        { "id": "romulan-value-3", "text": "Every secret I discover is another weapon in my arsenal" },
+        { "id": "romulan-value-4", "text": "Even my secrets have secrets!" }
+      ]
+    },
+    "tellarite": {
+      "page": 111,
+      "values": [
+        { "id": "tellarite-value-1", "text": "No notion is above proper scrutiny" },
+        { "id": "tellarite-value-2", "text": "No voice silenced, no perspective unheard" },
+        { "id": "tellarite-value-3", "text": "You’ll never get an answer if you don’t ask questions" },
+        { "id": "tellarite-value-4", "text": "An idea left unchallenged can be dangerous" }
+      ]
+    },
+    "trill": {
+      "page": 112,
+      "values": [
+        { "id": "trill-value-1", "text": "Several lifetimes of experience" },
+        { "id": "trill-value-2", "text": "What will this mean a century from now?" },
+        { "id": "trill-value-3", "text": "What can I discover today?" },
+        { "id": "trill-value-4", "text": "Who I was is only part of who I am" }
+      ]
+    },
+    "vulcan": {
+      "page": 113,
+      "values": [
+        { "id": "vulcan-value-1", "text": "Logic is the beginning of wisdom, not the end" },
+        { "id": "vulcan-value-2", "text": "Nothing that is, is unimportant" },
+        { "id": "vulcan-value-3", "text": "The needs of the many outweigh the needs of the few or the one" },
+        { "id": "vulcan-value-4", "text": "In accepting the inevitable, one finds peace" }
+      ]
+    }
+  }
+}

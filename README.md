@@ -27,12 +27,10 @@ them the app runs silently.
 
 | Part | Where | What it does |
 | --- | --- | --- |
-| Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the Captain's Log lifepath (Species → Environment → Early Outlook → Education → Career → Career History → Finishing Touches → Review). Exports a character as JSON. |
+| Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON. |
 | Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat on the game's maps: the STA 2E task roll, Momentum and Threat, Injuries, Guard / First Aid / Direct / Assist, an AI for both sides, and a seeded reducer so any fight replays exactly. |
 | Exploration | `src/exploration/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll; hands off to combat and back (`combatLink.js`). |
 | Map editor | `src/maps/`, `src/components/maps/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`). |
-| Combat Type 2 | `src/combat2/` | An earlier combat experiment, kept frozen for comparison (see `docs/design-tracker.md`). Not developed further. |
-
 `src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
 
 ## Book vs. Prototype
@@ -67,7 +65,7 @@ src/
   screens            one component per screen
   components         shared UI
   styles.css         imports src/styles/*.css in cascade order
-  combat, combat2, exploration, maps     the other parts
+  combat, exploration, maps     the other parts
 tests/               node --test suites; tests/support/ has fixtures
 tools/               dev-server stores and the JSON loader for tests
 scripts/             tile and episode-card art generators (Node, write PNGs into public/art)

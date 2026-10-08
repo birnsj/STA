@@ -102,6 +102,11 @@ textarea {
   user-select: text;
 }
 
+input[type='range'] {
+  cursor: pointer;
+  user-select: none;
+}
+
 button {
   font: inherit;
   color: inherit;

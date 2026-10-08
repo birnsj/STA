@@ -1,6 +1,6 @@
 import ChoiceList from './ChoiceList.jsx'
 
-// Book p.129 limit step: choose which tied score keeps the maximum, then place each reduced point.
+// Core p.132 limit step (before the +1s): choose which tied score keeps the maximum, then place each reduced point.
 // `oneAtMax` false means a flat cap (Untapped Potential): no keeper, and recipients may go up to `max` itself.
 // `keeperOptions`: [{ id, name, score }] when a choice is needed; `rows`: [{ id, name, score, received, canAdd }].
 export default function LimitAdjuster({ max, oneAtMax = true, keeperOptions, keeperId, onKeeper, excess, assigned, rows, onAdd, onRemove }) {

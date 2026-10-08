@@ -15,8 +15,8 @@ import {
 } from '../rules/autofill.js'
 import { TALENT_STEPS } from '../rules/talents.js'
 import { createSpeciesSelection, getAvailableSpecies } from '../rules/species.js'
-import { createEmptyEnvironment, getConditions, getSettings } from '../rules/environment.js'
-import { createEmptyEarlyOutlook, getApproaches, getOutlooks, isApproachAvailable, selectOutlook } from '../rules/earlyOutlook.js'
+import { createEmptyEnvironment, getSettings } from '../rules/environment.js'
+import { createEmptyEarlyOutlook, getOutlooks, selectOutlook } from '../rules/earlyOutlook.js'
 import { createEmptyEducation, getCategories, getOptions, selectEducationOption } from '../rules/education.js'
 import { createEmptyCareer, getCareerLengths } from '../rules/career.js'
 import { createEmptyCareerHistory } from '../rules/careerHistory.js'
@@ -35,19 +35,14 @@ function autoSpecies(state, chooser) {
 }
 
 function autoEnvironment(state, chooser) {
-  const cards = [...getSettings().map((entry) => ({ kind: 'setting', id: entry.id })), ...getConditions().map((entry) => ({ kind: 'condition', id: entry.id }))]
-  const [card] = chooser.order(cards)
-  const switched = switchEnvironmentCard(state, card.kind, card.id)
-  const { setting, condition } = switched.character.environment
-  const environment = { ...createEmptyEnvironment(), setting, condition }
+  const [setting] = chooser.order(getSettings())
+  const switched = switchEnvironmentCard(state, setting.id)
+  const environment = { ...createEmptyEnvironment(), setting: switched.character.environment.setting }
   return withCharacter(switched, fillEnvironment({ ...switched.character, environment }, chooser))
 }
 
 function autoEarlyOutlook(state, chooser) {
-  const outlooks = getApproaches()
-    .filter((approach) => isApproachAvailable(state.character, approach.id))
-    .flatMap((approach) => getOutlooks(approach.id))
-  const [outlook] = chooser.order(outlooks)
+  const [outlook] = chooser.order(getOutlooks())
   const switched = switchEarlyOutlook(state, outlook.id)
   const earlyOutlook = selectOutlook({ ...switched.character, earlyOutlook: createEmptyEarlyOutlook() }, outlook.id)
   return withCharacter(switched, fillEarlyOutlook({ ...withoutTalent(switched.character, 'earlyOutlook'), earlyOutlook }, chooser))
@@ -62,8 +57,9 @@ function autoEducation(state, chooser) {
   return withCharacter(switched, fillEducation({ ...withoutTalent(switched.character, 'education'), education }, chooser))
 }
 
+// Core p.127: a randomly created character defaults to Veteran rather than rolling Experience.
 function autoCareer(state, chooser) {
-  const [length] = chooser.order(getCareerLengths())
+  const length = getCareerLengths().find((entry) => entry.randomDefault)
   const switched = switchCareerLength(state, length.id)
   const career = { ...createEmptyCareer(), length: switched.character.career.length }
   return withCharacter(switched, fillCareer({ ...withoutTalent(switched.character, 'career'), career }, chooser))
@@ -73,7 +69,8 @@ function autoCareerHistory(state, chooser) {
   return withCharacter(state, fillCareerHistory({ ...state.character, careerHistory: createEmptyCareerHistory() }, chooser))
 }
 
-// Pronouns and Background Notes are the player's own free text, so Auto keeps them; blank pronouns (required) are filled.
+// Pronouns, age, pastime and Background Notes are the player's own free text, so Auto keeps them; blank pronouns
+// (required) are filled.
 function autoFinishingTouches(state, chooser) {
   const { character } = state
   const identity = { ...character.identity, name: '', portrait: null }

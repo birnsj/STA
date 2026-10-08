@@ -171,7 +171,7 @@ function applyEffect(state, definition, action, effect, ctx) {
       // The world clock stands still during combat, so there the lock lasts until the next combat round.
       if (state.combat) return setObject({ combatLocks: { ...object.combatLocks, [action.id]: state.combat.round + 1 } })
       return setObject({ locks: { ...object.locks, [action.id]: state.world.time + effect.seconds } })
-    // Create Trait (Book p.288): create a trait, remove one, or change its Potency (Book p.252).
+    // Create Trait (Book p.289): create a trait, remove one, or change its Potency (Book p.252).
     case 'addTrait': {
       const others = state.scenario.traits.filter((trait) => traitKey(trait.name) !== traitKey(effect.name))
       return withTraits(state, [...others, { name: effect.name, potency: effect.potency ?? 1, description: effect.description ?? '', source: definition.id }])

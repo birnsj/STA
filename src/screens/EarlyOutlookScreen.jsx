@@ -1,14 +1,12 @@
-import { useState } from 'react'
 import { useCharacter } from '../character/useCharacter.js'
 import {
-  getApproaches,
   getDisciplineOptions,
   getEarlyOutlookRequirements,
   getFocusExamples,
   getOutlookById,
   getOutlooks,
   getPathOptions,
-  isApproachAvailable,
+  getUpbringingRules,
   isCustomFocusAllowed,
 } from '../rules/earlyOutlook.js'
 import { getFocusesHeldElsewhere } from '../rules/characterSheet.js'
@@ -27,15 +25,11 @@ import RequirementTag from '../components/RequirementTag.jsx'
 import ScreenFooter from '../components/ScreenFooter.jsx'
 import TalentColumn from '../components/TalentColumn.jsx'
 
-const TAB_ICONS = { upbringing: '◍', aspiration: '✦', caste: '◈' }
-
 export default function EarlyOutlookScreen({ step, navigation }) {
   const { character, dispatch } = useCharacter()
   const { earlyOutlook } = character
-  const [activeApproachId, setActiveApproachId] = useState(earlyOutlook.approach?.id ?? getApproaches()[0].id)
 
   const outlook = earlyOutlook.outlook ? getOutlookById(earlyOutlook.outlook.id) : null
-  const approach = outlook ? getApproaches().find((entry) => entry.id === outlook.approach) : null
   const pathOptions = outlook ? getPathOptions(outlook.id) : []
   const pathChoiceLabel = pathOptions.map((option) => option.name.toLowerCase()).join(' / ')
   const requirements = getEarlyOutlookRequirements(character)
@@ -48,44 +42,17 @@ export default function EarlyOutlookScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.outlook ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose your early outlook. This reflects your childhood, formative experiences, and key influences, as defined in Captain's Log.
+            Choose your Upbringing: the culture you grew up in, and whether you accepted or rebelled against it.
             <br />
-            Your early outlook choice and trait provide the benefits and adjustments defined in Captain's Log. You will assign
-            Attribute values later in the process. The total must equal 56.
+            {getUpbringingRules().grants}
           </p>
         </div>
       </div>
 
-      <div className="env-tabs outlook-tabs" role="tablist">
-        {getApproaches().map((entry) => {
-          const isActive = entry.id === activeApproachId
-          const isAvailable = isApproachAvailable(character, entry.id)
-          const holdsChoice = earlyOutlook.approach?.id === entry.id
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              disabled={!isAvailable}
-              title={isAvailable ? undefined : entry.restriction}
-              className={`env-tab${isActive ? ' is-active' : ''}${isAvailable && !requirements.outlook ? ' is-missing' : ''}`}
-              onClick={() => setActiveApproachId(entry.id)}
-            >
-              <span className="env-tab-icon" aria-hidden="true">{TAB_ICONS[entry.id]}</span>
-              <span className="env-tab-text">
-                <span className="env-tab-label">{entry.name}</span>
-                <span className="env-tab-choice">{holdsChoice ? earlyOutlook.outlook.name : isAvailable ? '\u00a0' : 'Klingon only'}</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
       <CardCarousel
-        label={`${getApproaches().find((entry) => entry.id === activeApproachId).name} options`}
+        label="Upbringings"
         variant={`carousel-environment${requirements.outlook ? '' : ' is-missing'}`}
-        items={getOutlooks(activeApproachId)}
+        items={getOutlooks()}
         selectedId={earlyOutlook.outlook?.id}
         onSelect={(outlookId) => dispatch({ type: 'selectEarlyOutlook', outlookId })}
       />
@@ -94,12 +61,15 @@ export default function EarlyOutlookScreen({ step, navigation }) {
         <Portrait label={outlook?.name} image={getChoiceArt('earlyOutlook', outlook?.id)} className="portrait-detail" />
         <div className="species-details-text">
           <h2 className={`species-details-name${requirements.outlook ? '' : ' is-missing'}`}>
-            {outlook?.name ?? 'No early outlook selected'}
-            {approach && <span className="panel-heading-context"> ({approach.name})</span>}
+            {outlook?.name ?? 'No Upbringing selected'}
             <RequirementTag met={requirements.outlook} />
           </h2>
-          <p>{outlook?.description ?? 'Select an early outlook above.'}</p>
-          {outlook && <p className="source-ref">Captain's Log, p.{outlook.source.page}</p>}
+          <p>{outlook?.description ?? 'Select an Upbringing above.'}</p>
+          {outlook && (
+            <p className="source-ref">
+              {outlook.source.book}, p.{outlook.source.page}
+            </p>
+          )}
         </div>
       </div>
 
@@ -109,7 +79,7 @@ export default function EarlyOutlookScreen({ step, navigation }) {
           number="1"
           title="Attribute Bonus"
           helpId="outlookAttribute"
-          instruction={outlook ? `${approach.pathPrompt} Each gives different Attribute bonuses.` : 'Select an early outlook above to see the Attribute options.'}
+          instruction={outlook ? `${getUpbringingRules().pathPrompt} Each gives different Attribute bonuses.` : 'Select an Upbringing above to see the Attribute options.'}
           instructionLines={3}
           met={requirements.path}
           locked={locked.path}
@@ -125,16 +95,16 @@ export default function EarlyOutlookScreen({ step, navigation }) {
 
         <MechanicsColumn
           number="2"
-          title="Discipline Bonus"
+          title="Department Bonus"
           helpId="outlookDiscipline"
-          instruction={outlook ? `Choose one Discipline to increase by +1. Not affected by ${pathChoiceLabel}.` : 'Select an early outlook above to see the available Disciplines.'}
+          instruction={outlook ? `Choose one Department to increase by +1. Not affected by ${pathChoiceLabel}.` : 'Select an Upbringing above to see the available Departments.'}
           instructionLines={2}
           met={requirements.disciplineBonus}
           locked={locked.disciplineBonus}
         >
           {outlook && (
             <ChoiceList
-              label="Early outlook discipline bonus"
+              label="Upbringing department bonus"
               options={getDisciplineOptions(outlook.id).map((discipline) => ({ id: discipline.id, label: discipline.name, suffix: '(+1)', tip: getScoreTip(discipline.id) }))}
               selectedId={earlyOutlook.disciplineBonus?.id}
               onSelect={(disciplineId) => dispatch({ type: 'selectEarlyOutlookDiscipline', disciplineId })}
@@ -146,7 +116,7 @@ export default function EarlyOutlookScreen({ step, navigation }) {
           number="3"
           title="Focus"
           helpId="outlookFocus"
-          instruction={outlook ? `Choose a book example or Focus Matrix focus${isCustomFocusAllowed() ? ', or write your own' : ''}. Not affected by ${pathChoiceLabel}.` : 'Select an early outlook above to see example Focuses.'}
+          instruction={outlook ? `Choose a book example or sample focus${isCustomFocusAllowed() ? ', or write your own' : ''}. Not affected by ${pathChoiceLabel}.` : 'Select an Upbringing above to see example Focuses.'}
           instructionLines={3}
           met={requirements.focus}
           locked={locked.focus}

@@ -4,19 +4,18 @@ import disciplineSource from '../data/source/disciplines.json'
 import outlookAdaptation from '../data/adaptation/earlyOutlook.json'
 import { areAllMet } from './requirements.js'
 import { isBookFocus } from './focuses.js'
-import { getAttributes, getOwnSpeciesIds } from './species.js'
+import { getAttributes } from './species.js'
 import { isTalentSlotMet } from './talents.js'
 
-const approachesById = new Map(outlookSource.approaches.map((approach) => [approach.id, approach]))
 const outlooksById = new Map(outlookSource.outlooks.map((outlook) => [outlook.id, outlook]))
 const disciplines = disciplineSource.disciplines
 const DISCIPLINE_BONUS_AMOUNT = 1
 
 const toRef = (entry) => ({ id: entry.id, name: entry.name })
 
+// Core pp.117-119 (Upbringing): one card per Upbringing; the player then picks accepted or rebelled.
 export function createEmptyEarlyOutlook() {
   return {
-    approach: null,
     outlook: null,
     path: null,
     attributeBonuses: [],
@@ -26,30 +25,17 @@ export function createEmptyEarlyOutlook() {
   }
 }
 
-export const getApproaches = () => outlookAdaptation.approachOrder.map((id) => approachesById.get(id))
-export const getApproachById = (id) => approachesById.get(id) ?? null
 export const getOutlookById = (id) => outlooksById.get(id) ?? null
-export const getOutlooks = (approachId) =>
-  withChoiceArt(
-    'earlyOutlook',
-    outlookSource.outlooks.filter((outlook) => outlook.approach === approachId),
-  )
+export const getOutlooks = () => withChoiceArt('earlyOutlook', outlookSource.outlooks)
+export const getUpbringingRules = () => ({ grants: outlookSource.grants, pathPrompt: outlookSource.pathPrompt, talent: outlookSource.talent })
 export const isCustomFocusAllowed = () => outlookAdaptation.allowCustomFocus
 
-export function isApproachAvailable(character, approachId) {
-  if (approachId !== 'caste') return true
-  const { speciesIds, raisedAmongSpeciesIds } = outlookAdaptation.casteEligibility
-  const isKlingon = getOwnSpeciesIds(character.species).some((id) => speciesIds.includes(id))
-  const raisedAmongKlingons = raisedAmongSpeciesIds.includes(character.environment.otherSpecies?.id)
-  return isKlingon || raisedAmongKlingons
-}
-
-// Path options (accepted/rebelled, pursued/gave up) merged with this outlook's book text and bonuses.
+// Path options (accepted / rebelled) merged with this Upbringing's book text and bonuses.
 export function getPathOptions(outlookId) {
   const outlook = getOutlookById(outlookId)
   if (!outlook) return []
   const attributeNames = new Map(getAttributes().map((attribute) => [attribute.id, attribute.name]))
-  return getApproachById(outlook.approach).pathOptions.map((option) => ({
+  return outlookSource.pathOptions.map((option) => ({
     ...option,
     text: outlook.paths[option.id].text,
     attributeBonuses: outlook.paths[option.id].attributes.map((bonus) => ({
@@ -77,7 +63,6 @@ function buildEarlyOutlook(outlookId, { pathId, disciplineId, focus }) {
   const keepFocus = focus && (focus.custom ? isCustomFocusAllowed() : isBookFocus(focus.name, getFocusExamples(outlookId)))
 
   return {
-    approach: toRef(getApproachById(outlook.approach)),
     outlook: toRef(outlook),
     path: path ? toRef(path) : null,
     attributeBonuses: path ? path.attributeBonuses : [],
@@ -94,7 +79,7 @@ const currentPicks = (earlyOutlook) => ({
 
 export function selectOutlook(character, outlookId) {
   const outlook = getOutlookById(outlookId)
-  if (!outlook || !isApproachAvailable(character, outlook.approach)) return character.earlyOutlook
+  if (!outlook) return character.earlyOutlook
   // The trait's text and bonuses belong to one outlook, so it is always re-chosen.
   return buildEarlyOutlook(outlookId, { ...currentPicks(character.earlyOutlook), pathId: null })
 }
@@ -110,11 +95,17 @@ export const selectFocusExample = (earlyOutlook, name) => updatePicks(earlyOutlo
 export const setCustomFocus = (earlyOutlook, name) =>
   isCustomFocusAllowed() ? updatePicks(earlyOutlook, { focus: { name, custom: true } }) : earlyOutlook
 
-// A species or environment change can make a Klingon caste unavailable; clear the step if so.
+// Saves from before the Core Upbringings may hold a removed Aspiration or Caste outlook (cleared) or the old
+// approach field (dropped).
 export function reconcileEarlyOutlook(character) {
-  const approachId = character.earlyOutlook.approach?.id
-  if (!approachId || isApproachAvailable(character, approachId)) return character
-  return { ...character, earlyOutlook: createEmptyEarlyOutlook() }
+  const { earlyOutlook } = character
+  if (earlyOutlook.outlook && !getOutlookById(earlyOutlook.outlook.id)) {
+    return { ...character, earlyOutlook: createEmptyEarlyOutlook() }
+  }
+  if (!('approach' in earlyOutlook)) return character
+  const rest = { ...earlyOutlook }
+  delete rest.approach
+  return { ...character, earlyOutlook: rest }
 }
 
 export function getEarlyOutlookRequirements(character) {

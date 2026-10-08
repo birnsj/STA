@@ -125,7 +125,7 @@ export function TaskFocus({ task, focusOptions = [] }) {
 }
 
 // Why the task can't be attempted (blockers from the authored requirements), or why it is bound to fail (a Fatigued
-// character's shut-down attribute: Book p.277, the only automatic failure the resolver has).
+// character's shut-down attribute: Book p.278, the only automatic failure the resolver has).
 export function TaskBlockers({ blockers = [], task = null }) {
   return (
     <>

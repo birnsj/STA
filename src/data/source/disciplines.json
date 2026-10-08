@@ -11,6 +11,6 @@
     { "id": "engineering", "name": "Engineering", "page": 81, "description": "About technology: designing, building, maintaining, understanding, and operating it, and making sure it produces the desired results." },
     { "id": "security", "name": "Security", "page": 81, "description": "About safety, protection, and survival, but most importantly about violence: watching for it, understanding it, defending against it, and employing it." },
     { "id": "science", "name": "Science", "page": 82, "description": "The pursuit and application of knowledge, from advanced mathematics, subspace theory, and temporal mechanics to anthropology and sociology." },
-    { "id": "medicine", "name": "Medicine", "page": 83, "description": "A distinct discipline alongside Science, less about knowledge and more about the result: healing those who are injured or sick." }
+    { "id": "medicine", "name": "Medicine", "page": 83, "description": "A distinct department alongside Science, less about knowledge and more about the result: healing those who are injured or sick." }
   ]
 }

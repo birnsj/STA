@@ -11,6 +11,7 @@ import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
 import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
 import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
+import useDarkBlocks from '../maps/useDarkBlocks.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -323,8 +324,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   }, [map])
   const panels = useMemo(() => getWallPanels(map), [map])
   const bigGroups = useMemo(() => getBigObjects(map), [map])
-  const hidden = fadedBlockKeys(map, getMembers(state).map((member) => member.position), true, bigGroups)
+  const hidden = fadedBlockKeys(map, getMembers(state).map((member) => member.position), bigGroups)
   const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
+  const darkBlocks = useDarkBlocks(faded, panels, bigGroups)
   const blocks = blockPositions.map((position) => {
     const key = `${position.x},${position.y}`
     return {
@@ -443,7 +445,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         <ClickPulse key={pulse.id} point={pulse.point} />
       ))}
       {depthItems.map((item) => item.element)}
-      <AmbientDarkness map={map} />
+      <AmbientDarkness map={map} blocks={darkBlocks} />
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}

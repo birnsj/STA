@@ -13,7 +13,7 @@
 //   scored at least 1 success;
 // - opposed task (p.256): the reactive side rolls first and its successes set the active side's Difficulty.
 // - bonus d20s (bought with Momentum or Threat, rules/missionResources.js) are simply more leader dice, up to 5d20.
-// - p.277: a Fatigued character automatically fails any task using their shut-down attribute (task.autoFail: every die
+// - p.278: a Fatigued character automatically fails any task using their shut-down attribute (task.autoFail: every die
 //   scores nothing; complications still count).
 // Not in yet (hooks only): Determination, Value invocation.
 import { getAttributeName, getDisciplineName } from '../character/runtimeCharacter.js'

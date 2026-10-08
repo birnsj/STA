@@ -5,6 +5,7 @@ import { FLOOR_TILE } from '../mapFormat.js'
 import {
   allCells,
   applyFeatures,
+  besideCells,
   CRATE_TILE,
   cornerMarkers,
   furnishRoom,
@@ -12,7 +13,7 @@ import {
   growBlob,
   isFree,
   key,
-  labelRegions,
+  labelPlaces,
   makeGrid,
   placeBuildings,
   placeHazard,
@@ -65,6 +66,17 @@ export function generateMiningSite(map, random, areaNames, biome) {
   scatter(tiles, keep, Math.round(area / 50), biome.boulder, random, ground)
 
   const markers = cornerMarkers(tiles, random)
-  const areas = labelRegions(tiles, [pit, ...huts.map((hut) => roomCells(hut.room))], areaNames, random)
+  // areaNames: { pit, hut, rig } lists; a rig is labelled beside the first drill rig.
+  const rig = allCells(tiles).find(({ x, y }) => tiles[y][x] === 'drillRig')
+  const areas = labelPlaces(
+    tiles,
+    [
+      { kind: 'pit', cells: pit },
+      ...huts.map((hut) => ({ kind: 'hut', cells: roomCells(hut.room) })),
+      ...(rig ? [{ kind: 'rig', cells: besideCells([rig]) }] : []),
+    ],
+    areaNames,
+    random,
+  )
   return { ...map, tiles, areas, markers }
 }

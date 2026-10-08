@@ -76,6 +76,10 @@ export function getCombatHint(state, ui) {
   if (state.pendingFatigue && !(ui.auto && ui.auto !== 'off')) {
     return `${state.combatants[state.pendingFatigue.combatantId].character.name} is Fatigued: choose the attribute to shut down (its tasks automatically fail).`
   }
+  if (state.pendingCounterattack && !(ui.auto && ui.auto !== 'off')) {
+    const { defenderId, attackerId, cost } = state.pendingCounterattack
+    return `${state.combatants[defenderId].character.name} won the opposed roll: spend ${cost} Momentum to Counterattack ${state.combatants[attackerId].character.name}, or decline.`
+  }
   if (ui.auto && ui.auto !== 'off') {
     const prefix = ui.auto === 'paused' ? 'Auto Combat paused' : 'Auto Combat'
     // A choice about to run (its button lit on the map) is explained before the older reason.

@@ -5,7 +5,7 @@ import attributeSource from '../data/source/attributes.json'
 import disciplineSource from '../data/source/disciplines.json'
 import startingPoints from '../data/source/startingPoints.json'
 import { getAttributeContributions, getAttributeTotals, getDisciplineContributions, getDisciplineTotals, sumContributions } from './characterTotals.js'
-import { getFocusEntries, getValueEntries } from './characterSheet.js'
+import { getFocusEntries, getTraitEntries, getValueEntries } from './characterSheet.js'
 import { validateCharacter } from './characterValidation.js'
 import {
   getSpeciesAbility,
@@ -41,8 +41,10 @@ const KINDS = {
 
 export const hasStepSummary = (stepId) => STEP_IDS.includes(stepId)
 
-export const cite = (pages) => (pages?.length ? `Captain's Log, ${pages.length > 1 ? 'pp.' : 'p.'}${pages.join(', ')}` : null)
+export const cite = (pages, book = "Captain's Log") => (pages?.length ? `${book}, ${pages.length > 1 ? 'pp.' : 'p.'}${pages.join(', ')}` : null)
 const bookPage = (page) => (page ? cite([page]) : null)
+// Entries that name their own book (e.g. Core Rulebook) are cited from it; the rest are Captain's Log.
+const sourceCite = (source) => (source?.book && source.page ? `${source.book}, p.${source.page}` : bookPage(source?.page))
 const fillPattern = (pattern, id) => (pattern && id ? pattern.replace('{id}', id) : null)
 const nameList = (ids) => ids.map((id) => namesById.get(id)).join(', ')
 const bonusList = (bonuses) => bonuses.map((bonus) => `${bonus.name} ${bonus.value > 0 ? '+' : ''}${bonus.value}`).join(', ')
@@ -102,7 +104,7 @@ function buildSnapshot(character, stepId) {
     disciplines: snapshotScores(character, 'disciplines', stepId),
     values: getValueEntries(character).filter(reached).map((entry) => ({ text: entry.text, source: stepTitle(entry.stepId) })),
     focuses: getFocusEntries(character).filter(reached).map((entry) => ({ text: entry.name, source: sourceLabel(entry) })),
-    traits: (character.species?.traits ?? []).map((trait) => trait.name),
+    traits: getTraitEntries(character).filter(reached).map((entry) => ({ text: entry.name, source: stepTitle(entry.stepId) })),
     speciesAbility: getSpeciesAbility(character.species)?.name ?? null,
     talents: getTalentEntries(character).filter(reached).map((entry) => ({ text: entry.label, source: entry.stepTitle })),
   }
@@ -124,7 +126,7 @@ function traitItems(species) {
 
 function abilityTip(species) {
   const ability = getSpeciesAbility(species)
-  if (ability) return { title: ability.name, text: ability.description, source: `${ability.source.book}, p.${ability.source.page}` }
+  if (ability) return { title: ability.name, text: ability.description, source: ability.source ? `${ability.source.book}, p.${ability.source.page}` : null }
   const gap = getSpeciesAbilityGap(species)
   return gap ? { title: 'Species Ability', text: gap.note, source: null } : null
 }
@@ -132,7 +134,7 @@ function abilityTip(species) {
 function header(stepId) {
   const step = stepsById[stepId]
   const copy = summaryCopy.steps[stepId]
-  return { stepId, number: step.number, title: step.title, bookStep: copy.bookStep, grants: copy.grants, grantsSource: cite(copy.pages), why: copy.why }
+  return { stepId, number: step.number, title: step.title, bookStep: copy.bookStep, grants: copy.grants, grantsSource: cite(copy.pages, copy.book), why: copy.why }
 }
 
 const group = (changes) => ({ title: null, text: null, image: null, attributes: [], disciplines: [], values: [], focuses: [], traits: [], talents: [], ...changes })
@@ -163,7 +165,7 @@ function speciesSummary(character) {
   const definition = getSpeciesById(species.id)
   const name = getSpeciesDisplayName(species)
   const reason = isMixedHeritage(definition)
-    ? 'Chosen from your parents\u2019 species bonuses'
+    ? 'From your primary species\u2019 bonuses'
     : definition.attributeBonus.type === 'fixed'
       ? `${definition.name} species bonus`
       : 'One of the three attributes you chose for your species'
@@ -177,7 +179,7 @@ function speciesSummary(character) {
   ]
   const meaning = isMixedHeritage(definition)
     ? species.parents.filter(Boolean).map((parent) => ({ title: parent.name, text: getSpeciesById(parent.id).description, source: bookPage(getSpeciesById(parent.id).source.page) }))
-    : [{ title: name, text: isNewSpecies(definition) ? species.description.trim() || definition.description : definition.description, source: bookPage(definition.source.page) }]
+    : [{ title: name, text: isNewSpecies(definition) ? species.description.trim() || definition.description : definition.description, source: sourceCite(definition.source) }]
   return {
     image: { src: getSpeciesArt(species.id, character.identity.gender?.id), label: name },
     choices,
@@ -195,28 +197,27 @@ function environmentAttributeReason(character, entryName) {
 
 function environmentDisciplineReason(character, entryName) {
   const options = environmentRules.getDisciplineOptions(character)
-  return options.length === disciplineSource.disciplines.length ? `${entryName} raises any one discipline.` : `${entryName} offers ${nameList(options.map((option) => option.id))}.`
+  return options.length === disciplineSource.disciplines.length ? `${entryName} raises any one department.` : `${entryName} offers ${nameList(options.map((option) => option.id))}.`
 }
 
 function environmentSummary(character) {
   const { environment } = character
   const chosen = environmentRules.getChosenEntry(environment)
-  const entry = environment.setting ? environmentRules.getSettingById(chosen.id) : environmentRules.getConditionById(chosen.id)
-  const kindLabel = environment.setting ? 'Setting' : 'Condition'
+  const entry = environmentRules.getSettingById(chosen.id)
   const attributeReason = environmentAttributeReason(character, entry.name)
   const disciplineReason = environmentDisciplineReason(character, entry.name)
   return {
     image: { src: fillPattern(summaryCopy.images.environment, entry.id), label: entry.name },
     choices: [
-      { label: kindLabel, value: entry.name, tip: getCardTip(entry) },
+      { label: 'Environment', value: entry.name, tip: getCardTip(entry) },
       ...(environment.otherSpecies
         ? [{ label: 'Raised among', value: environment.otherSpecies.name, tip: getCardTip(getSpeciesById(environment.otherSpecies.id)) }]
         : []),
       { label: 'Attribute', value: bonusList([environment.attributeBonus]), tip: getScoreTip(environment.attributeBonus?.id) },
-      { label: 'Discipline', value: bonusList([environment.disciplineBonus]), tip: getScoreTip(environment.disciplineBonus?.id) },
+      { label: 'Department', value: bonusList([environment.disciplineBonus]), tip: getScoreTip(environment.disciplineBonus?.id) },
       { label: 'Value', value: environment.value.text.trim(), tip: getConceptHelp('value') },
     ],
-    meaning: [{ title: entry.name, text: entry.description, source: bookPage(entry.source?.page) }],
+    meaning: [{ title: entry.name, text: entry.description, source: sourceCite(entry.source) }],
     groups: [
       group({
         attributes: stepScoreChanges(character, 'environment', 'attributes', () => attributeReason),
@@ -230,22 +231,20 @@ function environmentSummary(character) {
 function earlyOutlookSummary(character) {
   const { earlyOutlook } = character
   const outlook = outlookRules.getOutlookById(earlyOutlook.outlook.id)
-  const approach = outlookRules.getApproachById(outlook.approach)
   const path = outlookRules.getPathOptions(outlook.id).find((option) => option.id === earlyOutlook.path.id)
-  const focus = focusItem(earlyOutlook.focus, `From your ${outlook.name} ${approach.name.toLowerCase()}.`, outlook.focus.text)
+  const focus = focusItem(earlyOutlook.focus, `From your ${outlook.name} upbringing.`, outlook.focus.text)
   return {
     image: { src: fillPattern(summaryCopy.images.earlyOutlook, outlook.id), label: outlook.name },
     choices: [
-      { label: 'Approach', value: approach.name, tip: getCardTip(approach) },
-      { label: 'Outlook', value: outlook.name, tip: getCardTip(outlook) },
+      { label: 'Upbringing', value: outlook.name, tip: getCardTip(outlook) },
       { label: 'Response', value: path.name, tip: path.text ? { title: path.name, text: path.text } : null },
       { label: 'Attributes', value: bonusList(earlyOutlook.attributeBonuses), tip: getConceptHelp('attribute') },
-      { label: 'Discipline', value: bonusList([earlyOutlook.disciplineBonus]), tip: getScoreTip(earlyOutlook.disciplineBonus?.id) },
+      { label: 'Department', value: bonusList([earlyOutlook.disciplineBonus]), tip: getScoreTip(earlyOutlook.disciplineBonus?.id) },
       { label: 'Focus', value: earlyOutlook.focus.name.trim(), tip: getConceptHelp('focus') },
       talentChoice(character, 'earlyOutlook'),
     ],
     meaning: [
-      { title: `${outlook.name} (${approach.name})`, text: outlook.description, source: bookPage(outlook.source?.page) },
+      { title: outlook.name, text: outlook.description, source: sourceCite(outlook.source) },
       { title: `${path.name}`, text: path.text, source: null },
     ],
     groups: [
@@ -278,22 +277,24 @@ function educationSummary(character) {
   return {
     image: { src: fillPattern(summaryCopy.images.education, option.id), label: option.name },
     choices: [
-      { label: 'Education', value: category.name, tip: getCardTip(category) },
+      { label: 'Career Path', value: category.name, tip: getCardTip(category) },
       { label: category.optionLabel, value: option.name, tip: getCardTip(option) },
+      { label: 'Trait', value: education.trait?.name, tip: getConceptHelp('trait') },
       { label: 'Attributes', value: bonusList(education.attributeBonuses), tip: getConceptHelp('attribute') },
-      { label: 'Disciplines', value: bonusList(education.disciplineBonuses), tip: getConceptHelp('discipline') },
+      { label: 'Departments', value: bonusList(education.disciplineBonuses), tip: getConceptHelp('discipline') },
       { label: 'Focuses', value: education.focuses.map((focus) => focus.name.trim()).join(', '), tip: getConceptHelp('focus') },
       { label: 'Value', value: education.value.text.trim(), tip: getConceptHelp('value') },
       talentChoice(character, 'education'),
     ],
-    meaning: [{ title: `${option.name} (${category.name})`, text: option.description, source: bookPage(option.source?.page) }],
+    meaning: [{ title: `${option.name} (${category.name})`, text: option.description, source: cite([option.source.page], option.source.book) }],
     groups: [
       group({
-        attributes: stepScoreChanges(character, 'education', 'attributes', (entry) => `You assigned ${entry.value} of your ${points} education attribute points here.`),
+        attributes: stepScoreChanges(character, 'education', 'attributes', (entry) => `You assigned ${entry.value} of your ${points} Career Path attribute points here.`),
         disciplines: stepScoreChanges(character, 'education', 'disciplines', educationDisciplineReason(education, option)),
         focuses: education.focuses.map((focus) => focusItem(focus, `From ${option.name}.`, option.focus.text)).filter(Boolean),
-        values: valueItem(education.value, `From your education: ${option.name}.`, option.valueText),
-        talents: talentItems(character, 'education', `Your education talent, chosen on this screen.`),
+        values: valueItem(education.value, `From your Career Path: ${option.name}.`, option.valueText),
+        traits: education.trait ? [{ text: education.trait.name, reason: `Your Career Path trait (${option.name})`, bookText: option.trait.text }] : [],
+        talents: talentItems(character, 'education', `Your Career Path talent, chosen on this screen.`),
       }),
     ],
   }
@@ -308,7 +309,7 @@ function careerSummary(character) {
   return {
     image: { src: careerRules.getCareerLengths().find((entry) => entry.id === length.id)?.image ?? null, label: length.name },
     choices: [
-      { label: 'Career length', value: length.name, tip: getCardTip(length) },
+      { label: 'Experience', value: length.name, tip: getCardTip(length) },
       { label: 'Value', value: career.value.text.trim(), tip: getConceptHelp('value') },
       { label: 'Assignment', value: assignment.name, tip: getCardTip(assignment) },
       { label: 'Department', value: career.department?.name, tip: getScoreTip(career.department?.id) },
@@ -317,8 +318,8 @@ function careerSummary(character) {
       talentChoice(character, 'career'),
     ],
     meaning: [
-      { title: length.name, text: length.description, source: bookPage(length.source?.page) },
-      { title: assignment.name, text: assignment.description, source: bookPage(assignment.source?.page) },
+      { title: length.name, text: length.description, source: sourceCite(length.source) },
+      { title: assignment.name, text: assignment.description, source: sourceCite(assignment.source) },
       { title: 'Assignment and rank', text: copy.assignmentNote, source: null },
       ...(role
         ? [{ title: `Role Benefit (${role.name})`, text: `${role.benefit.description} ${copy.roleNote}`, source: `Star Trek Adventures 2E Core Rulebook, p.${role.source.page}` }]
@@ -331,7 +332,7 @@ function careerSummary(character) {
         talents: talentItems(
           character,
           'career',
-          length.id === 'experienced' ? 'Your experience talent, chosen freely.' : `Granted by your career length: ${length.name}.`,
+          length.id === 'experienced' ? 'Your experience talent, chosen freely.' : `Granted by your Experience: ${length.name}.`,
         ),
       }),
     ],
@@ -356,7 +357,7 @@ function careerHistorySummary(character) {
   return {
     image: null,
     choices: character.careerHistory.events.map((slot, index) => ({ label: `Career Event ${index + 1}`, value: slot.event.name, tip: getCardTip(chosen[index]) })),
-    meaning: chosen.map((event) => ({ title: event.name, text: event.description, source: bookPage(event.source?.page) })),
+    meaning: chosen.map((event) => ({ title: event.name, text: event.description, source: sourceCite(event.source) })),
     groups,
   }
 }
@@ -372,7 +373,6 @@ function finishingScoreChanges(character, kind) {
   return entries
     .map((entry) => {
       const reasons = []
-      if (increases.includes(entry.id)) reasons.push('+1: one of your two Finishing Touches increases.')
       if (analysis.overLimit.includes(entry.id)) {
         if (!oneAtMax) reasons.push(`Reduced to ${max}: ${reason} allows nothing higher.`)
         else if (entry.id === analysis.keeper) {
@@ -382,6 +382,7 @@ function finishingScoreChanges(character, kind) {
         }
       }
       if (analysis.received[entry.id]) reasons.push(`+${analysis.received[entry.id]}: points moved here from scores over the limit.`)
+      if (increases.includes(entry.id)) reasons.push('+1: one of your two Finishing Touches increases, added after the limits.')
       return { id: entry.id, name: entry.name, before: lifepath[entry.id], after: final[entry.id], delta: final[entry.id] - lifepath[entry.id], reasons, description: descriptions.get(entry.id) }
     })
     .filter((row) => row.reasons.length)
@@ -426,15 +427,18 @@ function finishingSummary(character) {
     choices: [
       { label: 'Final value', value: finishingTouches.value.text.trim(), tip: getConceptHelp('value') },
       { label: 'Attribute increases', value: nameList(finishingTouches.attributes.increases), tip: getConceptHelp('attribute') },
-      { label: 'Discipline increases', value: nameList(finishingTouches.disciplines.increases), tip: getConceptHelp('discipline') },
+      { label: 'Department increases', value: nameList(finishingTouches.disciplines.increases), tip: getConceptHelp('discipline') },
       talentChoice(character, 'finishingTouches'),
       { label: 'Portrait', value: portrait?.name },
       { label: 'Name', value: identity.name.trim() },
       ...(identity.pronouns.trim() ? [{ label: 'Pronouns', value: identity.pronouns.trim() }] : []),
+      ...(identity.age?.trim() ? [{ label: 'Age', value: identity.age.trim() }] : []),
+      ...(identity.pastime?.trim() ? [{ label: 'Pastime', value: identity.pastime.trim() }] : []),
     ],
     meaning: [
-      { title: 'Final value', text: book.finalValue.text, source: bookPage(book.finalValue.source.page) },
-      { title: 'Attribute and discipline limits', text: book.attributes.text, source: bookPage(book.attributes.source.page) },
+      { title: 'Final value', text: book.finalValue.text, source: sourceCite(book.finalValue.source) },
+      { title: 'Attribute limits, then increases', text: book.attributes.text, source: sourceCite(book.attributes.source) },
+      { title: 'Department limits, then increases', text: book.disciplines.text, source: sourceCite(book.disciplines.source) },
     ],
     groups: [
       group({
@@ -445,21 +449,21 @@ function finishingSummary(character) {
       }),
     ],
     checklist: {
-      source: bookPage(complete.source.page),
+      source: sourceCite(complete.source),
       rows: [
         ...scoreChecks(character, 'attributes', 'Attributes'),
-        ...scoreChecks(character, 'disciplines', 'Disciplines'),
+        ...scoreChecks(character, 'disciplines', 'Departments'),
         countCheck(getValueEntries(character), complete.valueCount, 'Values'),
         countCheck(getFocusEntries(character).map((entry) => ({ text: entry.name })), complete.focusCount, 'Focuses'),
         {
           label: `Talents: ${getTalentEntries(character).length} / ${getRequiredTalentCount()}`,
           ok: getTalentEntries(character).length === getRequiredTalentCount(),
-          detail: 'Four talents, one each from Early Outlook, Education, Career and Finishing Touches (Star Trek Adventures 2E Core Rulebook, p.142).',
+          detail: 'Four talents, one each from Upbringing, Career Path, Career and Finishing Touches (Star Trek Adventures 2E Core Rulebook, p.142).',
         },
         {
           label: 'Ready to confirm on Review',
           ok: !issues.length,
-          detail: issues.length ? `${issues.length} item${issues.length > 1 ? 's' : ''} still need attention; Review lists them with links.` : 'Every Captain\u2019s Log requirement is met.',
+          detail: issues.length ? `${issues.length} item${issues.length > 1 ? 's' : ''} still need attention; Review lists them with links.` : 'Every character-creation requirement is met.',
         },
       ],
     },
@@ -513,7 +517,7 @@ const SIGNATURES = {
     species?.parents?.map((parent) => parent?.id),
     asSet(species?.attributeBonuses.map((bonus) => bonus.id) ?? []),
   ],
-  environment: ({ environment: e }) => [e.setting?.id, e.condition?.id, e.otherSpecies?.id, e.attributeBonus?.id, e.disciplineBonus?.id, valueKey(e.value)],
+  environment: ({ environment: e }) => [e.setting?.id, e.otherSpecies?.id, e.attributeBonus?.id, e.disciplineBonus?.id, valueKey(e.value)],
   earlyOutlook: ({ earlyOutlook: o, talents }) => [o.outlook?.id, o.path?.id, o.disciplineBonus?.id, focusKey(o.focus), talentKey(talents?.earlyOutlook)],
   education: ({ education: e, talents }) => {
     const { major, minors, swapFrom, swapTo } = e.disciplinePicks

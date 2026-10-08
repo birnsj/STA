@@ -3,16 +3,11 @@
   pointer-events: none;
 }
 
-.tilemap-tile.is-live {
-  animation: tilemap-blink 0.6s steps(2) infinite;
-}
-
-.tilemap-tile.is-blink {
-  animation: tilemap-blink 1.6s steps(2) infinite;
-}
-
-@keyframes tilemap-blink {
-  50% { opacity: 0.35; }
+/* Animated tiles (tileArt.js flipbooks): whole sprites stacked, each shown on its own frames by keyframes built from
+   tileEffects.json (flipbookStyles.js; the name, length and delay are inline). Held, not faded, between frames. */
+.tilemap-frame {
+  animation-timing-function: step-end;
+  animation-iteration-count: infinite;
 }
 
 .tilemap-block.is-ghost {
@@ -72,52 +67,18 @@
   stroke-width: 1.2;
 }
 
-.wall-star {
-  fill: rgba(235, 242, 255, 0.9);
-  animation: wall-star-twinkle 4s ease-in-out infinite;
+/* The darkness's emissive mask (IsoTiles EmissiveMask): block art white and the emission of animated tiles' sprites
+   black, so the darkness is cut away exactly where a light shows. The panel edges and window glass would only add white. */
+.tilemap-emissive image {
+  filter: brightness(0) invert(1);
 }
 
-@keyframes wall-star-twinkle {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.25; }
+.tilemap-emissive image.tilemap-emission {
+  filter: brightness(0);
 }
 
-/* Animated light overlays (tileEffects.json animations, tiles.json lights and panelLights): light-only images screened over their tile. */
-.tilemap-light {
-  mix-blend-mode: screen;
-}
-
-.tilemap-light.is-pulse {
-  animation: tilemap-pulse 2.8s ease-in-out infinite;
-}
-
-.tilemap-light.is-blink {
-  animation: tilemap-status 1.4s steps(1) infinite;
-}
-
-.tilemap-light.is-flicker {
-  animation: tilemap-flicker 3.2s linear infinite;
-}
-
-@keyframes tilemap-pulse {
-  0%, 100% { opacity: 0.1; }
-  50% { opacity: 0.95; }
-}
-
-@keyframes tilemap-status {
-  0% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-@keyframes tilemap-flicker {
-  0%, 100% { opacity: 0.45; }
-  8% { opacity: 0.9; }
-  10% { opacity: 0.25; }
-  12% { opacity: 0.85; }
-  40% { opacity: 0.6; }
-  70% { opacity: 0.95; }
-  72% { opacity: 0.35; }
-  74% { opacity: 0.8; }
+.tilemap-emissive .wall-panel {
+  display: none;
 }
 
 /* Light pools round glowing tiles breathe with them. */
@@ -131,9 +92,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tilemap-light,
-  .tilemap-glows ellipse,
-  .wall-star {
+  .tilemap-glows ellipse {
     animation: none;
+  }
+
+  /* !important: a frame's animation name is inline. Each rests on the loop's first frame. */
+  .tilemap-frame {
+    animation: none !important;
   }
 }

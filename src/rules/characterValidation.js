@@ -28,7 +28,7 @@ const LIFEPATH_STEPS = ['species', 'environment', 'earlyOutlook', 'education', '
 
 const KIND_LABELS = {
   attributes: { plural: 'Attributes', singular: 'attribute', atMaxLimit: limits.attributesAtMax },
-  disciplines: { plural: 'Disciplines', singular: 'discipline', atMaxLimit: limits.disciplinesAtMax },
+  disciplines: { plural: 'Departments', singular: 'department', atMaxLimit: limits.disciplinesAtMax },
 }
 
 const issue = (stepId, message) => ({ stepId, stepTitle: stepTitles[stepId], message })
@@ -50,8 +50,8 @@ function validateStepsComplete(character) {
   )
 }
 
-// Book p.92 / p.129: attributes max 12 (only one at 12), total 56; disciplines max 5 (only one at 5), total 16.
-// Core p.131: Untapped Potential lowers the maximum to 11 / 4 with no one-at-max rule (getScoreLimits).
+// CL p.92 / p.129 (Core p.99, p.132): attributes max 12 (only one at 12), total 56; disciplines max 5 (only one at 5), total 16.
+// Core p.132: Untapped Potential lowers the maximum to 11 / 4 with no one-at-max rule (getScoreLimits).
 function validateScores(character, kind) {
   const { entries, total } = getKindInfo(kind)
   const { max, oneAtMax, reason } = getScoreLimits(character, kind)
@@ -97,7 +97,7 @@ function validateFocuses(character) {
   return [...countIssue, ...duplicateIssues(focuses, 'Focus')]
 }
 
-// Book p.131: four talents, one from each granting step, each legal and (unless it says otherwise) taken once.
+// Core p.132: four talents, one from each granting step, each legal and (unless it says otherwise) taken once.
 function validateTalents(character) {
   const issues = []
   const entries = getTalentEntries(character)
@@ -109,7 +109,7 @@ function validateTalents(character) {
     }
   }
   const fixedId = getFixedCareerTalentId(character)
-  if (fixedId && character.talents?.career?.id !== fixedId) issues.push(issue('career', 'The career talent does not match the career length.'))
+  if (fixedId && character.talents?.career?.id !== fixedId) issues.push(issue('career', 'The career talent does not match the Experience.'))
   const keys = entries.map(({ slot, talent }) => (talent.repeatable === 'perChoice' ? `${slot.id}:${slot.choice?.id}` : slot.id))
   const repeated = entries.filter((_, index) => keys.indexOf(keys[index]) !== index)
   for (const { stepId, label } of repeated) issues.push(issue(stepId, `Talent "${label}" is chosen more than once.`))
@@ -121,12 +121,12 @@ function validateTalents(character) {
 function validateLifepathChoices(character) {
   const { environment, earlyOutlook, education, career } = character
   const issues = []
-  if (!getTraitEntries(character).length) issues.push(issue('species', 'No species trait.'))
+  if (!getTraitEntries(character).some((trait) => trait.stepId === 'species')) issues.push(issue('species', 'No species trait.'))
   if (character.species && !hasCurrentSpeciesAbility(character.species)) issues.push(issue('species', 'Species Ability does not match the species.'))
-  if (!environment.setting && !environment.condition) issues.push(issue('environment', 'No environment chosen.'))
-  if (!earlyOutlook.outlook) issues.push(issue('earlyOutlook', 'No early outlook chosen.'))
-  if (!education.option) issues.push(issue('education', 'No education chosen.'))
-  if (!career.length) issues.push(issue('career', 'No career length chosen.'))
+  if (!environment.setting) issues.push(issue('environment', 'No environment chosen.'))
+  if (!earlyOutlook.outlook) issues.push(issue('earlyOutlook', 'No Upbringing chosen.'))
+  if (!education.option) issues.push(issue('education', 'No Career Path chosen.'))
+  if (!career.length) issues.push(issue('career', 'No Experience chosen.'))
   return issues
 }
 

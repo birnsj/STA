@@ -12,6 +12,7 @@ import {
 import { AUTO_STEP_IDS, autoChooseStep, fillMissingTalents } from './autoChoice.js'
 import {
   setMixedParent,
+  setNewSpeciesAbility,
   setNewSpeciesDescription,
   setNewSpeciesName,
   setPrimaryParent,
@@ -41,7 +42,7 @@ import * as talentRules from '../rules/talents.js'
 import { reconcileEquipment } from '../rules/equipment.js'
 import { applyDefaultSelections } from '../rules/defaults.js'
 import { isCharacterValid } from '../rules/characterValidation.js'
-import { isFocusHeldElsewhere, isMatrixValueHeldElsewhere } from '../rules/characterSheet.js'
+import { isFocusHeldElsewhere, isMatrixValueHeldElsewhere, isValueTextHeldElsewhere } from '../rules/characterSheet.js'
 
 // Creator state: the canonical character plus the per-card choice memory (UI-only, never exported).
 export function createInitialState() {
@@ -54,7 +55,7 @@ function isBlockedDuplicatePick(character, action) {
     case 'selectEnvironmentMatrixValue':
       return isMatrixValueHeldElsewhere(character, action.valueId, 'environment')
     case 'selectEducationMatrixValue':
-      return isMatrixValueHeldElsewhere(character, action.valueId, 'education')
+      return isValueTextHeldElsewhere(character, educationRules.getValueChoiceById(character.education.option?.id, action.valueId)?.text, 'education')
     case 'selectCareerMatrixValue':
       return isMatrixValueHeldElsewhere(character, action.valueId, 'career')
     case 'selectFinalMatrixValue':
@@ -90,6 +91,9 @@ function applyAction(character, action) {
     case 'setNewSpeciesDescription':
       if (!character.species) return character
       return { ...character, species: setNewSpeciesDescription(character.species, action.description) }
+    case 'setNewSpeciesAbility':
+      if (!character.species) return character
+      return { ...character, species: setNewSpeciesAbility(character.species, action.changes) }
     case 'selectEnvironmentOtherSpecies':
       return { ...character, environment: selectOtherSpecies(character.environment, action.speciesId) }
     case 'selectEnvironmentMatrixValue':
@@ -130,6 +134,8 @@ function applyAction(character, action) {
       return { ...character, education: educationRules.selectMatrixValue(character.education, action.valueId) }
     case 'setEducationCustomValue':
       return { ...character, education: educationRules.setCustomValue(character.education, action.text) }
+    case 'selectEducationTrait':
+      return { ...character, education: educationRules.selectTrait(character.education, action.traitId) }
     case 'selectCareerMatrixValue':
       return { ...character, career: careerRules.selectMatrixValue(character.career, action.valueId) }
     case 'setCareerCustomValue':
@@ -166,6 +172,10 @@ function applyAction(character, action) {
       return { ...character, identity: finishingRules.setName(character.identity, action.name) }
     case 'setCharacterPronouns':
       return { ...character, identity: finishingRules.setPronouns(character.identity, action.pronouns) }
+    case 'setCharacterAge':
+      return { ...character, identity: finishingRules.setAge(character.identity, action.age) }
+    case 'setCharacterPastime':
+      return { ...character, identity: finishingRules.setPastime(character.identity, action.pastime) }
     case 'selectGender':
       return { ...character, identity: appearanceRules.setGender(character.identity, action.genderId) }
     case 'selectPortrait':
@@ -187,9 +197,7 @@ function switchCard(state, action) {
     case 'selectSpecies':
       return switchSpecies(state, action.speciesId)
     case 'selectEnvironmentSetting':
-      return switchEnvironmentCard(state, 'setting', action.settingId)
-    case 'selectEnvironmentCondition':
-      return switchEnvironmentCard(state, 'condition', action.conditionId)
+      return switchEnvironmentCard(state, action.settingId)
     case 'selectEarlyOutlook':
       return switchEarlyOutlook(state, action.outlookId)
     case 'selectEducation':
@@ -206,12 +214,14 @@ function switchCard(state, action) {
 }
 
 // Any edit invalidates a previous confirmation, so a confirmed character is always the one that was validated.
-function finalize(character) {
+// previous: the character before this edit (null when there is none), for the finishing-touches limit defaults.
+function finalize(character, previous = null) {
   const reconciled = appearanceRules.reconcilePortrait(
     finishingRules.reconcileFinishingTouches(
       historyRules.reconcileCareerHistory(
         careerRules.reconcileCareer(educationRules.reconcileEducation(reconcileEarlyOutlook(reconcileEnvironment(character)))),
       ),
+      previous,
     ),
   )
   // Talents are checked last, against the species, scores, focuses and career the other steps have just settled.
@@ -251,7 +261,7 @@ export function creatorReducer(state, action) {
   if (action.type === 'confirmCharacter') return confirm(state, action.confirmedAt)
   if (action.type === 'autoChooseStep') {
     const auto = autoChooseStep(state, action.stepId, action.seed)
-    return auto === state ? state : { ...auto, character: finalize(auto.character) }
+    return auto === state ? state : { ...auto, character: finalize(auto.character, state.character) }
   }
   // Dev Autofill: a whole new random character, as if Auto were pressed on every screen in turn.
   // Each screen gets its own seed derived from the one drawn at the button press.
@@ -264,7 +274,7 @@ export function creatorReducer(state, action) {
     return { ...withTalents, character: finalize(withTalents.character) }
   }
   const switched = switchCard(state, action)
-  if (switched) return switched === state ? state : { ...switched, character: finalize(switched.character) }
+  if (switched) return switched === state ? state : { ...switched, character: finalize(switched.character, state.character) }
   const character = applyAction(state.character, action)
-  return character === state.character ? state : { ...state, character: finalize(character) }
+  return character === state.character ? state : { ...state, character: finalize(character, state.character) }
 }

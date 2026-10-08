@@ -13,9 +13,15 @@ export const OUT_W = DESIGN_W * RESOLUTION
 export const OUT_H = DESIGN_H * RESOLUTION
 export const OUT = fileURLToPath(new URL('../../public/art/tiles-v2/', import.meta.url))
 export const FORCE = process.argv.includes('--force')
-// Tall views draw walls this many times as tall (tiles.json wallHeightScale), so wall faces are designed in drawn
-// height and squashed into the image: rivets and panels come out the right shape once stretched.
-export const WALL_STRETCH = 2
+
+// Every image is drawn at its own size, never stretched. Walls and tall objects reach higher than a 64 x 96 image
+// holds, so theirs are taller (tiles.json imageHeight): the same grid with room added at the top, the floor diamond
+// still along the bottom edge. A scene is always designed on the 64 x 96 grid; raised() moves it down into the taller
+// image.
+export const imageHeightFor = (top) => DESIGN_H + Math.max(0, Math.ceil(top) - 60)
+export const raised = (scene, extra) => (extra ? (px, py) => scene(px, py - extra) : scene)
+// A 2x2 big object's image (tiles.json big.image): the object drawn twice the size, so 128 x 192.
+export const BIG = 2
 // Where a generated PNG goes: the palette-group folder (public/art/sprites/environment/<group>/) that tiles.json or
 // tileEffects.json gives a file of that name, so a new image has to be added to one of them before it can be drawn.
 const PUBLIC = fileURLToPath(new URL('../../public', import.meta.url))
@@ -32,6 +38,13 @@ export function outFile(file) {
   const folder = path.join(PUBLIC, path.dirname(art))
   fs.mkdirSync(folder, { recursive: true })
   return path.join(folder, file)
+}
+// Where a light layer goes (the lit parts of a tile only): art-layers/, outside public/ since the game never draws
+// one; scripts/makeTileFrames.mjs bakes them into the tile's whole-sprite animation frames.
+export const LAYERS = fileURLToPath(new URL('../../art-layers/', import.meta.url))
+export function layerFile(file) {
+  fs.mkdirSync(LAYERS, { recursive: true })
+  return path.join(LAYERS, file)
 }
 
 
@@ -125,16 +138,16 @@ export const floorScene = (material) => (px, py) => {
   return inUnit(point) ? shade(material, point.a * 32, point.b * 32, 'top') : null
 }
 
-// stretch: side faces are designed this many times taller than drawn (walls, see WALL_STRETCH).
-export const blockScene = (h, material, stretch = 1) => (px, py) => {
+export const blockScene = (h, material) => (px, py) => {
   const face = blockFace(px, py, h)
   if (!face) return null
-  return shade(material, face.u, face.face === 'top' ? face.v : face.v * stretch, face.face)
+  return shade(material, face.u, face.v, face.face)
 }
 
 // subsamples: anti-aliasing samples per pixel along each axis (fewer for expensive scenes). width, height: the image
 // size in pixels (a tile's by default; two-tile panels are larger, v2/panels.mjs).
-export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES, width = OUT_W, height = OUT_H } = {}) {
+// bloomRadius: in pixels (doubled for a big object's image, so its glow keeps its size against the object).
+export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES, width = OUT_W, height = OUT_H, bloomRadius = 6 } = {}) {
   const colour = new Float32Array(width * height * 3)
   const emit = new Float32Array(width * height * 3)
   const alpha = new Float32Array(width * height)
@@ -162,7 +175,7 @@ export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES, width = OU
       }
     }
   }
-  const glow = blur(emit, 6, 3, width, height)
+  const glow = blur(emit, bloomRadius, 3, width, height)
   const bytes = new Uint8Array(width * height * 4)
   for (let i = 0; i < width * height; i++) {
     for (let k = 0; k < 3; k++) {
@@ -174,9 +187,9 @@ export function render(scene, { bloom = 0.9, subsamples = SUBSAMPLES, width = OU
   return bytes
 }
 
-// A light-only overlay for animating a tile's lights: just the emission of the surfaces tagged with one of tags, plus
-// its bloom, with the brightness carried in the alpha so the overlay fades in and out cleanly over the tile.
-export function renderLights(scene, tags, { gain = 1, width = OUT_W, height = OUT_H } = {}) {
+// A light layer (engine.mjs layerFile) for animating a tile's lights: just the emission of the surfaces tagged with one of tags, plus
+// its bloom, with the brightness carried in the alpha so it blends in and out cleanly over the tile (scripts/makeTileFrames.mjs).
+export function renderLights(scene, tags, { gain = 1, width = OUT_W, height = OUT_H, bloomRadius = 6 } = {}) {
   const emit = new Float32Array(width * height * 3)
   const samples = SUBSAMPLES * SUBSAMPLES
   for (let oy = 0; oy < height; oy++) {
@@ -191,7 +204,7 @@ export function renderLights(scene, tags, { gain = 1, width = OUT_W, height = OU
       }
     }
   }
-  const glow = blur(emit, 6, 3, width, height)
+  const glow = blur(emit, bloomRadius, 3, width, height)
   const bytes = new Uint8Array(width * height * 4)
   for (let i = 0; i < width * height; i++) {
     const light = [0, 1, 2].map((k) => (emit[i * 3 + k] + glow[i * 3 + k] * 1.4) * gain)
@@ -201,6 +214,26 @@ export function renderLights(scene, tags, { gain = 1, width = OUT_W, height = OU
     bytes[i * 4 + 3] = Math.round(clamp01(peak) * 255)
   }
   return bytes
+}
+
+// A tile image imageHeight design pixels tall (imageHeightFor), as { width, height, bytes }.
+export function renderTile(scene, imageHeight = DESIGN_H, options = {}) {
+  const height = imageHeight * RESOLUTION
+  return { width: OUT_W, height, bytes: render(raised(scene, imageHeight - DESIGN_H), { ...options, height }) }
+}
+export function renderTileLights(scene, tags, imageHeight = DESIGN_H, options = {}) {
+  const height = imageHeight * RESOLUTION
+  return { width: OUT_W, height, bytes: renderLights(raised(scene, imageHeight - DESIGN_H), tags, { ...options, height }) }
+}
+// A big object's image: the scene drawn BIG times the size (more pixels, the same shapes), as { width, height, bytes }.
+const enlarged = (scene) => (px, py) => scene(px / BIG, py / BIG)
+export function renderBig(scene, options = {}) {
+  const size = { width: OUT_W * BIG, height: OUT_H * BIG, bloomRadius: 6 * BIG }
+  return { width: size.width, height: size.height, bytes: render(enlarged(scene), { ...options, ...size }) }
+}
+export function renderBigLights(scene, tags, options = {}) {
+  const size = { width: OUT_W * BIG, height: OUT_H * BIG, bloomRadius: 6 * BIG }
+  return { width: size.width, height: size.height, bytes: renderLights(enlarged(scene), tags, { ...options, ...size }) }
 }
 
 export function blur(source, radius, passes, width = OUT_W, height = OUT_H) {

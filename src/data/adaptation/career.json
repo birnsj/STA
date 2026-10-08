@@ -7,15 +7,24 @@
     "veteran": "/art/career/veteran.png"
   },
   "rankTypeByEducation": {
-    "categories": { "civilian": "none", "diplomatic": "optional" },
-    "options": { "rankAndFile": "enlisted" },
+    "categories": {
+      "starfleetAcademy": "officer",
+      "starfleetEnlisted": "enlisted",
+      "starfleetIntelligence": "officer",
+      "diplomatic": "optional",
+      "civilian": "optional"
+    },
     "default": "officer"
   },
   "noRank": { "id": "noRank", "name": "No Rank" },
   "noRankExcludedAssignments": ["commandingOfficer", "executiveOfficer"],
-  "noviceExcludedAssignments": ["commandingOfficer", "executiveOfficer", "chiefEngineer", "chiefOfSecurity", "chiefMedicalOfficer"],
   "noviceMaxRank": { "officer": "lieutenantJuniorGrade", "enlisted": "pettyOfficer" },
   "veteranMinRank": { "officer": "lieutenantCommander", "enlisted": "chiefPettyOfficer" },
+  "autoRankRange": {
+    "note": "Designer decision, Oct 2026: Auto and Autofill pick ranks only within these ranges (lowest to highest, inclusive), so a random character is never a cadet, fleet captain or flag officer. The player can still choose any rank by hand.",
+    "officer": { "min": "ensign", "max": "captain" },
+    "enlisted": { "min": "crewman", "max": "masterChiefPettyOfficer" }
+  },
   "roleByAssignment": {
     "commandingOfficer": "commandingOfficer",
     "executiveOfficer": "executiveOfficer",
@@ -26,20 +35,22 @@
     "chiefMedicalOfficer": "chiefMedicalOfficer",
     "scienceOfficer": "scienceOfficer",
     "shipsCounselor": "shipsCounselor",
-    "communicationsOfficer": "communicationsOfficer"
+    "communicationsOfficer": "communicationsOfficer",
+    "chiefTacticalOfficer": "chiefTacticalOfficer",
+    "navigator": "navigator",
+    "shipsDoctor": "shipsDoctor"
   },
   "notes": [
-    "Screen 05 combines Book Step Five (Career Length) with the Assignment and Rank parts of Book Step Seven.",
+    "Screen 05 combines CL Step Five (Career Length) with the Assignment and Rank parts of CL Step Seven.",
     "The assignment sets the character's department (one of the six disciplines). The book gives no department for Communications Officer, so the player chooses one (book p.92: 'Choose ... Department').",
     "Only the book's listed senior staff roles are offered; the book's 'other roles are possible' is not implemented.",
-    "Rank type comes from Education: Civilian characters have no rank (book p.120), Diplomatic characters may choose a rank or No Rank (book p.119), Rank and File characters are enlisted (book p.117, p.132); everyone else uses officer ranks.",
-    "Enlisted ranks use the book's first title only, without 1st/2nd/3rd class.",
-    "Assignment minimum ranks apply to officer ranks only; the book gives no enlisted or no-rank minimums.",
-    "No Rank (noRankExcludedAssignments): designer decision, Oct 2026. A No Rank character cannot be Commanding Officer or Executive Officer, matching the book's enlisted rule (p.132). The book is silent on unranked characters in command. A Diplomat who takes one of these assignments must choose an officer rank.",
-    "Career Length: a Novice cannot take Commanding Officer, Executive Officer, Chief Engineer, Chief of Security, or Chief Medical Officer. The book only says Step Five 'may limit' ranks and calls the lieutenant (junior grade) roles 'experienced personnel'; Commanding Officer was added by design decision.",
-    "Career Length: a Novice's rank is capped at Lieutenant (junior grade) for officers and Petty Officer for enlisted. Captain's Log gives no limit (an Academy graduate can start at lieutenant (junior grade), p.115; Rank and File 'likely becoming an NCO, equivalent to a Starfleet petty officer', p.117); the Core Rulebook's Untapped Potential talent, which every Novice holds, states exactly these caps (Core p.127, p.132).",
-    "Career Length: a Veteran's rank is at least Lieutenant Commander for officers and Chief Petty Officer for enlisted, from the Veteran talent every Veteran holds (Core p.128, p.132). Diplomats with No Rank are not affected.",
-    "Role (STA 2E Core pp.135–138) is kept apart from Assignment (Captain's Log pp.130–132). Designer decision: an assignment listed in roleByAssignment sets that same-named role automatically and the player cannot change it; an assignment not listed (none today) lets the player pick any Service Role. Every Captain's Log assignment has a Core role of the same name ('Flight Controller or Helmsman' is the Core 'Flight Controller', which the book says is 'also known as a helmsman').",
+    "Rank type comes from the Career Path category (designer decision, Oct 2026): Starfleet (Officer) and Starfleet (Intelligence) use officer ranks; Starfleet (Enlisted) uses enlisted ranks; Diplomatic Corps and Civilian are 'optional': No Rank by default, or an officer rank if the player picks one. Core p.123 (Commission Without the Academy): diplomats and civilians hold no rank under normal circumstances, but a civilian may be granted one; Core p.140: civilians do not need to select a rank.",
+    "Enlisted ranks use the rank name only, without 1st/2nd/3rd class or duty titles.",
+    "The only assignment minimum rank is Commanding Officer = Commander (Core p.140), and it is read on the officer ladder. Enlisted ranks can never meet it, so an enlisted character can't be Commanding Officer (implementation pick, Oct 2026). No other assignment has a minimum.",
+    "No Rank (noRankExcludedAssignments): designer decision, Oct 2026. A No Rank character cannot be Commanding Officer or Executive Officer. The book is silent on unranked characters in command. A Diplomat or Civilian who takes one of these assignments must choose an officer rank.",
+    "Career Length: a Novice's rank is capped at Lieutenant (junior grade) for officers and Petty Officer for enlisted. Captain's Log gives no limit (an Academy graduate can start at lieutenant (junior grade), p.115; Rank and File 'likely becoming an NCO, equivalent to a Starfleet petty officer', p.117); the Core Rulebook's Untapped Potential talent, which every Novice holds, gives exactly these caps (talent Core p.127; caps stated on Core p.140).",
+    "Career Length: a Veteran's rank is at least Lieutenant Commander for officers and Chief Petty Officer for enlisted, from the Veteran talent every Veteran holds (talent Core p.128; floors stated on Core p.140). Diplomats with No Rank are not affected.",
+    "Role (STA 2E Core pp.135–139) is kept apart from Assignment (Captain's Log pp.130–132). Designer decision: an assignment listed in roleByAssignment sets that same-named role automatically and the player cannot change it; an assignment not listed (none today) lets the player pick any Service Role. Every Captain's Log assignment has a Core role of the same name ('Flight Controller or Helmsman' is the Core 'Flight Controller', which the book says is 'also known as a helmsman'). Chief Tactical Officer, Navigator and Ship's Doctor are Core roles added as assignments (designer decision, Oct 2026). Expert and Intelligence Agent are not reachable as assignments.",
     "Role requirements: the book gives none, so any role may go with any department, rank, or ratings (e.g. a Chief Medical Officer with Medicine 1 is legal).",
     "lengthArt paths point into public/. Missing files fall back to the placeholder portrait."
   ]

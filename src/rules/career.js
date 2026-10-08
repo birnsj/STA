@@ -2,11 +2,11 @@ import lengthSource from '../data/source/careerLengths.json'
 import assignmentSource from '../data/source/assignments.json'
 import rankSource from '../data/source/ranks.json'
 import disciplineSource from '../data/source/disciplines.json'
-import valuesMatrix from '../data/source/valuesMatrix.json'
 import careerAdaptation from '../data/adaptation/career.json'
 import { areAllMet } from './requirements.js'
 import { isTalentSlotMet } from './talents.js'
 import { getRoleById, isRoleEligible } from './roles.js'
+import { getSampleValues, getValueById, reconcileValue } from './values.js'
 
 const lengthsById = new Map(lengthSource.lengths.map((length) => [length.id, length]))
 const assignmentsById = new Map(assignmentSource.assignments.map((assignment) => [assignment.id, assignment]))
@@ -35,8 +35,10 @@ export const getAssignmentById = (assignmentId) => assignmentsById.get(assignmen
 export const getRanks = () => rankSource.ranks
 export const getRankById = (rankId) => rankSource.ranks.find((rank) => rank.id === rankId) ?? null
 export const getDepartmentById = (departmentId) => disciplinesById.get(departmentId) ?? null
-export const getValueMatrix = () => valuesMatrix.values
+export const getValueMatrix = () => getSampleValues()
 export const isCustomValueAllowed = () => careerAdaptation.allowCustomValue
+// Core pp.127-128: Novice and Veteran give example values; Experienced is chosen freely (none).
+export const getValueExamples = (lengthId) => getCareerLengthById(lengthId)?.valueExamples ?? []
 
 // ---------- Career length and value ----------
 
@@ -48,7 +50,7 @@ export function selectLength(career, lengthId) {
 }
 
 export function selectMatrixValue(career, valueId) {
-  const entry = getValueMatrix().find((value) => value.id === valueId)
+  const entry = getValueById(valueId)
   if (!career.length || !entry) return career
   return { ...career, value: { text: entry.text, matrixId: entry.id } }
 }
@@ -58,13 +60,12 @@ export function setCustomValue(career, text) {
   return { ...career, value: { text, matrixId: null } }
 }
 
-// ---------- Rank type (from Education) ----------
+// ---------- Rank type (from the Career Path) ----------
 
-// 'officer' | 'enlisted' | 'none' | 'optional' (officer ranks or No Rank). See career.json rankTypeByEducation.
+// 'officer' | 'enlisted' | 'optional' (No Rank by default, or an officer rank). See career.json rankTypeByEducation.
 export function getRankType(character) {
-  const { categories, options, default: fallback } = careerAdaptation.rankTypeByEducation
-  const { category, option } = character.education
-  return options[option?.id] ?? categories[category?.id] ?? fallback
+  const { categories, default: fallback } = careerAdaptation.rankTypeByEducation
+  return categories[character.education.category?.id] ?? fallback
 }
 
 const officerRanks = rankSource.ranks.map((rank) => ({ ...toRef(rank), type: 'officer' }))
@@ -76,8 +77,6 @@ export function getRankOptions(character) {
   switch (getRankType(character)) {
     case 'enlisted':
       return enlistedRanks
-    case 'none':
-      return [noRank]
     case 'optional':
       return [noRank, ...officerRanks]
     default:
@@ -87,23 +86,27 @@ export function getRankOptions(character) {
 
 // ---------- Assignment and rank ----------
 
-// Book p.132: the commanding officer must be at least a commander; executive officer, chief engineer,
-// chief of security, and chief medical officer at least a lieutenant (junior grade).
+// Core p.140: the commanding officer is at least a commander "under normal circumstances"; no other assignment has
+// a minimum (null).
 export function getMinimumRank(assignmentId) {
-  return getRankById(getAssignmentById(assignmentId)?.minimumRank ?? rankOrder[0])
+  return getRankById(getAssignmentById(assignmentId)?.minimumRank)
 }
 
-// Why an assignment can't be taken, or null. Book p.132: enlisted never get CO or XO.
-// Prototype: a Novice can't take the roles listed in career.json, and nor can a character who can only be No Rank.
+// Whether a rank may hold the assignment, before the Experience limits. The minimum is on the officer ladder, so no
+// enlisted rank meets it. Prototype: No Rank never holds the assignments in career.json noRankExcludedAssignments.
+function fitsAssignment(assignmentId, rank) {
+  if (rank.type === 'none') return !careerAdaptation.noRankExcludedAssignments.includes(assignmentId)
+  const minimum = getMinimumRank(assignmentId)
+  if (!minimum) return true
+  return rank.type === 'officer' && rankOrder.indexOf(rank.id) >= rankOrder.indexOf(minimum.id)
+}
+
+// Why an assignment can't be taken (no rank this character may hold fits it), or null.
 export function getAssignmentBlock(character, assignmentId) {
-  if (getRankType(character) === 'enlisted' && rankSource.enlistedExcludedAssignments.assignments.includes(assignmentId)) {
-    return 'Not for enlisted'
-  }
-  if (getRankType(character) === 'none' && careerAdaptation.noRankExcludedAssignments.includes(assignmentId)) {
-    return 'Not for No Rank'
-  }
-  if (character.career.length?.id === 'novice' && careerAdaptation.noviceExcludedAssignments.includes(assignmentId)) {
-    return 'Not for Novice'
+  const fitting = getRankOptions(character).filter((rank) => fitsAssignment(assignmentId, rank))
+  if (!fitting.length) return getRankType(character) === 'enlisted' ? 'Not for enlisted' : 'Not for No Rank'
+  if (fitting.every((rank) => isAboveNoviceCap(character, rank.id) || isBelowVeteranFloor(character, rank.id))) {
+    return character.career.length?.id === 'novice' ? 'Not for Novice' : 'Not for Veteran'
   }
   return null
 }
@@ -118,7 +121,7 @@ function rankPosition(character, rankId) {
   return { type: rank?.type, index: ladder.findIndex((option) => option.id === rankId), ladder }
 }
 
-// Core p.127 (Untapped Potential): a Novice's rank is capped at lieutenant (junior grade) / petty officer
+// Core p.127 (Untapped Potential talent), p.140 (rank cap): a Novice's rank is capped at lieutenant (junior grade) / petty officer
 // (career.json noviceMaxRank).
 export function isAboveNoviceCap(character, rankId) {
   const { type, index, ladder } = rankPosition(character, rankId)
@@ -127,7 +130,7 @@ export function isAboveNoviceCap(character, rankId) {
   return index > ladder.findIndex((option) => option.id === capId)
 }
 
-// Core p.128 (Veteran): a Veteran holds at least lieutenant commander / chief petty officer (career.json veteranMinRank).
+// Core p.128 (Veteran talent), p.140 (rank floor): a Veteran holds at least lieutenant commander / chief petty officer (career.json veteranMinRank).
 export function isBelowVeteranFloor(character, rankId) {
   const { type, index, ladder } = rankPosition(character, rankId)
   const floorId = careerAdaptation.veteranMinRank[type]
@@ -135,15 +138,27 @@ export function isBelowVeteranFloor(character, rankId) {
   return index < ladder.findIndex((option) => option.id === floorId)
 }
 
-// Prototype: assignment minimum ranks apply to officer ranks only; the book gives none for enlisted or unranked characters.
-// No Rank is never allowed for the assignments in career.json noRankExcludedAssignments (a Diplomat must take a rank).
+// Whether Auto/Autofill may pick this rank at random (career.json autoRankRange). No Rank has no range.
+export function isAutoRank(character, rankId) {
+  const { type, index, ladder } = rankPosition(character, rankId)
+  const range = careerAdaptation.autoRankRange[type]
+  if (!range) return true
+  const position = (id) => ladder.findIndex((option) => option.id === id)
+  return index >= position(range.min) && index <= position(range.max)
+}
+
 export function isRankAllowed(character, rankId) {
   const { career } = character
   const rank = getRankOptions(character).find((option) => option.id === rankId)
   if (!career.assignment || !rank || isAboveNoviceCap(character, rankId) || isBelowVeteranFloor(character, rankId)) return false
-  if (rank.type === 'none') return !careerAdaptation.noRankExcludedAssignments.includes(career.assignment.id)
-  if (rank.type !== 'officer') return true
-  return rankOrder.indexOf(rankId) >= rankOrder.indexOf(getMinimumRank(career.assignment.id).id)
+  return fitsAssignment(career.assignment.id, rank)
+}
+
+// Core p.123, p.140: diplomats and civilians hold no rank under normal circumstances, so their rank starts as No Rank
+// (when the assignment allows it); null for everyone else.
+export function getDefaultRank(character) {
+  if (getRankType(character) !== 'optional' || !isRankAllowed(character, noRank.id)) return null
+  return noRank
 }
 
 export function getDepartmentFor(assignmentId) {
@@ -188,15 +203,17 @@ function settleRole(career) {
   return career.role && !isRoleEligible(career.role.id) ? { ...career, role: null } : career
 }
 
-// Clears an assignment or rank that Education or Career Length no longer allows (rather than silently keeping it),
-// gives characters without a rank their only option, and keeps the role in step with the assignment.
+// Clears an assignment or rank that the Career Path or Experience no longer allows (rather than silently keeping it),
+// starts diplomats and civilians at No Rank, and keeps the role in step with the assignment.
 export function reconcileCareer(character) {
   let { career } = character
+  if (reconcileValue(career.value) !== career.value) career = { ...career, value: reconcileValue(career.value) }
   if (career.assignment && !isAssignmentAllowed(character, career.assignment.id)) {
     career = { ...career, assignment: null, department: null, rank: null }
   }
   if (career.rank && !isRankAllowed({ ...character, career }, career.rank.id)) career = { ...career, rank: null }
-  if (!career.rank && career.assignment && getRankType(character) === 'none') career = { ...career, rank: noRank }
+  const defaultRank = career.rank || !career.assignment ? null : getDefaultRank({ ...character, career })
+  if (defaultRank) career = { ...career, rank: defaultRank }
   career = settleRole(career)
   return career === character.career ? character : { ...character, career }
 }

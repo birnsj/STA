@@ -177,7 +177,7 @@ function ValidationPanel({ issues, confirmedAt, onGoToStep }) {
   if (!issues.length) {
     return (
       <ReviewPanel title="Status" helpId="reviewStatus" className="review-status is-valid">
-        <p className="review-status-message">Meets all Captain's Log requirements.</p>
+        <p className="review-status-message">Meets all character-creation requirements.</p>
         <p className="review-status-note">Confirm the character to finish creation.</p>
       </ReviewPanel>
     )
@@ -230,8 +230,10 @@ export default function ReviewScreen({ navigation }) {
               { label: 'Name', value: identity.name.trim() },
               { label: 'Gender', value: identity.gender?.name },
               { label: 'Pronouns', value: identity.pronouns.trim() },
+              ...(identity.age?.trim() ? [{ label: 'Age', value: identity.age.trim() }] : []),
+              ...(identity.pastime?.trim() ? [{ label: 'Pastime', value: identity.pastime.trim() }] : []),
               { label: 'Species', value: speciesName },
-              { label: 'Species Trait', value: traits.map((trait) => trait.name).join(', ') },
+              { label: 'Species Trait', value: traits.filter((trait) => trait.stepId === 'species').map((trait) => trait.name).join(', ') },
               { label: 'Species Ability', value: getSpeciesAbilityLabel(species), title: getSpeciesAbilityTitle(species) },
               { label: 'Portrait', value: portrait?.name },
             ]}
@@ -248,23 +250,22 @@ export default function ReviewScreen({ navigation }) {
               />
               <Fields
                 rows={[
-                  environment.condition
-                    ? { label: 'Condition', value: environment.condition.name }
-                    : { label: 'Setting', value: environment.setting?.name },
+                  { label: 'Environment', value: environment.setting?.name },
                   ...(environment.otherSpecies ? [{ label: 'Raised Among', value: environment.otherSpecies.name }] : []),
-                  { label: 'Early Outlook', value: formatOutlook(earlyOutlook) },
+                  { label: 'Upbringing', value: formatOutlook(earlyOutlook) },
                 ]}
               />
             </div>
           </ReviewPanel>
 
-          <ReviewPanel title="Education" helpId="reviewEducation" className="review-area-education">
+          <ReviewPanel title="Career Path" helpId="reviewEducation" className="review-area-education">
             <div className="review-with-image">
               <Portrait label={education.option?.name} image={getChoiceArt('education', education.option?.id)} className="portrait-review-thumb" />
               <Fields
                 rows={[
-                  { label: 'Education', value: education.option?.name },
+                  { label: 'Career Path', value: education.option?.name },
                   { label: 'Category', value: education.category?.name },
+                  { label: 'Trait', value: education.trait?.name },
                 ]}
               />
             </div>
@@ -275,7 +276,7 @@ export default function ReviewScreen({ navigation }) {
               <Portrait label={career.length?.name} image={lengthArt} className="portrait-review-thumb" />
               <Fields
                 rows={[
-                  { label: 'Career Length', value: career.length?.name },
+                  { label: 'Experience', value: career.length?.name },
                   { label: 'Assignment', value: career.assignment?.name },
                   { label: 'Department', value: career.department?.name },
                   { label: 'Rank', value: career.rank?.name },
@@ -295,7 +296,7 @@ export default function ReviewScreen({ navigation }) {
           <ScorePanel title="Attributes" helpId="reviewAttributes" kind="attributes" character={character} />
         </div>
         <div className="review-area-disciplines">
-          <ScorePanel title="Disciplines" helpId="reviewDisciplines" kind="disciplines" character={character} />
+          <ScorePanel title="Departments" helpId="reviewDisciplines" kind="disciplines" character={character} />
         </div>
 
         <div className="review-values-equipment">
@@ -319,7 +320,7 @@ export default function ReviewScreen({ navigation }) {
           <ReviewPanel title="Traits" helpId="reviewTraits" className="review-area-traits">
             <ul className="review-traits">
               {traits.map((trait) => (
-                <li key={trait.id}>
+                <li key={`${trait.stepId}:${trait.id}`}>
                   <span className="review-label">{trait.name}</span>
                   <span className="review-trait-text" title={trait.description}>{trait.description}</span>
                 </li>

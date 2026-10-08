@@ -3,6 +3,7 @@ import { getSavedCharacterData } from '../character/savedCharacters.js'
 import { getCharacterFocuses, getCharacterValues, getFinalScores, getKindInfo, getPortraitById } from '../rules/finishingTouches.js'
 import { getSpeciesAbilityLabel, getSpeciesDisplayName } from '../rules/species.js'
 import { getTalentEntries } from '../rules/talents.js'
+import { getTraitEntries } from '../rules/characterSheet.js'
 import Portrait from './Portrait.jsx'
 
 const EMPTY = '—'
@@ -91,17 +92,17 @@ function SavedCharacterCard({ entry }) {
               { label: 'Species', value: getSpeciesDisplayName(species) },
               { label: 'Gender', value: identity.gender?.name },
               { label: 'Pronouns', value: identity.pronouns.trim() },
-              { label: 'Traits', value: species?.traits.map((trait) => trait.name).join(', ') },
+              { label: 'Traits', value: getTraitEntries(character).map((trait) => trait.name).join(', ') },
               { label: 'Species Ability', value: getSpeciesAbilityLabel(species) },
-              { label: 'Upbringing', value: environment.condition?.name ?? environment.setting?.name },
-              { label: 'Education', value: education.option?.name },
-              { label: 'Career', value: career.length?.name },
+              { label: 'Environment', value: environment.setting?.name },
+              { label: 'Career Path', value: education.option?.name },
+              { label: 'Experience', value: career.length?.name },
               { label: 'Assignment', value: career.assignment?.name },
               { label: 'Role', value: career.role?.name },
             ]}
           />
           <ScoreList title="Attributes" kind="attributes" character={character} />
-          <ScoreList title="Disciplines" kind="disciplines" character={character} />
+          <ScoreList title="Departments" kind="disciplines" character={character} />
         </div>
         <div className="import-card-lists">
           <NameList title="Values" items={getCharacterValues(character).map((value) => value.text.trim())} />

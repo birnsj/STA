@@ -1,13 +1,12 @@
 import { withChoiceArt } from './choiceArt.js'
 import environmentSource from '../data/source/environments.json'
 import disciplineSource from '../data/source/disciplines.json'
-import valuesMatrix from '../data/source/valuesMatrix.json'
 import environmentAdaptation from '../data/adaptation/environment.json'
 import { areAllMet } from './requirements.js'
 import { getAttributes, getBaseSpecies, getOwnSpeciesIds, getPossibleBonusAttributeIds, getSpeciesById } from './species.js'
+import { getSampleValues, getSpeciesValueExamples, getValueById, reconcileValue } from './values.js'
 
 const settingsById = new Map(environmentSource.settings.map((entry) => [entry.id, entry]))
-const conditionsById = new Map(environmentSource.conditions.map((entry) => [entry.id, entry]))
 const disciplines = disciplineSource.disciplines
 const BONUS_AMOUNT = 1
 
@@ -16,7 +15,6 @@ const toRef = (entry) => ({ id: entry.id, name: entry.name })
 export function createEmptyEnvironment() {
   return {
     setting: null,
-    condition: null,
     // Only used by the "Another Species' World" setting.
     otherSpecies: null,
     value: null,
@@ -26,20 +24,22 @@ export function createEmptyEnvironment() {
 }
 
 export const getSettings = () => withChoiceArt('environment', environmentSource.settings)
-export const getConditions = () => withChoiceArt('environment', environmentSource.conditions)
 export const getSettingById = (id) => settingsById.get(id) ?? null
-export const getConditionById = (id) => conditionsById.get(id) ?? null
 export const getDisciplines = () => disciplines
-export const getValueMatrix = () => valuesMatrix.values
+export const getValueMatrix = () => getSampleValues()
 export const isCustomValueAllowed = () => environmentAdaptation.allowCustomValue
 
-// Book p.103: one setting OR condition; whichever is chosen supplies the bonus options.
-function getBonusEntry(environment) {
-  if (environment.setting) return getSettingById(environment.setting.id)
-  return environment.condition ? getConditionById(environment.condition.id) : null
-}
+const getBonusEntry = (environment) => (environment.setting ? getSettingById(environment.setting.id) : null)
 
-export const getChosenEntry = (environment) => environment.setting ?? environment.condition ?? null
+export const getChosenEntry = (environment) => environment.setting ?? null
+
+// Core p.115: the value reflects the culture the character was raised within; for Another Species' World the
+// book suggests a value of the species they were raised among, so those come first.
+export function getEnvironmentValueExamples(character) {
+  const { environment } = character
+  const raisedAmong = requiresOtherSpecies(environment) && environment.otherSpecies ? [environment.otherSpecies.id] : []
+  return getSpeciesValueExamples([...raisedAmong, ...getOwnSpeciesIds(character.species)])
+}
 
 export function requiresOtherSpecies(environment) {
   return getBonusEntry(environment)?.attributeOptions.type === 'otherSpeciesBonus'
@@ -81,13 +81,7 @@ export function getDisciplineOptions(character) {
 export function selectSetting(environment, settingId) {
   const setting = getSettingById(settingId)
   if (!setting) throw new Error(`Unknown environment setting: ${settingId}`)
-  return { ...environment, setting: toRef(setting), condition: null }
-}
-
-export function selectCondition(environment, conditionId) {
-  const condition = getConditionById(conditionId)
-  if (!condition) throw new Error(`Unknown environment condition: ${conditionId}`)
-  return { ...environment, setting: null, condition: toRef(condition) }
+  return { ...environment, setting: toRef(setting) }
 }
 
 export function selectOtherSpecies(environment, speciesId) {
@@ -96,7 +90,7 @@ export function selectOtherSpecies(environment, speciesId) {
 }
 
 export function selectMatrixValue(environment, valueId) {
-  const entry = getValueMatrix().find((value) => value.id === valueId)
+  const entry = getValueById(valueId)
   if (!entry) throw new Error(`Unknown value: ${valueId}`)
   return { ...environment, value: { text: entry.text, matrixId: entry.id } }
 }
@@ -121,6 +115,17 @@ export function selectDisciplineBonus(character, disciplineId) {
 // Earlier choices (species, setting, other species) can invalidate later ones; drop anything no longer allowed.
 export function reconcileEnvironment(character) {
   let environment = character.environment
+  // Saves from before Conditions were removed may still hold one, or a setting id that no longer exists.
+  if ('condition' in environment) {
+    environment = { ...environment }
+    delete environment.condition
+  }
+  if (environment.setting && !getSettingById(environment.setting.id)) {
+    environment = { ...environment, setting: null }
+  }
+  if (reconcileValue(environment.value) !== environment.value) {
+    environment = { ...environment, value: reconcileValue(environment.value) }
+  }
   const keepOtherSpecies =
     requiresOtherSpecies(environment) && !getOwnSpeciesIds(character.species).includes(environment.otherSpecies?.id)
   if (environment.otherSpecies && !keepOtherSpecies) {

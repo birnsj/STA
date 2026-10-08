@@ -3,7 +3,7 @@
 // benefit, species ability) or traits that apply. Pure; the result is shown to the player as "the character math" and
 // then resolved by taskResolver.js.
 //
-// Book (STA 2e Core p.255-256): the Difficulty assumes the character has the appropriate tools; lacking them can make
+// Book (STA 2e Core p.256): the Difficulty assumes the character has the appropriate tools; lacking them can make
 // the task harder or impossible. Which tools count, and what lacking them does, is authored per task (episode content),
 // never a universal item bonus.
 // Prototype: talent and role effects apply only when the authored task lists them (their conditions are prose in the
@@ -166,7 +166,7 @@ export function prepareAssist(character, approach, condition = null) {
   return { task, focus }
 }
 
-// Book p.277: while Fatigued, +1 Difficulty on all task rolls, and any task using the shut-down attribute automatically
+// Book p.278: while Fatigued, +1 Difficulty on all task rolls, and any task using the shut-down attribute automatically
 // fails. Read from the performer's condition ({ fatigued, fatiguedAttribute }).
 function fatigueOf(condition, attributeId) {
   if (!condition?.fatigued) return { difficulty: 0, autoFail: false, note: null }

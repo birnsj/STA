@@ -9,11 +9,12 @@
     "Book p.135: 'The following roles are found within Starfleet in all eras of play, unless otherwise noted.' No Service Role is excluded from the 23rd century, so 'era' is null on every role.",
     "Book: no role entry states a department, discipline rating, rank, or other requirement, so 'requirements' is empty on every role.",
     "Book p.95: Role Benefits 'function similarly to talents, but are provided by a character's ... role and cannot be selected as talents.'",
-    "Designer decision: only the 15 Service Roles are offered; the Other Roles (Bodyguard, Merchant, Political Liaison, Translator, p.138) are left out.",
+    "Designer decision: only the 15 Service Roles are offered; the Other Roles (Bodyguard, Merchant, p.138; Political Liaison, Translator, p.139) are left out.",
     "Effects are structured descriptions for later systems; no role benefit is applied to gameplay or to the character sheet yet (Designer decision: Ship's Doctor's focuses and Expert's value/focus are data only). Types follow talents.json, plus opportunityCost, momentumCost and assistDie."
   ],
   "omitted": [
-    { "name": "Bodyguard, Merchant, Political Liaison, Translator", "page": 138, "reason": "Designer decision: Other Roles are not offered." }
+    { "name": "Bodyguard, Merchant", "page": 138, "reason": "Designer decision: Other Roles are not offered." },
+    { "name": "Political Liaison, Translator", "page": 139, "reason": "Designer decision: Other Roles are not offered." }
   ],
   "roles": [
     {

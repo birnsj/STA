@@ -13,6 +13,7 @@ import {
   getRankType,
   isAboveNoviceCap,
   isBelowVeteranFloor,
+  getValueExamples,
   getValueMatrix,
   isCustomValueAllowed,
   isDepartmentChoice,
@@ -33,12 +34,11 @@ import TalentColumn from '../components/TalentColumn.jsx'
 import ValuePicker from '../components/ValuePicker.jsx'
 import ChipGroup from '../components/ChipGroup.jsx'
 
-// Rank type comes from Education (see career.json rankTypeByEducation).
+// Rank type comes from the Career Path (see career.json rankTypeByEducation).
 const RANK_INSTRUCTIONS = {
-  officer: (minimum) => `Choose your rank. Minimum: ${minimum.name}.`,
-  optional: (minimum) => `Diplomats may hold a rank or none. Minimum if ranked: ${minimum.name}.`,
-  enlisted: () => 'Rank and File training makes you enlisted. Choose your rate.',
-  none: () => 'Civilians hold no rank.',
+  officer: (minimum) => `Choose your rank.${minimum ? ` Minimum: ${minimum.name}.` : ''}`,
+  optional: (minimum) => `Diplomats and civilians hold No Rank unless you choose an officer rank.${minimum ? ` Minimum if ranked: ${minimum.name}.` : ''}`,
+  enlisted: () => 'Your Career Path makes you enlisted. Choose your rank.',
 }
 
 function DepartmentPicker({ department, onSelect }) {
@@ -104,7 +104,7 @@ function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepar
                 <span className="education-book-label">Department:</span> {getDepartmentFor(assignment.id)?.name}
               </p>
             )}
-            {rankType !== 'enlisted' && rankType !== 'none' && (
+            {rankType !== 'enlisted' && getMinimumRank(assignment.id) && (
               <p className="career-detail-line">
                 <span className="education-book-label">Minimum rank:</span> {getMinimumRank(assignment.id).name}
                 {rankType === 'optional' && ' (if ranked)'}
@@ -112,7 +112,7 @@ function AssignmentDetails({ assignment, career, rankType, locked, onSelectDepar
             )}
             <RoleDetails career={career} onSelectRole={onSelectRole} />
             <p className="education-detail-description">{assignment.description}</p>
-            <p className="source-ref">Captain's Log, p.{assignment.source.page}</p>
+            <p className="source-ref">{assignment.source.book}, p.{assignment.source.page}</p>
           </>
         ) : (
           <p className="education-detail-description">Select an assignment to see its details.</p>
@@ -141,13 +141,13 @@ export default function CareerScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.length ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose how long your career has run, then your assignment and rank. Your career length gives you one Value; your assignment sets your department.
+            Choose your Experience, then your assignment and rank. Your Experience gives you one Value; your assignment sets your department.
           </p>
         </div>
       </div>
 
       <CardCarousel
-        label="Career length"
+        label="Experience"
         variant={`carousel-environment${requirements.length ? '' : ' is-missing'}`}
         items={getCareerLengths()}
         selectedId={length?.id ?? null}
@@ -157,14 +157,19 @@ export default function CareerScreen({ step, navigation }) {
       <div className="species-details env-details panel">
         <Portrait label={length?.name} image={lengthCard?.image} className="portrait-detail" />
         <div className="species-details-text">
-          <h2 className="species-details-name">{length?.name ?? 'No career length selected'}</h2>
-          <p>{length?.description ?? 'Select a career length above.'}</p>
+          <h2 className="species-details-name">{length?.name ?? 'No Experience selected'}</h2>
+          <p>{length?.description ?? 'Select an Experience above.'}</p>
           {length && (
             <>
               <p className="career-value-prompt">
                 <span className="education-book-label">Value:</span> {length.valuePrompt}
               </p>
-              <p className="source-ref">Captain's Log, p.{length.source.page} · Roll {length.roll}</p>
+              {length.age && (
+                <p className="career-value-prompt">
+                  <span className="education-book-label">Age:</span> {length.age}
+                </p>
+              )}
+              <p className="source-ref">STA 2E Core Rulebook, p.{length.source.page}</p>
             </>
           )}
         </div>
@@ -176,7 +181,7 @@ export default function CareerScreen({ step, navigation }) {
           number="1"
           title="Career Value"
           helpId="careerValue"
-          instruction={length ? `Choose a value that fits your career length${isCustomValueAllowed() ? ', or write your own' : ''}.` : 'Select a career length to choose its Value.'}
+          instruction={length ? `Choose a value that fits your Experience${isCustomValueAllowed() ? ', or write your own' : ''}.` : 'Select an Experience to choose its Value.'}
           instructionLines={3}
           met={requirements.value}
           locked={locked.value}
@@ -184,6 +189,7 @@ export default function CareerScreen({ step, navigation }) {
           {length && (
             <ValuePicker
               value={career.value}
+              examples={getValueExamples(length.id)}
               matrix={getValueMatrix()}
               allowCustom={isCustomValueAllowed()}
               onSelectMatrix={(valueId) => dispatch({ type: 'selectCareerMatrixValue', valueId })}

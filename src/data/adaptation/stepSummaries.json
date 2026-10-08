@@ -1,13 +1,13 @@
 {
   "note": "Copy for the Step Complete popups (screens 1-7). 'concepts' and each step's 'grants' paraphrase Captain's Log (pages cited). 'why' and 'closing' are prototype explanatory copy and add no rules. Choices, numbers, and book descriptions come from the character and the content data, never from this file.",
   "cumulative": {
-    "text": "Every character starts with 7 in each attribute and 1 in each discipline. Each lifepath step adds to those scores; the gains are cumulative.",
+    "text": "Every character starts with 7 in each attribute and 1 in each department. Each lifepath step adds to those scores; the gains are cumulative.",
     "pages": [91]
   },
   "concepts": {
     "talent": {
       "title": "Talents",
-      "text": "Additional benefits that define an area of specialty or a personal approach. A finished character has four, one from each of Early Outlook, Education, Career and Finishing Touches; they are separate from the Species Ability.",
+      "text": "Additional benefits that define an area of specialty or a personal approach. A finished character has four, one from each of Upbringing, Career Path, Experience and Finishing Touches; they are separate from the Species Ability.",
       "book": "Star Trek Adventures 2E Core Rulebook",
       "pages": [95, 142]
     },
@@ -17,13 +17,13 @@
       "pages": [74]
     },
     "discipline": {
-      "title": "Disciplines",
+      "title": "Departments",
       "text": "Broad areas of training and professional expertise, matching a starship's departments.",
       "pages": [79]
     },
     "focus": {
       "title": "Focuses",
-      "text": "Narrower specialties that come from deeper study and practical experience: activities where your character shines. A focus is not tied to any one discipline; it helps with any task it would logically benefit.",
+      "text": "Narrower specialties that come from deeper study and practical experience: activities where your character shines. A focus is not tied to any one department; it helps with any task it would logically benefit.",
       "pages": [84]
     },
     "value": {
@@ -58,55 +58,61 @@
     },
     "environment": {
       "bookStep": "Book Step Two",
-      "grants": "Where and how your character was raised: one Setting or one Condition. It gives +1 to one attribute, +1 to one discipline, and one value.",
-      "pages": [103],
+      "grants": "The kind of place where your character was raised. It gives +1 to one attribute, +1 to one department, and one value reflecting the environment and culture they grew up in.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [115],
       "why": [
-        "Environment is the second layer on top of your species. Its attribute and discipline points show how your surroundings shaped your abilities; its value shows how they shaped your worldview."
+        "Environment is the second layer on top of your species. Its attribute and department points show how your surroundings shaped your abilities; its value shows how they shaped your worldview."
       ]
     },
     "earlyOutlook": {
       "bookStep": "Book Step Three",
-      "grants": "Your childhood, formative experiences, and key influences. It gives three attribute points (the split depends on the path you chose), +1 to one discipline, and one focus.",
-      "pages": [107],
+      "grants": "Your Upbringing: the culture you grew up in. It gives three attribute points across two attributes (the split depends on whether you accepted or rebelled against it), +1 to one department, one focus, and one talent.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [117],
       "why": [
-        "The path matters: the same outlook raises different attributes depending on whether your character accepted or rebelled against it, or pursued or gave up an aspiration. That response is part of who they became.",
+        "The response matters: the same Upbringing raises different attributes depending on whether your character accepted or rebelled against it. That response is part of who they became.",
         "Your focus here is one of the first specialties on your sheet: something your character picked up while growing up."
       ]
     },
     "education": {
       "bookStep": "Book Step Four",
-      "grants": "Your training before your career. Each option gives three attribute points, four discipline points (+2 to one, then +1s), three focuses, and one value.",
-      "pages": [115],
+      "grants": "Your Career Path: your higher education and current profession. Each path gives a trait, one value, three attribute points, four department points (+2 to one, then +1 to two others), three focuses, and one talent.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [120],
       "why": [
-        "Education is the largest single step: attributes, disciplines, focuses, and a value all at once. It is where your character's professional profile takes shape.",
-        "Your +2 discipline marks the area your training concentrated on; the +1s show the breadth around it."
+        "Career Path is the largest single step: attributes, departments, focuses, and a value all at once. It is where your character's professional profile takes shape.",
+        "Your +2 department marks the area your training concentrated on; the +1s show the breadth around it."
       ]
     },
     "career": {
       "bookStep": "Book Step Five",
-      "grants": "How long your career has run. It gives one value, arising from your character's career outlook. It changes no scores.",
-      "pages": [122],
-      "assignmentNote": "Assignment and rank come from Book Step Seven (pp.130-132). Your assignment is your job aboard ship and sets your department; your rank is your place in the chain of command. Neither changes any scores.",
-      "roleNote": "Your assignment also gives you the Star Trek Adventures 2E role of the same name. This Role Benefit is separate from your four talents and your Species Ability, and changes no scores.",
-      "noviceNote": "A Novice can't take the senior roles (Commanding Officer, Executive Officer, or a department chief), and their rank is capped at Lieutenant (junior grade), or Petty Officer for enlisted characters.",
+      "grants": "Your Experience: how far your career has progressed (Novice, Experienced or Veteran). It gives one value and one talent: Novice receives Untapped Potential, Veteran receives Veteran, and Experienced chooses one freely. It changes no scores.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [127, 128],
+      "assignmentNote": "Your assignment is your job aboard ship. It sets your department and your role (Core pp.135–139). Your rank is your place in the chain of command (Core p.140): only a Commanding Officer has a minimum rank, Commander. Diplomats and civilians hold No Rank by default but may take an officer rank. Your rank and department also decide your sidearm (Core p.141). None of these change any scores.",
+      "roleNote": "This Role Benefit is separate from your four talents and your Species Ability, and changes no scores.",
+      "noviceNote": "Untapped Potential caps a Novice's rank at Lieutenant (junior grade), or Petty Officer for enlisted characters (Core p.140), so a Novice can't be Commanding Officer.",
       "why": [
-        "Career length records where your character is in their working life. Its value captures the outlook that experience (or the lack of it) has given them so far."
+        "Your Experience records where your character is in their working life. Its value captures the outlook that experience (or the lack of it) has given them so far."
       ]
     },
     "careerHistory": {
       "bookStep": "Book Step Six",
-      "grants": "Defining events in your career. Each event gives +1 to one attribute, +1 to one discipline, and one focus. You have two.",
-      "pages": [123],
+      "grants": "Defining events in your career. Each event gives +1 to one attribute, +1 to one department, and one focus. You have two.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [128],
       "why": [
-        "These are the pivotal moments of your character's history. Each one explains specific points on your sheet: an attribute, a discipline, and a focus that grew out of what happened."
+        "These are the pivotal moments of your character's history. Each one explains specific points on your sheet: an attribute, a department, and a focus that grew out of what happened."
       ]
     },
     "finishingTouches": {
       "bookStep": "Book Step Seven",
-      "grants": "One final value, and +1 to two different attributes and two different disciplines, kept within the limits of a finished starting character.",
-      "pages": [129],
+      "grants": "One final value. Any attribute or department over the limits of a starting character is brought down and the points moved to other scores; then +1 to two different attributes and two different departments, still within the limits. Also your character's personal details and an optional pastime.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "pages": [132],
       "why": [
-        "Finishing Touches rounds out the character and applies the limits of a finished starting character: a score over the maximum is brought down, and the extra points are moved to other scores."
+        "Finishing Touches rounds out the character and applies the limits of a finished starting character: first a score over the maximum is brought down and its extra points are moved to other scores, then your two +1s are added where they still fit."
       ],
       "closing": "Your lifepath is now complete. Screen 8 will assemble these cumulative choices into your finished character record."
     }

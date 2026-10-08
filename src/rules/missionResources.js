@@ -7,12 +7,12 @@
 // - p.259-260: unspent Momentum is saved to the group pool; any player character may use it; the pool holds at most 6;
 //   Momentum that can't be saved is lost unless spent immediately. Bonus Momentum (from talents etc.) is never saved
 //   (PROTOTYPE RULE below: the prototype saves it).
-// - p.259 Create Opportunity (buy d20s, Immediate, Repeatable): before the roll, the first bonus d20 costs 1, the second
+// - pp.255, 260 Create Opportunity (buy d20s, Immediate, Repeatable): before the roll, the first bonus d20 costs 1, the second
 //   2 more, the third 3 more; no task rolls more than 5d20.
 // - p.260, p.263: any Immediate Momentum spend can be paid in part or in full by adding Threat instead, one for one.
-// - p.264, p.324: NPCs have no group Momentum pool; an NPC may spend its unspent Momentum to add 1 Threat each. Threat
+// - p.265, p.324: NPCs have no group Momentum pool; an NPC may spend its unspent Momentum to add 1 Threat each. Threat
 //   mirrors group Momentum for NPCs: they pay for the same spends (bonus d20s included) by spending Threat.
-// Not in yet (hooks only): the scene-end loss of 1 Momentum (p.260), buying off a complication with 2 Threat (p.263).
+// Not in yet (hooks only): the scene-end loss of 1 Momentum (p.261), buying off a complication with 2 Threat (p.258).
 import { TASK_DICE } from './taskResolver.js'
 
 export const MAX_MOMENTUM = 6
@@ -20,7 +20,7 @@ export const MAX_DICE_POOL = 5
 export const BONUS_DIE_COSTS = [1, 2, 3]
 export const MAX_BONUS_DICE = MAX_DICE_POOL - TASK_DICE
 
-// Starting values are a designer decision (Oct 2026: both 0). Book p.263 starts Threat at 2 per player character.
+// Starting values are a designer decision (Oct 2026: both 0). Book p.264 starts Threat at 2 per player character.
 export const createMissionResources = ({ momentum = 0, threat = 0 } = {}) => ({ momentum, threat })
 
 // Total cost of buying `count` bonus d20s: 1, 3, 6.

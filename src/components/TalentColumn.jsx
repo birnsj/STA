@@ -5,11 +5,11 @@ import TalentPicker from './TalentPicker.jsx'
 
 function instructionFor(character, stepId) {
   if (stepId === 'career') {
-    if (!character.career.length) return 'Select a career length to receive its talent.'
+    if (!character.career.length) return 'Select an Experience to receive its talent.'
     const fixedId = getFixedCareerTalentId(character)
     if (fixedId) {
       const talent = getTalentById(fixedId)
-      return `Your career length grants ${talent.name}.${talent.choice ? ' Choose its attribute.' : ''}`
+      return `Your Experience grants ${talent.name}.${talent.choice ? ' Choose its attribute.' : ''}`
     }
   }
   return 'Choose one talent you qualify for. Talents are separate from your Species Trait, Species Ability, Focuses and Values.'

@@ -32,7 +32,7 @@ export const isMixedHeritage = (species) => species?.variant === 'mixedHeritage'
 export const isNewSpecies = (species) => species?.variant === 'newSpecies'
 
 export function hasAttributeChoice(species) {
-  return species.attributeBonus.type !== 'fixed'
+  return Boolean(species) && species.attributeBonus.type !== 'fixed'
 }
 
 // Attributes this species can grant a bonus to; choice-based species (Human) can grant any.
@@ -44,6 +44,14 @@ export function getRequiredAttributeChoices(species) {
   return hasAttributeChoice(species) ? species.attributeBonus.count : 0
 }
 
+// Core p.99: a mixed-heritage character takes the attribute bonuses of the primary species (null until it is chosen).
+export function getBonusSpecies(selection) {
+  if (!selection) return null
+  if (!selection.parents) return getSpeciesById(selection.id)
+  const primaryId = abilitySpeciesId(selection)
+  return primaryId ? getSpeciesById(primaryId) : null
+}
+
 // Keeps the given order: for chosen bonuses that is pick order, which decides which pick a full list swaps out.
 function toAttributeBonuses(attributeIds, amount) {
   return attributeIds
@@ -52,24 +60,23 @@ function toAttributeBonuses(attributeIds, amount) {
     .map((attribute) => ({ id: attribute.id, name: attribute.name, value: amount }))
 }
 
-// Book p.74: "a character has at least a single trait – their species".
-// Prototype: mixed heritage is one combined trait ("Human/Vulcan"), only once both parents are chosen;
+// CL p.74 (Core p.87): "a character has at least a single trait – their species".
+// Core p.99: mixed heritage gains the species traits of both parents (one trait per chosen parent);
 // a new species uses the player's name for it.
 export function deriveTraits(selection) {
   const species = getSpeciesById(selection.id)
-  if (isMixedHeritage(species)) {
-    if (!selection.parents.every(Boolean)) return []
-    return [{ id: species.id, name: selection.parents.map((parent) => parent.name).join('/') }]
-  }
+  if (isMixedHeritage(species)) return selection.parents.filter(Boolean).map(toRef)
   if (isNewSpecies(species)) return selection.customName.trim() ? [{ id: species.id, name: selection.customName.trim() }] : []
   return [toRef(species)]
 }
 
-export function getTraitDescription(selection) {
+// traitId picks one parent's trait for mixed heritage; without it, both descriptions are joined.
+export function getTraitDescription(selection, traitId = null) {
   const species = getSpeciesById(selection.id)
   if (isNewSpecies(species)) return selection.description
   if (isMixedHeritage(species)) {
-    return selection.parents.filter(Boolean).map((parent) => getSpeciesById(parent.id).description).join(' ')
+    const parents = selection.parents.filter((parent) => parent && (!traitId || parent.id === traitId))
+    return parents.map((parent) => getSpeciesById(parent.id).description).join(' ')
   }
   return species?.description ?? ''
 }
@@ -81,10 +88,24 @@ function abilitySpeciesId(selection) {
   return selection.parents.some((parent) => parent?.id === primaryId) ? primaryId : null
 }
 
+// Core p.114: a new species' player creates its Species Ability. Prototype: a written name and description, no effects.
+export const CUSTOM_ABILITY_ID = 'custom'
+
+function customAbility(selection) {
+  const { name, description } = selection.speciesAbility ?? {}
+  return { id: CUSTOM_ABILITY_ID, name: typeof name === 'string' ? name : '', description: typeof description === 'string' ? description : '' }
+}
+
 // STA 2E Species Ability (see speciesAbilities.json). Looked up by species id rather than read from the saved
-// selection, so characters saved before abilities existed still get theirs. Null when the species has none.
+// selection, so characters saved before abilities existed still get theirs. A new species' ability is the player's
+// own, complete once named and described. Null when there is none (yet).
 export function getSpeciesAbility(selection) {
   if (!selection) return null
+  if (isNewSpecies(getSpeciesById(selection.id))) {
+    const { id, name, description } = customAbility(selection)
+    if (!name.trim() || !description.trim()) return null
+    return { id, name: name.trim(), description: description.trim(), effects: [], source: null }
+  }
   const ability = abilityBySpeciesId.get(abilitySpeciesId(selection))
   if (!ability) return null
   const { id, name, description, effects, source } = ability
@@ -101,12 +122,15 @@ export function getSpeciesAbilityGap(selection) {
 // always carry the ability of the species they actually are.
 export function withSpeciesAbility(selection) {
   if (!selection) return selection
+  if (isNewSpecies(getSpeciesById(selection.id))) return { ...selection, speciesAbility: customAbility(selection) }
   const ability = getSpeciesAbility(selection)
   return { ...selection, speciesAbility: ability ? toRef(ability) : null }
 }
 
+// A new species' unfinished ability is caught by the Species step requirements, not here.
 export function hasCurrentSpeciesAbility(selection) {
-  return (selection?.speciesAbility?.id ?? null) === (getSpeciesAbility(selection)?.id ?? null)
+  const expectedId = isNewSpecies(getSpeciesById(selection?.id)) ? CUSTOM_ABILITY_ID : (getSpeciesAbility(selection)?.id ?? null)
+  return (selection?.speciesAbility?.id ?? null) === expectedId
 }
 
 // Display text for summary rows: the ability name, a pending note, or null before a species is chosen.
@@ -139,21 +163,18 @@ export function createSpeciesSelection(speciesId) {
   return withSpeciesAbility({ ...selection, traits: deriveTraits(selection) })
 }
 
-// Attributes the player may currently pick from (mixed heritage: the union of both parents' bonuses).
+// Whether the player picks this selection's bonuses (mixed heritage: only once a choice-based primary is chosen).
+export const hasSelectionAttributeChoice = (selection) => hasAttributeChoice(getBonusSpecies(selection))
+
+// Attributes the player may currently pick from (mixed heritage: as for the primary species).
 export function getChoosableAttributeIds(selection) {
-  const species = getSpeciesById(selection.id)
-  if (!species || !hasAttributeChoice(species)) return []
-  if (!isMixedHeritage(species)) return attributes.map((attribute) => attribute.id)
-  const ids = new Set()
-  for (const parent of selection.parents.filter(Boolean)) {
-    getPossibleBonusAttributeIds(getSpeciesById(parent.id)).forEach((id) => ids.add(id))
-  }
-  return [...ids]
+  const species = getBonusSpecies(selection)
+  if (!hasAttributeChoice(species)) return []
+  return getPossibleBonusAttributeIds(species)
 }
 
 export function canToggleAttributeChoice(selection, attributeId) {
-  const species = getSpeciesById(selection.id)
-  if (!species || !hasAttributeChoice(species)) return false
+  if (!hasSelectionAttributeChoice(selection)) return false
   const isChosen = selection.attributeBonuses.some((bonus) => bonus.id === attributeId)
   if (isChosen) return true
   return getChoosableAttributeIds(selection).includes(attributeId)
@@ -162,7 +183,7 @@ export function canToggleAttributeChoice(selection, attributeId) {
 // Prototype: when all choices are made, a new pick replaces the oldest one instead of being blocked.
 export function toggleAttributeChoice(selection, attributeId) {
   if (!canToggleAttributeChoice(selection, attributeId)) return selection
-  const species = getSpeciesById(selection.id)
+  const species = getBonusSpecies(selection)
   const chosenIds = selection.attributeBonuses.map((bonus) => bonus.id)
   const isFull = chosenIds.length >= species.attributeBonus.count
   const nextIds = chosenIds.includes(attributeId)
@@ -177,20 +198,40 @@ export function getParentOptions(selection, index) {
   return getBaseSpecies().filter((species) => species.id !== otherParentId)
 }
 
+// Mixed-heritage bonuses follow the primary parent: its fixed bonuses, or the player's still-valid picks when it
+// lets the player choose (Human); none until the primary is chosen.
+function settleMixedBonuses(selection) {
+  const species = getBonusSpecies(selection)
+  if (!species) return { ...selection, attributeBonuses: [] }
+  const { attributeBonus } = species
+  if (!hasAttributeChoice(species)) return { ...selection, attributeBonuses: toAttributeBonuses(attributeBonus.attributes, attributeBonus.amount) }
+  const possible = getPossibleBonusAttributeIds(species)
+  const keptIds = selection.attributeBonuses.map((bonus) => bonus.id).filter((id) => possible.includes(id)).slice(-attributeBonus.count)
+  return { ...selection, attributeBonuses: toAttributeBonuses(keptIds, attributeBonus.amount) }
+}
+
 export function setMixedParent(selection, index, speciesId) {
   if (!selection.parents) return selection
   const parent = speciesId ? getSpeciesById(speciesId) : null
   const parents = selection.parents.map((existing, i) => (i === index ? (parent ? toRef(parent) : null) : existing))
   const keepsPrimary = parents.some((entry) => entry?.id === selection.primarySpeciesId)
-  const next = { ...selection, parents, primarySpeciesId: keepsPrimary ? selection.primarySpeciesId : null }
-  const choosable = getChoosableAttributeIds(next)
-  next.attributeBonuses = selection.attributeBonuses.filter((bonus) => choosable.includes(bonus.id))
+  const next = settleMixedBonuses({ ...selection, parents, primarySpeciesId: keepsPrimary ? selection.primarySpeciesId : null })
   return withSpeciesAbility({ ...next, traits: deriveTraits(next) })
 }
 
+// A new primary starts its bonuses afresh, so one parent's fixed bonuses never become picks for the other.
 export function setPrimaryParent(selection, speciesId) {
   if (!selection.parents?.some((parent) => parent?.id === speciesId)) return selection
-  return withSpeciesAbility({ ...selection, primarySpeciesId: speciesId })
+  if (selection.primarySpeciesId === speciesId) return selection
+  return withSpeciesAbility(settleMixedBonuses({ ...selection, primarySpeciesId: speciesId, attributeBonuses: [] }))
+}
+
+// Brings a saved selection up to the current rules (mixed-heritage bonuses and traits, the stored ability).
+export function reconcileSpeciesSelection(selection) {
+  const species = getSpeciesById(selection?.id)
+  if (!species) return selection
+  const settled = isMixedHeritage(species) && Array.isArray(selection.parents) ? settleMixedBonuses(selection) : selection
+  return withSpeciesAbility({ ...settled, traits: deriveTraits(settled) })
 }
 
 export const isPrimaryParentChosen = (selection) => !selection.parents || abilitySpeciesId(selection) !== null
@@ -204,6 +245,17 @@ export function setNewSpeciesName(selection, customName) {
 export function setNewSpeciesDescription(selection, description) {
   if (!('description' in selection)) return selection
   return { ...selection, description }
+}
+
+// Placeholder text the Auto button writes for an unwritten new-species ability (not book text).
+export const getNewSpeciesAutoAbility = () => speciesAbilitySource.withoutAbility.newSpecies.autoFill
+
+// changes: { name?, description? } for a new species' own Species Ability.
+export function setNewSpeciesAbility(selection, changes) {
+  if (!isNewSpecies(getSpeciesById(selection.id))) return selection
+  const ability = customAbility(selection)
+  for (const key of ['name', 'description']) if (typeof changes?.[key] === 'string') ability[key] = changes[key]
+  return { ...selection, speciesAbility: ability }
 }
 
 // The species ids this character belongs to (both parents for mixed heritage).
@@ -235,12 +287,14 @@ export function getSpeciesRequirements(character) {
   const gender = Boolean(character.identity.gender)
   if (!species) return { species: false, gender, traits: false, attributes: false }
   const parentsChosen = !isMixedHeritage(species) || (selection.parents.every(Boolean) && isPrimaryParentChosen(selection))
-  const nameGiven = !isNewSpecies(species) || Boolean(selection.customName.trim())
+  // Core p.114: a new species needs its own Species Ability as well as a name.
+  const nameGiven = !isNewSpecies(species) || (Boolean(selection.customName.trim()) && Boolean(getSpeciesAbility(selection)))
+  const bonusSpecies = getBonusSpecies(selection)
   return {
     species: true,
     gender,
     traits: parentsChosen && nameGiven,
-    attributes: !hasAttributeChoice(species) || selection.attributeBonuses.length === species.attributeBonus.count,
+    attributes: Boolean(bonusSpecies) && (!hasAttributeChoice(bonusSpecies) || selection.attributeBonuses.length === bonusSpecies.attributeBonus.count),
   }
 }
 

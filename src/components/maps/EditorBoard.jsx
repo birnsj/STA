@@ -7,9 +7,9 @@ import EditorCanvas from './EditorCanvas.jsx'
 import { AmbientDarkness, LoneTile } from './IsoTiles.jsx'
 
 // The map editor's board: the tiles drawn into one canvas (EditorCanvas: floor, shadows and light pools, blocks as
-// exploration and Combat Type 1 draw them, the lights on CSS-animated layers over it) under one clickable floor-level outline of the
+// exploration and Combat Type 1 draw them, animated tiles on layers over it) under one clickable floor-level outline of the
 // whole map; the tile under the pointer is worked out from where its floor would be (blocks never take clicks). The
-// darkness, markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what
+// darkness is SVG between the tiles and their lit parts; the markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what
 // is behind blocks.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
@@ -23,10 +23,10 @@ function tileAt(event, map) {
   return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
 }
 
-function Marker({ position, kind, label }) {
+function Marker({ position, kind, label, doomed }) {
   const p = project(position)
   return (
-    <g className={`me-marker is-${kind}`}>
+    <g className={`me-marker is-${kind}${doomed ? ' is-doomed' : ''}`}>
       <polygon points={pts(diamond(position, 0, 0.6))} />
       <text x={p.x} y={p.y + 4} textAnchor="middle">
         {label}
@@ -53,8 +53,10 @@ function BrushPreview({ map, position, tileId, rotated }) {
 // onPaint(position, { first }): a left press on a tile (first) or dragging onto another tile while held.
 // onHover(position or null): the tile under the pointer. brush: the tile id being painted, or null (no tile tool).
 // rotated: the brush paints tiles rotated (mapFormat.js rotated); onRotate: a right click without dragging.
-// lighting: draw shadows, light pools and the map's darkness.
-export default function EditorBoard({ map, ghostBlocks, lighting = true, brush, rotated, onPaint, onHover, onRotate }) {
+// lighting: draw shadows, light pools and the map's darkness. animate: animated tiles play (off: each holds its first
+// frame). erasing: the Erase Marker tool is held, so the markers and label on the hovered tile are highlighted as the
+// ones a click removes.
+export default function EditorBoard({ map, ghostBlocks, lighting = true, animate = true, brush, rotated, erasing = false, onPaint, onHover, onRotate }) {
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, onRotate)
   const [hover, setHoverState] = useState(null)
@@ -71,6 +73,10 @@ export default function EditorBoard({ map, ghostBlocks, lighting = true, brush, 
     window.addEventListener('pointerup', stop)
     return () => window.removeEventListener('pointerup', stop)
   }, [])
+
+  const doomed = (position) => erasing && hover?.x === position.x && hover?.y === position.y
+  const erasesSomething =
+    erasing && hover && [...map.markers.playerStarts, ...map.markers.enemySpawns, ...map.areas.map((area) => area.position)].some(doomed)
 
   const [right, bottom] = [map.width - 0.5, map.height - 0.5]
   const outline = pts(
@@ -92,7 +98,7 @@ export default function EditorBoard({ map, ghostBlocks, lighting = true, brush, 
       {...dragHandlers}
       onPointerLeave={() => setHover(null)}
     >
-      <EditorCanvas map={map} ghost={ghostBlocks} lighting={lighting} />
+      <EditorCanvas map={map} ghost={ghostBlocks} lighting={lighting} animate={animate} darkness={lighting && <AmbientDarkness map={map} />} />
       <polygon
         className="me-cells"
         points={outline}
@@ -111,24 +117,29 @@ export default function EditorBoard({ map, ghostBlocks, lighting = true, brush, 
         }}
         onPointerLeave={() => setHover(null)}
       />
-      {lighting && <AmbientDarkness map={map} />}
       <g className="me-overlay">
         {map.areas.map((area) => {
           const p = project(area.position)
           return (
-            <text key={`${area.position.x},${area.position.y}`} className="me-area-label" x={p.x} y={p.y + 4} textAnchor="middle">
+            <text
+              key={`${area.position.x},${area.position.y}`}
+              className={`me-area-label${doomed(area.position) ? ' is-doomed' : ''}`}
+              x={p.x}
+              y={p.y + 4}
+              textAnchor="middle"
+            >
               {area.name.toUpperCase()}
             </text>
           )
         })}
         {map.markers.playerStarts.map((position, index) => (
-          <Marker key={`p${position.x},${position.y}`} position={position} kind="player" label={`P${index + 1}`} />
+          <Marker key={`p${position.x},${position.y}`} position={position} kind="player" label={`P${index + 1}`} doomed={doomed(position)} />
         ))}
         {map.markers.enemySpawns.map((position, index) => (
-          <Marker key={`e${position.x},${position.y}`} position={position} kind="enemy" label={`E${index + 1}`} />
+          <Marker key={`e${position.x},${position.y}`} position={position} kind="enemy" label={`E${index + 1}`} doomed={doomed(position)} />
         ))}
         {hover && brush && hover.x < map.width && hover.y < map.height && <BrushPreview map={map} position={hover} tileId={brush} rotated={rotated} />}
-        {hover && <polygon className="me-hover" points={pts(diamond(hover))} />}
+        {hover && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
       </g>
     </svg>
   )

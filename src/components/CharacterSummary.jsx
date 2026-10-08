@@ -96,29 +96,28 @@ export default function CharacterSummary({ character }) {
       <SummaryGroup
         rows={[
           { label: 'Environment', variant: 'is-heading' },
-          environment.condition
-            ? { label: 'Condition', value: environment.condition.name, variant: 'is-sub' }
-            : { label: 'Setting', value: environment.setting?.name, variant: 'is-sub' },
+          { label: 'Setting', value: environment.setting?.name, variant: 'is-sub' },
           ...(environment.otherSpecies ? [{ label: 'Raised Among', value: environment.otherSpecies.name, variant: 'is-sub' }] : []),
           { label: 'Value', value: environment.value?.text.trim(), variant: 'is-sub' },
           { label: 'Attribute Bonus', value: formatBonus(environment.attributeBonus), variant: 'is-sub' },
-          { label: 'Discipline Bonus', value: formatBonus(environment.disciplineBonus), variant: 'is-sub' },
+          { label: 'Department Bonus', value: formatBonus(environment.disciplineBonus), variant: 'is-sub' },
         ]}
       />
       <SummaryGroup
         rows={[
-          { label: 'Early Outlook', value: formatOutlook(earlyOutlook), variant: 'is-heading' },
+          { label: 'Upbringing', value: formatOutlook(earlyOutlook), variant: 'is-heading' },
           { label: 'Attribute Bonus', value: formatBonusList(earlyOutlook.attributeBonuses), variant: 'is-sub' },
-          { label: 'Discipline Bonus', value: formatBonus(earlyOutlook.disciplineBonus), variant: 'is-sub' },
+          { label: 'Department Bonus', value: formatBonus(earlyOutlook.disciplineBonus), variant: 'is-sub' },
           { label: 'Focus', value: earlyOutlook.focus?.name.trim(), variant: 'is-sub' },
           talentRow(character, 'earlyOutlook'),
         ]}
       />
       <SummaryGroup
         rows={[
-          { label: 'Education', value: education.option?.name, variant: 'is-heading' },
+          { label: 'Career Path', value: education.option?.name, variant: 'is-heading' },
+          { label: 'Trait', value: education.trait?.name, variant: 'is-sub' },
           { label: 'Attribute Bonus', value: formatBonusList(education.attributeBonuses), variant: 'is-sub' },
-          { label: 'Discipline Bonus', value: formatBonusList(education.disciplineBonuses), variant: 'is-sub' },
+          { label: 'Department Bonus', value: formatBonusList(education.disciplineBonuses), variant: 'is-sub' },
           { label: 'Focuses', value: education.focuses.map((focus) => focus.name).join(', '), variant: 'is-sub' },
           { label: 'Value', value: education.value?.text.trim(), variant: 'is-sub' },
           talentRow(character, 'education'),
@@ -131,7 +130,7 @@ export default function CharacterSummary({ character }) {
           talentRow(character, 'career'),
           { label: 'Career History', value: joinNames(historySlots.map((slot) => slot.event)), variant: 'is-heading' },
           { label: 'Attribute Bonus', value: formatBonusList(historySlots.map((slot) => slot.attributeBonus).filter(Boolean)), variant: 'is-sub' },
-          { label: 'Discipline Bonus', value: formatBonusList(historySlots.map((slot) => slot.disciplineBonus).filter(Boolean)), variant: 'is-sub' },
+          { label: 'Department Bonus', value: formatBonusList(historySlots.map((slot) => slot.disciplineBonus).filter(Boolean)), variant: 'is-sub' },
           { label: 'Focuses', value: joinNames(historySlots.map((slot) => slot.focus).filter(Boolean)), variant: 'is-sub' },
         ]}
       />
@@ -147,7 +146,7 @@ export default function CharacterSummary({ character }) {
       <SummaryGroup rows={[{ label: 'Finishing Touches', variant: 'is-heading' }, talentRow(character, 'finishingTouches')]} />
       <dl className="summary-group">
         <ScoreRow label="Attributes" entries={getKindInfo('attributes').entries} scores={getFinalScores(character, 'attributes')} />
-        <ScoreRow label="Disciplines" entries={getKindInfo('disciplines').entries} scores={getFinalScores(character, 'disciplines')} />
+        <ScoreRow label="Departments" entries={getKindInfo('disciplines').entries} scores={getFinalScores(character, 'disciplines')} />
         <CountRow label="Values" items={values.map((value) => value.text.trim())} required={getRequiredValueCount()} />
         <CountRow label="Focuses" items={focuses.map((focus) => focus.name.trim())} required={getRequiredFocusCount()} />
         <CountRow label="Talents" items={getTalentEntries(character).map((entry) => entry.label)} required={getRequiredTalentCount()} />

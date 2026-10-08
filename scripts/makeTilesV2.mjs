@@ -1,16 +1,16 @@
 // v2 art for the Starship & Station tiles, written to their palette-group folder (engine.mjs outFile).
 // Run with: node scripts/makeTilesV2.mjs   (existing files are kept unless --force is passed)
 //
-// Same layout as the original placeholder tiles (a 64 x 96 design grid with the 64 x 32 floor diamond across the bottom, the
-// same block heights) but rendered RESOLUTION times larger with anti-aliasing; the map views scale every tile image to
-// the 64 x 96 slot, so the extra pixels become detail. Each surface is a small material: a height map (grooves, bevels,
+// A 64 x 96 design grid with the 64 x 32 floor diamond across the bottom (taller for walls, engine.mjs imageHeightFor),
+// rendered RESOLUTION times larger with anti-aliasing; the map views draw every image at its design size, so the extra
+// pixels become detail. Each surface is a small material: a height map (grooves, bevels,
 // rivets, pipes, vents) that is lit by a key and fill light with specular highlights, plus an emission colour that
 // gets a bloom pass. Light comes from the top left as in the original tiles.
 import fs from 'node:fs'
 import { encodePng } from './png.mjs'
 import { fittingFeature, onPanelFace, panelScene, renderPanel, renderPanelLights, windowFeature } from './v2/panels.mjs'
 
-import { RESOLUTION, OUT_W, OUT_H, outFile, FORCE, WALL_STRETCH, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, render, renderLights } from './v2/engine.mjs'
+import { RESOLUTION, OUT_W, OUT_H, outFile, layerFile, FORCE, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, imageHeightFor, render, renderBig, renderBigLights, renderLights, renderTile, renderTileLights } from './v2/engine.mjs'
 
 // ---------- materials ----------
 const STEEL = rgb('#9aa3aa')
@@ -135,7 +135,7 @@ function bulkheadMaterial(drawnHeight, fitting = null) {
 
 // Star Trek wall fittings for bulkhead variants, in a wall face's drawn coordinates (u 0..32 along the face, z 0..92
 // up it; the fittings stay between the guide light and the trim band). Each returns null outside its own area so the
-// plain bulkhead shows round it. alt: the fitting's alternate light pattern, for its animated light overlay; those
+// plain bulkhead shows round it. alt: the fitting's alternate light pattern, for its animated light layer; those
 // lights are tagged 'lights' (and the conduit's core 'core').
 const LCARS = { orange: rgb('#ff9c40'), peach: rgb('#ffcc66'), lilac: rgb('#c9a0dc'), blue: rgb('#99ccff'), red: rgb('#cc6666'), text: rgb('#a8c0ff') }
 const GLASS = { albedo: rgb('#04070b'), spec: 0.9, shininess: 80 }
@@ -280,7 +280,7 @@ const WALL_FITTINGS = {
 }
 
 const ORANGE = rgb('#ff6a30')
-// blink: light the status cells that are dark in the base image instead (the blink overlay).
+// blink: light the status cells that are dark in the base image instead (the blink light layer).
 function machineryMaterial({ blink = false } = {}) {
   const H = 40
   const pipeAt = (u) => Math.min(Math.abs(u - 4.5), Math.abs(u - 27.5))
@@ -411,7 +411,7 @@ function epsMaterial() {
   }
 }
 
-// Drawn over epsControl to blink its light: only the light and its glow are opaque.
+// epsControl's warning light (a light layer, blended normally): only the light and its glow are opaque.
 function epsLitScene(px, py) {
   const point = iso(px, py, 22)
   if (!inUnit(point)) return null
@@ -420,7 +420,7 @@ function epsLitScene(px, py) {
   return { colour: mix(rgb('#ffffff'), SCREEN_BLUE, smoothstep(0, 9, r)), emit: null, alpha: 1 - smoothstep(2, 9, r) }
 }
 
-// A scene whose results carry their own alpha (the light overlay) rather than coverage only.
+// A scene whose results carry their own alpha (a light layer) rather than coverage only.
 function renderOverlay(scene) {
   const bytes = new Uint8Array(OUT_W * OUT_H * 4)
   for (let oy = 0; oy < OUT_H; oy++) {
@@ -435,9 +435,16 @@ function renderOverlay(scene) {
   return bytes
 }
 
+// Bulkheads are as tall as tiles.json says, in an image tall enough to hold them (engine.mjs imageHeightFor).
+const WALL_H = 92
+const WALL_IMAGE = imageHeightFor(WALL_H)
+const wallScene = (fitting = null) => blockScene(WALL_H, bulkheadMaterial(WALL_H, fitting))
+
 // A full-height bulkhead panel along axis with a feature (v2/panels.mjs) built into the face it runs along.
-const bulkheadPanel = (axis, feature) =>
-  panelScene(axis, (half) => blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, onPanelFace(axis, half, feature)), WALL_STRETCH))
+const bulkheadPanel = (axis, feature) => panelScene(axis, (half) => wallScene(onPanelFace(axis, half, feature)), WALL_IMAGE)
+
+// Machinery is a big object (tiles.json big): a 2x2 square of it is drawn from its -big images.
+const machinery = (options) => blockScene(40, machineryMaterial(options))
 
 const TILES = {
   floor: () => render(floorScene(deckPlating({ tint: rgb('#3c4853'), seed: 1 }))),
@@ -445,44 +452,47 @@ const TILES = {
   doorway: () => render(floorScene(doorwayPlate())),
   grating: () => render(floorScene(gratingPlate({ live: false }))),
   'grating-live': () => render(floorScene(gratingPlate({ live: true })), { bloom: 1.2 }),
-  bulkhead: () => render(blockScene(46, bulkheadMaterial(46 * WALL_STRETCH), WALL_STRETCH)),
-  'bulkhead-mid': () => render(blockScene(24, bulkheadMaterial(24))),
-  'bulkhead-low': () => render(blockScene(10, bulkheadMaterial(10))),
-  machinery: () => render(blockScene(40, machineryMaterial())),
+  bulkhead: () => renderTile(wallScene(), WALL_IMAGE),
+  machinery: () => render(machinery()),
+  'machinery-big': () => renderBig(machinery()),
   crate: () => render(blockScene(16, crateMaterial())),
   epsControl: () => render(blockScene(22, epsMaterial())),
   'epsControl-lit': () => renderOverlay(epsLitScene),
-  // Bulkhead variants with Star Trek wall fittings (tileEffects.json wallVariants), each with its light overlay.
+  // Bulkheads with Star Trek wall fittings (lcarsWall etc.), each with its light layer.
   ...Object.fromEntries(
     Object.entries(WALL_FITTINGS).flatMap(([name, fitting]) => {
-      const scene = (alt) => blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, fitting({ alt })), WALL_STRETCH)
+      const scene = (alt) => wallScene(fitting({ alt }))
       return [
-        [`bulkhead-${name}`, () => render(scene(false))],
-        [`bulkhead-${name}-lights`, () => renderLights(scene(true), ['lights'], { gain: 1.2 })],
+        [`bulkhead-${name}`, () => renderTile(scene(false), WALL_IMAGE)],
+        [`bulkhead-${name}-lights`, () => renderTileLights(scene(true), ['lights'], WALL_IMAGE, { gain: 1.2 })],
       ]
     }),
   ),
   // Two-tile panels (tiles.json panelImages, v2/panels.mjs), one per direction: the bulkhead's window panel, and the long
-  // wall fittings with their light overlays (panelLights).
+  // wall fittings with their light layers.
   ...Object.fromEntries(
     ['x', 'y'].flatMap((axis) => [
-      [`bulkhead-window-${axis}`, () => renderPanel(bulkheadPanel(axis, windowFeature(46 * WALL_STRETCH)))],
+      [`bulkhead-window-${axis}`, () => renderPanel(bulkheadPanel(axis, windowFeature(WALL_H)), WALL_IMAGE)],
       ...['lcars', 'conduit', 'hatch', 'computer'].flatMap((kind) => [
-        [`${kind}Panel-${axis}`, () => renderPanel(bulkheadPanel(axis, fittingFeature(kind, 46 * WALL_STRETCH)))],
-        [`${kind}Panel-${axis}-lights`, () => renderPanelLights(bulkheadPanel(axis, fittingFeature(kind, 46 * WALL_STRETCH, { lights: true })), ['lights'], { gain: 1.2 })],
+        [`${kind}Panel-${axis}`, () => renderPanel(bulkheadPanel(axis, fittingFeature(kind, WALL_H)), WALL_IMAGE)],
+        [`${kind}Panel-${axis}-lights`, () => renderPanelLights(bulkheadPanel(axis, fittingFeature(kind, WALL_H, { lights: true })), ['lights'], WALL_IMAGE, { gain: 1.2 })],
       ]),
     ]),
   ),
-  'bulkhead-conduit-core': () =>
-    renderLights(blockScene(46, bulkheadMaterial(46 * WALL_STRETCH, WALL_FITTINGS.conduit({ alt: true })), WALL_STRETCH), ['core'], { gain: 1.1 }),
-  // Light overlays animated by the map views (tileEffects.json animations).
-  'machinery-glow': () => renderLights(blockScene(40, machineryMaterial()), ['core', 'vent'], { gain: 1.2 }),
-  'machinery-blink': () => renderLights(blockScene(40, machineryMaterial({ blink: true })), ['panel'], { gain: 1.3 }),
+  'bulkhead-conduit-core': () => renderTileLights(wallScene(WALL_FITTINGS.conduit({ alt: true })), ['core'], WALL_IMAGE, { gain: 1.1 }),
+  'machinery-glow': () => renderLights(machinery(), ['core', 'vent'], { gain: 1.2 }),
+  'machinery-blink': () => renderLights(machinery({ blink: true }), ['panel'], { gain: 1.3 }),
+  'machinery-glow-big': () => renderBigLights(machinery(), ['core', 'vent'], { gain: 1.2 }),
+  'machinery-blink-big': () => renderBigLights(machinery({ blink: true }), ['panel'], { gain: 1.3 }),
   'epsControl-screen': () => renderLights(blockScene(22, epsMaterial()), ['screen'], { gain: 1.2 }),
 }
 
+// Light layers (engine.mjs layerFile): the lit parts only, never drawn by the game; scripts/makeTileFrames.mjs bakes
+// them into the tiles' animation frames, so run it after this.
+const isLayer = (id) => /-(lights|core|glow|blink|screen|lit|live)(-big)?$/.test(id)
+
 for (const [id, draw] of Object.entries(TILES)) {
-  const file = outFile(`${id}.png`)
+  const file = isLayer(id) ? layerFile(`${id}.png`) : outFile(`${id}.png`)
   if (fs.existsSync(file) && !FORCE) {
     console.log(`kept   ${id}.png (already exists)`)
     continue

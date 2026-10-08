@@ -2,7 +2,7 @@
 // that the layout owns. Rects are { x0, x1, y0, y1 } with inclusive edges.
 import { getTile } from '../mapFormat.js'
 
-// Enough for either combat type's roster (Type 1 fields 4 enemies, Type 2 fields 2).
+// Enough for Combat Type 1's roster of 4 enemies.
 export const MARKERS_PER_SIDE = 4
 export const DOOR_TILE = 'doorway'
 export const CRATE_TILE = 'crate'
@@ -219,12 +219,32 @@ export function markersAtEnds(cells, distance, random) {
 }
 
 // One label per region (while names last), on the region's first walkable tile. regions: arrays of cells.
-export function labelRegions(tiles, regions, names, random) {
-  const shuffled = shuffle(names, random)
-  return regions.slice(0, shuffled.length).flatMap((cells, i) => {
+// inOrder: hand the names out in list order instead of shuffled.
+export function labelRegions(tiles, regions, names, random, { inOrder = false } = {}) {
+  const ordered = inOrder ? names : shuffle(names, random)
+  return regions.slice(0, ordered.length).flatMap((cells, i) => {
     const position = cells.find(({ x, y }) => !getTile(tiles[y][x]).solid)
-    return position ? [{ name: shuffled[i], position }] : []
+    return position ? [{ name: ordered[i], position }] : []
   })
+}
+
+// Labels each kind of place only from its own list (names[kind]), so a label always matches what it names (designer
+// request, Oct 2026). places: [{ kind, cells }]. names.numbered: { kind: prefix } numbers that kind's places in order
+// ("Cell 1", "Cell 2"...) instead. A kind with no names stays unlabelled.
+export function labelPlaces(tiles, places, names, random) {
+  const kinds = [...new Set(places.map((place) => place.kind))]
+  return kinds.flatMap((kind) => {
+    const regions = places.filter((place) => place.kind === kind).map((place) => place.cells)
+    const prefix = names.numbered?.[kind]
+    if (prefix) return labelRegions(tiles, regions, regions.map((_, i) => `${prefix} ${i + 1}`), random, { inOrder: true })
+    return labelRegions(tiles, regions, names[kind] ?? [], random)
+  })
+}
+
+// The tiles touching a solid object (its cells), for a label that names the object: labels sit on walkable tiles.
+export const besideCells = (cells) => {
+  const own = new Set(cells.map(key))
+  return cells.flatMap(neighboursOf).filter((cell) => !own.has(key(cell)))
 }
 
 // Doorways are two tiles wide (designer decision, Oct 2026), so a door is as wide as a wall panel. Picks where one

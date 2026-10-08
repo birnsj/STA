@@ -14,13 +14,13 @@
       "id": "attributes",
       "name": "Attributes",
       "image": "/art/finishing/attributes.png",
-      "description": "Increase two attributes by 1 each, then bring every attribute within the book's limits. This fixes your final attribute scores."
+      "description": "Bring any attribute over the limits back within them, then increase two attributes by 1 each without going over the limits. This fixes your final attribute scores."
     },
     {
       "id": "disciplines",
-      "name": "Disciplines",
+      "name": "Departments",
       "image": "/art/finishing/disciplines.png",
-      "description": "Increase two disciplines by 1 each, then bring every discipline within the book's limits. This fixes your final discipline scores."
+      "description": "Bring any department over the limits back within them, then increase two departments by 1 each without going over the limits. This fixes your final department scores."
     },
     {
       "id": "talent",
@@ -38,7 +38,14 @@
       "id": "identity",
       "name": "Name & Pronouns",
       "image": "/art/finishing/name-pronouns.png",
-      "description": "Name your character and record their pronouns. Pronouns help others use the proper address for your character."
+      "description": "Name your character and record their pronouns and age. Pronouns help others use the proper address for your character."
+    },
+    {
+      "id": "pastime",
+      "name": "Pastime",
+      "image": "/art/finishing/pastime.png",
+      "optional": true,
+      "description": "Optional: a hobby or passion your character enjoys when off duty. It has no rule effect in this prototype."
     },
     {
       "id": "backgroundNotes",
@@ -50,12 +57,15 @@
   ],
   "notes": [
     "Prototype: cards follow the unlock order, with Name & Pronouns as the last required choice and the optional Background Notes after it.",
-    "The Talent card comes from Star Trek Adventures 2E (Core p.131: 'select one extra talent, bringing you to a total of four'); it follows Disciplines so talent requirements are checked against final scores.",
+    "The Talent card comes from Star Trek Adventures 2E (Core p.132: 'select one extra talent, bringing you to a total of four'); it follows Disciplines so talent requirements are checked against final scores.",
     "Screen 07 is Book Step Seven. Assignment and Rank from Step Seven are on Screen 05.",
     "Prototype: Name (required), Portrait (required), and Background Notes (optional) are videogame additions. The book's lifepath has no naming step. Pronouns are from p.132 and, as in the book, required.",
     "Player-facing text never labels anything as a book rule, adaptation, or original system; provenance stays in data (sourceType) and these notes.",
     "Designer decision (Oct 2026): the mockup's Service Motto and Personal Goals are dropped from the design (Service Motto would duplicate Values).",
-    "Limits follow the book: when scores exceed them, the player chooses which tied score keeps the maximum and where each reduced point goes.",
+    "Order follows Core p.132: first any score over the limits (12 / 5 with only one at the maximum; 11 / 4 with Untapped Potential) is reduced and each reduced point is given to another score within the limits; then the two +1s are added, and a +1 can't take a score over the limits (nor make a second score reach the maximum).",
+    "Implementation pick (book silent): when two or more scores are at or above the maximum, the player chooses which one keeps the maximum; the others drop to one below it.",
+    "Designer decision (Oct 2026): as soon as lifepath scores go over the limits (a change on an earlier screen), the game places a default the player can change, so the screen never stalls waiting on it: the highest tied score keeps the maximum, and each reduced point goes to the lowest score that can take it (list order breaks ties). The card says what was moved.",
+    "Age (Core p.132 Personal Details, guidance in the p.127 sidebar) is optional free text stored as identity.age; the guidance for the chosen Experience is shown as help. Pastime (Core pp.132-133) is optional free text stored as identity.pastime; the book gives it no fixed rule effect (the gamemaster may let it act as a focus when relevant), so the prototype gives it none.",
     "The mockup's Randomize category is replaced by the per-screen Auto button. Category images point into public/; missing files fall back to the placeholder portrait."
   ]
 }

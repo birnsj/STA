@@ -38,6 +38,18 @@ function DieScore({ value, task }) {
   return <span className={`roll-die-score is-${verdict.kind}`}>{verdict.short}</span>
 }
 
+// A defender who won an opposed attack (Book p.256, p.290): their Momentum, and what became of the Counterattack.
+function counterattackText(counterattack, state) {
+  const defender = state.combatants[counterattack.defenderId]
+  const outcome = {
+    pending: 'Counterattack?',
+    taken: counterattack.injury && `Counterattack: ${injuryTypeName(counterattack.injury.type)} Injury, Severity ${counterattack.injury.severity}`,
+    declined: 'No Counterattack',
+    unavailable: 'No Counterattack possible',
+  }[counterattack.decided]
+  return `${defender.character.name} wins: +${counterattack.momentum} Momentum${defender.side === 'player' ? '' : ' (to Threat)'} · ${outcome}`
+}
+
 // The attack being rolled (with any rerolls still open to the player) or the last attack's result.
 // awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or No Reroll instead of resolving itself.
 export default function RollPanel({ state, speed = 1, playerControls, awaitingChoice, onReroll, onResolve }) {
@@ -157,6 +169,7 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
                   {injuryOutcome && ` · ${injuryOutcome}`}
                 </span>
               )}
+              {roll.counterattack && <span className="roll-result-sub">{counterattackText(roll.counterattack, state)}</span>}
             </>
           )}
         </div>

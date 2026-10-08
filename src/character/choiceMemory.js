@@ -1,6 +1,6 @@
 import { createEmptyCharacter } from './characterModel.js'
 import { createSpeciesSelection } from '../rules/species.js'
-import { getChosenEntry, selectCondition, selectSetting } from '../rules/environment.js'
+import { getChosenEntry, selectSetting } from '../rules/environment.js'
 import { createEmptyEarlyOutlook, selectOutlook } from '../rules/earlyOutlook.js'
 import { createEmptyEducation, getOptionById, getOptions, selectEducationOption } from '../rules/education.js'
 import { selectLength } from '../rules/career.js'
@@ -31,17 +31,16 @@ export function switchSpecies(state, speciesId) {
 }
 
 // The value is a screen-level choice (shown before any card is picked), so it is not per card.
-// Setting and condition ids never collide, so one map holds both kinds of card.
 const environmentCardPicks = ({ otherSpecies, attributeBonus, disciplineBonus }) => ({ otherSpecies, attributeBonus, disciplineBonus })
 const EMPTY_ENVIRONMENT_PICKS = { otherSpecies: null, attributeBonus: null, disciplineBonus: null }
 
-export function switchEnvironmentCard(state, kind, entryId) {
+export function switchEnvironmentCard(state, entryId) {
   const { character, memory } = state
   const current = character.environment
   const currentId = getChosenEntry(current)?.id
   if (currentId === entryId) return state
   const saved = currentId ? { ...memory.cards.environment, [currentId]: environmentCardPicks(current) } : memory.cards.environment
-  const selected = kind === 'condition' ? selectCondition(current, entryId) : selectSetting(current, entryId)
+  const selected = selectSetting(current, entryId)
   const environment = { ...selected, ...EMPTY_ENVIRONMENT_PICKS, ...saved[entryId] }
   return { character: { ...character, environment }, memory: withCards(memory, { environment: saved }) }
 }

@@ -3,7 +3,7 @@
 // (combatState.js); everything here is a pure function of the state.
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice, staSuccessOdds, staTaskChance, TASK_DICE } from '../rules/taskResolver.js'
-import { getCombatantList, getOpponents, getTurnGroup, getTurnOf, isActive, isTurnFinished, knowsAbout, secondMajorLines } from './combatSelectors.js'
+import { getCombatantList, getOpponents, getTurnGroup, getTurnOf, isActive, isTurnFinished, knowsAbout, reachLines, secondMajorLines } from './combatSelectors.js'
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS } from './turnActions.js'
 import { assistTalents, attackAttribute, defenceLines } from './combatTalents.js'
@@ -88,7 +88,7 @@ function prepareDefence(state, combatant, weaponType, rule) {
   return cache.get(key)
 }
 
-// Whether the target resists with an opposed roll (Book p.289: a ranged attack on a target in Cover; a melee attack on a
+// Whether the target resists with an opposed roll (Book p.290: a ranged attack on a target in Cover; a melee attack on a
 // target aware of it), and the defender's own task: { when, difficulty ('higher' | 'successes'), task }.
 function getOpposition(state, attacker, target, spec, weapon) {
   const rule = spec.opposition
@@ -101,9 +101,9 @@ function getOpposition(state, attacker, target, spec, weapon) {
 // The attack's final Difficulty once the defender's successes are known (no opposition: the preview's Difficulty).
 // 'higher' - VIDEOGAME ADAPTATION (designer cover rule, kept Oct 2026): the higher of the normal Difficulty and the
 // defender's successes, so taking Cover never makes a target easier to hit because its roll was poor. Book (p.256,
-// p.289): the defender's successes alone. 'successes' (Book p.256): the defender's successes, adjusted by the attacker's
-// other Difficulty changes (range, effects). A Guard on the target (Book p.288: +1) and a bought second major action's
-// +1 apply after either.
+// p.290): the defender's successes alone. 'successes' (Book p.256): the defender's successes, adjusted by the attacker's
+// other Difficulty changes (range, effects). A Guard on the target (Book p.289: +1), a bought second major action's +1
+// and an enemy within Reach (Book p.286: +1) apply after either.
 export function attackDifficulty(preview, defenderSuccesses = 0) {
   const { opposition, task } = preview
   if (!opposition) return task.difficulty
@@ -125,10 +125,12 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   const range = getRangeModifier(weapon, band)
   const spec = getAttackTaskSpec(weapon)
   const prepared = prepareAttack(state, attacker, weapon)
-  // Book p.288: a Guard on the target raises the Difficulty of attacks against it by 1.
+  // Book p.289: a Guard on the target raises the Difficulty of attacks against it by 1.
   const guardModifier = target.guard ? 1 : 0
-  // A bought second major action's +1, and the target's Defensive Training: both apply after any opposed roll, like Guard.
-  const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon)]
+  // A bought second major action's +1, the target's Defensive Training and an enemy within Reach of a ranged attacker
+  // (Book p.286): all apply after any opposed roll, like Guard (Book p.258: the active side's other factors).
+  const reach = weapon.type === 'melee' ? [] : reachLines(state, attacker, position)
+  const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon), ...reach]
   const extraModifier = extraLines.reduce((total, line) => total + line.change, 0)
   const task = { ...prepared.task, difficulty: prepared.difficulty + range.modifier + guardModifier + extraModifier }
   const opposition = getOpposition(state, attacker, target, spec, weapon)
@@ -167,7 +169,7 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   return { ...base, available: true, reason: null }
 }
 
-// Assist (Book p.288, p.255): a major action. Designer decision (Oct 2026), kept: the combatant sets up the assist on
+// Assist (Book p.289, p.255): a major action. Designer decision (Oct 2026), kept: the combatant sets up the assist on
 // an ally who still has a turn this round, and the ally's next task this round (an attack, Guard, First Aid or an
 // object's task) adds the helper's 1d20, rolled against the helper's own Target Number. Any ally on the map; one assist
 // per task. The resolver counts the assist die only if the leader scores at least 1 success.
@@ -195,7 +197,7 @@ export function evaluateAttack(pending) {
 // Who assists this combatant's next task, and with what: { helperId, task, focus, via ('assist' | 'direct'), label } or
 // null. source says what the task is: { weapon } (an attack), { spec } (a predefined task: Guard, First Aid) or
 // { approach } (an object's authored assist approach; null = that task can't be assisted).
-// - A directed ally (Direct, Book p.288) is assisted by the commander with Control + Command. Book p.254 lets one
+// - A directed ally (Direct, Book p.289) is assisted by the commander with Control + Command. Book p.254 lets one
 //   assistant help for free and charges for more, so while directed the commander is the only assistant (an Assist
 //   set up on that ally waits for their own turn).
 // - Otherwise the ally who set up an Assist, with the task's own Attribute + Department and focuses (attacks and

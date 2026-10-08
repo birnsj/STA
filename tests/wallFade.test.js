@@ -1,8 +1,9 @@
 // Tall walls and see-through blocks (maps/wallFade.js).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { drawnHeight, fadedBlockKeys } from '../src/maps/wallFade.js'
-import { getTile } from '../src/maps/mapFormat.js'
+import { fadedBlockKeys } from '../src/maps/wallFade.js'
+import { getTile, imageSize, TILES } from '../src/maps/mapFormat.js'
+import { TILE_H } from '../src/maps/iso.js'
 import { fadeWholePanels, getWallPanels } from '../src/maps/wallPanels.js'
 import { fadeWholeBigObjects, getBigObjects } from '../src/maps/bigObjects.js'
 
@@ -13,25 +14,36 @@ const map = {
   tiles: Array.from({ length: 5 }, (_, y) => Array.from({ length: 5 }, (_, x) => (y === 2 && x === 2 ? 'bulkhead' : y === 2 && x === 3 ? 'crate' : 'floor'))),
 }
 
-describe('wall fading', () => {
-  it('walls are drawn twice as tall when tall walls are on', () => {
-    const wall = getTile('bulkhead')
-    assert.equal(drawnHeight(wall, true), wall.height * 2)
-    assert.equal(drawnHeight(wall, false), wall.height)
-    assert.equal(drawnHeight(getTile('crate'), true), getTile('crate').height)
+describe('tile images (drawn at their own size, never stretched)', () => {
+  it('every block image is tall enough to hold its block', () => {
+    for (const tile of TILES.filter((candidate) => candidate.height > 0)) {
+      const top = imageSize(tile).height - TILE_H - tile.height
+      assert.ok(top >= 0, `${tile.id} reaches ${-top} above its image`)
+    }
   })
 
+  it('walls and tall objects have taller images; big objects have their own', () => {
+    assert.equal(imageSize(getTile('bulkhead')).height, 128)
+    assert.equal(imageSize(getTile('crate')).height, 96)
+    for (const tile of TILES.filter((candidate) => candidate.big)) {
+      assert.match(tile.big.image, /-big\.png$/, tile.id)
+      assert.ok(tile.big.height > 0, tile.id)
+    }
+  })
+})
+
+describe('wall fading', () => {
   it('a wall fades when a party member stands right behind it', () => {
-    assert.deepEqual([...fadedBlockKeys(map, [{ x: 1, y: 1 }], true)], ['2,2'])
+    assert.deepEqual([...fadedBlockKeys(map, [{ x: 1, y: 1 }])], ['2,2'])
   })
 
   it('a wall does not fade for someone in front of it or off to the side', () => {
-    assert.equal(fadedBlockKeys(map, [{ x: 3, y: 3 }], true).size, 0)
-    assert.equal(fadedBlockKeys(map, [{ x: 4, y: 0 }], true).size, 0)
+    assert.equal(fadedBlockKeys(map, [{ x: 3, y: 3 }]).size, 0)
+    assert.equal(fadedBlockKeys(map, [{ x: 4, y: 0 }]).size, 0)
   })
 
   it('blocks without Fade never fade', () => {
-    assert.equal(fadedBlockKeys(map, [{ x: 2, y: 1 }], true).has('3,2'), false)
+    assert.equal(fadedBlockKeys(map, [{ x: 2, y: 1 }]).has('3,2'), false)
   })
 })
 
@@ -72,12 +84,6 @@ describe('two-tile wall panels', () => {
 })
 
 describe('tall and big objects', () => {
-  it('tall objects are drawn twice as tall like walls', () => {
-    const tree = getTile('tree')
-    assert.equal(drawnHeight(tree, true), tree.height * 2)
-    assert.equal(drawnHeight(tree, false), tree.height)
-  })
-
   it('a 2x2 square of a big object becomes one object; leftovers and non-big objects stay single', () => {
     const groups = getBigObjects(mapOf(['ooo.', 'ooo.', 'cc..', 'cc..']))
     for (const key of ['0,0', '1,0', '0,1', '1,1']) assert.deepEqual(groups.get(key), { x: 0, y: 0 })
@@ -89,14 +95,14 @@ describe('tall and big objects', () => {
   it('a big object fades as one when someone stands behind it', () => {
     const bigMap = mapOf(['.....', '.....', '..tt.', '..tt.', '.....'])
     const groups = getBigObjects(bigMap)
-    const hidden = fadedBlockKeys(bigMap, [{ x: 1, y: 1 }], true, groups)
+    const hidden = fadedBlockKeys(bigMap, [{ x: 1, y: 1 }], groups)
     assert.ok(hidden.size > 0)
     assert.deepEqual([...fadeWholeBigObjects(hidden, groups)].sort(), ['2,2', '2,3', '3,2', '3,3'])
-    assert.equal(fadedBlockKeys(bigMap, [{ x: 4, y: 4 }], true, groups).size, 0)
+    assert.equal(fadedBlockKeys(bigMap, [{ x: 4, y: 4 }], groups).size, 0)
   })
 
   it('objects 32 high or lower never fade', () => {
     const boulders = mapOf(['.....', '.....', '..oo.', '..oo.', '.....'])
-    assert.equal(fadedBlockKeys(boulders, [{ x: 1, y: 1 }], true, getBigObjects(boulders)).size, 0)
+    assert.equal(fadedBlockKeys(boulders, [{ x: 1, y: 1 }], getBigObjects(boulders)).size, 0)
   })
 })

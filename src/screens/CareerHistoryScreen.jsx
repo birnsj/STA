@@ -47,15 +47,13 @@ function EventDetails({ event, isNovice, locked }) {
       <div className="env-column-body">
         {event ? (
           <>
-            <p className="education-detail-caption">As defined in Captain's Log, p.{event.source.page}:</p>
+            <p className="education-detail-caption">
+              As defined in the {event.source.book}, p.{event.source.page}:
+            </p>
             <ul className="education-book-rules">
-              <li className="education-book-rule"><span className="education-book-label">Attributes:</span> {event.attribute.text}</li>
-              <li className="education-book-rule"><span className="education-book-label">Disciplines:</span> {event.discipline.text}</li>
-              <li className="education-book-rule"><span className="education-book-label">Focuses:</span> {event.focus.text}</li>
-            </ul>
-            <p className="education-detail-caption">Consider:</p>
-            <ul className="career-event-questions">
-              {event.questions.map((question) => <li key={question}>{question}</li>)}
+              <li className="education-book-rule"><span className="education-book-label">Attribute:</span> {event.attribute.text}</li>
+              <li className="education-book-rule"><span className="education-book-label">Department:</span> {event.discipline.text}</li>
+              <li className="education-book-rule"><span className="education-book-label">Focus:</span> {event.focus.text}</li>
             </ul>
             {isNovice && <p className="source-ref">Novice: {getNoviceNote()}</p>}
           </>
@@ -96,7 +94,7 @@ export default function CareerHistoryScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements[slotKeys(0).event] ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose {getEventCount()} defining career events ({completedCount}/{getEventCount()} complete). Each increases one Attribute by 1, one Discipline by 1, and gives one Focus, as defined in Captain's Log.
+            Choose {getEventCount()} defining career events ({completedCount}/{getEventCount()} complete). Each increases one Attribute by 1, one Department by 1, and gives one Focus.
           </p>
         </div>
       </div>
@@ -140,7 +138,11 @@ export default function CareerHistoryScreen({ step, navigation }) {
         <div className="species-details-text">
           <h2 className="species-details-name">{event?.name ?? `No event ${activeSlot + 1} selected`}</h2>
           <p>{event?.description ?? `Select career event ${activeSlot + 1} above.`}</p>
-          {event && <p className="source-ref">Captain's Log, p.{event.source.page} · d20 roll {event.roll}</p>}
+          {event && (
+            <p className="source-ref">
+              {event.source.book}, p.{event.source.page}
+            </p>
+          )}
         </div>
       </div>
 
@@ -166,16 +168,16 @@ export default function CareerHistoryScreen({ step, navigation }) {
 
         <MechanicsColumn
           number="2"
-          title="Discipline"
+          title="Department"
           helpId="eventDiscipline"
-          instruction={event ? (isDisciplineChoice(event) ? 'Choose any one Discipline (+1).' : 'Set by this event (+1).') : 'Select a career event to see its Discipline.'}
+          instruction={event ? (isDisciplineChoice(event) ? 'Choose any one Department (+1).' : 'Set by this event (+1).') : 'Select a career event to see its Department.'}
           instructionLines={2}
           met={requirements[keys.discipline]}
           locked={locked[keys.discipline]}
         >
           {event && (
             <ChoiceList
-              label="Career event discipline"
+              label="Career event department"
               options={bonusOptions(getDisciplines(), event.discipline.id)}
               selectedId={slot.disciplineBonus?.id}
               onSelect={(disciplineId) => dispatchSlot({ type: 'selectCareerEventDiscipline', disciplineId })}
@@ -187,7 +189,7 @@ export default function CareerHistoryScreen({ step, navigation }) {
           number="3"
           title="Focus"
           helpId="eventFocus"
-          instruction={event ? `${event.focus.examples.length ? 'Book example, ' : ''}Focus Matrix${isCustomFocusAllowed() ? ', or your own' : ''}.` : 'Select a career event to choose its Focus.'}
+          instruction={event ? `${event.focus.examples.length ? 'Book suggestion, ' : ''}sample focus${isCustomFocusAllowed() ? ', or your own' : ''}.` : 'Select a career event to choose its Focus.'}
           instructionLines={2}
           met={requirements[keys.focus]}
           locked={locked[keys.focus]}

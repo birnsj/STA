@@ -3,13 +3,17 @@
 import { getAttributeTotals } from './characterTotals.js'
 import {
   getBaseSpecies,
+  getBonusSpecies,
   getChoosableAttributeIds,
+  getNewSpeciesAutoAbility,
   getRequiredAttributeChoices,
+  getSpeciesAbility,
   getSpeciesById,
   isMixedHeritage,
   isNewSpecies,
   isPrimaryParentChosen,
   setMixedParent,
+  setNewSpeciesAbility,
   setNewSpeciesName,
   setPrimaryParent,
   toggleAttributeChoice,
@@ -61,7 +65,12 @@ export function fillSpecies(character, chooser) {
     if (!isPrimaryParentChosen(species)) species = setPrimaryParent(species, chooser.order(species.parents)[0].id)
   }
   if (isNewSpecies(definition) && !species.customName.trim()) species = setNewSpeciesName(species, definition.name)
-  const missing = getRequiredAttributeChoices(definition) - species.attributeBonuses.length
+  if (isNewSpecies(definition) && !getSpeciesAbility(species)) {
+    const written = species.speciesAbility
+    const auto = getNewSpeciesAutoAbility()
+    species = setNewSpeciesAbility(species, { name: written?.name?.trim() || auto.name, description: written?.description?.trim() || auto.description })
+  }
+  const missing = getRequiredAttributeChoices(getBonusSpecies(species)) - species.attributeBonuses.length
   if (missing > 0) {
     const chosen = species.attributeBonuses.map((bonus) => bonus.id)
     const candidates = chooser.order(getChoosableAttributeIds(species)).filter((id) => !chosen.includes(id))
@@ -90,9 +99,10 @@ export function fillEnvironment(character, chooser) {
   }
   if (!next.environment.value?.text.trim()) {
     const text = pickStageValue(next, 'environment', chooser.order)
+    const example = environmentRules.getEnvironmentValueExamples(next).find((entry) => entry.text === text)
     update(
-      text
-        ? environmentRules.setCustomValue(next.environment, text)
+      example
+        ? environmentRules.selectMatrixValue(next.environment, example.id)
         : environmentRules.selectMatrixValue(next.environment, chooser.order(environmentRules.getValueMatrix())[0].id),
     )
   }
@@ -185,7 +195,9 @@ function fillEducationFocusesAndValue(character, chooser) {
   }
   if (!education.value?.text.trim()) {
     const text = pickStageValue({ ...character, education }, 'education', chooser.order)
-    if (text) education = educationRules.setCustomValue(education, text)
+    const example = educationRules.getValueExamples(education.option.id).find((entry) => entry.text === text)
+    if (example) education = educationRules.selectMatrixValue(education, example.id)
+    else if (text) education = educationRules.setCustomValue(education, text)
     else {
       const environmentValueId = character.environment.value?.matrixId
       const entry = chooser.order(educationRules.getValueMatrix()).find((value) => value.id !== environmentValueId)
@@ -195,8 +207,15 @@ function fillEducationFocusesAndValue(character, chooser) {
   return { ...character, education }
 }
 
+function fillEducationTrait(character, chooser) {
+  if (character.education.trait) return character
+  const [trait] = chooser.order(educationRules.getTraitOptions(character.education.option.id))
+  return { ...character, education: educationRules.selectTrait(character.education, trait.id) }
+}
+
 export function fillEducation(character, chooser) {
   let next = educationRules.reconcileEducation(character)
+  next = fillEducationTrait(next, chooser)
   next = fillEducationAttributes(next, chooser)
   next = fillEducationDisciplines(next, chooser)
   return fillTalent(fillEducationFocusesAndValue(next, chooser), 'education', chooser)
@@ -225,7 +244,8 @@ export function fillCareer(character, chooser) {
     next = { ...next, career: careerRules.selectRole(next.career, chooser.order(getRoles())[0].id) }
   }
   if (!next.career.rank) {
-    const rank = chooser.order(careerRules.getRankOptions(next)).find((option) => careerRules.isRankAllowed(next, option.id))
+    const allowed = chooser.order(careerRules.getRankOptions(next)).filter((option) => careerRules.isRankAllowed(next, option.id))
+    const rank = careerRules.getDefaultRank(next) ?? allowed.find((option) => careerRules.isAutoRank(next, option.id)) ?? allowed[0]
     next = { ...next, career: careerRules.selectRank(next, rank.id) }
   }
   return fillTalent(next, 'career', chooser)
@@ -259,19 +279,12 @@ export function fillCareerHistory(character, chooser) {
   return { ...character, careerHistory: history }
 }
 
-// Uses the same limit rules as the screen: picks increases that stay under the limits, then resolves any leftover excess.
+// Uses the same rules as the screen, in the book's order: resolve any scores over the limits, then pick +1s that fit.
 function fillFinishingScores(character, kind, chooser) {
   let next = character
   const apply = (finishingTouches) => (next = { ...next, finishingTouches })
   const { entries, increaseCount } = finishingRules.getKindInfo(kind)
   const ids = entries.map((entry) => entry.id)
-  while (next.finishingTouches[kind].increases.length < increaseCount) {
-    const { raw, ceiling } = finishingRules.getLimitAnalysis(next, kind)
-    const chosen = next.finishingTouches[kind].increases
-    const pool = chooser.order(ids).filter((id) => !chosen.includes(id))
-    const target = pool.find((id) => raw[id] + 1 <= ceiling) ?? pool[0]
-    apply(finishingRules.toggleIncrease(next, kind, target))
-  }
   let analysis = finishingRules.getLimitAnalysis(next, kind)
   if (analysis.needsKeeperChoice && !analysis.keeper) apply(finishingRules.setKeepAtMax(next, kind, chooser.order(analysis.overLimit)[0]))
   analysis = finishingRules.getLimitAnalysis(next, kind)
@@ -280,6 +293,11 @@ function fillFinishingScores(character, kind, chooser) {
     if (!target) break
     apply(finishingRules.addRedistributionPoint(next, kind, target))
     analysis = finishingRules.getLimitAnalysis(next, kind)
+  }
+  while (next.finishingTouches[kind].increases.length < increaseCount) {
+    const target = chooser.order(ids).find((id) => !next.finishingTouches[kind].increases.includes(id) && finishingRules.canAddIncrease(next, kind, id))
+    if (!target) break
+    apply(finishingRules.toggleIncrease(next, kind, target))
   }
   return next
 }

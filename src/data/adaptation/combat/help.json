@@ -43,7 +43,7 @@
       "lines": [
         "Each turn you have one Major action (Attack, Sprint, Assist, Guard, First Aid, Direct, or a task on an object) and one Minor action (Move, Aim, or a simple object interaction), in either order. You can't attack twice.",
         "Click a Klingon to show buttons around it: Stun and Deadly fire at it straight away, Aim sets up a reroll, and Info shows its condition, the Severity a hit would inflict, cover and your chance to hit. Click a party member for Assist (and Switch to hand them the turn). Point at the character who is acting (or tap them) to show their own actions around them; First Aid, Direct, Interact, Extra Minor and Second Major appear only when there is someone to treat, you are in authority, an object is in reach, or you can pay for the extra action. Click the same figure again, or the floor, to put the buttons away.",
-        "Guard (Major): Insight + Security at Difficulty 0; attacks against you get +1 Difficulty until the start of your next turn. Guard an ally within one tile instead at Difficulty 1. A gold G marks a guarded figure.",
+        "Guard (Major): Insight + Security at Difficulty 0 (1 with a Klingon right next to you); attacks against you get +1 Difficulty until the start of your next turn. Guard an ally within one tile instead at +1 Difficulty. A gold G marks a guarded figure.",
         "First Aid (Major): Daring + Medicine on an ally within one tile. Revive = Difficulty 2: a Defeated ally is back on their feet (the Injury stays). Treat Injury = Difficulty equal to its Severity: no penalty from it any more, but it is still an Injury.",
         "Direct (Major, 1 Momentum): only the character in authority (a nominated leader, else the highest rank, else the first picked). The chosen ally must hear you (nearby, or both carrying a communicator); they take one Major action at once, and the commander assists it with Control + Command. Nobody takes more than two Major actions in a round.",
         "Extra actions: point at your character for Extra Minor (1 Momentum, once per turn) or, after your Major action, Second Major (2 Momentum; that task is +1 Difficulty).",
@@ -63,7 +63,9 @@
         "You can also click a Klingon and choose Stun or Deadly next to it to fire at it straight away. The Task panel on the right shows the roll you will make.",
         "The result applies by itself: a hit shows the Injury over the target. If the roll would miss and you have an Aim reroll, it waits so you can reroll a red die or click No Reroll.",
         "Two dice are rolled (up to five with bonus d20s bought in the Task panel). Each die at or under your Target Number (Control + Security for a shot, Daring + Security in melee) is a success; with a focus that fits the weapon, a die at or under your Security is a critical worth 2, and a 1 always is. You need as many successes as the Difficulty. A 20 is a complication.",
-        "Difficulty is 2 for a shot (1 in melee), plus 1 for each range band beyond your weapon's best range. A Klingon who sees a melee attack coming defends: its successes set the Difficulty instead."
+        "Difficulty is 2 for a shot (1 in melee), plus 1 for each range band beyond your weapon's best range. A Klingon who sees a melee attack coming defends: its successes set the Difficulty instead.",
+        "Within Reach: while an enemy stands right next to you, every task you attempt except a melee attack is +1 Difficulty: shots, Guard, First Aid, object tasks and the Ambush. The Task panel lists it as Enemy within Reach. The Klingons suffer the same.",
+        "Counterattack: when a target that rolled to defend (in cover, or against a melee attack) beats the attack, it gains 1 Momentum for each success the attacker was short, and may spend 2 Momentum to Counterattack: an Injury from its weapon on the attacker, with no roll (the attacker may still Avoid Injury). When one of your characters wins, you choose Stun, Deadly (+1 Threat) or no Counterattack; the Klingons pay with Threat and always strike back when they can."
       ]
     },
     {
@@ -78,9 +80,9 @@
     {
       "heading": "Momentum and Threat",
       "lines": [
-        "Momentum is the away team's shared pool (0-6), the same one used outside combat. Each success beyond the Difficulty adds 1; anything over 6 is lost. Spend it on bonus d20s, 1 to Direct an ally, 1 for an Extra Minor action or 2 for a Second Major action.",
+        "Momentum is the away team's shared pool (0-6), the same one used outside combat. Each success beyond the Difficulty adds 1; anything over 6 is lost. Spend it on bonus d20s, 1 to Direct an ally, 1 for an Extra Minor action, 2 for a Second Major action or 2 to Counterattack.",
         "Before an attack, buy bonus d20s in the Task panel: the first costs 1, the second 2 more, the third 3 more (5d20 at most). Pay from Momentum, or add the same amount of Threat instead.",
-        "Threat is the opposition's pool for the mission. It grows when you make a Deadly attack, when you pay for dice with Threat, and from Momentum the Klingons generate. The Klingons spend it the way you spend Momentum: on bonus d20s, an extra minor action, or a second major action."
+        "Threat is the opposition's pool for the mission. It grows when you make a Deadly attack, when you pay for dice with Threat, and from Momentum the Klingons generate. The Klingons spend it the way you spend Momentum: on bonus d20s, an extra minor action, a second major action, or a Counterattack."
       ]
     },
     {

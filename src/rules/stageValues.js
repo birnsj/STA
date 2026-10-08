@@ -1,20 +1,24 @@
-// Values written for each lifepath stage (data/adaptation/stageValues.json, original prototype text), used by Auto
-// and the dev Autofill so a generated value reflects the stage that grants it. Players still pick from the
-// book's Values Matrix or write their own on screen.
+// Values for each lifepath stage, used by Auto and the dev Autofill so a generated value reflects the stage that
+// grants it: the book's examples where it gives them (species sidebars, Experience), otherwise the prototype text in
+// data/adaptation/stageValues.json. Players still pick from the book's values or write their own on screen.
 import stageValues from '../data/adaptation/stageValues.json'
+import careerLengths from '../data/source/careerLengths.json'
+import { getEnvironmentValueExamples } from './environment.js'
 import { getCharacterValues } from './finishingTouches.js'
+
+const toTexts = (values) => values.map((value) => value.text)
 
 // The value pool for one stage, from the choice that stage depends on.
 function getPool(character, stage) {
   switch (stage) {
-    case 'environment': {
-      const entry = character.environment.setting ?? character.environment.condition
-      return stageValues.environment[entry?.id] ?? []
-    }
+    case 'environment':
+      return character.environment.setting ? toTexts(getEnvironmentValueExamples(character)) : []
     case 'education':
       return stageValues.education[character.education.option?.id] ?? []
-    case 'career':
-      return stageValues.careerLength[character.career.length?.id] ?? []
+    case 'career': {
+      const length = careerLengths.lengths.find((entry) => entry.id === character.career.length?.id)
+      return toTexts(length?.valueExamples ?? [])
+    }
     case 'finishingTouches':
       return character.careerHistory.events.flatMap((slot) => stageValues.careerEvent[slot?.event?.id] ?? [])
     default:

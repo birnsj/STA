@@ -1,6 +1,6 @@
 // Crash Site: a scorched impact scar across open ground with the broken hull lying along it, burning wreckage and debris
 // strewn around it, in otherwise untouched terrain. The biome supplies the ground and most of its natural features.
-import { applyFeatures, cornerMarkers, growBlob, makeGrid, placeSolid, randomInt, scatter, zoneLabels } from './shared.js'
+import { allCells, applyFeatures, besideCells, cornerMarkers, growBlob, labelPlaces, makeGrid, placeSolid, randomInt, scatter } from './shared.js'
 
 const FEATURE_SCALE = 0.7
 
@@ -25,9 +25,10 @@ export function generateCrashSite(map, random, areaNames, biome) {
 
   // The hull: a short broken line of hull sections at the head of the scar, then fires and debris in and around it.
   const sections = randomInt(random, 3, 6)
+  const hull = []
   for (let i = 0; i < sections; i++) {
     const cell = horizontal ? { x: centre.x + direction * (i - 1), y: centre.y } : { x: centre.x, y: centre.y + direction * (i - 1) }
-    if (tiles[cell.y]?.[cell.x] !== undefined && random() < 0.85) placeSolid(tiles, [cell], 'hullWreck')
+    if (tiles[cell.y]?.[cell.x] !== undefined && random() < 0.85 && placeSolid(tiles, [cell], 'hullWreck')) hull.push(cell)
   }
   scatter(tiles, keep, randomInt(random, 3, 6), 'burningWreck', random, 'scorched')
   scatter(tiles, keep, Math.round(area / 60), 'debris', random, 'scorched')
@@ -37,6 +38,16 @@ export function generateCrashSite(map, random, areaNames, biome) {
   scatter(tiles, keep, Math.round(area / 70), biome.boulder, random, ground)
 
   const markers = cornerMarkers(tiles, random)
-  const areas = zoneLabels(tiles, areaNames, random)
+  // areaNames: { hull, scar } lists: the hull beside the wreck, the scar at the scorched end farthest from it.
+  const fromHull = (cell) => Math.abs(cell.x - centre.x) + Math.abs(cell.y - centre.y)
+  const scar = allCells(tiles)
+    .filter(({ x, y }) => tiles[y][x] === 'scorched')
+    .sort((a, b) => fromHull(b) - fromHull(a))
+  const areas = labelPlaces(
+    tiles,
+    [...(hull.length ? [{ kind: 'hull', cells: besideCells(hull) }] : []), ...(scar.length ? [{ kind: 'scar', cells: scar }] : [])],
+    areaNames,
+    random,
+  )
   return { ...map, tiles, areas, markers }
 }

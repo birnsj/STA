@@ -16,12 +16,13 @@ export function createEmptyCharacter() {
     faction: getCreatorFaction(),
     // { id, name, traits: [{ id, name }], attributeBonuses: [{ id, name, value }] }
     species: null,
-    // { setting, condition, otherSpecies, value: { text, matrixId }, attributeBonus, disciplineBonus }
+    // { setting, otherSpecies, value: { text, matrixId }, attributeBonus, disciplineBonus } (Core Step Two: Environment)
     environment: createEmptyEnvironment(),
-    // { approach, outlook, path, attributeBonuses: [{ id, name, value }], disciplineBonus, focus: { name, custom } }
+    // { outlook, path, attributeBonuses: [{ id, name, value }], disciplineBonus, focus: { name, custom } }
+    //   (Core Step Three: Upbringing; outlook is the Upbringing, path is accepted / rebelled)
     earlyOutlook: createEmptyEarlyOutlook(),
     // { category, option, attributeBonuses, disciplinePicks: { major, minors, swapFrom, swapTo }, disciplineBonuses,
-    //   focuses: [{ name, custom }], value: { text, matrixId } }
+    //   focuses: [{ name, custom }], value: { text, matrixId }, trait: { id, name } } (Core Step Four: Career Path)
     education: createEmptyEducation(),
     // { length, value: { text, matrixId }, assignment, department (null for Communications Officer), rank }
     career: createEmptyCareer(),
@@ -29,7 +30,7 @@ export function createEmptyCharacter() {
     careerHistory: createEmptyCareerHistory(),
     // { value: { text, matrixId }, attributes: { increases, keepAtMax, redistribution }, disciplines: { same } }
     finishingTouches: createEmptyFinishingTouches(),
-    // Book p.131: four talents, one per granting step. Kept apart from the Species Ability (species.speciesAbility).
+    // Core p.132: four talents, one per granting step. Kept apart from the Species Ability (species.speciesAbility).
     // { earlyOutlook, education, career, finishingTouches }: each { id, name, choice: { id, name } | null } or null.
     talents: createEmptyTalents(),
     // Prototype presentation data, not book mechanics: { name, pronouns, portrait: { id, name } }

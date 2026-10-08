@@ -8,7 +8,7 @@ import {
   DOOR_TILE,
   doorwayOffsets,
   furnishRoom,
-  labelRegions,
+  labelPlaces,
   MACHINERY_TILE,
   makeGrid,
   markerCells,
@@ -110,7 +110,8 @@ function buildStation(map, random, areaNames, style) {
   const markers = playerRoom
     ? pickMarkers(markerCells(tiles, roomCells(playerRoom)), markerCells(tiles, roomCells(enemyRoom)), random)
     : markersAtEnds(markerCells(tiles, roomCells(promenade)), ({ x }) => (leftFirst ? x : -x), random)
-  const areas = labelRegions(tiles, [roomCells(promenade), ...rooms.map(roomCells)], areaNames, random)
+  // areaNames: { hall, room } lists (the promenade or central hall, and the rooms off it).
+  const areas = labelPlaces(tiles, [{ kind: 'hall', cells: roomCells(promenade) }, ...rooms.map((room) => ({ kind: 'room', cells: roomCells(room) }))], areaNames, random)
   return { ...map, tiles, areas, markers }
 }
 

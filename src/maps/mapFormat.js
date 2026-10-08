@@ -16,7 +16,9 @@ import catalogue from '../data/adaptation/maps/tiles.json'
 export const MAP_SCHEMA_VERSION = 1
 export const TILES = catalogue.tiles
 export const TILE_IMAGE = catalogue.imageSize
-export const WALL_HEIGHT_SCALE = catalogue.wallHeightScale ?? 1
+// A tile's image size in design pixels. Walls and tall objects reach higher than TILE_IMAGE holds, so theirs are taller
+// (tiles.json imageHeight); every image is drawn at its own size standing on its tile, never stretched.
+export const imageSize = (tile) => (tile.imageHeight ? { width: TILE_IMAGE.width, height: tile.imageHeight } : TILE_IMAGE)
 export const PALETTE_GROUPS = catalogue.paletteGroups ?? []
 export const FLOOR_TILE = 'floor'
 export const WALL_TILE = 'bulkhead'

@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import ChoiceList from './ChoiceList.jsx'
 
-function toValueOption(entry, heldElsewhere) {
+function toValueOption(entry, heldElsewhere, suffix) {
   const where = heldElsewhere.get(entry.text.toLowerCase())
-  if (!where) return { id: entry.id, label: entry.text }
+  if (!where) return { id: entry.id, label: entry.text, suffix }
   return { id: entry.id, label: entry.text, disabled: true, suffix: 'Taken', title: `Already chosen: ${where}` }
 }
 
-// One value from the Values Matrix, or written by the player. Nothing is chosen until the player picks.
-// heldElsewhere: Map of lower-case value text -> screen that already has it; those are disabled.
-export default function ValuePicker({ value, matrix, allowCustom, onSelectMatrix, onCustomChange, heldElsewhere = new Map() }) {
+// One value from the step's book examples (listed first), the book's Sample Values, or written by the player.
+// Nothing is chosen until the player picks. heldElsewhere: Map of lower-case value text -> screen that already
+// has it; those are disabled.
+export default function ValuePicker({ value, matrix, examples = [], allowCustom, onSelectMatrix, onCustomChange, heldElsewhere = new Map() }) {
   const isCustom = Boolean(value) && value.matrixId === null
   // Keeps typed text if the player picks a listed value and then returns to their own.
   const [customDraft, setCustomDraft] = useState(isCustom ? value.text : '')
@@ -24,7 +25,10 @@ export default function ValuePicker({ value, matrix, allowCustom, onSelectMatrix
     <div className="value-picker">
       <ChoiceList
         label="Value"
-        options={matrix.map((entry) => toValueOption(entry, heldElsewhere))}
+        options={[
+          ...examples.map((entry) => toValueOption(entry, heldElsewhere, 'Example')),
+          ...matrix.filter((entry) => !examples.some((example) => example.text === entry.text)).map((entry) => toValueOption(entry, heldElsewhere)),
+        ]}
         selectedId={isCustom ? null : value?.matrixId}
         onSelect={onSelectMatrix}
       />

@@ -1,7 +1,7 @@
 import { BONUS_DIE_COSTS, bonusDiceCost, checkDicePurchase, defaultMomentumPayment, MAX_BONUS_DICE, MAX_MOMENTUM } from '../rules/missionResources.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
-// Buy d20s before a roll (Book: STA 2e Core p.259-260, 263): how many bonus dice, and how the cost is paid, from the
+// Buy d20s before a roll (Book: STA 2e Core pp.255, 260): how many bonus dice, and how the cost is paid, from the
 // group Momentum pool or by adding Threat. value: { bonusDice, momentum }. UI only; the rules are missionResources.js.
 export default function BonusDicePicker({ resources, value, onChange, disabled = false }) {
   const check = checkDicePurchase(resources, value)

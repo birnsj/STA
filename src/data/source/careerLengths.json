@@ -1,34 +1,53 @@
 {
   "source": {
-    "book": "Captain's Log 2026",
-    "section": "Step Five: Career Length",
-    "pages": [122, 123]
+    "book": "Star Trek Adventures 2E Core Rulebook",
+    "section": "Step Five: Experience",
+    "pages": [127, 128]
   },
-  "grants": "This stage grants the character a value arising from their career outlook.",
+  "grants": "This stage grants the character a value and a talent. It should always be chosen rather than rolled; if you’re creating your character randomly, default to the Veteran option.",
+  "ageGuidance": {
+    "text": "A character can be of any age, though this should be guided by the choice made in Step Five: Experience. These numbers can be adjusted for species that live a particularly long time: a middle-aged Vulcan may be a century old, and as fit as a Human half their age.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 127 }
+  },
   "lengths": [
     {
       "id": "novice",
       "name": "Novice",
-      "roll": "1-6",
-      "description": "Your character is defined by their potential more than their skill. Their raw talent and their expectations of what the universe is like has not yet been tempered by reality.",
-      "valuePrompt": "Add a value, reflecting their inexperience and naïveté in some way.",
-      "source": { "book": "Captain's Log", "page": 122 }
+      "description": "You’re defined by your potential more than your experience. Your raw talent and expectations of what the universe is like have not yet been tempered by reality.",
+      "valuePrompt": "The character receives a value, which must reflect the character’s inexperience and naïveté in some way.",
+      "valueExamples": [
+        { "id": "novice-value-1", "text": "I can’t wait to see what’s out there" },
+        { "id": "novice-value-2", "text": "The Galaxy isn’t what I expected" },
+        { "id": "novice-value-3", "text": "I must prove myself" }
+      ],
+      "talent": "The character receives a single talent: Untapped Potential.",
+      "age": "A Novice is likely to be in their early 20s: old enough to have completed Starfleet Academy, but not old enough to have done much else.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 127 }
     },
     {
       "id": "experienced",
       "name": "Experienced",
-      "roll": "7-13",
-      "description": "Your character has several years of experience and is enjoying a promising career.",
-      "valuePrompt": "Add a value, chosen freely.",
-      "source": { "book": "Captain's Log", "page": 123 }
+      "description": "You have many years of experience in your chosen field, and you’re enjoying a promising career. This is the default assumption for characters created using these rules.",
+      "valuePrompt": "The character receives a value, which may be chosen freely.",
+      "valueExamples": [],
+      "talent": "The character receives a single talent, which may be chosen freely.",
+      "age": "Most Experienced Officers working up the ranks are in their late 20s, or their 30s or 40s.",
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 128 }
     },
     {
       "id": "veteran",
       "name": "Veteran",
-      "roll": "14-20",
-      "description": "Your character has decades of experience and has served on many ships and starbases. Their judgement and opinions are highly regarded by subordinates, peers, and even superiors.",
-      "valuePrompt": "Add a value, reflecting their years of experience and the beliefs they’ve formed over their long career.",
-      "source": { "book": "Captain's Log", "page": 123 }
+      "description": "You have decades of experience in your chosen profession, and you’ve likely seen much of the Alpha and Beta Quadrants, if not more of the Galaxy. Your judgement and opinions are highly regarded by those around you, even those who hold higher rank or status.",
+      "valuePrompt": "The character receives a value, which must reflect the character’s years of experience and the beliefs they’ve formed over their long career.",
+      "valueExamples": [
+        { "id": "veteran-value-1", "text": "There’s not much that can surprise me anymore" },
+        { "id": "veteran-value-2", "text": "You don’t survive this long without facing loss" },
+        { "id": "veteran-value-3", "text": "I’ve trusted my instincts long enough to doubt them now" }
+      ],
+      "talent": "The character receives a single talent: Veteran.",
+      "age": "A Veteran Officer should be in their 50s or 60s, or even older, remembering that people stay fit and healthy for a long time in the Federation.",
+      "randomDefault": true,
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 128 }
     }
   ]
 }

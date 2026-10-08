@@ -242,23 +242,25 @@ export function objectScene({ ground, parts, top = 60 }) {
 }
 
 // ---------- contact sheet ----------
-// images: [{ id, bytes }] at OUT_W x OUT_H; drawn half size in rows of columns on a dark background.
+// images: [{ id, bytes, width, height }] (width and height default to a tile's OUT_W x OUT_H); drawn half size in rows
+// of columns on a dark background, each standing on the bottom of a cell as big as the largest image.
 export function writeSheet(file, images, columns = 8) {
-  const w = OUT_W / 2
-  const h = OUT_H / 2
-  const rows = Math.ceil(images.length / columns)
-  const W = w * Math.min(columns, images.length)
+  const sized = images.map((image) => ({ width: OUT_W, height: OUT_H, ...image }))
+  const w = Math.max(...sized.map((image) => image.width)) / 2
+  const h = Math.max(...sized.map((image) => image.height)) / 2
+  const rows = Math.ceil(sized.length / columns)
+  const W = w * Math.min(columns, sized.length)
   const H = h * rows
   const out = new Uint8Array(W * H * 4)
   for (let i = 0; i < W * H; i++) out.set([18, 22, 26, 255], i * 4)
-  images.forEach(({ bytes }, index) => {
-    const ox = (index % columns) * w
-    const oy = Math.floor(index / columns) * h
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
+  sized.forEach(({ bytes, width, height }, index) => {
+    const ox = (index % columns) * w + Math.floor((w - width / 2) / 2)
+    const oy = Math.floor(index / columns) * h + h - height / 2
+    for (let y = 0; y < height / 2; y++) {
+      for (let x = 0; x < width / 2; x++) {
         const acc = [0, 0, 0, 0]
         for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
-          const i = ((y * 2 + dy) * OUT_W + x * 2 + dx) * 4
+          const i = ((y * 2 + dy) * width + x * 2 + dx) * 4
           const a = bytes[i + 3] / 255
           for (let k = 0; k < 3; k++) acc[k] += bytes[i + k] * a
           acc[3] += a

@@ -1,15 +1,14 @@
 // v2 art for the starship bridge tiles (TOS-inspired): a charcoal-and-warm-grey station ring with framed displays, the
 // main viewscreen, turbolift doors, a maroon command well, the captain's chair, helm and stations, and a red railing
-// that joins up (maps/railJoins.js). Same renderer and size as the other v2 art (engine.mjs, 256 x 384), written to
-// the Bridge (TOS) palette-group folder (engine.mjs outFile).
+// that joins up (maps/railJoins.js). Same renderer and sizes as the other v2 art (engine.mjs: 256 x 384, walls taller),
+// written to the Bridge (TOS) palette-group folder (engine.mjs outFile).
 //
 // Run with: node scripts/makeTilesBridge.mjs [--force] [--sheet]
 //   existing files are kept unless --force; --sheet also writes .tmp-sheet.png (a contact sheet) for checking.
 import fs from 'node:fs'
-import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { encodePng } from './png.mjs'
-import { blockScene, FORCE, floorScene, hash, OUT, OUT_H, OUT_W, render, rgb, scale, WALL_STRETCH } from './v2/engine.mjs'
+import { blockScene, FORCE, floorScene, hash, imageHeightFor, outFile, OUT_H, OUT_W, render, renderTile, rgb, scale } from './v2/engine.mjs'
 import { box, capsule, cylinder, objectScene, sphere, tileNoise, faceNoise, writeSheet } from './v2/kit.mjs'
 import { builtWall } from './v2/walls.mjs'
 import { glow, matte, metal } from './v2/objects.mjs'
@@ -18,7 +17,8 @@ const hex = rgb
 const C = 16
 const mod = (x, n) => ((x % n) + n) % n
 const part = (sdf, mat) => ({ sdf, mat })
-const WALL_H = 32
+// The station ring's height (tiles.json tosWall etc.), in an image tall enough to hold it.
+const WALL_H = 64
 
 // Console lights: a few small lit buttons in rows, most of them dark, in TOS colours.
 const LIGHTS = ['#ff4a3a', '#ffc040', '#4aa8ff', '#5ae07a', '#ffffff'].map(hex)
@@ -219,24 +219,18 @@ const railJoins = () => {
 }
 
 // ---------- jobs ----------
-const wall = (material) => () => render(blockScene(WALL_H, material(WALL_H * WALL_STRETCH), WALL_STRETCH))
-const lowWall = (material, h) => () => render(blockScene(h, material(h)))
+const wall = (material) => () => renderTile(blockScene(WALL_H, material(WALL_H)), imageHeightFor(WALL_H))
 const object = (scene) => () => render(scene(), { subsamples: 2 })
-const walls = (name, material) => [
-  [`${name}.png`, wall(material)],
-  [`${name}-mid.png`, lowWall(material, 16)],
-  [`${name}-low.png`, lowWall(material, 7)],
-]
 const JOBS = [
   ['tosVoid.png', () => new Uint8Array(OUT_W * OUT_H * 4)],
   ['tosDeck.png', () => render(floorScene(deck(false)))],
   ['tosDeck-alt.png', () => render(floorScene(deck(true)))],
   ['tosWell.png', () => render(floorScene(well(false)))],
   ['tosWell-alt.png', () => render(floorScene(well(true)))],
-  ...walls('tosWall', stationWall),
-  ...walls('tosViewscreen', viewscreenWall),
-  ...walls('tosTurbolift', turboliftWall),
-  ...walls('tosHull', hullWall),
+  ['tosWall.png', wall(stationWall)],
+  ['tosViewscreen.png', wall(viewscreenWall)],
+  ['tosTurbolift.png', wall(turboliftWall)],
+  ['tosHull.png', wall(hullWall)],
   ['tosChair.png', object(captainsChair)],
   ['tosHelm.png', object(helmConsole)],
   ['tosStation.png', object(() => stationConsole({ seed: 41, slot: 0 }))],
@@ -250,14 +244,16 @@ const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).spl
 const rendered = []
 for (const [file, draw] of JOBS) {
   if (only && !only.some((prefix) => file.startsWith(prefix))) continue
-  const target = path.join(OUT, file)
+  const target = outFile(file)
   if (fs.existsSync(target) && !FORCE) {
     console.log(`kept   ${file} (already exists)`)
     continue
   }
-  const bytes = draw()
-  fs.writeFileSync(target, encodePng(OUT_W, OUT_H, bytes))
-  rendered.push({ id: file, bytes })
+  // A draw returns a tile image's bytes, or { width, height, bytes } for a taller one (a wall).
+  const drawn = draw()
+  const { width = OUT_W, height = OUT_H, bytes = drawn } = drawn.bytes ? drawn : {}
+  fs.writeFileSync(target, encodePng(width, height, bytes))
+  rendered.push({ id: file, bytes, width, height })
   console.log(`wrote  ${file}`)
 }
 if (sheet && rendered.length) writeSheet(fileURLToPath(new URL('../.tmp-sheet.png', import.meta.url)), rendered)

@@ -1,108 +1,58 @@
 {
   "source": {
-    "book": "Captain's Log 2026",
-    "section": "03.20 Lifepath Creation - Step Two: Environment",
-    "page": 103,
-    "note": "Book: choose EITHER a setting OR a condition; that one entry grants a value, +1 to one attribute, and +1 to one discipline."
+    "book": "Star Trek Adventures 2E Core Rulebook",
+    "section": "Step Two: Environment",
+    "pages": [115, 116],
+    "note": "Book: an Environment grants a single value, one point in a single attribute, and one point in a single department. Settings are listed in the book's table order."
   },
   "settings": [
     {
-      "id": "homeworld",
-      "name": "Homeworld",
-      "description": "Your character comes from the world that birthed their civilization and has been surrounded by cultural and spiritual legacies their entire life, exemplifying aspects of a culture’s most revered traditions.",
-      "attributeOptions": { "type": "speciesBonus" },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "science"] },
-      "source": { "page": 104 }
+      "id": "anotherSpeciesWorld",
+      "name": "Another Species’ World",
+      "description": "The character grew up among another species. They might have lived among a small enclave of their own kind, or they may have been orphaned by some manner of disaster and raised by aliens. Whatever the situation, the character may have unique perspectives on their own species and on those they were raised alongside.",
+      "attributeOptions": { "type": "otherSpeciesBonus" },
+      "disciplineOptions": { "type": "any" },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 115 }
     },
     {
       "id": "busyColony",
       "name": "Busy Colony",
-      "description": "Your character comes from one of their culture’s oldest or most prosperous colonies, which may be another world within their home system – such as Luna or Mars for a Human. These colonies often develop a fiercely independent outlook, and a sense of pride that accompanies being among the first of their kind to tame another world.",
+      "description": "The character comes from one of their culture’s oldest or most prosperous colonies, which may be another world within their home system—such as Luna or Mars for Humans—or one of the first worlds colonized after the culture achieved interstellar flight. These colonies often develop a fiercely independent outlook, often having developed with little direct aid from their home world, and a sense of pride that accompanies being among the first of their kind to tame another world.",
       "attributeOptions": { "type": "list", "attributes": ["daring", "presence"] },
       "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "science"] },
-      "source": { "page": 104 }
-    },
-    {
-      "id": "isolatedColony",
-      "name": "Isolated Colony",
-      "description": "Your character comes from a colony isolated from broader galactic society. Worlds like the Vulcan monastery on P’Jem use the vast distances between star systems as an opportunity for contemplative isolation, while others are settled because they present unique research opportunities. The cultures of these colonies tend to focus on learning and introspection.",
-      "attributeOptions": { "type": "list", "attributes": ["reason", "insight"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["engineering", "science", "medicine"] },
-      "source": { "page": 104 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 115 }
     },
     {
       "id": "frontierColony",
       "name": "Frontier Colony",
-      "description": "Your character comes from a colony located on the fringes of known space, either on the edge of uncharted space or on the border with another civilization. Frontier colonists tend to be hardy and determined, even stubborn, and well-prepared for the dangers that their home may pose.",
+      "description": "The character comes from a colony located on the fringes of known space, either on the edge of uncharted space or on the border with another civilization. Frontier colonists tend to be hardy and determined, even stubborn, and well-prepared for the dangers that their home may pose.",
       "attributeOptions": { "type": "list", "attributes": ["control", "fitness"] },
       "disciplineOptions": { "type": "list", "disciplines": ["conn", "security", "medicine"] },
-      "source": { "page": 104 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 115 }
+    },
+    {
+      "id": "homeworld",
+      "name": "Homeworld",
+      "description": "The character comes from the world that birthed their civilization and has been surrounded by cultural and spiritual legacies their entire life. Species homeworlds are often utopian and idyllic, serving as the platonic ideal of that species’ culture, or the recipients of an empire’s wealth and prosperity. They also exemplify aspects of a culture’s most revered traditions and serve as the heart of that civilization’s legal and political landscape.",
+      "attributeOptions": { "type": "speciesBonus" },
+      "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "science"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 116 }
+    },
+    {
+      "id": "isolatedColony",
+      "name": "Isolated Colony",
+      "description": "The character comes from a colony that is isolated from broader galactic society. Worlds like the Vulcan monastery on P’Jem use the vast distances between star systems as an opportunity for contemplative isolation, while others are settled because they present unique research opportunities. The cultures of these colonies tend to focus on learning and introspection.",
+      "attributeOptions": { "type": "list", "attributes": ["reason", "insight"] },
+      "disciplineOptions": { "type": "list", "disciplines": ["engineering", "science", "medicine"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 116 }
     },
     {
       "id": "starshipOrStarbase",
       "name": "Starship or Starbase",
-      "description": "Your character grew up in space, traveling aboard a starship or living on a space station or starbase. Those raised in space learn the ins-and-outs of shipboard life as children, and many are groomed for leadership, or learn to fly a shuttle in their formative years.",
+      "description": "The character grew up in space, travelling aboard a starship or living aboard a space station or starbase. While they’re unlikely to have lived aboard a military or Starfleet vessel—only some of them carry families—many freighters, transports, and other civilian vessels have a tradition of family or generational crews, and many officers with families take postings to starbases rather than ships. Those raised in space learn the ins-and-outs of shipboard life as children, and many are groomed for leadership, or learn to fly a shuttle in their formative years.",
       "attributeOptions": { "type": "list", "attributes": ["control", "insight"] },
       "disciplineOptions": { "type": "list", "disciplines": ["command", "conn", "engineering"] },
-      "source": { "page": 104 }
-    },
-    {
-      "id": "anotherSpeciesWorld",
-      "name": "Another Species’ World",
-      "description": "Your character grew up among another species. Whatever the situation, the character has unique perspectives on their own species and on those they were raised alongside.",
-      "attributeOptions": { "type": "otherSpeciesBonus" },
-      "disciplineOptions": { "type": "any" },
-      "source": { "page": 105 }
-    }
-  ],
-  "conditions": [
-    {
-      "id": "utopianParadise",
-      "name": "Utopian Paradise",
-      "description": "You were raised in an environment of peace, prosperity, and abundance. There was no war on your world, nor any poverty, homelessness, hunger, or crime. You knew of those things only from studies of history and you have never really been able to understand how a society could produce such destructive inequality. You have always had access to the resources to not merely survive, but to thrive in whatever endeavors you chose to pursue.",
-      "attributeOptions": { "type": "list", "attributes": ["control", "reason", "presence"] },
-      "disciplineOptions": { "type": "any" },
-      "source": { "page": 105 }
-    },
-    {
-      "id": "cosmopolitan",
-      "name": "Cosmopolitan",
-      "description": "You were raised in environments of trade or diplomacy, and the intermingling of different communities and cultures. The unfamiliar has always been familiar to you, and you had become familiar with dozens of cultures from distant worlds long before you were an adult. The frenetic pace of life and the basic need to revel in differences between groups and individuals have stayed with you as simple facts of existence in this big Galaxy.",
-      "attributeOptions": { "type": "list", "attributes": ["daring", "insight", "presence"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "conn", "science"] },
-      "source": { "page": 105 }
-    },
-    {
-      "id": "rigorousDiscipline",
-      "name": "Rigorous Discipline",
-      "description": "You have always been surrounded by notions of duty and purpose, and your childhood was a strict one, aimed at preparing you to take on a specific role or to achieve a specific goal. This meant relatively little personal freedom, but it instilled within you a powerful sense of what you were capable of when pushed to succeed.",
-      "attributeOptions": { "type": "list", "attributes": ["control", "fitness", "reason"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "medicine"] },
-      "source": { "page": 106 }
-    },
-    {
-      "id": "asceticismAndIntrospection",
-      "name": "Asceticism and Introspection",
-      "description": "Your life was a simple one, lacking in many of the luxuries that prosperous worlds take for granted. This was not because of a lack, but rather a choice – a belief among those you grew up with that external and material abundance can distract from self-knowledge and personal growth.",
-      "attributeOptions": { "type": "list", "attributes": ["control", "insight", "reason"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["science", "engineering", "medicine"] },
-      "source": { "page": 106 }
-    },
-    {
-      "id": "struggleAndHardship",
-      "name": "Struggle and Hardship",
-      "description": "For one reason or another, your world was one with few available resources. Worlds on the frontier, as well as isolated outposts, are often places of hardship where continued survival is difficult, while other worlds struggle in the wake of natural or ecological disasters, the aftermath of war, or societal collapse that leaves basic infrastructure in ruins. Some seek out worlds such as this, where “honest toil” is held as a virtue, while others find themselves in lives of daily struggle through no choice of their own and seek to either better their world or escape it.",
-      "attributeOptions": { "type": "list", "attributes": ["control", "daring", "insight"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["conn", "engineering", "science"] },
-      "source": { "page": 106 }
-    },
-    {
-      "id": "occupationOrWar",
-      "name": "Occupation or War",
-      "description": "Though the Federation’s members no longer war amongst themselves, warfare is still a part of the Galaxy. Local or planetary conflicts afflict many independent worlds, and interstellar conflicts ranging from border skirmishes to sector-spanning wars are something which all civilizations must prepare to face. Worlds ravaged by war, or even occupied by a hostile nation, are difficult places to live, often forcing people to adapt to horrific conditions and life-or-death decisions.",
-      "attributeOptions": { "type": "list", "attributes": ["daring", "fitness", "presence"] },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "medicine"] },
-      "source": { "page": 106 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 116 }
     }
   ]
 }

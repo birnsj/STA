@@ -1,34 +1,39 @@
 // Two-tile wall panels (tiles.json panelImages): one image per direction a panel runs, both tiles drawn standing side
 // by side, which the map views cut into each tile's share (src/maps/tileArt.js panelArt). The window and the long
 // Star Trek wall fittings are painted in here rather than drawn over the walls by the views.
-import { bevel, DESIGN_H, DESIGN_W, inside, mix, render, renderLights, RESOLUTION, rgb, scale, smoothstep } from './engine.mjs'
+import { bevel, DESIGN_H, DESIGN_W, inside, mix, raised, render, renderLights, RESOLUTION, rgb, scale, smoothstep } from './engine.mjs'
 
-export const PANEL_W = (DESIGN_W + 32) * RESOLUTION
-export const PANEL_H = (DESIGN_H + 16) * RESOLUTION
-// Where each tile's 64 x 96 slot sits in a panel image (design pixels); must match tileArt.js PANEL_OFFSETS. Half 0 is
-// the tile nearer the map's origin, half 1 the next one along x (axis 'x') or y (axis 'y'), which stands in front.
+// A panel image is two tile images wide and 16 design pixels taller than the wall's own image (tiles.json imageHeight).
+const PANEL_W = (DESIGN_W + 32) * RESOLUTION
+const panelHeight = (imageHeight) => (imageHeight + 16) * RESOLUTION
+// Where each tile's slot (64 wide, imageHeight tall) sits in a panel image (design pixels); must match tileArt.js
+// PANEL_OFFSETS. Half 0 is the tile nearer the map's origin, half 1 the next one along x (axis 'x') or y (axis 'y'),
+// which stands in front.
 export const PANEL_OFFSETS = {
   x: [{ x: 0, y: 0 }, { x: 32, y: 16 }],
   y: [{ x: 32, y: 0 }, { x: 0, y: 16 }],
 }
 
-// A panel's scene from each tile's (sceneFor(half) -> a tile scene); the front tile covers the back one.
-export function panelScene(axis, sceneFor) {
-  const scenes = [sceneFor(0), sceneFor(1)]
+// A panel's scene from each tile's (sceneFor(half) -> a tile scene on the 64 x 96 grid); the front tile covers the
+// back one.
+export function panelScene(axis, sceneFor, imageHeight = DESIGN_H) {
+  const scenes = [sceneFor(0), sceneFor(1)].map((scene) => raised(scene, imageHeight - DESIGN_H))
   const at = (half, px, py) => {
     const x = px - PANEL_OFFSETS[axis][half].x
     const y = py - PANEL_OFFSETS[axis][half].y
-    return x >= 0 && x < DESIGN_W && y >= 0 && y < DESIGN_H ? scenes[half](x, y) : null
+    return x >= 0 && x < DESIGN_W && y >= 0 && y < imageHeight ? scenes[half](x, y) : null
   }
   return (px, py) => at(1, px, py) ?? at(0, px, py)
 }
 
-export const renderPanel = (scene) => ({ width: PANEL_W, height: PANEL_H, bytes: render(scene, { width: PANEL_W, height: PANEL_H }) })
-export const renderPanelLights = (scene, tags, options = {}) => ({
-  width: PANEL_W,
-  height: PANEL_H,
-  bytes: renderLights(scene, tags, { ...options, width: PANEL_W, height: PANEL_H }),
-})
+export const renderPanel = (scene, imageHeight = DESIGN_H) => {
+  const height = panelHeight(imageHeight)
+  return { width: PANEL_W, height, bytes: render(scene, { width: PANEL_W, height }) }
+}
+export const renderPanelLights = (scene, tags, imageHeight = DESIGN_H, options = {}) => {
+  const height = panelHeight(imageHeight)
+  return { width: PANEL_W, height, bytes: renderLights(scene, tags, { ...options, width: PANEL_W, height }) }
+}
 
 // A feature in panel coordinates (P along the panel in texels, 0..64 with the tiles meeting at 32; z up the drawn wall)
 // as one tile's fitting ({ height, surface } of (u, z, face), null outside it): only on the face the panel runs along,
@@ -53,8 +58,29 @@ const glowing = (colour, strength, tag = null) => ({ albedo: scale(colour, 0.5),
 
 // The panel window: a raised frame, recessed dark glass lit faintly from below, two reflection bands, the centre
 // mullion where the tiles meet and a lit sill. Its extent matches the views' WINDOW and FRAME
-// (src/components/maps/tileShapes.js) so the stars they twinkle on top land on the glass.
+// (src/components/maps/tileShapes.js), which draw the windows of walls without panel art.
 const WINDOW = { from: 0.3 * 32, to: 1.7 * 32, bottom: 0.4, top: 0.8, frameAlong: 0.07 * 32, frameHeight: 3 }
+
+// The stars seen through a space window (tiles.json windowView 'space'), five per tile, as [{ x, y, r, delay }] in
+// panel image design pixels: r the star's radius, delay the seconds its twinkle is offset by. They are baked into the
+// window panel's animation frames (scripts/makeTileFrames.mjs). The layout is the one the views used to draw for a
+// panel's first tile at (0, 0).
+export function windowStars(axis, drawnHeight, imageHeight) {
+  const bottom = drawnHeight * WINDOW.bottom
+  const top = drawnHeight * WINDOW.top
+  // U along the panel (0..2), v up the wall -> the panel image (the face it runs along: left for 'x', right for 'y').
+  const at = (U, v) => ({ x: axis === 'x' ? 32 * U : 96 - 32 * U, y: imageHeight - 16 + 16 * U - v })
+  return [0, 1].flatMap((half) => {
+    const from = Math.max(WINDOW.from / 32, half)
+    const to = Math.min(WINDOW.to / 32, half + 1)
+    return Array.from({ length: 5 }, (_, i) => {
+      const seed = half * 73 + i * 37
+      const u = from + 0.05 + (((seed * 13) % 89) / 89) * (to - from - 0.1)
+      const v = bottom + 3 + (((seed * 29) % 97) / 97) * (top - bottom - 6)
+      return { ...at(u, v), r: i % 3 === 0 ? 0.9 : 0.55, delay: ((seed % 7) / 7) * 4 }
+    })
+  })
+}
 export function windowFeature(drawnHeight) {
   const bottom = drawnHeight * WINDOW.bottom
   const top = drawnHeight * WINDOW.top
@@ -89,7 +115,7 @@ export function windowFeature(drawnHeight) {
 
 // The long Star Trek wall fittings (tiles.json panelFitting), laid out across the panel: [u0, u1, v0, v1 (U along the
 // panel 0..2, v up the wall as fractions of its height), kind, colour, animated]. kind 'frame' is the fitting's
-// recessed surround. Animated shapes are lights: dim in the panel image, lit in its light overlay (panelLights).
+// recessed surround. Animated shapes are lights: dim in the panel image, lit in its light layer (engine.mjs layerFile).
 const LCARS_ROWS = [0.47, 0.53, 0.59, 0.65]
 const FITTINGS = {
   lcars: {
@@ -145,7 +171,7 @@ const FITTINGS = {
 }
 export const fittingStyle = (kind) => FITTINGS[kind].style
 
-// lights: the light overlay's scene (only the animated lights, tagged 'lights') instead of the panel image's.
+// lights: the light layer's scene (only the animated lights, tagged 'lights') instead of the panel image's.
 export function fittingFeature(kind, drawnHeight, { lights = false } = {}) {
   const shapes = FITTINGS[kind].shapes.map(([u0, u1, v0, v1, part, colour, animated = false]) => ({
     P0: u0 * 32,

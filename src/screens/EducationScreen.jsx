@@ -18,6 +18,8 @@ import {
   getOptionSummary,
   getRequiredAttributes,
   getSwapOptions,
+  getTraitOptions,
+  getValueExamples,
   getValueMatrix,
   isCustomFocusAllowed,
   isCustomValueAllowed,
@@ -64,6 +66,24 @@ function BookRule({ label, text }) {
   )
 }
 
+// Core names one trait per path, or two alternatives the player picks between.
+function TraitPicker({ education, met, onSelect }) {
+  const options = getTraitOptions(education.option.id)
+  return (
+    <div className={`education-trait${met ? '' : ' is-missing'}`}>
+      <span className="education-book-label">Trait:</span>
+      {options.length === 1 ? (
+        <span className="education-trait-name">{options[0].name}</span>
+      ) : (
+        <>
+          <ChoiceList label="Trait" options={options.map((trait) => ({ id: trait.id, label: trait.name }))} selectedId={education.trait?.id} onSelect={onSelect} />
+          <RequirementTag met={met} />
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function EducationScreen({ step, navigation }) {
   const { character, dispatch } = useCharacter()
   const { education } = character
@@ -82,15 +102,15 @@ export default function EducationScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.option ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose your education. This reflects your formal training and academic background, as defined in Captain's Log.
+            Choose your Career Path: your higher education and current profession, as defined in the Core Rulebook.
             <br />
-            Your education provides the benefits defined in Captain's Log. Final Attribute values are assigned later (total must equal 56).
+            Your Career Path provides a trait and the benefits below. Final Attribute values are assigned later (total must equal 56).
           </p>
         </div>
       </div>
 
       <CardCarousel
-        label="Education"
+        label="Career Path"
         variant={`carousel-environment education-carousel${requirements.option ? '' : ' is-missing'}`}
         items={getCategories()}
         selectedId={option?.category ?? null}
@@ -100,16 +120,16 @@ export default function EducationScreen({ step, navigation }) {
       <div className="species-mechanics education-lower">
         <div className={`panel mechanics-panel education-options${requirements.option ? '' : ' is-missing'}`}>
           <h3 className="panel-heading">
-            <HelpTip helpId="educationOptions">Education {optionLabel}s</HelpTip> <span className="panel-heading-context">({category.name})</span>
+            <HelpTip helpId="educationOptions">Career Path {optionLabel}s</HelpTip> <span className="panel-heading-context">({category.name})</span>
             <RequirementTag met={requirements.option} />
           </h3>
           <div className="panel-body">
             <p className="attribute-instruction education-list-instruction">
-              Select the {optionLabel.toLowerCase()} that best fits your education.
-              {categoryAllowsSwap(category.id) && ` All ${optionLabel.toLowerCase()}s allow an optional discipline swap.`}
+              Select the {optionLabel.toLowerCase()} that best fits your Career Path.
+              {categoryAllowsSwap(category.id) && ` All ${optionLabel.toLowerCase()}s allow an optional department swap.`}
             </p>
             <ChoiceList
-              label={`Education ${optionLabel.toLowerCase()}s`}
+              label={`Career Path ${optionLabel.toLowerCase()}s`}
               options={getOptions(category.id).map((entry) => ({ id: entry.id, label: entry.name, suffix: getOptionSummary(entry.id) }))}
               selectedId={option?.id}
               onSelect={(optionId) => dispatch({ type: 'selectEducation', optionId })}
@@ -124,12 +144,14 @@ export default function EducationScreen({ step, navigation }) {
           <div className="panel-body">
             {option && (
               <>
+                <TraitPicker education={education} met={requirements.trait} onSelect={(traitId) => dispatch({ type: 'selectEducationTrait', traitId })} />
                 <p className="education-detail-description">{option.description}</p>
-                <p className="education-detail-caption">As defined in Captain's Log, p.{option.source.page}:</p>
+                <p className="education-detail-caption">As defined in the Core Rulebook, p.{option.source.page}:</p>
                 <ul className="education-book-rules">
+                  <BookRule label="Trait" text={option.trait.text} />
                   <BookRule label="Value" text={option.valueText} />
                   <BookRule label="Attributes" text={bookAttributeText(option)} />
-                  <BookRule label="Disciplines" text={option.disciplines.text} />
+                  <BookRule label="Departments" text={option.disciplines.text} />
                   <BookRule label="Focuses" text={option.focus.text} />
                 </ul>
               </>
@@ -144,7 +166,7 @@ export default function EducationScreen({ step, navigation }) {
           number="1"
           title="Attributes"
           helpId="educationAttributes"
-          instruction={option ? attributeInstruction(education, getRequiredAttributes(option.id)) : `Select an education ${optionLabel.toLowerCase()} to assign Attribute points.`}
+          instruction={option ? attributeInstruction(education, getRequiredAttributes(option.id)) : `Select a Career Path ${optionLabel.toLowerCase()} to assign Attribute points.`}
           instructionLines={3}
           met={requirements.attributes}
           locked={locked.attributes}
@@ -163,9 +185,9 @@ export default function EducationScreen({ step, navigation }) {
 
         <MechanicsColumn
           number="2"
-          title="Disciplines"
+          title="Departments"
           helpId="educationDisciplines"
-          instruction={option ? disciplineInstruction(disciplineRules, education.disciplinePicks) : `Select an education ${optionLabel.toLowerCase()} to see its Disciplines.`}
+          instruction={option ? disciplineInstruction(disciplineRules, education.disciplinePicks) : `Select a Career Path ${optionLabel.toLowerCase()} to see its Departments.`}
           instructionLines={2}
           met={requirements.disciplines}
           locked={locked.disciplines}
@@ -188,7 +210,7 @@ export default function EducationScreen({ step, navigation }) {
           number="3"
           title="Focuses"
           helpId="educationFocuses"
-          instruction={option ? `Choose ${getFocusCount()} (${education.focuses.length}/${getFocusCount()}): examples, Focus Matrix${isCustomFocusAllowed() ? ', or your own' : ''}.` : `Select an education ${optionLabel.toLowerCase()} to see example Focuses.`}
+          instruction={option ? `Choose ${getFocusCount()} (${education.focuses.length}/${getFocusCount()}): examples, Focus Matrix${isCustomFocusAllowed() ? ', or your own' : ''}.` : `Select a Career Path ${optionLabel.toLowerCase()} to see example Focuses.`}
           instructionLines={3}
           met={requirements.focuses}
           locked={locked.focuses}
@@ -212,7 +234,7 @@ export default function EducationScreen({ step, navigation }) {
           number="4"
           title="Value"
           helpId="educationValue"
-          instruction={option ? 'Choose the value you gained from your education, or write your own.' : `Select an education ${optionLabel.toLowerCase()} to choose a Value.`}
+          instruction={option ? 'Choose a Core example for your Career Path, a sample value, or write your own.' : `Select a Career Path ${optionLabel.toLowerCase()} to choose a Value.`}
           instructionLines={2}
           met={requirements.value}
           locked={locked.value}
@@ -220,6 +242,7 @@ export default function EducationScreen({ step, navigation }) {
           {option && (
             <ValuePicker
               value={education.value}
+              examples={getValueExamples(option.id)}
               matrix={getValueMatrix()}
               allowCustom={isCustomValueAllowed()}
               onSelectMatrix={(valueId) => dispatch({ type: 'selectEducationMatrixValue', valueId })}

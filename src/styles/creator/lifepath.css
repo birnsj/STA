@@ -1,10 +1,6 @@
-/* Early Outlook, Education and Career screens. */
+/* Upbringing, Career Path and Career screens. */
 
-/* ---------- Early Outlook ---------- */
-
-.outlook-tabs {
-  grid-template-columns: 1fr 1fr 1fr;
-}
+/* ---------- Upbringing ---------- */
 
 .env-tab:disabled {
   opacity: 0.45;
@@ -83,6 +79,23 @@
 .education-book-label {
   font-weight: 700;
   color: var(--label);
+}
+
+.education-trait {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.education-trait .choice-list {
+  flex-direction: row;
+  gap: 4px;
+}
+
+.education-trait-name {
+  font-weight: 700;
 }
 
 .education-mechanics {

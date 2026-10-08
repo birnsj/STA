@@ -1,4 +1,4 @@
-// The predefined combat tasks besides attacking (Book p.288): Guard, First Aid and Direct. Each has a preview (what the
+// The predefined combat tasks besides attacking (Book p.289): Guard, First Aid and Direct. Each has a preview (what the
 // Task panel shows, and exactly what the roll uses) and they share one roll, rollCombatTask, which the reducer calls.
 import { findAuthority } from '../rules/authority.js'
 import { canCommunicate } from '../rules/communication.js'
@@ -8,7 +8,7 @@ import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { getAssistFor, taskContext, withoutUsedAssist } from './combatAttacks.js'
 import { assistLine, bonusMomentumLine, diceText, focusText, momentumLine, purchaseLine, takeRandom, taskText, withStats } from './combatLog.js'
-import { canAfford, getCombatantList, isActive, secondMajorLines } from './combatSelectors.js'
+import { canAfford, getCombatantList, isActive, reachLines, secondMajorLines } from './combatSelectors.js'
 import { tileDistance } from './rangeSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, COMBAT_TASKS, majorsTaken, MAX_MAJORS_PER_ROUND, spendTurnAction } from './turnActions.js'
 
@@ -21,7 +21,8 @@ export const getGuardTargets = (state, actor) =>
 // Everything the Task panel shows before rolling a predefined task, and exactly what the roll uses:
 // { available, reason, kind, actorId, targetId, label, prepared, task (with the final Difficulty), assist }.
 function previewCombatTask(state, actor, { kind, label, target, spec, context = {}, block = null }) {
-  const extraLines = actionTypeOf(kind) === 'major' ? secondMajorLines(state, actor.id) : []
+  // Guard and First Aid are tasks, so an enemy within Reach raises them too (Book p.286; Guard's Difficulty 0 becomes 1).
+  const extraLines = [...(actionTypeOf(kind) === 'major' ? secondMajorLines(state, actor.id) : []), ...reachLines(state, actor)]
   const prepared = prepareTask(actor.character, spec, taskContext(state, actor, { ...context, extraLines }))
   const task = { ...prepared.task, difficulty: prepared.difficulty }
   const assist = getAssistFor(state, actor.id, { spec })
@@ -40,13 +41,13 @@ export function previewGuard(state, actorId, targetId) {
     label: ally ? `Guard ${target.character.name}` : 'Guard',
     target,
     spec,
-    // Book p.288: guarding an ally instead of yourself increases the Difficulty by 1.
+    // Book p.289: guarding an ally instead of yourself increases the Difficulty by 1.
     context: ally ? { difficultyMod: spec.allyDifficulty, difficultyModLabel: 'Guarding an ally' } : {},
     block,
   })
 }
 
-// First Aid on an ally within Reach (Book p.288, p.292): revive a Defeated ally (Difficulty 2), or treat one untreated
+// First Aid on an ally within Reach (Book p.289, p.292): revive a Defeated ally (Difficulty 2), or treat one untreated
 // Injury (Difficulty = its severity). [{ target, mode: 'revive' | 'treat:<injury id>', injury?, difficulty, label }]
 export function getFirstAidOptions(state, actor) {
   return getCombatantList(state)
@@ -81,7 +82,7 @@ export function getAuthority(state, side) {
   return findAuthority(candidates, state.nominatedLeaders?.[side] ?? null)
 }
 
-// Why this ally can't be directed now (null = they can). Book p.288: an ally who can hear the commander
+// Why this ally can't be directed now (null = they can). Book p.289: an ally who can hear the commander
 // (rules/communication.js: in earshot or by communicator), and Direct never gives anyone a third major action in a
 // round. Prototype: once per round per ally.
 export function directTargetBlock(state, actor, ally) {
@@ -106,8 +107,8 @@ export function directBlock(state, actor) {
 }
 
 // The one roll every predefined combat task (Guard, First Aid) makes: the shared STA 2E task with dice bought before the
-// roll (Book p.259), the assist die, the performer's structured effects, and Momentum to the group pool (party) or
-// Threat (NPC, Book p.264). Spends the action, takes the used assist off the table, and records the result.
+// roll (Book pp.255, 260), the assist die, the performer's structured effects, and Momentum to the group pool (party) or
+// Threat (NPC, Book p.265). Spends the action, takes the used assist off the table, and records the result.
 // Returns { state, passed, lines } or null when the purchase isn't valid.
 export function rollCombatTask(state, actor, preview, requestedPurchase, taskKind) {
   const purchase = checkDicePurchase(state.resources, requestedPurchase, actor.side)

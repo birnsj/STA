@@ -16,7 +16,7 @@ import {
 } from './combatState.js'
 import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
-import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
+import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
 import { randomStep } from './randomAI.js'
@@ -122,14 +122,22 @@ function fatigueChoiceStep(state) {
   return { type: 'chooseFatigueAttribute', attribute: attributeId, reason }
 }
 
+// The Counterattack decision for a party defender when the AI plays the party (combat/injuryPolicy.js).
+function counterattackStep(state) {
+  const offer = state.pendingCounterattack
+  const defender = state.combatants[offer.defenderId]
+  return { type: 'counterattackDecision', ...chooseCounterattack({ state, defender, attacker: state.combatants[offer.attackerId], offer }) }
+}
+
 // One AI step for whoever is acting. A rejected step (state unchanged) ends the turn instead of stalling.
-// options: { partyAI, enemyAI, partyAmbush, partyAuto } (AI ids from PARTY_AIS / ENEMY_AIS). An incoming Injury or a
-// Fatigue attribute choice on a party member waits for the player (state unchanged) unless partyAuto: the AI plays the
-// party.
+// options: { partyAI, enemyAI, partyAmbush, partyAuto } (AI ids from PARTY_AIS / ENEMY_AIS). An incoming Injury, a
+// Fatigue attribute choice or a Counterattack on a party member waits for the player (state unchanged) unless partyAuto:
+// the AI plays the party.
 export function stepAI(state, options = {}) {
   if (!state || state.outcome) return state
   if (state.incomingInjury) return options.partyAuto ? combatReducer(state, injuryDecisionStep(state)) : state
   if (state.pendingFatigue) return options.partyAuto ? combatReducer(state, fatigueChoiceStep(state)) : state
+  if (state.pendingCounterattack) return options.partyAuto ? combatReducer(state, counterattackStep(state)) : state
   const action = chooseAIStep(state, options)
   const next = combatReducer(state, action)
   if (next !== state) return next

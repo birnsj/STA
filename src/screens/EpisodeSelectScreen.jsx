@@ -10,7 +10,6 @@ import { episodeTitle } from '../maps/mapFormat.js'
 // that plays it is chosen here too, as a development comparison tool.
 const MODES = [
   { id: 'combat', label: 'Combat Type 1', text: 'Party of up to 4, initiative, Major and Minor actions.' },
-  { id: 'combat2', label: 'Combat Type 2', text: 'Tactical positioning: 1 character, 2 AP per turn, enemy intents, Push and an EPS hazard.' },
   { id: 'exploration', label: 'Exploration', text: 'Away team movement: party selection, splitting up and formations. No enemies yet.' },
 ]
 

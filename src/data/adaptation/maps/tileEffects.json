@@ -2,9 +2,10 @@
   "notes": [
     "Tile lighting effects drawn by every map view (src/maps/tileArt.js). Presentation only.",
     "glows: tile id -> light colour (a coloured light pool round the tile, plus soft contact shadows on floors next to blocks); activeGlows: tile id -> light colour while the tile is active (a live hazard).",
-    "animations: tile id -> light-only overlay images drawn over the tile and animated: pulse (slow breathing glow), blink (status lights switching on and off), flicker (an unsteady screen). Each tile on a map is offset in time so machines don't flash together. Overrides the tile's own lights (tiles.json).",
-    "wallVariants: wall id -> { share, variants: [{ id, image, lights }] }. In the tall-wall views (exploration, Combat Type 1, the map editor) about share of that wall's tiles are drawn as one of the variants instead, chosen from the tile's position. Never on a panel half with a window. Empty by designer decision (Oct 2026): the bulkhead's random Star Trek wall fittings made placed walls look random, so fittings are placed by hand (lcarsWall etc.).",
-    "Tile art lives in public/art/sprites/environment/<palette group id>/ (tiles.json paletteGroups), drawn at 4x resolution (256 x 384; the views scale every tile image to the 64 x 96 slot)."
+    "wallGlows: wall id -> light colour for lit wall fittings: a smaller light pool on the floor in front of the face the fitting is on (+y first, then +x; none when neither is open floor), which also shows through a dark map. Each colour is the average of that fitting's light layer (art-layers/), so recolouring the art means re-measuring here. The computer banks' multicoloured status lights average to a near-white. Designer request (Oct 2026); pool size and strength are implementation picks awaiting review.",
+    "animations: tile id -> a flipbook of whole sprites that replaces the tile's image (designer request Oct 2026: whole alternate sprites, not overlays). frames: the image index shown in each frameTime-second step of one loop; images: one entry per index, with the sprite for each animated image of the tile (image; bigImage for its 2x2 image; panel.x / panel.y for its two-tile panel art) and its emission (emission, bigEmission, panelEmission: the lit parts alone, kept at full brightness in a dark map). active: plays only while the tile is active (a live hazard). Each tile on a map is offset in time so machines don't flash together. Written by scripts/makeTileFrames.mjs, which bakes the frames from the tile's art and its light layers (art-layers/); the frame times and the number of brightness steps are implementation picks matching the old overlay timings.",
+    "wallVariants: wall id -> { share, variants: [{ id, image }] }. In the map views about share of that wall's tiles are drawn as one of the variants instead, chosen from the tile's position. Never on a panel half with a window. Empty by designer decision (Oct 2026): the bulkhead's random Star Trek wall fittings made placed walls look random, so fittings are placed by hand (lcarsWall etc.).",
+    "Tile art lives in public/art/sprites/environment/<palette group id>/ (tiles.json paletteGroups), rendered at 4x resolution: 256 x 384 for a 64 x 96 tile image, taller for walls and tall objects (tiles.json imageHeight), 512 x 768 for a big object's 2x2 image. The views draw each image at its own design size, never stretched."
   ],
   "glows": {
     "epsControl": "#5fd0ff",
@@ -27,26 +28,606 @@
     "tosStation": "#ffd060",
     "tosScience": "#5ad0ff"
   },
+  "wallGlows": {
+    "lcarsWall": "#a8c0ff",
+    "lcarsPanel": "#b7bcff",
+    "conduitWall": "#6fc8ff",
+    "conduitPanel": "#7ae4ff",
+    "hatchWall": "#ff4040",
+    "hatchPanel": "#50ff70",
+    "computerWall": "#aab4a3",
+    "computerPanel": "#c2b4c3"
+  },
   "activeGlows": {
     "grating": "#ff8a2a"
   },
   "animations": {
-    "machinery": [
-      {
-        "image": "/art/sprites/environment/starship/machinery-glow.png",
-        "style": "pulse"
-      },
-      {
-        "image": "/art/sprites/environment/starship/machinery-blink.png",
-        "style": "blink"
-      }
-    ],
-    "epsControl": [
-      {
-        "image": "/art/sprites/environment/starship/epsControl-screen.png",
-        "style": "flicker"
-      }
-    ]
+    "machinery": {
+      "frameTime": 0.2,
+      "frames": [0, 0, 1, 2, 3, 4, 4, 5, 5, 6, 2, 7, 8, 8],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-0.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-0-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-0.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-1.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-1-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-1.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-2.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-2-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-2.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-3.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-3-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-3.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-4.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-4-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-4.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-5.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-5-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-5.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-6.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-6-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-6.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-6-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-7.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-7-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-7.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-7-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/machinery-frame-8.png",
+          "emission": "/art/sprites/environment/starship/machinery-frame-8-emission.png",
+          "bigImage": "/art/sprites/environment/starship/machinery-big-frame-8.png",
+          "bigEmission": "/art/sprites/environment/starship/machinery-big-frame-8-emission.png"
+        }
+      ]
+    },
+    "epsControl": {
+      "frameTime": 0.1,
+      "frames": [0, 1, 2, 0, 3, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3, 3, 1, 1, 1, 2, 5, 5, 5, 3, 4, 4, 4, 4, 6, 6, 6, 6],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-0.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-1.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-2.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-3.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-4.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-5.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/epsControl-frame-6.png",
+          "emission": "/art/sprites/environment/starship/epsControl-frame-6-emission.png"
+        }
+      ]
+    },
+    "grating": {
+      "active": true,
+      "frameTime": 0.15,
+      "frames": [0, 1, 2, 1],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/grating-frame-0.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/grating-frame-1.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/grating-frame-2.png"
+        }
+      ]
+    },
+    "lcarsWall": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-lcars-frame-0.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-lcars-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-lcars-frame-1.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-lcars-frame-1-emission.png"
+        }
+      ]
+    },
+    "conduitWall": {
+      "frameTime": 0.2,
+      "frames": [0, 0, 1, 2, 3, 4, 4, 5, 5, 6, 2, 7, 8, 8],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-0.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-1.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-2.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-3.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-4.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-5.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-6.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-6-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-7.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-7-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-conduit-frame-8.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-conduit-frame-8-emission.png"
+        }
+      ]
+    },
+    "hatchWall": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-hatch-frame-0.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-hatch-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-hatch-frame-1.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-hatch-frame-1-emission.png"
+        }
+      ]
+    },
+    "computerWall": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-computer-frame-0.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-computer-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/starship/bulkhead-computer-frame-1.png",
+          "emission": "/art/sprites/environment/starship/bulkhead-computer-frame-1-emission.png"
+        }
+      ]
+    },
+    "lcarsPanel": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/lcarsPanel-x-frame-0.png",
+            "y": "/art/sprites/environment/starship/lcarsPanel-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/lcarsPanel-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/starship/lcarsPanel-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/lcarsPanel-x-frame-1.png",
+            "y": "/art/sprites/environment/starship/lcarsPanel-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/lcarsPanel-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/starship/lcarsPanel-y-frame-1-emission.png"
+          }
+        }
+      ]
+    },
+    "conduitPanel": {
+      "frameTime": 0.2,
+      "frames": [0, 0, 1, 2, 3, 4, 4, 4, 4, 3, 2, 1, 0, 0],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-0.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-1.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-1-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-2.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-2.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-2-emission.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-2-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-3.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-3.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-3-emission.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-3-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-4.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-4.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/conduitPanel-x-frame-4-emission.png",
+            "y": "/art/sprites/environment/starship/conduitPanel-y-frame-4-emission.png"
+          }
+        }
+      ]
+    },
+    "hatchPanel": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/hatchPanel-x-frame-0.png",
+            "y": "/art/sprites/environment/starship/hatchPanel-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/hatchPanel-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/starship/hatchPanel-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/hatchPanel-x-frame-1.png",
+            "y": "/art/sprites/environment/starship/hatchPanel-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/hatchPanel-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/starship/hatchPanel-y-frame-1-emission.png"
+          }
+        }
+      ]
+    },
+    "computerPanel": {
+      "frameTime": 0.7,
+      "frames": [0, 1],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/computerPanel-x-frame-0.png",
+            "y": "/art/sprites/environment/starship/computerPanel-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/computerPanel-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/starship/computerPanel-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/computerPanel-x-frame-1.png",
+            "y": "/art/sprites/environment/starship/computerPanel-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/computerPanel-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/starship/computerPanel-y-frame-1-emission.png"
+          }
+        }
+      ]
+    },
+    "bulkhead": {
+      "frameTime": 0.5,
+      "frames": [0, 1, 2, 3, 4, 5, 6, 7],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-0.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-1.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-1-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-2.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-2.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-2-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-2-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-3.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-3.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-3-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-3-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-4.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-4.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-4-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-4-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-5.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-5.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-5-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-5-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-6.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-6.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-6-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-6-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-7.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-7.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/starship/bulkhead-window-x-frame-7-emission.png",
+            "y": "/art/sprites/environment/starship/bulkhead-window-y-frame-7-emission.png"
+          }
+        }
+      ]
+    },
+    "alienBulkhead": {
+      "frameTime": 0.5,
+      "frames": [0, 1, 2, 3, 4, 5, 6, 7],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-0.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-1.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-1-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-2.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-2.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-2-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-2-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-3.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-3.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-3-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-3-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-4.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-4.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-4-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-4-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-5.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-5.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-5-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-5-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-6.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-6.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-6-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-6-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-7.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-7.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/alienVessel/alienBulkhead-window-x-frame-7-emission.png",
+            "y": "/art/sprites/environment/alienVessel/alienBulkhead-window-y-frame-7-emission.png"
+          }
+        }
+      ]
+    },
+    "breachedBulkhead": {
+      "frameTime": 0.5,
+      "frames": [0, 1, 2, 3, 4, 5, 6, 7],
+      "images": [
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-0.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-0.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-0-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-0-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-1.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-1.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-1-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-1-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-2.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-2.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-2-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-2-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-3.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-3.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-3-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-3-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-4.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-4.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-4-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-4-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-5.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-5.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-5-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-5-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-6.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-6.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-6-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-6-emission.png"
+          }
+        },
+        {
+          "panel": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-7.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-7.png"
+          },
+          "panelEmission": {
+            "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-7-emission.png",
+            "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-7-emission.png"
+          }
+        }
+      ]
+    }
   },
   "wallVariants": {}
 }

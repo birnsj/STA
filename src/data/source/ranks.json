@@ -1,28 +1,31 @@
 {
   "source": {
-    "book": "Captain's Log 2026",
-    "section": "Step Seven: Finishing Touches - Rank; Enlisted Personnel (sidebar)",
-    "page": 132
+    "book": "Core Rulebook",
+    "section": "Chapter 4: Rank – Starfleet Enlisted Crew; Starfleet Officers",
+    "page": 140
   },
-  "note": "Starfleet officer ranks, lowest first. Minimum ranks per assignment live in assignments.json.",
+  "note": "Starfleet officer ranks, lowest first (the book lists them highest first). Notes are the book's text. The only assignment minimum rank (Commanding Officer: Commander) lives in assignments.json.",
   "ranks": [
-    { "id": "ensign", "name": "Ensign", "note": "This is the lowest rank available to any officer." },
-    { "id": "lieutenantJuniorGrade", "name": "Lieutenant (junior grade)", "note": "This is the lowest rank that may be taken by any character fulfilling the assignment of executive officer, chief engineer, chief of security, or chief medical officer, as those assignments are only available to experienced personnel." },
-    { "id": "lieutenant", "name": "Lieutenant", "note": null },
-    { "id": "lieutenantCommander", "name": "Lieutenant Commander", "note": null },
-    { "id": "commander", "name": "Commander", "note": "This is the lowest rank that the commanding officer of a vessel may have." },
-    { "id": "captain", "name": "Captain", "note": "The most common rank for commanding officers of Starfleet vessels." }
+    { "id": "cadet", "name": "Cadet", "note": "Starfleet Academy students are referred to as cadets, usually with their year (first-year cadet, third-year cadet, etc.). Upon graduation, cadets are commissioned as ensigns, or rarely, as lieutenants (junior grade)." },
+    { "id": "ensign", "name": "Ensign", "note": "This is the lowest rank available to any commissioned officer." },
+    { "id": "lieutenantJuniorGrade", "name": "Lieutenant (junior grade)", "note": "This rank is the highest rank that may be taken by an officer with the Untapped Potential talent." },
+    { "id": "lieutenant", "name": "Lieutenant", "note": "A mid-level ranked officer." },
+    { "id": "lieutenantCommander", "name": "Lieutenant Commander", "note": "This rank is the lowest rank that may be taken by an officer with the Veteran talent. Commonly referred to as “commander” for brevity." },
+    { "id": "commander", "name": "Commander", "note": "This is the lowest rank a commanding officer may have under normal circumstances." },
+    { "id": "captain", "name": "Captain", "note": "Most commanding officers hold this rank; commanding officers who do not are often referred to as captains out of tradition." },
+    { "id": "fleetCaptain", "name": "Fleet Captain", "note": "Fleet captain is a rare rank given to the most respected captains. Sometimes this is an honorary title more than an actual rank." },
+    { "id": "commodore", "name": "Commodore", "note": "Flag officer. Occasionally this rank is referred to as “rear admiral, lower half.”" },
+    { "id": "rearAdmiral", "name": "Rear Admiral", "note": "Flag officer." },
+    { "id": "viceAdmiral", "name": "Vice-Admiral", "note": "Flag officer." },
+    { "id": "admiral", "name": "Admiral", "note": "Flag officer." },
+    { "id": "fleetAdmiral", "name": "Fleet Admiral", "note": "The highest flag officer rank." }
   ],
-  "enlistedNote": "Enlisted ranks, lowest first. The book also gives alternate titles and classes (noted per rank); the prototype uses the first title only.",
+  "enlistedNote": "Enlisted ranks, lowest first (the book lists them highest first). All enlisted crew are outranked by any commissioned officer. The book gives classes (1st, 2nd, 3rd) for Crewman and Petty Officer and duty titles for Crewman only; the prototype uses the rank name only.",
   "enlistedRanks": [
-    { "id": "crewman", "name": "Crewman", "note": "Book: Crewman (1st class, 2nd class, or 3rd class)." },
-    { "id": "pettyOfficer", "name": "Petty Officer", "note": "Book: Petty officer/specialist/yeoman (1st class, 2nd class, or 3rd class)." },
-    { "id": "chiefPettyOfficer", "name": "Chief Petty Officer", "note": "Book: Chief petty officer/chief specialist." },
-    { "id": "seniorChiefPettyOfficer", "name": "Senior Chief Petty Officer", "note": "Book: Senior chief petty officer/senior chief specialist." },
-    { "id": "masterChiefPettyOfficer", "name": "Master Chief Petty Officer", "note": "Book: Master chief petty officer/master chief specialist." }
-  ],
-  "enlistedExcludedAssignments": {
-    "assignments": ["commandingOfficer", "executiveOfficer"],
-    "text": "Your character would not receive a commanding officer or executive officer assignment."
-  }
+    { "id": "crewman", "name": "Crewman", "note": "Crewman (1st class, 2nd class, or 3rd class). Often, personnel of this rank will be addressed by a title according to their duties, such as boatswain (pronounced “bo’sun”), specialist, technician, or yeoman." },
+    { "id": "pettyOfficer", "name": "Petty Officer", "note": "Petty officer (1st class, 2nd class, or 3rd class). Non-commissioned officer. The highest rank that can be taken by an enlisted character with the Untapped Potential talent." },
+    { "id": "chiefPettyOfficer", "name": "Chief Petty Officer", "note": "Non-commissioned officer. Normally addressed as chief. This is the lowest rank that may be taken by an enlisted character with the Veteran talent." },
+    { "id": "seniorChiefPettyOfficer", "name": "Senior Chief Petty Officer", "note": "Non-commissioned officer. Normally addressed as chief." },
+    { "id": "masterChiefPettyOfficer", "name": "Master Chief Petty Officer", "note": "The most senior non-commissioned officer (NCO). Normally addressed as master chief or simply chief." }
+  ]
 }

@@ -85,9 +85,9 @@ export function resolveInjury(state, incoming, avoid) {
         ? `takes ${avoided.taken} Stress${avoided.overflow ? ` (needed ${option.cost}; the track is full)` : ''} (${statusText(next.combatants[targetId])})`
         : `spends ${option.cost} Threat (pool now ${next.resources.threat})`
     const lines = [`${name} avoids the Injury: ${paid}. Not Defeated.`]
-    if (avoided.complication) lines.push(`${name} suffers a complication: ${avoided.complication.name} (${avoided.overflow} Stress over the maximum, Book p.276).`)
+    if (avoided.complication) lines.push(`${name} suffers a complication: ${avoided.complication.name} (${avoided.overflow} Stress over the maximum, Book p.277).`)
     if (avoided.becameFatigued) {
-      lines.push(`${name} is Fatigued: +1 Difficulty on all tasks, no more Stress, and one attribute shut down (Book p.277).`)
+      lines.push(`${name} is Fatigued: +1 Difficulty on all tasks, no more Stress, and one attribute shut down (Book p.278).`)
       next = startFatigueChoice(next, targetId, lines)
     }
     return { state: next, lines, avoided: true }
@@ -109,7 +109,7 @@ export function resolveInjury(state, incoming, avoid) {
   return { state: next, lines, avoided: false }
 }
 
-// Book p.277: a character who becomes Fatigued selects an attribute to shut down. The player chooses for a
+// Book p.278: a character who becomes Fatigued selects an attribute to shut down. The player chooses for a
 // player-controlled party member (state.pendingFatigue waits for the chooseFatigueAttribute action, like an incoming
 // Injury); anyone else gets combat/injuryPolicy.js's choice now. lines: the log lines being built (appended to).
 function startFatigueChoice(state, combatantId, lines) {
@@ -142,7 +142,7 @@ export function inflictInjury(state, attackerId, targetId, injury) {
   return { state: resolved.state, lines: [...lines, ...resolved.lines] }
 }
 
-// Hook (Book p.291): Momentum spent on a successful attack adds severity, 2 per point (1 with Intense), at most +2.
+// Hook (Book p.292): Momentum spent on a successful attack adds severity, 2 per point (1 with Intense), at most +2.
 // requested: points asked for. Returns { added, cost } within what the pool can pay (party only; nobody asks yet).
 export function affordAddedSeverity(resources, weapon, requested = 0, playerSide) {
   if (!playerSide || !requested) return { added: 0, cost: 0 }

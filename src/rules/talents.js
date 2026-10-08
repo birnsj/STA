@@ -10,7 +10,8 @@ import { getFocusEntries } from './characterSheet.js'
 import { getFinalScores } from './finishingTouches.js'
 import { getOwnSpeciesIds } from './species.js'
 
-// Book p.131: one talent each from Upbringing (Early Outlook), Education, Experience (Career) and Finishing Touches.
+// Core p.132: four talents, one each from Upbringing (p.117; Early Outlook), Career Path (pp.120–126; Education),
+// Experience (pp.127–128; Career) and Finishing Touches (p.132).
 // Prototype: talents live in their own section keyed by the granting step, separate from the Species Ability.
 export const TALENT_STEPS = ['earlyOutlook', 'education', 'career', 'finishingTouches']
 
@@ -33,7 +34,7 @@ export const CATEGORY_LABELS = {
   security: 'Security',
   science: 'Science',
   medicine: 'Medicine',
-  career: 'Career Length',
+  career: 'Experience',
 }
 
 export function createEmptyTalents() {
@@ -181,9 +182,9 @@ export function getChoiceOptions(character, stepId, talentId) {
 
 // Why a talent can't go in this slot, or [] when it can. The slot's own current talent is never counted against it.
 function getBlocks(talent, stepId, context, fixedCareerTalentId) {
-  if (talent.category === 'career' && stepId !== 'career') return ['Only granted by your career length']
+  if (talent.category === 'career' && stepId !== 'career') return ['Only granted by your Experience']
   if (stepId === 'career' && fixedCareerTalentId && talent.id !== fixedCareerTalentId) {
-    return [`Your career length grants ${talentsById.get(fixedCareerTalentId).name}`]
+    return [`Your Experience grants ${talentsById.get(fixedCareerTalentId).name}`]
   }
   const unmet = talent.requirements.filter((requirement) => !isRequirementMet(requirement, context))
   if (unmet.length) return unmet.map((requirement) => `Requires ${describeRequirement(requirement)}`)

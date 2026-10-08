@@ -3,14 +3,16 @@
 // and some of its natural features.
 import { FLOOR_TILE } from '../mapFormat.js'
 import {
+  allCells,
   applyFeatures,
+  besideCells,
   CRATE_TILE,
   cornerMarkers,
   furnishRoom,
   grow,
   isFree,
   key,
-  labelRegions,
+  labelPlaces,
   makeGrid,
   placeBuildings,
   placeSolid,
@@ -72,6 +74,17 @@ export function generateLandingField(map, random, areaNames, biome) {
   biome.plants.forEach((plant) => scatter(tiles, keep, Math.round(area / 70 / biome.plants.length), plant, random, ground))
 
   const markers = cornerMarkers(tiles, random)
-  const areas = labelRegions(tiles, [roomCells(pad), ...huts.map((hut) => roomCells(hut.room))], areaNames, random)
+  // areaNames: { pad, hut, fuel } lists; the fuel label goes beside the fuel tanks.
+  const tanks = allCells(tiles).filter(({ x, y }) => tiles[y][x] === 'fuelTank')
+  const areas = labelPlaces(
+    tiles,
+    [
+      { kind: 'pad', cells: roomCells(pad) },
+      ...huts.map((hut) => ({ kind: 'hut', cells: roomCells(hut.room) })),
+      ...(tanks.length ? [{ kind: 'fuel', cells: besideCells(tanks) }] : []),
+    ],
+    areaNames,
+    random,
+  )
   return { ...map, tiles, areas, markers }
 }

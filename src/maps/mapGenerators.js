@@ -29,6 +29,7 @@ import { generateStarshipDeck } from './generators/starshipDeck.js'
 import { generateSurfaceSite } from './generators/surfaceSite.js'
 import { generateWilderness } from './generators/wilderness.js'
 import { withLayoutScale } from './generators/shared.js'
+import { applyWallVariants } from './generators/wallVariants.js'
 import { pickCard } from './episodeCards.js'
 import { DEFAULT_BIOME, mapFileId } from './mapFormat.js'
 
@@ -40,9 +41,12 @@ const locationList = (categoryId) => locationNames.categories.find((category) =>
 // Wilderness takes its name and area labels from the biome instead.
 // generate(map, random, areaNames, biome) returns the map with new tiles, areas and markers at the same size.
 const own = (id) => ({ nameCategory: id, areaNames: areaNames[id] ?? [] })
+// The station's side rooms use the stationRoom list, less the names kept for its promenade.
+const stationHall = areaNames.spaceStation.hall
+const stationAreaNames = { hall: stationHall, room: locationList('stationRoom').filter((name) => !stationHall.includes(name)) }
 export const MAP_GENERATORS = [
   { id: 'starshipDeck', label: 'Starship Deck', group: 'space', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateStarshipDeck },
-  { id: 'spaceStation', label: 'Space Station', group: 'space', setting: 'space', nameCategory: 'stationRoom', areaNames: locationList('stationRoom'), generate: generateSpaceStation },
+  { id: 'spaceStation', label: 'Space Station', group: 'space', setting: 'space', nameCategory: 'stationRoom', areaNames: stationAreaNames, generate: generateSpaceStation },
   { id: 'derelict', label: 'Derelict Ship', group: 'space', setting: 'space', nameCategory: 'derelict', areaNames: locationList('shipRoom'), generate: generateDerelict },
   { id: 'colony', label: 'Small Colony', group: 'surface', setting: 'ground', ...own('colony'), generate: generateColony },
   { id: 'outpost', label: 'Outpost', group: 'surface', setting: 'ground', ...own('outpost'), generate: generateOutpost },
@@ -123,7 +127,7 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
-  return { ...layout, mapType: generator.id, biome: biome.id }
+  return { ...applyWallVariants(layout, random), mapType: generator.id, biome: biome.id }
 }
 
 // A complete, playable map: a layout plus a location name no existing map file uses, an episode name and a card.

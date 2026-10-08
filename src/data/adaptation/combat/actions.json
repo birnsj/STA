@@ -1,19 +1,23 @@
 {
   "notes": [
     "Book (STA 2e Core p.288): in any turn a combatant attempts one major action and one minor action (actionsPerTurn). Designer decision (Oct 2026, replacing the earlier 2 AP rule): Combat Type 1 uses this. Each action's type is 'major', 'minor' or 'free'.",
-    "Book (p.288, p.260): a second major action for 2 Momentum (the task is +1 Difficulty; Swift Action), and an Extra Minor Action for 1 Momentum (once per turn: each minor action may only be performed once per turn). Nobody attempts more than two major actions in a round; Direct gives an ally a second one with no +1 but never a third. NPCs pay with Threat (Book p.264, p.324: Threat mirrors group Momentum). Designer decision (Oct 2026): enemies buy both, and bonus d20s, with Threat; when they do so is enemy AI tuning in combatAI.js.",
+    "Book (p.289, p.288, p.260): a second major action for 2 Momentum (the task is +1 Difficulty; Swift Action), and an Extra Minor Action for 1 Momentum (once per turn: each minor action may only be performed once per turn). Nobody attempts more than two major actions in a round; Direct gives an ally a second one with no +1 but never a third. NPCs pay with Threat (Book p.265, p.324: Threat mirrors group Momentum). Designer decision (Oct 2026): enemies buy both, and bonus d20s, with Threat; when they do so is enemy AI tuning in combatAI.js.",
     "Book (p.288): the Movement minor action (Move) cannot be taken in the same turn as the Movement major action (Sprint), nor while any enemy is within Reach. The book gives no disengage rule and none is added: Sprint is still allowed next to an enemy.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically.",
     "selfRing: the acting character's own actions around them; only the ones possible right now are shown (contextual actions: First Aid, Direct, Guard, challenge objects in reach, Extra Minor, Second Major).",
     "Designer decision (Oct 2026): there is no Actions panel. Actions are picked from the rings around units; End Turn is a button under the task panel, the task panel's Confirm button only appears while a task is set up (Guard, First Aid, Direct, object tasks, Assist, Fire), and each party card shows that character's weapon (the acting character's is clickable to switch). Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim and Info. Clicking a party member shows Assist (and Switch, to hand them the turn).",
     "Designer decision (Oct 2026): the acting character's own ring also offers Attack as one button per firing mode the current weapon allows (its injuryModes: Stun and/or Deadly), showing the weapon's Severity and, for Deadly, +1 Threat. Picking one chooses the mode for the next attack only; the player then picks the target and fires from the task panel (Fire). The Threat is charged when the attack resolves, never on picking the mode.",
-    "tasks: the predefined combat tasks (Book p.288: Guard, First Aid, Direct). Attribute, department and Difficulty are book rules; 'focuses' are VIDEOGAME ADAPTATION (designer-authored lists of the focus names that apply, matched exactly, Oct 2026).",
-    "communication (Direct): Book p.288 'select one ally who can hear you'. Prototype hook: an ally hears the commander when within audibleRangeTiles (implementation detail, placeholder value; flag for designer), or when both carry a working communicator (an item tagged 'communication'). A scene can block communicators (combat state comms.remoteBlocked: jamming, comms disabled, isolation).",
-    "adaptationMomentumSpends: VIDEOGAME ADAPTATION, off by default (Oct 2026). The earlier designer spends (1 Momentum: reroll one die, cancel 1 Threat) are not STA 2E RAW; true turns them back on. Buy d20s (Book p.259) is always available."
+    "tasks: the predefined combat tasks (Book p.289: Guard, First Aid, Direct). Attribute, department and Difficulty are book rules; 'focuses' are VIDEOGAME ADAPTATION (designer-authored lists of the focus names that apply, matched exactly, Oct 2026).",
+    "communication (Direct): Book p.289 'select one ally who can hear you'. Book p.286: characters converse normally within Close range; at Medium they must shout to be understood. Prototype hook: an ally hears the commander when within audibleRangeTiles (the tile count is ours: implementation detail, placeholder value; flag for designer), or when both carry a working communicator (an item tagged 'communication'). A scene can block communicators (combat state comms.remoteBlocked: jamming, comms disabled, isolation).",
+    "adaptationMomentumSpends: VIDEOGAME ADAPTATION, off by default (Oct 2026). The earlier designer spends (1 Momentum: reroll one die, cancel 1 Threat) are not STA 2E RAW; true turns them back on. Buy d20s (Book pp.255, 260) is always available.",
+    "reachPenalty: Book (STA 2e Core p.286): 'Being within Reach of an enemy increases the Difficulty of any task that isn't a melee attack by 1.' Prototype (designer decision, Oct 2026): every task a combatant attempts in Combat Type 1 (ranged attacks, Guard, First Aid, the Ambush, challenge-object tasks) while an active opponent it knows about stands within Reach (1 tile, weapons.json rangeBands) is +difficulty. Not melee attacks; not the defender's opposed roll (implementation pick); routine actions have no task. Applies after an opposed roll, like the attacker's other changes (Book p.258).",
+    "counterattack: Book (STA 2e Core p.290): if an Attack was an opposed task and the target won, they may move out of Reach (if in melee) or spend 2 Momentum to Counterattack, inflicting an Injury on the attacker in return (Stun or Deadly chosen when spending, p.292; a player's Deadly adds 1 Threat). Book p.256: the winning defender generates 1 Momentum per success the attacker fell short. Prototype: that Momentum is saved to the group pool (an NPC's becomes Threat), then the Counterattack costs cost from the pool (NPCs: Threat, p.265); no roll, no action; the defender's weapon with the highest Severity that can hit the attacker from where they stand. The move out of Reach is not implemented."
   ],
   "actionsPerTurn": { "major": 1, "minor": 1 },
   "adaptationMomentumSpends": false,
   "extraActions": { "extraMinorCost": 1, "secondMajorCost": 2, "secondMajorDifficulty": 1 },
+  "reachPenalty": { "difficulty": 1 },
+  "counterattack": { "cost": 2 },
   "communication": { "audibleRangeTiles": 8, "itemTag": "communication" },
   "selfRing": ["move", "sprint", "attack", "aim", "guard", "firstAid", "direct", "assist", "interact", "extraMinor", "secondMajor", "endTurn"],
   "tasks": {
@@ -24,7 +28,7 @@
       "allyDifficulty": 1,
       "focuses": ["Small Unit Tactics", "Combat Tactics", "Strategy/Tactics", "Strategy and Tactics", "Heavy Cover", "Covering Advance", "Martial Arts", "Hand-to-Hand Combat"],
       "tags": ["guard", "defence"],
-      "note": "Book (p.288): Insight + Security, Difficulty 0; success raises the Difficulty of attacks against you by 1 until the start of your next turn. Guarding an ally within Reach instead: +1 Difficulty, lasting until the start of the ally's next turn. Book p.254: a Difficulty 0 task needs no roll unless the gamemaster allows one to generate Momentum; Prototype: Guard always rolls through the shared task resolver (it always passes at Difficulty 0, and every success is Momentum)."
+      "note": "Book (p.289): Insight + Security, Difficulty 0; success raises the Difficulty of attacks against you by 1 until the start of your next turn. Guarding an ally within Reach instead: +1 Difficulty, lasting until the start of the ally's next turn. Book p.254: a Difficulty 0 task needs no roll unless the gamemaster allows one to generate Momentum; Prototype: Guard always rolls through the shared task resolver (it always passes at Difficulty 0, and every success is Momentum)."
     },
     "firstAidRevive": {
       "attribute": "daring",
@@ -32,7 +36,7 @@
       "difficulty": 2,
       "focuses": ["First Aid", "Emergency Medicine", "Field Medic", "Combat Medic", "Triage"],
       "tags": ["medical", "firstAid"],
-      "note": "Book (p.288, p.292): revive a Defeated character within Reach, Daring + Medicine, Difficulty 2; success: no longer Defeated, though they may still have an Injury."
+      "note": "Book (p.289, p.292): revive a Defeated character within Reach, Daring + Medicine, Difficulty 2; success: no longer Defeated, though they may still have an Injury."
     },
     "firstAidTreat": {
       "attribute": "daring",
@@ -40,13 +44,13 @@
       "difficulty": "severity",
       "focuses": ["First Aid", "Emergency Medicine", "Field Medic", "Combat Medic", "Triage"],
       "tags": ["medical", "firstAid"],
-      "note": "Book (p.288, p.292): tend to an Injury on another character within Reach, Daring + Medicine, Difficulty = the Injury's severity; success: the Injury is treated (no penalty, but still an Injury needing proper medical treatment)."
+      "note": "Book (p.289, p.292): tend to an Injury on another character within Reach, Daring + Medicine, Difficulty = the Injury's severity; success: the Injury is treated (no penalty, but still an Injury needing proper medical treatment)."
     },
     "directAssist": {
       "attribute": "control",
       "department": "command",
       "focuses": ["Leadership", "Decisive Leadership", "Team Dynamics", "Small Unit Tactics", "Combat Tactics", "Strategy/Tactics", "Strategy and Tactics", "Leading by Example"],
-      "note": "Book (p.288): the commander Assists the directed ally's action with Control + Command."
+      "note": "Book (p.289): the commander Assists the directed ally's action with Control + Command."
     }
   },
   "actions": [
@@ -79,8 +83,8 @@
       "implemented": true,
       "description": "Once, until anyone attacks: the party member with the best Control + Security rolls at Difficulty 1 against a Klingon they could shoot (Camouflage or Ambush Tactics rerolls a failed die). Success: an automatic hit (an Injury from their weapon on Stun). Failure: a new round starts and the Klingons act first for the rest of the fight.",
       "notes": [
-        "Book (Captain's Log p. 74): Control is used for remaining stealthy. Book (p. 205): an ambusher 'may score an automatic hit'.",
-        "VIDEOGAME ADAPTATION (designer decision, Oct 2026): the whole Ambush action. Best Control + Security in the party rolls; success = an automatic hit on a chosen Klingon (the ambusher's first weapon in range, on Stun when it has a Stun setting; Book p.291 Injury rules apply: the target may Avoid Injury with Stress like any full character), failure = the Klingons act first this fight.",
+        "Book (Captain's Log p. 74): Control is used for remaining stealthy. Book (CL p. 205): an ambusher 'may score an automatic hit'.",
+        "VIDEOGAME ADAPTATION (designer decision, Oct 2026): the whole Ambush action. Best Control + Security in the party rolls; success = an automatic hit on a chosen Klingon (the ambusher's first weapon in range, on Stun when it has a Stun setting; Book p.292 Avoid Injury applies: the target may Avoid Injury with Stress like any full character), failure = the Klingons act first this fight.",
         "VIDEOGAME ADAPTATION: the free reroll of one failed die with Camouflage or Ambush Tactics. It is not Aim and not a book focus effect.",
         "Designer decision (Oct 2026): only a Klingon the ambusher could shoot right now (in one of their weapons' range, with a clear line of fire).",
         "Designer decision (Oct 2026): the chance lasts until anyone attacks (either side); Klingon turns spent moving don't spot the party, so it can close in over several rounds. Offered on party turns only.",

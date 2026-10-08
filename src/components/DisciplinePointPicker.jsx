@@ -22,7 +22,7 @@ export default function DisciplinePointPicker({ rows, picks, swapOptions, allows
   const tip = useInfoTip()
   return (
     <>
-      <div className="point-rows" role="group" aria-label="Discipline increases">
+      <div className="point-rows" role="group" aria-label="Department increases">
         {rows.map((row) => (
           <div key={row.id} className={`point-row discipline-row${row.after !== row.before ? ' is-selected' : ''}`} {...tip.bind(getScoreTip(row.id))}>
             <span className="point-row-name">{row.name}</span>
@@ -61,7 +61,7 @@ export default function DisciplinePointPicker({ rows, picks, swapOptions, allows
       </div>
       {allowsSwap && (
         <div className="swap-row">
-          <span className="swap-label" title="Optional: reduce one discipline by 1 and add that point to one not already increased">Move 1</span>
+          <span className="swap-label" title="Optional: reduce one department by 1 and add that point to one not already increased">Move 1</span>
           <SwapChips label="From" value={picks.swapFrom} options={swapOptions.from} onChange={onSwapFrom} />
           <SwapChips label="To" value={picks.swapTo} options={swapOptions.to} onChange={onSwapTo} />
         </div>

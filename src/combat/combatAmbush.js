@@ -12,7 +12,7 @@ import { rerollDie, resolveStaTask, rollDice, staTaskChance } from '../rules/tas
 import { previewAttack } from './combatAttacks.js'
 import { inflictInjury, injuryFor } from './combatInjuries.js'
 import { addLog, diceText, focusText, markAction, momentumLine, recordDecision, takeRandom, taskText, turnHeader, withStats } from './combatLog.js'
-import { getActiveCombatant, getCombatantList, getOpponents, isActive } from './combatSelectors.js'
+import { getActiveCombatant, getCombatantList, getOpponents, isActive, reachLines } from './combatSelectors.js'
 import { endTurnsOf, startTurnOf, withOutcome } from './combatTurnOrder.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { freshTurn } from './turnActions.js'
@@ -34,11 +34,16 @@ export function previewAmbush(state, targetId) {
   const ambusher = getAmbusher(state)
   const target = state.combatants[targetId]
   if (!ambusher) return { available: false, reason: 'No one can ambush.' }
-  const prepared = prepareTask(ambusher.character, { attribute: 'control', department: 'security', difficulty: AMBUSH_DIFFICULTY, focuses: AMBUSH_FOCUSES, tags: ['ambush'] })
+  // The Ambush is a task, not a melee attack: an enemy within Reach of the ambusher raises it (Book p.286).
+  const prepared = prepareTask(
+    ambusher.character,
+    { attribute: 'control', department: 'security', difficulty: AMBUSH_DIFFICULTY, focuses: AMBUSH_FOCUSES, tags: ['ambush'] },
+    { extraLines: reachLines(state, ambusher) },
+  )
   const task = { ...prepared.task, difficulty: prepared.difficulty }
   // The focus reroll gives a failed die one more try.
   const chance = staTaskChance({ task, difficulty: task.difficulty, rerolls: task.focus ? 1 : 0 })
-  const base = { ambusher, target, task, chance }
+  const base = { ambusher, target, task, chance, difficultyLines: prepared.difficultyLines }
   if (!canAmbush(state)) return { ...base, available: false, reason: 'The chance to ambush has passed.' }
   if (!target || target.side === 'player' || !isActive(target)) return { ...base, available: false, reason: 'Choose a Klingon to ambush.' }
   // Designer decision (Oct 2026): only a Klingon the ambusher could shoot right now (in a weapon's range, clear line of fire).
@@ -81,7 +86,7 @@ export function ambushStep(state, action) {
   const lines = [
     ...decided.lines,
     `Ambush: ${ambusher.character.name} sneaks up on ${target.character.name}`,
-    `${taskText(task)}, Difficulty ${task.difficulty}`,
+    `${taskText(task)}, Difficulty ${task.difficulty}${preview.difficultyLines.length > 1 ? ` (${preview.difficultyLines.map((line) => `${line.label} ${line.change >= 0 ? '+' : ''}${line.change}`).join(', ')})` : ''}`,
     `Focus: ${task.focus ? `${focusText(task)}; free reroll` : focusText(task)}`,
     ...rerolls.map((reroll) => `Focus reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`),
     `Rolls: ${diceText(evaluation.dice)} (${evaluation.successes} ${evaluation.successes === 1 ? 'success' : 'successes'})`,

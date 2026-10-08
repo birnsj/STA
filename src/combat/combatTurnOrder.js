@@ -5,7 +5,7 @@ import { addLog, turnHeader, updateCombatant } from './combatLog.js'
 import { awaitingDecision, getTurnGroupRange, isActive } from './combatSelectors.js'
 import { freshTurn } from './turnActions.js'
 
-// Start of a combatant's own turn: a Guard on them ends (Book p.288: until the start of the guarded character's next turn).
+// Start of a combatant's own turn: a Guard on them ends (Book p.289: until the start of the guarded character's next turn).
 export function startTurnOf(state, id) {
   if (state.startedThisRound.includes(id)) return state
   let next = { ...state, startedThisRound: [...state.startedThisRound, id] }

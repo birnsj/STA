@@ -1,12 +1,13 @@
 import { useCharacter } from '../character/useCharacter.js'
 import {
   getAvailableSpecies,
+  getBonusSpecies,
   getRequiredAttributeChoices,
   getSpeciesAbility,
   getSpeciesAbilityGap,
   getSpeciesById,
   getSpeciesRequirements,
-  hasAttributeChoice,
+  hasSelectionAttributeChoice,
   isMixedHeritage,
 } from '../rules/species.js'
 import { getGenders } from '../rules/appearance.js'
@@ -21,14 +22,12 @@ import ScreenFooter from '../components/ScreenFooter.jsx'
 import SpeciesTraits from '../components/SpeciesTraits.jsx'
 
 function getAttributeInstruction(species, selection) {
-  if (!hasAttributeChoice(species)) return null
-  const required = getRequiredAttributeChoices(species)
-  const progress = `(${selection.attributeBonuses.length}/${required} chosen)`
-  if (isMixedHeritage(species)) {
-    if (selection.parents.some((parent) => !parent)) return 'Choose both parent species first.'
-    return `Choose ${required} different attributes from either parent’s bonuses ${progress}`
-  }
-  return `Choose ${required} attributes to receive +1 ${progress}`
+  const bonusSpecies = getBonusSpecies(selection)
+  if (isMixedHeritage(species) && !bonusSpecies) return 'Choose both parent species and your primary species first.'
+  const fromPrimary = isMixedHeritage(species) ? ` (as ${bonusSpecies.name}, your primary species)` : ''
+  if (!hasSelectionAttributeChoice(selection)) return fromPrimary ? `Bonuses${fromPrimary}.` : null
+  const required = getRequiredAttributeChoices(bonusSpecies)
+  return `Choose ${required} attributes to receive +1${fromPrimary} (${selection.attributeBonuses.length}/${required} chosen)`
 }
 
 export default function SpeciesScreen({ step, navigation }) {
@@ -80,7 +79,7 @@ export default function SpeciesScreen({ step, navigation }) {
               <p className="species-ability-head">
                 <span className="species-ability-label">Species Ability</span>
                 <span className="species-ability-name">{ability.name}</span>
-                <span className="source-ref">{ability.source.book}, p.{ability.source.page}</span>
+                {ability.source && <span className="source-ref">{ability.source.book}, p.{ability.source.page}</span>}
               </p>
               <p className="species-ability-text">{ability.description}</p>
             </div>
@@ -96,7 +95,7 @@ export default function SpeciesScreen({ step, navigation }) {
           )}
           <div className="species-details-scroll">
             <p>{species?.description ?? 'Select a species above to view its description, traits, and attribute adjustments.'}</p>
-            {species && <p className="source-ref">Captain's Log, p.{species.source.page}</p>}
+            {species && <p className="source-ref">{species.source.book ?? "Captain's Log"}, p.{species.source.page}</p>}
           </div>
         </div>
         <div className={`species-gender${requirements.gender ? '' : ' is-missing'}`} inert={locked.gender}>
@@ -137,6 +136,7 @@ export default function SpeciesScreen({ step, navigation }) {
                 onPrimaryChange={(speciesId) => dispatch({ type: 'setSpeciesPrimary', speciesId })}
                 onNameChange={(name) => dispatch({ type: 'setNewSpeciesName', name })}
                 onDescriptionChange={(description) => dispatch({ type: 'setNewSpeciesDescription', description })}
+                onAbilityChange={(changes) => dispatch({ type: 'setNewSpeciesAbility', changes })}
               />
             )}
           </div>
@@ -150,7 +150,7 @@ export default function SpeciesScreen({ step, navigation }) {
             {species && (
               <AttributeAdjustments
                 selection={selection}
-                isChoice={hasAttributeChoice(species)}
+                isChoice={hasSelectionAttributeChoice(selection)}
                 instruction={getAttributeInstruction(species, selection)}
                 onToggle={(attributeId) => dispatch({ type: 'toggleSpeciesAttribute', attributeId })}
               />

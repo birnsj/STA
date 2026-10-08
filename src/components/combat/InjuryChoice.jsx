@@ -1,7 +1,7 @@
 import { getMaxStress, injuryTypeName, STRESS_COMPLICATION } from '../../rules/personalCondition.js'
 
 // Book p.292 Avoid Injury: a party member hit by an attack takes Stress equal to the severity instead of the Injury, or
-// accepts the Injury and is Defeated. Book p.276: without room for all of it, the track fills and a complication follows.
+// accepts the Injury and is Defeated. Book p.277: without room for all of it, the track fills and a complication follows.
 // incoming: combat state's { targetId, attackerId, injury, option }.
 export default function InjuryChoice({ incoming, target, attacker, onAvoid, onAccept }) {
   const { injury, option } = incoming

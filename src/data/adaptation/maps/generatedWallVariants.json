@@ -1,0 +1,14 @@
+{
+  "notes": [
+    "Generate Map only: after a layout is built, about share of each base wall's pieces become one of its variants, written into the map as real tiles (so hand-painted walls stay plain). Designer request (Oct 2026): the main wall is the base wall with the set's other wall tiles randomly thrown in, for every tile set.",
+    "panelVariants replace a whole two-tile plain panel (never a window panel); tileVariants replace a single wall tile that doesn't pair into a panel. A set whose base wall has no entry here keeps plain walls (every set but Starship & Station has one wall tile so far).",
+    "share 0.4: the share the old draw-time bulkhead fittings used (tileEffects.json wallVariants, before Oct 2026). Implementation default awaiting designer review."
+  ],
+  "walls": {
+    "bulkhead": {
+      "share": 0.4,
+      "panelVariants": ["lcarsPanel", "conduitPanel", "hatchPanel", "computerPanel"],
+      "tileVariants": ["lcarsWall", "conduitWall", "hatchWall", "computerWall"]
+    }
+  }
+}

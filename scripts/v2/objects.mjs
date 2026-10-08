@@ -263,13 +263,15 @@ export function fountain(ground) {
   }
 }
 
-export function cactus(ground) {
+// h: the main stem's top; arms: [left, right] as [where it leaves the stem, its top].
+export function cactus(ground, { h = 26, arms = [[10, 18], [14, 21]] } = {}) {
   const skin = (p, n) => ({ albedo: scale(hex('#5f8a3e'), 0.75 + 0.25 * Math.abs(Math.sin(Math.atan2(p[1] - C, p[0] - C) * 6)) + n[2] * 0.1), spec: 0.2, shininess: 24 })
+  const [[leftFrom, leftTop], [rightFrom, rightTop]] = arms
   return {
     ground,
-    top: 32,
+    top: h + 6,
     parts: [
-      part((p) => smin(smin(capsule(p, [C, C, 0], [C, C, 26], 3.2), capsule(p, [C - 6, C, 10], [C - 6, C, 18], 2), 1.5), Math.min(capsule(p, [C, C, 10], [C - 6, C, 10], 2), capsule(p, [C, C, 14], [C + 5, C + 2, 14], 1.8), capsule(p, [C + 5, C + 2, 14], [C + 5, C + 2, 21], 1.8)), 1.5), skin),
+      part((p) => smin(smin(capsule(p, [C, C, 0], [C, C, h], 3.2), capsule(p, [C - 6, C, leftFrom], [C - 6, C, leftTop], 2), 1.5), Math.min(capsule(p, [C, C, leftFrom], [C - 6, C, leftFrom], 2), capsule(p, [C, C, rightFrom], [C + 5, C + 2, rightFrom], 1.8), capsule(p, [C + 5, C + 2, rightFrom], [C + 5, C + 2, rightTop], 1.8)), 1.5), skin),
     ],
   }
 }
@@ -301,14 +303,15 @@ export function basaltColumns(ground, { colour = hex('#46434c'), h = 34 }) {
   }
 }
 
-export function termiteMound(ground) {
+// h: the main spire's top; sides: the two smaller spires' tops.
+export function termiteMound(ground, { h = 26, sides = [16, 12] } = {}) {
   return {
     ground,
-    top: 32,
+    top: h + 6,
     parts: [part((p) => {
-      let d = cone(p, C, C, 0, 10, 26, 2)
-      d = smin(d, cone(p, C + 5, C + 3, 0, 5, 16, 1.2), 2)
-      d = smin(d, cone(p, C - 4, C + 5, 0, 4, 12, 1), 2)
+      let d = cone(p, C, C, 0, 10, h, 2)
+      d = smin(d, cone(p, C + 5, C + 3, 0, 5, sides[0], 1.2), 2)
+      d = smin(d, cone(p, C - 4, C + 5, 0, 4, sides[1], 1), 2)
       return d - (noise3(p[0] * 0.6, p[1] * 0.6, p[2] * 0.6, 3) - 0.5) * 1.6
     }, stony(hex('#b08048'), { seed: 6 }))],
   }
@@ -357,19 +360,20 @@ export function tallCrop(ground) {
   }
 }
 
-export function silo(ground) {
+// h: the top of the walls (the dome sits on them).
+export function silo(ground, { h = 40 } = {}) {
   return {
     ground,
-    top: 50,
+    top: h + 10,
     parts: [
-      part((p) => cylinder(p, C, C, 11, 0, 40, 0.5), (p) => {
+      part((p) => cylinder(p, C, C, 11, 0, h, 0.5), (p) => {
         const a = Math.atan2(p[1] - C, p[0] - C)
         const rib = Math.abs(Math.sin(a * 18)) > 0.92 ? 0.85 : 1
         const band = Math.abs(((p[2] % 10) + 10) % 10 - 5) > 4.6 ? 0.8 : 1
         return { albedo: scale(hex('#b8bcc0'), rib * band * (0.9 + noise3(p[0] * 0.3, p[1] * 0.3, p[2] * 0.3, 2) * 0.15)), spec: 0.5, shininess: 40 }
       }),
-      part((p) => Math.max(sphere(p, [C, C, 38], 11.3), 38 - p[2]), metal(hex('#8a3a2a'), { spec: 0.4 })),
-      part((p) => box(p, [C + 11, C, 20], [0.5, 1.5, 20], 0.2), metal(hex('#5a5e62'))),
+      part((p) => Math.max(sphere(p, [C, C, h - 2], 11.3), h - 2 - p[2]), metal(hex('#8a3a2a'), { spec: 0.4 })),
+      part((p) => box(p, [C + 11, C, h / 2], [0.5, 1.5, h / 2], 0.2), metal(hex('#5a5e62'))),
     ],
   }
 }
@@ -391,17 +395,19 @@ export function oreCart(ground) {
   }
 }
 
-export function drillRig(ground) {
+// h: the derrick's peak. Its rings are 8 apart up to 6 below the peak, narrowing towards it.
+export function drillRig(ground, { h = 46 } = {}) {
   const yellow = metal(hex('#c89a30'), { spec: 0.4 })
+  const rings = Array.from({ length: Math.floor((h - 22) / 8) + 1 }, (_, i) => 16 + i * 8)
   return {
     ground,
-    top: 50,
+    top: h + 4,
     parts: [
       part((p) => box(p, [C, C, 5], [12, 10, 5], 1), yellow),
-      part((p) => Math.min(...[[C - 4, C - 3], [C + 4, C - 3], [C, C + 4]].map(([x, y]) => capsule(p, [x, y, 9], [C, C, 46], 0.9))), yellow),
-      part((p) => Math.min(...[16, 24, 32, 40].map((z) => torus(p, C, C, z, (46 - z) * 0.2 + 1, 0.4))), metal(hex('#8a7020'))),
-      part((p) => cylinder(p, C, C, 1, 0, 30), metal(hex('#9aa0a6'), { spec: 0.8 })),
-      part((p) => sphere(p, [C, C, 47], 1.4), glow(hex('#ff5040'), 1.2, 'lights')),
+      part((p) => Math.min(...[[C - 4, C - 3], [C + 4, C - 3], [C, C + 4]].map(([x, y]) => capsule(p, [x, y, 9], [C, C, h], 0.9))), yellow),
+      part((p) => Math.min(...rings.map((z) => torus(p, C, C, z, ((h - z) / (h - 16)) * 6 + 1, 0.4))), metal(hex('#8a7020'))),
+      part((p) => cylinder(p, C, C, 1, 0, h * 0.65), metal(hex('#9aa0a6'), { spec: 0.8 })),
+      part((p) => sphere(p, [C, C, h + 1], 1.4), glow(hex('#ff5040'), 1.2, 'lights')),
       part((p) => box(p, [C + 8, C + 5, 13], [3, 3, 3], 0.5), metal(hex('#44484c'))),
     ],
   }
@@ -510,15 +516,16 @@ export function tent(ground) {
   }
 }
 
-export function sensorMast(ground) {
+// h: the mast's top, where the dish sits.
+export function sensorMast(ground, { h = 44 } = {}) {
   return {
     ground,
-    top: 50,
+    top: h + 6,
     parts: [
       part((p) => box(p, [C, C, 3], [7, 7, 3], 0.8), metal(hex('#7a848a'))),
-      part((p) => cylinder(p, C, C, 1.1, 5, 44), metal(hex('#b8c0c6'), { spec: 0.7 })),
-      part((p) => Math.max(ellipsoid(p, [C, C, 43], [7, 7, 2.5]), -ellipsoid(p, [C, C, 44.5], [6.4, 6.4, 2.2])), metal(hex('#d0d6da'), { spec: 0.6 })),
-      part((p) => sphere(p, [C, C, 46.5], 1), glow(hex('#5fd0ff'), 1.3, 'lights')),
+      part((p) => cylinder(p, C, C, 1.1, 5, h), metal(hex('#b8c0c6'), { spec: 0.7 })),
+      part((p) => Math.max(ellipsoid(p, [C, C, h - 1], [7, 7, 2.5]), -ellipsoid(p, [C, C, h + 0.5], [6.4, 6.4, 2.2])), metal(hex('#d0d6da'), { spec: 0.6 })),
+      part((p) => sphere(p, [C, C, h + 2.5], 1), glow(hex('#5fd0ff'), 1.3, 'lights')),
       part((p) => Math.min(...[[C - 6, C - 6], [C + 6, C - 6], [C, C + 7]].map(([x, y]) => capsule(p, [x, y, 1], [C, C, 18], 0.35))), metal(hex('#6a7278'))),
     ],
   }
@@ -537,15 +544,16 @@ export function labBench(ground) {
   }
 }
 
-export function containmentPod(ground) {
+// h: the top of the cap; the glass column runs between the base and the cap, the specimen floating halfway up it.
+export function containmentPod(ground, { h = 41 } = {}) {
   return {
     ground,
-    top: 44,
+    top: h + 3,
     parts: [
       part((p) => cylinder(p, C, C, 10, 0, 6, 1), metal(hex('#7a848a'))),
-      part((p) => cylinder(p, C, C, 10, 36, 41, 1), metal(hex('#7a848a'))),
-      part((p) => cylinder(p, C, C, 8, 6, 36), (p) => ({ albedo: hex('#2a6a80'), emit: scale(hex('#5ad0f0'), 0.3 + 0.2 * Math.sin(p[2] * 0.8)), spec: 0.95, shininess: 90, tag: 'glow' })),
-      part((p) => ellipsoid(p, [C, C, 20], [3.2, 3.2, 6]), () => ({ albedo: hex('#3a5a40'), spec: 0.4 })),
+      part((p) => cylinder(p, C, C, 10, h - 5, h, 1), metal(hex('#7a848a'))),
+      part((p) => cylinder(p, C, C, 8, 6, h - 5), (p) => ({ albedo: hex('#2a6a80'), emit: scale(hex('#5ad0f0'), 0.3 + 0.2 * Math.sin(p[2] * 0.8)), spec: 0.95, shininess: 90, tag: 'glow' })),
+      part((p) => ellipsoid(p, [C, C, (h + 1) / 2], [3.2, 3.2, 6]), () => ({ albedo: hex('#3a5a40'), spec: 0.4 })),
     ],
   }
 }
@@ -591,18 +599,19 @@ export function cellBunk(ground) {
   }
 }
 
-export function templePillar(ground) {
+// h: the top of the capital; the gold ring sits two thirds of the way up the shaft.
+export function templePillar(ground, { h = 46 } = {}) {
   const stone = (p) => {
     const a = Math.atan2(p[1] - C, p[0] - C)
     return { albedo: scale(hex('#a8987a'), (Math.abs(Math.sin(a * 6)) > 0.95 ? 0.8 : 1) * (0.85 + fbm3(p[0] * 0.3, p[1] * 0.3, p[2] * 0.3, 2) * 0.25)), spec: 0.15 }
   }
   return {
     ground,
-    top: 50,
+    top: h + 4,
     parts: [
-      part((p) => Math.min(box(p, [C, C, 2.5], [10, 10, 2.5], 0.4), box(p, [C, C, 44], [10, 10, 2.2], 0.4)), stone),
-      part((p) => cylinder(p, C, C, 6.8 - Math.abs(Math.sin(Math.atan2(p[1] - C, p[0] - C) * 6)) * 0.4, 5, 42), stone),
-      part((p) => torus(p, C, C, 30, 7, 0.5), () => ({ albedo: hex('#d8b040'), emit: scale(hex('#d8b040'), 0.25), spec: 0.8, shininess: 50 })),
+      part((p) => Math.min(box(p, [C, C, 2.5], [10, 10, 2.5], 0.4), box(p, [C, C, h - 2], [10, 10, 2.2], 0.4)), stone),
+      part((p) => cylinder(p, C, C, 6.8 - Math.abs(Math.sin(Math.atan2(p[1] - C, p[0] - C) * 6)) * 0.4, 5, h - 4), stone),
+      part((p) => torus(p, C, C, Math.round(h * 0.65), 7, 0.5), () => ({ albedo: hex('#d8b040'), emit: scale(hex('#d8b040'), 0.25), spec: 0.8, shininess: 50 })),
     ],
   }
 }
@@ -660,8 +669,9 @@ export function debris(ground) {
   }
 }
 
-export function mangrove(ground) {
-  const t = tree(ground, { trunk: hex('#5a4832'), leaves: [hex('#2a3f1a'), hex('#5a7a3a')], h: 40, crownR: 13, crownZ: 30, trunkR: 1.6, seed: 6, squash: 0.55 })
+// h, crownZ: as tree's; the roots arch up to 13 whatever the height, the trunk rising from them to the crown.
+export function mangrove(ground, { h = 40, crownZ = 30 } = {}) {
+  const t = tree(ground, { trunk: hex('#5a4832'), leaves: [hex('#2a3f1a'), hex('#5a7a3a')], h, crownR: 13, crownZ, trunkR: 1.6, seed: 6, squash: 0.55 })
   const roots = Array.from({ length: 6 }, (_, i) => {
     const a = (i / 6) * Math.PI * 2 + 0.4
     return [C + Math.cos(a) * 11, C + Math.sin(a) * 11]
@@ -669,19 +679,20 @@ export function mangrove(ground) {
   return {
     ...t,
     parts: [
-      ...t.parts.map((item, i) => (i === 0 ? { ...item, sdf: (p) => taper(p, [C, C, 12], [C, C, 30], 2.2, 1.2) } : item)),
+      ...t.parts.map((item, i) => (i === 0 ? { ...item, sdf: (p) => taper(p, [C, C, 12], [C, C, crownZ], 2.2, 1.2) } : item)),
       part((p) => Math.min(...roots.map(([x, y]) => Math.min(taper(p, [C, C, 13], [(x + C) / 2, (y + C) / 2, 10], 1.5, 1.1), taper(p, [(x + C) / 2, (y + C) / 2, 10], [x, y, -1], 1.1, 0.8)))), bark(hex('#4a3a28'))),
     ],
   }
 }
 
-export function acacia(ground) {
+// fork: where the trunk splits into its two branches; the flat canopy stays 11 above it.
+export function acacia(ground, { fork = 18 } = {}) {
   return {
     ground,
-    top: 38,
+    top: fork + 20,
     parts: [
-      part((p) => Math.min(taper(p, [C, C, 0], [C - 3, C + 2, 18], 1.8, 1.1), taper(p, [C - 3, C + 2, 18], [C - 7, C + 4, 27], 1.1, 0.6), taper(p, [C - 3, C + 2, 18], [C + 5, C - 3, 27], 1, 0.6)), bark(hex('#6a4a2e'))),
-      part((p) => ellipsoid(p, [C - 1, C, 29], [15, 14, 3.6]) - (fbm3(p[0] * 0.35, p[1] * 0.35, p[2] * 0.35, 3) - 0.5) * 2.6, leafy([hex('#3a5220'), hex('#7a9a40')], 5)),
+      part((p) => Math.min(taper(p, [C, C, 0], [C - 3, C + 2, fork], 1.8, 1.1), taper(p, [C - 3, C + 2, fork], [C - 7, C + 4, fork + 9], 1.1, 0.6), taper(p, [C - 3, C + 2, fork], [C + 5, C - 3, fork + 9], 1, 0.6)), bark(hex('#6a4a2e'))),
+      part((p) => ellipsoid(p, [C - 1, C, fork + 11], [15, 14, 3.6]) - (fbm3(p[0] * 0.35, p[1] * 0.35, p[2] * 0.35, 3) - 0.5) * 2.6, leafy([hex('#3a5220'), hex('#7a9a40')], 5)),
     ],
   }
 }

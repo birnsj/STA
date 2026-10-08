@@ -4,11 +4,12 @@
   "allowCustomFocus": true,
   "eventArtPattern": "/art/career-events/{id}.png",
   "notes": [
-    "Screen 06 is Book Step Six (Career Events). Career Length stays on Screen 05; the book gives it no effect here beyond flavour for Novice.",
-    "The book's d20 roll is not offered; the player chooses both events.",
+    "Screen 06 is Book Step Six (Career Events, Core pp.128-131).",
+    "The book's d20 roll is not offered; the player chooses both events. Because nothing is rolled, the book's option to roll more than twice and mix the benefits is not offered either.",
     "Prototype: the two events must be different (the book does not say).",
-    "An event's focus can be one of its book examples, any focus from the Focus Probability Matrix (p.85-88), or the player's own. Events with no examples (Death of a Friend, Lauded by Another Culture) offer the matrix and custom only.",
-    "The book applies attribute (12) and discipline (5) limits at Step Seven, so no limits are checked here.",
+    "The book's optional event traits (e.g. Inventor of X, Friend to the X) are not used.",
+    "An event's focus can be one of its book suggestions, any of the book's Sample Focuses (pp.94-95), or the player's own. Events whose suggestion names no focus (Lauded by Another Culture, Serious Injury) offer the Sample Focuses and custom only.",
+    "The book applies attribute (12) and department (5) limits at Step Seven, so no limits are checked here.",
     "Art for each event is eventArtPattern with {id} replaced by the event id. Missing files fall back to the placeholder portrait."
   ]
 }

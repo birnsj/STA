@@ -1,14 +1,19 @@
 {
-  "notes": "Prototype placeholder area labels for Generate Map's layout types. Invented for the prototype, not taken from the source books; edit freely. Each other location uses the list under its own id. Starship Deck, Space Station and Derelict Ship use the shipRoom and stationRoom lists in locationNames.json instead. Wilderness uses the list named after its biome id (biomes.json).",
-  "farm": ["Farmhouse", "Barn", "North Field", "South Field", "Orchard", "Grain Field", "Tool Shed", "Pasture", "Root Cellar", "Hydroponic Rows"],
-  "miningSite": ["Quarry Pit", "Site Office", "Ore Processing", "Rail Spur", "Drill Platform", "Equipment Shed", "Spoil Heap", "Assay Hut", "Blasting Zone", "Loading Dock"],
-  "landingField": ["Landing Pad", "Control Hut", "Fuel Depot", "Cargo Apron", "Maintenance Bay", "Customs Office", "Pad Two", "Approach Lights"],
-  "fieldCamp": ["Campfire", "Supply Tent", "Sensor Mast", "Mess Tent", "Command Tent", "Latrine Trench", "Perimeter", "Sample Store"],
-  "crashSite": ["Impact Point", "Main Hull", "Debris Trail", "Engine Section", "Burn Scar", "Escape Hatch", "Scattered Cargo", "Cockpit"],
+  "notes": "Prototype placeholder area labels for Generate Map's layout types. Invented for the prototype, not taken from the source books; edit freely. Each other location uses the list under its own id. Starship Deck, Space Station and Derelict Ship use the shipRoom and stationRoom lists in locationNames.json instead. Wilderness uses the list named after its biome id (biomes.json). Locations with different kinds of area split their names by kind (designer request, Oct 2026: a label must match what it names): Farmstead, Space Station (promenade; side rooms use stationRoom), Cantina, Detention Block (cells are numbered in order), Alien Temple, Mining Site, Landing Field, Field Camp and Crash Site (each label beside the object it names). Names nothing in the layout could carry were dropped: Orchard, Pasture, Tool Shed, Root Cellar; Rail Spur, Spoil Heap, Blasting Zone, Loading Dock; Cargo Apron, Pad Two, Approach Lights; Latrine Trench, Perimeter; Impact Point, Escape Hatch, Scattered Cargo, Cockpit; Guard Station, Interrogation, Processing, Armoury, Isolation Cell; East and West Chapel became Side Chapel.",
+  "farm": {
+    "farmhouse": ["Farmhouse"],
+    "barn": ["Barn"],
+    "field": ["North Field", "South Field", "Grain Field", "Hydroponic Rows"]
+  },
+  "miningSite": { "pit": ["Quarry Pit"], "hut": ["Site Office", "Ore Processing", "Equipment Shed", "Assay Hut"], "rig": ["Drill Platform"] },
+  "landingField": { "pad": ["Landing Pad"], "hut": ["Control Hut", "Customs Office", "Maintenance Bay"], "fuel": ["Fuel Depot"] },
+  "fieldCamp": { "campfire": ["Campfire"], "tent": ["Command Tent", "Supply Tent", "Mess Tent"], "mast": ["Sensor Mast"], "stores": ["Sample Store"] },
+  "crashSite": { "hull": ["Main Hull", "Engine Section"], "scar": ["Burn Scar", "Debris Trail"] },
+  "spaceStation": { "hall": ["Promenade"] },
   "laboratory": ["Main Lab", "Containment", "Specimen Store", "Clean Room", "Server Room", "Director's Office", "Decontamination", "Cryo Storage", "Analysis Lab", "Equipment Bay", "Isolation Ward", "Records Room"],
-  "cantina": ["Main Bar", "Back Room", "Kitchen", "Cellar", "Card Room", "Private Booth", "Storeroom", "Owner's Office", "Washroom", "Stage"],
-  "detention": ["Cell Block", "Guard Station", "Cell 1", "Cell 2", "Cell 3", "Cell 4", "Cell 5", "Cell 6", "Interrogation", "Processing", "Armoury", "Isolation Cell"],
-  "alienTemple": ["Great Nave", "Inner Sanctum", "East Chapel", "West Chapel", "Reliquary", "Ossuary", "Hall of Glyphs", "Oracle's Chamber", "Vestibule", "Sealed Vault"],
+  "cantina": { "hall": ["Main Bar"], "room": ["Back Room", "Kitchen", "Cellar", "Card Room", "Private Booth", "Storeroom", "Owner's Office", "Washroom", "Stage"] },
+  "detention": { "hall": ["Cell Block"], "numbered": { "room": "Cell" } },
+  "alienTemple": { "hall": ["Great Nave"], "room": ["Inner Sanctum", "Side Chapel", "Reliquary", "Ossuary", "Hall of Glyphs", "Oracle's Chamber", "Vestibule", "Sealed Vault"] },
   "alienHive": ["Brood Chamber", "Queen's Lair", "Feeding Pit", "Egg Gallery", "Resin Tunnels", "Spawning Pool", "Drone Warren", "Nest Core"],
   "alienVessel": ["Control Nexus", "Bio-Chamber", "Propulsion Core", "Specimen Hold", "Neural Hub", "Membrane Lock", "Growth Vats", "Navigation Node", "Stasis Hall", "Resonance Chamber", "Archive Node", "Pod Bay"],
   "colony": [

@@ -6,7 +6,7 @@ export function getSectionHelp(helpId) {
   if (!section) return null
   const concept = sectionHelp.concepts[section.concept]
   const page = section.page ?? concept?.page
-  const book = (!section.page && concept?.book) || "Captain's Log"
+  const book = section.book ?? ((!section.page && concept?.book) || "Captain's Log")
   return {
     title: section.title ?? concept?.name,
     sections: [

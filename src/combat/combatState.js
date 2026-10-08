@@ -1,7 +1,7 @@
 // Combat state and its reducer. All combat rules run here (through the rule modules), never in React handlers.
 // The reducer is pure and never reads the clock or Math.random: every roll comes from the combat's own seed plus a roll
 // counter, so the same characters, encounter, seed and actions always replay the same fight (and it can run headless).
-// Personal condition (Book p.276-277, p.290-292; rules/personalCondition.js): a successful attack inflicts an Injury of
+// Personal condition (Book p.277-278, p.290-292; rules/personalCondition.js): a successful attack inflicts an Injury of
 // the weapon's severity (less Protection); the target may Avoid it by taking that much Stress, else suffers it and is
 // Defeated. There are no Hits. The player decides Avoid Injury for party members (state.incomingInjury waits for it),
 // and which attribute a newly Fatigued party member shuts down (state.pendingFatigue); AI-controlled combatants decide
@@ -10,7 +10,7 @@
 // rules/taskResolver.js) on the combatants' own characters, the same one challenge objects use. Combat decides what a
 // result means here: a Hit, and what happens to the mission's pools (state.resources, rules/missionResources.js; the
 // same object exploration holds): a party task saves its Momentum to the group pool, an NPC's Momentum becomes Threat.
-// Complications stay complications (Book p.263: they are not turned into Threat unless someone buys them off).
+// Complications stay complications (Book p.258: they are not turned into Threat unless someone buys them off).
 // Actions (Book p.288): each turn one major and one minor action (actions.json). Besides attacking: Guard, First Aid,
 // Direct and Assist here, and challenge objects in the world (exploration/combatLink.js, the same objects and rules as
 // in exploration), all through the same shared task.
@@ -24,6 +24,7 @@
 //   combatTasks.js      Guard, First Aid, Direct previews and their shared roll
 //   combatInjuries.js   inflicting, avoiding and suffering Injuries; Fatigue
 //   combatAmbush.js     the party's one Ambush attempt
+//   combatCounterattack.js  a defender who won an opposed attack: their Momentum, and the Counterattack
 //   combatTurnOrder.js  turns, rounds, switching party members, settling a Direct, the outcome
 //   combatSetup.js      createCombat and late arrivals
 //   combatLog.js        shared state helpers and the log's wording
@@ -33,6 +34,7 @@ import { addThreat, checkDicePurchase, npcMomentumToThreat, payForDice, savableM
 import { chooseFatiguedAttribute, injuryText, needsFatigueAttribute, reviveCondition, treatInjury } from '../rules/personalCondition.js'
 import { evaluateStaDie, rerollDie, rollDice } from '../rules/taskResolver.js'
 import { ambushStep } from './combatAmbush.js'
+import { counterattackStep, defenderWins } from './combatCounterattack.js'
 import {
   aimRerollsFor,
   AIM_TEXT,
@@ -75,6 +77,7 @@ export {
   isActive,
   isTurnFinished,
   knowsAbout,
+  reachLines,
   secondMajorBlock,
   secondMajorLines,
   statusText,
@@ -100,6 +103,7 @@ export {
 export { directBlock, directTargetBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard } from './combatTasks.js'
 export { injuryFor, previewInjuries } from './combatInjuries.js'
 export { AMBUSH_DIFFICULTY, AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
+export { counterattackOption } from './combatCounterattack.js'
 export { settleDirected } from './combatTurnOrder.js'
 export { addCombatant, createCombat } from './combatSetup.js'
 
@@ -154,7 +158,7 @@ export function applyInteraction(state, interaction) {
   return withOutcome(settleDirected(next))
 }
 
-// Pays for an Extra Minor or Second Major: the party from group Momentum, an NPC by spending Threat (Book p.264).
+// Pays for an Extra Minor or Second Major: the party from group Momentum, an NPC by spending Threat (Book p.265).
 // Returns { state, text } with the log wording for what was paid.
 function payForExtraAction(state, actor, cost, countTask) {
   if (extraActionPool(actor) === 'momentum') {
@@ -189,9 +193,14 @@ function reduceAction(state, action) {
   // An incoming Injury waits for its Avoid Injury decision, and a new Fatigue for its attribute, before anything else.
   if (state.incomingInjury && action.type !== 'injuryDecision') return state
   if (state.pendingFatigue && action.type !== 'chooseFatigueAttribute') return state
+  if (state.pendingCounterattack && action.type !== 'counterattackDecision') return state
 
   switch (action.type) {
-    // Book p.277: the player selects the attribute a newly Fatigued party member shuts down (action.attribute), or
+    // Book p.290 Counterattack: the player's decision for a party defender who won an opposed attack (action.accept,
+    // action.injuryMode), or autocombat's (action.reason).
+    case 'counterattackDecision':
+      return withOutcome(counterattackStep(state, action))
+    // Book p.278: the player selects the attribute a newly Fatigued party member shuts down (action.attribute), or
     // autocombat's policy does (action.reason).
     case 'chooseFatigueAttribute': {
       const pending = state.pendingFatigue
@@ -231,7 +240,7 @@ function reduceAction(state, action) {
         `${paid.text} for an extra minor action (${actionsLeftText(turn)})`,
       ])
     }
-    // Book p.288: 2 Momentum (an NPC: 2 Threat), a second major action this turn; its task is +1 Difficulty.
+    // Book p.289: 2 Momentum (an NPC: 2 Threat), a second major action this turn; its task is +1 Difficulty.
     case 'buySecondMajor': {
       if (secondMajorBlock(state, actor)) return state
       const decided = recordDecision(state, actor, action)
@@ -291,7 +300,7 @@ function reduceAction(state, action) {
       if (!canAfford(state, actor, 'attack')) return state
       const preview = previewAttack(state, actor.id, action.targetId, action.weaponId)
       if (!preview.available || !preview.weapon.injuryModes.includes(action.injuryMode)) return state
-      // Buy d20s (Book p.259): action.purchase = { bonusDice, momentum }; the party pays from the group pool and/or adds
+      // Buy d20s (Book pp.255, 260): action.purchase = { bonusDice, momentum }; the party pays from the group pool and/or adds
       // Threat, an NPC spends Threat.
       const purchase = checkDicePurchase(state.resources, action.purchase, actor.side)
       if (!purchase.valid) return state
@@ -414,14 +423,14 @@ function reduceAction(state, action) {
       const evaluation = evaluateAttack(pending)
       const passed = evaluation.success
       const playerSide = attacker.side === 'player'
-      // Book p.289: a Deadly attack by a player character is escalation (+1 Threat). Enemy Deadly attacks cost nothing yet.
+      // Book p.290: a Deadly attack by a player character is escalation (+1 Threat). Enemy Deadly attacks cost nothing yet.
       const deadlyThreat = playerSide && getInjuryMode(pending.injuryMode).generatesThreat ? 1 : 0
       // A party task saves its Momentum to the group pool (bonus Momentum too: PROTOTYPE RULE, missionResources.js
-      // savableMomentum); an NPC's Momentum becomes Threat (Book p.264). Complications stay complications on the result.
+      // savableMomentum); an NPC's Momentum becomes Threat (Book p.265). Complications stay complications on the result.
       const saving = playerSide ? saveMomentum(state.resources, savableMomentum(evaluation)) : { resources: state.resources, saved: 0, lost: 0 }
       const npcThreat = playerSide ? 0 : evaluation.momentumGenerated
       let resources = addThreat(npcMomentumToThreat(saving.resources, npcThreat), deadlyThreat)
-      // Hook: action.addedSeverity (Momentum for +severity, Book p.291); no UI or AI asks for it yet.
+      // Hook: action.addedSeverity (Momentum for +severity, Book p.292); no UI or AI asks for it yet.
       const added = passed ? affordAddedSeverity(resources, weapon, action.addedSeverity, playerSide) : { added: 0, cost: 0 }
       if (added.cost) resources = spendMomentum(resources, added.cost)
       let next = { ...state, pending: null, resources }
@@ -466,6 +475,9 @@ function reduceAction(state, action) {
       const awaiting = Boolean(next.incomingInjury)
       next = markAction(next, 'resolve', attacker.id, { targetId: target.id, weaponId: weapon.id, passed, removed: !isActive(after), injury, awaiting })
       next = addLog(next, lines)
+      // Book p.290: an opposed attack the target won may be answered with a Counterattack (combatCounterattack.js).
+      const won = !passed && pending.opposition ? defenderWins(next, pending, evaluation) : null
+      if (won) next = addLog(won.state, won.lines)
       next = {
         ...next,
         result: {
@@ -489,6 +501,7 @@ function reduceAction(state, action) {
           taskResult: evaluation,
           // The Injury the hit inflicts; decided: 'pending' (waiting for Avoid Injury), 'avoided' or 'suffered'.
           injury: injury && { ...injury, decided: awaiting ? 'pending' : isActive(after) ? 'avoided' : 'suffered' },
+          counterattack: won?.counterattack ?? null,
           closed: false,
         },
       }
@@ -506,7 +519,8 @@ function reduceAction(state, action) {
       })
       return addLog(markAction(next, 'cancelThreat', actor.id), [...decided.lines, `Momentum spent to cancel 1 Threat (Momentum ${next.resources.momentum}, Threat ${next.resources.threat}).`])
     }
-    // Book p.288 Guard (major): Insight + Security, Difficulty 0 (+1 for an ally within Reach). Success: attacks against the
+    // Book p.289 Guard (major): Insight + Security, Difficulty 0 (+1 for an ally within Reach; +1 with an enemy within
+    // Reach, p.286). Success: attacks against the
     // guarded character are +1 Difficulty until the start of their next turn. Prototype: always rolled (Book p.254 lets a
     // Difficulty 0 task skip the roll; rolling still generates Momentum, and keeps one flow for every task).
     case 'guard': {
@@ -525,7 +539,7 @@ function reduceAction(state, action) {
         rolled.passed ? `${target.character.name} is guarded: attacks against them are +1 Difficulty until the start of their next turn.` : 'The Guard fails.',
       ])
     }
-    // Book p.288 First Aid (major): Daring + Medicine on an adjacent ally. Difficulty 2 revives a Defeated character (the
+    // Book p.289 First Aid (major): Daring + Medicine on an adjacent ally. Difficulty 2 revives a Defeated character (the
     // Injury stays; a Stun Injury then wears off at the end of their next turn, Book p.292); Difficulty = an Injury's
     // severity treats that Injury (no penalty from it, but it is still an Injury). Revive and treat are separate actions.
     case 'firstAid': {
@@ -553,7 +567,7 @@ function reduceAction(state, action) {
       next = markAction(next, 'firstAid', actor.id, { targetId: target.id, mode: action.mode, passed: rolled.passed })
       return addLog(next, [...decided.lines, ...rolled.lines, outcome])
     }
-    // Book p.288 Direct (major): the character in authority spends 1 Momentum; an ally who can hear immediately takes a
+    // Book p.289 Direct (major): the character in authority spends 1 Momentum; an ally who can hear immediately takes a
     // major action, which the commander assists (Control + Command). No +1 Difficulty for that ally's second major action.
     case 'direct': {
       const ally = state.combatants[action.allyId]

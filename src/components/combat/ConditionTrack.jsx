@@ -57,12 +57,12 @@ export default function ConditionTrack({ character, condition, svg = false, show
         </span>
       ))}
       {condition.fatigued && (
-        <span className="condition-fatigued" title="Book p.277: +1 Difficulty on all tasks, no more Stress; tasks with the shut-down attribute automatically fail.">
+        <span className="condition-fatigued" title="Book p.278: +1 Difficulty on all tasks, no more Stress; tasks with the shut-down attribute automatically fail.">
           Fatigued{condition.fatiguedAttribute ? ` · ${getAttributeName(condition.fatiguedAttribute)} shut down` : ''}
         </span>
       )}
       {(condition.complications ?? []).map((complication) => (
-        <span key={complication.id} className="condition-complication" title="Complication (Stress over the maximum, Book p.276)">
+        <span key={complication.id} className="condition-complication" title="Complication (Stress over the maximum, Book p.277)">
           {complication.name}
         </span>
       ))}

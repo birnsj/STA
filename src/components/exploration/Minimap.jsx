@@ -1,9 +1,8 @@
-import { useMemo } from 'react'
 import { getNpcs } from '../../exploration/awareness.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
-import { getTile } from '../../maps/mapFormat.js'
 import { isDefeated, isDying, minorDefeatText } from '../../rules/personalCondition.js'
+import MinimapTiles from '../maps/MinimapTiles.jsx'
 
 // A defeated person's state in the rules' own words: Dead / Unconscious (a Minor NPC's outright Defeat), Dying (Defeated
 // with a Deadly Injury), Defeated; null while they're up.
@@ -12,39 +11,6 @@ const downState = (condition) => (isDefeated(condition) ? (minorDefeatText(condi
 // by a Stun attack (Unconscious / Defeated with no Deadly Injury) = yellow dot.
 const enemyDownMark = (state) => (state === 'Dead' || state === 'Dying' ? 'dead' : 'stunned')
 const stateClass = (state) => (state ? ` is-${state.toLowerCase()}` : '')
-
-// A tile PNG (64 x 96, iso) seen from above: its top face (the floor diamond, raised by the block height for walls) is
-// unskewed onto a 1 x 1 square. The matrix maps the face's corners top / right / left to (0,0) / (1,0) / (0,1).
-const TILE_SYMBOL_PREFIX = 'minimap-tile-'
-const topFaceMatrix = (height) => {
-  const top = 64 - height
-  return `matrix(${1 / 64} ${-1 / 64} ${1 / 32} ${1 / 32} ${-0.5 - top / 32} ${0.5 - top / 32})`
-}
-const symbolId = (tileId) => `${TILE_SYMBOL_PREFIX}${tileId}`
-
-function MinimapTiles({ map }) {
-  return useMemo(() => {
-    const ids = [...new Set(map.tiles.flat())]
-    return (
-      <>
-        <defs>
-          <clipPath id="minimap-tile-clip">
-            <rect width="1" height="1" />
-          </clipPath>
-          {ids.map((id) => {
-            const tile = getTile(id)
-            return (
-              <g key={id} id={symbolId(id)} clipPath="url(#minimap-tile-clip)">
-                <image href={tile.image} width="64" height="96" transform={topFaceMatrix(tile.height ?? 0)} />
-              </g>
-            )
-          })}
-        </defs>
-        {map.tiles.map((row, y) => row.map((id, x) => <use key={`${x},${y}`} href={`#${symbolId(id)}`} x={x - 0.5} y={y - 0.5} />))}
-      </>
-    )
-  }, [map])
-}
 
 const CROSS = 'M-0.7 -0.7L0.7 0.7M0.7 -0.7L-0.7 0.7'
 
@@ -79,7 +45,7 @@ export default function Minimap({ map, party, world, knowledge, debug = false })
     <div className="explore-minimap-column">
       <section className="explore-minimap" aria-label="Minimap">
         <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
-          <MinimapTiles map={map} />
+          <MinimapTiles tiles={map.tiles} />
           {(map.areas ?? []).map((area) => (
             <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={area.position.x - 0.4} y={area.position.y + 0.3}>
               {area.name.toUpperCase()}

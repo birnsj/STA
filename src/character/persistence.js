@@ -1,6 +1,6 @@
 import { createEmptyCharacter } from './characterModel.js'
 import { devCharacterFiles } from './devCharacterFiles.js'
-import { getSpeciesById, withSpeciesAbility } from '../rules/species.js'
+import { getSpeciesById, reconcileSpeciesSelection } from '../rules/species.js'
 
 // Bump when a saved character can no longer be read by the current code; older saves are then discarded.
 const STORAGE_VERSION = 2
@@ -37,7 +37,7 @@ function withCurrentShape(saved) {
     if (!(key in saved)) continue
     character[key] = isPlainObject(empty[key]) && isPlainObject(saved[key]) ? { ...empty[key], ...saved[key] } : saved[key]
   }
-  if (isPlainObject(character.species) && getSpeciesById(character.species.id)) character.species = withSpeciesAbility(character.species)
+  if (isPlainObject(character.species) && getSpeciesById(character.species.id)) character.species = reconcileSpeciesSelection(character.species)
   return character
 }
 

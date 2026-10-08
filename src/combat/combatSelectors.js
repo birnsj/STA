@@ -1,8 +1,10 @@
 // Read-only questions about a combat state: who is acting, who opposes whom, whose turn record applies, and whether a
 // combatant can afford an action right now. Nothing here changes state.
 import { conditionSummary } from '../rules/personalCondition.js'
-import { tileDistance } from './rangeSystem.js'
-import { actionTypeOf, actionsLeft, EXTRA_ACTIONS, freshTurn, majorsTaken, MAX_MAJORS_PER_ROUND } from './turnActions.js'
+import { RANGE_BANDS, tileDistance } from './rangeSystem.js'
+import { actionTypeOf, actionsLeft, EXTRA_ACTIONS, freshTurn, majorsTaken, MAX_MAJORS_PER_ROUND, REACH_PENALTY } from './turnActions.js'
+
+const REACH_TILES = RANGE_BANDS.find((band) => band.id === 'reach').maxTiles
 
 // facing: presentation only (the book has no facing rules). One of the 8 grid directions, e.g. { x: 1, y: -1 }; it follows
 // the last step of a move and turns toward the target of an attack.
@@ -14,7 +16,7 @@ export const facingToward = (from, to) => {
 
 // The directed ally acts (Direct) while the commander's turn waits; otherwise whoever's turn it is.
 export const getActiveCombatant = (state) => state.combatants[state.directed?.allyId ?? state.order[state.turnIndex]]
-// Able to act: not Defeated (Book p.291: a Defeated character is prone and takes no actions).
+// Able to act: not Defeated (Book p.292: a Defeated character is prone and takes no actions).
 export const isActive = (combatant) => !combatant.condition.defeated
 export const getCombatantList = (state) => state.order.map((id) => state.combatants[id])
 // Whether a combatant knows another is there. Only combat started in the world tracks this (state.knowledge), and only
@@ -60,8 +62,9 @@ export function isTurnFinished(state, id) {
   return turn.done || actionsLeft(turn) <= 0
 }
 
-// Something waits for a decision before play goes on: an Avoid Injury choice or a Fatigue attribute choice.
-export const awaitingDecision = (state) => Boolean(state.incomingInjury || state.pendingFatigue)
+// Something waits for a decision before play goes on: an Avoid Injury choice, a Fatigue attribute choice or a
+// Counterattack.
+export const awaitingDecision = (state) => Boolean(state.incomingInjury || state.pendingFatigue || state.pendingCounterattack)
 
 export const canAct = (state, combatant) => !state.outcome && !state.pending && !awaitingDecision(state) && getActiveCombatant(state)?.id === combatant.id
 // actionId: an action id (its type from actions.json) or a type ('major' | 'minor' | 'free').
@@ -70,7 +73,7 @@ export function canAfford(state, combatant, actionId) {
   return canAct(state, combatant) && (type === 'free' || state.turn[type] > 0)
 }
 
-// Book p.264, p.324: NPCs pay with Threat for the spends the party pays for with group Momentum.
+// Book p.265, p.324: NPCs pay with Threat for the spends the party pays for with group Momentum.
 export const extraActionPool = (combatant) => (combatant.side === 'player' ? 'momentum' : 'threat')
 
 function poolShortfall(state, combatant, cost) {
@@ -87,7 +90,7 @@ export function extraMinorBlock(state, combatant) {
   return poolShortfall(state, combatant, EXTRA_ACTIONS.extraMinorCost)
 }
 
-// Book p.288: a second major action for 2 Momentum; the task attempted with it is +1 Difficulty. Not while directed
+// Book p.289: a second major action for 2 Momentum; the task attempted with it is +1 Difficulty. Not while directed
 // (Direct is the ally's extra action), and never a third major action in a round.
 export function secondMajorBlock(state, combatant) {
   if (!canAct(state, combatant)) return 'Not this character\'s action.'
@@ -101,6 +104,14 @@ export function secondMajorBlock(state, combatant) {
 // The Difficulty lines a bought second major action adds to this combatant's next major task ([] when none waits).
 export const secondMajorLines = (state, combatantId) =>
   getTurnOf(state, combatantId).secondMajor ? [{ label: 'Second major action', change: EXTRA_ACTIONS.secondMajorDifficulty }] : []
+
+// Book p.286: being within Reach of an enemy raises the Difficulty of any task that isn't a melee attack (actions.json
+// reachPenalty; the caller leaves melee attacks out). Enemies are the active opponents the combatant knows about, as for
+// the Move block. position: where the task is attempted from (the AI tests other tiles).
+export function reachLines(state, combatant, position = combatant.position) {
+  const enemy = getOpponents(state, combatant).find((opponent) => tileDistance(position, opponent.position) <= REACH_TILES)
+  return enemy ? [{ label: `Enemy within Reach (${enemy.character.name})`, change: REACH_PENALTY }] : []
+}
 
 // Aim doesn't stack, and is taken at most once per turn (Book p.260: each minor action once per turn).
 export const canAim = (state, combatant) => canAfford(state, combatant, 'aim') && !state.turn.aimReroll && !state.turn.aimed

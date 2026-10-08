@@ -1,242 +1,193 @@
 {
   "source": {
-    "book": "Captain's Log 2026",
+    "book": "Star Trek Adventures 2E Core Rulebook",
     "section": "Step Six: Career Events",
-    "pages": [123, 124, 125, 126, 127, 128, 129]
+    "pages": [128, 129, 130, 131]
   },
   "eventCount": 2,
-  "rule": "Your character has two defining career events, chosen or determined randomly from the list below, and gains whatever benefits they provide. Each career event increases one attribute by 1, one discipline by 1, and gives your character one additional focus.",
-  "noviceNote": "For characters that chose Novice in Step Five, assume that these career events took place during the character’s time at the Academy or equivalent, perhaps during a field training assignment aboard a starship.",
-  "note": "attribute.id / discipline.id of null means the book lets the player choose any one. focus.examples is empty where the book gives none.",
+  "rule": "This is handled as two identical steps: choose a Career Event, gain whatever benefits it provides, and then repeat the process, giving the character two definitive Career Events. Each Career Event increases one attribute and one department by one point each, and gives the character one additional focus.",
+  "noviceNote": "Younger characters may assume that one or both of their Career Events occurred during their training—such as cadets gaining field experience aboard a ship during their third or fourth year.",
+  "note": "Events in the book's table order (p.128). attribute.id / discipline.id of null means the book lets the player choose any one. focus.examples holds the book's named focus suggestions; it is empty where the book only describes what the focus should reflect. The book's optional event traits are not used. Ids are kept from the earlier Captain's Log data (art paths are built from them).",
   "events": [
-    {
-      "id": "shipDestroyed",
-      "name": "Ship Destroyed",
-      "roll": 1,
-      "description": "The ship your character was serving on was lost, destroyed during a mission, and the character was one of the few who survived.",
-      "questions": [
-        "What was the ship’s mission? Was it something routine that went horribly wrong, or was it something perilous? What destroyed the ship?",
-        "How many survivors were there? How long did it take before they were recovered?"
-      ],
-      "attribute": { "id": "daring", "text": "Your character’s resolve and competence in a crisis increases their Daring by 1." },
-      "discipline": { "id": "security", "text": "Your character’s experiences of a perilous situation increase their Security by 1." },
-      "focus": { "text": "Add a focus reflecting their experiences.", "examples": ["Extra-Vehicular Operations", "Small Craft", "Survival"] },
-      "source": { "book": "Captain's Log", "page": 124 }
-    },
-    {
-      "id": "deathOfAFriend",
-      "name": "Death of a Friend",
-      "roll": 2,
-      "description": "During an important mission, one of your character’s friends was killed in action.",
-      "questions": [
-        "Who was the friend? How did the character know them?",
-        "What was the mission? How did the friend die? Who was to blame?"
-      ],
-      "attribute": { "id": "insight", "text": "Add 1 to Insight." },
-      "discipline": { "id": "medicine", "text": "Your character’s grief and recovery increase their understanding of Medicine by 1." },
-      "focus": { "text": "Add a focus reflecting the character’s experiences. It may represent a skill or pursuit the character takes up in their fallen friend’s memory or to prevent the same thing from happening in the future.", "examples": [] },
-      "source": { "book": "Captain's Log", "page": 124 }
-    },
-    {
-      "id": "laudedByAnotherCulture",
-      "name": "Lauded by Another Culture",
-      "roll": 3,
-      "description": "Your character was involved in a mission that earned the official praise of a non-allied culture; they are now considered to be a friend to that people.",
-      "questions": [
-        "What culture was aided by this mission? What was the mission? Why was it particularly praiseworthy?",
-        "Does your character have any friends or contacts in that culture who can be contacted for help?"
-      ],
-      "attribute": { "id": "presence", "text": "Your character’s standing and renown increases their Presence by 1." },
-      "discipline": { "id": "science", "text": "Your character’s broader understanding of the universe and another culture increases their Science by 1." },
-      "focus": { "text": "Add a focus reflecting your character’s experience with that culture. A focus of X Culture, replacing the X with the name of that culture, is a good example, as would any that represent skills or techniques specific to that culture.", "examples": [] },
-      "source": { "book": "Captain's Log", "page": 124 }
-    },
-    {
-      "id": "negotiatedATreaty",
-      "name": "Negotiated a Treaty",
-      "roll": 4,
-      "description": "Your character was part of a delegation that helped negotiate a treaty, agreement, or alliance with a different culture.",
-      "questions": ["What culture was the treaty with? What was it for?"],
-      "attribute": { "id": "control", "text": "Your character’s familiarity with minutiae and the careful work of diplomacy increases their Control by 1." },
-      "discipline": { "id": "command", "text": "Your character’s familiarity with diplomacy and negotiation increases their Command by 1." },
-      "focus": { "text": "Add a focus, reflecting their experience with negotiations.", "examples": ["Diplomacy", "Galactic Politics", "Negotiation"] },
-      "source": { "book": "Captain's Log", "page": 125 }
-    },
-    {
-      "id": "requiredToTakeCommand",
-      "name": "Required to Take Command",
-      "roll": 5,
-      "description": "During a mission, a crisis left the mission’s leader unable to lead. This required your character to take command, something they may not have been prepared for.",
-      "questions": ["What was the mission? What went wrong?", "Was the mission successful despite the loss of the leader?"],
-      "attribute": { "id": "daring", "text": "Your character’s need to improvise during a crisis increases their Daring by 1." },
-      "discipline": { "id": "command", "text": "Being required to lead increases your character’s Command by 1." },
-      "focus": { "text": "Add a focus reflecting your character’s experiences during the crisis.", "examples": ["Composure", "Inspiration", "Leading by Example"] },
-      "source": { "book": "Captain's Log", "page": 125 }
-    },
-    {
-      "id": "encounterWithATrulyAlienBeing",
-      "name": "Encounter with a Truly Alien Being",
-      "roll": 6,
-      "description": "Your character encountered a life-form which is truly alien, something barely within the comprehension of humanoid life. It might have been some godlike entity, or a creature that swims through space, but whatever it was, it was not life as we know it.",
-      "questions": ["What kind of creature was it? What did your character learn from the experience?", "What happened to the creature afterward? Has it been seen again?"],
-      "attribute": { "id": "reason", "text": "Your character’s encounter with the unknown increases their Reason by 1." },
-      "discipline": { "id": "science", "text": "Your character comes away from the experience with a greater understanding of, and curiosity for, the universe, increasing Science by 1." },
-      "focus": { "text": "Add a focus reflecting their experiences with the entity.", "examples": ["Empathy", "Philosophy", "Xenobiology"] },
-      "source": { "book": "Captain's Log", "page": 125 }
-    },
-    {
-      "id": "seriousInjury",
-      "name": "Serious Injury",
-      "roll": 7,
-      "description": "Your character was seriously hurt and needed to spend a considerable amount of time recovering.",
-      "questions": ["What was happening when your character was injured? Who was responsible?", "What did the recovery entail? Did the character need a prosthesis or cybernetic implant afterward?"],
-      "attribute": { "id": "fitness", "text": "Your character’s long, arduous recovery forced them to think about their health more, increasing their Fitness by 1." },
-      "discipline": { "id": "medicine", "text": "Being surrounded by doctors for a long time increased your character’s Medicine by 1." },
-      "focus": { "text": "Add a focus reflecting the circumstances of your character’s injury, something that helped them through recovery, or something they took up after recovering.", "examples": ["Art", "Athletics", "Philosophy"] },
-      "source": { "book": "Captain's Log", "page": 125 }
-    },
-    {
-      "id": "conflictWithAHostileCulture",
-      "name": "Conflict with a Hostile Culture",
-      "roll": 8,
-      "description": "Your character was involved in a major battle with a hostile force and is unlikely to forget the experience.",
-      "questions": ["Who was the enemy in this battle? Why did the battle occur? Was it fought in space, on the ground, or both?", "What did your character have to do to survive? Was the battle won or lost?"],
-      "attribute": { "id": "fitness", "text": "Your character needed to be tough to survive in battle, increasing Fitness by 1." },
-      "discipline": { "id": "security", "text": "The harrowing experiences of battle have increased your character’s Security by 1." },
-      "focus": { "text": "Add a focus reflecting skills they honed during the fighting.", "examples": ["Hand Phasers", "Hand-to-Hand Combat", "Shipboard Tactical Systems"] },
-      "source": { "book": "Captain's Log", "page": 126 }
-    },
-    {
-      "id": "mentored",
-      "name": "Mentored",
-      "roll": 9,
-      "description": "A highly respected individual took special notice of your character’s career. For a while, the character served as the mentor’s pilot and aide, gaining the benefit of the mentor’s experiences and lessons.",
-      "questions": ["Who was the mentor? Do they remain a contact or even friend of your character?"],
-      "attribute": { "id": null, "text": "The mentor’s lessons came in many forms; increase any one Attribute by 1." },
-      "discipline": { "id": "conn", "text": "Time spent as the mentor’s pilot, and studying the structures and procedures of their organization, increase your character’s Conn by 1." },
-      "focus": { "text": "Add a focus reflecting the lessons learned. Examples: Composure or Etiquette, though any focus reflecting the mentor’s specialties would be fitting.", "examples": ["Composure", "Etiquette"] },
-      "source": { "book": "Captain's Log", "page": 126 }
-    },
-    {
-      "id": "transporterAccident",
-      "name": "Transporter Accident",
-      "roll": 10,
-      "description": "Your character suffered some manner of strange accident while using a transporter.",
-      "questions": ["What happened to your character during the accident? Were there any lasting repercussions?", "How does they feel about transporters now?"],
-      "attribute": { "id": "control", "text": "The character is cautious and careful after their experiences, increasing Control by 1." },
-      "discipline": { "id": "conn", "text": "The experience means the character takes shuttles more often now than the transporter, increasing Conn by 1." },
-      "focus": { "text": "Add a focus reflecting something they learned either because of the accident, or in the aftermath.", "examples": ["Quantum Mechanics", "Small Craft", "Transporters & Replicators"] },
-      "source": { "book": "Captain's Log", "page": 126 }
-    },
-    {
-      "id": "dealingWithAPlague",
-      "name": "Dealing with a Plague",
-      "roll": 11,
-      "description": "Your character’s ship was assigned to provide aid to a world dealing with an epidemic.",
-      "questions": ["What was the disease that was running rampant? What planet was it affecting?", "Did the character deal directly with the sick? How was your character involved?"],
-      "attribute": { "id": "insight", "text": "Helping people in distress during a massive crisis helped your character understand people, increasing Insight by 1." },
-      "discipline": { "id": "medicine", "text": "Dealing with a problem of this nature increases your character’s Medicine by 1." },
-      "focus": { "text": "Add a focus reflecting how they helped during the crisis.", "examples": ["Emergency Medicine", "Infectious Diseases", "Triage"] },
-      "source": { "book": "Captain's Log", "page": 126 }
-    },
     {
       "id": "betrayedIdealsForASuperior",
       "name": "Betrayed Ideals for a Superior",
-      "roll": 12,
-      "description": "Your character was placed in a situation where they had to choose between their own ideals and trusted superior, choosing to follow the superior.",
-      "questions": ["Who was the superior? What did they ask your character to do? How does your character feel now?", "What were the repercussions of this? Are the details of this event on record? Was your character right?"],
-      "attribute": { "id": "presence", "text": "Your character learned a lot from the superior on how to command respect, increasing Presence by 1." },
-      "discipline": { "id": "command", "text": "Difficult decisions are part of being a leader; your character increases their Command by 1." },
-      "focus": { "text": "Add a focus reflecting the event and its aftermath.", "examples": ["Inspiration", "Investigation", "Persuasion"] },
-      "source": { "book": "Captain's Log", "page": 127 }
-    },
-    {
-      "id": "calledOutASuperior",
-      "name": "Called Out a Superior",
-      "roll": 13,
-      "description": "Your character was placed in a situation where they had to make a choice between a trusted superior and their own ideals, and chose to follow their ideals.",
-      "questions": ["Who was the superior? What did they ask your character to do? How does your character feel now?", "What were the repercussions of this? Are the details of this event on record? Was your character right?"],
-      "attribute": { "id": "reason", "text": "Your character learned to evaluate situations on their own merit, rather than blindly trusting others, increasing Reason by 1." },
-      "discipline": { "id": "conn", "text": "The legal proceedings that followed gave your character a greater insight into organizational protocol, increasing Conn by 1." },
-      "focus": { "text": "Your character gains a focus, reflecting the event and its aftermath.", "examples": ["History", "Starfleet Protocol", "Uniform Code of Justice"] },
-      "source": { "book": "Captain's Log", "page": 127 }
-    },
-    {
-      "id": "newBattleStrategy",
-      "name": "New Battle Strategy",
-      "roll": 14,
-      "description": "In combat with a hostile force, your character devised a new strategy or tactic.",
-      "questions": ["Who was the battle against? Was it in space or on the ground?", "What was the strategy devised?"],
-      "attribute": { "id": "daring", "text": "Your character’s creativity under pressure shows boldness and ingenuity, increasing Daring by 1." },
-      "discipline": { "id": "security", "text": "Your character’s combat experience increases their Security by 1." },
-      "focus": { "text": "Your character gains a focus, reflecting their decisive battlefield leadership.", "examples": ["Combat Tactics", "Hazard Awareness", "Leading by Example"] },
-      "source": { "book": "Captain's Log", "page": 127 }
-    },
-    {
-      "id": "learnedUniqueLanguage",
-      "name": "Learned Unique Language",
-      "roll": 15,
-      "description": "Your character encountered a species with an unusual form of communication and learned to communicate with them.",
-      "questions": ["Who were the aliens they encountered? Was the encounter tense, or peaceful?", "What method of communication do the aliens use? How did your character learn it?"],
-      "attribute": { "id": "insight", "text": "Your character learned a lot about understanding others from the experience, increasing Insight by 1." },
-      "discipline": { "id": "science", "text": "Your character gains new knowledge and new understanding, increasing Science by 1." },
-      "focus": { "text": "Add a focus reflecting what they learned from the event.", "examples": ["Cultural Studies", "Linguistics", "Negotiations"] },
-      "source": { "book": "Captain's Log", "page": 127 }
-    },
-    {
-      "id": "discoveredAnArtifact",
-      "name": "Discovered an Artifact",
-      "roll": 16,
-      "description": "During a survey mission, your character discovered a device or fragment of technology from an ancient civilization.",
-      "questions": ["What did this piece of technology do?", "What is known about the civilization that made it?"],
-      "attribute": { "id": "reason", "text": "Your character’s studies of the technology produced numerous theories, increasing Reason by 1." },
-      "discipline": { "id": "engineering", "text": "Your character is more able to understand unfamiliar technology, increasing Engineering by 1." },
-      "focus": { "text": "Add a focus reflecting the event and its aftermath.", "examples": ["Ancient Technology", "Computers", "Reverse Engineering"] },
-      "source": { "book": "Captain's Log", "page": 128 }
-    },
-    {
-      "id": "specialCommendation",
-      "name": "Special Commendation",
-      "roll": 17,
-      "description": "During a crisis, your character saved the lives of several colleagues, helping them to safety. This earned your character a special commendation.",
-      "questions": ["What was the crisis? Why was the mission in danger?", "What were the repercussions of this? Are the details of this event on record?"],
-      "attribute": { "id": "fitness", "text": "Your character’s physical conditioning was vital, increasing Fitness by 1." },
-      "discipline": { "id": null, "text": "Your character’s commendation opened up many avenues of advancement; increase any one discipline by 1." },
-      "focus": { "text": "Your character gains a focus, reflecting the event and its aftermath.", "examples": ["Athletics", "Emergency Medicine", "Survival"] },
-      "source": { "book": "Captain's Log", "page": 128 }
-    },
-    {
-      "id": "solvedAnEngineeringCrisis",
-      "name": "Solved an Engineering Crisis",
-      "roll": 18,
-      "description": "Your character was instrumental in ending a crisis caused by malfunctioning technology, and saved many lives in the process.",
-      "questions": ["What technology had malfunctioned, and why was it dangerous?", "How did your character solve the problem?"],
-      "attribute": { "id": "control", "text": "Your character’s precision when dealing with complex technology increases their Control by 1." },
-      "discipline": { "id": "engineering", "text": "Your character’s familiarity with technology increases their Engineering by 1." },
-      "focus": { "text": "Add a focus, reflecting the technology involved in the event.", "examples": ["Electro-Plasma Power Systems", "Fusion Reactors", "Warp Engines"] },
-      "source": { "book": "Captain's Log", "page": 128 }
+      "description": "The character was placed in a situation where they had to choose between a trusted superior and their own ideals, and they chose to follow the superior.",
+      "attribute": { "id": "presence", "text": "+1 Presence" },
+      "discipline": { "id": "command", "text": "+1 Command" },
+      "focus": { "text": "Persuasion, Inspiration, Investigation.", "examples": ["Persuasion", "Inspiration", "Investigation"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
     },
     {
       "id": "breakthroughOrInvention",
       "name": "Breakthrough or Invention",
-      "roll": 19,
-      "description": "Your character made an important technological discovery, devised a new way of using a particular technology, or invented some new technology that will be invaluable in the future.",
-      "questions": ["What was the discovery, breakthrough, or invention? How will it be useful?"],
-      "attribute": { "id": null, "text": "An achievement of this nature often comes from an unexpected direction; increase any one Attribute by 1." },
-      "discipline": { "id": "engineering", "text": "This kind of technological achievement does not go unrecognized; increase Engineering by 1." },
-      "focus": { "text": "Add a focus reflecting the character’s achievement.", "examples": ["Experimental Technology", "Improvisation", "Invention"] },
-      "source": { "book": "Captain's Log", "page": 128 }
+      "description": "The character made an important technological discovery, devised a new way of using a particular technology, or invented some new technology that will be invaluable in the future.",
+      "attribute": { "id": null, "text": "+1 Any" },
+      "discipline": { "id": "engineering", "text": "+1 Engineering" },
+      "focus": { "text": "Experimental Technology, Invention, or Improvisation.", "examples": ["Experimental Technology", "Invention", "Improvisation"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "calledOutASuperior",
+      "name": "Called Out a Superior",
+      "description": "The character was placed in a situation where they had to choose between a trusted superior and their own ideals, and they chose to follow their ideals.",
+      "attribute": { "id": "reason", "text": "+1 Reason" },
+      "discipline": { "id": "conn", "text": "+1 Conn" },
+      "focus": { "text": "Uniform Code of Justice, History, Starfleet Protocol.", "examples": ["Uniform Code of Justice", "History", "Starfleet Protocol"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "conflictWithAHostileCulture",
+      "name": "Conflict with a Hostile Culture",
+      "description": "The character was involved in a battle with a hostile force.",
+      "attribute": { "id": "fitness", "text": "+1 Fitness" },
+      "discipline": { "id": "security", "text": "+1 Security" },
+      "focus": { "text": "Hand Phasers, Hand-to-Hand Combat, Tactical Systems.", "examples": ["Hand Phasers", "Hand-to-Hand Combat", "Tactical Systems"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "dealingWithAPlague",
+      "name": "Dealt with a Plague",
+      "description": "The character’s ship was assigned to provide aid to a world dealing with an epidemic.",
+      "attribute": { "id": "insight", "text": "+1 Insight" },
+      "discipline": { "id": "medicine", "text": "+1 Medicine" },
+      "focus": { "text": "Infectious Diseases, Emergency Medicine, Triage.", "examples": ["Infectious Diseases", "Emergency Medicine", "Triage"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "deathOfAFriend",
+      "name": "Death of a Friend",
+      "description": "One of the character’s friends was killed in action.",
+      "attribute": { "id": "insight", "text": "+1 Insight" },
+      "discipline": { "id": "medicine", "text": "+1 Medicine" },
+      "focus": { "text": "Counseling, but it may also represent a skill or pursuit the character takes up in their fallen friend’s memory.", "examples": ["Counseling"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "discoveredAnArtifact",
+      "name": "Discovered an Artifact",
+      "description": "The character discovered a device or fragment of technology from a now-extinct civilization.",
+      "attribute": { "id": "reason", "text": "+1 Reason" },
+      "discipline": { "id": "engineering", "text": "+1 Engineering" },
+      "focus": { "text": "Ancient Technology, Computers, Reverse Engineering.", "examples": ["Ancient Technology", "Computers", "Reverse Engineering"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 129 }
+    },
+    {
+      "id": "encounterWithATrulyAlienBeing",
+      "name": "Encountered a Truly Alien Being",
+      "description": "The character encountered a life-form which is truly alien, something barely within the comprehension of humanoid life. It might have been some godlike entity, or a creature that swims through space, but whatever it was, it was not life as we know it.",
+      "attribute": { "id": "reason", "text": "+1 Reason" },
+      "discipline": { "id": "science", "text": "+1 Science" },
+      "focus": { "text": "Empathy, Philosophy, Xenobiology.", "examples": ["Empathy", "Philosophy", "Xenobiology"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
     },
     {
       "id": "firstContact",
       "name": "First Contact",
-      "roll": 20,
-      "description": "Your character was chosen to be involved in one of the most important of missions: first contact with another culture.",
-      "questions": ["What culture did your character make first contact with? Did the mission go well?"],
-      "attribute": { "id": "presence", "text": "The prestige and honor of being involved in a first contact mission is significant; increase your character’s Presence by 1." },
-      "discipline": { "id": null, "text": "There are many ways a character can be involved in a first contact; increase any one Discipline by 1." },
-      "focus": { "text": "Add a focus reflecting the nature of the mission.", "examples": ["Cultural Studies", "Diplomacy", "Infiltration"] },
-      "source": { "book": "Captain's Log", "page": 129 }
+      "description": "The character was involved in one of the most important of Starfleet’s missions: first contact with another culture.",
+      "attribute": { "id": "presence", "text": "+1 Presence" },
+      "discipline": { "id": null, "text": "+1 Any" },
+      "focus": { "text": "Cultural Studies, Diplomacy, Infiltration.", "examples": ["Cultural Studies", "Diplomacy", "Infiltration"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "laudedByAnotherCulture",
+      "name": "Lauded by Another Culture",
+      "description": "The character was involved in a mission that earned the official praise of a non-Federation culture; they are now considered to be a friend to those people.",
+      "attribute": { "id": "presence", "text": "+1 Presence" },
+      "discipline": { "id": "science", "text": "+1 Science" },
+      "focus": { "text": "A focus of X Culture, replacing the X with the name of that culture or any that represent skills or techniques specific to that culture.", "examples": [] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "learnedUniqueLanguage",
+      "name": "Learned Unique Language",
+      "description": "The character encounters a species with an unusual form of communication and learns to communicate with them.",
+      "attribute": { "id": "insight", "text": "+1 Insight" },
+      "discipline": { "id": "science", "text": "+1 Science" },
+      "focus": { "text": "Linguistics, Cultural Studies, Negotiations.", "examples": ["Linguistics", "Cultural Studies", "Negotiations"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "mentored",
+      "name": "Mentored",
+      "description": "A highly-respected officer took notice of the character’s career. For a time, the character served as the officer’s pilot and aide, gaining the benefit of the officer’s experiences and lessons.",
+      "attribute": { "id": null, "text": "+1 Any" },
+      "discipline": { "id": "conn", "text": "+1 Conn" },
+      "focus": { "text": "Composure or Etiquette, any focus reflecting the officer’s specialties.", "examples": ["Composure", "Etiquette"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "negotiatedATreaty",
+      "name": "Negotiated a Treaty",
+      "description": "The character was part of a delegation that helped negotiate a treaty, agreement, or alliance with a culture outside the Federation.",
+      "attribute": { "id": "control", "text": "+1 Control" },
+      "discipline": { "id": "command", "text": "+1 Command" },
+      "focus": { "text": "Diplomacy, Negotiation, Galactic Politics.", "examples": ["Diplomacy", "Negotiation", "Galactic Politics"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "newBattleStrategy",
+      "name": "New Battle Strategy",
+      "description": "In combat with a hostile force, the character devised a new strategy or tactic.",
+      "attribute": { "id": "daring", "text": "+1 Daring" },
+      "discipline": { "id": "security", "text": "+1 Security" },
+      "focus": { "text": "Combat Tactics or Hazard Awareness.", "examples": ["Combat Tactics", "Hazard Awareness"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "requiredToTakeCommand",
+      "name": "Required to Take Command",
+      "description": "During a mission, a crisis left the mission’s leader unable to lead. This required the character to take command, something they may not have been prepared for.",
+      "attribute": { "id": "daring", "text": "+1 Daring" },
+      "discipline": { "id": "command", "text": "+1 Command" },
+      "focus": { "text": "Inspiration or Composure.", "examples": ["Inspiration", "Composure"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 130 }
+    },
+    {
+      "id": "seriousInjury",
+      "name": "Serious Injury",
+      "description": "The character was seriously hurt and needed to spend a considerable amount of time recovering.",
+      "attribute": { "id": "fitness", "text": "+1 Fitness" },
+      "discipline": { "id": "medicine", "text": "+1 Medicine" },
+      "focus": { "text": "The focus should reflect the circumstances of the character’s injury, something that helped them through recovery, or something they took up after recovering.", "examples": [] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 131 }
+    },
+    {
+      "id": "shipDestroyed",
+      "name": "Ship Destroyed",
+      "description": "The ship the character was serving on was destroyed during a mission, and the character was one of the few who survived.",
+      "attribute": { "id": "daring", "text": "+1 Daring" },
+      "discipline": { "id": "security", "text": "+1 Security" },
+      "focus": { "text": "Extra Vehicular Operations, Small Craft, Survival.", "examples": ["Extra Vehicular Operations", "Small Craft", "Survival"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 131 }
+    },
+    {
+      "id": "solvedAnEngineeringCrisis",
+      "name": "Solved an Engineering Crisis",
+      "description": "The character was instrumental in ending a crisis caused by malfunctioning technology and saved many lives in the process.",
+      "attribute": { "id": "control", "text": "+1 Control" },
+      "discipline": { "id": "engineering", "text": "+1 Engineering" },
+      "focus": { "text": "Electro-Plasma Power Systems, Fusion Reactors, Warp Engines.", "examples": ["Electro-Plasma Power Systems", "Fusion Reactors", "Warp Engines"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 131 }
+    },
+    {
+      "id": "specialCommendation",
+      "name": "Special Commendation",
+      "description": "During a crisis, the character saved the lives of several colleagues, helping them to safety. This earned the character a special commendation.",
+      "attribute": { "id": "fitness", "text": "+1 Fitness" },
+      "discipline": { "id": null, "text": "+1 Any" },
+      "focus": { "text": "Athletics, Survival, Emergency Medicine.", "examples": ["Athletics", "Survival", "Emergency Medicine"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 131 }
+    },
+    {
+      "id": "transporterAccident",
+      "name": "Transporter Accident",
+      "description": "The character suffered some manner of strange accident while using a transporter.",
+      "attribute": { "id": "control", "text": "+1 Control" },
+      "discipline": { "id": "conn", "text": "+1 Conn" },
+      "focus": { "text": "Transporters & Replicators, Small Craft, Quantum Mechanics.", "examples": ["Transporters & Replicators", "Small Craft", "Quantum Mechanics"] },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 131 }
     }
   ]
 }

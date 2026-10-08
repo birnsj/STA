@@ -1,6 +1,6 @@
 import creationSteps from '../data/adaptation/creationSteps.json'
-import valuesMatrix from '../data/source/valuesMatrix.json'
 import { getTraitDescription } from './species.js'
+import { getValueById } from './values.js'
 
 const stepTitles = Object.fromEntries(creationSteps.steps.map((step) => [step.id, step.title]))
 
@@ -26,9 +26,11 @@ export function getValuesHeldElsewhere(character, stepId) {
   )
 }
 
+export const isValueTextHeldElsewhere = (character, text, stepId) =>
+  Boolean(text) && getValuesHeldElsewhere(character, stepId).has(text.trim().toLowerCase())
+
 export function isMatrixValueHeldElsewhere(character, valueId, stepId) {
-  const entry = valuesMatrix.values.find((value) => value.id === valueId)
-  return Boolean(entry) && getValuesHeldElsewhere(character, stepId).has(entry.text.trim().toLowerCase())
+  return isValueTextHeldElsewhere(character, getValueById(valueId)?.text, stepId)
 }
 
 export function getFocusEntries(character) {
@@ -55,9 +57,12 @@ export function getFocusesHeldElsewhere(character, stepId, slotIndex = null) {
 export const isFocusHeldElsewhere = (character, name, stepId, slotIndex = null) =>
   getFocusesHeldElsewhere(character, stepId, slotIndex).has(name.trim().toLowerCase())
 
-// Book: only Step One (Species) grants traits.
+// Core: Step One (Species) and Step Four (Career Path) grant traits. stepId is the granting step.
 export function getTraitEntries(character) {
-  const { species } = character
-  if (!species) return []
-  return species.traits.map((trait) => ({ id: trait.id, name: trait.name, description: getTraitDescription(species) }))
+  const { species, education } = character
+  const fromSpecies = (species?.traits ?? []).map((trait) => ({ id: trait.id, name: trait.name, description: getTraitDescription(species, trait.id), stepId: 'species' }))
+  const fromCareerPath = education.trait
+    ? [{ id: education.trait.id, name: education.trait.name, description: `Career Path trait (${education.option?.name}).`, stepId: 'education' }]
+    : []
+  return [...fromSpecies, ...fromCareerPath]
 }

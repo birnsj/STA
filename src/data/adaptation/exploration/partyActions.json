@@ -4,7 +4,7 @@
     "Designer decision (Oct 2026): the core actions taken on the map (the environment only; social actions such as persuading happen in conversation): Scan, Search, Analyze Tech, Repair, Force, Translate, First Aid, Attack, Interact and Use Item. Interact (e.g. pushing a button) and Use Item (using an object on something) have no task: anyone can do them, so they highlight nobody.",
     "Designer plan (Oct 2026), not built yet: once actions work on objects, scanning an object first is how the player learns what it is and does.",
     "PROTOTYPE PROPOSAL (Oct 2026), for the designer to edit: the labels, Attribute + Department pairings and focus lists are implementation suggestions, except where a note says Book. Difficulty is a placeholder (2) used only to rank the party; a real action would take its Difficulty from the situation.",
-    "Book: First Aid = Daring + Medicine, Difficulty 2 (STA 2e Core p.292); Ranged Attack = Control + Security, Difficulty 2 (p.289). Both match the combat data (combat/actions.json, combat/weapons.json).",
+    "Book: First Aid = Daring + Medicine, Difficulty 2 (STA 2e Core p.292); Ranged Attack = Control + Security, Difficulty 2 (p.290). Both match the combat data (combat/actions.json, combat/weapons.json).",
     "Scan, Repair and Force reuse the pairings authored for the Vault of the Ancients objects (challenges.json): Sensor Sweep, Bypass Controls, Force the Door. Translate uses Reason + Science like Scan and is told apart by its focuses.",
     "Entry: id, label, description, task = { attribute, department, difficulty, focuses [exact focus names], tags [task tags; species abilities match on these] } or no task (anyone can do it)."
   ],

@@ -16,10 +16,11 @@ export function diamond(position, lift = 0, scale = 1) {
   return [[c.x, c.y - h - lift], [c.x + w, c.y - lift], [c.x, c.y + h - lift], [c.x - w, c.y - lift]]
 }
 
-// Where a tile PNG goes so its floor diamond (the bottom 64x32 of the image) covers the tile.
-export function tileImageBox(position) {
+// Where a tile PNG of this size (mapFormat.js imageSize) goes so its floor diamond (the bottom 64x32 of the image)
+// covers the tile.
+export function tileImageBox(position, size = TILE_IMAGE) {
   const c = project(position)
-  return { x: c.x - TILE_IMAGE.width / 2, y: c.y + TILE_H / 2 - TILE_IMAGE.height, width: TILE_IMAGE.width, height: TILE_IMAGE.height }
+  return { x: c.x - size.width / 2, y: c.y + TILE_H / 2 - size.height, width: size.width, height: size.height }
 }
 
 // World rectangle around a map with some margin, for the camera.
@@ -32,13 +33,9 @@ export const mapBounds = (map, margin) => ({
 
 export const isBlock = (tileId) => getTile(tileId).height > 0
 
-// Front bulkheads (bottom row, right column) stay low and interior ones half height, so walls never hide the room.
+// A tile's image at a position: floors with an alternate image alternate in a checkerboard.
 export function tileImage(map, { x, y }) {
   const tile = getTile(map.tiles[y][x])
-  if (tile.heightVariants) {
-    if (y === map.height - 1 || x === map.width - 1) return tile.heightVariants.low
-    if (y !== 0 && x !== 0) return tile.heightVariants.mid
-  }
   if (tile.altImage && (x + y) % 2) return tile.altImage
   return tile.image
 }

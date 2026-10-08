@@ -1,347 +1,109 @@
 {
-  "source": "STA Captain's Log Solo RPG 2026 v1.0, Step Three: Early Outlook, pp.107-115",
-  "grants": "Each option grants three points spread across two attributes (which depends on the path chosen), +1 to one discipline, and a single focus.",
-  "approaches": [
-    {
-      "id": "upbringing",
-      "name": "Upbringing",
-      "pathPrompt": "Choose whether your character accepted or rebelled against this upbringing.",
-      "pathOptions": [
-        { "id": "accepted", "name": "Accepted" },
-        { "id": "rebelled", "name": "Rebelled" }
-      ],
-      "restriction": null,
-      "source": { "book": "Captain's Log", "page": 107 }
-    },
-    {
-      "id": "aspiration",
-      "name": "Aspiration",
-      "pathPrompt": "Choose whether your character pursued or gave up on this aspiration.",
-      "pathOptions": [
-        { "id": "pursued", "name": "Pursued" },
-        { "id": "gaveUp", "name": "Gave Up" }
-      ],
-      "restriction": null,
-      "source": { "book": "Captain's Log", "page": 113 }
-    },
-    {
-      "id": "caste",
-      "name": "Caste",
-      "pathPrompt": "Choose whether your character accepted or rebelled against this caste.",
-      "pathOptions": [
-        { "id": "accepted", "name": "Accepted" },
-        { "id": "rebelled", "name": "Rebelled" }
-      ],
-      "restriction": "Applies to Klingon characters or those raised in a Klingon household.",
-      "source": { "book": "Captain's Log", "page": 110 }
-    }
+  "source": {
+    "book": "Star Trek Adventures 2E Core Rulebook",
+    "section": "Step Three: Upbringing",
+    "pages": [117, 118, 119]
+  },
+  "grants": "A character’s Upbringing provides them with three points spread across two attributes, determined by the Upbringing chosen and whether the character accepted or rebelled against it. Each Upbringing also gives a single point to one department, a single focus relating to the Upbringing, and a single talent.",
+  "pathPrompt": "Choose whether your character accepted or rebelled against this Upbringing.",
+  "pathOptions": [
+    { "id": "accepted", "name": "Accepted" },
+    { "id": "rebelled", "name": "Rebelled" }
   ],
+  "talent": {
+    "text": "Each Upbringing gives the character a single talent. You may choose it immediately or wait until the end of character creation.",
+    "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 117 }
+  },
   "outlooks": [
     {
-      "id": "starfleet",
-      "approach": "upbringing",
-      "name": "Starfleet",
-      "roll": "1-3",
-      "description": "Your character’s family may have a strong tradition of Starfleet service, with at least one member of the family in every generation serving the Federation in this way. Perhaps both the character’s parents were Starfleet officers who met in service. Either way, the character’s formative years were influenced by Starfleet.",
-      "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, the orderly, purposeful life increases their Control by 2 and their Fitness by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "fitness", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, their bold and self-determined living increase their Daring by 2 and their Insight by 1.", "attributes": [{ "id": "daring", "value": 2 }, { "id": "insight", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "any", "text": "Your character’s exposure to the ways and traditions of Starfleet allows them to increase any one discipline." },
-      "focus": {
-        "text": "Your character gains a single focus that should relate to their connection to Starfleet, covering skills learned during the character’s formative years.",
-        "examples": ["Astronavigation", "Composure", "Extra-Vehicular Activity", "Hand-to-Hand Combat", "Hand Phasers", "History", "Small Craft", "Starfleet Protocol", "Starship Recognition"]
-      },
-      "source": { "book": "Captain's Log", "page": 107 }
-    },
-    {
-      "id": "businessOrTrade",
-      "approach": "upbringing",
-      "name": "Business or Trade",
-      "roll": "4-6",
-      "description": "Your character’s family may have connections on countless worlds, overseeing and directing some grand business endeavor. They have grown up encountering people from all walks of life, including those from outside the Federation, and their outlook on life has been shaped accordingly.",
-      "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, a cosmopolitan, ambitious lifestyle increases their Daring by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "daring", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, stepping away from the family business to find their own identity increases their Insight by 2 and their Reason by 1.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "reason", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "Your character’s experiences with their family business allows them to increase any one of Command, Engineering, or Science." },
-      "focus": {
-        "text": "Your character gains a single focus that should relate to the nature of their family’s business, covering skills that are valuable during trade, or which were useful to the family business in other ways.",
-        "examples": ["Finances", "Geology", "Linguistics", "Manufacturing", "Metallurgy", "Negotiation", "Survey"]
-      },
-      "source": { "book": "Captain's Log", "page": 108 }
-    },
-    {
       "id": "agricultureOrRural",
-      "approach": "upbringing",
       "name": "Agriculture or Rural",
-      "roll": "7-9",
-      "description": "Your character grew up surrounded more by nature than by people, within a rural community, on the frontier, or somewhere else distanced from the bustle of cities and larger populations. They might be heavily involved in agriculture, growing real food to supplement synthesized or replicated meals.",
+      "description": "The character grew up surrounded more by nature than by people, in rural communities, on the frontier, or somewhere else distanced from the bustle of cities. They might be heavily involved in agriculture, growing real food to supplement synthesized or replicated meals.",
       "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, the tough, practical life on the land breeds a strong work ethic and a healthy body, increasing their Control by 1 and their Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "control", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, they are likely to have embraced science, technology, and the fruits of civilization, increasing their Presence by 1 and their Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "presence", "value": 1 }] }
+        "accepted": { "text": "If the character accepted this Upbringing, the tough, practical life on the land breeds a strong work ethic and a healthy body, increasing their Control by 1 and their Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "control", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, they are likely to have embraced science, technology, and the fruits of civilization, increasing their Presence by 1 and their Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "presence", "value": 1 }] }
       },
-      "disciplineOptions": { "type": "list", "disciplines": ["conn", "security", "medicine"], "text": "Your character’s living off the land and growing up on the edge of civilization allows them to increase one of Conn, Security, or Medicine." },
+      "disciplineOptions": { "type": "list", "disciplines": ["conn", "security", "medicine"], "text": "The character’s living off the land and growing up on the edge of civilization allows them to increase one of Conn, Security, or Medicine." },
       "focus": {
-        "text": "Your character gains a single focus that should relate to the character’s rural lifestyle, and the skills they learned there.",
-        "examples": ["Animal Handling", "Athletics", "Emergency Medicine", "Endurance", "Ground Vehicles", "Infectious Diseases", "Navigation", "Survival Training", "Toxicology"]
+        "text": "The character’s focus should relate to the character’s rural lifestyle, and the skills they learned there.",
+        "examples": ["Animal Handling", "Athletics", "Emergency Medicine", "Endurance", "Ground Vehicles", "Infectious Diseases", "Navigation", "Toxicology", "Survival Training"]
       },
-      "source": { "book": "Captain's Log", "page": 108 }
-    },
-    {
-      "id": "scienceAndTechnology",
-      "approach": "upbringing",
-      "name": "Science and Technology",
-      "roll": "10-12",
-      "description": "Your character’s home was one filled with the potential of science, and cutting-edge developments were familiar ground. Perhaps the character was raised by scientists or engineers, or had mentors and teachers who encouraged a talent for the technical.",
-      "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, they are rational, methodical, and precise, increasing their Control by 2 and their Reason by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "reason", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, they don’t lack for technical talent, but they haven’t developed that talent and instead rely more on instinct, increasing their Daring by 1 and their Insight by 2.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "daring", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["conn", "engineering", "science", "medicine"], "text": "Your character’s familiarity with cutting-edge science and the latest research allows them to increase one of Conn, Engineering, Science, or Medicine." },
-      "focus": {
-        "text": "Your character gains a single focus that should relate to the character’s favored fields of study and inquiry.",
-        "examples": ["Astronavigation", "Astrophysics", "Computers", "Cybernetics", "Genetics", "Physics", "Power Systems", "Quantum Mechanics", "Subspace Communications", "Surgery", "Warp Field Dynamics", "Xenobiology"]
-      },
-      "source": { "book": "Captain's Log", "page": 109 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 118 }
     },
     {
       "id": "artisticAndCreative",
-      "approach": "upbringing",
       "name": "Artistic and Creative",
-      "roll": "13-15",
-      "description": "Your character’s life was filled with arts and creativity of all kinds, and no matter what pursuits the character favors, they are exposed to the great works of many cultures and given every opportunity to express themselves.",
+      "description": "The character’s life was filled with arts and creativity of all kinds, and no matter what pursuits the character favors, they are exposed to the great works of many cultures, and given every opportunity to express themselves.",
       "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, they develop a greater understanding of emotion and communication, increasing their Insight by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "insight", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, the character is more inclined to action than to expression, increasing their Daring by 1 and their Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "daring", "value": 1 }] }
+        "accepted": { "text": "If the character accepted this Upbringing, they develop a greater understanding of emotion and communication, increasing their Insight by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "insight", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, the character is more inclined to action than to expression, increasing their Daring by 1 and their Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "daring", "value": 1 }] }
       },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "Your character’s ease with creativity and self-expression facilitates many pursuits, allowing the character to increase one of Command, Engineering, or Science." },
+      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "The character’s ease with creativity and self-expression lend themselves to many pursuits, allowing the character to increase one of Command, Engineering, or Science." },
       "focus": {
-        "text": "Your character gains a single focus that should relate to the character’s preferred way of applying their skills.",
+        "text": "The character’s focus should relate to the character’s preferred way of applying their skills.",
         "examples": ["Botany", "Cultural Studies", "Holoprogramming", "Linguistics", "Music", "Observation", "Persuasion", "Psychology"]
       },
-      "source": { "book": "Captain's Log", "page": 109 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 118 }
+    },
+    {
+      "id": "businessOrTrade",
+      "name": "Business or Trade",
+      "description": "The character’s family may have connections on countless worlds, overseeing and directing some grand business endeavor. They might have been traders or involved in interplanetary freight. Either way, the character has grown up encountering people from all walks of life, including those from outside their civilization, and their outlook on life has been shaped accordingly.",
+      "paths": {
+        "accepted": { "text": "If the character accepted this Upbringing, a cosmopolitan, ambitious lifestyle increases their Daring by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "daring", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, stepping away from the family business to find their own identity increases their Insight by 2 and their Reason by 1.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "reason", "value": 1 }] }
+      },
+      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "The character’s experiences with their family business allows them to increase any one of Command, Engineering, or Science." },
+      "focus": {
+        "text": "The character’s focus should relate to the nature of their family’s business, covering skills that are valuable during trade, or which were useful to the family business in other ways.",
+        "examples": ["Finances", "Geology", "Linguistics", "Manufacturing", "Metallurgy", "Negotiation", "Survey"]
+      },
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 118 }
     },
     {
       "id": "diplomacyAndPolitics",
-      "approach": "upbringing",
       "name": "Diplomacy and Politics",
-      "roll": "16-18",
-      "description": "Since their youth, your character has been exposed to the complexities of political thought and the nuances of diplomacy, perhaps because a family member was involved in those fields.",
+      "description": "The character has been exposed to the complexities of political thought and the nuances of diplomacy since they were young, perhaps because a family member was involved in those fields.",
       "paths": {
-        "accepted": { "text": "If your character accepted this upbringing, they’re disciplined and well-versed in the arts of debate, increasing their Control by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "control", "value": 1 }] },
-        "rebelled": { "text": "If your character rebelled against this upbringing, then they’ve instead sought more tangible things to focus on, increasing their Fitness by 1 and their Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "fitness", "value": 1 }] }
+        "accepted": { "text": "If the character accepted this Upbringing, they’re disciplined and well-versed in the arts of debate, increasing their Control by 1 and their Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "control", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, then they’ve instead sought more tangible things to focus on, increasing their Fitness by 1 and their Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "fitness", "value": 1 }] }
       },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "conn", "security"], "text": "Your character’s familiarity with the practices and perils of diplomacy, politics, and the law allow them to increase any one of Command, Conn, or Security." },
+      "disciplineOptions": { "type": "list", "disciplines": ["command", "conn", "security"], "text": "The character’s familiarity with the practices and perils of diplomacy, politics, and the law allow them to increase any one of Command, Conn, or Security by 1." },
       "focus": {
-        "text": "Your character gains a single focus that should relate to the character’s preferred way of applying their skills.",
+        "text": "The character’s focus should relate to the character’s preferred way of applying their skills.",
         "examples": ["Composure", "Debate", "Diplomacy", "Espionage", "Interrogation", "Law", "Philosophy", "Starfleet Protocol"]
       },
-      "source": { "book": "Captain's Log", "page": 110 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 118 }
     },
     {
-      "id": "toExplore",
-      "approach": "aspiration",
-      "name": "To Explore",
-      "roll": "1-3",
-      "description": "You dreamed of exploring strange new worlds, seeking out new life and new civilizations, and boldly going where no one had gone before. You read everything you could about the bold explorers of the past and dreamed of one day sitting in the captain’s chair of your own starship.",
+      "id": "scienceAndTechnology",
+      "name": "Science and Technology",
+      "description": "The character’s home was one filled with the potential of science, and cutting-edge developments were familiar ground. Perhaps the character was raised by scientists, engineers, or had mentors and teachers who encouraged a talent for the technical.",
       "paths": {
-        "pursued": { "text": "If you pursued this aspiration, your drive to be worthy of your goal increases your Presence by 2 and your Fitness by 1.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "fitness", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, your more measured and practical approach increases your Reason by 2 and your Control by 1.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "control", "value": 1 }] }
+        "accepted": { "text": "If the character accepted this Upbringing, they are rational, methodical, and precise, increasing their Control by 2 and their Reason by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "reason", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, they don’t lack technical talent, but they haven’t developed that talent and instead rely more on instinct, increasing their Daring by 1 and their Insight by 2.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "daring", "value": 1 }] }
       },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "science"], "text": "Your efforts to emulate your heroes and pursue your goals increase either Command or Science by 1." },
+      "disciplineOptions": { "type": "list", "disciplines": ["conn", "engineering", "science", "medicine"], "text": "The character’s familiarity with cutting-edge science and the latest research allows them to increase one of Conn, Engineering, Science, or Medicine by 1." },
       "focus": {
-        "text": "Your focus should relate to your dreams, covering skills learned because they were the kinds of things that explorers needed to know.",
-        "examples": ["Astronavigation", "Composure", "Diplomacy", "Linguistics", "Starship Recognition", "Team Dynamics", "Wilderness Survival"]
+        "text": "The character’s focus should relate to the character’s favored fields of study and inquiry.",
+        "examples": ["Astrophysics", "Astronavigation", "Computers", "Cybernetics", "Power Systems", "Genetics", "Physics", "Subspace Communications", "Surgery", "Quantum Mechanics", "Warp Field Dynamics", "Xenobiology"]
       },
-      "source": { "book": "Captain's Log", "page": 113 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 119 }
     },
     {
-      "id": "toFly",
-      "approach": "aspiration",
-      "name": "To Fly",
-      "roll": "4-6",
-      "description": "You saw shuttles and transports soar overhead, and wanted to be up there with them, in the skies and among the stars. You took piloting lessons as soon as you were able and may have gotten in trouble a few times as a child for pushing your craft a little too far.",
+      "id": "starfleet",
+      "name": "Starfleet or Military",
+      "description": "The character’s family may have a strong tradition of naval service, with at least one member of the family in every generation serving their people in this way. Perhaps both the character’s parents served in the military, who met in service. Either way, the character’s formative years were influenced by a military life. In the Federation, this will normally refer to Starfleet, but it may just as easily apply to groups like the Bajoran Militia, the Andorian Imperial Guard, the Klingon Defense Fleet, Imperial Romulan Navy, or any of a number of other military forces.",
       "paths": {
-        "pursued": { "text": "If you pursued this aspiration, your passion for flight increases your Control by 2 and your Daring by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "daring", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, your honed awareness and long hours studying craft increases your Insight by 2 and your Reason by 1.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "reason", "value": 1 }] }
+        "accepted": { "text": "If the character accepted this Upbringing, the orderly, purposeful life increases their Control by 2 and their Fitness by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "fitness", "value": 1 }] },
+        "rebelled": { "text": "If the character rebelled against this Upbringing, their bold and self-determined living increases their Daring by 2 and their Insight by 1.", "attributes": [{ "id": "daring", "value": 2 }, { "id": "insight", "value": 1 }] }
       },
-      "disciplineOptions": { "type": "list", "disciplines": ["conn", "engineering"], "text": "Your efforts to reach the skies and the stars increases either Conn or Engineering by 1." },
+      "disciplineOptions": { "type": "any", "text": "The character’s exposure to the ways and traditions of Starfleet allows them to increase any one department rating by 1." },
       "focus": {
-        "text": "Your focus should relate to your dreams, covering skills learned because they would help you fly.",
-        "examples": ["Astronavigation", "Helm Operations", "Propulsion Systems", "Small Craft", "Starship Recognition"]
+        "text": "The character’s focus should relate to their connection to Starfleet, covering skills learned during the character’s formative years. Hand-to-Hand Combat may be renamed to a specific martial art.",
+        "examples": ["Astronavigation", "Composure", "Extra-Vehicular Activity", "Hand-to-Hand Combat", "Hand Phasers", "Small Craft", "Starfleet Protocol", "Starship Recognition", "History"]
       },
-      "source": { "book": "Captain's Log", "page": 113 }
-    },
-    {
-      "id": "toCreate",
-      "approach": "aspiration",
-      "name": "To Create",
-      "roll": "7-9",
-      "description": "Locked away within your mind have always been things that didn’t exist. Your imagination has always been filled with ideas for things that might be, or could be, rather than simply things that already were. And you wanted to show people the worlds you saw. Whether your creations would take the form of works of fiction or new inventions to change the world, your creativity is boundless.",
-      "paths": {
-        "pursued": { "text": "If you pursued this aspiration, your curiosity and creativity increase your Insight by 2 and your Presence by 1.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "presence", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, your ingenuity is directed toward other outlets, increasing your Daring by 2 and your Control by 1.", "attributes": [{ "id": "daring", "value": 2 }, { "id": "control", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering"], "text": "You studied the fields that would help you bring your ideas to life; increase either Command or Engineering by 1." },
-      "focus": {
-        "text": "Your focus should relate to your creativity, which is likely to relate to art or engineering.",
-        "examples": ["Art", "Computers", "Cybernetics", "Holoprogramming", "Literature", "Structural Engineering", "Theatre", "Transporters & Replicators", "Warp Field Dynamics"]
-      },
-      "source": { "book": "Captain's Log", "page": 114 }
-    },
-    {
-      "id": "toDiscover",
-      "approach": "aspiration",
-      "name": "To Discover",
-      "roll": "10-12",
-      "description": "You want to know what’s out there. “Out there” might be the farthest reaches of unexplored space, or it might be the tiniest subatomic realms, or the depths of the mind, or the myriad complexities of the body, or some other field. Your drive is to find that which is unknown and to make it known.",
-      "paths": {
-        "pursued": { "text": "If you pursued this aspiration, your enthusiastic curiosity increases your Reason by 2 and your Presence by 1.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "presence", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, your long hours of study and hard work increase your Fitness by 2 and your Insight by 1.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "insight", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["science", "medicine"], "text": "Your pursuit of knowledge and discovery increases either your Science or your Medicine by 1." },
-      "focus": {
-        "text": "Your focus should relate to your dreams, representing the field you were most curious about growing up.",
-        "examples": ["Anthropology", "Astrophysics", "Botany", "Genetics", "Linguistics", "Psychology", "Quantum Mechanics", "Xenobiology"]
-      },
-      "source": { "book": "Captain's Log", "page": 114 }
-    },
-    {
-      "id": "toProtect",
-      "approach": "aspiration",
-      "name": "To Protect",
-      "roll": "13-15",
-      "description": "Your first concern is helping others. You have a deep disdain for anyone who would bring harm to the people you care about, or you have a deep compassion for those who have come to harm and seek to give them aid and comfort. Or both.",
-      "paths": {
-        "pursued": { "text": "If you pursued this aspiration, you are quick to help others, increasing your Daring by 2 and your Fitness by 1.", "attributes": [{ "id": "daring", "value": 2 }, { "id": "fitness", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, you have gained a more circumspect approach rather than heedlessly rushing to help; increase your Control by 2 and your Reason by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "reason", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["security", "medicine"], "text": "You have either learned how to defend others, or how to care for them after the fact, increasing your Security or Medicine by 1." },
-      "focus": {
-        "text": "Your focus should relate to the skills you honed protecting and caring for others.",
-        "examples": ["Emergency Medicine", "Hand-to-Hand Combat", "Hand Phasers", "Survival", "Threat Awareness", "Triage"]
-      },
-      "source": { "book": "Captain's Log", "page": 114 }
-    },
-    {
-      "id": "toProsper",
-      "approach": "aspiration",
-      "name": "To Prosper",
-      "roll": "16-18",
-      "description": "Success is your goal. This might mean fame or recognition in a particular field, or it might mean wealth, or influence, or power. There may be some noble agenda behind this – a desire to overcome being powerless or to escape hardship, or to be able to provide for family – or it may just be pure ambition, even greed. In whatever ways you seek to prosper, you have the drive to seize the chances you get, and, as the Ferengi say, the lobes to hear the opportunities coming your way.",
-      "paths": {
-        "pursued": { "text": "If you pursued this aspiration, your ambition and opportunism increase your Presence by 2 and your Daring by 1.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "daring", "value": 1 }] },
-        "gaveUp": { "text": "If you eventually gave up on this aspiration, your hard work and keen instincts increase your Fitness by 2 and your Insight by 1.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "insight", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "any", "text": "Your pursuit of success could lead you down many paths; you may increase any one discipline by 1." },
-      "focus": {
-        "text": "Your focus should relate to the ways you intend to make your way in the Galaxy.",
-        "examples": ["Computers", "Genetics", "Holoprogramming", "Music", "Persuasion", "Philosophy", "Politics", "Trade & Finance"]
-      },
-      "source": { "book": "Captain's Log", "page": 114 }
-    },
-    {
-      "id": "warrior",
-      "approach": "caste",
-      "name": "Warrior",
-      "roll": "1-3",
-      "description": "Yours is a family of warriors, who have served the Empire with honor for generations. At least one member of your family in each generation will have gone to war for the Empire, and you were raised to tales of glorious battle.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then the rigorous training and courage of a warrior’s life comes naturally to you. Increase your Daring by 2 and your Fitness by 1.", "attributes": [{ "id": "daring", "value": 2 }, { "id": "fitness", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you embraced more intellectual or academic pursuits. Increase your Reason by 2 and your Insight by 1.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "insight", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "conn", "security"], "text": "Your exposure to the ways of the warrior allows you to increase any one of Command, Conn, or Security by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Composure", "Disruptors", "Hand-to-Hand Combat", "Intimidation", "Military History", "Small Craft", "Starship Recognition", "Survival"]
-      },
-      "source": { "book": "Captain's Log", "page": 111 }
-    },
-    {
-      "id": "merchant",
-      "approach": "caste",
-      "name": "Merchant",
-      "roll": "4-6",
-      "description": "Your family members are traders, with connections on countless worlds, buying, moving, and selling goods across the Empire and to distant trading partners. You may have been raised into the world of commerce and trade or grown up on an interstellar freighter carrying vital cargo. Regardless, you’ve grown up encountering people from all walks of life, including those from outside the Empire, and your outlook on life has been shaped accordingly.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then a cosmopolitan, ambitious lifestyle seems natural. Increase your Daring by 1 and your Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "daring", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you separated yourself from your family to find your own purpose. Increase your Reason by 1 and your Insight by 2.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "reason", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "Your exposure to mercantile ways allows you to increase any one of Command, Engineering, or Science by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Finances", "Geology", "Linguistics", "Manufacturing", "Metallurgy", "Negotiation", "Survey"]
-      },
-      "source": { "book": "Captain's Log", "page": 111 }
-    },
-    {
-      "id": "agriculture",
-      "approach": "caste",
-      "name": "Agriculture",
-      "roll": "7-9",
-      "description": "You grew up surrounded more by nature than by people, in rural communities, on the frontier, or somewhere else distant from the bustle of cities. Your family might be heavily involved in agriculture, growing real food, maintaining hunting grounds, or rearing livestock. Unlike the Federation, you do not rely on replicated food, inert and synthetic: a Klingon requires fresh, living food to sustain them, and your family has provided this for generations.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then you’ve had a tough, practical upbringing and gained a strong work ethic. Increase your Control by 1 and your Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "control", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you likely embraced science, technology, and the fruits of an advanced civilization. Increase your Presence by 1 and your Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "presence", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["conn", "security", "medicine"], "text": "Your rural upbringing allows you to increase any one of Conn, Security, or Medicine by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Animal Handling", "Athletics", "Emergency Medicine", "Endurance", "Ground Vehicles", "Infectious Diseases", "Navigation", "Toxicology", "Survival Training"]
-      },
-      "source": { "book": "Captain's Log", "page": 111 }
-    },
-    {
-      "id": "scientific",
-      "approach": "caste",
-      "name": "Scientific",
-      "roll": "10-12",
-      "description": "Your family home was one filled with the potential of science, and cutting-edge developments were familiar ground, even if those pursuits are not well-appreciated by other Klingons. Where would the Empire be without warp drive, disruptors, cloaking devices, or even the alloys which make a warrior’s blades? Your family has always been one of those studying and providing these advances, for all that the outside Galaxy thinks that “Klingon scientist” is a contradiction.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then you’ve learned to be rational, methodical, and precise. Increase your Control by 2 and your Reason by 1.", "attributes": [{ "id": "control", "value": 2 }, { "id": "reason", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you probably don’t lack for technical talent, but you’ve chosen not to develop it, relying more on instinct to guide you. Increase your Daring by 1 and your Insight by 2.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "daring", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["engineering", "science", "medicine"], "text": "Your exposure to the ways of science and technology allows you to increase any one of Engineering, Science, or Medicine by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Astronavigation", "Astrophysics", "Computers", "Cybernetics", "Genetics", "Physics", "Power Systems", "Quantum Mechanics", "Subspace Communications", "Surgery", "Temporal Mechanics", "Warp Field Dynamics", "Xenobiology"]
-      },
-      "source": { "book": "Captain's Log", "page": 112 }
-    },
-    {
-      "id": "artistic",
-      "approach": "caste",
-      "name": "Artistic",
-      "roll": "13-15",
-      "description": "Your life was filled with arts and creativity of all kinds, and no matter the pursuits you favor, you’ve been exposed to the great works not only of the Empire’s storied history but also that of other cultures, and given every opportunity to express yourself. Different forms of art are appreciated to different degrees among Klingons, but the performing arts are especially beloved: many warriors fancy themselves as poets or playwrights in the manner of wIlyam SeQpIr when recounting a glorious victory, and Klingon opera is known and studied across the Alpha and Beta Quadrants.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then you’ve developed a deep understanding of the passions and motives of others. Increase your Insight by 1 and your Presence by 2.", "attributes": [{ "id": "presence", "value": 2 }, { "id": "insight", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you’re probably more inclined to action than expression. Increase your Daring by 1 and your Fitness by 2.", "attributes": [{ "id": "fitness", "value": 2 }, { "id": "daring", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "engineering", "science"], "text": "Your exposure to the arts allows you to increase any one of Command, Engineering, or Science by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Botany", "Cultural Studies", "History", "Holoprogramming", "Linguistics", "Music", "Observation", "Persuasion", "Psychology"]
-      },
-      "source": { "book": "Captain's Log", "page": 112 }
-    },
-    {
-      "id": "academic",
-      "approach": "caste",
-      "name": "Academic",
-      "roll": "16-18",
-      "description": "You’ve been surrounded by the complexities of political thought, the nuances of diplomacy, and intense study of a range of subjects and fields for your entire life. Your family is one of lawyers, civil servants, historians, diplomats, and more besides, maintaining the fabric of Empire just as the farmers feed it, the merchants keep it supplied, and the warriors protect it. The Klingon Empire is a nation often led by warriors, but it is the learned who govern it and keep it running, often without the respect such endeavors deserve.",
-      "paths": {
-        "accepted": { "text": "If you accepted your caste, then you’re disciplined, well-read, and familiar with the arts of research and debate. Increase your Control by 1 and your Reason by 2.", "attributes": [{ "id": "reason", "value": 2 }, { "id": "control", "value": 1 }] },
-        "rebelled": { "text": "If you rebelled against your caste, then you’ve probably sought out more tangible things to focus your attentions upon. Increase your Fitness by 1 and your Insight by 2.", "attributes": [{ "id": "insight", "value": 2 }, { "id": "fitness", "value": 1 }] }
-      },
-      "disciplineOptions": { "type": "list", "disciplines": ["command", "security", "science"], "text": "Your exposure to learning and reasoned discourse allows you to increase any one of Command, Security, or Science by 1." },
-      "focus": {
-        "text": "Your focus should relate to your upbringing, covering skills learned during your formative years.",
-        "examples": ["Composure", "Debate", "Diplomacy", "Espionage", "Etiquette", "Interrogation", "Law", "Philosophy"]
-      },
-      "source": { "book": "Captain's Log", "page": 112 }
+      "source": { "book": "Star Trek Adventures 2E Core Rulebook", "page": 119 }
     }
   ]
 }

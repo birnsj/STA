@@ -17,7 +17,7 @@
 //   possible; with no shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly.
 // Threat (designer decision, Oct 2026: enemies spend it): the enemy profile buys bonus d20s for a doubtful shot, an
 // Extra Minor to Aim after moving into cover, and a Second Major for another shot after attacking, all paid in Threat
-// (Book p.264, p.324). When it does so is AI tuning (thresholds below). The party profile buys nothing.
+// (Book p.265, p.324). When it does so is AI tuning (thresholds below). The party profile buys nothing.
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
 import { getReachableTiles } from './movementSystem.js'

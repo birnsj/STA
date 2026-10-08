@@ -48,6 +48,7 @@ import DebugPanel from '../components/combat/DebugPanel.jsx'
 import HowToPlay from '../components/combat/HowToPlay.jsx'
 import FatigueChoice from '../components/combat/FatigueChoice.jsx'
 import InjuryChoice from '../components/combat/InjuryChoice.jsx'
+import CounterattackChoice from '../components/combat/CounterattackChoice.jsx'
 import { getCombatHint } from '../combat/combatHints.js'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import PartyBar from '../components/combat/PartyBar.jsx'
@@ -344,8 +345,8 @@ export function Battle({
   const hasPlan = Boolean(planned)
   useEffect(() => {
     if (state.outcome || !aiControlled || helpOpen || !openingDone || auto === 'paused') return undefined
-    // An Injury on a party member waits for the player's Avoid Injury choice, a new Fatigue for the attribute choice
-    // (outside Auto Combat).
+    // An Injury on a party member waits for the player's Avoid Injury choice, a new Fatigue for the attribute choice, a
+    // won opposed attack for the Counterattack choice (outside Auto Combat).
     if (awaitingDecision(state) && auto === 'off') return undefined
     const timer = setTimeout(() => dispatch({ type: 'aiStep', partyAI, enemyAI, partyAuto: auto !== 'off' }), (aiDelay(state) + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
     return () => clearTimeout(timer)
@@ -1088,6 +1089,16 @@ export function Battle({
           attacker={state.combatants[state.incomingInjury.attackerId] ?? null}
           onAvoid={() => dispatch({ type: 'injuryDecision', avoid: true })}
           onAccept={() => dispatch({ type: 'injuryDecision', avoid: false })}
+        />
+      )}
+      {state.pendingCounterattack && auto === 'off' && !state.outcome && (
+        <CounterattackChoice
+          offer={state.pendingCounterattack}
+          defender={state.combatants[state.pendingCounterattack.defenderId]}
+          attacker={state.combatants[state.pendingCounterattack.attackerId]}
+          momentum={state.resources.momentum}
+          onCounter={(injuryMode) => dispatch({ type: 'counterattackDecision', accept: true, injuryMode })}
+          onDecline={() => dispatch({ type: 'counterattackDecision', accept: false })}
         />
       )}
       {state.pendingFatigue && auto === 'off' && !state.outcome && (

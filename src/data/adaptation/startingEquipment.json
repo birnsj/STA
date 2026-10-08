@@ -1,11 +1,20 @@
 {
-  "note": "Videogame adaptation: starting loadout, issued automatically (the player does not choose gear). Book (p.137) only lists standard issue for conversion to Star Trek Adventures: uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers). The per-department loadouts below are the approved prototype design, keyed by the career department. Applied in order: base items, then the department, then the assignment (if listed). 'tricorder' replaces the default tricorder; 'add' appends items.",
+  "note": "Videogame adaptation: starting loadout, issued automatically (the player does not choose gear). Book (Core p.141 (CL p.137)) only lists standard issue for conversion to Star Trek Adventures: uniform, communicator, tricorder, and a sidearm (phaser type-1 or type-2 for security and senior officers). The per-department loadouts below are the approved prototype design, keyed by the career department. Applied in order: base items, the tricorder, the sidearm, then the department, then the assignment (if listed). 'tricorder' replaces the default tricorder; 'add' appends items.",
   "sourceType": "adaptation",
   "base": ["standardUniform", "communicator"],
   "defaultTricorder": "standardTricorder",
+  "sidearm": {
+    "source": "Core p.141: all Starfleet personnel receive a phaser type-1 as standard; all security personnel, and all senior officers (lieutenant commander and higher rank), receive a phaser type-2 instead. Civilian characters do not receive a sidearm.",
+    "note": "Implementation pick (Oct 2026): a character counts as Starfleet when their Career Path category is listed in starfleetCareerPaths, or when they hold any officer or enlisted rank (a diplomat or civilian who took a rank, cf. Core p.123). Security personnel = the Security department. Senior officer = an officer rank at or above seniorOfficerMinRank.",
+    "starfleetCareerPaths": ["starfleetAcademy", "starfleetEnlisted", "starfleetIntelligence"],
+    "standard": "phaserType1",
+    "upgraded": "phaserType2",
+    "upgradedDepartments": ["security"],
+    "seniorOfficerMinRank": "lieutenantCommander"
+  },
   "departments": {
-    "command": { "add": ["phaserType1"] },
-    "security": { "add": ["phaserType2"] },
+    "command": {},
+    "security": {},
     "science": { "tricorder": "scienceTricorder" },
     "medicine": { "tricorder": "medicalTricorder", "add": ["medkit"] },
     "engineering": { "tricorder": "engineeringTricorder", "add": ["engineeringToolkit"] },

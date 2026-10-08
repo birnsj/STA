@@ -1,4 +1,5 @@
-// Whether one character can make themselves heard by another (Book p.288 Direct: "select one ally who can hear you").
+// Whether one character can make themselves heard by another (Book p.289 Direct: "select one ally who can hear you").
+// Book p.286 gives distances (converse normally within Close; shout at Medium); the tile count is ours.
 // Prototype hook (actions.json communication): within audibleRangeTiles of each other, or both carrying a working
 // communicator (an item with the communication tag). comms (from the scene, optional): { remoteBlocked, reason } blocks
 // communicators (jamming, comms disabled, isolation); being within earshot still works.

@@ -12,7 +12,17 @@ export function chooseAvoidInjury({ option }) {
   return Boolean(option?.possible)
 }
 
-// Book p.277: a Fatigued character selects one attribute to shut down. Prototype policy (implementation detail, not
+// Book p.290 Counterattack. Prototype policy (implementation detail, not tuned): always counterattack when it can be
+// paid for; enemies use Deadly when the weapon has it, the party Stun when it has it (a party Deadly adds Threat).
+// offer: combatCounterattack.js's { injuryModes, cost }. Returns { accept, injuryMode, reason }.
+export function chooseCounterattack({ defender, offer }) {
+  const preferred = defender.side === 'enemy' ? 'deadly' : 'stun'
+  const injuryMode = offer.injuryModes.includes(preferred) ? preferred : offer.injuryModes[0]
+  const pool = defender.side === 'enemy' ? 'Threat' : 'Momentum'
+  return { accept: true, injuryMode, reason: `Policy: always counterattack when affordable (${offer.cost} ${pool}).` }
+}
+
+// Book p.278: a Fatigued character selects one attribute to shut down. Prototype policy (implementation detail, not
 // tuned): keep every attribute the combatant's weapons attack with, and shut down the lowest of the rest (ties: the
 // first in the usual attribute order). combatant: { character, weaponIds }. Returns { attributeId, reason }.
 export function chooseFatigueAttribute({ combatant }) {

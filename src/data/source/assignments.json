@@ -3,8 +3,13 @@
     "book": "Captain's Log 2026",
     "section": "Step Seven: Finishing Touches - Assignment",
     "pages": [130, 131, 132],
-    "note": "The book presents these as the most common senior staff roles and states that other roles are possible."
+    "note": "The book presents these as the most common senior staff roles and states that other roles are possible. Chief Tactical Officer, Navigator and Ship's Doctor are Core Rulebook Service Roles (p.137) with no Captain's Log assignment; they are added as assignments by designer decision (Oct 2026)."
   },
+  "notes": [
+    "minimumRank: Core p.140 gives one assignment minimum, Commanding Officer = Commander ('the lowest rank a commanding officer may have under normal circumstances'). Every other assignment has none (null). The Captain's Log minimums (lieutenant (junior grade) for the executive officer and the chiefs, CL p.132) are dropped by designer decision (Oct 2026).",
+    "department for the Core-only assignments: the book gives none. Implementation picks (flagged, Oct 2026): Chief Tactical Officer = Security, Navigator = Conn, Ship's Doctor = Medicine.",
+    "Core p.137: a ship has either a chief medical officer or a ship's doctor. No rule is needed for a single character."
+  ],
   "assignments": [
     {
       "id": "commandingOfficer",
@@ -20,7 +25,7 @@
       "name": "Executive Officer",
       "department": "command",
       "departmentText": "Command department only.",
-      "minimumRank": "lieutenantJuniorGrade",
+      "minimumRank": null,
       "description": "Also known as the “first officer,” the executive officer is the captain’s chief advisor and takes command in situations where the captain is unable to. If a ship does not have a dedicated executive officer, an officer in another role will be designated as first officer.",
       "source": { "book": "Captain's Log", "page": 130 }
     },
@@ -29,7 +34,7 @@
       "name": "Operations Manager",
       "department": "engineering",
       "departmentText": "Engineering department.",
-      "minimumRank": "ensign",
+      "minimumRank": null,
       "description": "The operations manager manages and oversees all technical operations aboard or involving the ship, normally from the operations station on the bridge, or in conjunction with the chief engineer (on smaller ships, one officer may fill both roles). This often entails taking on the duties of a science officer, if there is no dedicated science officer in the senior staff.",
       "source": { "book": "Captain's Log", "page": 130 }
     },
@@ -38,16 +43,25 @@
       "name": "Flight Controller or Helmsman",
       "department": "conn",
       "departmentText": "Conn department only.",
-      "minimumRank": "ensign",
+      "minimumRank": null,
       "description": "Not a typical senior staff role, some captains, particularly those operating in uncharted space, choose the most senior helmsman or flight control officer to serve as senior staff as well.",
       "source": { "book": "Captain's Log", "page": 130 }
+    },
+    {
+      "id": "navigator",
+      "name": "Navigator",
+      "department": "conn",
+      "departmentText": null,
+      "minimumRank": null,
+      "description": "On vessels exploring the uncharted frontiers of space, a skilled navigator, astrometrics officer, or stellar cartographer plots courses, studies and updates astrometrics charts and data, and supports the helmsman or flight controller. Navigators are rarely called to serve on the senior staff.",
+      "source": { "book": "Core Rulebook", "page": 137 }
     },
     {
       "id": "chiefEngineer",
       "name": "Chief Engineer",
       "department": "engineering",
       "departmentText": "Engineering department only.",
-      "minimumRank": "lieutenantJuniorGrade",
+      "minimumRank": null,
       "description": "The chief engineer is responsible for ensuring that the ship remains operational and functional and commands the engineering department.",
       "source": { "book": "Captain's Log", "page": 130 }
     },
@@ -56,25 +70,43 @@
       "name": "Chief of Security",
       "department": "security",
       "departmentText": "Security department only.",
-      "minimumRank": "lieutenantJuniorGrade",
+      "minimumRank": null,
       "description": "The chief of security oversees the ship’s security department and is responsible for ensuring the safety of the ship and crew during missions, for the investigation of disciplinary and criminal matters, and for overseeing the protection of important persons aboard the ship. On many ships, the chief of security operates from the tactical station on the bridge.",
       "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "chiefTacticalOfficer",
+      "name": "Chief Tactical Officer",
+      "department": "security",
+      "departmentText": null,
+      "minimumRank": null,
+      "description": "A presence on 22nd and 23rd century Starfleet ships, and common in other organizations, this role is also known as an armory officer or weapons officer. The officer is responsible for the upkeep and use of the ship’s armaments and is typically an expert in ship-to-ship combat.",
+      "source": { "book": "Core Rulebook", "page": 137 }
     },
     {
       "id": "chiefMedicalOfficer",
       "name": "Chief Medical Officer",
       "department": "medicine",
       "departmentText": "Medical department only.",
-      "minimumRank": "lieutenantJuniorGrade",
+      "minimumRank": null,
       "description": "The chief medical officer, also known as ship’s surgeon, or ship’s doctor, is responsible for the health and well-being of the crew and other persons aboard the ship and leads the ship’s medical department. A chief medical officer can order, and countermand the orders of, senior officers where matters of that officer’s health are concerned.",
       "source": { "book": "Captain's Log", "page": 131 }
+    },
+    {
+      "id": "shipsDoctor",
+      "name": "Ship’s Doctor",
+      "department": "medicine",
+      "departmentText": null,
+      "minimumRank": null,
+      "description": "You care for the crew of your ship, or the station you serve on (in which case, rename the role to Station’s Doctor), but unlike a chief medical officer, you do not have an extensive medical department to manage or to aid you. This is common in smaller crews which do not require a large sickbay or infirmary and tends to mean these smaller postings favor generalists who can adapt to a variety of circumstances. A ship may have either a chief medical officer or a ship’s doctor.",
+      "source": { "book": "Core Rulebook", "page": 137 }
     },
     {
       "id": "scienceOfficer",
       "name": "Science Officer",
       "department": "science",
       "departmentText": "Science department only.",
-      "minimumRank": "ensign",
+      "minimumRank": null,
       "description": "A science officer is responsible for advising the commanding officer of all matters scientific, providing hypotheses in matters concerning the unknown. Not all ships have a dedicated science officer within the senior staff, often having the operations manager take on these duties.",
       "source": { "book": "Captain's Log", "page": 131 }
     },
@@ -83,7 +115,7 @@
       "name": "Ship’s Counselor",
       "department": "medicine",
       "departmentText": "Medical department only.",
-      "minimumRank": "ensign",
+      "minimumRank": null,
       "description": "On larger ships and starbases, it’s common to have personnel dedicated to the mental well-being of the crew. Some captains regard them as valuable advisors, as their training covers both culture and psychology, making them exceptionally good at reading the moods and intentions of others.",
       "source": { "book": "Captain's Log", "page": 131 }
     },
@@ -92,7 +124,7 @@
       "name": "Communications Officer",
       "department": null,
       "departmentText": null,
-      "minimumRank": "ensign",
+      "minimumRank": null,
       "description": "Communications officers are typically skilled in linguistics and cryptography and aided by advanced translation and decryption technologies. They are thus valuable during encounters with both new cultures and with hostile ones.",
       "source": { "book": "Captain's Log", "page": 132 }
     }

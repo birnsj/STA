@@ -5,11 +5,11 @@ import rankSource from '../data/source/ranks.json'
 // Info box content: { title, text?, sections?: [{ label, text }], note?, source? }. Null means the item has nothing worth showing.
 const scoresById = new Map([...attributeSource.attributes, ...disciplineSource.disciplines].map((entry) => [entry.id, entry]))
 const ranksById = new Map([...rankSource.ranks, ...rankSource.enlistedRanks].map((rank) => [rank.id, rank]))
-const bookSource = (page) => (page ? `Captain's Log, p.${page}` : null)
+const bookSource = (page, book = "Captain's Log") => (page ? `${book}, p.${page}` : null)
 
 export function getCardTip(item) {
   if (!item?.description) return null
-  return { title: item.name, text: item.description, source: bookSource(item.source?.page) }
+  return { title: item.name, text: item.description, source: bookSource(item.source?.page, item.source?.book) }
 }
 
 // Attributes and disciplines share one lookup; their ids never collide.
@@ -23,12 +23,12 @@ export function getAssignmentTip(assignment, block) {
     title: assignment.name,
     text: assignment.description,
     note: block ? `${block}.` : null,
-    source: bookSource(assignment.source?.page),
+    source: bookSource(assignment.source?.page, assignment.source?.book),
   }
 }
 
 export function getRankTip(rankId) {
   const rank = ranksById.get(rankId)
   if (!rank?.note) return null
-  return { title: rank.name, text: rank.note.replace(/^Book: /, 'Book titles: '), source: bookSource(rankSource.source.page) }
+  return { title: rank.name, text: rank.note, source: bookSource(rankSource.source.page, rankSource.source.book) }
 }

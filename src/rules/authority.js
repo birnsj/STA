@@ -1,5 +1,5 @@
 // Who is in a position of authority on a side (for Direct, and later scenario or party leadership rules).
-// Book (STA 2e Core p.288): Direct "may only be attempted by one character on each side in a position of authority (the
+// Book (STA 2e Core p.289): Direct "may only be attempted by one character on each side in a position of authority (the
 // highest-ranking person, or a nominated leader)".
 // Prototype (designer decision, Oct 2026): a nominated leader, when a scenario or the party sets one, holds authority;
 // otherwise the highest Starfleet rank among those able to act; if the highest rank is shared, or no one has a rank

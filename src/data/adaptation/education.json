@@ -1,10 +1,13 @@
 {
-  "note": "Prototype decisions for Step Four. The book's d20 rolls are not offered; the player chooses. As in the book, focuses can be the option's examples, any focus from the Focus Probability Matrix (p.85-88), or the player's own.",
-  "categoryOrder": ["starfleetAcademy", "alliedMilitary", "diplomatic", "civilian"],
+  "note": "Prototype decisions for Step Four (Core: Career Path, pp.120-126). The book's d20 rolls are not offered; the player chooses. Focuses can be the option's examples, any focus from the Focus Matrix, or the player's own. Values can be the option's Core examples, any sample value, or the player's own.",
+  "categoryOrder": ["starfleetAcademy", "starfleetEnlisted", "starfleetIntelligence", "diplomatic", "civilian"],
   "allowCustomFocus": true,
   "allowCustomValue": true,
+  "trait": {
+    "note": "Designer decision: the trait uses Core's name and is not player-editable (Core lets players adjust it, e.g. 'Klingon Ambassador to Vulcan'). Where Core names two alternatives ('Diplomat or Ambassador', 'Scientist or Engineer') the player picks one. Official: Core gives only an example ('such as Administrator'), which is used as the trait. The Sciences track's optional second trait is not offered."
+  },
   "disciplineSwap": {
-    "note": "Interpretation of the civilian 'reduce one of your other disciplines by 1': the reduced discipline must be one not increased at this step and must currently be at least 2, so it never drops below the starting score of 1.",
+    "note": "Interpretation of the civilian 'reduce one of your other departments by 1': the reduced department must be one not increased at this step and must currently be at least 2, so it never drops below the starting score of 1.",
     "minimumSourceTotal": 2
   }
 }

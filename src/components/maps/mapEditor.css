@@ -59,6 +59,7 @@
 .me-button.is-primary { border-color: #ffb347; color: #ffb347; }
 .me-name { width: 170px; }
 .me-name.me-episode { width: 100%; box-sizing: border-box; margin-bottom: 3px; }
+.me-name.me-label-input { width: 100%; box-sizing: border-box; margin-top: 4px; }
 .me-generate { width: 100%; margin-bottom: 4px; }
 .me-place { min-width: 118px; }
 .me-place.is-on { border-color: #ffb347; background: #3a2a12; color: #ffb347; }
@@ -332,6 +333,45 @@
   min-width: 0;
 }
 
+/* The minimap (EditorMinimap.jsx), over the top right of the board; clicks pass through to the board. The map is
+   drawn one unit per tile, so text sizes are in tiles; strokes stay in screen pixels. */
+.me-minimap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 200px;
+  padding: 6px;
+  border: 1px solid #23434a;
+  border-radius: 4px;
+  background: rgba(6, 12, 20, 0.88);
+  pointer-events: none;
+}
+
+.me-minimap svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.me-minimap-label {
+  fill: rgba(225, 240, 245, 0.85);
+  font-size: 0.75px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(3, 6, 14, 0.85);
+  stroke-width: 0.25px;
+}
+
+.me-minimap-marker circle {
+  stroke: #ffffff;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.me-minimap-marker.is-player circle { fill: #3fb6e8; }
+.me-minimap-marker.is-enemy circle { fill: #e5483a; }
+
 /* The save confirmation: shown over the top of the board for a few seconds. */
 .me-notice {
   position: absolute;
@@ -368,9 +408,7 @@
   shape-rendering: crispEdges;
 }
 
-/* The board's canvas, with a light layer canvas per animation and timing group stacked over it (EditorCanvas.jsx).
-   Each layer's opacity runs the game's animation (maps.css); its resting opacity is the steady brightness shown with
-   Tile animations off, roughly the animation's average. */
+/* The board's canvas, with the animation layer canvases stacked over it (EditorCanvas.jsx). */
 .me-canvas {
   position: relative;
   width: 100%;
@@ -385,37 +423,8 @@
   height: 100%;
 }
 
-.me-light-layer {
-  mix-blend-mode: screen;
-}
-
-.me-light-layer.is-pulse {
-  opacity: 0.55;
-  animation: tilemap-pulse 2.8s ease-in-out infinite;
-}
-
-.me-light-layer.is-blink {
-  opacity: 1;
-  animation: tilemap-status 1.4s steps(1) infinite;
-}
-
-.me-light-layer.is-flicker {
-  opacity: 0.65;
-  animation: tilemap-flicker 3.2s linear infinite;
-}
-
-.me-light-layer.is-twinkle {
-  opacity: 0.8;
-  animation: wall-star-twinkle 4s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .me-light-layer {
-    animation: none;
-  }
-}
-
-/* Tile animations off: the board's lights, the palette previews and the brush stop animating. */
+/* Tile animations off: the palette previews and the brush hold their first frame (the board's canvas layers are
+   held by EditorCanvas). */
 .me-screen.is-still .me-board *,
 .me-screen.is-still .me-palette * {
   animation: none !important;
@@ -443,6 +452,14 @@
 .me-marker polygon { stroke: #ffffff; stroke-width: 1; opacity: 0.9; }
 .me-marker.is-player polygon { fill: #3fb6e8; }
 .me-marker.is-enemy polygon { fill: #e5483a; }
+/* Erase Marker: what a click on the hovered tile would remove. */
+.me-hover.is-erase { fill: rgba(255, 179, 71, 0.18); stroke: #ffb347; stroke-width: 3; }
+.me-marker.is-doomed polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; animation: me-doomed 0.8s ease-in-out infinite alternate; }
+.me-area-label.is-doomed { fill: #ffb347; text-decoration: line-through; animation: me-doomed 0.8s ease-in-out infinite alternate; }
+@keyframes me-doomed {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
 .me-marker text {
   fill: #ffffff;
   font-size: 10px;

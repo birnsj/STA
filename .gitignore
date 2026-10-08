@@ -28,6 +28,7 @@ music/
 
 # Scratch files written by scripts (contact sheets, screenshots)
 /.tmp-*
+/contact-sheets/
 
 # Editor directories and files
 .vscode/*

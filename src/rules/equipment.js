@@ -1,7 +1,8 @@
-// Videogame adaptation, not book mechanics: Captain's Log does not use equipment (Book p.137). Item definitions,
+// Videogame adaptation, not book mechanics: Captain's Log does not use equipment (CL p.137; Core p.141). Item definitions,
 // stats (prototype tuning), and the starting loadout all live in data; this file only reads them.
 import itemData from '../data/adaptation/items.json'
 import loadoutData from '../data/adaptation/startingEquipment.json'
+import rankSource from '../data/source/ranks.json'
 import { describeRange, getWeaponForItem } from '../combat/weaponSystem.js'
 
 const items = itemData.items.map((item) => ({ ...itemData.itemDefaults, ...item }))
@@ -11,12 +12,29 @@ export const getItems = () => items
 export const getItemById = (itemId) => itemsById.get(itemId) ?? null
 export const getCategoryName = (categoryId) => itemData.categories[categoryId] ?? categoryId
 
-// Item IDs only, in issue order: base items, the tricorder, then department and assignment additions.
+const officerRankIds = rankSource.ranks.map((rank) => rank.id)
+const enlistedRankIds = rankSource.enlistedRanks.map((rank) => rank.id)
+
+// Core p.141 sidearm (rule data in startingEquipment.json sidearm): Type-1 for Starfleet, Type-2 for security and
+// senior officers, none for civilians. Null when the character gets none.
+export function getSidearm(character) {
+  const rules = loadoutData.sidearm
+  const rankId = character.career.rank?.id
+  const isOfficer = officerRankIds.includes(rankId)
+  const isStarfleet = rules.starfleetCareerPaths.includes(character.education?.category?.id) || isOfficer || enlistedRankIds.includes(rankId)
+  if (!isStarfleet) return null
+  const isSecurity = rules.upgradedDepartments.includes(character.career.department?.id)
+  const isSenior = isOfficer && officerRankIds.indexOf(rankId) >= officerRankIds.indexOf(rules.seniorOfficerMinRank)
+  return isSecurity || isSenior ? rules.upgraded : rules.standard
+}
+
+// Item IDs only, in issue order: base items, the tricorder, the sidearm, then department and assignment additions.
 export function getStartingEquipment(character) {
   const department = loadoutData.departments[character.career.department?.id] ?? {}
   const assignment = loadoutData.assignments[character.career.assignment?.id] ?? {}
   const tricorder = assignment.tricorder ?? department.tricorder ?? loadoutData.defaultTricorder
-  const itemIds = [...loadoutData.base, tricorder, ...(department.add ?? []), ...(assignment.add ?? [])]
+  const sidearm = getSidearm(character)
+  const itemIds = [...loadoutData.base, tricorder, ...(sidearm ? [sidearm] : []), ...(department.add ?? []), ...(assignment.add ?? [])]
   return [...new Set(itemIds)].filter((itemId) => itemsById.has(itemId))
 }
 

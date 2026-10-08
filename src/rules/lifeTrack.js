@@ -15,16 +15,16 @@ export function getLifeTrackSentences(character) {
 
   if (environment.otherSpecies) sentences.push(`Raised among the ${environment.otherSpecies.name}.`)
   else {
-    const upbringing = environment.condition?.name ?? environment.setting?.name
-    if (upbringing) sentences.push(`Raised in ${withArticle(upbringing)} environment.`)
+    const setting = environment.setting?.name
+    if (setting) sentences.push(`Raised in ${withArticle(setting)} environment.`)
   }
 
   if (earlyOutlook.outlook) {
     const outlook = earlyOutlook.path ? `${earlyOutlook.outlook.name} (${earlyOutlook.path.name})` : earlyOutlook.outlook.name
-    sentences.push(`Early outlook: ${outlook}.`)
+    sentences.push(`Upbringing: ${outlook}.`)
   }
 
-  if (education.option) sentences.push(`Education: ${education.option.name}.`)
+  if (education.option) sentences.push(`Career Path: ${education.option.name}.`)
 
   if (career.length || career.rank) {
     const officer = [career.length?.name, career.rank?.name].filter(Boolean).join(' ')
