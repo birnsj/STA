@@ -97,7 +97,7 @@ export function normalizeCharacterRecord(record, { id } = {}) {
         // Shirt colour (rules/uniform.js); only Starfleet uniforms follow the department, other factions keep their art.
         uniform: faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null,
         // Drawn behind a layered head-and-shoulders portrait in panels; map figures leave it out.
-        backdrop: getCharacterBackdrop(identity).image,
+        backdrop: getCharacterBackdrop(identity, department?.id).image,
         // The full-body figure on the maps (characterSprites.json), or null for the portrait token.
         spriteSet: getSpriteSet(portraitId)?.id ?? null,
       },

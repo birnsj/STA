@@ -9,11 +9,13 @@ import { getEquippedItems } from './equipment.js'
 const { audibleRangeTiles, itemTag } = actionData.communication
 
 const tileDistance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
+export const AUDIBLE_RANGE_TILES = audibleRangeTiles
+export const withinEarshot = (from, to) => tileDistance(from.position, to.position) <= audibleRangeTiles
 export const hasCommunicator = (character) => getEquippedItems(character).some((item) => item.tags?.includes(itemTag))
 
 // from / to: { character, position }. Returns { possible, via: 'voice' | 'communicator' | null, reason }.
 export function canCommunicate(from, to, comms = null) {
-  if (tileDistance(from.position, to.position) <= audibleRangeTiles) return { possible: true, via: 'voice', reason: null }
+  if (withinEarshot(from, to)) return { possible: true, via: 'voice', reason: null }
   if (!hasCommunicator(from.character) || !hasCommunicator(to.character)) return { possible: false, via: null, reason: `${to.character.name} is out of earshot and not both of you carry a communicator.` }
   if (comms?.remoteBlocked) return { possible: false, via: null, reason: `${to.character.name} is out of earshot; communicators are down${comms.reason ? ` (${comms.reason})` : ''}.` }
   return { possible: true, via: 'communicator', reason: null }

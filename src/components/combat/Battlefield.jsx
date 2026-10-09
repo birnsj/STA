@@ -16,12 +16,12 @@ import { hasCharacterSprite } from '../../rules/appearance.js'
 import useUnitAnimation from './useUnitAnimation.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
-import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
+import { injuryTypeName, isDead, isDying, minorDefeatText } from '../../rules/personalCondition.js'
 import LastKnownMarker from './LastKnownMarker.jsx'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
-import { playFootstep, playWeaponSound } from '../../audio/uiSounds.js'
+import { playDeathSound, playFootstep, playKnockoutSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
 
 // Isometric projection of the logical grid, shared with every map view (src/maps/iso.js), drawn with the shared tile PNGs.
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
@@ -191,7 +191,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
     <g
       className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
-      onClick={down || isBystander ? undefined : onClick}
+      onClick={down || isBystander || combatant.surrendered ? undefined : onClick}
       onPointerEnter={mouseOnly(() => onHover(true))}
       onPointerLeave={mouseOnly(() => onHover(false))}
       data-ui-sound={down ? undefined : ''}
@@ -214,6 +214,16 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
               <path d="M0 -7 L6 -4.5 V0.5 C6 4 3.5 6.2 0 7.5 C-3.5 6.2 -6 4 -6 0.5 V-4.5 Z" />
               <path className="iso-unit-cover-mark" d="M-2.6 0.2 L-0.6 2.2 L2.8 -1.8" />
             </g>
+          )}
+          {combatant.surrendered && (
+            <text className="iso-unit-surrendered" x="0" y="-80" textAnchor="middle">
+              Surrendered
+            </text>
+          )}
+          {combatant.retreating && !combatant.surrendered && (
+            <text className="iso-unit-surrendered" x="0" y="-80" textAnchor="middle">
+              Retreating
+            </text>
           )}
           {combatant.guard && (
             <g className="iso-unit-guard" transform="translate(-16 -48)">
@@ -314,9 +324,17 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
     speedRef.current = speed
   }, [speed])
   const actionKey = action?.key
+  const scanned = action?.type === 'scan'
+  const injuryMode = attackSound ? action.injuryMode : null
+  // Taken out by this action: killed or left Dying (death sound), otherwise knocked out (knockout sound).
+  const downed = action?.removed && action.targetId ? state.combatants[action.targetId]?.condition : null
+  const downSound = downed ? (isDead(downed) || isDying(downed) ? 'death' : 'knockout') : null
   useEffect(() => {
-    if (attackSound) playWeaponSound(attackSound, speedRef.current)
-  }, [actionKey, attackSound])
+    if (attackSound) playWeaponSound(attackSound, speedRef.current, injuryMode)
+    if (scanned) playScanSound()
+    if (downSound === 'death') playDeathSound()
+    if (downSound === 'knockout') playKnockoutSound()
+  }, [actionKey, attackSound, injuryMode, scanned, downSound])
   if (!action || hiddenIds?.includes(action.actorId)) return null
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
@@ -427,8 +445,11 @@ export default function Battlefield({
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
-  const hidden = fadedBlockKeys(map, units.filter((unit) => unit.side === 'player').map(shownPosition), bigGroups)
+  // A retreated enemy has left the fight (combatRetreat.js) and is no longer drawn.
+  const units = Object.values(state.combatants).filter((unit) => !unit.left && !hiddenIds?.includes(unit.id))
+  // Walls fade in front of every combatant shown, enemies too; one the party can't perceive isn't in units, so a fading
+  // wall never gives it away.
+  const hidden = fadedBlockKeys(map, units.map(shownPosition), bigGroups)
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
   // A unit with its badges above it, and the tile it is stepping from while it walks (a tile's step on screen).
   const unitBox = (position) => around(position, 44 + TILE_W / 2, 86 + TILE_H / 2, 52 + TILE_W / 2, 20 + TILE_H / 2)
@@ -539,6 +560,7 @@ export default function Battlefield({
           position={shownPosition(state.combatants[ring.unitId])}
           buttons={ring.buttons}
           info={ring.info}
+          {...(state.combatants[ring.unitId].side === 'player' ? {} : { placement: 'top', prominent: true })}
           onPointerEnter={mouseOnly(() => onRingHover(true))}
           onPointerLeave={mouseOnly(() => onRingHover(false))}
         />

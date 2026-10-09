@@ -1,9 +1,18 @@
 {
   "notes": [
-    "Prototype presentation only, no game-rule effect. The player picks one backdrop on Finishing Touches (Portrait); it is drawn behind a portrait's transparent characterImage and saved as identity.backdrop { id, name }. Characters with none (saved before the choice existed) show the default.",
-    "Starship Bridge is designer art (256 x 320). The others are placeholders (scripts/makePortraitBackdrops.mjs, 480 x 600). Every backdrop is scaled to the portrait's size when composited. Replace a file to swap the art; the id is the file name."
+    "Prototype presentation only, no game-rule effect. The backdrop is drawn behind a portrait's transparent characterImage.",
+    "Designer decision (2026-10-09): the backdrop follows the character's Department (byDepartment; noDepartment until one is chosen), and the player may pick another on Finishing Touches (Portrait). identity.backdrop is null while it follows the department, or { id, name } once the player picks a different one; stepping back to the department's own backdrop returns to following it. A saved id that is no longer listed also follows the department.",
+    "Starship Bridge is designer art (256 x 320). The others are placeholders (scripts/makePortraitBackdrops.mjs, 480 x 600). Every backdrop is scaled to the portrait's size when composited. Replace a file to swap the art; the id is the file name. Alien Interior is not tied to a department: it is only a manual pick."
   ],
-  "default": "starship-bridge",
+  "byDepartment": {
+    "command": "briefing-room",
+    "conn": "starship-bridge",
+    "engineering": "engineering",
+    "security": "transporter-room",
+    "science": "planet-surface",
+    "medicine": "sickbay"
+  },
+  "noDepartment": "starship-corridor",
   "backdrops": [
     { "id": "starship-bridge", "name": "Starship Bridge", "image": "/art/portraits/backdrops/starship-bridge.png" },
     { "id": "starship-corridor", "name": "Starship Corridor", "image": "/art/portraits/backdrops/starship-corridor.png" },

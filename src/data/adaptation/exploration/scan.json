@@ -1,0 +1,10 @@
+{
+  "notes": [
+    "Scan (designer decision, 2026-10-09): from a character's radial menu in exploration, the character sweeps the area with their tricorder. The task is partyActions.json scan (Reason + Science, its focuses and tags; Difficulty there). Every scan reports the location and environment (the map's name and location type, the nearest named area, biome, weather, light, scene traits; locationReport.js). Success also reveals every NPC that isn't down within the radius as a life sign (where it is now, not who it is), through walls, and counts the enemies among them; failure gives no life-sign readings. Momentum goes to the group pool like any exploration task. The report stays on screen until closed.",
+    "Enemies: NPCs whose disposition joins combat (awareness.json dispositions: wary, hostile, aggressive). Implementation detail, flag for designer.",
+    "radiusByScanStat (designer decision, 2026-10-09): tiles reached for the best Scan stat among the character's items (items.json: standard, medical and engineering tricorders 2, science tricorder 4): 15 tiles at Scan 2, 40 at Scan 4. A stat between listed values uses the highest listed value at or below it. No item with a Scan stat: the character can't scan.",
+    "cooldownSeconds: PROTOTYPE PROPOSAL awaiting approval. World seconds before the same character can scan again, so a failed scan can't simply be repeated at once. The source books could not be checked (no PDFs in the project), so none of this is presented as a book rule."
+  ],
+  "radiusByScanStat": { "2": 15, "4": 40 },
+  "cooldownSeconds": 10
+}

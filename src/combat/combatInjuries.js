@@ -112,7 +112,7 @@ export function resolveInjury(state, incoming, avoid) {
 // Book p.278: a character who becomes Fatigued selects an attribute to shut down. The player chooses for a
 // player-controlled party member (state.pendingFatigue waits for the chooseFatigueAttribute action, like an incoming
 // Injury); anyone else gets combat/injuryPolicy.js's choice now. lines: the log lines being built (appended to).
-function startFatigueChoice(state, combatantId, lines) {
+export function startFatigueChoice(state, combatantId, lines) {
   const combatant = state.combatants[combatantId]
   if (combatant.controller === 'player') return { ...state, pendingFatigue: { combatantId } }
   const { attributeId, reason } = chooseFatigueAttribute({ combatant })

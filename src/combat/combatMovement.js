@@ -1,7 +1,7 @@
 // Movement in combat (Book p.288: Move, a minor action; Sprint, a major action): whether a combatant may move now, how
 // far, which tiles it can reach and the path to one. The grid rules themselves live in movementSystem.js.
 import { tileKey } from './battleMap.js'
-import { canAfford, getOpponents, getTurnOf, isActive } from './combatSelectors.js'
+import { canAfford, getOpponents, getTurnOf, occupiesTile } from './combatSelectors.js'
 import { findPath, getMovementTiles, getReachableTiles, getSprintTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { actionTypeOf } from './turnActions.js'
@@ -36,7 +36,7 @@ export function getBlockers(state, combatant) {
   const blockedKeys = new Set(state.blockedKeys ?? [])
   const occupiedKeys = new Set()
   for (const other of Object.values(state.combatants)) {
-    if (other.id === combatant.id || !isActive(other)) continue
+    if (other.id === combatant.id || !occupiesTile(other)) continue
     ;(other.side === combatant.side ? occupiedKeys : blockedKeys).add(tileKey(other.position))
   }
   return { blockedKeys, occupiedKeys }

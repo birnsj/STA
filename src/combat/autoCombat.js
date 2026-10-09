@@ -16,6 +16,7 @@ import {
 } from './combatState.js'
 import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
+import { retreatStep } from './combatRetreat.js'
 import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
@@ -37,6 +38,7 @@ export const PARTY_AIS = [
 export const ENEMY_AIS = PARTY_AIS
 
 function normalStep(state, self, ai) {
+  if (self.retreating) return retreatStep(state, self)
   if (ai === 'random') return randomStep(state, self)
   if (PLANNER_PROFILES[ai]) return plannerStep(state, self, ai)
   return nextAIStep(state)

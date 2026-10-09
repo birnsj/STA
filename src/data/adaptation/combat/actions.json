@@ -5,7 +5,7 @@
     "Book (p.288): the Movement minor action (Move) cannot be taken in the same turn as the Movement major action (Sprint), nor while any enemy is within Reach. The book gives no disengage rule and none is added: Sprint is still allowed next to an enemy.",
     "Designer decision (Oct 2026), following the book (STA 2e Quickstart p. 22): there is no Take Cover action. A unit next to a cover object is in cover automatically.",
     "selfRing: the acting character's own actions around them; only the ones possible right now are shown (contextual actions: First Aid, Direct, Guard, challenge objects in reach, Extra Minor, Second Major).",
-    "Designer decision (Oct 2026): there is no Actions panel. Actions are picked from the rings around units; End Turn is a button under the task panel, the task panel's Confirm button only appears while a task is set up (Guard, First Aid, Direct, object tasks, Assist, Fire), and each party card shows that character's weapon (the acting character's is clickable to switch). Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim and Info. Clicking a party member shows Assist (and Switch, to hand them the turn).",
+    "Designer decision (Oct 2026): there is no Actions panel. Actions are picked from the rings around units; End Turn is a button under the task panel, the task panel's Confirm button only appears while a task is set up (Guard, First Aid, Direct, object tasks, Assist, Fire), and each party card shows that character's weapon (the acting character's is clickable to switch). Clicking an enemy shows buttons around it: Stun and Deadly (fire at once), Aim, Use Item (not built yet), Scan (Oct 2026: replaced Info; shows what is in plain view, and the Scan task reveals more), Persuade and Intimidate (Oct 2026: ask it to surrender). Clicking a party member shows Assist (and Switch, to hand them the turn).",
     "Designer decision (Oct 2026): the acting character's own ring also offers Attack as one button per firing mode the current weapon allows (its injuryModes: Stun and/or Deadly), showing the weapon's Severity and, for Deadly, +1 Threat. Picking one chooses the mode for the next attack only; the player then picks the target and fires from the task panel (Fire). The Threat is charged when the attack resolves, never on picking the mode.",
     "tasks: the predefined combat tasks (Book p.289: Guard, First Aid, Direct). Attribute, department and Difficulty are book rules; 'focuses' are VIDEOGAME ADAPTATION (designer-authored lists of the focus names that apply, matched exactly, Oct 2026).",
     "communication (Direct): Book p.289 'select one ally who can hear you'. Book p.286: characters converse normally within Close range; at Medium they must shout to be understood. Prototype hook: an ally hears the commander when within audibleRangeTiles (the tile count is ours: implementation detail, placeholder value; flag for designer), or when both carry a working communicator (an item tagged 'communication'). A scene can block communicators (combat state comms.remoteBlocked: jamming, comms disabled, isolation).",
@@ -46,12 +46,54 @@
       "tags": ["medical", "firstAid"],
       "note": "Book (p.289, p.292): tend to an Injury on another character within Reach, Daring + Medicine, Difficulty = the Injury's severity; success: the Injury is treated (no penalty, but still an Injury needing proper medical treatment)."
     },
+    "scan": {
+      "attribute": "reason",
+      "department": "science",
+      "difficulty": 2,
+      "focuses": ["Sensor Operations", "Sensor Calibration", "Astrometrics", "Planetary Surveys", "Imaging Equipment", "Computer Science"],
+      "tags": ["sensors", "analysis"],
+      "note": "VIDEOGAME ADAPTATION (designer decision, Oct 2026): Scan an enemy, the same task as the exploration Scan (partyActions.json): Reason + Science, Difficulty 2, no tricorder needed. Implementation detail (flag for designer): a major action, like the book's other combat tasks (Guard, First Aid, p.289). Success: the party knows the enemy's Stress, Protection, weapons and tactical tips for the rest of the fight (combatScan.js); before that it sees only injuries, Defeated, cover, range and its own odds."
+    },
     "directAssist": {
       "attribute": "control",
       "department": "command",
       "focuses": ["Leadership", "Decisive Leadership", "Team Dynamics", "Small Unit Tactics", "Combat Tactics", "Strategy/Tactics", "Strategy and Tactics", "Leading by Example"],
       "note": "Book (p.289): the commander Assists the directed ally's action with Control + Command."
+    },
+    "persuade": {
+      "attribute": "presence",
+      "department": "command",
+      "difficulty": 0,
+      "focuses": ["Persuasion", "Negotiation", "Diplomacy", "Inspiration", "Leadership", "Rhetoric"],
+      "tags": ["social", "persuade"],
+      "note": "Book (Core p.279-280): a request the other side resists is an opposed task; the asker rolls attribute + department first, and the successes set the resister's Difficulty. Designer decision (Oct 2026): Persuade is Presence + Command (the book's own example pairing), asking an enemy to surrender."
+    },
+    "intimidate": {
+      "attribute": "control",
+      "department": "security",
+      "difficulty": 0,
+      "focuses": ["Intimidation", "Interrogation", "Hand Phasers", "Hand-to-Hand Combat", "Small Unit Tactics"],
+      "tags": ["social", "intimidate"],
+      "note": "Book (Core p.282): Intimidation is an opposed task; success imposes a fear trait. Designer decision (Oct 2026): Intimidate is Control + Security, asking an enemy to surrender; a success also leaves it Intimidated (+1 Difficulty to its later resist rolls this fight)."
+    },
+    "resistRequest": {
+      "attribute": "control",
+      "department": "command",
+      "focuses": ["Composure", "Resolve", "Discipline", "Leadership", "Military Protocol"],
+      "tags": ["social", "resist"],
+      "note": "Book (Core p.280): the resisting character rolls in response, using whichever attribute + department makes most sense; Difficulty = the asker's successes. Designer decision (Oct 2026): enemies resist with Control + Command."
     }
+  },
+  "social": {
+    "intimidatedDifficulty": 1,
+    "regroupSeconds": 30,
+    "breatherStress": 4,
+    "notes": [
+      "Book (Core p.280): if the asker wins, the resister gives in or resists by suffering Stress equal to the asker's successes; if the resister wins, nothing happens. Designer decision (Oct 2026): an enemy resists while it has any Stress left, and surrenders once it has none. A surrendered enemy stands down: out of the fight, can't be attacked, and neutral afterwards in the world.",
+      "Book (Core p.256): the side that sets the Difficulty generates 1 Momentum per success the other side fell short; here that is the asker.",
+      "Not implemented (book): the asker spending 2 Momentum per +1 Stress (p.280); a resisted request can't be repeated without a change (p.279); a failed Intimidation makes later attempts harder (p.282).",
+      "Designer decision (Oct 2026): an enemy whose Stress track is full (none left) retreats: it runs from the party and leaves the fight once no party member has line of fire to it. It regroups and attacks on sight later. Book (Core p.278): a breather recovers breatherStress Stress, applied when it leaves. regroupSeconds (world seconds before it can start a fight again) is a PLACEHOLDER, flag for designer."
+    ]
   },
   "actions": [
     { "id": "move", "name": "Move", "type": "minor", "implemented": true, "description": "Once per turn: walk up to your full movement. Not in a turn you Sprint, and not while an enemy is within Reach. End next to a cover object to be in cover." },
@@ -72,6 +114,9 @@
     { "id": "assist", "name": "Assist", "type": "major", "implemented": true, "description": "Pick an ally who still has a turn this round. Their next task this round (an attack, Guard, First Aid or an object task) adds your 1d20; its successes count if they score at least one." },
     { "id": "guard", "name": "Guard", "type": "major", "implemented": true, "description": "Insight + Security, Difficulty 0: attacks against you are +1 Difficulty until the start of your next turn. Guard an ally within Reach instead at Difficulty 1 (until the start of their next turn)." },
     { "id": "firstAid", "name": "First Aid", "type": "major", "implemented": true, "description": "Daring + Medicine on an ally within Reach: revive a Defeated ally (Difficulty 2; the Injury stays), or treat one Injury (Difficulty = its severity)." },
+    { "id": "scan", "name": "Scan", "type": "major", "implemented": true, "description": "Reason + Science, Difficulty 2, on an enemy you can see. Success: its Stress, Protection, weapons and tactical tips are known for the rest of the fight." },
+    { "id": "persuade", "name": "Persuade", "type": "major", "implemented": true, "description": "Presence + Command, on an enemy within earshot: ask it to surrender. It resists with Control + Command against your successes. If you win, it takes Stress equal to your successes, or surrenders once it has no Stress left." },
+    { "id": "intimidate", "name": "Intimidate", "type": "major", "implemented": true, "description": "Control + Security, on an enemy within earshot: threaten it into surrendering. Works like Persuade; a win also leaves it Intimidated (+1 Difficulty to resist from then on)." },
     { "id": "direct", "name": "Direct", "type": "major", "implemented": true, "description": "Only the character in authority. Spend 1 Momentum: an ally who can hear you (in earshot or by communicator) takes one action now, and you assist it with Control + Command. Never a third major action for them this round." },
     { "id": "extraMinor", "name": "Extra Minor", "type": "free", "implemented": true, "description": "Spend 1 Momentum: one more minor action this turn (once per turn; a minor action you already took can't be repeated)." },
     { "id": "secondMajor", "name": "Second Major", "type": "free", "implemented": true, "description": "After your major action, spend 2 Momentum for a second one this turn. Its task is +1 Difficulty. Nobody takes more than two major actions in a round." },

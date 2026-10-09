@@ -1,4 +1,4 @@
-// The predefined combat tasks besides attacking (Book p.289): Guard, First Aid and Direct. Each has a preview (what the
+// The predefined combat tasks besides attacking (Book p.289): Guard, First Aid and Direct, plus the prototype's Scan. Each has a preview (what the
 // Task panel shows, and exactly what the roll uses) and they share one roll, rollCombatTask, which the reducer calls.
 import { findAuthority } from '../rules/authority.js'
 import { canCommunicate } from '../rules/communication.js'
@@ -20,7 +20,7 @@ export const getGuardTargets = (state, actor) =>
 
 // Everything the Task panel shows before rolling a predefined task, and exactly what the roll uses:
 // { available, reason, kind, actorId, targetId, label, prepared, task (with the final Difficulty), assist }.
-function previewCombatTask(state, actor, { kind, label, target, spec, context = {}, block = null }) {
+export function previewCombatTask(state, actor, { kind, label, target, spec, context = {}, block = null }) {
   // Guard and First Aid are tasks, so an enemy within Reach raises them too (Book p.286; Guard's Difficulty 0 becomes 1).
   const extraLines = [...(actionTypeOf(kind) === 'major' ? secondMajorLines(state, actor.id) : []), ...reachLines(state, actor)]
   const prepared = prepareTask(actor.character, spec, taskContext(state, actor, { ...context, extraLines }))
@@ -73,6 +73,19 @@ export function previewFirstAid(state, actorId, targetId, mode) {
   const spec = option?.injury ? { ...COMBAT_TASKS.firstAidTreat, difficulty: option.injury.severity } : COMBAT_TASKS.firstAidRevive
   const block = !option ? 'No one within Reach needs this.' : null
   return previewCombatTask(state, actor, { kind: 'firstAid', label: option?.label ?? 'First Aid', target, spec, block })
+}
+
+// Scan an enemy (PROTOTYPE, combatScan.js): success shows its Stress, Protection, weapons and tactics for the fight.
+export function previewScan(state, actorId, targetId) {
+  const actor = state.combatants[actorId]
+  const target = state.combatants[targetId]
+  const block =
+    !target || target.side === actor.side || !isActive(target)
+      ? 'Choose an enemy to scan.'
+      : state.scanned?.[target.id]
+        ? `${target.character.name} is already scanned.`
+        : null
+  return previewCombatTask(state, actor, { kind: 'scan', label: target ? `Scan ${target.character.name}` : 'Scan', target, spec: COMBAT_TASKS.scan, block })
 }
 
 // The character in authority on a side (rules/authority.js), from those able to act, in pick order (party members are

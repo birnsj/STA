@@ -7,14 +7,16 @@ import portraitData from '../src/data/adaptation/portraits.json' with { type: 'j
 import {
   getBackdropById,
   getBackdrops,
+  followsDepartment,
   getCharacterBackdrop,
-  getDefaultBackdrop,
+  getDepartmentBackdrop,
   getAvailablePortraits,
   getPortraitById,
   getPortraitLayers,
 } from '../src/rules/appearance.js'
 import { createInitialState, createRestoredState, creatorReducer } from '../src/character/characterReducer.js'
 import { createEmptyCharacter } from '../src/character/characterModel.js'
+import { createSpeciesSelection, setMixedParent } from '../src/rules/species.js'
 import { normalizeCharacterRecord } from '../src/character/runtimeCharacter.js'
 import { serializeCharacter } from '../src/export/serializeCharacter.js'
 import { getDivisionColour, getDivisionForDepartment, getUniformColour } from '../src/rules/uniform.js'
@@ -90,10 +92,7 @@ describe('layered portraits', () => {
     }
   })
 
-  it('a single-image portrait keeps its one picture, with no layers', () => {
-    const portrait = getPortraitById('tellarite-male-2')
-    assert.equal(portrait.image, '/art/portraits/tellarite-male-2.png')
-    assert.equal(getPortraitLayers(portrait.image), null)
+  it('a single picture that is not a layered portrait keeps its one picture, with no layers', () => {
     assert.equal(getPortraitLayers('/art/combat/klingon-warrior-1.png'), null)
   })
 
@@ -118,14 +117,13 @@ describe('layered portraits', () => {
 
 })
 
-describe('uniform mask recolour (Prototype: the Human, Vulcan and Andorian portraits)', () => {
+describe('uniform mask recolour (Prototype: every pixel-art portrait)', () => {
   const read = (src) => decodePng(fs.readFileSync(new URL(`../public${src}`, import.meta.url)))
   const masked = portraitData.portraits.filter((entry) => entry.uniformMask)
-  const designerArt = portraitData.portraits.filter((entry) => ['human', 'vulcan', 'andorian'].includes(entry.species))
 
-  it('every Human, Vulcan and Andorian portrait has its own mask, and each character layer carries it with the colour the art wears', () => {
-    assert.deepEqual(masked.map((entry) => entry.id), designerArt.map((entry) => entry.id))
-    assert.equal(masked.length, 30)
+  it('every portrait has its own mask, and each character layer carries it with the colour the art wears', () => {
+    assert.deepEqual(masked.map((entry) => entry.id), portraitData.portraits.map((entry) => entry.id))
+    assert.equal(masked.length, 60)
     assert.equal(new Set(masked.map((entry) => entry.uniformMask)).size, masked.length)
     for (const entry of masked) {
       const portrait = getPortraitById(entry.id)
@@ -162,18 +160,21 @@ describe('uniform mask recolour (Prototype: the Human, Vulcan and Andorian portr
         }
       })
 
-      it('the mask is the shirt alone: one connected piece (a neck or ear in shirt tones would be a second)', () => {
+      it('the mask is the shirt alone: one shirt-sized piece, plus at most shoulder strips at the sides (a neck or ear in shirt tones would be another piece)', () => {
         const width = mask.width
         const seen = new Uint8Array(width * mask.height)
-        let pieces = 0
+        const pieces = []
         for (let start = 0; start < seen.length; start++) {
           if (!isMasked(start) || seen[start]) continue
-          pieces++
+          const piece = { size: 0, xTotal: 0 }
+          pieces.push(piece)
           const queue = [start]
           seen[start] = 1
           while (queue.length) {
             const index = queue.pop()
             const x = index % width
+            piece.size++
+            piece.xTotal += x
             for (const next of [x + 1 < width ? index + 1 : -1, x > 0 ? index - 1 : -1, index + width, index - width]) {
               if (next >= 0 && next < seen.length && !seen[next] && isMasked(next)) {
                 seen[next] = 1
@@ -182,7 +183,12 @@ describe('uniform mask recolour (Prototype: the Human, Vulcan and Andorian portr
             }
           }
         }
-        assert.equal(pieces, 1)
+        const [shirt, ...others] = pieces.sort((a, b) => b.size - a.size)
+        assert.ok(shirt.size > 15000)
+        for (const piece of others) {
+          const centre = piece.xTotal / piece.size
+          assert.ok(centre < width / 4 || centre > (width * 3) / 4, `a ${piece.size}-pixel piece centred at x ${Math.round(centre)}`)
+        }
       })
 
       for (const division of ['sciences', 'operations']) {
@@ -211,7 +217,32 @@ describe('uniform mask recolour (Prototype: the Human, Vulcan and Andorian portr
   })
 })
 
-describe('Portrait backdrops (Prototype: chosen per character on Finishing Touches)', () => {
+describe('Portrait set on Finishing Touches (Prototype: species + gender)', () => {
+  const withSpecies = (species, genderId = 'female') => ({ ...createEmptyCharacter(), species, identity: { ...createEmptyCharacter().identity, gender: { id: genderId, name: genderId } } })
+  const speciesOf = (character) => new Set(getAvailablePortraits(character).map((portrait) => portrait.species))
+  const gendersOf = (character) => new Set(getAvailablePortraits(character).map((portrait) => portrait.gender))
+
+  it('a single species sees only its own portraits of the chosen gender', () => {
+    const character = withSpecies(createSpeciesSelection('caitian'))
+    assert.deepEqual([...speciesOf(character)], ['caitian'])
+    assert.deepEqual([...gendersOf(character)], ['female'])
+    assert.equal(getAvailablePortraits(character).length, 5)
+  })
+
+  it('Mixed Heritage sees both parents\u2019 portraits (designer decision), none before the parents are chosen', () => {
+    const mixed = [['human', 0], ['vulcan', 1]].reduce((selection, [id, index]) => setMixedParent(selection, index, id), createSpeciesSelection('mixedHeritage'))
+    assert.deepEqual([...speciesOf(withSpecies(mixed))].sort(), ['human', 'vulcan'])
+    assert.deepEqual(getAvailablePortraits(withSpecies(createSpeciesSelection('mixedHeritage'))), [])
+  })
+
+  it('New Species (no art of its own) sees every species\u2019 portraits of the chosen gender', () => {
+    const character = withSpecies(createSpeciesSelection('newSpecies'), 'male')
+    assert.equal(speciesOf(character).size, 6)
+    assert.deepEqual([...gendersOf(character)], ['male'])
+  })
+})
+
+describe('Portrait backdrops (Prototype: follow the department, the player may pick another on Finishing Touches)', () => {
   const autofilled = creatorReducer(createInitialState(), { type: 'autofill', seed: 0.42 })
   const portraitIds = getAvailablePortraits(autofilled.character).map((portrait) => portrait.id)
 
@@ -224,34 +255,49 @@ describe('Portrait backdrops (Prototype: chosen per character on Finishing Touch
     assert.equal(getBackdropById('starship-bridge').name, 'Starship Bridge')
   })
 
-  it('Starship Bridge is the default for new characters and for saves made before the choice existed', () => {
-    assert.equal(getDefaultBackdrop().id, 'starship-bridge')
-    assert.deepEqual(createEmptyCharacter().identity.backdrop, { id: 'starship-bridge', name: 'Starship Bridge' })
-    assert.equal(getCharacterBackdrop({ name: 'Old Save', portrait: null }).id, 'starship-bridge')
-    assert.equal(getCharacterBackdrop({ backdrop: { id: 'no-longer-listed', name: 'Gone' } }).id, 'starship-bridge')
+  it('follows the department (designer mapping), and the corridor until a department is chosen', () => {
+    const expected = { command: 'briefing-room', conn: 'starship-bridge', engineering: 'engineering', security: 'transporter-room', science: 'planet-surface', medicine: 'sickbay' }
+    for (const [departmentId, backdropId] of Object.entries(expected)) assert.equal(getDepartmentBackdrop(departmentId).id, backdropId, departmentId)
+    assert.equal(getDepartmentBackdrop(null).id, 'starship-corridor')
+    assert.equal(createEmptyCharacter().identity.backdrop, null)
+    assert.equal(getCharacterBackdrop({ name: 'Old Save', portrait: null }, 'medicine').id, 'sickbay')
+    assert.equal(getCharacterBackdrop({ backdrop: { id: 'no-longer-listed', name: 'Gone' } }, 'engineering').id, 'engineering')
+  })
+
+  const departmentId = autofilled.character.career.department?.id
+  // A backdrop other than the autofilled department's own.
+  const otherId = getBackdrops().find((backdrop) => backdrop.id !== getDepartmentBackdrop(departmentId).id && backdrop.id !== 'alien-interior').id
+
+  it("the player's own pick overrides the department; picking the department's own goes back to following it", () => {
+    let state = creatorReducer(autofilled, { type: 'selectBackdrop', backdropId: 'alien-interior' })
+    assert.deepEqual(state.character.identity.backdrop, { id: 'alien-interior', name: 'Alien Interior' })
+    assert.equal(followsDepartment(state.character.identity), false)
+    state = creatorReducer(state, { type: 'selectBackdrop', backdropId: getDepartmentBackdrop(departmentId).id })
+    assert.equal(state.character.identity.backdrop, null)
+    assert.equal(followsDepartment(state.character.identity), true)
   })
 
   it('changing the backdrop keeps the portrait, and changing the portrait keeps the backdrop', () => {
     assert.ok(portraitIds.length >= 2)
     let state = creatorReducer(autofilled, { type: 'selectPortrait', portraitId: portraitIds[0] })
-    state = creatorReducer(state, { type: 'selectBackdrop', backdropId: 'sickbay' })
+    state = creatorReducer(state, { type: 'selectBackdrop', backdropId: otherId })
     assert.equal(state.character.identity.portrait.id, portraitIds[0])
-    assert.deepEqual(state.character.identity.backdrop, { id: 'sickbay', name: 'Sickbay' })
+    assert.equal(state.character.identity.backdrop.id, otherId)
     state = creatorReducer(state, { type: 'selectPortrait', portraitId: portraitIds[1] })
     assert.equal(state.character.identity.portrait.id, portraitIds[1])
-    assert.equal(state.character.identity.backdrop.id, 'sickbay')
-    assert.equal(creatorReducer(state, { type: 'selectBackdrop', backdropId: 'unknown' }).character.identity.backdrop.id, 'sickbay')
+    assert.equal(state.character.identity.backdrop.id, otherId)
+    assert.equal(creatorReducer(state, { type: 'selectBackdrop', backdropId: 'unknown' }).character.identity.backdrop.id, otherId)
   })
 
-  it('the chosen backdrop survives export and load; an export without one loads with the default', () => {
-    const { character } = creatorReducer(autofilled, { type: 'selectBackdrop', backdropId: 'engineering' })
+  it('the chosen backdrop survives export and load; one following the department loads following it', () => {
+    const { character } = creatorReducer(autofilled, { type: 'selectBackdrop', backdropId: otherId })
     const exported = JSON.parse(JSON.stringify(serializeCharacter(character)))
-    assert.deepEqual(exported.character.identity.backdrop, { id: 'engineering', name: 'Engineering' })
-    assert.equal(createRestoredState(exported.character).character.identity.backdrop.id, 'engineering')
-    assert.equal(normalizeCharacterRecord(exported).character.portrait.backdrop, getBackdropById('engineering').image)
+    assert.equal(exported.character.identity.backdrop.id, otherId)
+    assert.equal(createRestoredState(exported.character).character.identity.backdrop.id, otherId)
+    assert.equal(normalizeCharacterRecord(exported).character.portrait.backdrop, getBackdropById(otherId).image)
 
-    const { backdrop: _omitted, ...oldIdentity } = exported.character.identity
-    const oldRecord = { ...exported, character: { ...exported.character, identity: oldIdentity } }
-    assert.equal(normalizeCharacterRecord(oldRecord).character.portrait.backdrop, getDefaultBackdrop().image)
+    const following = JSON.parse(JSON.stringify(serializeCharacter(autofilled.character)))
+    assert.equal(following.character.identity.backdrop, null)
+    assert.equal(normalizeCharacterRecord(following).character.portrait.backdrop, getDepartmentBackdrop(departmentId).image)
   })
 })

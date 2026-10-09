@@ -20,21 +20,24 @@ import {
   getOpponents,
   getReachable,
   isActive,
+  occupiesTile,
   reachLines,
   secondMajorLines,
 } from '../combat/combatState.js'
 import { WORLD_ENCOUNTER_ID } from '../combat/encounters.js'
 import { tileDistance } from '../combat/rangeSystem.js'
+import actionData from '../data/adaptation/combat/actions.json'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
-import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
+import { isDefeated, normalizeCondition, recoverStress, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, joinsCombat, perceive, STATE } from './awareness.js'
 import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
 import { getMembers, withAbleSelection } from './partyControl.js'
-import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
+import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
 
 export const MODE = { EXPLORATION: 'EXPLORATION', COMBAT: 'COMBAT' }
+const SOCIAL = actionData.social
 // How far from the trigger the diagnostics list NPCs that stayed out of the fight.
 const NEARBY_DISTANCE = 14
 
@@ -244,7 +247,7 @@ export function requestCombat(state) {
 function searchStep(state) {
   const { combat, link } = state
   const self = getActiveCombatant(combat)
-  if (self.side !== 'enemy' || !combat.knowledge?.[self.id] || combat.pending || awaitingDecision(combat) || getOpponents(combat, self).length) return null
+  if (self.side !== 'enemy' || self.retreating || !combat.knowledge?.[self.id] || combat.pending || awaitingDecision(combat) || getOpponents(combat, self).length) return null
   const places = Object.values(combat.knowledge[self.id]).map((entry) => entry.lastKnownPosition).filter(Boolean)
   if (link.searchPoints[self.id]) places.push(link.searchPoints[self.id])
   const goal = places.sort((a, b) => tileDistance(self.position, a) - tileDistance(self.position, b))[0]
@@ -299,7 +302,7 @@ function joinFight(state, joins, searchPoints, seenBy) {
   let { combat, link } = state
   joins.forEach((join) => {
     const npc = state.world.npcs[join.npcId]
-    const taken = new Set([...getCombatantList(combat).filter(isActive).map((c) => tileKey(c.position)), ...bystanderKeys(state.world, [...link.npcIds, npc.id])])
+    const taken = new Set([...getCombatantList(combat).filter(occupiesTile).map((c) => tileKey(c.position)), ...bystanderKeys(state.world, [...link.npcIds, npc.id])])
     const snap = nearestFreeCell(combat.map, npc.position, taken)
     if (!snap) return
     combat = addCombatant(combat, { id: npc.id, character: npc.character, position: snap.cell, facing: headingToFacing(npc.heading), ...fromCondition(npc) })
@@ -477,9 +480,27 @@ function interactInCombat(state, action) {
   return withPartyPerception(joinFight({ ...next, world: spread.world }, spread.joined, { ...searchPoints, ...spread.searchPoints }, {}))
 }
 
+// Designer decision (2026-10-09): the fight ends in victory once every enemy the away team can see is dead or stunned
+// (Defeated) and at least one enemy is down. Enemies still up out of sight (an alert-group member waiting in another
+// room) don't hold it open: they go back to the world when it ends, still alerted, and may start a new fight.
+function withSeenEnemiesDown(state) {
+  const { combat } = state
+  if (state.mode !== MODE.COMBAT || combat.outcome) return state
+  const enemies = getCombatantList(combat).filter((c) => c.side === 'enemy')
+  const standing = enemies.filter(isActive)
+  if (!standing.length || standing.length === enemies.length || standing.some((enemy) => isVisibleToParty(state.partyKnowledge, enemy.id))) return state
+  const lines = [
+    `VICTORY in round ${combat.round}: every enemy in sight is down, surrendered or gone.`,
+    `${standing.length === 1 ? 'One enemy out of sight leaves' : `${standing.length} enemies out of sight leave`} the fight.`,
+  ]
+  return { ...state, combat: { ...combat, outcome: 'victory', log: [...combat.log, { id: combat.log.length, round: combat.round, kind: 'info', lines }] } }
+}
+
 // Every combat action from the Combat Type 1 screen comes through here. action: a Combat Type 1 action,
 // { type: 'interact', objectId, actionId, purchase, assistIndex } (a challenge object), or { type: 'aiStep', partyAI, enemyAI }.
-export function combatAction(state, action) {
+export const combatAction = (state, action) => withSeenEnemiesDown(combatStep(state, action))
+
+function combatStep(state, action) {
   if (state.mode !== MODE.COMBAT) return state
   if (action.type === 'interact') return interactInCombat(state, action)
   const before = state.combat
@@ -518,6 +539,17 @@ export function combatAction(state, action) {
 }
 
 // ---------- end ----------
+
+// Designer decision (Oct 2026): a surrendered enemy stands down where it is: neutral, no patrol, never joins a fight.
+const STANDS_DOWN = { disposition: 'neutral', responseType: null, patrol: null, investigation: null, alertGroupId: null, surrendered: true }
+
+// Designer decision (Oct 2026): an enemy that retreated out of a fight regroups and attacks on sight again later. Book
+// (Core p.278): a breather recovers SOCIAL.breatherStress Stress. It can't start a fight before regroupUntil (world
+// seconds; SOCIAL.regroupSeconds is a placeholder).
+function regrouping(combatant, time) {
+  const condition = recoverStress(combatant.character, conditionOf(combatant), SOCIAL.breatherStress)
+  return { responseType: 'combat', condition, regroupUntil: time + SOCIAL.regroupSeconds }
+}
 
 // The single way out of combat: final cells become world positions, each character's and NPC's condition (Stress,
 // Injuries, Defeated) stays with them, and exploration resumes from there (no return to earlier positions, no formation
@@ -567,6 +599,11 @@ export function endCombat(state) {
       response: null,
       alarmAt: null,
       condition: conditionOf(combatant),
+      // Designer decision (2026-10-09): an enemy that leaves a fight still up attacks on sight from then on, whatever
+      // its disposition (a Wary guard would otherwise only confront, which does nothing yet).
+      ...(isActive(combatant) ? { responseType: 'combat' } : {}),
+      ...(combatant.left ? regrouping(combatant, world.time) : {}),
+      ...(combatant.surrendered && !combatant.condition.defeated ? STANDS_DOWN : {}),
     }
   })
   const lastCombat = {
@@ -574,7 +611,9 @@ export function endCombat(state) {
     outcome: combat.outcome ?? 'ended',
     rounds: combat.round,
     npcIds: link.npcIds,
-    down: getCombatantList(combat).filter((c) => !isActive(c)).map((c) => c.id),
+    down: getCombatantList(combat).filter((c) => c.condition.defeated).map((c) => c.id),
+    surrendered: getCombatantList(combat).filter((c) => c.surrendered && !c.condition.defeated).map((c) => c.id),
+    retreated: getCombatantList(combat).filter((c) => c.left).map((c) => c.id),
     dying: getCombatantList(combat).filter((c) => c.condition.dying).map((c) => c.id),
     wouldDie: getCombatantList(combat).filter((c) => wouldDieAtSceneEnd(c.condition)).map((c) => c.id),
   }

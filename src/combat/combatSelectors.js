@@ -16,8 +16,11 @@ export const facingToward = (from, to) => {
 
 // The directed ally acts (Direct) while the commander's turn waits; otherwise whoever's turn it is.
 export const getActiveCombatant = (state) => state.combatants[state.directed?.allyId ?? state.order[state.turnIndex]]
-// Able to act: not Defeated (Book p.292: a Defeated character is prone and takes no actions).
-export const isActive = (combatant) => !combatant.condition.defeated
+// Able to act: not Defeated (Book p.292: a Defeated character is prone and takes no actions). Designer decision (Oct
+// 2026): an enemy that surrendered or retreated out of the fight is out of it too (combatSocial.js, combatRetreat.js).
+export const isActive = (combatant) => !combatant.condition.defeated && !combatant.surrendered && !combatant.left
+// Stands on its tile and blocks movement: a surrendered enemy still does; the Defeated (prone) and the departed don't.
+export const occupiesTile = (combatant) => !combatant.condition.defeated && !combatant.left
 export const getCombatantList = (state) => state.order.map((id) => state.combatants[id])
 // Whether a combatant knows another is there. Only combat started in the world tracks this (state.knowledge), and only
 // for enemies: a party member an enemy hasn't detected is present but not one of its opponents.

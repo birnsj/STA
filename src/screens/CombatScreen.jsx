@@ -8,6 +8,13 @@ import {
   ADAPTATION_MOMENTUM_SPENDS,
   previewFirstAid,
   previewGuard,
+  previewScan,
+  previewSocial,
+  SOCIAL_KINDS,
+  socialChance,
+  isScanned,
+  scanReport,
+  visibleCondition,
   canAfford,
   AIM_TEXT,
   aimRerollsFor,
@@ -19,7 +26,6 @@ import {
   EXTRA_ACTIONS,
   getActiveCombatant,
   getMovementBlock,
-  statusText,
   getHitChance,
   getMovementLeft,
   getOpponents,
@@ -58,6 +64,8 @@ import RollPanel from '../components/combat/RollPanel.jsx'
 import TurnOrderStrip from '../components/combat/TurnOrderStrip.jsx'
 import AutoCombatControls from '../components/combat/AutoCombatControls.jsx'
 import TurnBanner from '../components/combat/TurnBanner.jsx'
+import useFadeAfter from '../components/useFadeAfter.js'
+import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { weatherFor } from '../maps/mapWeather.js'
@@ -184,25 +192,36 @@ function aiTurnTask(state, active) {
 
 const attackModeName = (weapon, modeId) => `${weapon.name}: ${getInjuryMode(modeId).name} (Severity ${weapon.severity}${getInjuryMode(modeId).generatesThreat ? ', +1 Threat' : ''})`
 
-// The buttons shown around an enemy: one per injury mode of the weapon (each fires), then Aim and Info.
+// The buttons shown around an enemy: one per injury mode of the weapon (each fires), then Aim, Use Item, Scan, Persuade
+// and Intimidate.
 // roll: { task, opposed } the attack would use, for the button labels (null = labels without it).
 const enemyButtonDefs = (weapon, roll = null) => [
   ...weapon.injuryModes.map((modeId) => ({ id: modeId, label: getInjuryMode(modeId).name, details: attackModeDetails(weapon, modeId, roll), icon: modeId === 'stun' ? 'stun' : 'deadly' })),
   { id: 'aim', label: 'Aim', icon: 'aim' },
-  { id: 'info', label: 'Info', icon: 'info' },
+  { id: 'useItem', label: 'Use Item', icon: 'useItem' },
+  { id: 'scan', label: 'Scan', icon: 'scan' },
+  { id: 'persuade', label: 'Persuade', icon: 'persuade' },
+  { id: 'intimidate', label: 'Intimidate', icon: 'intimidate' },
 ]
 
 const typeName = (actionId) => ACTION_TYPE_NAMES[actionTypeOf(actionId)]
 
 // During Auto Combat, the buttons a party member's AI choice uses, with the choice lit (display only).
 // choice: { actorId, type, targetId, weaponId, injuryMode, allyId } - an AI step about to run, or the action just taken.
-function choiceRing(state, choice) {
+// pressKey: set for a step about to run, so its button is shown being pressed (once per key) before it happens.
+function choiceRing(state, choice, pressKey = null) {
   const actor = choice && state.combatants[choice.actorId]
   if (!actor || actor.side !== 'player') return null
   const show = (unitId, buttons, chosenId) => ({
     unitId,
     info: null,
-    buttons: buttons.map((button) => ({ ...button, enabled: false, active: button.id === chosenId, title: button.id === chosenId ? `${actor.character.name} chose ${button.label}` : button.label })),
+    buttons: buttons.map((button) => ({
+      ...button,
+      enabled: false,
+      active: button.id === chosenId,
+      pressed: button.id === chosenId ? pressKey : null,
+      title: button.id === chosenId ? `${actor.character.name} chose ${button.label}` : button.label,
+    })),
   })
   const weapon = getCombatantWeapon(actor, choice.weaponId ?? actor.weaponIds[0])
   if (choice.type === 'attack') return show(choice.targetId, enemyButtonDefs(weapon), choice.injuryMode)
@@ -403,6 +422,44 @@ export function Battle({
       task: task ? fromPreview(task, COMBAT_TASKS.firstAidRevive.focuses) : { reason: 'Nobody within Reach needs First Aid.' },
     }
     taskConfirm = { enabled: Boolean(task?.available) && purchaseCheck.valid, run: () => dispatch({ type: 'firstAid', targetId: aidTargetId, mode: aidMode, purchase }) }
+  }
+  if (isPlayerTurn && mode === 'scan' && target) {
+    const task = previewScan(state, active.id, target.id)
+    combatTask = {
+      intro: actionData.actions.find((entry) => entry.id === 'scan').description,
+      task: fromPreview(task, COMBAT_TASKS.scan.focuses),
+    }
+    taskConfirm = {
+      enabled: task.available && purchaseCheck.valid,
+      run: () => {
+        dispatch({ type: 'scan', targetId: target.id, purchase })
+        setMode('attack')
+        setRingInfo(true)
+      },
+    }
+    taskConfirmLabel = 'Scan'
+  }
+  if (isPlayerTurn && SOCIAL_KINDS.includes(mode) && target) {
+    const task = previewSocial(state, active.id, target.id, mode)
+    const { resist } = task
+    const name = target.character.name
+    const lowered = task.penalty ? ` less ${task.penalty} (${task.prepared.difficultyLines.map((line) => line.label).join(', ')})` : ''
+    const resistExtra = resist.extra ? `, then +${resist.extra} (${resist.prepared.difficultyLines.map((line) => line.label).join(', ')})` : ''
+    combatTask = {
+      intro: actionData.actions.find((entry) => entry.id === mode).description,
+      // The asker's own Difficulty changes lower the Difficulty it sets (Book p.256), so the panel shows them in the note.
+      task: fromPreview({ ...task, prepared: { ...task.prepared, difficulty: 0, difficultyLines: [] } }, COMBAT_TASKS[mode].focuses),
+      note: `Opposed: your successes${lowered} set the Difficulty${resistExtra}. ${name} resists with ${resist.task.attribute.name} + ${resist.task.department.name} (TN ${resist.task.targetNumber}). Chance it gives way: ${Math.round(socialChance(task, purchaseCheck.dice) * 100)}%.`,
+    }
+    taskConfirm = {
+      enabled: task.available && purchaseCheck.valid,
+      run: () => {
+        dispatch({ type: mode, targetId: target.id, purchase })
+        setDicePurchase({ bonusDice: 0, momentum: 0 })
+        setMode('attack')
+      },
+    }
+    taskConfirmLabel = actionData.actions.find((entry) => entry.id === mode).name
   }
   if (isPlayerTurn && mode === 'direct' && isCommander) {
     const allyId = taskPick ?? directAllies[0]?.id ?? null
@@ -691,15 +748,61 @@ export function Battle({
     setAttackChoice(null)
   }
 
+  // Scan shows what is in plain view at once; on an enemy not yet scanned it also sets up the Scan task (Confirm rolls it).
+  // Once scanned, it only shows and hides the card, which then holds everything the scan found.
+  const scanButton = (enemy) => {
+    const scanned = isScanned(state, enemy.id)
+    const setUp = mode === 'scan' && ringInfo
+    const scanTask = !scanned && previewScan(state, active.id, enemy.id)
+    return {
+      enabled: true,
+      active: ringInfo,
+      ...(scanTask ? { details: taskDetails(scanTask.task) } : {}),
+      title: scanned
+        ? 'Show what the scan found: Stress, Protection, weapons and tactics.'
+        : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows its Stress, Protection, weapons and tactics for the rest of the fight.`,
+      onClick: () => {
+        if (scanned || setUp) {
+          setRingInfo(!ringInfo)
+          if (setUp) setMode('attack')
+          return
+        }
+        setMode('scan')
+        setTaskPick(enemy.id)
+        setRingInfo(true)
+      },
+    }
+  }
+
+  // Persuade / Intimidate set up the task on this enemy (Confirm rolls it); pressing the lit button again cancels.
+  const socialButton = (enemy, kind) => {
+    const task = previewSocial(state, active.id, enemy.id, kind)
+    const setUp = mode === kind
+    return {
+      enabled: task.available || setUp,
+      active: setUp,
+      details: [`${task.task.attribute.name} + ${task.task.department.name}`, `TN ${task.task.targetNumber}`],
+      title: task.available ? `${actionData.actions.find((entry) => entry.id === kind).description} (${typeName(kind)} action)` : task.reason,
+      onClick: () => {
+        setMode(setUp ? 'attack' : kind)
+        setTaskPick(enemy.id)
+        setRingInfo(false)
+      },
+    }
+  }
+
   const enemyRingButtons = (enemy) => {
     const behaviour = {
+      persuade: socialButton(enemy, 'persuade'),
+      intimidate: socialButton(enemy, 'intimidate'),
       aim: {
         enabled: canAim(state, active),
         active: state.turn.aimReroll,
         title: aimTitle,
         onClick: () => dispatch({ type: 'aim' }),
       },
-      info: { enabled: true, active: ringInfo, title: 'Show condition, cover and your chance to hit', onClick: () => setRingInfo(!ringInfo) },
+      useItem: { enabled: false, active: false, title: 'Use Item: not built yet.', onClick: undefined },
+      scan: scanButton(enemy),
     }
     const shot = enemy.id === targetAttack?.target.id ? targetAttack : previewAttack(state, active.id, enemy.id, weapon.id)
     return enemyButtonDefs(weapon, { task: shot.task, opposed: Boolean(shot.opposition) }).map((button) => ({
@@ -715,9 +818,12 @@ export function Battle({
 
   const enemyRingInfo = (enemy) => {
     const rows = [
-      ['Condition', statusText(enemy)],
+      ['Condition', visibleCondition(state, enemy)],
       ['Cover', enemy.inCover ? 'In cover' : 'No cover'],
     ]
+    const report = isScanned(state, enemy.id) ? scanReport(state, active, enemy) : null
+    if (report) rows.push(...report.rows)
+    else rows.push(['Scan', 'Not scanned'])
     if (preview?.injuries) preview.injuries.forEach((injury) => rows.push([`On a hit (${getInjuryMode(injury.type).name})`, `Severity ${injury.severity}${injury.protection ? ` (Protection ${injury.protection})` : ''}`]))
     if (preview?.task) {
       rows.push(['Range', `${preview.band.name}, ${preview.distance} tiles`], ['Your roll', `TN ${preview.task.targetNumber}, Difficulty ${preview.task.difficulty}`])
@@ -726,7 +832,7 @@ export function Battle({
       rows.push(['Chance to hit', preview.available ? `${Math.round(getHitChance(state, active.id, preview, { bonusDice: purchase.bonusDice }) * 100)}%` : 'No shot'])
       if (preview.available && preview.opposition) rows.push([preview.opposition.when === 'targetInCover' ? 'In cover' : 'Defends', 'their opposed roll is counted in the chance'])
     }
-    return { title: enemy.character.name, rows }
+    return { title: enemy.character.name, rows, tips: report?.tips ?? [] }
   }
 
   const allyRingButtons = (ally) => {
@@ -901,12 +1007,12 @@ export function Battle({
     ring = { unitId: ringUnit.id, buttons: selfRingButtons(), info: null }
   } else if (ringShown && ringUnit.side !== active.side && mode === 'ambush') {
     ring = { unitId: ringUnit.id, buttons: ambushRingButtons(ringUnit), info: null }
-  } else if (ringShown && ringUnit.side !== active.side && mode === 'attack' && target?.id === ringUnit.id) {
+  } else if (ringShown && ringUnit.side !== active.side && (mode === 'attack' || mode === 'scan' || SOCIAL_KINDS.includes(mode)) && target?.id === ringUnit.id) {
     ring = { unitId: ringUnit.id, buttons: enemyRingButtons(ringUnit), info: ringInfo ? enemyRingInfo(ringUnit) : null }
   } else if (ringShown && ringUnit.side === active.side && mode === 'assist') {
     ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
   } else if (auto !== 'off' && !state.outcome) {
-    ring = choiceRing(state, planned ?? lastChoice(state))
+    ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
   }
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
@@ -921,6 +1027,9 @@ export function Battle({
       : null,
     directBlock: directReason,
     planned, mode, attackMode, preview, bonusDice: purchase.bonusDice, ambushPreview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
+  // The hint fades after a while; the Ambush button sharing its box stays, so with one offered only the text goes.
+  const hintFaded = useFadeAfter(hint)
+  const hintTextShown = showHints && !(hintFaded && ambusher)
 
   // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
   const releaseSelection = () => {
@@ -989,8 +1098,8 @@ export function Battle({
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
       {hint && (showHints || ambusher) && (
-        <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${showHints ? '' : ' is-controls-only'}`} aria-live="polite">
-          {showHints && hint}
+        <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintTextShown ? '' : ' is-controls-only'}${hintFaded && !ambusher ? ' is-faded-out' : ''}`} aria-live="polite">
+          {hintTextShown && hint}
           {ambusher && (
             <button
               type="button"
@@ -1147,19 +1256,21 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
     )
   }
   return (
-    <Battle
-      key={runId}
-      state={state}
-      dispatch={dispatch}
-      showHelpOnStart={!helpSeen}
-      onHelpSeen={() => setHelpSeen(true)}
-      partyAI={partyAI}
-      onPartyAI={setPartyAI}
-      enemyAI={enemyAI}
-      onEnemyAI={setEnemyAI}
-      onRestart={() => start(party, fixedSeed, map)}
-      onChangeCharacter={() => setPhase('setup')}
-      onExit={onExit}
-    />
+    // A new key per fight remounts the battle and fades its map in again.
+    <MapFadeIn key={runId}>
+      <Battle
+        state={state}
+        dispatch={dispatch}
+        showHelpOnStart={!helpSeen}
+        onHelpSeen={() => setHelpSeen(true)}
+        partyAI={partyAI}
+        onPartyAI={setPartyAI}
+        enemyAI={enemyAI}
+        onEnemyAI={setEnemyAI}
+        onRestart={() => start(party, fixedSeed, map)}
+        onChangeCharacter={() => setPhase('setup')}
+        onExit={onExit}
+      />
+    </MapFadeIn>
   )
 }

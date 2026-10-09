@@ -53,8 +53,10 @@ import { affordAddedSeverity, inflictInjury, injuryFor, resolveInjury } from './
 import { addLog, assistLine, bonusMomentumLine, diceText, focusText, formatPosition, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from './combatLog.js'
 import { canMove, canSprint, getPathTo } from './combatMovement.js'
 import { canAfford, canAim, extraActionPool, extraMinorBlock, facingToward, getActiveCombatant, getTurnGroup, isActive, isTurnFinished, secondMajorBlock } from './combatSelectors.js'
+import { withRetreats } from './combatRetreat.js'
 import { createCombat } from './combatSetup.js'
-import { directBlock, getAuthority, getDirectableAllies, previewFirstAid, previewGuard, rollCombatTask } from './combatTasks.js'
+import { socialStep } from './combatSocial.js'
+import { directBlock, getAuthority, getDirectableAllies, previewFirstAid, previewGuard, previewScan, rollCombatTask } from './combatTasks.js'
 import { advanceTurn, settleDirected, switchToMember, withOutcome } from './combatTurnOrder.js'
 import { canTakeCover } from './coverSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, ADAPTATION_MOMENTUM_SPENDS, EXTRA_ACTIONS, freshTurn, spendTurnAction } from './turnActions.js'
@@ -77,6 +79,7 @@ export {
   isActive,
   isTurnFinished,
   knowsAbout,
+  occupiesTile,
   reachLines,
   secondMajorBlock,
   secondMajorLines,
@@ -100,7 +103,9 @@ export {
   previewAttack,
   rollAwaitsPlayer,
 } from './combatAttacks.js'
-export { directBlock, directTargetBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard } from './combatTasks.js'
+export { directBlock, directTargetBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
+export { isScanned, scanReport, visibleCondition } from './combatScan.js'
+export { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
 export { injuryFor, previewInjuries } from './combatInjuries.js'
 export { AMBUSH_DIFFICULTY, AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
 export { counterattackOption } from './combatCounterattack.js'
@@ -182,7 +187,8 @@ function payForExtraAction(state, actor, cost, countTask) {
 export function combatReducer(state, action) {
   if (action.type === 'restart') return createCombat(action.options)
   if (!state || state.outcome) return state
-  const next = settleDirected(reduceAction(state, action))
+  const settled = settleDirected(reduceAction(state, action))
+  const next = settled === state ? state : withRetreats(settled)
   // Any attack, by either side, spots the party and ends the ambush chance.
   if (next !== state && next.ambush === null && action.type === 'attack') return { ...next, ambush: { passed: true } }
   return next
@@ -567,6 +573,28 @@ function reduceAction(state, action) {
       next = markAction(next, 'firstAid', actor.id, { targetId: target.id, mode: action.mode, passed: rolled.passed })
       return addLog(next, [...decided.lines, ...rolled.lines, outcome])
     }
+    // Scan an enemy (PROTOTYPE, major, combatScan.js): success makes its Stress, Protection, weapons and tactics known to
+    // the party for the rest of the fight.
+    case 'scan': {
+      const preview = previewScan(state, actor.id, action.targetId)
+      if (!preview.available) return state
+      const decided = recordDecision(state, actor, action)
+      const rolled = rollCombatTask(decided.state, actor, preview, action.purchase, 'scan')
+      if (!rolled) return state
+      const name = state.combatants[preview.targetId].character.name
+      let next = rolled.state
+      if (rolled.passed) next = { ...next, scanned: { ...next.scanned, [preview.targetId]: true } }
+      next = markAction(next, 'scan', actor.id, { targetId: preview.targetId, passed: rolled.passed })
+      return addLog(next, [
+        ...decided.lines,
+        ...rolled.lines,
+        rolled.passed ? `${name} is scanned: Stress, Protection, weapons and tactics are known for the rest of the fight.` : `The scan of ${name} reveals nothing useful.`,
+      ])
+    }
+    // Persuade / Intimidate (major, designer decision Oct 2026; Book pp.279-282): ask an enemy in earshot to surrender.
+    case 'persuade':
+    case 'intimidate':
+      return socialStep(state, actor, action)
     // Book p.289 Direct (major): the character in authority spends 1 Momentum; an ally who can hear immediately takes a
     // major action, which the commander assists (Control + Command). No +1 Difficulty for that ally's second major action.
     case 'direct': {

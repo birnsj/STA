@@ -18,8 +18,9 @@ import { getMembers } from './partyControl.js'
 import { addKnowledgeFact, revealEntity } from './partyKnowledge.js'
 
 export const INTERACT_RANGE = data.interactRange
-// Task rolls draw their own seeds, apart from the fights' (combat uses the seed's first indices).
-const TASK_SEED_OFFSET = 100000
+// Task rolls draw their own seeds, apart from the fights' (combat uses the seed's first indices). Scans (partyScan.js)
+// share this sequence through scenario.taskCount.
+export const TASK_SEED_OFFSET = 100000
 
 const pointOf = (definition) => ({ x: definition.position[0], y: definition.position[1] })
 const isUp = (member) => !isDefeated(member.condition)

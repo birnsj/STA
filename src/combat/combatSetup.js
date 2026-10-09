@@ -55,7 +55,7 @@ function createStats(combatants) {
     // Threat: points added (by source) and removed.
     threat: { fromDeadly: 0, fromNpcMomentum: 0, fromDice: 0, spentByNpcs: 0, cancelled: 0 },
     // Actions other than attacking: how often each was taken, and how many of their tasks passed.
-    tasks: { guard: 0, firstAid: 0, direct: 0, interact: 0, extraMinor: 0, secondMajor: 0, counterattack: 0, passed: 0 },
+    tasks: { guard: 0, firstAid: 0, scan: 0, persuade: 0, intimidate: 0, direct: 0, interact: 0, extraMinor: 0, secondMajor: 0, counterattack: 0, passed: 0 },
     // Injuries from successful attacks: suffered (by type), avoided, and the Stress taken to avoid them.
     injuries: { suffered: 0, stun: 0, deadly: 0, avoided: 0, stressTaken: 0, threatSpent: 0, stressComplications: 0, fatigued: 0 },
     byCombatant: Object.fromEntries(combatants.map((combatant) => [combatant.id, freshCombatantStats()])),
@@ -131,6 +131,8 @@ export function createCombat({
     directed: null,
     // Allies already directed this round (one Direct each per round).
     directedThisRound: [],
+    // Enemies the party has scanned this fight ({ [id]: true }; combatScan.js).
+    scanned: {},
     // Major actions each combatant has taken this round ({ [id]: count }; MAX_MAJORS_PER_ROUND).
     majorsThisRound: {},
     // Combatants whose turn has started this round (a Guard on them ends when their next turn starts).

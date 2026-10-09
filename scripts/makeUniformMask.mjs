@@ -9,9 +9,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { decodePng, encodePng } from './png.mjs'
 
-// Per portrait: the y below which the uniform can be (the collar line: no skin or hair in shirt colours under it),
-// the shirt colour it is grown from, the shirt-tone hue range it may grow through, and the smallest region kept.
-const DEFAULTS = { seedHue: [38, 62], toneHue: [15, 70], minRegion: 2000 }
+// Per portrait: the y below which the uniform can be (the collar line: no skin or hair in shirt colours under it;
+// optionally a different belowLeft for the left quarter),
+// the shirt colour it is grown from, the shirt-tone hue range it may grow through, the smallest region kept, and the
+// smallest region kept when it is a shoulder cut off by a seam (see isShoulder).
+const DEFAULTS = { seedHue: [38, 62], toneHue: [15, 70], minRegion: 2000, minEdgeRegion: 40 }
 const PORTRAITS = {
   'human-male-1': { below: 185 },
   'human-male-2': { below: 170 },
@@ -45,6 +47,37 @@ const PORTRAITS = {
   'andorian-female-3': { below: 201 },
   'andorian-female-4': { below: 201 },
   'andorian-female-5': { below: 206 },
+  'tellarite-male-1': { below: 161 },
+  // Beard in shirt tones dips below the left shoulder's line, so that shoulder gets its own.
+  'tellarite-male-2': { below: 203, belowLeft: 173 },
+  'tellarite-male-3': { below: 175 },
+  'tellarite-male-4': { below: 165 },
+  'tellarite-male-5': { below: 172 },
+  'tellarite-female-1': { below: 179 },
+  'tellarite-female-2': { below: 172 },
+  'tellarite-female-3': { below: 167 },
+  'tellarite-female-4': { below: 173 },
+  'tellarite-female-5': { below: 175 },
+  'trill-male-1': { below: 152 },
+  'trill-male-2': { below: 151 },
+  'trill-male-3': { below: 157 },
+  'trill-male-4': { below: 153 },
+  'trill-male-5': { below: 162 },
+  'trill-female-1': { below: 181 },
+  'trill-female-2': { below: 171 },
+  'trill-female-3': { below: 151 },
+  'trill-female-4': { below: 183 },
+  'trill-female-5': { below: 150 },
+  'caitian-male-1': { below: 165 },
+  'caitian-male-2': { below: 155 },
+  'caitian-male-3': { below: 183 },
+  'caitian-male-4': { below: 171 },
+  'caitian-male-5': { below: 152 },
+  'caitian-female-1': { below: 152 },
+  'caitian-female-2': { below: 163 },
+  'caitian-female-3': { below: 154 },
+  'caitian-female-4': { below: 165 },
+  'caitian-female-5': { below: 155 },
 }
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -96,8 +129,10 @@ function flood(starts, canEnter) {
 const all = Array.from({ length: count }, (_, index) => index)
 
 // Warm shirt tones, light to deep shadow (the collar is near-black and the insignia outline is pale, so both stop it).
+const atSideColumn = (x) => x < width / 4 || x > (width * 3) / 4
+const lineAt = (index) => (index % width < width / 4 ? settings.belowLeft ?? settings.below : settings.below)
 const shirtTone = (index) => {
-  if (!opaque(index) || row(index) < settings.below) return false
+  if (!opaque(index) || row(index) < lineAt(index)) return false
   const { hue, saturation, value } = hsv(index)
   return hue >= settings.toneHue[0] && hue <= settings.toneHue[1] && saturation >= 0.3 && value >= 0.12
 }
@@ -120,9 +155,26 @@ for (let index = 0; index < count; index++) {
 }
 console.log(`${id} regions (pixels):`, regions.map((members) => members.length).sort((a, b) => b - a).slice(0, 8).join(', '))
 
+// A shoulder cut off from the rest of the shirt by a seam is also a small region. Unlike the insignia it touches the
+// background or the picture's edge, and unlike a patch of neck fur in shirt tones it lies in the outer quarter on either
+// side, so those are kept too.
+const touchesOutside = (members) =>
+  members.some((index) => {
+    const x = index % width
+    const y = row(index)
+    return NEIGHBOURS.some(([dx, dy]) => {
+      const nx = x + dx
+      const ny = y + dy
+      return nx < 0 || ny < 0 || nx >= width || ny >= height || !opaque(ny * width + nx)
+    })
+  })
+const atSide = (members) => atSideColumn(members.reduce((sum, index) => sum + (index % width), 0) / members.length)
+const isShoulder = (members) => members.length >= settings.minEdgeRegion && atSide(members) && touchesOutside(members)
+const keep = (members) => members.length >= settings.minRegion || isShoulder(members)
+
 const mask = new Uint8Array(count * 4)
 let pixels = 0
-for (const members of regions.filter((members) => members.length >= settings.minRegion)) {
+for (const members of regions.filter(keep)) {
   for (const index of members) mask.set([255, 255, 255, 255], index * 4)
   pixels += members.length
 }

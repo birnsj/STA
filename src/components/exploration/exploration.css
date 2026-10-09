@@ -1299,3 +1299,101 @@
     transform: none;
   }
 }
+
+/* The latest scan's report (ScanReport.jsx), under the hint until closed. */
+.explore-scan-report {
+  position: absolute;
+  top: 118px;
+  left: 250px;
+  right: 180px;
+  margin: 0 auto;
+  width: 320px;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--panel-border);
+  border-left: 4px solid #7cc4ff;
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.94);
+  font-size: 12px;
+  color: var(--text);
+  z-index: 5;
+}
+
+.explore-scan-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.explore-scan-report-header h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7cc4ff;
+}
+
+.explore-scan-report-close {
+  padding: 0 6px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.explore-scan-report-close:hover {
+  color: var(--text);
+}
+
+.explore-scan-report-rows {
+  margin: 0;
+}
+
+.explore-scan-report-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 0;
+}
+
+.explore-scan-report-rows dt {
+  color: var(--text-muted);
+}
+
+.explore-scan-report-rows dd {
+  margin: 0;
+  text-align: right;
+}
+
+.explore-scan-report-signs {
+  margin: 8px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--panel-border);
+  color: var(--text-muted);
+}
+
+.explore-scan-report.is-success .explore-scan-report-signs {
+  color: #4fd6c4;
+}
+
+.explore-scan-report-contacts {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  color: #ff8a6a;
+}
+
+.explore-scan-report-contacts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 0;
+}
+
+.explore-scan-report-signs.has-enemies,
+.explore-scan-report.is-success .explore-scan-report-signs.has-enemies {
+  color: #ff8a6a;
+  font-weight: 600;
+}

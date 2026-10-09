@@ -10,6 +10,7 @@ import { ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '.
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import Minimap from '../components/exploration/Minimap.jsx'
+import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import '../components/exploration/exploration.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
@@ -22,13 +23,49 @@ import { recommendPartyAction } from '../exploration/partyActions.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
-import { conditionSummary, minorDefeatText, normalizeCondition } from '../rules/personalCondition.js'
+import { canScan, scanRadius } from '../exploration/partyScan.js'
+import ScanReport from '../components/exploration/ScanReport.jsx'
+import useFadeAfter from '../components/useFadeAfter.js'
+import { playScanSound } from '../audio/uiSounds.js'
+import { conditionSummary, isDefeated, minorDefeatText, normalizeCondition } from '../rules/personalCondition.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import { Battle } from './CombatScreen.jsx'
 
 const ORDER_LABEL = { point: 'Walking', follow: 'Following' }
 
 const OUTCOME_LABEL = { victory: 'Victory', defeat: 'Defeat', ended: 'Ended (debug)' }
+
+const NOT_BUILT = 'Not built yet.'
+
+// A party member's radial menu (right-click on them; designer decision, 2026-10-09): Scan, Use, Switch, Search,
+// First Aid, Attack, Interact and Sneak, each for that character only. Use, Search, First Aid and Attack are shown but
+// not built yet (they may later act on objects). actions: { scan, switchTo, interact(objectId), sneak }.
+function memberMenuButtons(state, member, actions) {
+  const up = !isDefeated(member.condition)
+  const scan = canScan(state, member.id)
+  const radius = scanRadius(member.character)
+  const objectId = up ? objectsInReach(state, [member.id]).find((definition) => getAvailableActions(state, definition.id).length)?.id : null
+  const name = member.character.name
+  const isOnlySelected = state.party.selectedIds.length === 1 && state.party.selectedIds[0] === member.id
+  const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
+  return [
+    { id: 'scan', label: 'Scan', icon: 'scan', enabled: scan.possible, title: scan.possible ? `Scan (Reason + Science): location and environment, plus life signs and enemies within ${radius} tiles.` : `Scan: ${scan.reason}`, onClick: actions.scan },
+    unbuilt('useItem', 'Use', 'useItem'),
+    { id: 'switch', label: 'Switch', icon: 'switch', enabled: up && !isOnlySelected, title: `Switch to ${name}: select them and make them the lead.`, onClick: actions.switchTo },
+    unbuilt('search', 'Search', 'search'),
+    unbuilt('firstAid', 'First Aid', 'firstAid'),
+    unbuilt('attack', 'Attack', 'attack'),
+    {
+      id: 'interact',
+      label: 'Interact',
+      icon: 'interact',
+      enabled: Boolean(objectId),
+      title: objectId ? `Interact: ${getDefinition(state.scenario, objectId).name}` : 'Interact: nothing in reach.',
+      onClick: () => actions.interact(objectId),
+    },
+    { id: 'sneak', label: 'Sneak', icon: 'sneak', enabled: up, active: member.sneaking, title: `Sneak: ${name} crouches and moves slowly, harder to notice.`, onClick: actions.sneak },
+  ]
+}
 
 // Developer-only readout of the party-control state.
 function DebugPanel({ state, mode, lastCombat, onSpacing, onClose }) {
@@ -417,8 +454,8 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   }, [])
   // UI state: the action button being considered (the party cards show who is best at it).
   const [consideredActionId, setConsideredActionId] = useState(null)
-  // UI state: the character sheet shows whenever exactly one member is selected, until closed; selecting reopens it.
-  const [sheetClosed, setSheetClosed] = useState(false)
+  // UI state: whether the character sheet is open (I toggles it); selecting never opens it (designer decision).
+  const [sheetOpen, setSheetOpen] = useState(false)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
@@ -440,26 +477,33 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => cancelAnimationFrame(frame)
   }, [dispatch])
 
-  const select = useCallback(
-    (id, additive) => {
-      setSheetClosed(false)
-      dispatch({ type: additive ? 'toggleSelect' : 'select', id })
+  // UI state: the party member whose radial menu is open (right-click on them), or null.
+  const [menuMemberId, setMenuMemberId] = useState(null)
+  // UI state: the last scan whose report the player closed (lastScan.key).
+  const [closedScanKey, setClosedScanKey] = useState(null)
+  const lastScan = state.lastScan
+  const lastScanKey = lastScan?.key
+  useEffect(() => {
+    if (lastScanKey != null) playScanSound()
+  }, [lastScanKey])
+  const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
+  const selectBox = useCallback((ids, additive) => dispatch({ type: 'selectBox', ids, additive }), [dispatch])
+  // Right-click opens a member's menu and adds them to the selection; whoever else is selected stays selected.
+  const selectedIds = state.party.selectedIds
+  const openMenu = useCallback(
+    (id) => {
+      if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
+      setMenuMemberId(id)
     },
-    [dispatch],
-  )
-  const selectBox = useCallback(
-    (ids, additive) => {
-      setSheetClosed(false)
-      dispatch({ type: 'selectBox', ids, additive })
-    },
-    [dispatch],
+    [dispatch, selectedIds],
   )
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
   const toggleSneak = useCallback(() => dispatch({ type: 'toggleSneak' }), [dispatch])
   const allSneaking = party.selectedIds.length > 0 && party.selectedIds.every((id) => party.members[id].sneaking)
-  const sheetMember = !sheetClosed && !debugOpen && party.selectedIds.length === 1 ? party.members[party.selectedIds[0]] : null
+  // With several selected, the sheet shows the first of them.
+  const sheetMember = sheetOpen && !debugOpen && party.selectedIds.length > 0 ? party.members[party.selectedIds[0]] : null
 
   // Number keys 1-n pick party members (Shift adds / removes), like clicking their portraits.
   useEffect(() => {
@@ -473,14 +517,19 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [party.memberIds, select])
 
-  // E interacts with the nearest object in reach; Escape closes the panel; C toggles sneak for the selected characters.
+  // E interacts with the nearest object in reach; Escape closes the panel; C toggles sneak for the selected characters;
+  // I opens or closes the character sheet.
   const firstReachable = reachableIds[0] ?? null
   useEffect(() => {
     const onKey = (event) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
-      if (event.code === 'Escape') setInteractionId(null)
+      if (event.code === 'Escape') {
+        setInteractionId(null)
+        setMenuMemberId(null)
+      }
       if (event.code === 'KeyE' && firstReachable) setInteractionId((open) => open ?? firstReachable)
       if (event.code === 'KeyC' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleSneak()
+      if (event.code === 'KeyI' && !event.repeat && !event.ctrlKey && !event.metaKey) setSheetOpen((open) => !open)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -488,6 +537,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
 
   const move = useCallback(
     (target, fresh) => {
+      if (fresh) setMenuMemberId(null)
       if (openId) return
       if (!noiseTool) {
         dispatch({ type: 'moveTo', target, fresh })
@@ -499,6 +549,34 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     },
     [dispatch, noiseTool, openId],
   )
+
+  const menuMember = menuMemberId && !inCombat ? party.members[menuMemberId] : null
+  const menu = menuMember && {
+    memberId: menuMember.id,
+    buttons: memberMenuButtons(state, menuMember, {
+      scan: () => dispatch({ type: 'scan', memberId: menuMember.id }),
+      switchTo: () => select(menuMember.id, false),
+      interact: (objectId) => {
+        select(menuMember.id, false)
+        setInteractionId(objectId)
+      },
+      sneak: () => dispatch({ type: 'toggleSneakFor', id: menuMember.id }),
+    }).map((button) => ({
+      ...button,
+      onClick: () => {
+        setMenuMemberId(null)
+        button.onClick?.()
+      },
+    })),
+  }
+  const scanFaded = useFadeAfter(lastScanKey)
+  const scanShown = Boolean(lastScan) && closedScanKey !== lastScan.key
+  const hint = openId
+    ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
+    : noiseTool
+      ? 'Noise tool: click the floor to make a noise there.'
+      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. Right-click a character for their actions.`
+  const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} />
 
@@ -516,21 +594,18 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         onMove={move}
         onSelect={select}
         onSelectBox={selectBox}
+        onOpenMenu={openMenu}
+        menu={menu}
       />
+      {scanShown && (
+        <ScanReport scan={lastScan} faded={scanFaded} scannerName={party.members[lastScan.memberId]?.character.name ?? 'Scan'} onClose={() => setClosedScanKey(lastScan.key)} />
+      )}
       <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
       <div className="combat-top-left">
         <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
       </div>
       {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
-      {(showHints || noiseTool) && (
-        <p className="combat-hint is-player-turn">
-          {openId
-            ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
-            : noiseTool
-              ? 'Noise tool: click the floor to make a noise there.'
-              : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak.`}
-        </p>
-      )}
+      {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
       {!openId && reachableIds.length > 0 && (
         <div className="challenge-prompts">
           {reachableIds.map((id, index) => (
@@ -575,7 +650,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           Exit
         </button>
       </div>
-      {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetClosed(true)} />}
+      {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}
       {!openId && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} debug={debugOpen} />}
       <ExplorationPartyBar
         members={members}
@@ -625,7 +700,11 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
       />
     )
   }
-  return <Exploration state={state} dispatch={dispatch} onChangeParty={() => setPhase('setup')} onExit={onExit} />
+  return (
+    <MapFadeIn>
+      <Exploration state={state} dispatch={dispatch} onChangeParty={() => setPhase('setup')} onExit={onExit} />
+    </MapFadeIn>
+  )
 }
 
 // The map editor's Play: a ready-made away team (RuntimeCharacters) on the open map, straight into exploration with no

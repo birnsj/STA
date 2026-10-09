@@ -3,7 +3,7 @@ import genderData from '../data/adaptation/genders.json'
 import portraitData from '../data/adaptation/portraits.json'
 import backdropData from '../data/adaptation/portraitBackdrops.json'
 import spriteData from '../data/adaptation/characterSprites.json'
-import { getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
+import { getOwnSpeciesIds, getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
 import { getDivisionColour } from './uniform.js'
 
 export const getGenders = () => genderData.genders
@@ -42,16 +42,21 @@ const layersBySrc = new Map(
 )
 export const getPortraitLayers = (src) => layersBySrc.get(src) ?? null
 
-// Portrait backdrops (portraitBackdrops.json). identity.backdrop is { id, name }; a character without one (saved before
-// the choice existed) or with an id no longer listed shows the default.
+// Portrait backdrops (portraitBackdrops.json). identity.backdrop is the player's own pick { id, name }, or null to follow
+// the character's department; an id no longer listed also follows the department.
 export const getBackdrops = () => backdropData.backdrops
 export const getBackdropById = (backdropId) => backdropData.backdrops.find((backdrop) => backdrop.id === backdropId) ?? null
-export const getDefaultBackdrop = () => getBackdropById(backdropData.default)
-export const getCharacterBackdrop = (identity) => getBackdropById(identity?.backdrop?.id) ?? getDefaultBackdrop()
+export const getDepartmentBackdrop = (departmentId) => getBackdropById(backdropData.byDepartment[departmentId] ?? backdropData.noDepartment)
+export const followsDepartment = (identity) => !getBackdropById(identity?.backdrop?.id)
+export const getCharacterBackdrop = (identity, departmentId = null) => getBackdropById(identity?.backdrop?.id) ?? getDepartmentBackdrop(departmentId)
 
-export function selectBackdrop(identity, backdropId) {
+// Picking the department's own backdrop goes back to following the department, so a later department change still
+// moves it.
+export function selectBackdrop(identity, backdropId, departmentId = null) {
   const backdrop = getBackdropById(backdropId)
-  return backdrop ? { ...identity, backdrop: { id: backdrop.id, name: backdrop.name } } : identity
+  if (!backdrop) return identity
+  if (backdrop.id === getDepartmentBackdrop(departmentId).id) return { ...identity, backdrop: null }
+  return { ...identity, backdrop: { id: backdrop.id, name: backdrop.name } }
 }
 
 // Map figures (characterSprites.json): the full-body sprite set for a portrait, or null (the map keeps the portrait
@@ -112,16 +117,18 @@ export function directionFor(facing) {
   return { id, row: spriteData.directions.indexOf(drawn), mirror: drawn !== id }
 }
 
-// Species + Gender -> portrait set. Mixed Heritage and New Species see every species' portraits for the gender;
-// an anyPortrait gender (Other) sees the species' portraits of every gender. Empty until both species and gender are chosen.
+// Species + Gender -> portrait set. Mixed Heritage sees both parents' portraits; New Species (no art of its own) sees
+// every species' portraits for the gender; an anyPortrait gender (Other) sees the species' portraits of every gender.
+// Empty until both species and gender are chosen.
 export function getAvailablePortraits(character) {
   const gender = character.identity.gender
   const species = character.species ? getSpeciesById(character.species.id) : null
   if (!gender || !species) return []
-  const anySpecies = isMixedHeritage(species) || isNewSpecies(species)
+  const speciesIds = isMixedHeritage(species) ? getOwnSpeciesIds(character.species) : [species.id]
   const anyGender = Boolean(getGenderById(gender.id)?.anyPortrait)
   return portraits.filter(
-    (portrait) => (anyGender || portrait.gender === gender.id) && (anySpecies || portrait.species === species.id),
+    (portrait) =>
+      (anyGender || portrait.gender === gender.id) && (isNewSpecies(species) || speciesIds.includes(portrait.species)),
   )
 }
 

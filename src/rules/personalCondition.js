@@ -265,10 +265,11 @@ export const fatigueText = (condition) =>
   `Fatigued (${condition.fatiguedAttribute ? `${getAttributeName(condition.fatiguedAttribute)} shut down` : 'attribute not chosen'})`
 
 // "Stress 4/9", plus Fatigued, complications, Defeated / Dying, for logs and panels.
-export function conditionSummary(character, condition) {
+// stress: false leaves out Stress and Fatigue (an enemy the party hasn't scanned).
+export function conditionSummary(character, condition, { stress = true } = {}) {
   const parts = []
-  if (hasStress(character)) parts.push(`Stress ${condition.stress}/${getMaxStress(character).value}`)
-  if (condition.fatigued) parts.push(fatigueText(condition))
+  if (stress && hasStress(character)) parts.push(`Stress ${condition.stress}/${getMaxStress(character).value}`)
+  if (stress && condition.fatigued) parts.push(fatigueText(condition))
   if (condition.complications?.length) parts.push(condition.complications.map((complication) => `Complication: ${complication.name}`).join('; '))
   if (condition.injuries.length) parts.push(condition.injuries.map(injuryText).join('; '))
   if (condition.defeated) parts.push(isDying(condition) ? 'Defeated, Dying' : minorDefeatText(condition) ? `Defeated (${minorDefeatText(condition)})` : 'Defeated')

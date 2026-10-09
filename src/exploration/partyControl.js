@@ -420,6 +420,12 @@ export function partyReducer(state, action) {
       })
       return { ...state, members }
     }
+    // Sneak on or off for one character (their radial menu), selected or not.
+    case 'toggleSneakFor': {
+      const member = state.members[action.id]
+      if (!member) return state
+      return { ...state, members: { ...state.members, [action.id]: { ...member, sneaking: !member.sneaking } } }
+    }
     case 'setLeader':
       return isSelected(state, action.id) ? { ...state, leaderId: action.id } : state
     case 'setFormation':

@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { TILE_W } from '../../maps/iso.js'
+import { MapReadyContext } from './mapReady.js'
 import { DARK_MARGIN, darknessOpacity, frameAt } from '../../maps/tileArt.js'
 import {
   animatedArea,
@@ -104,6 +105,7 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
   const repaintFading = useRef(null)
   const fadeFrame = useRef(0)
   useEffect(() => () => cancelAnimationFrame(fadeFrame.current), [])
+  const onMapReady = useContext(MapReadyContext)
 
   // Before the browser paints, so an edit, or the figures and the blocks left out for them, never show out of step.
   useLayoutEffect(() => {
@@ -169,7 +171,10 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
       if (dark) sizeCanvas(dark, darkBounds, darkScale)
       paintDark(darkBounds)
     }
-    if (repaint) return undefined
+    if (repaint) {
+      onMapReady?.()
+      return undefined
+    }
 
     if (before.layout !== layout) {
       const changed = changedArea(before.layout, layout)
@@ -188,7 +193,7 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
       for (const hole of before.holes) if (!kept(hole, holes)) paintTiles(hole.area, false)
     }
     return undefined
-  }, [map, layout, ghost, lighting, faded, holes, imagesReady, bounds, darkBounds, scale, frameScale, darkScale, darkness, playing])
+  }, [map, layout, ghost, lighting, faded, holes, imagesReady, bounds, darkBounds, scale, frameScale, darkScale, darkness, playing, onMapReady])
 
   // Blocks that started fading in or out are repainted every frame until they finish (after the layout effect, so it
   // has set repaintFading for this render).

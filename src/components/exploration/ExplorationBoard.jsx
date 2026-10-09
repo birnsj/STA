@@ -5,6 +5,7 @@ import { getFollowTargets, getMembers, isSelected } from '../../exploration/part
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
 import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
+import UnitActionRing from '../combat/UnitActionRing.jsx'
 import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
@@ -47,6 +48,8 @@ const worldBounds = (map) => ({
   maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
 })
 
+// Read only from pointer handlers, never while rendering.
+const clockNow = () => performance.now()
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
 // Arrow on the ground ring pointing along a direction on the tile grid, in the tiles' isometric projection.
 function FacingArrow({ facing }) {
@@ -327,7 +330,9 @@ function ClickPulse({ point }) {
 // onInteract(id): a reachable object was clicked.
 // onSelectBox(ids, additive): a right-drag box closed around these characters (Ctrl adds them to the selection).
 // The right button draws the box, so the middle button drags the camera here.
-export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox }) {
+// onOpenMenu(id): a right-click (no drag) on a party member (id), or elsewhere (null). menu: { memberId, buttons } drawn
+// around that member (UnitActionRing), or null.
+export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, menu = null }) {
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false)
@@ -371,7 +376,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     const point = toTiles(event.clientX, event.clientY)
     if (!point) return
     onMoveRef.current(point, true)
-    const hold = { client: { x: event.clientX, y: event.clientY }, sent: point, startedAt: performance.now(), steered: false }
+    const hold = { client: { x: event.clientX, y: event.clientY }, sent: point, startedAt: clockNow(), steered: false }
     const move = (moveEvent) => {
       if (moveEvent.pointerId === event.pointerId) hold.client = { x: moveEvent.clientX, y: moveEvent.clientY }
     }
@@ -391,7 +396,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     }
     const end = (endEvent) => {
       if (endEvent.pointerId !== event.pointerId) return
-      if (endEvent.type === 'pointerup' && !hold.steered && performance.now() - hold.startedAt <= CLICK_MAX_MS) addPulse(point)
+      if (endEvent.type === 'pointerup' && !hold.steered && clockNow() - hold.startedAt <= CLICK_MAX_MS) addPulse(point)
       stop()
     }
     window.addEventListener('pointermove', move)
@@ -412,7 +417,11 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     const matrix = svgRef.current?.getScreenCTM()
     return matrix ? new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse()) : null
   }
+  // The party member a right press started on: released without a drag, it opens their radial menu.
+  const rightPressedRef = useRef(null)
   const startBox = (event) => {
+    const pressedId = rightPressedRef.current
+    rightPressedRef.current = null
     const from = toBoard(event.clientX, event.clientY)
     if (!from) return
     const start = { x: event.clientX, y: event.clientY }
@@ -429,7 +438,11 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
       setBox(null)
-      if (!current || endEvent.type !== 'pointerup') return
+      if (endEvent.type !== 'pointerup') return
+      if (!current) {
+        onOpenMenu?.(pressedId)
+        return
+      }
       const ids = getMembers(membersRef.current)
         .filter((member) => figureInBox(project(member.position), from, current))
         .map((member) => member.id)
@@ -456,6 +469,8 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   }
 
   const pressMember = (id) => (event) => {
+    // A right press goes on to the board (a drag still draws the selection box); remember whose it was.
+    if (event.pointerType === 'mouse' && event.button === 2) rightPressedRef.current = id
     if (event.pointerType === 'mouse' && event.button !== 0) return
     event.stopPropagation()
     onSelect(id, isAdditive(event))
@@ -522,6 +537,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}
+      {menu && state.members[menu.memberId] && <UnitActionRing position={state.members[menu.memberId].position} buttons={menu.buttons} info={null} placement="top" prominent />}
       {box && (
         <rect
           className="explore-select-box"

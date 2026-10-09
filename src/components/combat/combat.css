@@ -341,6 +341,94 @@
   stroke-width: 2.5;
 }
 
+/* Auto Combat: the AI's choice is lit, then pressed (shrink and flash, with a ripple) just before it runs. Timed inside
+   the 0.9 s the choice is shown (CombatScreen AI_CHOICE_MS), scaled by the Auto Combat speed. */
+.unit-ring-face {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.unit-ring-face.is-pressed {
+  animation: unit-ring-press calc(320ms / var(--fx-speed, 1)) ease-in-out calc(420ms / var(--fx-speed, 1)) both;
+}
+
+.unit-ring-button .unit-ring-face.is-pressed circle {
+  animation: unit-ring-press-flash calc(320ms / var(--fx-speed, 1)) ease-in-out calc(420ms / var(--fx-speed, 1)) both;
+}
+
+@keyframes unit-ring-press {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.78);
+  }
+}
+
+@keyframes unit-ring-press-flash {
+  45% {
+    fill: #3c6fd0;
+  }
+}
+
+.unit-ring-button circle.unit-ring-ripple {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  pointer-events: none;
+  animation: unit-ring-ripple calc(450ms / var(--fx-speed, 1)) ease-out calc(560ms / var(--fx-speed, 1)) both;
+}
+
+@keyframes unit-ring-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit-ring-face.is-pressed,
+  .unit-ring-button .unit-ring-face.is-pressed circle,
+  .unit-ring-button circle.unit-ring-ripple {
+    animation: none;
+  }
+}
+
+/* The exploration character menu: framed by a panel band along its arc, so it reads over busy floors and walls. */
+.unit-ring-frame {
+  fill: rgba(6, 12, 28, 0.9);
+  stroke: #7cc4ff;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(71, 168, 255, 0.5));
+}
+
+.unit-ring.is-prominent .unit-ring-button.is-disabled {
+  opacity: 0.5;
+}
+
+/* Its smaller buttons: thicker icon lines (the icons are scaled down with the button) and smaller labels. */
+.unit-ring.is-prominent .unit-ring-button path {
+  stroke-width: 3;
+}
+
+.unit-ring.is-prominent .unit-ring-button text {
+  font-size: 6.5px;
+  stroke-width: 2px;
+}
+
+.unit-ring.is-prominent .unit-ring-button text.unit-ring-detail {
+  font-size: 6px;
+}
+
 .unit-ring-info {
   padding: 5px 7px;
   background: rgba(6, 12, 28, 0.94);
@@ -369,6 +457,28 @@
 
 .unit-ring-info-row span:first-child {
   color: var(--text-muted);
+}
+
+.unit-ring-info-row span:last-child {
+  text-align: right;
+}
+
+/* Tactical tips from a scan. */
+.unit-ring-info-tip {
+  margin-top: 3px;
+  padding-left: 6px;
+  border-left: 2px solid #7cc4ff;
+  color: #cfe6ff;
+  line-height: 1.25;
+}
+
+/* The info card's box is sized for the longest scan; only the card itself takes clicks. */
+.unit-ring foreignObject {
+  pointer-events: none;
+}
+
+.unit-ring-info {
+  pointer-events: auto;
 }
 
 /* Action effects: durations divide by --fx-speed (Auto Combat 1x/2x/4x). */
@@ -900,6 +1010,13 @@
   color: var(--text);
 }
 
+/* On-screen messages fade out after MESSAGE_FADE_MS (useFadeAfter) and stop catching clicks. */
+.is-faded-out {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease;
+}
+
 /* The optional opening Ambush, offered under the hint until anyone acts. */
 .combat-ambush {
   display: block;
@@ -1412,6 +1529,16 @@
   fill: #1a1204;
   font-size: 9px;
   font-weight: 800;
+}
+
+.iso-unit-surrendered {
+  fill: #f2e6c4;
+  font-size: 10px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 3px;
+  pointer-events: none;
 }
 
 .combat-object polygon {

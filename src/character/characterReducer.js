@@ -181,7 +181,7 @@ function applyAction(character, action) {
     case 'selectPortrait':
       return { ...character, identity: appearanceRules.selectPortrait(character, action.portraitId) }
     case 'selectBackdrop':
-      return { ...character, identity: appearanceRules.selectBackdrop(character.identity, action.backdropId) }
+      return { ...character, identity: appearanceRules.selectBackdrop(character.identity, action.backdropId, character.career.department?.id) }
     case 'setBackgroundNotes':
       return { ...character, backgroundNotes: action.text }
     case 'selectTalent':

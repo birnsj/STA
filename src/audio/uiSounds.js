@@ -99,41 +99,51 @@ function playPressBeep(audio) {
   }
 }
 
-// A phaser shot: two slightly detuned sawtooths sweeping down from a high whine, with a fast warble, through a
-// band-pass so it reads as an energy beam rather than a buzz. Length roughly matches the beam effect at 1x.
-function playPhaser(audio, duration) {
+// Phaser shots by firing mode. Both are detuned oscillators with a warble through a band-pass, so they read as an
+// energy beam rather than a buzz. Stun: a lighter, higher, fast-pulsing whine that barely drops. Deadly: a harsher,
+// lower sawtooth with a sub-octave that dives in pitch, over a crackle of noise. Length roughly matches the beam at 1x.
+const PHASER_MODES = {
+  stun: { gain: 0.8, wave: 'triangle', tones: [2100, 2116], sub: false, drop: 0.86, warbleRate: 62, warbleDepth: 110, centre: 2400, q: 1.4, crackle: 0 },
+  deadly: { gain: 1, wave: 'sawtooth', tones: [1180, 1192], sub: true, drop: 0.5, warbleRate: 30, warbleDepth: 60, centre: 1300, q: 0.9, crackle: 0.35 },
+}
+
+function playPhaser(audio, duration, injuryMode) {
+  const mode = PHASER_MODES[injuryMode] ?? PHASER_MODES.deadly
   const start = audio.currentTime + LOOKAHEAD_S
   const end = start + duration
+  const peak = PHASER_GAIN * mode.gain * level
   const output = audio.createGain()
   output.gain.setValueAtTime(0, start)
-  output.gain.linearRampToValueAtTime(PHASER_GAIN * level, start + 0.015)
-  output.gain.setValueAtTime(PHASER_GAIN * level, end - duration * 0.4)
+  output.gain.linearRampToValueAtTime(peak, start + 0.015)
+  output.gain.setValueAtTime(peak, end - duration * 0.4)
   output.gain.exponentialRampToValueAtTime(0.0001, end)
 
   const filter = audio.createBiquadFilter()
   filter.type = 'bandpass'
-  filter.frequency.value = 1700
-  filter.Q.value = 1.2
+  filter.frequency.value = mode.centre
+  filter.Q.value = mode.q
   output.connect(filter).connect(audio.destination)
 
   const warble = audio.createOscillator()
   const warbleDepth = audio.createGain()
-  warble.frequency.value = 38
-  warbleDepth.gain.value = 70
+  warble.frequency.value = mode.warbleRate
+  warbleDepth.gain.value = mode.warbleDepth
   warble.connect(warbleDepth)
   warble.start(start)
   warble.stop(end + 0.02)
 
-  for (const frequency of [1500, 1512]) {
+  const frequencies = mode.sub ? [...mode.tones, mode.tones[0] / 2] : mode.tones
+  for (const frequency of frequencies) {
     const tone = audio.createOscillator()
-    tone.type = 'sawtooth'
+    tone.type = mode.wave
     tone.frequency.setValueAtTime(frequency, start)
-    tone.frequency.exponentialRampToValueAtTime(frequency * 0.62, end)
+    tone.frequency.exponentialRampToValueAtTime(frequency * mode.drop, end)
     warbleDepth.connect(tone.frequency)
     tone.connect(output)
     tone.start(start)
     tone.stop(end + 0.02)
   }
+  if (mode.crackle) playNoiseBurst(audio, { start, length: duration, gain: PHASER_GAIN * mode.crackle, filterType: 'bandpass', frequency: 3000, q: 0.7 })
 }
 
 // One second of white noise per audio context, shared by every punch and footstep.
@@ -183,13 +193,140 @@ function playPunch(audio) {
 
 const WEAPON_SOUNDS = { phaser: playPhaser, punch: playPunch }
 
-// Combat attacks, by the weapon's attackSound id. speed (Auto Combat 1x-4x) shortens a phaser with its beam.
-// Opens or wakes the audio itself, since an AI shot can come before the next press; browsers still keep it silent until
-// the player has interacted with the page at least once.
-export function playWeaponSound(soundId, speed = 1) {
+// Combat attacks, by the weapon's attackSound id and the firing mode (stun / deadly). speed (Auto Combat 1x-4x) shortens
+// a phaser with its beam. Opens or wakes the audio itself, since an AI shot can come before the next press; browsers
+// still keep it silent until the player has interacted with the page at least once.
+export function playWeaponSound(soundId, speed = 1, injuryMode = null) {
   const play = WEAPON_SOUNDS[soundId]
   if (!play || level === 0) return
-  withRunningContext((audio) => play(audio, PHASER_SECONDS / speed))
+  withRunningContext((audio) => play(audio, PHASER_SECONDS / speed, injuryMode))
+}
+
+// A death: a voice-like "aagh" falling away (a wavering sawtooth through two vowel formants), then the body hitting the
+// floor (a thump plus a mid-range slap of noise). The formants and slap keep it audible on laptop speakers, which drop
+// most of a low thump.
+const DEATH_GAIN = 0.22
+const DEATH_FORMANTS = [
+  [750, 6, 1],
+  [1200, 8, 0.6],
+]
+// A vocal sound: a wavering sawtooth through vowel formants, sliding from pitch to pitch * drop over length seconds.
+function playVoice(audio, { start, gain, pitch, drop, length, hold }) {
+  const output = audio.createGain()
+  output.gain.setValueAtTime(0, start)
+  output.gain.linearRampToValueAtTime(gain * level, start + 0.04)
+  output.gain.setValueAtTime(gain * level, start + hold)
+  output.gain.exponentialRampToValueAtTime(0.0001, start + length)
+  output.connect(audio.destination)
+
+  const voice = audio.createOscillator()
+  voice.type = 'sawtooth'
+  voice.frequency.setValueAtTime(pitch, start)
+  voice.frequency.exponentialRampToValueAtTime(pitch * drop, start + length)
+  const wobble = audio.createOscillator()
+  const wobbleDepth = audio.createGain()
+  wobble.frequency.value = 7
+  wobbleDepth.gain.value = pitch * 0.04
+  wobble.connect(wobbleDepth).connect(voice.frequency)
+  for (const [frequency, q, formantLevel] of DEATH_FORMANTS) {
+    const formant = audio.createBiquadFilter()
+    formant.type = 'bandpass'
+    formant.frequency.setValueAtTime(frequency, start)
+    formant.frequency.exponentialRampToValueAtTime(frequency * 0.7, start + length)
+    formant.Q.value = q
+    const formantGain = audio.createGain()
+    formantGain.gain.value = formantLevel * 3
+    voice.connect(formant).connect(formantGain).connect(output)
+  }
+  for (const node of [voice, wobble]) {
+    node.start(start)
+    node.stop(start + length + 0.05)
+  }
+}
+
+// A body hitting the floor: a thump plus a mid-range slap of noise.
+function playBodyFall(audio, fall, gain) {
+  const thump = audio.createOscillator()
+  const thumpGain = audio.createGain()
+  thump.type = 'sine'
+  thump.frequency.setValueAtTime(160, fall)
+  thump.frequency.exponentialRampToValueAtTime(50, fall + 0.18)
+  thumpGain.gain.setValueAtTime(0, fall)
+  thumpGain.gain.linearRampToValueAtTime(gain * level, fall + 0.005)
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, fall + 0.25)
+  thump.connect(thumpGain).connect(audio.destination)
+  thump.start(fall)
+  thump.stop(fall + 0.27)
+  playNoiseBurst(audio, { start: fall, length: 0.14, gain: gain * 0.8, filterType: 'bandpass', frequency: 700, q: 0.7 })
+}
+
+function playDeath(audio) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  playVoice(audio, { start, gain: DEATH_GAIN, pitch: 240, drop: 0.46, length: 0.8, hold: 0.25 })
+  playBodyFall(audio, start + 0.6, DEATH_GAIN)
+}
+
+// A combatant killed (a Minor NPC's Deadly defeat) or left Dying.
+export function playDeathSound() {
+  if (level === 0) return
+  withRunningContext(playDeath)
+}
+
+// A stun knockout: a short, higher grunt cut off as they drop, then the body falling sooner and softer than a death.
+const KNOCKOUT_GAIN = 0.15
+function playKnockout(audio) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  playVoice(audio, { start, gain: KNOCKOUT_GAIN, pitch: 300, drop: 0.75, length: 0.22, hold: 0.06 })
+  playBodyFall(audio, start + 0.3, KNOCKOUT_GAIN)
+}
+
+// A combatant knocked out (Defeated by a Stun attack, or a Minor NPC left unconscious).
+export function playKnockoutSound() {
+  if (level === 0) return
+  withRunningContext(playKnockout)
+}
+
+// A tricorder sweep: a run of quick sine chirps alternating between two pitches and climbing as it goes, over a faint
+// high hiss, ending on a brighter "reading taken" double chirp.
+const SCAN_GAIN = 0.05
+const SCAN_SECONDS = 1.1
+const SCAN_CHIRPS_PER_SECOND = 14
+function playScan(audio) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 4200
+  filter.connect(audio.destination)
+
+  const chirp = (at, frequency, length, gain) => {
+    const tone = audio.createOscillator()
+    const envelope = audio.createGain()
+    tone.type = 'sine'
+    tone.frequency.setValueAtTime(frequency, at)
+    tone.frequency.linearRampToValueAtTime(frequency * 1.06, at + length)
+    envelope.gain.setValueAtTime(0, at)
+    envelope.gain.linearRampToValueAtTime(gain * level, at + 0.006)
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+    tone.connect(envelope).connect(filter)
+    tone.start(at)
+    tone.stop(at + length + 0.01)
+  }
+
+  const count = Math.round(SCAN_SECONDS * SCAN_CHIRPS_PER_SECOND)
+  for (let i = 0; i < count; i++) {
+    const climb = 1 + (0.35 * i) / count
+    chirp(start + i / SCAN_CHIRPS_PER_SECOND, (i % 2 ? 2200 : 1650) * climb, 0.045, SCAN_GAIN)
+  }
+  const end = start + SCAN_SECONDS
+  chirp(end + 0.02, 2900, 0.07, SCAN_GAIN * 1.2)
+  chirp(end + 0.1, 3500, 0.12, SCAN_GAIN * 1.2)
+  playNoiseBurst(audio, { start, length: SCAN_SECONDS, gain: SCAN_GAIN * 0.25, filterType: 'highpass', frequency: 5000 })
+}
+
+// The Scan action (exploration and combat). Opens or wakes the audio itself, like the weapon sounds.
+export function playScanSound() {
+  if (level === 0) return
+  withRunningContext(playScan)
 }
 
 // One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.

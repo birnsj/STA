@@ -40,12 +40,18 @@ function modeHint(mode, ui) {
     if (movePath) return `Click to sprint there (${plural(movePath.length - 1, 'tile')}, Major action${routeInCover ? ', ends in cover' : ''}).`
     return 'Click a blue tile to sprint there (half your movement, Major action, no roll). Right-click to cancel.'
   }
-  if (mode === 'guard' || mode === 'firstAid' || mode === 'direct') {
+  if (mode === 'guard' || mode === 'firstAid' || mode === 'direct' || mode === 'scan') {
     const task = ui.taskPreview
     if (mode === 'direct') return ui.directBlock ?? 'Pick the ally to direct in the Task panel (1 Momentum). They act at once; you assist with Control + Command.'
     if (!task) return 'Pick who in the Task panel. Right-click or Esc to cancel.'
     if (!task.available) return `${task.reason} Right-click or Esc to cancel.`
     return `Click ${task.label} (Major action): you need ${plural(task.task.difficulty, 'success')}, each die at or under ${task.task.targetNumber}.`
+  }
+  if (mode === 'persuade' || mode === 'intimidate') {
+    const task = ui.taskPreview
+    if (!task) return 'Click an enemy within earshot. Right-click or Esc to cancel.'
+    if (!task.available) return `${task.reason} Right-click or Esc to cancel.`
+    return `Click ${task.label} (Major action): each die at or under ${task.task.targetNumber} is a success, and your successes set the Difficulty it must beat to refuse.`
   }
   if (mode === 'interact') {
     return 'Pick an approach in the object panel. Its cost (Major or Minor) is shown before you commit.'

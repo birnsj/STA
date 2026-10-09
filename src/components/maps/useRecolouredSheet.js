@@ -7,15 +7,34 @@ import { recolourWithMask } from '../useUniformImage.js'
 const cache = new Map()
 // Sheets shown as drawn that were already asked for, so the browser has them before a figure switches to them.
 const preloaded = new Set()
+// Sheets still loading or being recoloured, so a fade-in (MapFadeIn) can wait for the figures.
+const loading = new Set()
+const track = (promise) => {
+  loading.add(promise)
+  promise.finally(() => loading.delete(promise))
+  return promise
+}
+// Resolves once every sheet asked for so far has loaded (or failed).
+export const sheetsSettled = () => Promise.allSettled([...loading])
+
+function preload(file) {
+  const image = new Image()
+  track(new Promise((resolve) => {
+    image.onload = image.onerror = resolve
+  }))
+  image.src = file
+}
 
 function draw(file, mask, colour) {
   const key = `${file}|${colour}`
   if (!cache.has(key)) {
-    const promise = recolourWithMask(file, mask, colour)
-      .catch(() => file)
-      .then((url) => {
-        cache.set(key, { url })
-      })
+    const promise = track(
+      recolourWithMask(file, mask, colour)
+        .catch(() => file)
+        .then((url) => {
+          cache.set(key, { url })
+        }),
+    )
     cache.set(key, { promise })
   }
   return cache.get(key)
@@ -35,7 +54,7 @@ export default function useRecolouredSheet(file, mask, division, colour, enabled
     if (!key) {
       if (!preloaded.has(file) && typeof Image !== 'undefined') {
         preloaded.add(file)
-        new Image().src = file
+        preload(file)
       }
       return undefined
     }

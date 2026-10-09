@@ -429,7 +429,7 @@ function finishingSummary(character) {
       src: portrait?.image ?? null,
       label: identity.name.trim() || portrait?.name,
       uniform: getUniformColour(character.career.department?.id),
-      backdrop: getCharacterBackdrop(identity).image,
+      backdrop: getCharacterBackdrop(identity, character.career.department?.id).image,
     },
     choices: [
       { label: 'Final value', value: finishingTouches.value.text.trim(), tip: getConceptHelp('value') },

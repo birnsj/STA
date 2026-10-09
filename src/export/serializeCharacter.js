@@ -12,7 +12,8 @@ import { getRoleRecord } from '../rules/roles.js'
 // 0.10.0: Core Rulebook lifepath. education.trait (Career Path trait, also in final.traits), identity.age and
 // identity.pastime, two species traits for mixed heritage, and a player-written species ability (id 'custom').
 // 0.11.0: identity.backdrop { id, name }, the portrait backdrop (older files have none and show the default).
-export const SCHEMA_VERSION = '0.11.0'
+// 0.12.0: identity.backdrop may be null: the backdrop follows final.department (portraitBackdrops.json byDepartment).
+export const SCHEMA_VERSION = '0.12.0'
 
 const ref = (value) => (value ? { id: value.id, name: value.name } : null)
 

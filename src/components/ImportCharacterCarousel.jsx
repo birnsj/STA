@@ -67,7 +67,7 @@ function SavedCharacterCard({ entry }) {
   const name = entry.name || 'Unnamed'
   const portrait = getPortraitById(character?.identity.portrait?.id)
   const uniform = getUniformColour(character?.career?.department?.id)
-  const backdrop = getCharacterBackdrop(character?.identity)
+  const backdrop = getCharacterBackdrop(character?.identity, character?.career?.department?.id)
   const portraitBlock = (
     <Portrait label={portrait?.name ?? name} image={portrait?.image} uniform={uniform} backdrop={backdrop.image} className="portrait-import-card" />
   )

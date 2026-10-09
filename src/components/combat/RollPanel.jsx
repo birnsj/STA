@@ -50,6 +50,9 @@ function counterattackText(counterattack, state) {
   return `${defender.character.name} wins: +${counterattack.momentum} Momentum${defender.side === 'player' ? '' : ' (to Threat)'} · ${outcome}`
 }
 
+// Persuade / Intimidate (combat/combatSocial.js): how the enemy answered.
+const SOCIAL_OUTCOMES = { surrendered: 'Surrenders', stress: 'Refuses: takes Stress', resisted: 'Refuses', unanswered: 'Ignored' }
+
 // The attack being rolled (with any rerolls still open to the player) or the last attack's result.
 // awaitingChoice: the roll would miss and a reroll is open, so it waits for a reroll or No Reroll instead of resolving itself.
 export default function RollPanel({ state, speed = 1, playerControls, awaitingChoice, onReroll, onResolve }) {
@@ -76,7 +79,12 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
   // A Minor NPC stores no Injury: the hit leaves it unconscious (Stun) or dead (Deadly).
   const minorOutcome = injury?.decided === 'suffered' && target && minorDefeatText(target.condition)
   const injuryOutcome = injury && (minorOutcome ? `${minorOutcome} (Minor NPC: no Injury)` : { pending: 'Avoid Injury?', avoided: 'Injury avoided', suffered: 'Defeated' }[injury.decided])
-  const resultText = ambush ? (roll.passed ? 'Ambushed: automatic hit' : 'Spotted: Klingons act first') : taskRoll ? (roll.passed ? 'Success' : 'Failure') : roll.passed ? 'Hit' : 'Miss'
+  const { social } = roll
+  const resultText = ambush
+    ? roll.passed ? 'Ambushed: automatic hit' : 'Spotted: Klingons act first'
+    : social
+      ? SOCIAL_OUTCOMES[social.outcome]
+      : taskRoll ? (roll.passed ? 'Success' : 'Failure') : roll.passed ? 'Hit' : 'Miss'
 
   return (
     <section className={`roll-panel${pending ? ' is-pending' : roll.passed ? ' is-hit' : ' is-miss'}`} aria-live="polite">
@@ -95,8 +103,9 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
       </p>
       <p className="roll-task">
         <b>{formulaText(task)}</b> &middot; Critical {criticalText(task)}
-        {task.focus ? ` (Focus: ${task.focus})` : ' (no Focus)'} &middot; Difficulty {task.difficulty}
-        {task.difficulty > 0 ? ` (need ${successesText(task.difficulty)})` : ''}
+        {task.focus ? ` (Focus: ${task.focus})` : ' (no Focus)'}
+        {social ? ' · your successes set the Difficulty' : ` · Difficulty ${task.difficulty}`}
+        {!social && task.difficulty > 0 ? ` (need ${successesText(task.difficulty)})` : ''}
         {task.autoFail && ` · ${task.attribute.name} shut down by Fatigue: automatic failure`}
         {roll.rerolls
           .filter((reroll) => reroll.source === 'focus')
@@ -111,6 +120,18 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
         <p className="roll-task roll-defender">
           {opposition.when === 'targetInCover' ? 'Defender in cover' : 'Defender'} {target.character.name}: {formulaText(opposition.task)} &middot; rolled{' '}
           {opposition.dice.map((die) => die.value).join(', ')} = {successesText(opposition.successes)} &middot; your Difficulty {task.difficulty}
+        </p>
+      )}
+      {social && !pending && (
+        <p className="roll-task roll-defender">
+          {social.resistDice.length ? (
+            <>
+              {target.character.name} resists: {formulaText(social.resistTask)} &middot; rolled {social.resistDice.map((die) => die.value).join(', ')} ={' '}
+              {successesText(social.resistSuccesses)} &middot; Difficulty {social.difficulty}
+            </>
+          ) : (
+            'No successes: nothing for them to resist.'
+          )}
         </p>
       )}
       <div className="roll-dice">
@@ -154,8 +175,9 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
             <>
               <span className="roll-result-text">{resultText}</span>
               <span className="roll-result-sub">
-                {successesText(roll.successes)} of {task.difficulty} needed
-                {roll.passed && ` · ${Math.max(0, roll.successes - task.difficulty)} excess`}
+                {social ? `${successesText(roll.successes)}: Difficulty ${social.set}` : `${successesText(roll.successes)} of ${task.difficulty} needed`}
+                {social?.outcome === 'stress' && ` · ${social.stress} Stress`}
+                {!social && roll.passed && ` · ${Math.max(0, roll.successes - task.difficulty)} excess`}
                 {roll.momentumGenerated > 0 && ` · +${roll.momentumGenerated} Momentum`}
                 {roll.momentumSaved > 0 && ` (${roll.momentumSaved} saved)`}
                 {roll.momentumUnsaved > 0 && ` (${roll.momentumUnsaved} over the pool max)`}

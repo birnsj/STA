@@ -218,7 +218,7 @@ export default function ReviewScreen({ navigation }) {
     <section className="screen review-screen">
       <div className="review-grid">
         <div className="review-identity-column">
-          <Portrait label={identity.name.trim() || speciesName} image={portrait?.fullBody ?? portrait?.image} uniform={getUniformColour(career.department?.id)} backdrop={getCharacterBackdrop(identity).image} className="portrait-review" />
+          <Portrait label={identity.name.trim() || speciesName} image={portrait?.fullBody ?? portrait?.image} uniform={getUniformColour(career.department?.id)} backdrop={getCharacterBackdrop(identity, career.department?.id).image} className="portrait-review" />
           <div className="review-nameplate">
             <p className="review-name">{identity.name.trim() || 'Unnamed'}</p>
             <p className="review-service">{serviceLine || EMPTY}</p>

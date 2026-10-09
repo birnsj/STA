@@ -19,7 +19,7 @@ import {
 } from '../rules/finishingTouches.js'
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { NAME_GROUPS, randomName } from '../rules/names.js'
-import { getAvailablePortraits, getBackdrops, getCharacterBackdrop } from '../rules/appearance.js'
+import { followsDepartment, getAvailablePortraits, getBackdrops, getCharacterBackdrop } from '../rules/appearance.js'
 import { getUniformColour } from '../rules/uniform.js'
 import { getLifeTrackSentences } from '../rules/lifeTrack.js'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from '../rules/species.js'
@@ -306,7 +306,8 @@ function PortraitPanels({ character, dispatch, met }) {
   const index = selected ? portraits.indexOf(selected) : -1
   const setLabel = portraitSetLabel(character)
   const uniform = getUniformColour(character.career.department?.id)
-  const backdrop = getCharacterBackdrop(character.identity)
+  const backdrop = getCharacterBackdrop(character.identity, character.career.department?.id)
+  const backdropFollows = followsDepartment(character.identity)
   const step = (direction) => {
     if (!portraits.length) return
     const next = portraits[(index + direction + portraits.length) % portraits.length]
@@ -346,7 +347,10 @@ function PortraitPanels({ character, dispatch, met }) {
         </div>
         <div className="finishing-preset-row">
           <button type="button" className="carousel-arrow" onClick={() => stepBackdrop(-1)} aria-label="Previous backdrop">‹</button>
-          <span className="finishing-preset-counter">Backdrop: {backdrop.name}</span>
+          <span className="finishing-preset-counter">
+            Backdrop: {backdrop.name}
+            {backdropFollows ? ` (${character.career.department?.name ?? 'no department yet'})` : ''}
+          </span>
           <button type="button" className="carousel-arrow" onClick={() => stepBackdrop(1)} aria-label="Next backdrop">›</button>
         </div>
         <div className="finishing-life-track">

@@ -343,7 +343,9 @@ function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
       if (responseType === 'confront') emit({ type: 'CONFRONTATION_READY', npcId: npc.id, targetId: focusId })
       if (responseType === 'observe') emit({ type: 'OBSERVING', npcId: npc.id, targetId: focusId })
     }
-    if (responseType === 'combat' || (responseType === 'alarm' && time - alarmAt >= T.alarmSeconds)) {
+    // An enemy that retreated from a fight regroups first (exploration/combatLink.js endCombat: regroupUntil).
+    const regrouping = npc.regroupUntil != null && time < npc.regroupUntil
+    if (!regrouping && (responseType === 'combat' || (responseType === 'alarm' && time - alarmAt >= T.alarmSeconds))) {
       combatReady = { targetId: focusId, time }
       emit({ type: 'COMBAT_READY', npcId: npc.id, targetId: focusId })
     }

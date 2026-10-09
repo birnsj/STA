@@ -97,3 +97,25 @@
     animation: none !important;
   }
 }
+
+/* An episode's map opening from black (MapFadeIn.jsx): over the whole stage, taking clicks until it starts to lift. */
+.map-fade-in {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  opacity: 1;
+  transition: opacity 0.8s ease-out;
+}
+
+.map-fade-in.is-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Still lifts (transitionend removes it), just at once. */
+@media (prefers-reduced-motion: reduce) {
+  .map-fade-in {
+    transition-duration: 0.01s;
+  }
+}

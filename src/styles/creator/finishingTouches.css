@@ -163,7 +163,7 @@
   align-items: flex-start;
 }
 
-/* Mixed Heritage and New Species offer every species' set (30 presets), so the grid scrolls past ~3.5 rows. */
+/* New Species offers every species' set (30 presets) and Mixed Heritage two, so the grid scrolls past ~3.5 rows. */
 .portrait-picker {
   flex: 1;
   display: grid;

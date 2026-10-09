@@ -11,6 +11,7 @@ import { applyScenarioTiles, attemptChallenge, createScenario } from './challeng
 import { combatAction, endCombat, MODE, requestCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
+import { scanArea } from './partyScan.js'
 
 const isUp = (entity) => !isDefeated(entity.condition)
 
@@ -60,6 +61,9 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
     resources: createMissionResources(),
     // What the away team knows of the NPCs (shared), and what each member perceives now (partyKnowledge.js).
     partyKnowledge: createPartyKnowledge(),
+    // Scans (partyScan.js): world time each member may scan again, and the latest scan for the screen.
+    scanReadyAt: {},
+    lastScan: null,
     // While mode is COMBAT: the Combat Type 1 state and what links it to the world (trigger, participants, snaps).
     combat: null,
     link: null,
@@ -89,6 +93,9 @@ export function explorationReducer(state, action) {
     // A challenge-object action: { objectId, actionId, performerId, assistantId, assistIndex } (challengeObjects.js).
     case 'challenge':
       return state.mode === MODE.COMBAT ? state : attemptChallenge(state, action)
+    // { memberId }: that character scans for life signs (partyScan.js).
+    case 'scan':
+      return state.mode === MODE.COMBAT ? state : scanArea(state, action.memberId)
     // noise: { position, radius, intensity, source } (see emitNoise).
     case 'emitNoise':
       return state.mode === MODE.COMBAT ? state : { ...state, world: emitNoise(state.world, action.noise) }
