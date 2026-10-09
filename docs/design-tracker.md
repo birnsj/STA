@@ -63,7 +63,7 @@ Open design decisions for the designer. Each entry separates what the book says 
 - Diplomatic Corps and Civilian start at No Rank and may take any officer rank (Cadet through Fleet Admiral). Data: `rankTypeByEducation` (`optional`) in `career.json`.
 - "No Rank" is a prototype label (`src/data/adaptation/career.json`); the book has no name for it.
 - Designer rule: a No Rank character cannot be Commanding Officer or Executive Officer ("Not for No Rank"). A diplomat or civilian in either post must take an officer rank. Data: `noRankExcludedAssignments` in `career.json`; rules: `getAssignmentBlock` and `isRankAllowed` in `rules/career.js`.
-- Enlisted characters can't be Commanding Officer, because no enlisted rank meets the Commander minimum (implementation pick). They may be Executive Officer.
+- Enlisted characters can't be Commanding Officer, because no enlisted rank meets the Commander minimum. They may be Executive Officer (designer decision, 2026-10-08).
 
 ### Species Ability for Mixed Heritage and New Species (decided 2026-10-07, updated 2026-10-08)
 
@@ -151,3 +151,15 @@ Open design decisions for the designer. Each entry separates what the book says 
 ### Combat Type 2 removed (decided 2026-10-08)
 
 **Decision:** Combat Type 2 (the separate tactical-positioning experiment: 1 character, 2 action points a turn, telegraphed enemy intents, Push, an EPS hazard) is dropped from the game. Its code, data and the Load Episode entry are deleted; Combat Type 1 is the only combat. Replaces the 2026-10-07 decision to keep it frozen.
+
+### Stages 05 and 06 keep their titles (decided 2026-10-08)
+
+**Book (STA 2e Core Rulebook):** p.98: Step Five is Experience, Step Six is Career Events.
+
+**Prototype:** stage 05 stays "Career" (Experience, Assignment, Rank) and stage 06 stays "Career History". `src/data/adaptation/creationSteps.json`.
+
+### Enlisted characters may be Executive Officer (decided 2026-10-08)
+
+**Book (STA 2e Core Rulebook):** p.140: the only assignment minimum is Commander for a commanding officer.
+
+**Prototype:** enlisted characters may be Executive Officer. They can't be Commanding Officer because no enlisted rank meets the Commander minimum. `src/data/source/assignments.json` (`minimumRank`).
