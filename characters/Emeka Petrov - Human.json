@@ -1,0 +1,569 @@
+{
+  "schemaVersion": "0.11.0",
+  "exportedAt": "2026-10-09T04:59:49.582Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "human",
+      "name": "Human",
+      "attributeBonuses": [
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 1
+        },
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "human",
+          "name": "Human"
+        }
+      ],
+      "speciesAbility": {
+        "id": "faithOfTheHeart",
+        "name": "Faith of the Heart"
+      }
+    },
+    "environment": {
+      "setting": {
+        "id": "busyColony",
+        "name": "Busy Colony"
+      },
+      "otherSpecies": null,
+      "value": {
+        "text": "I believe in what the Federation stands for",
+        "matrixId": "human-value-1"
+      },
+      "attributeBonus": {
+        "id": "presence",
+        "name": "Presence",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "outlook": {
+        "id": "agricultureOrRural",
+        "name": "Agriculture or Rural"
+      },
+      "path": {
+        "id": "rebelled",
+        "name": "Rebelled"
+      },
+      "attributeBonuses": [
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 2
+        },
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      },
+      "focus": {
+        "name": "Ground Vehicles",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "diplomatic",
+        "name": "Diplomatic Corps"
+      },
+      "option": {
+        "id": "diplomaticCorps",
+        "name": "Diplomatic Corps"
+      },
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 2
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "disciplinePicks": {
+        "major": "command",
+        "minors": [
+          "medicine",
+          "conn"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "command",
+          "name": "Command",
+          "value": 2
+        },
+        {
+          "id": "medicine",
+          "name": "Medicine",
+          "value": 1
+        },
+        {
+          "id": "conn",
+          "name": "Conn",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Linguistics",
+          "custom": false
+        },
+        {
+          "name": "Composure",
+          "custom": false
+        },
+        {
+          "name": "Anthropology",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "The right words can shape countless lives",
+        "matrixId": "diplomaticCorps-value-2"
+      },
+      "trait": {
+        "id": "diplomat",
+        "name": "Diplomat"
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "I’ve trusted my instincts long enough to doubt them now",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer"
+      },
+      "department": {
+        "id": "engineering",
+        "name": "Engineering"
+      },
+      "rank": {
+        "id": "noRank",
+        "name": "No Rank",
+        "type": "none"
+      },
+      "role": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "breakthroughOrInvention",
+            "name": "Breakthrough or Invention"
+          },
+          "attributeBonus": {
+            "id": "reason",
+            "name": "Reason",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Experimental Technology",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "specialCommendation",
+            "name": "Special Commendation"
+          },
+          "attributeBonus": {
+            "id": "fitness",
+            "name": "Fitness",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "conn",
+            "name": "Conn",
+            "value": 1
+          },
+          "focus": {
+            "name": "Emergency Medicine",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "Today's impossibility is tomorrow's standard procedure",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "control",
+          "fitness"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "science",
+          "conn"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "wellInformed",
+        "name": "Well-Informed",
+        "choice": null
+      },
+      "education": {
+        "id": "supervisor",
+        "name": "Supervisor",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "defuseTheTension",
+        "name": "Defuse the Tension",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Emeka Petrov",
+      "pronouns": "They / them",
+      "age": "",
+      "pastime": "",
+      "gender": {
+        "id": "other",
+        "name": "Other"
+      },
+      "portrait": {
+        "id": "human-male-4",
+        "name": "Human Male 4"
+      },
+      "backdrop": {
+        "id": "starship-bridge",
+        "name": "Starship Bridge"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "engineeringTricorder"
+      },
+      {
+        "itemId": "engineeringToolkit"
+      }
+    ],
+    "confirmedAt": "2026-10-09T04:59:49.582Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 10,
+      "daring": 8,
+      "fitness": 9,
+      "insight": 8,
+      "presence": 10,
+      "reason": 11
+    },
+    "disciplines": {
+      "command": 3,
+      "conn": 4,
+      "engineering": 2,
+      "security": 3,
+      "science": 2,
+      "medicine": 2
+    },
+    "values": [
+      "I believe in what the Federation stands for",
+      "The right words can shape countless lives",
+      "I’ve trusted my instincts long enough to doubt them now",
+      "Today's impossibility is tomorrow's standard procedure"
+    ],
+    "focuses": [
+      "Ground Vehicles",
+      "Linguistics",
+      "Composure",
+      "Anthropology",
+      "Experimental Technology",
+      "Emergency Medicine"
+    ],
+    "traits": [
+      {
+        "id": "human",
+        "name": "Human"
+      },
+      {
+        "id": "diplomat",
+        "name": "Diplomat"
+      }
+    ],
+    "speciesAbility": {
+      "id": "faithOfTheHeart",
+      "name": "Faith of the Heart",
+      "description": "When you use one of your values to spend or gain Determination, you may also add 1 Momentum to the group pool.",
+      "effects": [
+        {
+          "type": "momentum",
+          "trigger": "valueUsedForDetermination",
+          "addToGroupPool": 1,
+          "optional": true
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 107
+      }
+    },
+    "talents": [
+      {
+        "id": "wellInformed",
+        "name": "Well-Informed",
+        "category": "general",
+        "choice": null,
+        "description": "You have contacts everywhere and you listen to news and rumors from far and wide. At the start of a scene, you may add 1 Threat to ask the gamemaster two questions about the situation or location, as if you had spent Momentum on the Obtain Information spend. The answers you receive will be knowledge you’ve gained from your contacts and the news and rumors you’ve heard.",
+        "requirements": [],
+        "effects": [
+          {
+            "type": "obtainInformation",
+            "questions": 2,
+            "cost": {
+              "threat": 1
+            },
+            "when": "start of a scene"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Upbringing"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      },
+      {
+        "id": "supervisor",
+        "name": "Supervisor",
+        "category": "command",
+        "choice": null,
+        "description": "The ship’s Crew Support increases by 1. This increase is cumulative if multiple main characters select it.",
+        "requirements": [
+          {
+            "type": "mainCharacter"
+          }
+        ],
+        "effects": [
+          {
+            "type": "special",
+            "action": "crewSupport",
+            "amount": 1
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Career Path"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 157
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "defuseTheTension",
+        "name": "Defuse the Tension",
+        "category": "command",
+        "choice": null,
+        "description": "Whenever you attempt a task to persuade someone not to resort to violence, the first d20 you purchase for that task is free.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "command",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "freeDie",
+            "when": "task to persuade someone not to resort to violence"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 157
+        }
+      }
+    ],
+    "rank": {
+      "id": "noRank",
+      "name": "No Rank"
+    },
+    "department": {
+      "id": "engineering",
+      "name": "Engineering"
+    },
+    "assignment": {
+      "id": "chiefEngineer",
+      "name": "Chief Engineer"
+    },
+    "role": {
+      "id": "chiefEngineer",
+      "name": "Chief Engineer",
+      "description": "The chief engineer is responsible for ensuring the ship remains operational and functional, and commands the engineering department aboard the ship.",
+      "requirements": [],
+      "benefit": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer Role Benefit",
+        "description": "You reduce the opportunity cost of engineering teams by 1, to a minimum of 0. Further, when you attempt a task to perform repairs to a starship or attempt to push the ship’s capabilities beyond its normal limits, you may spend 1 Momentum (Immediate) to re-roll a d20.",
+        "effects": [
+          {
+            "type": "opportunityCost",
+            "change": -1,
+            "minimum": 0,
+            "applies": [
+              "engineeringTeams"
+            ]
+          },
+          {
+            "type": "reroll",
+            "dice": 1,
+            "cost": {
+              "momentum": 1,
+              "immediate": true
+            },
+            "when": "a task to repair a starship or push its capabilities beyond normal limits"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 136
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "engineeringTricorder",
+        "name": "Engineering Tricorder"
+      },
+      {
+        "itemId": "engineeringToolkit",
+        "name": "Engineering Toolkit"
+      }
+    ]
+  }
+}

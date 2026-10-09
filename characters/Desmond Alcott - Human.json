@@ -1,0 +1,582 @@
+{
+  "schemaVersion": "0.11.0",
+  "exportedAt": "2026-10-09T04:56:31.717Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "human",
+      "name": "Human",
+      "attributeBonuses": [
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        },
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "human",
+          "name": "Human"
+        }
+      ],
+      "speciesAbility": {
+        "id": "faithOfTheHeart",
+        "name": "Faith of the Heart"
+      }
+    },
+    "environment": {
+      "setting": {
+        "id": "homeworld",
+        "name": "Homeworld"
+      },
+      "otherSpecies": null,
+      "value": {
+        "text": "We are stronger together",
+        "matrixId": "human-value-3"
+      },
+      "attributeBonus": {
+        "id": "presence",
+        "name": "Presence",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "command",
+        "name": "Command",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "outlook": {
+        "id": "artisticAndCreative",
+        "name": "Artistic and Creative"
+      },
+      "path": {
+        "id": "rebelled",
+        "name": "Rebelled"
+      },
+      "attributeBonuses": [
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 2
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "command",
+        "name": "Command",
+        "value": 1
+      },
+      "focus": {
+        "name": "Persuasion",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "starfleetAcademy",
+        "name": "Starfleet (Officer)"
+      },
+      "option": {
+        "id": "commandTrack",
+        "name": "Command Track"
+      },
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 2
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "disciplinePicks": {
+        "major": "conn",
+        "minors": [
+          "engineering",
+          "science"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "conn",
+          "name": "Conn",
+          "value": 2
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 1
+        },
+        {
+          "id": "science",
+          "name": "Science",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Inspiration",
+          "custom": false
+        },
+        {
+          "name": "Starfleet Protocols",
+          "custom": false
+        },
+        {
+          "name": "Helm Operations",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "The Prime Directive is there to remind us that we are not gods, and should not act like them",
+        "matrixId": "commandTrack-value-3"
+      },
+      "trait": {
+        "id": "starfleetOfficer",
+        "name": "Starfleet Officer"
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "There’s not much that can surprise me anymore",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "chiefMedicalOfficer",
+        "name": "Chief Medical Officer"
+      },
+      "department": {
+        "id": "medicine",
+        "name": "Medicine"
+      },
+      "rank": {
+        "id": "lieutenantCommander",
+        "name": "Lieutenant Commander",
+        "type": "officer"
+      },
+      "role": {
+        "id": "chiefMedicalOfficer",
+        "name": "Chief Medical Officer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "betrayedIdealsForASuperior",
+            "name": "Betrayed Ideals for a Superior"
+          },
+          "attributeBonus": {
+            "id": "presence",
+            "name": "Presence",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "command",
+            "name": "Command",
+            "value": 1
+          },
+          "focus": {
+            "name": "Investigation",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "shipDestroyed",
+            "name": "Ship Destroyed"
+          },
+          "attributeBonus": {
+            "id": "daring",
+            "name": "Daring",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "security",
+            "name": "Security",
+            "value": 1
+          },
+          "focus": {
+            "name": "Extra Vehicular Operations",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "A ship is only metal; the crew is what matters",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "reason",
+          "control"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "medicine",
+          "science"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "bolster",
+        "name": "Bolster",
+        "choice": null
+      },
+      "education": {
+        "id": "coveringAdvance",
+        "name": "Covering Advance",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "secondWind",
+        "name": "Second Wind",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Desmond Alcott",
+      "pronouns": "He / him",
+      "age": "",
+      "pastime": "",
+      "gender": {
+        "id": "male",
+        "name": "Male"
+      },
+      "portrait": {
+        "id": "human-male-5",
+        "name": "Human Male 5"
+      },
+      "backdrop": {
+        "id": "starship-bridge",
+        "name": "Starship Bridge"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "medicalTricorder"
+      },
+      {
+        "itemId": "phaserType2"
+      },
+      {
+        "itemId": "medkit"
+      }
+    ],
+    "confirmedAt": "2026-10-09T04:56:31.717Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 10,
+      "daring": 10,
+      "fitness": 9,
+      "insight": 8,
+      "presence": 10,
+      "reason": 9
+    },
+    "disciplines": {
+      "command": 4,
+      "conn": 3,
+      "engineering": 2,
+      "security": 2,
+      "science": 3,
+      "medicine": 2
+    },
+    "values": [
+      "We are stronger together",
+      "The Prime Directive is there to remind us that we are not gods, and should not act like them",
+      "There’s not much that can surprise me anymore",
+      "A ship is only metal; the crew is what matters"
+    ],
+    "focuses": [
+      "Persuasion",
+      "Inspiration",
+      "Starfleet Protocols",
+      "Helm Operations",
+      "Investigation",
+      "Extra Vehicular Operations"
+    ],
+    "traits": [
+      {
+        "id": "human",
+        "name": "Human"
+      },
+      {
+        "id": "starfleetOfficer",
+        "name": "Starfleet Officer"
+      }
+    ],
+    "speciesAbility": {
+      "id": "faithOfTheHeart",
+      "name": "Faith of the Heart",
+      "description": "When you use one of your values to spend or gain Determination, you may also add 1 Momentum to the group pool.",
+      "effects": [
+        {
+          "type": "momentum",
+          "trigger": "valueUsedForDetermination",
+          "addToGroupPool": 1,
+          "optional": true
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 107
+      }
+    },
+    "talents": [
+      {
+        "id": "bolster",
+        "name": "Bolster",
+        "category": "command",
+        "choice": null,
+        "description": "When you succeed at any task using your Command during an action scene, you may spend Momentum to recover Stress suffered by your allies. When you spend 1 Momentum (Repeatable), one ally who can see and hear you recovers 1 Stress. You may affect multiple allies, but each ally affected may only recover 1 Stress in this way each time this talent is used.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "command",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "special",
+            "action": "allyRecoversStress",
+            "amount": 1,
+            "cost": {
+              "momentum": 1
+            },
+            "when": "you succeed at a Command task in an action scene"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Upbringing"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 156
+        }
+      },
+      {
+        "id": "coveringAdvance",
+        "name": "Covering Advance",
+        "category": "conn",
+        "choice": null,
+        "description": "When you succeed at a task to maneuver your ship, you may spend 2 Momentum to provide cover for allied ships. When an enemy vessel next makes an Attack, before the beginning of your next turn, if you are the closest ship to that attacker but they do not target you, the difficulty of their Attack is equal to your ship’s Scale.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "conn",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "difficulty",
+            "target": "enemy",
+            "setTo": "shipScale",
+            "cost": {
+              "momentum": 2
+            },
+            "when": "enemy attacks an ally ship while you are closest"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Career Path"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 158
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "secondWind",
+        "name": "Second Wind",
+        "category": "general",
+        "choice": null,
+        "description": "You may spend Determination at the start of your turn to remove the Defeated state, and to recover up to half of your maximum Stress. The normal requirements for spending a point of Determination still apply.",
+        "requirements": [],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "removeDefeatedAndRecoverHalfStress",
+            "when": "start of your turn"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      }
+    ],
+    "rank": {
+      "id": "lieutenantCommander",
+      "name": "Lieutenant Commander"
+    },
+    "department": {
+      "id": "medicine",
+      "name": "Medicine"
+    },
+    "assignment": {
+      "id": "chiefMedicalOfficer",
+      "name": "Chief Medical Officer"
+    },
+    "role": {
+      "id": "chiefMedicalOfficer",
+      "name": "Chief Medical Officer",
+      "description": "The chief medical officer is responsible for the health and well-being of the crew and other people aboard the ship and leads the ship’s medical department. A chief medical officer can order, and countermand the orders of, senior officers where matters of that officer’s health are concerned. In extreme situations, the chief medical officer can declare an officer unfit and remove them from active duty (including the commanding officer). A ship may have either a chief medical officer or a ship’s doctor.",
+      "requirements": [],
+      "benefit": {
+        "id": "chiefMedicalOfficer",
+        "name": "Chief Medical Officer Role Benefit",
+        "description": "You reduce the opportunity cost of medical equipment and medical teams by 1, to a minimum of 0. Further, when you attempt a task using your Medicine rating, and you have assistance, you generate 1 bonus Momentum (bonus Momentum may not be saved).",
+        "effects": [
+          {
+            "type": "opportunityCost",
+            "change": -1,
+            "minimum": 0,
+            "applies": [
+              "medicalEquipment",
+              "medicalTeams"
+            ]
+          },
+          {
+            "type": "bonusMomentum",
+            "amount": 1,
+            "saved": false,
+            "when": "a task using your Medicine rating, with assistance"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 137
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "medicalTricorder",
+        "name": "Medical Tricorder"
+      },
+      {
+        "itemId": "phaserType2",
+        "name": "Type-2 Phaser"
+      },
+      {
+        "itemId": "medkit",
+        "name": "Medkit"
+      }
+    ]
+  }
+}
