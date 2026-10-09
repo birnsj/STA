@@ -15,6 +15,7 @@ import { around, labelHalfWidth } from '../maps/occlusion.js'
 import MapCanvas from '../maps/MapCanvas.jsx'
 import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
+import { useUniformImage } from '../useUniformImage.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -59,6 +60,7 @@ const DownBody = () => <rect className="iso-unit-body" x="-16" y="-12" width="32
 function Explorer({ member, selected, lead, onPress }) {
   const centre = project(member.position)
   const image = member.character.portrait.image
+  const uniform = member.character.portrait.uniform
   const clipId = `explorer-clip-${member.id.replace(/[^a-z0-9]/gi, '')}`
   const down = isDownAfterFight(member)
   return (
@@ -70,7 +72,7 @@ function Explorer({ member, selected, lead, onPress }) {
     >
       <title>{member.character.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
-      {down ? <DownBody /> : <ExplorerFigure image={image} clipId={clipId} name={member.character.name} facing={member.facing} />}
+      {down ? <DownBody /> : <ExplorerFigure image={image} uniform={uniform} clipId={clipId} name={member.character.name} facing={member.facing} />}
       {lead && (
         <text className="explore-unit-lead" x="0" y="-58" textAnchor="middle">
           LEAD
@@ -80,7 +82,8 @@ function Explorer({ member, selected, lead, onPress }) {
   )
 }
 
-function ExplorerFigure({ image, clipId, name, facing }) {
+function ExplorerFigure({ image, uniform = null, clipId, name, facing }) {
+  const shownImage = useUniformImage(image, uniform)
   return (
     <>
       <clipPath id={clipId}>
@@ -88,7 +91,7 @@ function ExplorerFigure({ image, clipId, name, facing }) {
       </clipPath>
       <rect className="iso-unit-body" x="-17" y="-52" width="34" height="44" rx="5" />
       {image ? (
-        <image href={image} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
+        shownImage && <image href={shownImage} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
       ) : (
         <text className="iso-unit-initial" x="0" y="-25" textAnchor="middle">
           {name.charAt(0)}
@@ -105,13 +108,14 @@ function ExplorerFigure({ image, clipId, name, facing }) {
 function NpcToken({ npc, unperceived = false }) {
   const centre = project(npc.position)
   const image = npc.character?.portrait.image
+  const uniform = npc.character?.portrait.uniform
   const clipId = `npc-clip-${npc.id.replace(/[^a-z0-9]/gi, '')}`
   const down = isDownAfterFight(npc)
   return (
     <g className={`iso-unit is-enemy explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}`} style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }} pointerEvents="none">
       <title>{npc.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
-      {down ? <DownBody /> : <ExplorerFigure image={image} clipId={clipId} name={npc.name} facing={{ x: Math.cos(npc.heading), y: Math.sin(npc.heading) }} />}
+      {down ? <DownBody /> : <ExplorerFigure image={image} uniform={uniform} clipId={clipId} name={npc.name} facing={{ x: Math.cos(npc.heading), y: Math.sin(npc.heading) }} />}
     </g>
   )
 }

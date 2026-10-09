@@ -11,7 +11,32 @@ export function setGender(identity, genderId) {
   return gender ? { ...identity, gender: { id: gender.id, name: gender.name } } : identity
 }
 
-export const getPortraitById = (portraitId) => portraitData.portraits.find((portrait) => portrait.id === portraitId) ?? null
+// A composited portrait with no legacy image uses its characterImage as `image`, so every screen still has one path to show.
+const portraits = portraitData.portraits.map((portrait) =>
+  portrait.image || !portrait.characterImage ? portrait : { ...portrait, image: portrait.characterImage },
+)
+
+export const getPortraitById = (portraitId) => portraits.find((portrait) => portrait.id === portraitId) ?? null
+
+// Head and shoulders: backdrop, then the transparent character, then the optional uniform overlay (tinted later).
+function headLayers({ backdropImage, characterImage, uniformImage, image }) {
+  if (!backdropImage && !characterImage) return null
+  return [
+    backdropImage && { role: 'backdrop', src: backdropImage },
+    { role: 'character', src: characterImage ?? image },
+    uniformImage && { role: 'uniform', src: uniformImage },
+  ].filter(Boolean)
+}
+
+// A portrait picture's layers ([{ role, src }], bottom to top), looked up by the path the screens already show
+// (`image` or `fullBody`), so each of them gets the composited version. Null for a single-image picture.
+const layersBySrc = new Map(
+  portraits.flatMap((portrait) => [
+    [portrait.image, headLayers(portrait)],
+    [portrait.fullBody, portrait.fullBodyLayers],
+  ]).filter(([src, layers]) => src && layers?.length),
+)
+export const getPortraitLayers = (src) => layersBySrc.get(src) ?? null
 
 // Species + Gender -> portrait set. Mixed Heritage and New Species see every species' portraits for the gender;
 // an anyPortrait gender (Other) sees the species' portraits of every gender. Empty until both species and gender are chosen.
@@ -21,7 +46,7 @@ export function getAvailablePortraits(character) {
   if (!gender || !species) return []
   const anySpecies = isMixedHeritage(species) || isNewSpecies(species)
   const anyGender = Boolean(getGenderById(gender.id)?.anyPortrait)
-  return portraitData.portraits.filter(
+  return portraits.filter(
     (portrait) => (anyGender || portrait.gender === gender.id) && (anySpecies || portrait.species === species.id),
   )
 }

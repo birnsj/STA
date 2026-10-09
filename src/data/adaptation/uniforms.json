@@ -1,0 +1,20 @@
+{
+  "notes": [
+    "Presentation only, no game-rule effect. Shirt colour on every character portrait, by the character's department.",
+    "Book (Technical Manual p.40, Uniforms): pre-Federation piping was gold for command and administration, blue for sciences and medical, red for operations and security; 2230 to the mid-2250s used gold, silver, copper and white; by the late 2250s the original scheme was reinstated as the colour of the uniform tunic (the TOS era).",
+    "Book (Core Rulebook pp.120-121, Starfleet Academy tracks): Command track majors in Command or Conn, Operations track in Engineering or Security, Sciences track covers Science and Medicine. That is the department-to-division grouping used below.",
+    "Prototype (designer decision, Oct 2026): TOS colours by the books. A character with no department wears noDepartmentDivision.",
+    "mockArt: the mock portraits are flat colour, so their shirt is recoloured by swapping these exact colours (and the same colours under the name label, darkened by labelShade). Real art will need the shirt on its own layer instead."
+  ],
+  "divisions": [
+    { "id": "command", "name": "Command", "colour": "#c9a227", "departments": ["command", "conn"] },
+    { "id": "operations", "name": "Operations", "colour": "#b3262c", "departments": ["engineering", "security"] },
+    { "id": "sciences", "name": "Sciences", "colour": "#2d6fb3", "departments": ["science", "medicine"] }
+  ],
+  "noDepartmentDivision": "sciences",
+  "mockArt": {
+    "shirtColours": ["#b3262c", "#c9a227", "#2d6fb3"],
+    "labelShade": 0.4,
+    "tolerance": 2
+  }
+}

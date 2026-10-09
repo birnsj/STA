@@ -10,6 +10,7 @@ import MapCanvas from '../maps/MapCanvas.jsx'
 import { around } from '../maps/occlusion.js'
 import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
+import { useUniformImage } from '../useUniformImage.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -154,6 +155,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const down = Boolean(combatant.condition?.defeated)
   const sideClass = combatant.side === 'player' ? 'is-player' : 'is-enemy'
   const image = combatant.character.portrait?.image
+  const shownImage = useUniformImage(image, combatant.character.portrait?.uniform)
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
   return (
     <g
@@ -175,7 +177,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
           </clipPath>
           <rect className="iso-unit-body" x="-17" y="-52" width="34" height="44" rx="5" />
           {image ? (
-            <image href={image} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
+            shownImage && <image href={shownImage} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
           ) : (
             <text className="iso-unit-initial" x="0" y="-25" textAnchor="middle">
               {combatant.character.name.charAt(0)}

@@ -10,6 +10,7 @@ import {
 } from '../rules/finishingTouches.js'
 import { getRequiredTalentCount, getTalentById, getTalentEntries, getTalentLabel } from '../rules/talents.js'
 import { getRoleBenefitName, getRoleById } from '../rules/roles.js'
+import { getUniformColour } from '../rules/uniform.js'
 import Portrait from './Portrait.jsx'
 
 const EMPTY = '—'
@@ -82,7 +83,7 @@ export default function CharacterSummary({ character }) {
     <aside className="summary panel">
       <h2 className="summary-heading">Character Summary</h2>
       <div className="portrait-carousel portrait-summary">
-        <Portrait label={portrait?.name ?? (identity.name.trim() || speciesName)} image={portrait?.image ?? null} className="portrait-carousel-image" />
+        <Portrait label={portrait?.name ?? (identity.name.trim() || speciesName)} image={portrait?.image ?? null} uniform={getUniformColour(career.department?.id)} className="portrait-carousel-image" />
       </div>
       <SummaryGroup
         rows={[

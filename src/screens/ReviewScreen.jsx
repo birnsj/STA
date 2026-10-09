@@ -12,6 +12,7 @@ import { getSpeciesAbilityLabel, getSpeciesAbilityTitle, getSpeciesDisplayName }
 import { getChoiceArt } from '../rules/choiceArt.js'
 import { getEquippedItems, getItemStatLines } from '../rules/equipment.js'
 import { getRoleById } from '../rules/roles.js'
+import { getUniformColour } from '../rules/uniform.js'
 import DevButtons from '../components/DevButtons.jsx'
 import HelpTip from '../components/HelpTip.jsx'
 import Portrait from '../components/Portrait.jsx'
@@ -216,7 +217,7 @@ export default function ReviewScreen({ navigation }) {
     <section className="screen review-screen">
       <div className="review-grid">
         <div className="review-identity-column">
-          <Portrait label={identity.name.trim() || speciesName} image={portrait?.fullBody ?? portrait?.image} className="portrait-review" />
+          <Portrait label={identity.name.trim() || speciesName} image={portrait?.fullBody ?? portrait?.image} uniform={getUniformColour(career.department?.id)} className="portrait-review" />
           <div className="review-nameplate">
             <p className="review-name">{identity.name.trim() || 'Unnamed'}</p>
             <p className="review-service">{serviceLine || EMPTY}</p>

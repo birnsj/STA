@@ -8,6 +8,7 @@ import disciplineData from '../data/source/disciplines.json'
 import { getPortraitById } from '../rules/appearance.js'
 import { getCreatorFaction } from '../rules/factions.js'
 import { getSpeciesAbility, getSpeciesDisplayName } from '../rules/species.js'
+import { getUniformColour } from '../rules/uniform.js'
 
 export const ATTRIBUTE_IDS = attributeData.attributes.map((attribute) => attribute.id)
 export const DISCIPLINE_IDS = disciplineData.disciplines.map((discipline) => discipline.id)
@@ -78,22 +79,26 @@ export function normalizeCharacterRecord(record, { id } = {}) {
   const name = typeof identity.name === 'string' && identity.name.trim() ? identity.name.trim() : 'Unnamed Character'
   const strings = (list) => (Array.isArray(list) ? list.filter((item) => typeof item === 'string') : [])
   const items = (list) => (Array.isArray(list) ? list.filter((item) => isPlainObject(item)) : [])
+  // Exports before schema 0.9.0 carry none; they all come from the creator, whose characters share one faction.
+  const faction = idName(record.final.faction ?? details.faction) ?? getCreatorFaction()
+  const department = idName(career.department)
 
   return {
     character: {
       id: id ?? name,
       name,
-      // Exports before schema 0.9.0 carry none; they all come from the creator, whose characters share one faction.
-      faction: idName(record.final.faction ?? details.faction) ?? getCreatorFaction(),
+      faction,
       pronouns: typeof identity.pronouns === 'string' ? identity.pronouns : '',
       species: details.species ? { id: details.species.id ?? null, name: getSpeciesDisplayName(details.species) ?? '' } : null,
       portrait: {
         id: portraitId,
         name: identity.portrait?.name ?? name,
         image: getPortraitById(portraitId)?.image ?? identity.portrait?.image ?? null,
+        // Shirt colour (rules/uniform.js); only Starfleet uniforms follow the department, other factions keep their art.
+        uniform: faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null,
       },
       rank: idName(career.rank),
-      department: idName(career.department),
+      department,
       assignment: idName(career.assignment),
       // Data only for now; exports before schema 0.8.0 have none.
       role: readRole(record.final.role),

@@ -1,0 +1,16 @@
+{
+  "notes": [
+    "Prototype presentation only, no game-rule effect. Backdrops drawn behind a portrait's transparent characterImage (portraits.json backdropImage points at one of these files).",
+    "The images are placeholders (scripts/makePortraitBackdrops.mjs), 480 x 600 like the head-and-shoulders portraits. Replace a file to swap the art; the id is the file name."
+  ],
+  "backdrops": [
+    { "id": "starship-bridge", "name": "Starship Bridge", "image": "/art/portraits/backdrops/starship-bridge.png" },
+    { "id": "starship-corridor", "name": "Starship Corridor", "image": "/art/portraits/backdrops/starship-corridor.png" },
+    { "id": "briefing-room", "name": "Briefing Room", "image": "/art/portraits/backdrops/briefing-room.png" },
+    { "id": "transporter-room", "name": "Transporter Room", "image": "/art/portraits/backdrops/transporter-room.png" },
+    { "id": "sickbay", "name": "Sickbay", "image": "/art/portraits/backdrops/sickbay.png" },
+    { "id": "engineering", "name": "Engineering", "image": "/art/portraits/backdrops/engineering.png" },
+    { "id": "planet-surface", "name": "Planet Surface", "image": "/art/portraits/backdrops/planet-surface.png" },
+    { "id": "alien-interior", "name": "Alien Interior", "image": "/art/portraits/backdrops/alien-interior.png" }
+  ]
+}

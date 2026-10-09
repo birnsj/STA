@@ -163,3 +163,17 @@ Open design decisions for the designer. Each entry separates what the book says 
 **Book (STA 2e Core Rulebook):** p.140: the only assignment minimum is Commander for a commanding officer.
 
 **Prototype:** enlisted characters may be Executive Officer. They can't be Commanding Officer because no enlisted rank meets the Commander minimum. `src/data/source/assignments.json` (`minimumRank`).
+
+### Shirt colour follows the department, TOS style (decided 2026-10-08)
+
+**Book:**
+- STA 2e Technical Manual p.40 (Uniforms): pre-Federation piping was gold for command and administration, blue for sciences and medical, red for operations and security. From 2230 to the mid-2250s Command stayed gold, with silver for Sciences, copper for Operations and white for Medical. By the late 2250s the original scheme returned as the colour of the tunic.
+- STA 2e Core Rulebook pp.120-121 (Academy tracks): Command track majors in Command or Conn, Operations track in Engineering or Security, Sciences track covers Science and Medicine.
+
+**Prototype:** every Starfleet portrait wears its department's TOS colour: gold for Command and Conn, red for Engineering and Security, blue for Science and Medicine. A character with no department wears blue. Characters of other factions (the Klingon enemies) keep their art. Shown everywhere a character's portrait appears (creator, Review, Import Character, combat, exploration). Presentation only; nothing is added to the character JSON, since the colour comes from the department. Colours and grouping in `src/data/adaptation/uniforms.json`, lookup in `src/rules/uniform.js`. The mock portraits are flat colour, so `src/components/useUniformImage.js` swaps their three shirt colours in the browser; real portrait art will need the shirt on its own layer.
+
+### Layered portraits (decided 2026-10-08)
+
+**Book:** no rule; portrait art is wholly prototype.
+
+**Prototype:** a portrait may be composited from layers instead of one flat picture. Head and shoulders (designer spec, 2026-10-08): `backdropImage` (a background PNG), `characterImage` (the character on a transparent PNG) and an optional `uniformImage` overlay tinted with the department colour, drawn in that order. Full body: `fullBodyLayers` (background, a greyscale uniform tinted the same way, face, and an insignia, which for now is on full-body portraits only). Designer choices: Canvas compositing (one finished picture for every screen, the map figures included), a full set of layers per portrait, and mocks for a few portraits first (Human Male 1, Human Female 2, Vulcan Male 1; `scripts/makePortraitLayers.mjs` into `public/art/portraits/layers/<portrait id>/`). Eight placeholder backdrops (starship bridge, starship corridor, briefing room, transporter room, sickbay, engineering, planet surface, alien interior) are listed in `src/data/adaptation/portraitBackdrops.json` and drawn by `scripts/makePortraitBackdrops.mjs`; which portrait uses which backdrop is a placeholder pick. Portraits without these fields keep their single `image`, which is also the fallback if a layer fails to load. Portrait selection and the character JSON are unchanged (still `identity.portrait: { id, name }`). Open: whether the player will choose a backdrop; for now it is fixed per portrait.

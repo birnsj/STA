@@ -20,6 +20,7 @@ import {
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { NAME_GROUPS, randomName } from '../rules/names.js'
 import { getAvailablePortraits } from '../rules/appearance.js'
+import { getUniformColour } from '../rules/uniform.js'
 import { getLifeTrackSentences } from '../rules/lifeTrack.js'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from '../rules/species.js'
 import { getLockedSections } from '../rules/requirements.js'
@@ -304,6 +305,7 @@ function PortraitPanels({ character, dispatch, met }) {
   const selected = portraits.find((portrait) => portrait.id === character.identity.portrait?.id) ?? null
   const index = selected ? portraits.indexOf(selected) : -1
   const setLabel = portraitSetLabel(character)
+  const uniform = getUniformColour(character.career.department?.id)
   const step = (direction) => {
     if (!portraits.length) return
     const next = portraits[(index + direction + portraits.length) % portraits.length]
@@ -316,7 +318,7 @@ function PortraitPanels({ character, dispatch, met }) {
           {setLabel ? `Select a preset (${setLabel}).` : 'Choose a species and gender on Species to see portraits.'}
         </p>
         <div className="finishing-portrait-row">
-          <PortraitPicker portraits={portraits} selectedId={selected?.id} onSelect={(portraitId) => dispatch({ type: 'selectPortrait', portraitId })} />
+          <PortraitPicker portraits={portraits} selectedId={selected?.id} onSelect={(portraitId) => dispatch({ type: 'selectPortrait', portraitId })} uniform={uniform} />
           <div className="finishing-portrait-actions">
             <button type="button" className="dev-button" disabled title="Not available in this prototype">Customize</button>
             <button type="button" className="dev-button" disabled title="Not available in this prototype">Import</button>
@@ -324,7 +326,7 @@ function PortraitPanels({ character, dispatch, met }) {
         </div>
       </Panel>
       <Panel title="Portrait Details" helpId="portraitDetails" className="finishing-portrait-details">
-        <Portrait label={selected?.name} image={selected?.image} className="portrait-finishing-preview" />
+        <Portrait label={selected?.name} image={selected?.image} uniform={uniform} className="portrait-finishing-preview" />
         <div className="finishing-preset-row">
           <button type="button" className="carousel-arrow" onClick={() => step(-1)} aria-label="Previous portrait">‹</button>
           <span className="finishing-preset-counter">Preset {index >= 0 ? index + 1 : '–'} / {portraits.length}</span>

@@ -4,6 +4,7 @@ import { getCharacterFocuses, getCharacterValues, getFinalScores, getKindInfo, g
 import { getSpeciesAbilityLabel, getSpeciesDisplayName } from '../rules/species.js'
 import { getTalentEntries } from '../rules/talents.js'
 import { getTraitEntries } from '../rules/characterSheet.js'
+import { getUniformColour } from '../rules/uniform.js'
 import Portrait from './Portrait.jsx'
 
 const EMPTY = '—'
@@ -64,7 +65,8 @@ function SavedCharacterCard({ entry }) {
   const character = readCharacter(entry)
   const name = entry.name || 'Unnamed'
   const portrait = getPortraitById(character?.identity.portrait?.id)
-  const portraitBlock = <Portrait label={portrait?.name ?? name} image={portrait?.image} className="portrait-import-card" />
+  const uniform = getUniformColour(character?.career?.department?.id)
+  const portraitBlock = <Portrait label={portrait?.name ?? name} image={portrait?.image} uniform={uniform} className="portrait-import-card" />
 
   if (!character) {
     return (
