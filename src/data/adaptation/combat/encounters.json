@@ -1,7 +1,6 @@
 {
   "notes": [
-    "Prototype test encounter: the party against 4 Klingons. Played on any map file in the project's maps/ folder (picked in setup); defaultMapId is a map file name.",
-    "The default map, Engineering Deck (32 x 24): Main Engineering (top left, warp core in the middle), Cargo Bay (top right, where the Klingons board), a corridor across the middle, and Crew Quarters (party start), Transporter Room and Storage along the bottom. Rooms connect through 2-tile doorways.",
+    "Prototype test encounter: the party against 4 Klingons. Played on whichever map file in the project's maps/ folder is picked in Load Episode; there is no default map.",
     "Tiles come from the shared catalogue (src/data/adaptation/maps/tiles.json): solid tiles block movement, tiles that block sight block line of fire, and standing next to a cover tile gives cover automatically. Hazard tiles are ordinary floor in this mode.",
     "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order, as character ids (full characters in src/data/adaptation/characters.json, the same records the exploration actors use); extra spawns stay empty.",
     "The objective text is placeholder content.",
@@ -15,7 +14,6 @@
       "objectives": [{ "id": "defeatBoarders", "text": "Defeat the Klingon boarding party" }],
       "autoCombat": { "playerInjuryMode": "stun" },
       "standardIssueWeapon": "phaserType2",
-      "defaultMapId": "Engineering Deck",
       "roster": ["klingonWarrior1", "klingonWarrior2", "klingonWarrior3", "klingonWarrior4"]
     },
     {

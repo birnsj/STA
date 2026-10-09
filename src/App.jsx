@@ -12,7 +12,6 @@ import {
   getSavedCharacters,
 } from './character/savedCharacters.js'
 import creationSteps from './data/adaptation/creationSteps.json'
-import combatEncounters from './data/adaptation/combat/encounters.json'
 import ScaledStage from './components/ScaledStage.jsx'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
@@ -29,13 +28,16 @@ const ExplorationScreen = lazy(() => import('./screens/ExplorationScreen.jsx'))
 const MapEditorScreen = lazy(() => import('./screens/MapEditorScreen.jsx'))
 
 const { steps } = creationSteps
-// The map each prototype opens when Load Episode hasn't picked one. Read from the data file directly so the menu
-// doesn't pull in the combat module that also exports it (combat/encounters.js).
-const COMBAT1_DEFAULT_MAP = combatEncounters.encounters[0].defaultMapId
 
 const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'exploration', 'mapEditor']
 // The prototypes Load Episode can open (a saved choice of one since removed falls back to the first).
 const EPISODE_MODES = ['combat', 'exploration']
+
+// A refresh returns to the saved view, except an episode with no map picked, which has nothing to open.
+function initialView({ view, episode }) {
+  if (!VIEWS.includes(view)) return 'menu'
+  return EPISODE_MODES.includes(view) && !episode?.mapId ? 'episodeSelect' : view
+}
 
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
@@ -44,7 +46,7 @@ const MENU_STAGE = { width: 1024, height: 576 }
 function Views() {
   const { dispatch } = useCharacter()
   // UI state only: which top-level view is showing. Saved (never exported) so a refresh returns to it.
-  const [view, setView] = useState(() => (VIEWS.includes(loadLocation().view) ? loadLocation().view : 'menu'))
+  const [view, setView] = useState(() => initialView(loadLocation()))
   const [displaySettings, setDisplaySettings] = useState(() => normalizeDisplaySettings(loadSettings()?.display))
   const [audioSettings, setAudioSettings] = useState(() => normalizeAudioSettings(loadSettings()?.audio))
   const [savedCharacters, setSavedCharacters] = useState(getSavedCharacters)
@@ -145,12 +147,12 @@ function Views() {
       )}
       {view === 'combat' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <CombatScreen savedCharacters={savedCharacters} mapId={episode.mapId ?? COMBAT1_DEFAULT_MAP} onExit={openMenu} />
+          <CombatScreen savedCharacters={savedCharacters} mapId={episode.mapId} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'exploration' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <ExplorationScreen savedCharacters={savedCharacters} mapId={episode.mapId ?? COMBAT1_DEFAULT_MAP} onBack={() => setView('episodeSelect')} onExit={openMenu} />
+          <ExplorationScreen savedCharacters={savedCharacters} mapId={episode.mapId} onBack={() => setView('episodeSelect')} onExit={openMenu} />
         </ScaledStage>
       )}
       {view === 'mapEditor' && (

@@ -5,7 +5,6 @@ import { withStandardIssue } from './weaponSystem.js'
 
 export const getEncounter = (encounterId) => encounterData.encounters.find((encounter) => encounter.id === encounterId) ?? null
 export const DEFAULT_ENCOUNTER_ID = encounterData.encounters[0].id
-export const DEFAULT_MAP_ID = encounterData.encounters[0].defaultMapId
 export const ENEMY_SPAWNS_NEEDED = encounterData.encounters[0].roster.length
 
 // Combat started in the exploration world (src/exploration/combatLink.js).
