@@ -1,6 +1,7 @@
 // Tile lighting effects (tileEffects.json): glows, flipbook animations and wall variants. Presentation only.
 import effects from '../data/adaptation/maps/tileEffects.json'
-import { getTile, imageSize } from './mapFormat.js'
+import { FULL_LIGHT, getTile, imageSize } from './mapFormat.js'
+import { TILE_H } from './iso.js'
 
 // A flipbook: a tile's animation (tileEffects.json animations) for one of its images, as { id, loop, frameTime,
 // frames, sprites }. sprites: [{ href, emission }], whole images of the tile, one per image index; frames: the image
@@ -99,3 +100,31 @@ export function wallGlow(map, { x, y }) {
   return null
 }
 export const tileActiveGlow = (tileId) => effects.activeGlows[tileId] ?? null
+
+// Darkness over a dim map (mapFormat.js ambient): how opaque it is (0 in full light). Pitch dark (0) still leaves the map
+// faintly visible, so units can be found.
+const MAX_DARKNESS = 0.9
+export const DARKNESS_COLOUR = '#02040a'
+// How far past the map the darkness reaches (world px), so it covers the tallest tiles standing on the back rows.
+export const DARK_MARGIN = 200
+export const darknessOpacity = (map) => Math.max(0, 1 - (map.ambient ?? FULL_LIGHT) / FULL_LIGHT) * MAX_DARKNESS
+
+// The soft holes lights cut in the darkness: glowing tiles, wall variants and lit wall fittings (on their wall face and
+// the floor in front of it). [{ position, radius (tiles), lift (world px up from the floor) }].
+const darkLights = new WeakMap()
+export function darknessLights(map) {
+  if (darkLights.has(map)) return darkLights.get(map)
+  const lights = []
+  map.tiles.forEach((row, y) =>
+    row.forEach((id, x) => {
+      const position = { x, y }
+      const tile = getTile(id)
+      if (tileGlow(id)) lights.push({ position, radius: 2.6, lift: 0 })
+      else if (tile.height > 0 && wallVariant(tile, position)) lights.push({ position, radius: 1.5, lift: TILE_H })
+      const fitting = wallGlow(map, position)
+      if (fitting) lights.push({ position: fitting.centre, radius: 1.8, lift: TILE_H / 2 })
+    }),
+  )
+  darkLights.set(map, lights)
+  return lights
+}

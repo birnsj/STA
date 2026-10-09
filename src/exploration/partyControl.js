@@ -110,7 +110,7 @@ export function getCohesion(state) {
   const members = getMembers(state).filter(canAct)
   const groupOf = (member) => (member.order?.type === 'follow' ? member.order.leaderId : member.id)
   if (new Set(members.map(groupOf)).size === 1) return 'grouped'
-  const field = walkingDistances(state.map, tileOf(leader.position))
+  const field = walkingDistances(state.map, tileOf(leader.position), MOVE.groupedDistance)
   return members.every((member) => walkingDistanceTo(state.map, field, member.position) <= MOVE.groupedDistance) ? 'grouped' : 'separated'
 }
 

@@ -34,18 +34,31 @@ function hides(shape, point) {
   return Math.abs(figure.x - shape.x) < shape.halfWidth + FIGURE_HALF_WIDTH && figure.y > shape.top && figure.y - FIGURE_TOP < shape.bottom
 }
 
+// The map's fading blocks ([{ key, shape }]), worked out once per map and bigGroups, as the views ask every frame.
+const fadeShapes = new WeakMap()
+function fadingBlocks(map, bigGroups) {
+  const cached = fadeShapes.get(map)
+  if (cached?.bigGroups === bigGroups) return cached.blocks
+  const blocks = []
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      const tile = getTile(map.tiles[y][x])
+      if (!tile.fade || tile.height <= 0) continue
+      const key = `${x},${y}`
+      blocks.push({ key, shape: blockShape({ x, y }, tile, bigGroups?.get(key)) })
+    }
+  }
+  fadeShapes.set(map, { bigGroups, blocks })
+  return blocks
+}
+
 // Keys ('x,y') of the fading blocks that hide any of the points (party members' tile positions).
 // bigGroups: getBigObjects(map) when big objects are drawn, so their tiles are tested against the whole object.
 export function fadedBlockKeys(map, points, bigGroups = null) {
   const keys = new Set()
   if (!points.length) return keys
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      const tile = getTile(map.tiles[y][x])
-      if (!tile.fade || tile.height <= 0) continue
-      const shape = blockShape({ x, y }, tile, bigGroups?.get(`${x},${y}`))
-      if (points.some((point) => hides(shape, point))) keys.add(`${x},${y}`)
-    }
+  for (const { key, shape } of fadingBlocks(map, bigGroups)) {
+    if (points.some((point) => hides(shape, point))) keys.add(key)
   }
   return keys
 }

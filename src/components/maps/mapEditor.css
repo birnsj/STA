@@ -408,23 +408,8 @@
   shape-rendering: crispEdges;
 }
 
-/* The board's canvas, with the animation layer canvases stacked over it (EditorCanvas.jsx). */
-.me-canvas {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.me-canvas canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
 /* Tile animations off: the palette previews and the brush hold their first frame (the board's canvas layers are
-   held by EditorCanvas). */
+   held by MapCanvas). */
 .me-screen.is-still .me-board *,
 .me-screen.is-still .me-palette * {
   animation: none !important;

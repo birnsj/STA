@@ -153,13 +153,15 @@ export function findTilePath(map, start, goal) {
 }
 
 // Walking distance (in tiles) from one tile to every tile, as a Float32Array indexed y * width + x (Infinity =
-// unreachable). Cached per map and start tile, because followers ask about the same leader tile every frame.
+// unreachable, or farther than `limit`: the search stops there, as on a big open map a whole-map search each time the
+// leader steps onto a new tile stalls the game). Cached per map, start tile and limit, because followers ask about the
+// same leader tile every frame.
 const FIELD_CACHE_SIZE = 64
 const fieldCache = new WeakMap()
-export function walkingDistances(map, from) {
+export function walkingDistances(map, from, limit = Infinity) {
   let cache = fieldCache.get(map)
   if (!cache) fieldCache.set(map, (cache = new Map()))
-  const cacheKey = `${from.x},${from.y}`
+  const cacheKey = `${from.x},${from.y},${limit}`
   const cached = cache.get(cacheKey)
   if (cached) return cached
   const field = new Float32Array(map.width * map.height).fill(Infinity)
@@ -176,7 +178,7 @@ export function walkingDistances(map, from) {
         const ny = y + dy
         if (solid(map, nx, ny) || (dx && dy && (solid(map, x + dx, y) || solid(map, x, y + dy)))) continue
         const next = ny * map.width + nx
-        if (cost + step >= field[next]) continue
+        if (cost + step >= field[next] || cost + step > limit) continue
         field[next] = cost + step
         push(heap, [cost + step, next])
       }

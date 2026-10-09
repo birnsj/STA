@@ -49,12 +49,15 @@ function usable(map, field, leader, point, taken, personalSpace) {
 // pillar nudges a flank aside); failing that, as far toward the slot as they can walk straight from the leader.
 // avoid: positions of other characters who are standing still, so nobody aims for a spot already occupied.
 export function formationTargets(map, formation, slots, leader, heading, spacing, { avoid = [], personalSpace }) {
-  const field = walkingDistances(map, tileOf(leader))
+  const ideals = slots.map((slot) => slotPoint(formation, slot, leader, heading, spacing))
+  // Walking distances are only compared for spots this near the leader (a slot, or a tile round it), each against its
+  // detour allowance, so the search need go no farther.
+  const reach = Math.max(0, ...ideals.map((ideal) => distance(leader, ideal))) + (SEARCH_RINGS + 1) * Math.SQRT2
+  const field = walkingDistances(map, tileOf(leader), Math.ceil(reach * DETOUR_FACTOR + DETOUR_ALLOWANCE))
   const taken = [leader, ...avoid]
   const forward = { x: Math.cos(heading), y: Math.sin(heading) }
   const ahead = (point) => (point.x - leader.x) * forward.x + (point.y - leader.y) * forward.y > 0.25
-  return slots.map((slot) => {
-    const ideal = slotPoint(formation, slot, leader, heading, spacing)
+  return ideals.map((ideal) => {
     let target = usable(map, field, leader, ideal, taken, personalSpace) ? ideal : null
     if (!target) {
       const centre = tileOf(ideal)

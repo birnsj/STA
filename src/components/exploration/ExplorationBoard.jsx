@@ -5,17 +5,22 @@ import { getFollowTargets, getMembers, isSelected } from '../../exploration/part
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
 import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
-import { isBlock, project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
-import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
-import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
+import { fadeWholePanels } from '../../maps/wallPanels.js'
+import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
-import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
-import useDarkBlocks from '../maps/useDarkBlocks.js'
+import { boardLayout } from '../maps/canvasTiles.js'
+import { around, labelHalfWidth } from '../maps/occlusion.js'
+import MapCanvas from '../maps/MapCanvas.jsx'
+import useFigureWindows from '../maps/useFigureWindows.jsx'
+import useStableSet from '../maps/useStableSet.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
-// lead character toward the pointer. Presentation and input only; positions come from partyControl.js.
+// lead character toward the pointer. The map is drawn into canvases (MapCanvas); the figures are SVG over it, each
+// group with the blocks in front of it drawn over it again (occlusion.js). Presentation and input only; positions come
+// from partyControl.js.
 const VIEW = { width: 1024, height: 576 }
 const HUD_MARGIN = { x: 200, top: 150, bottom: 130 }
 // While the left button is held the destination follows the pointer, re-sent at most this often...
@@ -35,7 +40,6 @@ const worldBounds = (map) => ({
 })
 
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
-
 // Arrow on the ground ring pointing along a direction on the tile grid, in the tiles' isometric projection.
 function FacingArrow({ facing }) {
   const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
@@ -312,29 +316,10 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     onMoveRef.current = onMove
   }, [onMove])
 
-  const floor = useMemo(() => <FloorTiles map={map} />, [map])
-  const blockPositions = useMemo(() => {
-    const list = []
-    map.tiles.forEach((row, y) =>
-      row.forEach((id, x) => {
-        if (isBlock(id)) list.push({ x, y })
-      }),
-    )
-    return list
-  }, [map])
-  const panels = useMemo(() => getWallPanels(map), [map])
-  const bigGroups = useMemo(() => getBigObjects(map), [map])
+  const layout = useMemo(() => boardLayout(map), [map])
+  const { panels, bigGroups } = layout
   const hidden = fadedBlockKeys(map, getMembers(state).map((member) => member.position), bigGroups)
-  const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
-  const darkBlocks = useDarkBlocks(faded, panels, bigGroups)
-  const blocks = blockPositions.map((position) => {
-    const key = `${position.x},${position.y}`
-    return {
-      depth: position.x + position.y,
-      key: `b${key}`,
-      element: <WallBlock key={`b${key}`} map={map} position={position} faded={faded} panels={panels} bigGroups={bigGroups} />,
-    }
-  })
+  const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
 
   const toTiles = (clientX, clientY) => {
     const svg = svgRef.current
@@ -400,18 +385,33 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     onSelect(id, isAdditive(event))
   }
 
-  const depthItems = [
-    ...blocks,
+  // On the floor, under every block: where NPCs were last seen, and the click rings.
+  const ground = (
+    <>
+      {getNpcs(world)
+        .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
+        .filter(({ entry }) => entry.state === KNOWLEDGE.KNOWN)
+        .map(({ npc, entry }) => (
+          <LastKnownMarker key={`lk${npc.id}`} position={entry.lastKnownPosition} label={debug ? npc.name : entry.identified ? null : 'Life sign'} />
+        ))}
+      {pulses.map((pulse) => (
+        <ClickPulse key={pulse.id} point={pulse.point} />
+      ))}
+    </>
+  )
+  // The figures standing among the blocks, in painter's order by depth.
+  const atDepth = (position, offset) => position.x + position.y + offset
+  const figures = [
     ...getMembers(state).map((member) => ({
-      depth: member.position.x + member.position.y + 0.5,
-      key: `u${member.id}`,
+      depth: atDepth(member.position, 0.5),
+      box: around(member.position, 30, 72),
       element: <Explorer key={`u${member.id}`} member={member} selected={isSelected(state, member.id)} lead={member.id === state.leaderId} onPress={pressMember(member.id)} />,
     })),
     ...getNpcs(world)
       .filter((npc) => debug || isVisibleToParty(knowledge, npc.id))
       .map((npc) => ({
-        depth: npc.position.x + npc.position.y + 0.5,
-        key: `n${npc.id}`,
+        depth: atDepth(npc.position, 0.5),
+        box: around(npc.position, 30, 62),
         element: <NpcToken key={`n${npc.id}`} npc={npc} unperceived={!isVisibleToParty(knowledge, npc.id)} />,
       })),
     ...challenges.map((view) => {
@@ -421,12 +421,15 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         event.stopPropagation()
         onInteract(view.id)
       }
-      return { depth: view.position.x + view.position.y + 0.4, key: `c${view.id}`, element: <ChallengeMarker key={`c${view.id}`} view={view} inReach={inReach} onPress={press} /> }
+      const half = Math.max(30, labelHalfWidth(view.name), labelHalfWidth(view.stateLabel))
+      return {
+        depth: atDepth(view.position, 0.4),
+        box: around(view.position, half, 60, half, 30),
+        element: <ChallengeMarker key={`c${view.id}`} view={view} inReach={inReach} onPress={press} />,
+      }
     }),
-  ].sort((a, b) => a.depth - b.depth)
-  const lastKnown = getNpcs(world)
-    .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
-    .filter(({ entry }) => entry.state === KNOWLEDGE.KNOWN)
+  ]
+  const { holes, windows } = useFigureWindows(layout, faded, figures)
 
   return (
     <svg
@@ -437,15 +440,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       onContextMenu={preventMenu}
       onClick={handleClick}
     >
-      {floor}
-      {lastKnown.map(({ npc, entry }) => (
-        <LastKnownMarker key={`lk${npc.id}`} position={entry.lastKnownPosition} label={debug ? npc.name : entry.identified ? null : 'Life sign'} />
-      ))}
-      {pulses.map((pulse) => (
-        <ClickPulse key={pulse.id} point={pulse.point} />
-      ))}
-      {depthItems.map((item) => item.element)}
-      <AmbientDarkness map={map} blocks={darkBlocks} />
+      <MapCanvas layout={layout} faded={faded} holes={holes} ground={ground}>
+        {windows}
+      </MapCanvas>
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}

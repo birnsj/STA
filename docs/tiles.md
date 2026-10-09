@@ -69,6 +69,6 @@ Map rotation (tiles turned with the editor's right click) is described in `src/m
 | Window panels and long wall fittings | `src/maps/wallPanels.js` |
 | 2x2 big objects | `src/maps/bigObjects.js` |
 | Joined railings | `src/maps/railJoins.js` |
-| Drawing | `src/components/maps/IsoTiles.jsx` (flipbooks: `flipbookStyles.js`), the editor's `canvasTiles.js` and `EditorCanvas.jsx` |
+| Drawing | Maps: `src/components/maps/MapCanvas.jsx` and `canvasTiles.js` (editor, exploration and combat alike); figures in front of walls: `occlusion.js` and `useFigureWindows.jsx`; single SVG tiles (brush, palette, blocks over figures): `IsoTiles.jsx` (flipbooks: `flipbookStyles.js`) |
 | Animation frames | `scripts/makeTileFrames.mjs` |
 | Art generation | `scripts/makeTilesV2.mjs` (Starship & Station), `scripts/makeTilesBridge.mjs` (Bridge (TOS)), `scripts/makeTilesV2World.mjs` (everything else); each writes to the file's group folder (`scripts/v2/engine.mjs` `outFile`). The original placeholder art and its generator are kept in the git-ignored `backups/`. |

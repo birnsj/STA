@@ -440,6 +440,9 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     },
     [dispatch],
   )
+  const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
+  const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
+  const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
   const sheetMember = !sheetClosed && !debugOpen && party.selectedIds.length === 1 ? party.members[party.selectedIds[0]] : null
 
   // Number keys 1-n pick party members (Shift adds / removes), like clicking their portraits.
@@ -558,17 +561,13 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         selectedIds={party.selectedIds}
         leaderId={party.leaderId}
         onSelect={select}
-        onSetLeader={(id) => dispatch({ type: 'setLeader', id })}
+        onSetLeader={setLeader}
         recommendation={openId ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
       />
       {!openId && (
         <div className="explore-bottom-right">
           <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />
-          <FormationPanel
-            formationId={party.formationId}
-            onFormation={(formationId) => dispatch({ type: 'setFormation', formationId })}
-            onRegroup={() => dispatch({ type: 'regroup' })}
-          />
+          <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />
         </div>
       )}
       {debugOpen && (

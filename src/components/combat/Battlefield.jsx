@@ -1,12 +1,15 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
-import { diamond, isBlock, project, pts as points, TILE_H, TILE_W } from '../../maps/iso.js'
+import { diamond, isBlock, project, pts as points, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
-import { fadeWholePanels, getWallPanels } from '../../maps/wallPanels.js'
-import { fadeWholeBigObjects, getBigObjects } from '../../maps/bigObjects.js'
-import { AmbientDarkness, FloorTiles, WallBlock } from '../maps/IsoTiles.jsx'
-import useDarkBlocks from '../maps/useDarkBlocks.js'
+import { fadeWholePanels } from '../../maps/wallPanels.js'
+import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
+import { boardLayout } from '../maps/canvasTiles.js'
+import MapCanvas from '../maps/MapCanvas.jsx'
+import { around } from '../maps/occlusion.js'
+import useFigureWindows from '../maps/useFigureWindows.jsx'
+import useStableSet from '../maps/useStableSet.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -51,15 +54,56 @@ function useMoveAnimation(lastMove, msPerTile) {
 // Two tile-key sets (either of which may be absent) holding the same keys.
 const sameKeys = (a, b) => a === b || (a?.size === b?.size && [...(a ?? [])].every((key) => b.has(key)))
 
-// The floor the player clicks: one polygon per walkable tile, carrying the move highlight and the tile's pointer
-// handlers. There are hundreds of them and they only change when the highlight does, so the layer is memoised on the
-// highlight itself and reads the handlers through a ref (the screen above hands down a new onTileClick every render).
+// The floor the player clicks: one outline of the whole map, which works out the floor tile under the pointer (blocks
+// never take clicks), and a polygon for each highlighted tile (in reach, on the path, the destination). The highlight
+// only changes with the move overlay, so the layer is memoised on it and reads the handlers through a ref (the screen
+// above hands down a new onTileClick every render). hoverRef: the floor tile last hovered, shared by both.
 const FloorGrid = memo(
-  function FloorGrid({ tiles, reachableKeys, pathKeys, destinationKey, handlersRef, pointerTypeRef }) {
+  function FloorGrid({ map, reachableKeys, pathKeys, destinationKey, handlersRef, pointerTypeRef, hoverRef }) {
+    const highlighted = new Set([...(reachableKeys ?? []), ...(pathKeys ?? []), ...(destinationKey ? [destinationKey] : [])])
+    const floorAt = (event) => {
+      const svg = event.currentTarget.ownerSVGElement
+      const point = unproject(new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse()))
+      const position = { x: Math.round(point.x), y: Math.round(point.y) }
+      const inside = position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height
+      return inside && !isBlock(map.tiles[position.y][position.x]) ? position : null
+    }
+    const press = (event) => {
+      pointerTypeRef.current = event.pointerType
+    }
+    const click = (position) => handlersRef.current.onTileClick(position, { touch: pointerTypeRef.current === 'touch' })
+    const hover = (position) => {
+      if (hoverRef.current && tileKey(hoverRef.current) === tileKey(position)) return
+      hoverRef.current = position
+      handlersRef.current.onTileHover(position)
+    }
+    const [right, bottom] = [map.width - 0.5, map.height - 0.5]
+    const outline = [
+      [-0.5, -0.5],
+      [right, -0.5],
+      [right, bottom],
+      [-0.5, bottom],
+    ].map(([x, y]) => {
+      const corner = project({ x, y })
+      return [corner.x, corner.y]
+    })
     return (
       <g className="iso-floor">
-        {tiles.map(({ x, y }) => {
-          const key = tileKey({ x, y })
+        <polygon
+          className="iso-tile"
+          points={points(outline)}
+          onPointerDown={press}
+          onClick={(event) => {
+            const position = floorAt(event)
+            if (position) click(position)
+          }}
+          onPointerMove={(event) => {
+            const position = floorAt(event)
+            if (position) hover(position)
+          }}
+        />
+        {[...highlighted].map((key) => {
+          const [x, y] = key.split(',').map(Number)
           const reachable = reachableKeys?.has(key)
           return (
             <polygon
@@ -67,11 +111,9 @@ const FloorGrid = memo(
               className={`iso-tile${reachable ? ' is-reachable' : ''}${pathKeys?.has(key) ? ' is-path' : ''}${key === destinationKey ? ' is-destination' : ''}`}
               points={points(diamond({ x, y }))}
               data-ui-press={reachable ? '' : undefined}
-              onPointerDown={(event) => {
-                pointerTypeRef.current = event.pointerType
-              }}
-              onClick={() => handlersRef.current.onTileClick({ x, y }, { touch: pointerTypeRef.current === 'touch' })}
-              onMouseEnter={() => handlersRef.current.onTileHover({ x, y })}
+              onPointerDown={press}
+              onClick={() => click({ x, y })}
+              onMouseEnter={() => hover({ x, y })}
             />
           )
         })}
@@ -79,7 +121,7 @@ const FloorGrid = memo(
     )
   },
   (before, after) =>
-    before.tiles === after.tiles &&
+    before.map === after.map &&
     before.destinationKey === after.destinationKey &&
     sameKeys(before.reachableKeys, after.reachableKeys) &&
     sameKeys(before.pathKeys, after.pathKeys),
@@ -356,35 +398,20 @@ export default function Battlefield({
   useLayoutEffect(() => {
     tileHandlers.current = { onTileClick, onTileHover }
   })
+  const hoverRef = useRef(null)
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
-  // Stable as long as the map is: the memoised floor and block tiles compare these by identity.
-  const { tiles, blocks } = useMemo(() => {
-    const floor = []
-    const solid = []
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
-        if (isBlock(map.tiles[y][x])) solid.push({ x, y })
-        else floor.push({ x, y })
-      }
-    }
-    return { tiles: floor, blocks: solid }
-  }, [map])
-  const panels = useMemo(() => getWallPanels(map), [map])
-  const bigGroups = useMemo(() => getBigObjects(map), [map])
+  const layout = useMemo(() => boardLayout(map), [map])
+  const { panels, bigGroups } = layout
   const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
   const hidden = fadedBlockKeys(map, units.filter((unit) => unit.side === 'player').map(shownPosition), bigGroups)
-  const faded = fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups)
-  const darkBlocks = useDarkBlocks(faded, panels, bigGroups)
-  const depthItems = [
-    ...blocks.map((block) => ({
-      depth: block.x + block.y,
-      key: `b${block.x},${block.y}`,
-      render: () => <WallBlock key={`b${block.x},${block.y}`} map={map} position={block} faded={faded} panels={panels} bigGroups={bigGroups} />,
-    })),
+  const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
+  // A unit with its badges above it, and the tile it is stepping from while it walks (a tile's step on screen).
+  const unitBox = (position) => around(position, 44 + TILE_W / 2, 86 + TILE_H / 2, 52 + TILE_W / 2, 20 + TILE_H / 2)
+  const figures = [
     ...units.map((unit) => ({
       depth: shownPosition(unit).x + shownPosition(unit).y + (unit.condition.defeated ? 0.1 : 0.5),
-      key: `u${unit.id}`,
-      render: () => (
+      box: unitBox(shownPosition(unit)),
+      element: (
         <Unit
           key={`u${unit.id}`}
           combatant={unit}
@@ -403,8 +430,8 @@ export default function Battlefield({
     })),
     ...bystanders.map((npc) => ({
       depth: npc.position.x + npc.position.y + (npc.condition.defeated ? 0.1 : 0.5),
-      key: `n${npc.id}`,
-      render: () => (
+      box: unitBox(npc.position),
+      element: (
         <Unit
           key={`n${npc.id}`}
           combatant={{ id: npc.id, character: npc.character, side: 'enemy', condition: npc.condition, inCover: false }}
@@ -416,28 +443,19 @@ export default function Battlefield({
         />
       ),
     })),
-  ].sort((a, b) => a.depth - b.depth)
-
-  const shot = overlay.shot
-  const shotFrom = shot && tileCentre(shot.from)
-  const shotTo = shot && tileCentre(shot.to)
-
-  return (
-    <svg
-      className="battlefield"
-      viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
-      style={{ '--fx-speed': speed }}
-      {...dragHandlers}
-      onMouseLeave={() => onTileHover(null)}
-    >
-      <FloorTiles map={map} />
+  ]
+  const { holes, windows } = useFigureWindows(layout, faded, figures)
+  // On the floor, under every block.
+  const ground = (
+    <>
       <FloorGrid
-        tiles={tiles}
+        map={map}
         reachableKeys={overlay.reachableKeys}
         pathKeys={overlay.pathKeys}
         destinationKey={overlay.path ? tileKey(overlay.path[overlay.path.length - 1]) : null}
         handlersRef={tileHandlers}
         pointerTypeRef={pointerTypeRef}
+        hoverRef={hoverRef}
       />
       {overlay.path && <MovePathLine path={overlay.path} />}
       {snapMarks && (
@@ -458,8 +476,27 @@ export default function Battlefield({
       {objectMarks?.map((mark) => (
         <ObjectMarker key={mark.id} mark={mark} onClick={() => onObjectClick(mark.id)} />
       ))}
-      {depthItems.map((item) => item.render())}
-      <AmbientDarkness map={map} blocks={darkBlocks} />
+    </>
+  )
+
+  const shot = overlay.shot
+  const shotFrom = shot && tileCentre(shot.from)
+  const shotTo = shot && tileCentre(shot.to)
+
+  return (
+    <svg
+      className="battlefield"
+      viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
+      style={{ '--fx-speed': speed }}
+      {...dragHandlers}
+      onMouseLeave={() => {
+        hoverRef.current = null
+        onTileHover(null)
+      }}
+    >
+      <MapCanvas layout={layout} faded={faded} holes={holes} ground={ground}>
+        {windows}
+      </MapCanvas>
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {shot && (
         <line

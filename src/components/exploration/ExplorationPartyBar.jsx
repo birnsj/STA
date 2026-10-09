@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
@@ -76,7 +76,20 @@ function CardDetails({ character, condition }) {
 // one selected, Make Lead picks who walks to the clicked point (the others keep formation around them).
 // recommendation: who is best at the approach being considered (rules/taskRecommendation.js), shown on the cards only
 // while it is considered (null otherwise).
-export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, onSetLeader, recommendation = null }) {
+// The screen re-renders on every world tick; the bar only when what it shows changes (not as the members walk).
+const sameMembers = (a, b) =>
+  a.length === b.length && a.every((member, i) => member.id === b[i].id && member.character === b[i].character && member.condition === b[i].condition)
+const sameIds = (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+const sameRecommendation = (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b)
+const sameBar = (prev, next) =>
+  sameMembers(prev.members, next.members) &&
+  sameIds(prev.selectedIds, next.selectedIds) &&
+  prev.leaderId === next.leaderId &&
+  prev.onSelect === next.onSelect &&
+  prev.onSetLeader === next.onSetLeader &&
+  sameRecommendation(prev.recommendation, next.recommendation)
+
+export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, onSetLeader, recommendation = null }) {
   const several = selectedIds.length > 1
   return (
     <div className="party-bar explore-party-bar">
@@ -113,11 +126,11 @@ export function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, 
       })}
     </div>
   )
-}
+}, sameBar)
 
 // Stacked above the Formation panel: the general actions (exploration/partyActions.js). Clicking one considers it, so the
 // party cards show who is best at it; clicking it again stops. Nothing is rolled yet.
-export function ExplorationActionButtons({ consideredId, onConsider }) {
+export const ExplorationActionButtons = memo(function ExplorationActionButtons({ consideredId, onConsider }) {
   return (
     <div className="explore-action-stack" aria-label="Actions: who is best at it">
       {PARTY_ACTIONS.map((action) => {
@@ -141,7 +154,7 @@ export function ExplorationActionButtons({ consideredId, onConsider }) {
       })}
     </div>
   )
-}
+})
 
 
 // A formation drawn from its own slots (the lead in front, at the top), all at one scale so Tight looks tight and
@@ -159,7 +172,7 @@ function FormationIcon({ formation }) {
 
 const REGROUP_ICON = 'M4 4l5 5M9 5v4H5M20 4l-5 5M15 5v4h4M4 20l5-5M9 19v-4H5M20 20l-5-5M15 19v-4h4'
 
-export function FormationPanel({ formationId, onFormation, onRegroup }) {
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
@@ -192,4 +205,4 @@ export function FormationPanel({ formationId, onFormation, onRegroup }) {
       </div>
     </div>
   )
-}
+})

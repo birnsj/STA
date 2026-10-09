@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { diamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
 import { brushPositions, paintBrush } from '../../maps/mapEdits.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import useCamera from '../combat/useCamera.js'
-import EditorCanvas from './EditorCanvas.jsx'
-import { AmbientDarkness, LoneTile } from './IsoTiles.jsx'
+import { boardLayout } from './canvasTiles.js'
+import { LoneTile } from './IsoTiles.jsx'
+import MapCanvas from './MapCanvas.jsx'
 
-// The map editor's board: the tiles drawn into one canvas (EditorCanvas: floor, shadows and light pools, blocks as
-// exploration and Combat Type 1 draw them, animated tiles on layers over it) under one clickable floor-level outline of the
-// whole map; the tile under the pointer is worked out from where its floor would be (blocks never take clicks). The
-// darkness is SVG between the tiles and their lit parts; the markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what
-// is behind blocks.
+// The map editor's board: the map drawn as exploration and Combat Type 1 draw it (MapCanvas) under one clickable
+// floor-level outline of the whole map; the tile under the pointer is worked out from where its floor would be (blocks
+// never take clicks). The markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through
+// blocks shows what is behind blocks.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
 
@@ -57,6 +57,7 @@ function BrushPreview({ map, position, tileId, rotated }) {
 // frame). erasing: the Erase Marker tool is held, so the markers and label on the hovered tile are highlighted as the
 // ones a click removes.
 export default function EditorBoard({ map, ghostBlocks, lighting = true, animate = true, brush, rotated, erasing = false, onPaint, onHover, onRotate }) {
+  const layout = useMemo(() => boardLayout(map), [map])
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, onRotate)
   const [hover, setHoverState] = useState(null)
@@ -98,7 +99,7 @@ export default function EditorBoard({ map, ghostBlocks, lighting = true, animate
       {...dragHandlers}
       onPointerLeave={() => setHover(null)}
     >
-      <EditorCanvas map={map} ghost={ghostBlocks} lighting={lighting} animate={animate} darkness={lighting && <AmbientDarkness map={map} />} />
+      <MapCanvas layout={layout} ghost={ghostBlocks} lighting={lighting} animate={animate} />
       <polygon
         className="me-cells"
         points={outline}

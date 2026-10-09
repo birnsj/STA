@@ -3,6 +3,22 @@
   pointer-events: none;
 }
 
+/* A board's canvas, with its layer canvases stacked over it (MapCanvas.jsx). */
+.tile-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tile-canvas canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Animated tiles (tileArt.js flipbooks): whole sprites stacked, each shown on its own frames by keyframes built from
    tileEffects.json (flipbookStyles.js; the name, length and delay are inline). Held, not faded, between frames. */
 .tilemap-frame {
@@ -67,35 +83,7 @@
   stroke-width: 1.2;
 }
 
-/* The darkness's emissive mask (IsoTiles EmissiveMask): block art white and the emission of animated tiles' sprites
-   black, so the darkness is cut away exactly where a light shows. The panel edges and window glass would only add white. */
-.tilemap-emissive image {
-  filter: brightness(0) invert(1);
-}
-
-.tilemap-emissive image.tilemap-emission {
-  filter: brightness(0);
-}
-
-.tilemap-emissive .wall-panel {
-  display: none;
-}
-
-/* Light pools round glowing tiles breathe with them. */
-.tilemap-glows ellipse {
-  animation: tilemap-glow 2.8s ease-in-out infinite;
-}
-
-@keyframes tilemap-glow {
-  0%, 100% { opacity: 0.65; }
-  50% { opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .tilemap-glows ellipse {
-    animation: none;
-  }
-
   /* !important: a frame's animation name is inline. Each rests on the loop's first frame. */
   .tilemap-frame {
     animation: none !important;

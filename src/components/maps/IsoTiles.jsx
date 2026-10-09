@@ -1,29 +1,17 @@
-import { memo, useId } from 'react'
-import { FULL_LIGHT, getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
-import { isBlock, mapBounds, project, pts, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
+import { memo } from 'react'
+import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
+import { isBlock, project, pts, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { BIG_IMAGE } from '../../maps/bigObjects.js'
 import { joinedImage } from '../../maps/railJoins.js'
-import {
-  activeFlipbook,
-  animationDelay,
-  bigFlipbook,
-  panelArt,
-  tileActiveGlow,
-  tileFlipbook,
-  tileGlow,
-  WALL_GLOW_SIZE,
-  wallGlow,
-  wallVariant,
-} from '../../maps/tileArt.js'
+import { animationDelay, bigFlipbook, panelArt, tileFlipbook, wallVariant } from '../../maps/tileArt.js'
 import { frameStyle } from './flipbookStyles.js'
-import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
+import { FRAME, WINDOW } from './tileShapes.js'
 import './maps.css'
 
-// Tile PNGs for any map view. Floors are one layer under everything; blocks are drawn one at a time so the caller can
-// depth-sort them with units (painter's order by x + y). Presentation only: images never take pointer input.
-// Every image is drawn at its own design size (mapFormat.js imageSize, bigObjects.js BIG_IMAGE), never stretched.
-// Both layers are memoised: a map holds hundreds of tiles that never change while it is being played, so they are only
-// rebuilt when the map itself does, not on every turn, hover or camera move.
+// Single tiles as SVG: the blocks the play views draw over their figures (useFigureWindows), the editor's brush and
+// its palette previews. The maps themselves are drawn into canvases (MapCanvas, canvasTiles.js), which draw every tile
+// as these do. Presentation only: images never take pointer input. Every image is drawn at its own design size
+// (mapFormat.js imageSize, bigObjects.js BIG_IMAGE), never stretched.
 
 // A rotated tile (mapFormat.js rotated) is drawn mirrored about its own centre line, except a wall with panels: its
 // rotation turns the panel run instead (wallPanels.js).
@@ -36,181 +24,13 @@ function TileImage({ href, position, className, style, mirror = false, size = TI
 }
 
 // An animated tile (a flipbook, tileArt.js): its whole sprites stacked, each shown only on its own frames
-// (flipbookStyles.js). draw(href, className) draws one sprite where the tile's image goes. emissive: drawn into the
-// darkness's mask (EmissiveMask), where each sprite's emission goes too.
-function Flipbook({ book, delay, emissive = false, draw }) {
+// (flipbookStyles.js). draw(href) draws one sprite where the tile's image goes.
+function Flipbook({ book, delay, draw }) {
   return book.sprites.map((sprite, index) => (
     <g key={index} className="tilemap-frame" style={frameStyle(book, index, delay)}>
       {draw(sprite.href)}
-      {emissive && sprite.emission && draw(sprite.emission, 'tilemap-emission')}
     </g>
   ))
-}
-
-// hazardLive: the map's hazard tiles play their active (discharging) animation, all in step.
-export const FloorTiles = memo(function FloorTiles({ map, hazardLive = false }) {
-  const tiles = []
-  map.tiles.forEach((row, y) =>
-    row.forEach((id, x) => {
-      if (isBlock(id)) return
-      const position = { x, y }
-      const tile = getTile(id)
-      const mirror = isMirrored(map, position)
-      const live = hazardLive && tile.role === 'hazard' ? activeFlipbook(tile) : null
-      if (!live) {
-        tiles.push(<TileImage key={`${x},${y}`} className="tilemap-tile" href={tileImage(map, position)} position={position} mirror={mirror} />)
-        return
-      }
-      tiles.push(
-        <g key={`${x},${y}`}>
-          <Flipbook book={live} delay="0s" draw={(href) => <TileImage className="tilemap-tile" href={href} position={position} mirror={mirror} />} />
-        </g>,
-      )
-    }),
-  )
-  return (
-    <g className="tilemap-floor">
-      {tiles}
-      <FloorLighting map={map} hazardLive={hazardLive} />
-    </g>
-  )
-})
-
-const pathOf = (quads) => quads.map((quad) => `M${quad.map((point) => `${point.x},${point.y}`).join('L')}Z`).join('')
-
-// The tile lighting effects (tileArt.js): contact shadows, then light pools round glowing tiles.
-function FloorLighting({ map, hazardLive }) {
-  const uid = useId()
-  const bands = SHADE_BANDS.map(() => [])
-  const glows = []
-  const blockAt = (x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && isBlock(map.tiles[y][x])
-  map.tiles.forEach((row, y) =>
-    row.forEach((id, x) => {
-      const position = { x, y }
-      const colour = tileGlow(id) ?? (hazardLive ? tileActiveGlow(id) : null)
-      if (colour) glows.push({ position, colour, size: 1.5 })
-      const fitting = wallGlow(map, position)
-      if (fitting) glows.push({ position: fitting.centre, colour: fitting.colour, size: WALL_GLOW_SIZE })
-      if (isBlock(id)) return
-      for (const side of SIDES) {
-        if (!blockAt(x + side.dx, y + side.dy)) continue
-        SHADE_BANDS.forEach(([from, to], i) => bands[i].push(edgeStrip(position, side, from, to)))
-      }
-    }),
-  )
-  const colours = [...new Set(glows.map((glow) => glow.colour))]
-  const gradientId = (colour) => `${uid}-glow-${colours.indexOf(colour)}`
-  // Light pools stop at the map's outline instead of spilling into the empty space round it.
-  const outline = [
-    project({ x: -0.5, y: -0.5 }),
-    project({ x: map.width - 0.5, y: -0.5 }),
-    project({ x: map.width - 0.5, y: map.height - 0.5 }),
-    project({ x: -0.5, y: map.height - 0.5 }),
-  ]
-  return (
-    <g className="tilemap-lighting" pointerEvents="none">
-      <defs>
-        <clipPath id={`${uid}-outline`}>
-          <polygon points={outline.map((point) => `${point.x},${point.y}`).join(' ')} />
-        </clipPath>
-        {colours.map((colour) => (
-          <radialGradient key={colour} id={gradientId(colour)}>
-            <stop offset="0%" stopColor={colour} stopOpacity="0.55" />
-            <stop offset="45%" stopColor={colour} stopOpacity="0.2" />
-            <stop offset="100%" stopColor={colour} stopOpacity="0" />
-          </radialGradient>
-        ))}
-      </defs>
-      {bands.map((quads, i) => quads.length > 0 && <path key={i} d={pathOf(quads)} fill="#000" opacity={SHADE_BANDS[i][2]} />)}
-      <g className="tilemap-glows" clipPath={`url(#${uid}-outline)`}>
-        {glows.map(({ position, colour, size }) => {
-          const c = project(position)
-          return (
-            <ellipse
-              key={`${position.x},${position.y}`}
-              cx={c.x}
-              cy={c.y}
-              rx={TILE_W * size}
-              ry={TILE_H * size}
-              fill={`url(#${gradientId(colour)})`}
-              style={{ animationDelay: animationDelay(position) }}
-            />
-          )
-        })}
-      </g>
-    </g>
-  )
-}
-
-// Darkness over a dim map (mapFormat.js ambient), drawn above the tiles and units. Glowing tiles (tileEffects.json glows)
-// and lit wall fittings cut soft holes in it so their light shows through. Pitch dark (0) still leaves the map faintly
-// visible, so units can be found.
-// blocks ({ faded, panels, bigGroups }, as WallBlock takes them): the views that draw lights inline with their tiles pass
-// these, and the darkness is also cut away wherever an animated tile's lights show (EmissiveMask), so lights stay at
-// full brightness however dark the map is. The editor draws its lit sprites above the darkness instead (EditorCanvas).
-const MAX_DARKNESS = 0.9
-// Covers the tallest tiles standing on the back rows.
-const DARK_MARGIN = 200
-export const AmbientDarkness = memo(function AmbientDarkness({ map, blocks = null }) {
-  const uid = useId()
-  const ambient = map.ambient ?? FULL_LIGHT
-  if (ambient >= FULL_LIGHT) return null
-  const lights = []
-  map.tiles.forEach((row, y) =>
-    row.forEach((id, x) => {
-      const position = { x, y }
-      if (tileGlow(id)) lights.push({ position, radius: 2.6, lift: 0 })
-      else if (isBlock(id) && wallVariant(getTile(id), position)) lights.push({ position, radius: 1.5, lift: TILE_H })
-      // A lit fitting shows through on its wall face and the floor in front of it.
-      const fitting = wallGlow(map, position)
-      if (fitting) lights.push({ position: fitting.centre, radius: 1.8, lift: TILE_H / 2 })
-    }),
-  )
-  const bounds = mapBounds(map, DARK_MARGIN)
-  const area = { x: bounds.minX, y: bounds.minY, width: bounds.maxX - bounds.minX, height: bounds.maxY - bounds.minY }
-  return (
-    <g className="tilemap-ambient" pointerEvents="none">
-      <defs>
-        <radialGradient id={`${uid}-light`}>
-          <stop offset="0%" stopColor="#000" stopOpacity="1" />
-          <stop offset="45%" stopColor="#000" stopOpacity="0.75" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0" />
-        </radialGradient>
-        <mask id={`${uid}-lights`} maskUnits="userSpaceOnUse" {...area}>
-          <rect {...area} fill="#fff" />
-          {lights.map(({ position, radius, lift }) => {
-            const c = project(position)
-            return <ellipse key={`${position.x},${position.y}`} cx={c.x} cy={c.y - lift} rx={TILE_W * radius} ry={TILE_H * radius} fill={`url(#${uid}-light)`} />
-          })}
-        </mask>
-        {blocks && (
-          <mask id={`${uid}-emissive`} maskUnits="userSpaceOnUse" {...area}>
-            <rect {...area} fill="#fff" />
-            <EmissiveMask map={map} blocks={blocks} />
-          </mask>
-        )}
-      </defs>
-      <g mask={blocks ? `url(#${uid}-emissive)` : undefined}>
-        <rect {...area} fill="#02040a" opacity={(1 - ambient / FULL_LIGHT) * MAX_DARKNESS} mask={`url(#${uid}-lights)`} />
-      </g>
-    </g>
-  )
-})
-
-// The blocks drawn again in painter's order, their art white and the emission of animated tiles black (maps.css
-// tilemap-emissive): black where a light shows, so the darkness is cut away there, and white where a block in front
-// hides it. Each emission is in its sprite's frame, so a blinking light's cut-out blinks with it.
-function EmissiveMask({ map, blocks }) {
-  const positions = []
-  map.tiles.forEach((row, y) => row.forEach((id, x) => isBlock(id) && positions.push({ x, y })))
-  positions.sort((a, b) => a.x + a.y - (b.x + b.y))
-  return (
-    <g className="tilemap-emissive">
-      {positions.map((position) => (
-        <WallBlock key={`${position.x},${position.y}`} map={map} position={position} {...blocks} emissive />
-      ))}
-    </g>
-  )
 }
 
 // This tile's half of a two-tile wall panel (wallPanels.js), drawn over the wall's front face: the panel's outer edge
@@ -268,17 +88,17 @@ function WindowHalf({ half, height, at }) {
 // A wall: its image, a wall variant (tileArt.js wallVariant; never on a window half) or its animation (tileArt.js
 // tileFlipbook). Panel art (tileArt.js panelArt) replaces them with this tile's slot of the two-tile image, or of its
 // animation's sprites: a viewport the size of the tile's own image, looking at the slot.
-function WallTile({ tile, position, panel, emissive }) {
+function WallTile({ tile, position, panel }) {
   const art = panelArt(tile, panel, position)
   const variant = art || panel?.window ? null : wallVariant(tile, position)
   const size = imageSize(tile)
   const box = tileImageBox(position, size)
   const book = art ? art.flipbook : variant ? null : tileFlipbook(tile)
   const draw = art
-    ? (href, className) => <image className={className} href={href} width={art.size.width} height={art.size.height} />
-    : (href, className) => <image className={className} href={href} {...box} />
+    ? (href) => <image href={href} width={art.size.width} height={art.size.height} />
+    : (href) => <image href={href} {...box} />
   const content = book ? (
-    <Flipbook book={book} delay={animationDelay(art?.timing ?? position)} emissive={emissive} draw={draw} />
+    <Flipbook book={book} delay={animationDelay(art?.timing ?? position)} draw={draw} />
   ) : (
     draw(art?.href ?? variant?.href ?? tile.image)
   )
@@ -298,8 +118,8 @@ function WallTile({ tile, position, panel, emissive }) {
 
 // ghost: drawn see-through (the editor uses it to see tiles behind tall blocks). faded: see-through because it hides a
 // party member (wallFade.js). panel: this wall's place in a two-tile panel (wallPanels.js), or null. A railing is drawn
-// as the piece joining its neighbours (railJoins.js), never mirrored. emissive: drawn into the darkness's mask.
-export const BlockTile = memo(function BlockTile({ map, position, ghost = false, faded = false, panel = null, emissive = false }) {
+// as the piece joining its neighbours (railJoins.js), never mirrored.
+export const BlockTile = memo(function BlockTile({ map, position, ghost = false, faded = false, panel = null }) {
   const tile = getTile(map.tiles[position.y][position.x])
   const joined = joinedImage(map, position)
   const size = imageSize(tile)
@@ -307,12 +127,12 @@ export const BlockTile = memo(function BlockTile({ map, position, ghost = false,
   return (
     <g className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`} transform={!joined && isMirrored(map, position) ? mirrorTransform(position) : undefined}>
       {tile.wall ? (
-        <WallTile tile={tile} position={position} panel={panel} emissive={emissive} />
+        <WallTile tile={tile} position={position} panel={panel} />
       ) : book ? (
         <Flipbook
           book={book}
           delay={animationDelay(position)}
-          emissive={emissive}
+         
           draw={(href, className) => <TileImage className={`tilemap-tile${className ? ` ${className}` : ''}`} href={href} position={position} size={size} />}
         />
       ) : (
@@ -325,11 +145,11 @@ export const BlockTile = memo(function BlockTile({ map, position, ghost = false,
 // Both halves of a faded two-tile panel, faded as one group: drawn solid inside it, the nearer half covers the seam
 // between them as it does on a solid wall, so the panel fades as one wall rather than two overlapping tiles.
 // positions: the far half then the near half.
-function FadedPanel({ map, positions, panels, emissive }) {
+function FadedPanel({ map, positions, panels }) {
   return (
     <g className="tilemap-block is-faded">
       {positions.map((position) => (
-        <BlockTile key={`${position.x},${position.y}`} map={map} position={position} panel={panels.get(`${position.x},${position.y}`)} emissive={emissive} />
+        <BlockTile key={`${position.x},${position.y}`} map={map} position={position} panel={panels.get(`${position.x},${position.y}`)} />
       ))}
     </g>
   )
@@ -343,19 +163,17 @@ function FadedPanel({ map, positions, panels, emissive }) {
 // strip: [from, to] across the image, as fractions of its width.
 // mirror: the object is drawn mirrored (its origin tile is rotated); each strip still covers the same part of the
 // footprint, cut from the mirrored image.
-const BigObjectStrip = memo(function BigObjectStrip({ tile, origin, strip, faded, ghost = false, mirror = false, emissive = false }) {
+const BigObjectStrip = memo(function BigObjectStrip({ tile, origin, strip, faded, ghost = false, mirror = false }) {
   const centre = project({ x: origin.x + 0.5, y: origin.y + 0.5 })
   const { width, height } = BIG_IMAGE
   const [from, to] = strip
   const flip = mirror ? `translate(${width} 0) scale(-1 1)` : undefined
   const book = bigFlipbook(tile)
-  const draw = (href, className) => (
-    <image className={`tilemap-tile${className ? ` ${className}` : ''}`} href={href} width={width} height={height} transform={flip} />
-  )
+  const draw = (href) => <image className="tilemap-tile" href={href} width={width} height={height} transform={flip} />
   return (
     <g className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`}>
       <svg x={centre.x - width / 2 + from * width} y={centre.y + TILE_H - height} width={(to - from) * width} height={height} viewBox={`${from * width} 0 ${(to - from) * width} ${height}`}>
-        {book ? <Flipbook book={book} delay={animationDelay(origin)} emissive={emissive} draw={draw} /> : draw(tile.big.image)}
+        {book ? <Flipbook book={book} delay={animationDelay(origin)} draw={draw} /> : draw(tile.big.image)}
       </svg>
     </g>
   )
@@ -377,8 +195,7 @@ function bigStrip(position, origin) {
 // getWallPanels; bigGroups: getBigObjects; ghost: the editor's See-through blocks. A big object is drawn in strips by
 // three of its tiles (BigObjectStrip).
 // A faded panel is drawn whole by its nearer half (half 1, one step further along its axis), so the far half draws nothing.
-// emissive: drawn into the darkness's mask (EmissiveMask).
-export function WallBlock({ map, position, faded, panels, bigGroups, ghost = false, emissive = false }) {
+export function WallBlock({ map, position, faded, panels, bigGroups, ghost = false }) {
   const key = `${position.x},${position.y}`
   const origin = bigGroups.get(key)
   if (origin) {
@@ -392,15 +209,15 @@ export function WallBlock({ map, position, faded, panels, bigGroups, ghost = fal
         faded={faded.has(key)}
         ghost={ghost}
         mirror={isRotated(map, origin)}
-        emissive={emissive}
+       
       />
     )
   }
   const panel = panels.get(key) ?? null
-  if (!faded.has(key) || !panel) return <BlockTile map={map} position={position} ghost={ghost} faded={faded.has(key)} panel={panel} emissive={emissive} />
+  if (!faded.has(key) || !panel) return <BlockTile map={map} position={position} ghost={ghost} faded={faded.has(key)} panel={panel} />
   if (panel.half === 0) return null
   const far = panel.axis === 'x' ? { x: position.x - 1, y: position.y } : { x: position.x, y: position.y - 1 }
-  return <FadedPanel map={map} positions={[far, position]} panels={panels} emissive={emissive} />
+  return <FadedPanel map={map} positions={[far, position]} panels={panels} />
 }
 
 // One tile on its own as the map views draw it (the editor's brush): a block with its panel (getWallPanels), or a
