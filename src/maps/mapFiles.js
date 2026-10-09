@@ -1,5 +1,8 @@
-// Map files live in the project's maps/ folder, one {name}.json per map. The dev server reads and writes them live
-// through its /__maps endpoint; built copies (Netlify, the desktop app) use the files bundled at build time, read-only.
+// Map files live in the project's maps/ folder, one {name}.json per map, each with at most one generated thumbnail,
+// public/art/episodes/{name}.png. The dev server reads and writes both live through its /__maps endpoint
+// (tools/mapStore.cjs keeps them in step); built copies (Netlify, the desktop app) use the files bundled at build time,
+// read-only.
+import { isPendingArt, pendingArtBase64 } from './episodeCards.js'
 import { parseMapFile, serializeMap } from './mapFormat.js'
 
 const BUNDLED = import.meta.glob('/maps/*.json', { eager: true, import: 'default' })
@@ -43,12 +46,17 @@ export async function loadMap(id) {
   return parseMapFile(entry.record, entry.id)
 }
 
-// Deletes maps/{id}.json. Returns the updated list of maps.
+// Deletes maps/{id}.json and its generated thumbnail. Returns the updated list of maps.
 export async function deleteMap(id) {
   return summary(await callEndpoint('DELETE', { id }))
 }
 
-// Saves maps/{map.id}.json; previousId renames the file the map was opened from. Returns the updated list of maps.
+// Saves maps/{map.id}.json with its thumbnail: a picture drawn since the last save is written as the map's thumbnail
+// (replacing the old one). previousId renames the file the map was opened from, and its thumbnail with it.
+// Returns { maps: the updated list, card: the map's card as saved }.
 export async function saveMap(map, previousId = null) {
-  return summary(await callEndpoint('PUT', { id: map.id, previousId, record: serializeMap(map) }))
+  const pending = isPendingArt(map.card)
+  const record = serializeMap(pending ? { ...map, card: null } : map)
+  const result = await callEndpoint('PUT', { id: map.id, previousId, record, png: pending ? pendingArtBase64(map.card) : null })
+  return { maps: summary(result.maps), card: result.record.card }
 }

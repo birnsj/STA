@@ -11,11 +11,12 @@ import TextDialog from '../components/maps/TextDialog.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
 import { areaAt, eraseMarkers, paintBrush, setAreaLabel, toggleMarker } from '../maps/mapEdits.js'
-import { canSaveMaps, listMaps, loadMap, saveMap } from '../maps/mapFiles.js'
+import { canSaveMaps, deleteMap, listMaps, loadMap, saveMap } from '../maps/mapFiles.js'
+import { isDrawnCard } from '../maps/episodeCards.js'
 import { randomEpisodeName } from '../rules/locationNames.js'
 import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, getTile, isRotated, mapFileId, resizeMap, validateMap } from '../maps/mapFormat.js'
 import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, randomMapName, sizeFor, sizeIdOf } from '../maps/mapGenerators.js'
-import { canDrawEpisodeArt, drawEpisodeArt, isPendingArt, savePendingEpisodeArt } from '../maps/episodeArt.js'
+import { canDrawEpisodeArt, drawEpisodeArt } from '../maps/episodeArt.js'
 import { randomWeather, settleWeather, weatherFor } from '../maps/mapWeather.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
 
@@ -257,10 +258,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
       if (!overwrite) return
     }
     try {
-      // A card drawn since the last save is written now, named after the map.
-      const card = isPendingArt(map.card) ? await savePendingEpisodeArt(map.card, id) : map.card
-      const named = { ...map, name: name.trim(), id, card }
-      setMaps(await saveMap(named, previousId))
+      // A card drawn since the last save is written now as the map's thumbnail; the saved card points at it.
+      const saved = await saveMap({ ...map, name: name.trim(), id }, previousId)
+      const named = { ...map, name: name.trim(), id, card: saved.card }
+      setMaps(saved.maps)
       setMap(named)
       setCleanMap(named)
       setGenerated(false)
@@ -283,6 +284,22 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const onSaveAs = async () => {
     const name = await askName('Save Map As', 'Save a copy of this map as:')
     if (name !== null) saveAs(name, null)
+  }
+  // Deletes the file the open map was loaded from or saved as (and its generated thumbnail), then opens a new map.
+  const onDelete = async () => {
+    const thumbnail = isDrawnCard(map.card) ? ' and its generated thumbnail' : ''
+    const confirmed = await askConfirm({
+      title: 'Delete Map',
+      message: `Delete ${map.name || fileId} (maps/${fileId}.json)${thumbnail}? Unsaved changes are lost too. This cannot be undone.`,
+      confirmLabel: 'Delete',
+    })
+    if (!confirmed) return
+    try {
+      setMaps(await deleteMap(fileId))
+      replaceMap(blankMap(map.mapType, map.biome), null, `Deleted maps/${fileId}.json.`)
+    } catch (error) {
+      setStatus(`Could not delete: ${error.message}`)
+    }
   }
   // Draws a new picture for the map; Save writes it under the map's name, replacing the one drawn for it before.
   const onGenerateCard = () => {
@@ -336,6 +353,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onLoad={onShowLoad}
         onSave={onSave}
         onSaveAs={onSaveAs}
+        canDelete={canSaveMaps && Boolean(fileId)}
+        onDelete={onDelete}
         enemiesActive={enemiesActive}
         onEnemiesActive={setEnemiesActive}
         onPlay={onPlay}

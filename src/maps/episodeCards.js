@@ -9,15 +9,13 @@ export const CARD_IMAGE = catalogue.imageSize
 // The width (px) a card's weather overlay is drawn at before shrinking to the card, so it looks like the board's weather.
 export const CARD_WEATHER_WIDTH = 600
 
-// A picture Generate Card drew: its saved path ('/art/episodes/...'), or a PNG data URL until the map is saved.
-export const isDrawnCard = (card) => typeof card === 'string' && (card.startsWith('/') || card.startsWith('data:image/png'))
+const PENDING_PREFIX = 'data:image/png;base64,'
+// A picture Generate Card drew that isn't saved yet: a PNG data URL, written as the map's thumbnail when the map is saved.
+export const isPendingArt = (card) => typeof card === 'string' && card.startsWith(PENDING_PREFIX)
+export const pendingArtBase64 = (card) => card.slice(PENDING_PREFIX.length)
 
-// The file name (without .png) of a picture Generate Card drew, or null for catalogue cards.
-export const drawnCardFileId = (card) => {
-  const match = isDrawnCard(card) && /^\/art\/episodes\/([^/?]+)\.png/.exec(card)
-  return match ? decodeURIComponent(match[1]) : null
-}
-
+// A picture Generate Card drew: its saved path ('/art/episodes/{map id}.png'), or a PNG data URL until the map is saved.
+export const isDrawnCard = (card) => typeof card === 'string' && (card.startsWith('/') || isPendingArt(card))
 // { id, label, image }, or null when the card is empty or no longer in the catalogue.
 export const cardFor = (card) =>
   isDrawnCard(card) ? { id: card, label: 'Generated picture', image: card } : (EPISODE_CARDS.find((entry) => entry.id === card) ?? null)

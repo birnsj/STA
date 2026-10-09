@@ -10,7 +10,7 @@ export default function EpisodeCardPicker({ cardId, weatherFx, canGenerate, busy
   return (
     <>
       <div className="me-card-preview">
-        {card ? <img src={card.image} alt={card.label} /> : <span>{cardId ? `Missing card: ${cardId}` : 'No card'}</span>}
+        {card ? <img key={card.image} src={card.image} alt={card.label} onError={(event) => (event.currentTarget.hidden = true)} /> : <span>{cardId ? `Missing card: ${cardId}` : 'No card'}</span>}
         {card && !isDrawnCard(cardId) && <WeatherFx fx={weatherFx} virtualWidth={CARD_WEATHER_WIDTH} />}
       </div>
       <select className="me-select me-card-select" value={card ? card.id : ''} aria-label="Episode card" onChange={(event) => onCard(event.target.value || null)}>

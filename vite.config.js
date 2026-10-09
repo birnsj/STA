@@ -5,7 +5,6 @@ import { defineConfig } from 'vite'
 import { listCharacters, putCharacter, removeCharacter } from './tools/characterStore.cjs'
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
-import { putEpisodeArt, removeEpisodeArt } from './tools/episodeArtStore.cjs'
 
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
 const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
@@ -53,19 +52,13 @@ const characterFilesEndpoint = () =>
     DELETE: (body) => removeCharacter(CHARACTERS_FOLDER, body.id),
   })
 
-// The dev map editor saves maps as files in ./maps (named after the map); builds bundle that folder.
+// The dev map editor saves maps as files in ./maps (named after the map), each with at most one generated thumbnail,
+// public/art/episodes/{map id}.png, written, renamed and removed along with its map. Builds bundle the maps folder.
 const mapFilesEndpoint = () =>
   jsonEndpoint('map-files-endpoint', '/__maps', {
     GET: () => listMaps(MAPS_FOLDER),
-    PUT: (map) => putMap(MAPS_FOLDER, map),
-    DELETE: (body) => removeMap(MAPS_FOLDER, body.id),
-  })
-
-// The map editor's Generate Card saves the picture it drew as public/art/episodes/{map id}.png.
-const episodeArtEndpoint = () =>
-  jsonEndpoint('episode-art-endpoint', '/__episodeArt', {
-    PUT: (art) => putEpisodeArt(EPISODE_ART_FOLDER, art, catalogueCardIds()),
-    DELETE: (art) => removeEpisodeArt(EPISODE_ART_FOLDER, art, catalogueCardIds()),
+    PUT: (map) => putMap(MAPS_FOLDER, EPISODE_ART_FOLDER, map, catalogueCardIds()),
+    DELETE: (body) => removeMap(MAPS_FOLDER, EPISODE_ART_FOLDER, body.id, catalogueCardIds()),
   })
 
 // The map editor's palette Cover checkboxes save into the tile catalogue. The page already updated its copy, so the
@@ -88,7 +81,7 @@ function tileFilesEndpoint() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), tileFilesEndpoint(), episodeArtEndpoint()],
+  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), tileFilesEndpoint()],
   // Relative asset paths so the built app also loads from disk inside the Electron .exe.
   base: './',
   server: {

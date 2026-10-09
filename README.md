@@ -9,16 +9,20 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, 207 rule tests (tests/*.test.js)
+npm test           # node --test, 217 tests (tests/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run app        # build, then open it in Electron
 npm run dist:win   # portable Windows .exe (electron-builder)
 ```
 
-The dev server also saves files for you: characters to `characters/`, maps to `maps/`, tile edits to the tile catalogue
-and episode cards to `public/art/episodes/` (endpoints in `vite.config.js`, stores in `tools/`). The Electron build does
-the same through `electron/characterFiles.cjs`.
+The dev server also saves files for you: characters to `characters/`, maps to `maps/` and tile edits to the tile
+catalogue (endpoints in `vite.config.js`, stores in `tools/`). `characters/` and `maps/` are both tracked by git, so
+commit them to share the same content between machines. Each map has at most one generated episode thumbnail,
+`public/art/episodes/<map name>.png`, which `tools/mapStore.cjs` writes, renames and deletes along with the map; the
+catalogue card art in the same folder (`episodeCards.json`) is never touched. The unpackaged Electron app
+(`npm run app`) saves characters to the same `characters/` folder; the portable `.exe` saves them in a `characters/`
+folder next to the `.exe`, and built copies can't save maps.
 
 The soundtrack is not in the repository. Drop the MP3s into `public/music/` (gitignored) and the menu plays them; without
 them the app runs silently.

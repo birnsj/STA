@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import WeatherFx from '../effects/WeatherFx.jsx'
-import { removeEpisodeArt } from '../maps/episodeArt.js'
-import { CARD_WEATHER_WIDTH, cardFor, drawnCardFileId, isDrawnCard } from '../maps/episodeCards.js'
+import { CARD_WEATHER_WIDTH, cardFor, isDrawnCard } from '../maps/episodeCards.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { canSaveMaps, deleteMap, listMaps } from '../maps/mapFiles.js'
 import { episodeTitle } from '../maps/mapFormat.js'
@@ -28,14 +27,12 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
     }
   }, [])
 
-  // Dev only: removes the map file and the picture Generate Card drew for it.
+  // Dev only: removes the map file and its generated thumbnail.
   const confirmDelete = async () => {
     const entry = deleting
     setDeleting(null)
     try {
       setEpisodes(await deleteMap(entry.id))
-      const picture = drawnCardFileId(entry.card)
-      if (picture) await removeEpisodeArt(picture)
       setProblem(null)
     } catch (error) {
       setProblem(`Could not delete ${entry.name}: ${error.message}`)
@@ -68,7 +65,7 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
               <li key={entry.id} className="episode-select-item">
                 <button type="button" className="episode-select-option episode-select-card" onClick={() => onOpen(entry.id)}>
                   <span className="episode-select-art">
-                    {card && <img src={card.image} alt="" />}
+                    {card && <img src={card.image} alt="" onError={(event) => (event.currentTarget.hidden = true)} />}
                     {card && !isDrawnCard(entry.card) && <WeatherFx fx={weatherFor(entry.weather).fx} virtualWidth={CARD_WEATHER_WIDTH} />}
                   </span>
                   <span className="episode-select-label">{episodeTitle(entry)}</span>

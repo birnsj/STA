@@ -147,6 +147,9 @@ export default function EditorToolbar({
   onLoad,
   onSave,
   onSaveAs,
+  // canDelete: the open map has a file to delete (and the dev server can delete it).
+  canDelete,
+  onDelete,
   enemiesActive,
   onEnemiesActive,
   onPlay,
@@ -201,6 +204,15 @@ export default function EditorToolbar({
         </button>
         <button type="button" className="me-button" disabled={!canSave} title={saveNote} onClick={onSaveAs}>
           Save As
+        </button>
+        <button
+          type="button"
+          className="me-button"
+          disabled={!canDelete}
+          title={canSave ? (canDelete ? "Delete this map's file and its generated thumbnail" : 'Save the map first: only a saved map can be deleted') : saveNote}
+          onClick={onDelete}
+        >
+          Delete Map
         </button>
         <button type="button" className="me-button is-primary" title="Explore this map with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
           Play
