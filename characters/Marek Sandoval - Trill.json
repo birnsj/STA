@@ -1,0 +1,566 @@
+{
+  "schemaVersion": "0.9.0",
+  "exportedAt": "2026-10-07T18:17:23.535Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "species": {
+      "id": "trill",
+      "name": "Trill",
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 1
+        },
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "trill",
+          "name": "Trill"
+        }
+      ],
+      "speciesAbility": {
+        "id": "patient",
+        "name": "Patient"
+      }
+    },
+    "environment": {
+      "setting": {
+        "id": "anotherSpeciesWorld",
+        "name": "Another Species’ World"
+      },
+      "condition": null,
+      "otherSpecies": {
+        "id": "human",
+        "name": "Human"
+      },
+      "value": {
+        "text": "Seeing my people through other eyes keeps me honest",
+        "matrixId": null
+      },
+      "attributeBonus": {
+        "id": "fitness",
+        "name": "Fitness",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "science",
+        "name": "Science",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "approach": {
+        "id": "upbringing",
+        "name": "Upbringing"
+      },
+      "outlook": {
+        "id": "businessOrTrade",
+        "name": "Business or Trade"
+      },
+      "path": {
+        "id": "accepted",
+        "name": "Accepted"
+      },
+      "attributeBonuses": [
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 2
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "science",
+        "name": "Science",
+        "value": 1
+      },
+      "focus": {
+        "name": "Metallurgy",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "diplomatic",
+        "name": "Diplomatic Training"
+      },
+      "option": {
+        "id": "honoraryStatus",
+        "name": "Honorary Status"
+      },
+      "attributeBonuses": [
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 2
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        }
+      ],
+      "disciplinePicks": {
+        "major": "command",
+        "minors": [
+          "engineering",
+          "medicine"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "command",
+          "name": "Command",
+          "value": 2
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 1
+        },
+        {
+          "id": "medicine",
+          "name": "Medicine",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Philosophy",
+          "custom": false
+        },
+        {
+          "name": "Leadership",
+          "custom": false
+        },
+        {
+          "name": "Diplomacy",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "I must prove I deserve the trust I've been given",
+        "matrixId": null
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "There is no such thing as a routine mission",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer"
+      },
+      "department": {
+        "id": "engineering",
+        "name": "Engineering"
+      },
+      "rank": {
+        "id": "lieutenantCommander",
+        "name": "Lieutenant Commander",
+        "type": "officer"
+      },
+      "role": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "dealingWithAPlague",
+            "name": "Dealing with a Plague"
+          },
+          "attributeBonus": {
+            "id": "insight",
+            "name": "Insight",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "medicine",
+            "name": "Medicine",
+            "value": 1
+          },
+          "focus": {
+            "name": "Triage",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "firstContact",
+            "name": "First Contact"
+          },
+          "attributeBonus": {
+            "id": "presence",
+            "name": "Presence",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Infiltration",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "Fear spreads faster than any disease",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "fitness",
+          "insight"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "engineering",
+          "science"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "formerInitiate",
+        "name": "Former Initiate",
+        "choice": null
+      },
+      "education": {
+        "id": "wellInformed",
+        "name": "Well-Informed",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "collaboration",
+        "name": "Collaboration",
+        "choice": {
+          "id": "science",
+          "name": "Science"
+        }
+      }
+    },
+    "identity": {
+      "name": "Marek Sandoval",
+      "pronouns": "He / him",
+      "gender": {
+        "id": "male",
+        "name": "Male"
+      },
+      "portrait": {
+        "id": "trill-male-5",
+        "name": "Trill Male 5"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "engineeringTricorder"
+      },
+      {
+        "itemId": "engineeringToolkit"
+      }
+    ],
+    "confirmedAt": "2026-10-05T03:22:45.051Z"
+  },
+  "final": {
+    "faction": null,
+    "attributes": {
+      "control": 8,
+      "daring": 8,
+      "fitness": 11,
+      "insight": 9,
+      "presence": 11,
+      "reason": 9
+    },
+    "disciplines": {
+      "command": 3,
+      "conn": 1,
+      "engineering": 4,
+      "security": 1,
+      "science": 4,
+      "medicine": 3
+    },
+    "values": [
+      "Seeing my people through other eyes keeps me honest",
+      "I must prove I deserve the trust I've been given",
+      "There is no such thing as a routine mission",
+      "Fear spreads faster than any disease"
+    ],
+    "focuses": [
+      "Metallurgy",
+      "Philosophy",
+      "Leadership",
+      "Diplomacy",
+      "Triage",
+      "Infiltration"
+    ],
+    "traits": [
+      {
+        "id": "trill",
+        "name": "Trill"
+      }
+    ],
+    "speciesAbility": {
+      "id": "patient",
+      "name": "Patient",
+      "description": "When you succeed at a task where you purchased one or more d20s by spending Momentum, you generate 1 bonus Momentum for each d20 purchased. Bonus Momentum may not be saved.",
+      "effects": [
+        {
+          "type": "momentum",
+          "trigger": "taskSucceeded",
+          "condition": "d20sPurchasedWithMomentum",
+          "bonusMomentumPerDie": 1,
+          "canSave": false
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 112
+      }
+    },
+    "talents": [
+      {
+        "id": "formerInitiate",
+        "name": "Former Initiate",
+        "category": "species",
+        "choice": null,
+        "description": "You joined the Initiate Program, hoping to be chosen by the Symbiosis Commission to become Joined. As there are far more Initiates than there are symbionts, you were one of many who failed, but the capabilities of even a failed Initiate are highly sought after by Starfleet and other organizations. When you attempt a task using Control or Reason, and you spend Determination to set a die as a 1, you may also re-roll your dice pool after the roll. You cannot select this talent if you have the Joined talent.",
+        "requirements": [
+          {
+            "type": "species",
+            "ids": [
+              "trill"
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "type": "reroll",
+            "dice": "pool",
+            "when": "Control or Reason task after spending Determination to set a die to 1"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Early Outlook"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 154
+        }
+      },
+      {
+        "id": "wellInformed",
+        "name": "Well-Informed",
+        "category": "general",
+        "choice": null,
+        "description": "You have contacts everywhere and you listen to news and rumors from far and wide. At the start of a scene, you may add 1 Threat to ask the gamemaster two questions about the situation or location, as if you had spent Momentum on the Obtain Information spend. The answers you receive will be knowledge you’ve gained from your contacts and the news and rumors you’ve heard.",
+        "requirements": [],
+        "effects": [
+          {
+            "type": "obtainInformation",
+            "questions": 2,
+            "cost": {
+              "threat": 1
+            },
+            "when": "start of a scene"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Education"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "collaboration",
+        "name": "Collaboration",
+        "category": "general",
+        "choice": {
+          "kind": "department",
+          "id": "science",
+          "name": "Science"
+        },
+        "description": "Choose a single department when you select this talent. Whenever an ally attempts a task using that department, you may spend 1 Momentum (Immediate) to allow them to use your rating for that department and one of your relevant focuses.",
+        "requirements": [],
+        "effects": [
+          {
+            "type": "substitute",
+            "kind": "department",
+            "to": "yourRating",
+            "cost": {
+              "momentum": 1
+            },
+            "when": "an ally attempts a task with the chosen department"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 149
+        }
+      }
+    ],
+    "rank": {
+      "id": "lieutenantCommander",
+      "name": "Lieutenant Commander"
+    },
+    "department": {
+      "id": "engineering",
+      "name": "Engineering"
+    },
+    "assignment": {
+      "id": "chiefEngineer",
+      "name": "Chief Engineer"
+    },
+    "role": {
+      "id": "chiefEngineer",
+      "name": "Chief Engineer",
+      "description": "The chief engineer is responsible for ensuring the ship remains operational and functional, and commands the engineering department aboard the ship.",
+      "requirements": [],
+      "benefit": {
+        "id": "chiefEngineer",
+        "name": "Chief Engineer Role Benefit",
+        "description": "You reduce the opportunity cost of engineering teams by 1, to a minimum of 0. Further, when you attempt a task to perform repairs to a starship or attempt to push the ship’s capabilities beyond its normal limits, you may spend 1 Momentum (Immediate) to re-roll a d20.",
+        "effects": [
+          {
+            "type": "opportunityCost",
+            "change": -1,
+            "minimum": 0,
+            "applies": [
+              "engineeringTeams"
+            ]
+          },
+          {
+            "type": "reroll",
+            "dice": 1,
+            "cost": {
+              "momentum": 1,
+              "immediate": true
+            },
+            "when": "a task to repair a starship or push its capabilities beyond normal limits"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 136
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "engineeringTricorder",
+        "name": "Engineering Tricorder"
+      },
+      {
+        "itemId": "engineeringToolkit",
+        "name": "Engineering Toolkit"
+      }
+    ]
+  }
+}

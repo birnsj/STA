@@ -1,0 +1,559 @@
+{
+  "schemaVersion": "0.9.0",
+  "exportedAt": "2026-10-07T20:55:06.079Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "mixedHeritage",
+      "name": "Mixed Heritage",
+      "attributeBonuses": [
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 1
+        }
+      ],
+      "parents": [
+        {
+          "id": "tellarite",
+          "name": "Tellarite"
+        },
+        {
+          "id": "vulcan",
+          "name": "Vulcan"
+        }
+      ],
+      "traits": [
+        {
+          "id": "mixedHeritage",
+          "name": "Tellarite/Vulcan"
+        }
+      ],
+      "speciesAbility": null
+    },
+    "environment": {
+      "setting": {
+        "id": "busyColony",
+        "name": "Busy Colony"
+      },
+      "condition": null,
+      "otherSpecies": null,
+      "value": {
+        "text": "Pioneers build the future with their own hands",
+        "matrixId": null
+      },
+      "attributeBonus": {
+        "id": "presence",
+        "name": "Presence",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "approach": {
+        "id": "upbringing",
+        "name": "Upbringing"
+      },
+      "outlook": {
+        "id": "agricultureOrRural",
+        "name": "Agriculture or Rural"
+      },
+      "path": {
+        "id": "rebelled",
+        "name": "Rebelled"
+      },
+      "attributeBonuses": [
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 2
+        },
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "conn",
+        "name": "Conn",
+        "value": 1
+      },
+      "focus": {
+        "name": "Toxicology",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "diplomatic",
+        "name": "Diplomatic Training"
+      },
+      "option": {
+        "id": "diplomaticCorps",
+        "name": "Diplomatic Corps"
+      },
+      "attributeBonuses": [
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 2
+        },
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 1
+        }
+      ],
+      "disciplinePicks": {
+        "major": "command",
+        "minors": [
+          "science",
+          "engineering"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "command",
+          "name": "Command",
+          "value": 2
+        },
+        {
+          "id": "science",
+          "name": "Science",
+          "value": 1
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Xenoanthropology",
+          "custom": false
+        },
+        {
+          "name": "Philosophy",
+          "custom": false
+        },
+        {
+          "name": "History",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "Words are stronger than weapons",
+        "matrixId": null
+      }
+    },
+    "career": {
+      "length": {
+        "id": "novice",
+        "name": "Novice"
+      },
+      "value": {
+        "text": "Mistakes are how I learn",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "operationsManager",
+        "name": "Operations Manager"
+      },
+      "department": {
+        "id": "engineering",
+        "name": "Engineering"
+      },
+      "rank": {
+        "id": "noRank",
+        "name": "No Rank",
+        "type": "none"
+      },
+      "role": {
+        "id": "operationsManager",
+        "name": "Operations Manager"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "discoveredAnArtifact",
+            "name": "Discovered an Artifact"
+          },
+          "attributeBonus": {
+            "id": "reason",
+            "name": "Reason",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Reverse Engineering",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "newBattleStrategy",
+            "name": "New Battle Strategy"
+          },
+          "attributeBonus": {
+            "id": "daring",
+            "name": "Daring",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "security",
+            "name": "Security",
+            "value": 1
+          },
+          "focus": {
+            "name": "Combat Tactics",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "The past holds the keys to the future",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "fitness",
+          "presence"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "conn",
+          "command"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "ambushTactics",
+        "name": "Ambush Tactics",
+        "choice": null
+      },
+      "education": {
+        "id": "getDown",
+        "name": "Get Down!",
+        "choice": null
+      },
+      "career": {
+        "id": "untappedPotential",
+        "name": "Untapped Potential",
+        "choice": {
+          "id": "daring",
+          "name": "Daring"
+        }
+      },
+      "finishingTouches": {
+        "id": "callToAction",
+        "name": "Call to Action",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Soren Wexler",
+      "pronouns": "He / him",
+      "gender": {
+        "id": "male",
+        "name": "Male"
+      },
+      "portrait": {
+        "id": "trill-male-3",
+        "name": "Trill Male 3"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "engineeringTricorder"
+      },
+      {
+        "itemId": "engineeringToolkit"
+      }
+    ],
+    "confirmedAt": "2026-10-07T20:55:06.073Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 7,
+      "daring": 10,
+      "fitness": 9,
+      "insight": 9,
+      "presence": 10,
+      "reason": 11
+    },
+    "disciplines": {
+      "command": 4,
+      "conn": 3,
+      "engineering": 3,
+      "security": 3,
+      "science": 2,
+      "medicine": 1
+    },
+    "values": [
+      "Pioneers build the future with their own hands",
+      "Words are stronger than weapons",
+      "Mistakes are how I learn",
+      "The past holds the keys to the future"
+    ],
+    "focuses": [
+      "Toxicology",
+      "Xenoanthropology",
+      "Philosophy",
+      "History",
+      "Reverse Engineering",
+      "Combat Tactics"
+    ],
+    "traits": [
+      {
+        "id": "mixedHeritage",
+        "name": "Tellarite/Vulcan"
+      }
+    ],
+    "speciesAbility": null,
+    "talents": [
+      {
+        "id": "ambushTactics",
+        "name": "Ambush Tactics",
+        "category": "security",
+        "choice": null,
+        "description": "When you succeed at an Attack against an enemy who is unaware of your presence, or who is suffering from a trait or complication which represents a weakness or vulnerability, increase the Severity of the Attack by 2.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "security",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "attack",
+            "severity": 2,
+            "when": "target unaware or suffering a weakness trait"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Early Outlook"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 161
+        }
+      },
+      {
+        "id": "getDown",
+        "name": "Get Down!",
+        "category": "security",
+        "choice": null,
+        "description": "You and any allies within Close range gain +1 Protection while in Cover.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "security",
+            "min": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "protection",
+            "amount": 1,
+            "target": "selfAndCloseAllies",
+            "when": "in Cover"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Education"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 161
+        }
+      },
+      {
+        "id": "untappedPotential",
+        "name": "Untapped Potential",
+        "category": "career",
+        "choice": {
+          "kind": "attribute",
+          "id": "daring",
+          "name": "Daring"
+        },
+        "description": "Select one of your attributes when you receive this talent. You’re inexperienced, but talented and with a bright future. You may not have or increase any attribute to above 11, or any department to above 4 while you have this talent (and may have to adjust attributes and departments accordingly at the end of character creation). Whenever you succeed at a task for which you bought one or more additional dice (by any means), roll a d20 after the roll. If you roll equal to or less than the chosen attribute, gain 1 bonus Momentum; if you roll higher, add 1 Threat instead. While you possess this talent, you cannot gain any higher rank than Lieutenant (junior grade), or a higher enlisted rate than Petty Officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "novice"
+          }
+        ],
+        "effects": [
+          {
+            "type": "bonusMomentum",
+            "amount": 1,
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "chosenAttribute",
+              "otherwise": {
+                "threat": 1
+              }
+            },
+            "when": "you succeed after buying extra dice"
+          }
+        ],
+        "limits": {
+          "attributeMax": 11,
+          "departmentMax": 4,
+          "maxRank": "lieutenantJuniorGrade",
+          "maxEnlistedRate": "pettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 127
+        }
+      },
+      {
+        "id": "callToAction",
+        "name": "Call to Action",
+        "category": "command",
+        "choice": null,
+        "description": "In a conflict, you may use the Prepare minor action to grant one ally who you can communicate with a minor action of their choice, which they perform immediately.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "command",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "special",
+            "action": "grantAllyMinorAction",
+            "when": "Prepare minor action in a conflict"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 157
+        }
+      }
+    ],
+    "rank": {
+      "id": "noRank",
+      "name": "No Rank"
+    },
+    "department": {
+      "id": "engineering",
+      "name": "Engineering"
+    },
+    "assignment": {
+      "id": "operationsManager",
+      "name": "Operations Manager"
+    },
+    "role": {
+      "id": "operationsManager",
+      "name": "Operations Manager",
+      "description": "The operations manager manages and oversees all technical operations aboard or involving the ship, normally from the operations station on the bridge, or in conjunction with the chief engineer (on smaller ships, one officer may fill both roles). This often entails taking on the duties of a science officer if there is no dedicated science officer among the senior staff.",
+      "requirements": [],
+      "benefit": {
+        "id": "operationsManager",
+        "name": "Operations Manager Role Benefit",
+        "description": "Whenever you create a trait representing a piece of equipment, or an alteration made to existing equipment, any character who benefits from that trait while you are present in the scene may re-roll a d20.",
+        "effects": [
+          {
+            "type": "reroll",
+            "dice": 1,
+            "who": "any character benefiting from the trait while you are present",
+            "when": "a trait you created representing equipment or an alteration to equipment"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 136
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "engineeringTricorder",
+        "name": "Engineering Tricorder"
+      },
+      {
+        "itemId": "engineeringToolkit",
+        "name": "Engineering Toolkit"
+      }
+    ]
+  }
+}

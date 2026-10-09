@@ -20,9 +20,6 @@ reference/
 music/
 /character.json
 
-# Desktop app saved characters (local only)
-/characters/
-
 # Local map backups taken before bulk edits (git history already has the maps)
 /backups/
 

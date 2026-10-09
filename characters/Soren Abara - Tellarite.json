@@ -1,0 +1,582 @@
+{
+  "schemaVersion": "0.9.0",
+  "exportedAt": "2026-10-07T19:37:29.467Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "tellarite",
+      "name": "Tellarite",
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 1
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 1
+        },
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "tellarite",
+          "name": "Tellarite"
+        }
+      ],
+      "speciesAbility": {
+        "id": "sturdy",
+        "name": "Sturdy"
+      }
+    },
+    "environment": {
+      "setting": null,
+      "condition": {
+        "id": "occupationOrWar",
+        "name": "Occupation or War"
+      },
+      "otherSpecies": null,
+      "value": {
+        "text": "Never again will I stand by while others suffer",
+        "matrixId": null
+      },
+      "attributeBonus": {
+        "id": "presence",
+        "name": "Presence",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "approach": {
+        "id": "aspiration",
+        "name": "Aspiration"
+      },
+      "outlook": {
+        "id": "toDiscover",
+        "name": "To Discover"
+      },
+      "path": {
+        "id": "pursued",
+        "name": "Pursued"
+      },
+      "attributeBonuses": [
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 2
+        },
+        {
+          "id": "presence",
+          "name": "Presence",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "science",
+        "name": "Science",
+        "value": 1
+      },
+      "focus": {
+        "name": "Genetics",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "civilian",
+        "name": "Civilian Career Training"
+      },
+      "option": {
+        "id": "freightAndTransport",
+        "name": "Freight and Transport"
+      },
+      "attributeBonuses": [
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 2
+        }
+      ],
+      "disciplinePicks": {
+        "major": "engineering",
+        "minors": [
+          "medicine",
+          "conn"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 2
+        },
+        {
+          "id": "medicine",
+          "name": "Medicine",
+          "value": 1
+        },
+        {
+          "id": "conn",
+          "name": "Conn",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Starship Recognition",
+          "custom": false
+        },
+        {
+          "name": "Helm Operations",
+          "custom": false
+        },
+        {
+          "name": "Extra-Vehicular Activity",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "A good pilot knows every shortcut",
+        "matrixId": null
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "I've lost too many friends to take risks lightly",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer"
+      },
+      "department": {
+        "id": "command",
+        "name": "Command"
+      },
+      "rank": {
+        "id": "noRank",
+        "name": "No Rank",
+        "type": "none"
+      },
+      "role": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "learnedUniqueLanguage",
+            "name": "Learned Unique Language"
+          },
+          "attributeBonus": {
+            "id": "insight",
+            "name": "Insight",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "science",
+            "name": "Science",
+            "value": 1
+          },
+          "focus": {
+            "name": "Linguistics",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "breakthroughOrInvention",
+            "name": "Breakthrough or Invention"
+          },
+          "attributeBonus": {
+            "id": "reason",
+            "name": "Reason",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Invention",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "Communication is the first step to friendship",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "reason",
+          "presence"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "conn",
+          "medicine"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "getDown",
+        "name": "Get Down!",
+        "choice": null
+      },
+      "education": {
+        "id": "personalEffects",
+        "name": "Personal Effects",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "quickStudy",
+        "name": "Quick Study",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Soren Abara",
+      "pronouns": "He / him",
+      "gender": {
+        "id": "male",
+        "name": "Male"
+      },
+      "portrait": {
+        "id": "tellarite-male-5",
+        "name": "Tellarite Male 5"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "standardTricorder"
+      },
+      {
+        "itemId": "phaserType1"
+      }
+    ],
+    "confirmedAt": "2026-10-07T19:37:29.467Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 8,
+      "daring": 8,
+      "fitness": 10,
+      "insight": 9,
+      "presence": 10,
+      "reason": 11
+    },
+    "disciplines": {
+      "command": 1,
+      "conn": 3,
+      "engineering": 4,
+      "security": 2,
+      "science": 3,
+      "medicine": 3
+    },
+    "values": [
+      "Never again will I stand by while others suffer",
+      "A good pilot knows every shortcut",
+      "I've lost too many friends to take risks lightly",
+      "Communication is the first step to friendship"
+    ],
+    "focuses": [
+      "Genetics",
+      "Starship Recognition",
+      "Helm Operations",
+      "Extra-Vehicular Activity",
+      "Linguistics",
+      "Invention"
+    ],
+    "traits": [
+      {
+        "id": "tellarite",
+        "name": "Tellarite"
+      }
+    ],
+    "speciesAbility": {
+      "id": "sturdy",
+      "name": "Sturdy",
+      "description": "You gain +1 Protection against Stun Attacks only. Further, when you suffer a complication that represents a physical hindrance or being stunned, dazed, or disoriented, you may take 1 Stress to ignore that complication (and remove any associated trait).",
+      "effects": [
+        {
+          "type": "protection",
+          "amount": 1,
+          "against": [
+            "stun"
+          ]
+        },
+        {
+          "type": "stress",
+          "trigger": "complicationSuffered",
+          "condition": [
+            "physicalHindrance",
+            "stunned",
+            "dazed",
+            "disoriented"
+          ],
+          "cost": 1,
+          "effect": "ignoreComplication",
+          "optional": true
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 111
+      }
+    },
+    "talents": [
+      {
+        "id": "getDown",
+        "name": "Get Down!",
+        "category": "security",
+        "choice": null,
+        "description": "You and any allies within Close range gain +1 Protection while in Cover.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "security",
+            "min": 2
+          }
+        ],
+        "effects": [
+          {
+            "type": "protection",
+            "amount": 1,
+            "target": "selfAndCloseAllies",
+            "when": "in Cover"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Early Outlook"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 161
+        }
+      },
+      {
+        "id": "personalEffects",
+        "name": "Personal Effects",
+        "category": "general",
+        "choice": null,
+        "description": "You possess some significant and uncommon item or device which is not standard issue, but which is nevertheless useful for missions. You may select this talent multiple times, gaining a different item each time.",
+        "requirements": [
+          {
+            "type": "mainCharacter"
+          }
+        ],
+        "effects": [
+          {
+            "type": "special",
+            "action": "personalItem",
+            "when": "always"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Education"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "quickStudy",
+        "name": "Quick Study",
+        "category": "medicine",
+        "choice": null,
+        "description": "When attempting a task that will involve an unfamiliar practice, technique, or medical procedure, or which is to treat an unfamiliar species, ignore any Difficulty or complication range increase stemming from your unfamiliarity.",
+        "requirements": [
+          {
+            "type": "anyOf",
+            "options": [
+              {
+                "type": "department",
+                "id": "science",
+                "min": 3
+              },
+              {
+                "type": "department",
+                "id": "medicine",
+                "min": 3
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "type": "ignoreDifficultyIncrease",
+            "includesComplicationRange": true,
+            "when": "unfamiliar practice, procedure, or species"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 165
+        }
+      }
+    ],
+    "rank": {
+      "id": "noRank",
+      "name": "No Rank"
+    },
+    "department": {
+      "id": "command",
+      "name": "Command"
+    },
+    "assignment": {
+      "id": "executiveOfficer",
+      "name": "Executive Officer"
+    },
+    "role": {
+      "id": "executiveOfficer",
+      "name": "Executive Officer",
+      "description": "Second-in-command. The executive officer is the captain’s chief advisor and takes command in situations where the captain is unable to. If a ship does not have a dedicated executive officer, an officer in another role should be noted as second-in-command, but they will not gain the benefits of this role.",
+      "requirements": [],
+      "benefit": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer Role Benefit",
+        "description": "When an allied character in communication with you spends Determination, you may spend 3 Momentum (Immediate) to enable that character to regain the spent point of Determination.",
+        "effects": [
+          {
+            "type": "determination",
+            "action": "allyRegainsSpent",
+            "amount": 1,
+            "cost": {
+              "momentum": 3,
+              "immediate": true
+            },
+            "when": "an allied character in communication with you spends Determination"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 136
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "standardTricorder",
+        "name": "Standard Tricorder"
+      },
+      {
+        "itemId": "phaserType1",
+        "name": "Type-1 Phaser"
+      }
+    ]
+  }
+}
