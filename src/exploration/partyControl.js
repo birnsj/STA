@@ -95,7 +95,7 @@ export function getFollowTargets(state) {
   Object.entries(followGroups(state.members)).forEach(([leaderId, ids]) => {
     const leader = state.members[leaderId]
     const bySlot = [...ids].sort((a, b) => state.members[a].order.slot - state.members[b].order.slot)
-    const avoid = members.filter((member) => !member.order && member.id !== leaderId).map((member) => member.position)
+    const avoid = members.filter((member) => !member.order && member.id !== leaderId && canAct(member)).map((member) => member.position)
     const slots = bySlot.map((id) => state.members[id].order.slot)
     const points = formationTargets(state.map, formation, slots, leader.position, leader.heading, state.spacing, { avoid, personalSpace: MOVE.personalSpace })
     bySlot.forEach((id, i) => {
@@ -260,13 +260,15 @@ function steer(state, member, seconds, followTarget) {
   return { member: { ...member, path, replanIn, parkedFor: null, blocked: blockedFor }, velocity, direction: velocity, run }
 }
 
-// Pushes apart any two characters closer than personal space, so nobody stacks on anyone else.
+// Pushes apart any two characters closer than personal space, so nobody stacks on anyone else. Defeated characters
+// take no part.
 function separation(list) {
   const pushes = list.map(() => ({ x: 0, y: 0 }))
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
       const a = list[i]
       const b = list[j]
+      if (!canAct(a) || !canAct(b)) continue
       const d = distance(a.position, b.position)
       if (d >= MOVE.personalSpace) continue
       const wa = GIVE_WAY[a.order?.type ?? 'none']
@@ -344,7 +346,8 @@ function tick(state, rawSeconds) {
     if (next !== current[i]) changed = true
     members[member.id] = next
   })
-  const resolved = resolveOverlaps(state.map, members, state.memberIds)
+  // A Defeated character has no collision: the others walk over them.
+  const resolved = resolveOverlaps(state.map, members, state.memberIds.filter((id) => canAct(members[id])))
   if (resolved !== members) {
     members = resolved
     changed = true

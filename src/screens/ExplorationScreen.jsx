@@ -8,6 +8,7 @@ import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.j
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
 import { ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
+import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import Minimap from '../components/exploration/Minimap.jsx'
 import '../components/exploration/exploration.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
@@ -94,6 +95,7 @@ const EVENT_LABEL = {
   INVESTIGATION_ENDED: 'found nothing',
   NOISE: 'noise',
   NOISE_HEARD: 'heard a noise',
+  FOOTSTEPS_HEARD: 'heard footsteps',
   GROUP_ALERT: 'group alert',
   GROUP_ALERT_RECEIVED: 'received group alert',
 }
@@ -168,7 +170,9 @@ function AwarenessPanel({ world, party, knowledge, noiseTool, onNoiseTool, onRes
             <tr key={npc.id}>
               <td>{npc.name}</td>
               <td>{dispositionName(npc.disposition)}</td>
-              <td className={`npc-state is-${npc.state.toLowerCase().replace('_', '-')}`}>{isDown(npc) ? (minorDefeatText(npc.condition) ?? 'Down') : stateName(npc.state)}</td>
+              <td className={`npc-state is-${npc.state.toLowerCase().replace('_', '-')}`}>{isDown(npc) ? (minorDefeatText(npc.condition) ?? 'Down') : stateName(npc.state)}
+                {!isDown(npc) && npc.hearing?.level > 0 ? ` (hears ${Math.round(npc.hearing.level * 100)}%)` : ''}
+              </td>
               <td>{npc.focusId ? name(npc.focusId) : '-'}</td>
               <td>{npc.alertGroupId ?? '-'}</td>
             </tr>
@@ -417,6 +421,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const [sheetClosed, setSheetClosed] = useState(false)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
+  useExplorationFootsteps(members, !inCombat)
   const challengeViews = getChallengeViews(state.scenario)
   const inReachIds = objectsInReach(state, party.memberIds).map((definition) => definition.id)
   const reachableIds = inReachIds.filter((id) => getAvailableActions(state, id).length > 0)

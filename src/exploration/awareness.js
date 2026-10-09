@@ -12,7 +12,7 @@ import { blocksLineOfFire } from '../combat/battleMap.js'
 import data from '../data/adaptation/exploration/awareness.json'
 import { isDefeated } from '../rules/personalCondition.js'
 import { distance, planRoute, RADIUS, slide } from './navigation.js'
-import { sneakDetectionMultiplier } from './sneak.js'
+import { sneakDetectionMultiplier, sneakSkill } from './sneak.js'
 
 export const STATE = { UNAWARE: 'UNAWARE', SUSPICIOUS: 'SUSPICIOUS', INVESTIGATING: 'INVESTIGATING', ALERTED: 'ALERTED', COMBAT_READY: 'COMBAT_READY' }
 const RANK = { UNAWARE: 0, SUSPICIOUS: 1, INVESTIGATING: 2, ALERTED: 3, COMBAT_READY: 4 }
@@ -22,6 +22,7 @@ const ALERT_METHODS = Object.fromEntries(data.alertMethods.map((method) => [meth
 const T = data.timing
 const V = data.vision
 const MOVE = data.movement
+const STEPS = data.footsteps
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180
 const TURN_RATE = toRadians(MOVE.turnRateDegrees)
@@ -103,6 +104,23 @@ export function perceive(map, npc, member) {
   return { immediate: false, rate }
 }
 
+const clampFactor = (value) => Math.min(STEPS.maxFactor, Math.max(STEPS.minFactor, value))
+const listenSkill = (character) => (character ? (character.attributes?.insight ?? 0) + (character.disciplines?.security ?? 0) : STEPS.referenceSkill)
+const moveSkill = (character) => (character ? sneakSkill(character) : STEPS.referenceSkill)
+
+// What an NPC hears of one party member's footsteps this frame: null (nothing), or how fast its hearing meter fills.
+export function footstepNoise(map, npc, member) {
+  if (!member.moving) return null
+  const gait = member.sneaking ? STEPS.sneak : member.running ? STEPS.run : STEPS.walk
+  if (!gait.radius || !gait.rate) return null
+  const mover = clampFactor(1 - STEPS.moverPerPoint * (moveSkill(member.character) - STEPS.referenceSkill))
+  const listener = clampFactor(1 + STEPS.listenerPerPoint * (listenSkill(npc.character) - STEPS.referenceSkill))
+  const radius = Math.min(gait.radius * mover * listener, npc.perception.hearingRange)
+  if (distance(npc.position, member.position) > radius) return null
+  if (!hasLineOfSight(map, npc.position, member.position)) return null
+  return { rate: gait.rate, radius }
+}
+
 // config: one NPC from npcs.json (position and patrol as [x, y]); character: its RuntimeCharacter, if any.
 // The NPC is the world actor: who controls it, how it feels about the away team, what it knows and where it is. Who the
 // person is (stats, species, faction, equipment) is only ever its character; nothing here copies or overrides it.
@@ -141,6 +159,8 @@ export function createNpc(config, character = null) {
     investigation: null,
     // A non-investigating NPC turning to look at a noise: { position, timeLeft }.
     glance: null,
+    // Footsteps heard (footstepNoise): level 0..1 and where the nearest heard character was.
+    hearing: { level: 0, position: null },
     focusId: null,
     state: STATE.UNAWARE,
     // The reaction to an identified character: { type: 'observe' | 'confront' | 'alarm' | 'combat', targetId, since }.
@@ -273,6 +293,32 @@ function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
   })
 
   let suspicion = investigation ? npc.suspicion : Math.max(0, npc.suspicion - npc.perception.awarenessDecayRate * seconds)
+
+  // 1b. Footsteps of the characters it can't see fill the hearing meter; a full meter is heard as a noise.
+  let { glance } = npc
+  let hearing = npc.hearing ?? { level: 0, position: null }
+  if (!npc.combatReady) {
+    let gain = 0
+    let nearest = null
+    members.forEach((member) => {
+      if (visibleIds.includes(member.id)) return
+      const heard = footstepNoise(map, npc, member)
+      if (!heard) return
+      gain += heard.rate
+      const d = distance(npc.position, member.position)
+      if (!nearest || d < nearest.d) nearest = { d, position: member.position }
+    })
+    if (gain || hearing.level) {
+      const level = gain ? hearing.level + gain * seconds : Math.max(0, hearing.level - npc.perception.awarenessDecayRate * seconds)
+      hearing = { level, position: nearest ? { ...nearest.position } : hearing.position }
+    }
+    if (hearing.level >= 1) {
+      ;({ suspicion, investigation, glance } = hearSomething({ ...npc, suspicion, investigation, glance }, hearing.position, 'noise', T.noiseSuspicion))
+      hearing = { level: 0, position: hearing.position }
+      emit({ type: 'FOOTSTEPS_HEARD', npcId: npc.id })
+    }
+  }
+
   const focusId = pickFocus(awareness, visibleIds)
   const focus = focusId ? awareness[focusId] : null
   const focusVisible = focusId !== null && visibleIds.includes(focusId)
@@ -309,7 +355,7 @@ function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
     if (RANK[record.state] > RANK[state]) state = record.state
   })
   if (investigation && investigation.phase !== 'react' && RANK[state] < RANK.INVESTIGATING) state = STATE.INVESTIGATING
-  if (state === STATE.UNAWARE && (suspicion > 0 || investigation)) state = STATE.SUSPICIOUS
+  if (state === STATE.UNAWARE && (suspicion > 0 || investigation || hearing.level > 0)) state = STATE.SUSPICIOUS
   if (combatReady) state = STATE.COMBAT_READY
   if (RANK[state] < RANK.ALERTED) response = null
   if (state === STATE.UNAWARE) {
@@ -322,7 +368,7 @@ function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
   let look = null
   let goal = null
   let speed = 0
-  let { patrol, glance } = npc
+  let { patrol } = npc
   if (combatReady) {
     look = headingTo(npc.position, awareness[combatReady.targetId]?.lastKnownPosition ?? npc.position)
   } else if (focus && (focus.state === STATE.ALERTED || (focusVisible && focus.state === STATE.SUSPICIOUS))) {
@@ -388,10 +434,10 @@ function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
     pathGoal = null
   }
   if (look !== null) heading = turnToward(heading, look, seconds)
-  position = keepClear(map, position, [...members, ...otherNpcs])
+  position = keepClear(map, position, [...members, ...otherNpcs.filter((other) => !isDown(other))])
 
   return {
-    npc: { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, awareness, visibleIds, suspicion, investigation, focusId, state, response, groupAlerted, alarmAt, combatReady },
+    npc: { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, hearing, awareness, visibleIds, suspicion, investigation, focusId, state, response, groupAlerted, alarmAt, combatReady },
     alerts,
   }
 }

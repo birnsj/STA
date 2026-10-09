@@ -193,11 +193,12 @@ export function playWeaponSound(soundId, speed = 1) {
 }
 
 // One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.
-export function playFootstep(stepIndex = 0) {
-  if (level === 0) return
+// loudness scales the step (0..1), e.g. softer while sneaking.
+export function playFootstep(stepIndex = 0, loudness = 1) {
+  if (level === 0 || loudness <= 0) return
   withRunningContext((audio) => {
     const start = audio.currentTime + LOOKAHEAD_S
-    playNoiseBurst(audio, { start, length: 0.07, gain: FOOTSTEP_GAIN, filterType: 'lowpass', frequency: stepIndex % 2 ? 620 : 760 })
+    playNoiseBurst(audio, { start, length: 0.07, gain: FOOTSTEP_GAIN * loudness, filterType: 'lowpass', frequency: stepIndex % 2 ? 620 : 760 })
   })
 }
 

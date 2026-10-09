@@ -64,6 +64,17 @@ describe('a Defeated party member in exploration', () => {
     assert.equal(after.awareness.alpha, undefined)
     assert.equal(after.awareness.beta, undefined)
   })
+
+  it('has no collision: the others walk over them without pushing them', () => {
+    const { party } = createExplorationState(testMap(), team())
+    const downed = withCondition(party, 'beta', DEFEATED)
+    const where = { ...downed.members.beta.position }
+    let next = partyReducer(partyReducer(downed, { type: 'select', id: 'alpha' }), { type: 'moveTo', target: where, fresh: true })
+    for (let t = 0; t < 2; t += 0.02) next = partyReducer(next, { type: 'tick', seconds: 0.02 })
+    assert.deepEqual(next.members.beta.position, where)
+    const gap = Math.hypot(next.members.alpha.position.x - where.x, next.members.alpha.position.y - where.y)
+    assert.ok(gap < 0.1, `alpha stopped ${gap} tiles from the fallen character`)
+  })
 })
 
 describe('ending a fight started in the world', () => {

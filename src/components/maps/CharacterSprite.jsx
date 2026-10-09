@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { directionFor, getSpriteAnimation, getSpriteMetrics, getSpriteSetById, spriteMaskFile, spriteSheetColumns, spriteSheetFile } from '../../rules/appearance.js'
 import useRecolouredSheet from './useRecolouredSheet.js'
 
@@ -30,19 +31,41 @@ function phaseOf(seed) {
   return ((h >>> 0) % 1000) / 1000
 }
 
+// The maps move a figure's element about as it walks (re-sorted among the walls, into another occlusion window), and a
+// CSS animation starts over whenever its element is put back in the page. So each animation is timed from a fixed
+// point instead: a loop from the page clock (offset by the figure's phase), a one-shot from when it first played.
+// 'seed|name|playKey|reverse' -> performance.now() when that one-shot began.
+const oneShotStarts = new Map()
+const ONE_SHOTS_KEPT = 200
+function startOf(key, now) {
+  if (!oneShotStarts.has(key)) {
+    if (oneShotStarts.size >= ONE_SHOTS_KEPT) oneShotStarts.delete(oneShotStarts.keys().next().value)
+    oneShotStarts.set(key, now)
+  }
+  return oneShotStarts.get(key)
+}
+
 // The image's inline style. Its transform is the frame shown without animation (reduced motion): a loop's first, a
-// once's middle, a hold's last (or first, played backwards).
-function animationStyle(animation, { seed, settled, reverse, speed }) {
+// once's middle, a hold's last (or first, played backwards). now: performance.now() when the image was put on the page.
+function animationStyle(animation, { seed, settled, reverse, speed, playKey, now }) {
   const width = frameSize(animation.sheet).width
   const { start, frames, seconds, play } = animation
   const rest = play === 'loop' ? start : play === 'once' ? start + Math.floor(frames / 2) : reverse ? start : start + frames - 1
   const style = { transform: `translateX(${-rest * width}px)` }
   if (play === 'loop') {
-    style.animation = `${keyframeName(animation.name)} ${seconds}s steps(${frames}) ${-phaseOf(seed) * seconds}s infinite`
+    const delay = -((now / 1000 + phaseOf(seed) * seconds) % seconds)
+    style.animation = `${keyframeName(animation.name)} ${seconds}s steps(${frames}) ${delay}s infinite`
   } else if (!settled) {
-    style.animation = `${keyframeName(animation.name)} ${seconds / speed}s steps(${frames}, jump-none) 0s 1 ${reverse ? 'reverse' : 'normal'} both`
+    const delay = -(now - startOf(`${seed}|${animation.name}|${playKey}|${reverse}`, now)) / 1000
+    style.animation = `${keyframeName(animation.name)} ${seconds / speed}s steps(${frames}, jump-none) ${delay}s 1 ${reverse ? 'reverse' : 'normal'} both`
   }
   return style
+}
+
+// The sheet image, its animation timed when it is put on the page (so re-renders leave it running undisturbed).
+function SheetImage({ animation, timing, ...image }) {
+  const [style] = useState(() => animationStyle(animation, { ...timing, now: performance.now() }))
+  return <image className="char-sprite-sheet" {...image} style={style} />
 }
 
 // The full-body figure of a character on the maps, its feet at (0, 0). setId: characterSprites.json set; colour: the
@@ -77,15 +100,15 @@ export default function CharacterSprite({ setId, colour = null, facing, animatio
       {href && (
         <svg pointerEvents="none" x={-sheet.anchor.x} y={-sheet.anchor.y} width={sheet.frame.width} height={sheet.frame.height} viewBox={`0 0 ${frame.width} ${frame.height}`} overflow="hidden">
           <g transform={mirror ? `matrix(-1 0 0 1 ${frame.width} 0)` : undefined}>
-            <image
-              key={animation.play === 'loop' ? animation.name : `${animation.name}:${playKey}:${reverse}`}
-              className="char-sprite-sheet"
+            <SheetImage
+              key={animation.play === 'loop' ? animation.name : `${animation.name}:${playKey}:${reverse}:${settled}:${speed}`}
+              animation={animation}
+              timing={{ seed, settled, reverse, speed, playKey }}
               href={href}
               x="0"
               y={-row * frame.height}
               width={spriteSheetColumns(animation.sheetId) * frame.width}
               height={METRICS.directions.length * frame.height}
-              style={animationStyle(animation, { seed, settled, reverse, speed })}
             />
           </g>
         </svg>

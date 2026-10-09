@@ -11,7 +11,8 @@
     "COMBAT_READY is latched until combat starts (src/exploration/combatLink.js); combat ending clears it. The debug Reset NPCs button also clears it.",
     "joinsCombat (dispositions): whether an NPC of that disposition takes part in combat when it is already Alerted, is reached by its alert group, or hears or sees the fight. The NPC whose COMBAT_READY starts the fight always takes part.",
     "combatNoise: the noise a combat action makes (radius in tiles, intensity 0..1), heard by NPCs outside the fight. Only attacks make noise for now.",
-    "Hearing does not check walls yet. debugNoise: the noise made by the debug Noise tool."
+    "Noises (combat, challenge objects, the debug tool) do not check walls yet; footsteps do. debugNoise: the noise made by the debug Noise tool.",
+    "footsteps (designer decision, 2026-10-09): a walking or running party member can be heard; a sneaking one makes no noise. Book (Core p.331): a guards' alertness track worsens from failed tasks to move unnoticed and from any noisy or attention-grabbing action; opposed stealth (p.256) pits the mover's Control + Security (p.92) against the searcher's Insight + Security. Prototype: an NPC that hears footsteps (within the gait's radius and its own hearingRange, with no sight-blocking tile in between, and not already seeing that character) fills a hearing meter at the gait's rate per second, summed over everyone it hears. Any hearing makes it Suspicious; a full meter (1) works like a noise at the nearest heard character's position (hearSomething: investigators go and check, others turn to look), then the meter empties. Unheard, the meter drains at awarenessDecayRate. Radius = gait radius x mover factor (1 - moverPerPoint x (Control + Security - referenceSkill)) x listener factor (1 + listenerPerPoint x (Insight + Security - referenceSkill)), each kept between minFactor and maxFactor; an NPC without a character uses the reference. Rates, the per-point values and the factor limits are implementer first-pass tuning; the radii are the designer's."
   ],
   "states": [
     { "id": "UNAWARE", "name": "Unaware" },
@@ -69,5 +70,15 @@
   ],
   "defaultAlertMethod": "shout",
   "debugNoise": { "radius": 6, "intensity": 1 },
-  "combatNoise": { "attack": { "radius": 8, "intensity": 1 } }
+  "combatNoise": { "attack": { "radius": 8, "intensity": 1 } },
+  "footsteps": {
+    "walk": { "radius": 3, "rate": 0.35 },
+    "run": { "radius": 6, "rate": 0.8 },
+    "sneak": { "radius": 0, "rate": 0 },
+    "referenceSkill": 11,
+    "moverPerPoint": 0.05,
+    "listenerPerPoint": 0.05,
+    "minFactor": 0.6,
+    "maxFactor": 1.4
+  }
 }

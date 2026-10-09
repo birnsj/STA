@@ -166,7 +166,7 @@ export function createCombat({
         id: 0,
         round: 1,
         kind: 'info',
-        lines: [`Combat begins. Seed ${combatSeed}.`, `Initiative (party first, then Daring, then Control): ${order.map((id) => all.find((c) => c.id === id).character.name).join(', ')}`],
+        lines: [`Combat begins. Seed ${combatSeed}.`, `Initiative (sides alternate, party first; each side by Daring, then Control): ${order.map((id) => all.find((c) => c.id === id).character.name).join(', ')}`],
       },
       { id: 1, round: 1, kind: 'round', lines: ['ROUND 1'] },
       { id: 2, round: 1, kind: 'turn', lines: turnHeader(first) },

@@ -5,7 +5,9 @@ import { occlusionGroups, useHoles } from './occlusion.js'
 
 // The play views' figures standing among the map's blocks (occlusion.js): figures ([{ depth, box, element }], depth
 // as the blocks' painter's x + y, box the world rect it is drawn in) gathered into windows, each drawn with the blocks
-// in front of its figures, clipped to the window. Returns { holes } for MapCanvas and { windows }, its children.
+// in front of its figures, clipped to the window. Returns { holes } for MapCanvas and { windows }, its children: one
+// list of every window's figures and blocks in painter's order (the windows never overlap, so one order serves them
+// all), so a figure walking from one window into another stays the same element and keeps its state and animation.
 // layout: canvasTiles.js boardLayout; faded: the Set of faded block keys MapCanvas draws.
 export default function useFigureWindows(layout, faded, figures) {
   const clipPrefix = useId()
@@ -21,26 +23,24 @@ export default function useFigureWindows(layout, faded, figures) {
         .map((block) => ({
           depth: block.depth,
           element: (
-            <g key={`b${block.key}`} clipPath={`url(#${clipPrefix}-window-${index})`}>
+            <g key={`w${index}b${block.key}`} clipPath={`url(#${clipPrefix}-window-${index})`}>
               <WallBlock map={map} position={block.position} faded={faded} panels={panels} bigGroups={bigGroups} />
             </g>
           ),
         })),
     )
   }, [layout, faded, holes, clipPrefix])
-  const windows = groups.map((group, index) => {
+  const clips = groups.map((group, index) => {
     const clipId = `${clipPrefix}-window-${index}`
-    const items = [...group.figures.map((i) => figures[i]), ...windowBlocks[index]].sort((a, b) => a.depth - b.depth)
     // A pixel wider than the canvas's hole, so no seam shows round it.
     const { x, y, width, height } = group.area
     return (
-      <g key={clipId}>
-        <clipPath id={clipId}>
-          <rect x={x - 1} y={y - 1} width={width + 2} height={height + 2} />
-        </clipPath>
-        {items.map((item) => item.element)}
-      </g>
+      <clipPath key={clipId} id={clipId}>
+        <rect x={x - 1} y={y - 1} width={width + 2} height={height + 2} />
+      </clipPath>
     )
   })
+  const items = groups.flatMap((group, index) => [...group.figures.map((i) => figures[i]), ...windowBlocks[index]]).sort((a, b) => a.depth - b.depth)
+  const windows = [<defs key={`${clipPrefix}-clips`}>{clips}</defs>, ...items.map((item) => item.element)]
   return { holes, windows }
 }

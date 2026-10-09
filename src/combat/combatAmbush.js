@@ -137,7 +137,8 @@ export function ambushStep(state, action) {
   }
   if (passed) return withOutcome(next)
   // Spotted: the party's round ends here (anyone yet to act loses that turn) and a new round starts with initiative rebuilt
-  // Klingons first (same tie-breaks as the fight's start), so the Klingons act now and stay first for the rest of the fight.
+  // with the Klingons in the first slot (same tie-breaks as the fight's start), so a Klingon acts now and the Klingons keep
+  // the lead in the alternation for the rest of the fight.
   const all = Object.values(next.combatants)
   const order = buildInitiativeOrder(all, seededRandomInt(state.seed), { firstSide: 'enemy' })
   const first = next.combatants[order.find((id) => isActive(next.combatants[id]))]
@@ -156,7 +157,7 @@ export function ambushStep(state, action) {
     startedThisRound: [],
     aiReason: null,
   }
-  next = addLog(next, [`Initiative (Klingons first, then Daring, then Control): ${order.map((id) => next.combatants[id].character.name).join(', ')}`], 'info')
+  next = addLog(next, [`Initiative (sides alternate, Klingons first; each side by Daring, then Control): ${order.map((id) => next.combatants[id].character.name).join(', ')}`], 'info')
   next = addLog(next, [`ROUND ${round}`], 'round')
   return startTurnOf(addLog(next, turnHeader(first), 'turn'), first.id)
 }
