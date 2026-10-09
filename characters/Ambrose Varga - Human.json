@@ -1,0 +1,581 @@
+{
+  "schemaVersion": "0.10.0",
+  "exportedAt": "2026-10-09T02:15:29.498Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "human",
+      "name": "Human",
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 1
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 1
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "human",
+          "name": "Human"
+        }
+      ],
+      "speciesAbility": {
+        "id": "faithOfTheHeart",
+        "name": "Faith of the Heart"
+      }
+    },
+    "environment": {
+      "setting": {
+        "id": "frontierColony",
+        "name": "Frontier Colony"
+      },
+      "otherSpecies": null,
+      "value": {
+        "text": "Seek out new life and new civilizations",
+        "matrixId": "human-value-4"
+      },
+      "attributeBonus": {
+        "id": "fitness",
+        "name": "Fitness",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "outlook": {
+        "id": "agricultureOrRural",
+        "name": "Agriculture or Rural"
+      },
+      "path": {
+        "id": "accepted",
+        "name": "Accepted"
+      },
+      "attributeBonuses": [
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 2
+        },
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "security",
+        "name": "Security",
+        "value": 1
+      },
+      "focus": {
+        "name": "Athletics",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "starfleetAcademy",
+        "name": "Starfleet (Officer)"
+      },
+      "option": {
+        "id": "operationsTrack",
+        "name": "Operations Track"
+      },
+      "attributeBonuses": [
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 2
+        }
+      ],
+      "disciplinePicks": {
+        "major": "engineering",
+        "minors": [
+          "command",
+          "medicine"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 2
+        },
+        {
+          "id": "command",
+          "name": "Command",
+          "value": 1
+        },
+        {
+          "id": "medicine",
+          "name": "Medicine",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Infiltration",
+          "custom": false
+        },
+        {
+          "name": "Transporters & Replicators",
+          "custom": false
+        },
+        {
+          "name": "Espionage",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "Get it done right the first time",
+        "matrixId": "operationsTrack-value-1"
+      },
+      "trait": {
+        "id": "starfleetOfficer",
+        "name": "Starfleet Officer"
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "I’ve trusted my instincts long enough to doubt them now",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer"
+      },
+      "department": {
+        "id": "command",
+        "name": "Command"
+      },
+      "rank": {
+        "id": "commander",
+        "name": "Commander",
+        "type": "officer"
+      },
+      "role": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "breakthroughOrInvention",
+            "name": "Breakthrough or Invention"
+          },
+          "attributeBonus": {
+            "id": "daring",
+            "name": "Daring",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Invention",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "discoveredAnArtifact",
+            "name": "Discovered an Artifact"
+          },
+          "attributeBonus": {
+            "id": "reason",
+            "name": "Reason",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "engineering",
+            "name": "Engineering",
+            "value": 1
+          },
+          "focus": {
+            "name": "Computers",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "Progress demands persistence",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "presence",
+          "daring"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "science",
+          "medicine"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "leadInvestigator",
+        "name": "Lead Investigator",
+        "choice": null
+      },
+      "education": {
+        "id": "transporterChief",
+        "name": "Transporter Chief",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "personalEffects",
+        "name": "Personal Effects",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Ambrose Varga",
+      "pronouns": "They / them",
+      "age": "",
+      "pastime": "",
+      "gender": {
+        "id": "other",
+        "name": "Other"
+      },
+      "portrait": {
+        "id": "human-male-1",
+        "name": "Human Male 1"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "standardTricorder"
+      },
+      {
+        "itemId": "phaserType2"
+      }
+    ],
+    "confirmedAt": "2026-10-09T02:15:29.498Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 9,
+      "daring": 11,
+      "fitness": 11,
+      "insight": 7,
+      "presence": 8,
+      "reason": 10
+    },
+    "disciplines": {
+      "command": 2,
+      "conn": 1,
+      "engineering": 5,
+      "security": 3,
+      "science": 2,
+      "medicine": 3
+    },
+    "values": [
+      "Seek out new life and new civilizations",
+      "Get it done right the first time",
+      "I’ve trusted my instincts long enough to doubt them now",
+      "Progress demands persistence"
+    ],
+    "focuses": [
+      "Athletics",
+      "Infiltration",
+      "Transporters & Replicators",
+      "Espionage",
+      "Invention",
+      "Computers"
+    ],
+    "traits": [
+      {
+        "id": "human",
+        "name": "Human"
+      },
+      {
+        "id": "starfleetOfficer",
+        "name": "Starfleet Officer"
+      }
+    ],
+    "speciesAbility": {
+      "id": "faithOfTheHeart",
+      "name": "Faith of the Heart",
+      "description": "When you use one of your values to spend or gain Determination, you may also add 1 Momentum to the group pool.",
+      "effects": [
+        {
+          "type": "momentum",
+          "trigger": "valueUsedForDetermination",
+          "addToGroupPool": 1,
+          "optional": true
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 107
+      }
+    },
+    "talents": [
+      {
+        "id": "leadInvestigator",
+        "name": "Lead Investigator",
+        "category": "security",
+        "choice": null,
+        "description": "Whenever you attempt a task to retrieve or analyze evidence of a crime, you may re-roll 1d20. When you spend one or more Momentum to Obtain Information to ask questions about a crime scene or evidence, you may ask one additional question.",
+        "requirements": [
+          {
+            "type": "anyOf",
+            "options": [
+              {
+                "type": "department",
+                "id": "security",
+                "min": 3
+              },
+              {
+                "type": "department",
+                "id": "conn",
+                "min": 3
+              }
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "type": "reroll",
+            "dice": 1,
+            "when": "retrieving or analyzing evidence of a crime"
+          },
+          {
+            "type": "obtainInformation",
+            "questions": 1,
+            "when": "Obtain Information about a crime scene or evidence"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Upbringing"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 162
+        }
+      },
+      {
+        "id": "transporterChief",
+        "name": "Transporter Chief",
+        "category": "engineering",
+        "choice": null,
+        "description": "You’re well-versed in the operation of transporter systems and can often get them to function in extreme circumstances or to achieve outcomes that few could manage. Such efforts are never without risk, given the delicacy of the technology. When you attempt a task to use, repair, or modify a transporter, you may add 2 Threat to reduce the Difficulty of the task by 2, to a minimum of 0.",
+        "requirements": [
+          {
+            "type": "department",
+            "id": "engineering",
+            "min": 3
+          }
+        ],
+        "effects": [
+          {
+            "type": "difficulty",
+            "change": -2,
+            "minimum": 0,
+            "cost": {
+              "threat": 2
+            },
+            "when": "using, repairing, or modifying a transporter"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Career Path"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 161
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "personalEffects",
+        "name": "Personal Effects",
+        "category": "general",
+        "choice": null,
+        "description": "You possess some significant and uncommon item or device which is not standard issue, but which is nevertheless useful for missions. You may select this talent multiple times, gaining a different item each time.",
+        "requirements": [
+          {
+            "type": "mainCharacter"
+          }
+        ],
+        "effects": [
+          {
+            "type": "special",
+            "action": "personalItem",
+            "when": "always"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      }
+    ],
+    "rank": {
+      "id": "commander",
+      "name": "Commander"
+    },
+    "department": {
+      "id": "command",
+      "name": "Command"
+    },
+    "assignment": {
+      "id": "executiveOfficer",
+      "name": "Executive Officer"
+    },
+    "role": {
+      "id": "executiveOfficer",
+      "name": "Executive Officer",
+      "description": "Second-in-command. The executive officer is the captain’s chief advisor and takes command in situations where the captain is unable to. If a ship does not have a dedicated executive officer, an officer in another role should be noted as second-in-command, but they will not gain the benefits of this role.",
+      "requirements": [],
+      "benefit": {
+        "id": "executiveOfficer",
+        "name": "Executive Officer Role Benefit",
+        "description": "When an allied character in communication with you spends Determination, you may spend 3 Momentum (Immediate) to enable that character to regain the spent point of Determination.",
+        "effects": [
+          {
+            "type": "determination",
+            "action": "allyRegainsSpent",
+            "amount": 1,
+            "cost": {
+              "momentum": 3,
+              "immediate": true
+            },
+            "when": "an allied character in communication with you spends Determination"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 136
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "standardTricorder",
+        "name": "Standard Tricorder"
+      },
+      {
+        "itemId": "phaserType2",
+        "name": "Type-2 Phaser"
+      }
+    ]
+  }
+}

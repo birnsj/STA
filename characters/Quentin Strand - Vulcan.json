@@ -1,0 +1,591 @@
+{
+  "schemaVersion": "0.10.0",
+  "exportedAt": "2026-10-09T02:16:45.282Z",
+  "status": {
+    "confirmed": true,
+    "valid": true,
+    "issues": []
+  },
+  "character": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "species": {
+      "id": "vulcan",
+      "name": "Vulcan",
+      "attributeBonuses": [
+        {
+          "id": "control",
+          "name": "Control",
+          "value": 1
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 1
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        }
+      ],
+      "traits": [
+        {
+          "id": "vulcan",
+          "name": "Vulcan"
+        }
+      ],
+      "speciesAbility": {
+        "id": "mentalDiscipline",
+        "name": "Mental Discipline"
+      }
+    },
+    "environment": {
+      "setting": {
+        "id": "starshipOrStarbase",
+        "name": "Starship or Starbase"
+      },
+      "otherSpecies": null,
+      "value": {
+        "text": "Logic is the beginning of wisdom, not the end",
+        "matrixId": "vulcan-value-1"
+      },
+      "attributeBonus": {
+        "id": "control",
+        "name": "Control",
+        "value": 1
+      },
+      "disciplineBonus": {
+        "id": "conn",
+        "name": "Conn",
+        "value": 1
+      }
+    },
+    "earlyOutlook": {
+      "outlook": {
+        "id": "artisticAndCreative",
+        "name": "Artistic and Creative"
+      },
+      "path": {
+        "id": "rebelled",
+        "name": "Rebelled"
+      },
+      "attributeBonuses": [
+        {
+          "id": "fitness",
+          "name": "Fitness",
+          "value": 2
+        },
+        {
+          "id": "daring",
+          "name": "Daring",
+          "value": 1
+        }
+      ],
+      "disciplineBonus": {
+        "id": "engineering",
+        "name": "Engineering",
+        "value": 1
+      },
+      "focus": {
+        "name": "Botany",
+        "custom": false
+      }
+    },
+    "education": {
+      "category": {
+        "id": "starfleetIntelligence",
+        "name": "Starfleet (Intelligence)"
+      },
+      "option": {
+        "id": "starfleetIntelligence",
+        "name": "Starfleet (Intelligence)"
+      },
+      "attributeBonuses": [
+        {
+          "id": "insight",
+          "name": "Insight",
+          "value": 2
+        },
+        {
+          "id": "reason",
+          "name": "Reason",
+          "value": 1
+        }
+      ],
+      "disciplinePicks": {
+        "major": "security",
+        "minors": [
+          "conn",
+          "engineering"
+        ],
+        "swapFrom": null,
+        "swapTo": null
+      },
+      "disciplineBonuses": [
+        {
+          "id": "security",
+          "name": "Security",
+          "value": 2
+        },
+        {
+          "id": "conn",
+          "name": "Conn",
+          "value": 1
+        },
+        {
+          "id": "engineering",
+          "name": "Engineering",
+          "value": 1
+        }
+      ],
+      "focuses": [
+        {
+          "name": "Politics",
+          "custom": false
+        },
+        {
+          "name": "Hand-to-Hand Combat",
+          "custom": false
+        },
+        {
+          "name": "Computers",
+          "custom": false
+        }
+      ],
+      "value": {
+        "text": "Trust, but verify",
+        "matrixId": "starfleetIntelligence-value-1"
+      },
+      "trait": {
+        "id": "intelligenceOperative",
+        "name": "Intelligence Operative"
+      }
+    },
+    "career": {
+      "length": {
+        "id": "veteran",
+        "name": "Veteran"
+      },
+      "value": {
+        "text": "You don’t survive this long without facing loss",
+        "matrixId": null
+      },
+      "assignment": {
+        "id": "communicationsOfficer",
+        "name": "Communications Officer"
+      },
+      "department": {
+        "id": "science",
+        "name": "Science"
+      },
+      "rank": {
+        "id": "commander",
+        "name": "Commander",
+        "type": "officer"
+      },
+      "role": {
+        "id": "communicationsOfficer",
+        "name": "Communications Officer"
+      }
+    },
+    "careerHistory": {
+      "events": [
+        {
+          "event": {
+            "id": "conflictWithAHostileCulture",
+            "name": "Conflict with a Hostile Culture"
+          },
+          "attributeBonus": {
+            "id": "fitness",
+            "name": "Fitness",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "security",
+            "name": "Security",
+            "value": 1
+          },
+          "focus": {
+            "name": "Hand Phasers",
+            "custom": false
+          }
+        },
+        {
+          "event": {
+            "id": "seriousInjury",
+            "name": "Serious Injury"
+          },
+          "attributeBonus": {
+            "id": "fitness",
+            "name": "Fitness",
+            "value": 1
+          },
+          "disciplineBonus": {
+            "id": "medicine",
+            "name": "Medicine",
+            "value": 1
+          },
+          "focus": {
+            "name": "Warp Core Mechanics",
+            "custom": false
+          }
+        }
+      ]
+    },
+    "finishingTouches": {
+      "value": {
+        "text": "Every day is a second chance",
+        "matrixId": null
+      },
+      "attributes": {
+        "increases": [
+          "reason",
+          "daring"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      },
+      "disciplines": {
+        "increases": [
+          "security",
+          "command"
+        ],
+        "keepAtMax": null,
+        "redistribution": []
+      }
+    },
+    "talents": {
+      "earlyOutlook": {
+        "id": "secondWind",
+        "name": "Second Wind",
+        "choice": null
+      },
+      "education": {
+        "id": "nervePinch",
+        "name": "Nerve Pinch",
+        "choice": null
+      },
+      "career": {
+        "id": "veteran",
+        "name": "Veteran",
+        "choice": null
+      },
+      "finishingTouches": {
+        "id": "backUpPlans",
+        "name": "Back-Up Plans",
+        "choice": null
+      }
+    },
+    "identity": {
+      "name": "Quentin Strand",
+      "pronouns": "He / him",
+      "age": "",
+      "pastime": "",
+      "gender": {
+        "id": "male",
+        "name": "Male"
+      },
+      "portrait": {
+        "id": "vulcan-male-3",
+        "name": "Vulcan Male 3"
+      }
+    },
+    "backgroundNotes": "",
+    "equipment": [
+      {
+        "itemId": "standardUniform"
+      },
+      {
+        "itemId": "communicator"
+      },
+      {
+        "itemId": "scienceTricorder"
+      },
+      {
+        "itemId": "phaserType2"
+      }
+    ],
+    "confirmedAt": "2026-10-09T02:16:45.282Z"
+  },
+  "final": {
+    "faction": {
+      "id": "federation",
+      "name": "Federation"
+    },
+    "attributes": {
+      "control": 9,
+      "daring": 9,
+      "fitness": 12,
+      "insight": 9,
+      "presence": 7,
+      "reason": 10
+    },
+    "disciplines": {
+      "command": 2,
+      "conn": 3,
+      "engineering": 3,
+      "security": 5,
+      "science": 1,
+      "medicine": 2
+    },
+    "values": [
+      "Logic is the beginning of wisdom, not the end",
+      "Trust, but verify",
+      "You don’t survive this long without facing loss",
+      "Every day is a second chance"
+    ],
+    "focuses": [
+      "Botany",
+      "Politics",
+      "Hand-to-Hand Combat",
+      "Computers",
+      "Hand Phasers",
+      "Warp Core Mechanics"
+    ],
+    "traits": [
+      {
+        "id": "vulcan",
+        "name": "Vulcan"
+      },
+      {
+        "id": "intelligenceOperative",
+        "name": "Intelligence Operative"
+      }
+    ],
+    "speciesAbility": {
+      "id": "mentalDiscipline",
+      "name": "Mental Discipline",
+      "description": "While Vulcans have some psychic capabilities, they require training to use it effectively (see the Mind Meld talent, page 154). Further, your maximum Stress is based on your Control rather than your Fitness, and you may suffer 2 Stress to avoid suffering any trait that represents an emotional state. However, if you become Fatigued, you increase the Potency of any such emotion-related trait by 1.",
+      "effects": [
+        {
+          "type": "special",
+          "id": "psychicTraining",
+          "requiresTalent": "mindMeld",
+          "talentSource": {
+            "book": "Star Trek Adventures 2E Core Rulebook",
+            "page": 154
+          }
+        },
+        {
+          "type": "stress",
+          "maxStressAttribute": "control",
+          "replacesAttribute": "fitness"
+        },
+        {
+          "type": "stress",
+          "trigger": "emotionalTraitSuffered",
+          "cost": 2,
+          "effect": "avoidTrait",
+          "optional": true
+        },
+        {
+          "type": "special",
+          "condition": "fatigued",
+          "effect": "emotionalTraitPotency",
+          "amount": 1
+        }
+      ],
+      "source": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 113
+      }
+    },
+    "talents": [
+      {
+        "id": "secondWind",
+        "name": "Second Wind",
+        "category": "general",
+        "choice": null,
+        "description": "You may spend Determination at the start of your turn to remove the Defeated state, and to recover up to half of your maximum Stress. The normal requirements for spending a point of Determination still apply.",
+        "requirements": [],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "removeDefeatedAndRecoverHalfStress",
+            "when": "start of your turn"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "earlyOutlook",
+          "stepTitle": "Upbringing"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 150
+        }
+      },
+      {
+        "id": "nervePinch",
+        "name": "Nerve Pinch",
+        "category": "species",
+        "choice": null,
+        "description": "You have learned numerous techniques for the stimulation and control of nerve impulses—collectively called neuropressure. Some applications of neuropressure can be used to incapacitate assailants swiftly and non-lethally. The nerve pinch counts as a Melee Attack which inflicts Stun Injuries with a Severity of 3 and the Intense quality. You may use Science or Medicine instead of Security when attempting a Nerve Pinch Attack.",
+        "requirements": [
+          {
+            "type": "species",
+            "ids": [
+              "vulcan"
+            ]
+          }
+        ],
+        "effects": [
+          {
+            "type": "attack",
+            "name": "Nerve Pinch",
+            "attackType": "melee",
+            "injury": "stun",
+            "severity": 3,
+            "qualities": [
+              "Intense"
+            ]
+          },
+          {
+            "type": "substitute",
+            "kind": "department",
+            "from": "security",
+            "to": [
+              "science",
+              "medicine"
+            ],
+            "when": "Nerve Pinch Attack"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "education",
+          "stepTitle": "Career Path"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 154
+        }
+      },
+      {
+        "id": "veteran",
+        "name": "Veteran",
+        "category": "career",
+        "choice": null,
+        "description": "You’re wise and experienced, and draw upon inner reserves of willpower and determination in a measured and considered way. Whenever you spend Determination, roll a d20. If you roll equal to or less than your Control rating, you immediately regain that point of Determination. If you are Starfleet or military, you hold a rank of at least lieutenant commander, or an enlisted rate of at least chief petty officer.",
+        "requirements": [
+          {
+            "type": "careerLength",
+            "id": "veteran"
+          }
+        ],
+        "effects": [
+          {
+            "type": "determination",
+            "action": "regainOnRoll",
+            "check": {
+              "roll": "d20",
+              "atOrUnder": "control"
+            },
+            "when": "you spend Determination"
+          }
+        ],
+        "limits": {
+          "minRank": "lieutenantCommander",
+          "minEnlistedRate": "chiefPettyOfficer",
+          "enforced": true
+        },
+        "era": null,
+        "source": {
+          "step": "career",
+          "stepTitle": "Career"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 128
+        }
+      },
+      {
+        "id": "backUpPlans",
+        "name": "Back-Up Plans",
+        "category": "general",
+        "choice": null,
+        "description": "Whenever you or an ally fail a task (so long as you are present in the scene), you may add 1 point to the group’s Momentum pool.",
+        "requirements": [
+          {
+            "type": "attribute",
+            "id": "control",
+            "min": 9
+          }
+        ],
+        "effects": [
+          {
+            "type": "groupMomentum",
+            "amount": 1,
+            "when": "you or a present ally fail a task"
+          }
+        ],
+        "era": null,
+        "source": {
+          "step": "finishingTouches",
+          "stepTitle": "Finishing Touches"
+        },
+        "reference": {
+          "book": "Core Rulebook",
+          "page": 149
+        }
+      }
+    ],
+    "rank": {
+      "id": "commander",
+      "name": "Commander"
+    },
+    "department": {
+      "id": "science",
+      "name": "Science"
+    },
+    "assignment": {
+      "id": "communicationsOfficer",
+      "name": "Communications Officer"
+    },
+    "role": {
+      "id": "communicationsOfficer",
+      "name": "Communications Officer",
+      "description": "More common in the earlier days of Starfleet, dedicated communications officers are typically skilled in linguistics and cryptography, and aided with advanced translation and decryption technologies, and are valuable during encounters with new cultures, hostile or otherwise.",
+      "requirements": [],
+      "benefit": {
+        "id": "communicationsOfficer",
+        "name": "Communications Officer Role Benefit",
+        "description": "When you attempt a task assisted by the ship’s Computers or Communications systems, do not roll the ship’s assist die: instead, count the ship’s die as if it had rolled a 1.",
+        "effects": [
+          {
+            "type": "assistDie",
+            "result": 1,
+            "who": "the ship",
+            "when": "a task assisted by the ship’s Computers or Communications systems"
+          }
+        ]
+      },
+      "era": null,
+      "reference": {
+        "book": "Core Rulebook",
+        "page": 138
+      }
+    },
+    "equipment": [
+      {
+        "itemId": "standardUniform",
+        "name": "Standard Uniform"
+      },
+      {
+        "itemId": "communicator",
+        "name": "Communicator"
+      },
+      {
+        "itemId": "scienceTricorder",
+        "name": "Science Tricorder"
+      },
+      {
+        "itemId": "phaserType2",
+        "name": "Type-2 Phaser"
+      }
+    ]
+  }
+}
