@@ -103,6 +103,13 @@ function recolourMaskedLayer(image, mask, colour, width, height) {
   return canvas
 }
 
+// One picture with its uniform mask applied (map sprite sheets, components/maps/useRecolouredSheet.js): a URL of the
+// recoloured copy.
+export async function recolourWithMask(src, maskSrc, colour) {
+  const [image, mask] = await Promise.all([loadImage(src), loadImage(maskSrc)])
+  return toUrl(recolourMaskedLayer(image, mask, colour, image.naturalWidth, image.naturalHeight))
+}
+
 const needsMaskRecolour = (layer, colour) => Boolean(layer.mask && colour && colour !== layer.baseColour)
 
 function layerImage(layer, image, mask, colour, width, height) {

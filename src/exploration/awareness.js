@@ -97,7 +97,7 @@ export function perceive(map, npc, member) {
     if (!member.moving) rate *= V.stationaryAtLongRangeMultiplier
   }
   if (angle > halfView * V.peripheralFraction) rate *= V.peripheralMultiplier
-  if (member.moving) rate *= V.movingMultiplier
+  if (member.moving) rate *= member.running ? V.runningMultiplier : V.movingMultiplier
   return { immediate: false, rate }
 }
 

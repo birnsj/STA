@@ -11,6 +11,8 @@ import { around } from '../maps/occlusion.js'
 import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
+import CharacterSprite from '../maps/CharacterSprite.jsx'
+import { hasCharacterSprite } from '../../rules/appearance.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -148,6 +150,26 @@ const mouseOnly = (callback) => (event) => {
   if (event.pointerType === 'mouse') callback()
 }
 
+// The portrait on a stand, for a character with no full-body sprite set (characterSprites.json).
+function UnitToken({ image, shownImage, clipId, name }) {
+  return (
+    <>
+      <clipPath id={clipId}>
+        <rect x="-15" y="-50" width="30" height="40" rx="4" />
+      </clipPath>
+      <rect className="iso-unit-body" x="-17" y="-52" width="34" height="44" rx="5" />
+      {image ? (
+        shownImage && <image href={shownImage} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
+      ) : (
+        <text className="iso-unit-initial" x="0" y="-25" textAnchor="middle">
+          {name.charAt(0)}
+        </text>
+      )}
+      <line className="iso-unit-stand" x1="0" y1="-8" x2="0" y2="0" />
+    </>
+  )
+}
+
 // isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
 function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
@@ -155,7 +177,9 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const down = Boolean(combatant.condition?.defeated)
   const sideClass = combatant.side === 'player' ? 'is-player' : 'is-enemy'
   const image = combatant.character.portrait?.image
-  const shownImage = useUniformImage(image, combatant.character.portrait?.uniform)
+  const spriteSet = combatant.character.portrait?.spriteSet
+  const hasSprite = hasCharacterSprite(spriteSet)
+  const shownImage = useUniformImage(hasSprite ? null : image, combatant.character.portrait?.uniform)
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
   return (
     <g
@@ -172,18 +196,11 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
         <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
       ) : (
         <>
-          <clipPath id={clipId}>
-            <rect x="-15" y="-50" width="30" height="40" rx="4" />
-          </clipPath>
-          <rect className="iso-unit-body" x="-17" y="-52" width="34" height="44" rx="5" />
-          {image ? (
-            shownImage && <image href={shownImage} x="-15" y="-50" width="30" height="40" preserveAspectRatio="xMidYMin slice" clipPath={`url(#${clipId})`} />
+          {hasSprite ? (
+            <CharacterSprite setId={spriteSet} colour={combatant.character.portrait.uniform} facing={facing} walking={isWalking} seed={combatant.id} />
           ) : (
-            <text className="iso-unit-initial" x="0" y="-25" textAnchor="middle">
-              {combatant.character.name.charAt(0)}
-            </text>
+            <UnitToken image={image} shownImage={shownImage} clipId={clipId} name={combatant.character.name} />
           )}
-          <line className="iso-unit-stand" x1="0" y1="-8" x2="0" y2="0" />
           {facing && <FacingArrow facing={facing} />}
           {combatant.inCover && !isWalking && (
             <g className="iso-unit-cover" transform="translate(16 -48)">

@@ -539,6 +539,7 @@ export function endCombat(state) {
       facing: { x: Math.cos(heading), y: Math.sin(heading) },
       turning: false,
       moving: false,
+      running: false,
       order: null,
       path: [],
       replanIn: 0,

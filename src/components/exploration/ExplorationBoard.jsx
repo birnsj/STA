@@ -16,6 +16,8 @@ import MapCanvas from '../maps/MapCanvas.jsx'
 import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
+import CharacterSprite from '../maps/CharacterSprite.jsx'
+import { hasCharacterSprite } from '../../rules/appearance.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -72,7 +74,11 @@ function Explorer({ member, selected, lead, onPress }) {
     >
       <title>{member.character.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
-      {down ? <DownBody /> : <ExplorerFigure image={image} uniform={uniform} clipId={clipId} name={member.character.name} facing={member.facing} />}
+      {down ? (
+        <DownBody />
+      ) : (
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={member.moving} running={member.running} seed={member.id} clipId={clipId} name={member.character.name} facing={member.facing} />
+      )}
       {lead && (
         <text className="explore-unit-lead" x="0" y="-58" textAnchor="middle">
           LEAD
@@ -82,8 +88,18 @@ function Explorer({ member, selected, lead, onPress }) {
   )
 }
 
-function ExplorerFigure({ image, uniform = null, clipId, name, facing }) {
-  const shownImage = useUniformImage(image, uniform)
+// The character's full-body sprite where they have one (characterSprites.json), else their portrait on a stand.
+function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = false, running = false, seed, clipId, name, facing }) {
+  const hasSprite = hasCharacterSprite(spriteSet)
+  const shownImage = useUniformImage(hasSprite ? null : image, uniform)
+  if (hasSprite) {
+    return (
+      <>
+        <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} walking={walking} running={running} seed={seed} />
+        <FacingArrow facing={facing} />
+      </>
+    )
+  }
   return (
     <>
       <clipPath id={clipId}>
@@ -115,7 +131,20 @@ function NpcToken({ npc, unperceived = false }) {
     <g className={`iso-unit is-enemy explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}`} style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }} pointerEvents="none">
       <title>{npc.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
-      {down ? <DownBody /> : <ExplorerFigure image={image} uniform={uniform} clipId={clipId} name={npc.name} facing={{ x: Math.cos(npc.heading), y: Math.sin(npc.heading) }} />}
+      {down ? (
+        <DownBody />
+      ) : (
+        <ExplorerFigure
+          image={image}
+          uniform={uniform}
+          spriteSet={npc.character?.portrait.spriteSet}
+          walking={npc.moving}
+          seed={npc.id}
+          clipId={clipId}
+          name={npc.name}
+          facing={{ x: Math.cos(npc.heading), y: Math.sin(npc.heading) }}
+        />
+      )}
     </g>
   )
 }

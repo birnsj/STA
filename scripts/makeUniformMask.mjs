@@ -23,6 +23,28 @@ const PORTRAITS = {
   'human-female-3': { below: 194 },
   'human-female-4': { below: 195 },
   'human-female-5': { below: 195 },
+  'vulcan-male-1': { below: 195 },
+  'vulcan-male-2': { below: 188 },
+  'vulcan-male-3': { below: 190 },
+  'vulcan-male-4': { below: 184 },
+  'vulcan-male-5': { below: 186 },
+  // Long neck in shirt-like tones reaching below the collar's ends: a separate ~5,000 px region, so only the
+  // shirt-sized one is kept.
+  'vulcan-female-1': { below: 220, minRegion: 10000 },
+  'vulcan-female-2': { below: 208 },
+  'vulcan-female-3': { below: 205 },
+  'vulcan-female-4': { below: 206 },
+  'vulcan-female-5': { below: 203 },
+  'andorian-male-1': { below: 198 },
+  'andorian-male-2': { below: 193 },
+  'andorian-male-3': { below: 195 },
+  'andorian-male-4': { below: 195 },
+  'andorian-male-5': { below: 194 },
+  'andorian-female-1': { below: 199 },
+  'andorian-female-2': { below: 203 },
+  'andorian-female-3': { below: 201 },
+  'andorian-female-4': { below: 201 },
+  'andorian-female-5': { below: 206 },
 }
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')

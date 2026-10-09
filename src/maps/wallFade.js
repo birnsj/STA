@@ -6,7 +6,8 @@ import { BIG_IMAGE } from './bigObjects.js'
 import { project, TILE_H, TILE_W } from './iso.js'
 import { getTile, imageSize, TILE_IMAGE, TILES } from './mapFormat.js'
 
-// How far above a standing figure's feet it is drawn (the portrait token is about 52px tall, the lead badge above it).
+// How far above a standing figure's feet it is drawn (a full-body sprite or the portrait token is about 52px tall,
+// Andorian antennae a little more, the lead badge above it).
 const FIGURE_TOP = 60
 const FIGURE_HALF_WIDTH = 17
 

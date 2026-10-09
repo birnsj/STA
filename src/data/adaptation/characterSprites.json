@@ -1,0 +1,38 @@
+{
+  "notes": [
+    "Prototype presentation only (no book rule, no game-rule effect): the full-body figure drawn for a character on the isometric maps (exploration and Combat Type 1). Chosen from the character's portrait, so saves and the character JSON are unchanged.",
+    "A portrait in portraits.json uses the set of its species and gender (or its own optional spriteSet); portraitSets names the set for portraits that are not in portraits.json (the Klingon warriors). A character whose portrait resolves to no set keeps the portrait token.",
+    "Each set is one sheet PNG: a row per drawn direction (directions, in order), and in each row the idle, walk and run frames (animations: first column and frame count). Run is used in exploration only, when a character runs (partyControl.json). The other three directions are the mirror image of drawnFor's direction. frame is the design size of one frame (the sheet is drawn at resolution times that) and anchor the point in a frame where the feet stand.",
+    "uniformMask (optional): a PNG the sheet's size, opaque where the shirt is; uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
+    "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it."
+  ],
+  "frame": { "width": 40, "height": 64 },
+  "anchor": { "x": 20, "y": 60 },
+  "resolution": 4,
+  "directions": ["s", "se", "e", "ne", "n"],
+  "mirrored": { "sw": "se", "w": "e", "nw": "ne" },
+  "animations": {
+    "idle": { "start": 0, "frames": 4, "seconds": 2.4 },
+    "walk": { "start": 4, "frames": 8, "seconds": 0.8 },
+    "run": { "start": 12, "frames": 8, "seconds": 0.6 }
+  },
+  "sets": [
+    { "id": "human-male", "species": "human", "gender": "male", "sheet": "/art/sprites/characters/human-male.png", "uniformMask": "/art/sprites/characters/human-male-uniform.png", "uniformDivision": "command" },
+    { "id": "human-female", "species": "human", "gender": "female", "sheet": "/art/sprites/characters/human-female.png", "uniformMask": "/art/sprites/characters/human-female-uniform.png", "uniformDivision": "command" },
+    { "id": "vulcan-male", "species": "vulcan", "gender": "male", "sheet": "/art/sprites/characters/vulcan-male.png", "uniformMask": "/art/sprites/characters/vulcan-male-uniform.png", "uniformDivision": "command" },
+    { "id": "vulcan-female", "species": "vulcan", "gender": "female", "sheet": "/art/sprites/characters/vulcan-female.png", "uniformMask": "/art/sprites/characters/vulcan-female-uniform.png", "uniformDivision": "command" },
+    { "id": "andorian-male", "species": "andorian", "gender": "male", "sheet": "/art/sprites/characters/andorian-male.png", "uniformMask": "/art/sprites/characters/andorian-male-uniform.png", "uniformDivision": "command" },
+    { "id": "andorian-female", "species": "andorian", "gender": "female", "sheet": "/art/sprites/characters/andorian-female.png", "uniformMask": "/art/sprites/characters/andorian-female-uniform.png", "uniformDivision": "command" },
+    { "id": "tellarite-male", "species": "tellarite", "gender": "male", "sheet": "/art/sprites/characters/tellarite-male.png", "uniformMask": "/art/sprites/characters/tellarite-male-uniform.png", "uniformDivision": "command" },
+    { "id": "tellarite-female", "species": "tellarite", "gender": "female", "sheet": "/art/sprites/characters/tellarite-female.png", "uniformMask": "/art/sprites/characters/tellarite-female-uniform.png", "uniformDivision": "command" },
+    { "id": "trill-male", "species": "trill", "gender": "male", "sheet": "/art/sprites/characters/trill-male.png", "uniformMask": "/art/sprites/characters/trill-male-uniform.png", "uniformDivision": "command" },
+    { "id": "trill-female", "species": "trill", "gender": "female", "sheet": "/art/sprites/characters/trill-female.png", "uniformMask": "/art/sprites/characters/trill-female-uniform.png", "uniformDivision": "command" },
+    { "id": "caitian-male", "species": "caitian", "gender": "male", "sheet": "/art/sprites/characters/caitian-male.png", "uniformMask": "/art/sprites/characters/caitian-male-uniform.png", "uniformDivision": "command" },
+    { "id": "caitian-female", "species": "caitian", "gender": "female", "sheet": "/art/sprites/characters/caitian-female.png", "uniformMask": "/art/sprites/characters/caitian-female-uniform.png", "uniformDivision": "command" },
+    { "id": "klingon-male", "species": "klingon", "gender": "male", "sheet": "/art/sprites/characters/klingon-male.png" }
+  ],
+  "portraitSets": {
+    "klingon-warrior-1": "klingon-male",
+    "klingon-warrior-2": "klingon-male"
+  }
+}

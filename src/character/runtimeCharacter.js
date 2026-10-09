@@ -5,7 +5,7 @@
 // state (condition, position, awareness) lives with the world actor or combatant that uses the character.
 import attributeData from '../data/source/attributes.json'
 import disciplineData from '../data/source/disciplines.json'
-import { getCharacterBackdrop, getPortraitById } from '../rules/appearance.js'
+import { getCharacterBackdrop, getPortraitById, getSpriteSet } from '../rules/appearance.js'
 import { getCreatorFaction } from '../rules/factions.js'
 import { getSpeciesAbility, getSpeciesDisplayName } from '../rules/species.js'
 import { getUniformColour } from '../rules/uniform.js'
@@ -98,6 +98,8 @@ export function normalizeCharacterRecord(record, { id } = {}) {
         uniform: faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null,
         // Drawn behind a layered head-and-shoulders portrait in panels; map figures leave it out.
         backdrop: getCharacterBackdrop(identity).image,
+        // The full-body figure on the maps (characterSprites.json), or null for the portrait token.
+        spriteSet: getSpriteSet(portraitId)?.id ?? null,
       },
       rank: idName(career.rank),
       department,

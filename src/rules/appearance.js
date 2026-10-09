@@ -2,6 +2,7 @@
 import genderData from '../data/adaptation/genders.json'
 import portraitData from '../data/adaptation/portraits.json'
 import backdropData from '../data/adaptation/portraitBackdrops.json'
+import spriteData from '../data/adaptation/characterSprites.json'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
 import { getDivisionColour } from './uniform.js'
 
@@ -51,6 +52,32 @@ export const getCharacterBackdrop = (identity) => getBackdropById(identity?.back
 export function selectBackdrop(identity, backdropId) {
   const backdrop = getBackdropById(backdropId)
   return backdrop ? { ...identity, backdrop: { id: backdrop.id, name: backdrop.name } } : identity
+}
+
+// Map figures (characterSprites.json): the full-body sprite set for a portrait, or null (the map keeps the portrait
+// token). A portrait's own spriteSet wins, then its species and gender; portraits outside portraits.json are named in
+// portraitSets.
+export const getSpriteMetrics = () => spriteData
+export const getSpriteSetById = (setId) => spriteData.sets.find((set) => set.id === setId) ?? null
+export const hasCharacterSprite = (setId) => Boolean(getSpriteSetById(setId))
+export function getSpriteSet(portraitId) {
+  if (!portraitId) return null
+  const portrait = getPortraitById(portraitId)
+  if (!portrait) return getSpriteSetById(spriteData.portraitSets[portraitId])
+  if (portrait.spriteSet) return getSpriteSetById(portrait.spriteSet)
+  return spriteData.sets.find((set) => set.species === portrait.species && set.gender === portrait.gender) ?? null
+}
+
+// The eight directions in world terms (x and y are the map's axes; screen down is +x +y), a quarter turn apart.
+const WORLD_DIRECTIONS = ['se', 's', 'sw', 'w', 'nw', 'n', 'ne', 'e']
+
+// Which sheet row draws a facing ({ x, y } along the map axes, any length), and whether it is the mirror image of it.
+// Facing nowhere in particular (0, 0) faces the viewer.
+export function directionFor(facing) {
+  const angle = facing && (facing.x || facing.y) ? Math.atan2(facing.y, facing.x) : Math.PI / 4
+  const id = WORLD_DIRECTIONS[(Math.round(angle / (Math.PI / 4)) + 8) % 8]
+  const drawn = spriteData.mirrored[id] ?? id
+  return { id, row: spriteData.directions.indexOf(drawn), mirror: drawn !== id }
 }
 
 // Species + Gender -> portrait set. Mixed Heritage and New Species see every species' portraits for the gender;

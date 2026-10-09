@@ -74,25 +74,25 @@ describe('layered portraits', () => {
   const composited = portraitData.portraits.filter((portrait) => portrait.characterImage)
   const pictures = (portrait) => [getPortraitLayers(portrait.image ?? portrait.characterImage), getPortraitLayers(portrait.fullBody)].filter(Boolean)
 
-  it('Prototype: a composited portrait stacks the character, then the uniform overlay (the backdrop is the character\'s own)', () => {
+  it('Prototype: the Vulcan head art replaces the mock head layers; the mock full-body layers stay', () => {
     const portrait = getPortraitById('vulcan-male-1')
-    assert.deepEqual(getPortraitLayers(portrait.image), [
-      { role: 'character', src: portrait.characterImage },
-      { role: 'uniform', src: portrait.uniformImage },
-    ])
+    assert.equal(portrait.characterImage, '/art/portraits/vulcan-male-1.png')
+    assert.ok(!('uniformImage' in portrait))
     assert.ok(portraitData.portraits.every((entry) => !('backdropImage' in entry)), 'backdrops are chosen per character, not per portrait')
     assert.deepEqual(getPortraitLayers(portrait.fullBody), portrait.fullBodyLayers)
   })
 
-  it('a transparent single picture (the Human batch) is its own character layer, so the backdrop shows behind it', () => {
-    const portrait = getPortraitById('human-male-2')
-    assert.equal(portrait.characterImage, '/art/portraits/human-male-2.png')
-    assert.equal(getPortraitLayers(portrait.image)[0].src, '/art/portraits/human-male-2.png')
+  it('a transparent single picture (the Human and Vulcan art) is its own character layer, so the backdrop shows behind it', () => {
+    for (const id of ['human-male-2', 'vulcan-female-3']) {
+      const portrait = getPortraitById(id)
+      assert.equal(portrait.characterImage, `/art/portraits/${id}.png`)
+      assert.equal(getPortraitLayers(portrait.image)[0].src, `/art/portraits/${id}.png`)
+    }
   })
 
   it('a single-image portrait keeps its one picture, with no layers', () => {
-    const portrait = getPortraitById('vulcan-male-2')
-    assert.equal(portrait.image, '/art/portraits/vulcan-male-2.png')
+    const portrait = getPortraitById('tellarite-male-2')
+    assert.equal(portrait.image, '/art/portraits/tellarite-male-2.png')
     assert.equal(getPortraitLayers(portrait.image), null)
     assert.equal(getPortraitLayers('/art/combat/klingon-warrior-1.png'), null)
   })
@@ -118,13 +118,14 @@ describe('layered portraits', () => {
 
 })
 
-describe('uniform mask recolour (Prototype: the ten Human portraits)', () => {
+describe('uniform mask recolour (Prototype: the Human, Vulcan and Andorian portraits)', () => {
   const read = (src) => decodePng(fs.readFileSync(new URL(`../public${src}`, import.meta.url)))
   const masked = portraitData.portraits.filter((entry) => entry.uniformMask)
-  const humans = portraitData.portraits.filter((entry) => entry.species === 'human')
+  const designerArt = portraitData.portraits.filter((entry) => ['human', 'vulcan', 'andorian'].includes(entry.species))
 
-  it('every Human portrait has its own mask, and each character layer carries it with the colour the art wears', () => {
-    assert.deepEqual(masked.map((entry) => entry.id), humans.map((entry) => entry.id))
+  it('every Human, Vulcan and Andorian portrait has its own mask, and each character layer carries it with the colour the art wears', () => {
+    assert.deepEqual(masked.map((entry) => entry.id), designerArt.map((entry) => entry.id))
+    assert.equal(masked.length, 30)
     assert.equal(new Set(masked.map((entry) => entry.uniformMask)).size, masked.length)
     for (const entry of masked) {
       const portrait = getPortraitById(entry.id)
@@ -150,6 +151,38 @@ describe('uniform mask recolour (Prototype: the ten Human portraits)', () => {
           assert.ok(Math.floor(index / art.width) >= 165, `mask in the head area at ${index}`)
         }
         assert.ok(covered > 15000, `uniform pixels: ${covered}`)
+      })
+
+      it('every masked pixel is a warm shirt tone in the art (never blue skin or antennae, pale hair or the black collar)', () => {
+        for (let index = 0; index < art.width * art.height; index++) {
+          if (!isMasked(index)) continue
+          const [r, g, b] = art.bytes.subarray(index * 4, index * 4 + 3)
+          const max = Math.max(r, g, b)
+          assert.ok(b <= r && b <= g && (max - b) / max >= 0.3 && max >= 30, `pixel ${index} is rgb(${r}, ${g}, ${b})`)
+        }
+      })
+
+      it('the mask is the shirt alone: one connected piece (a neck or ear in shirt tones would be a second)', () => {
+        const width = mask.width
+        const seen = new Uint8Array(width * mask.height)
+        let pieces = 0
+        for (let start = 0; start < seen.length; start++) {
+          if (!isMasked(start) || seen[start]) continue
+          pieces++
+          const queue = [start]
+          seen[start] = 1
+          while (queue.length) {
+            const index = queue.pop()
+            const x = index % width
+            for (const next of [x + 1 < width ? index + 1 : -1, x > 0 ? index - 1 : -1, index + width, index - width]) {
+              if (next >= 0 && next < seen.length && !seen[next] && isMasked(next)) {
+                seen[next] = 1
+                queue.push(next)
+              }
+            }
+          }
+        }
+        assert.equal(pieces, 1)
       })
 
       for (const division of ['sciences', 'operations']) {

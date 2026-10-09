@@ -3,11 +3,15 @@
     "Prototype: away-team movement and formations for exploration. Videogame adaptation, not from the books; every number here is implementation tuning.",
     "Distances are in map tiles (1 = one tile). Positions are continuous, with tile centres at whole numbers.",
     "Formation slots: x = to the leader's right, y = behind the leader. The first slot is the leader; followers take the others. Slots are scaled by the party's spacing and turned to the leader's heading.",
-    "Every party member walks at the same speed: no character stat is used for exploration movement yet."
+    "Every party member walks at the same speed: no character stat is used for exploration movement yet.",
+    "Walk or run (designer decision, 2026-10-09): a move order to a point more than runDistance from the lead character runs at runSpeed, otherwise walks; while the button is held this follows the cursor. Followers of a running leader run too, and catch up at runCatchUpSpeed."
   ],
   "movement": {
     "walkSpeed": 3.2,
+    "runSpeed": 5.5,
+    "runDistance": 4,
     "catchUpSpeed": 4.4,
+    "runCatchUpSpeed": 6.6,
     "catchUpDistance": 1.5,
     "arriveDistance": 0.6,
     "radius": 0.28,

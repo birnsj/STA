@@ -83,9 +83,17 @@
   stroke-width: 1.2;
 }
 
+/* Map figures (CharacterSprite.jsx): a soft shadow under the feet. */
+.char-sprite-shadow {
+  fill: rgba(0, 0, 0, 0.38);
+  filter: blur(1.5px);
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* !important: a frame's animation name is inline. Each rests on the loop's first frame. */
-  .tilemap-frame {
+  .tilemap-frame,
+  .char-sprite-sheet {
     animation: none !important;
   }
 }

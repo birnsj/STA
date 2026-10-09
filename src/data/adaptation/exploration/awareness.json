@@ -4,7 +4,7 @@
     "Distances are in tiles, angles in degrees, rates and times in seconds. Facing: degrees on the map grid, 0 = toward increasing x (columns), 90 = toward increasing y (rows).",
     "Awareness is tracked per NPC per party member. confidence runs 0..1: anything noticed (above 0) makes the NPC Suspicious of that character; reaching 1 is a positive identification (Alerted).",
     "perceptionDefaults apply to every NPC unless its own perception block overrides them.",
-    "Vision: the character must be inside visionRange, inside the field of view and in line of sight (tiles with blocksSight in tiles.json block it). Inside closeRange: identified at once. Up to normalRange: confidence builds at awarenessBuildRate. Beyond normalRange: longRangeMultiplier times that. Near the edge of the field of view (beyond peripheralFraction of the half-angle): peripheralMultiplier. A moving character: movingMultiplier. A character standing still beyond normalRange: stationaryAtLongRangeMultiplier.",
+    "Vision: the character must be inside visionRange, inside the field of view and in line of sight (tiles with blocksSight in tiles.json block it). Inside closeRange: identified at once. Up to normalRange: confidence builds at awarenessBuildRate. Beyond normalRange: longRangeMultiplier times that. Near the edge of the field of view (beyond peripheralFraction of the half-angle): peripheralMultiplier. A moving character: movingMultiplier, or runningMultiplier while running (designer decision, 2026-10-09). A character standing still beyond normalRange: stationaryAtLongRangeMultiplier.",
     "Out of sight, awareness holds for a while (suspiciousHoldSeconds / alertedHoldSeconds), then the NPC investigates the last known position (if its disposition investigates) or the awareness decays at awarenessDecayRate. A search that finds nothing drops the character to Suspicious at confidenceAfterSearch, which then decays to Unaware.",
     "dispositions: investigates = goes to check suspicious things. response = what an Alerted NPC does when it actually sees the character: none, observe, confront (CONFRONTATION_READY event), alarm (alerts its group by alarm, then COMBAT_READY after alarmSeconds if it still sees a party member), combat (COMBAT_READY at once). An NPC's responseType overrides its disposition's response. alertsGroup = tells its alert group (with the NPC's alertMethod) when it first identifies someone.",
     "alertMethods: how a group alert travels. range null = the whole alert group, wherever they are; needsSight = the receiver must have line of sight to the sender. grants = what receivers learn: suspicious (a place to check, nobody identified) or alerted (who was seen and where, at that moment only; no live tracking). Only members of the same alert group receive it.",
@@ -33,6 +33,7 @@
     "longRangeMultiplier": 0.35,
     "stationaryAtLongRangeMultiplier": 0.5,
     "movingMultiplier": 1.5,
+    "runningMultiplier": 2.5,
     "peripheralFraction": 0.7,
     "peripheralMultiplier": 0.5
   },

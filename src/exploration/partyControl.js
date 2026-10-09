@@ -2,7 +2,7 @@
 // position, collision, movement order and route, and keeps the RuntimeCharacter they were built from. Pure state
 // (no React): the screen dispatches selection and move orders, and a 'tick' every animation frame.
 //
-// Orders: null (standing still), { type: 'point', target } (walk to a point), or
+// Orders: null (standing still), { type: 'point', target, run } (walk, or run, to a point), or
 // { type: 'follow', leaderId, slot } (keep to formation slot `slot` around that leader, wherever they go).
 // A move order goes to the selected characters only: the lead character walks to the point and the other selected
 // characters follow in formation. Characters outside the selection keep whatever they were doing.
@@ -47,6 +47,7 @@ export function createPartyState(map, characters) {
       turning: false,
       facing: { x: Math.cos(heading), y: Math.sin(heading) },
       moving: false,
+      running: false,
       order: null,
       path: [],
       replanIn: 0,
@@ -114,9 +115,9 @@ export function getCohesion(state) {
   return members.every((member) => walkingDistanceTo(state.map, field, member.position) <= MOVE.groupedDistance) ? 'grouped' : 'separated'
 }
 
-const pointOrder = (map, member, target) => ({
+const pointOrder = (map, member, target, run = false) => ({
   ...member,
-  order: { type: 'point', target },
+  order: { type: 'point', target, run },
   path: planRoute(map, member.position, target),
   replanIn: MOVE.replanSeconds,
   stall: { seconds: 0, best: Infinity },
@@ -162,7 +163,7 @@ function moveSelection(state, target, fresh) {
     members[member.id] = pointOrder(state.map, member, followTargets[member.id])
   })
   const leader = members[leaderId]
-  members[leaderId] = pointOrder(state.map, leader, target)
+  members[leaderId] = pointOrder(state.map, leader, target, distance(leader.position, target) > MOVE.runDistance)
   const followerIds = selectedIds.filter((id) => id !== leaderId)
   // While the mouse is held the destination changes constantly; slots are only reshuffled on a new press.
   const alreadyFollowing = followerIds.every((id) => members[id].order?.type === 'follow' && members[id].order.leaderId === leaderId)
@@ -218,8 +219,9 @@ function steer(state, member, seconds, followTarget) {
     const stall = progressed ? { seconds: 0, best: remaining } : { ...member.stall, seconds: member.stall.seconds + seconds }
     const done = !path.length || remaining < AT_POINT || (stall.seconds > STALL_SECONDS && remaining < STALL_NEAR) || stall.seconds > STALL_GIVE_UP_SECONDS
     if (done) return { member: { ...member, order: null, path: [], stall: { seconds: 0, best: Infinity } }, velocity: { x: 0, y: 0 }, direction: null }
-    const velocity = seek(member.position, path[0], MOVE.walkSpeed, seconds)
-    return { member: { ...member, path, replanIn, stall }, velocity, direction: velocity }
+    const { run } = member.order
+    const velocity = seek(member.position, path[0], run ? MOVE.runSpeed : MOVE.walkSpeed, seconds)
+    return { member: { ...member, path, replanIn, stall }, velocity, direction: velocity, run }
   }
 
   const target = followTarget
@@ -242,11 +244,13 @@ function steer(state, member, seconds, followTarget) {
       replanIn = MOVE.replanSeconds
     }
   }
-  // Followers who have fallen behind hurry; close to the slot they ease in instead of bumping into it.
-  let speed = toTarget > MOVE.catchUpDistance ? MOVE.catchUpSpeed : MOVE.walkSpeed
+  // Followers keep the leader's pace and hurry when they fall behind; close to the slot they ease in instead of bumping into it.
+  const leaderOrder = state.members[member.order.leaderId]?.order
+  const run = leaderOrder?.type === 'point' && leaderOrder.run
+  let speed = toTarget > MOVE.catchUpDistance ? (run ? MOVE.runCatchUpSpeed : MOVE.catchUpSpeed) : run ? MOVE.runSpeed : MOVE.walkSpeed
   if (toTarget < MOVE.arriveDistance) speed *= Math.max(0.25, toTarget / MOVE.arriveDistance)
   const velocity = seek(member.position, path[0], speed, seconds)
-  return { member: { ...member, path, replanIn, parkedFor: null, blocked: blockedFor }, velocity, direction: velocity }
+  return { member: { ...member, path, replanIn, parkedFor: null, blocked: blockedFor }, velocity, direction: velocity, run }
 }
 
 // Pushes apart any two characters closer than personal space, so nobody stacks on anyone else.
@@ -316,17 +320,19 @@ function tick(state, rawSeconds) {
   const pushes = separation(current)
   let changed = false
   let members = {}
-  steered.forEach(({ member, velocity, direction }, i) => {
+  steered.forEach(({ member, velocity, direction, run }, i) => {
     const step = { x: (velocity.x + pushes[i].x) * seconds, y: (velocity.y + pushes[i].y) * seconds }
     const moving = Math.hypot(step.x, step.y) > 1e-4
     let next = member
     if (moving) {
       const position = slide(state.map, member.position, step)
       const moved = distance(position, member.position) > 1e-5
-      next = { ...turn(member, direction, seconds), position, moving: moved }
+      // A runner easing into place at the end, or held up, drops to a walk.
+      const running = moved && Boolean(run) && Math.hypot(velocity.x, velocity.y) > MOVE.walkSpeed + 0.01
+      next = { ...turn(member, direction, seconds), position, moving: moved, running }
       if (direction && Math.hypot(direction.x, direction.y) > 0.05) next.facing = { x: direction.x, y: direction.y }
     } else if (member.moving) {
-      next = { ...member, moving: false }
+      next = { ...member, moving: false, running: false }
     }
     if (next !== current[i]) changed = true
     members[member.id] = next
