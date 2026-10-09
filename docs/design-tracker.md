@@ -48,35 +48,36 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 **Prototype:** Move is floor(Fitness ÷ 2) + 1 tiles (5 at Fitness 9); Sprint is twice that (10 at Fitness 9), with no roll. It used to be half of Move, left over from the 2 AP rule when Sprint cost 1 AP. `getSprintTiles` in `combat/movementSystem.js`.
 
-### No Rank characters are kept, but never command (decided 2026-10-07)
+### No Rank characters are kept, but never command (decided 2026-10-07, updated 2026-10-08)
 
-**Decision:** keep No Rank (civilian and unranked diplomat), but bar it from Commanding Officer and Executive Officer, like enlisted characters. Honorary rank is not offered.
+**Decision:** keep No Rank for diplomats and civilians, but bar it from Commanding Officer and Executive Officer.
 
-**Book (Captain's Log):**
-- p.120 (Civilian Career Training): "Civilian characters hold no Starfleet rank or other military rank, though they may be granted an honorary rank." Purpose: "Building a Captain's Log story around a civilian character offers a chance to shine a light on life outside of Starfleet." Examples: Sarek, Dal R'El. Types: Freight and Transport, Law Enforcement, Physician, Politician or Bureaucrat, Scientific or Technical Expert, Trader or Merchant.
-- p.119 (Diplomatic Training): diplomats "are often found accompanying Starfleet vessels" and "do not necessarily hold an active Starfleet rank or other military rank (though many well-known diplomats are retired Starfleet military)."
-- p.132: rank is chosen "unless you are creating a civilian character or a character in a non-militaristic organization."
-- The book is a solo tabletop game that supports any story, Starfleet or not; it does not say whether a civilian can hold a Starfleet assignment.
+**Updated 2026-10-08** by "Core Rulebook is the rules authority": this entry first followed Captain's Log, where a civilian could only be No Rank (CL p.120, honorary rank not offered) and enlisted characters were barred from CO and XO (CL p.132). Under Core, civilians may take an officer rank, and enlisted characters are barred only from CO.
 
-- p.132 (Enlisted Personnel sidebar): enlisted characters never get Commanding Officer or Executive Officer. The book says nothing about unranked characters in command.
+**Book (STA 2e Core Rulebook):**
+- p.123 (Commission Without the Academy) and p.140: diplomats and civilians hold no rank under normal circumstances, but may be granted one; civilians do not need to select a rank.
+- p.140: a commanding officer is at least a Commander "under normal circumstances". No other assignment has a minimum.
+- The book says nothing about unranked characters in command.
 
 **Prototype:**
-- Civilian education: No Rank is the only option (set automatically). Diplomatic education: No Rank or Ensign through Captain.
+- Diplomatic Corps and Civilian start at No Rank and may take any officer rank (Cadet through Fleet Admiral). Data: `rankTypeByEducation` (`optional`) in `career.json`.
 - "No Rank" is a prototype label (`src/data/adaptation/career.json`); the book has no name for it.
-- Honorary rank (p.120) is not offered.
-- A Civilian cannot take Commanding Officer or Executive Officer ("Not for No Rank"). A Diplomat can, but must then choose an officer rank. Data: `noRankExcludedAssignments` in `career.json`; rules: `getAssignmentBlock` and `isRankAllowed` in `rules/career.js`.
+- Designer rule: a No Rank character cannot be Commanding Officer or Executive Officer ("Not for No Rank"). A diplomat or civilian in either post must take an officer rank. Data: `noRankExcludedAssignments` in `career.json`; rules: `getAssignmentBlock` and `isRankAllowed` in `rules/career.js`.
+- Enlisted characters can't be Commanding Officer, because no enlisted rank meets the Commander minimum (implementation pick). They may be Executive Officer.
 
-### Species Ability for Mixed Heritage and New Species (decided 2026-10-07)
+### Species Ability for Mixed Heritage and New Species (decided 2026-10-07, updated 2026-10-08)
 
-**Decision:** a Mixed Heritage player picks which parent is the primary species and gets that species' ability. A New Species has no Species Ability.
+**Decision:** a Mixed Heritage player picks which parent is the primary species and gets that species' ability. A New Species player writes their own Species Ability.
+
+**Updated 2026-10-08** by "Core Rulebook is the rules authority": this entry first gave a New Species no Species Ability ("None"). Core p.114 has the player create one.
 
 **Book (STA 2e Core Rulebook):**
 - p.99: each species gives a Species Ability; a mixed-heritage character has the ability of their primary species.
-- The book gives no ability for a species the player invents.
+- p.114: a new species gets +1 to three attributes, and the player creates a Species Ability comparable to a talent.
 
 **Prototype:**
 - Each parent on the Species screen has a "Make primary" button. The Species screen is not complete until one is chosen. Changing that parent clears the choice. Stored as `species.primarySpeciesId`.
-- New Species shows Species Ability "None".
+- New Species: the player writes the ability's name and description; the Species screen is not complete until both are filled in. The ability has no mechanical effect. Stored on `species.speciesAbility` with id `custom` (export schema 0.10.0).
 - Rules: `getSpeciesAbility`, `setPrimaryParent` in `rules/species.js`; player-facing text in `withoutAbility` in `data/source/speciesAbilities.json`.
 
 ### Enemies spend Threat (decided 2026-10-07)

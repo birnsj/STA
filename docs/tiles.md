@@ -64,7 +64,7 @@ Map rotation (tiles turned with the editor's right click) is described in `src/m
 | Concern | Code |
 |---|---|
 | Loading, symbols, rotation, ambient light | `src/maps/mapFormat.js` |
-| Tile art sets and glows | `src/maps/tileArt.js`, `src/data/adaptation/maps/tileArtSets.json` |
+| Tile glows and flipbook animations | `src/maps/tileArt.js`, `src/data/adaptation/maps/tileEffects.json` |
 | Wall fade | `src/maps/wallFade.js` |
 | Window panels and long wall fittings | `src/maps/wallPanels.js` |
 | 2x2 big objects | `src/maps/bigObjects.js` |

@@ -17,19 +17,19 @@ This prototype exists to prove the **game design, rules adaptation, interaction 
 
 The current phase is:
 
-**Character Creation**
+**Playable vertical slice**
 
-We will build a complete functional character creator in React that:
+Built so far (all in this React prototype):
 
-- Presents the character-creation flow through multiple screens.
-- Implements the approved rules and adaptations.
-- Maintains character state throughout the process.
-- Allows previous choices to affect later screens where appropriate.
-- Provides review/back/edit functionality where required.
-- Produces a complete character data object.
-- Exports the completed character as a valid `.json` file.
+- Character creation: the STA 2e Core Rulebook lifepath, saved characters, and JSON export.
+- Personal combat (Combat Type 1) on isometric maps: STA 2e task roll, Momentum and Threat, Injuries, AI for both sides.
+- Exploration: party movement and formations, NPC awareness, challenge objects, hand-off to and from combat.
+- A dev map editor and procedural map generators.
+- An Electron desktop build.
 
-The JSON output should eventually be suitable for use by the rest of the prototype and potentially as an interchange format with a future Unreal implementation.
+The character JSON is read back by combat and exploration, and should eventually be suitable as an interchange format with a future Unreal implementation.
+
+The rules authority is the STA 2e Core Rulebook (designer decision, Oct 2026). Every place the prototype departs from the books is listed in `docs/prototype-rules.md`; open and decided design questions are in `docs/design-tracker.md`. Keep both up to date when a rule changes.
 
 ---
 
@@ -420,13 +420,13 @@ Our prototype is allowed to substantially adapt the tabletop system, but those c
 
 The immediate project is:
 
-**Build the React character-creation prototype.**
+**Extend and refine the playable prototype — character creation, combat, exploration and maps — one feature at a time, as I direct.**
 
 I will provide:
 
 - The Captain's Log / Star Trek Adventures PDFs in the project.
-- Character-creation mockups.
-- Screen requirements.
+- Mockups.
+- Screen and feature requirements.
 - Design decisions and adaptations as we proceed.
 
 You will:
@@ -434,10 +434,10 @@ You will:
 - Inspect the existing project before modifying it.
 - Use the supplied PDFs when source-rule verification is needed.
 - Implement the mockups and approved design.
-- Maintain a coherent character data model.
+- Maintain one coherent character data model shared by every part of the game.
 - Keep rules separate from presentation.
-- Build the flow incrementally.
-- Produce a final character JSON export.
+- Build incrementally.
+- Keep the character JSON export valid and versioned.
 - Avoid making unapproved game-design decisions.
 
-The priority is **a complete, reliable, easily editable character creator**, not production graphics or production architecture.
+The priority is **a reliable, easily editable prototype that proves the design**, not production graphics or production architecture.
