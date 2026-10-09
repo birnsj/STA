@@ -1,7 +1,8 @@
 import Portrait from './Portrait.jsx'
 
-// Grid of portrait presets; each image is an ordinary replaceable file. uniform: the shirt colour they all wear.
-export default function PortraitPicker({ portraits, selectedId, onSelect, uniform = null }) {
+// Grid of portrait presets; each image is an ordinary replaceable file. uniform: the shirt colour they all wear;
+// backdrop: the image they are all shown over.
+export default function PortraitPicker({ portraits, selectedId, onSelect, uniform = null, backdrop = null }) {
   return (
     <div className="portrait-picker" role="listbox" aria-label="Portrait presets">
       {portraits.map((portrait) => {
@@ -15,7 +16,7 @@ export default function PortraitPicker({ portraits, selectedId, onSelect, unifor
             className={`portrait-picker-option${isSelected ? ' is-selected' : ''}`}
             onClick={() => onSelect(portrait.id)}
           >
-            <Portrait label={portrait.name} image={portrait.image} uniform={uniform} className="portrait-preset" />
+            <Portrait label={portrait.name} image={portrait.image} uniform={uniform} backdrop={backdrop} className="portrait-preset" />
           </button>
         )
       })}

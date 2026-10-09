@@ -180,6 +180,8 @@ function applyAction(character, action) {
       return { ...character, identity: appearanceRules.setGender(character.identity, action.genderId) }
     case 'selectPortrait':
       return { ...character, identity: appearanceRules.selectPortrait(character, action.portraitId) }
+    case 'selectBackdrop':
+      return { ...character, identity: appearanceRules.selectBackdrop(character.identity, action.backdropId) }
     case 'setBackgroundNotes':
       return { ...character, backgroundNotes: action.text }
     case 'selectTalent':

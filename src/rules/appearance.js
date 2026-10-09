@@ -1,7 +1,9 @@
 // Prototype presentation rules (not book mechanics): gender and portraits. Neither affects any score or trait.
 import genderData from '../data/adaptation/genders.json'
 import portraitData from '../data/adaptation/portraits.json'
+import backdropData from '../data/adaptation/portraitBackdrops.json'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
+import { getDivisionColour } from './uniform.js'
 
 export const getGenders = () => genderData.genders
 export const getGenderById = (genderId) => genderData.genders.find((gender) => gender.id === genderId) ?? null
@@ -18,14 +20,15 @@ const portraits = portraitData.portraits.map((portrait) =>
 
 export const getPortraitById = (portraitId) => portraits.find((portrait) => portrait.id === portraitId) ?? null
 
-// Head and shoulders: backdrop, then the transparent character, then the optional uniform overlay (tinted later).
-function headLayers({ backdropImage, characterImage, uniformImage, image }) {
-  if (!backdropImage && !characterImage) return null
-  return [
-    backdropImage && { role: 'backdrop', src: backdropImage },
-    { role: 'character', src: characterImage ?? image },
-    uniformImage && { role: 'uniform', src: uniformImage },
-  ].filter(Boolean)
+// Head and shoulders: the transparent character, then the optional uniform overlay (tinted later). The backdrop behind
+// them is the character's own choice (identity.backdrop), added by the compositor. A character with a uniformMask has
+// its shirt recoloured in place; baseColour is the division colour the art already wears, which needs no change.
+function headLayers({ characterImage, uniformImage, uniformMask, uniformDivision }) {
+  if (!characterImage) return null
+  const character = uniformMask
+    ? { role: 'character', src: characterImage, mask: uniformMask, baseColour: getDivisionColour(uniformDivision) }
+    : { role: 'character', src: characterImage }
+  return [character, uniformImage && { role: 'uniform', src: uniformImage }].filter(Boolean)
 }
 
 // A portrait picture's layers ([{ role, src }], bottom to top), looked up by the path the screens already show
@@ -37,6 +40,18 @@ const layersBySrc = new Map(
   ]).filter(([src, layers]) => src && layers?.length),
 )
 export const getPortraitLayers = (src) => layersBySrc.get(src) ?? null
+
+// Portrait backdrops (portraitBackdrops.json). identity.backdrop is { id, name }; a character without one (saved before
+// the choice existed) or with an id no longer listed shows the default.
+export const getBackdrops = () => backdropData.backdrops
+export const getBackdropById = (backdropId) => backdropData.backdrops.find((backdrop) => backdrop.id === backdropId) ?? null
+export const getDefaultBackdrop = () => getBackdropById(backdropData.default)
+export const getCharacterBackdrop = (identity) => getBackdropById(identity?.backdrop?.id) ?? getDefaultBackdrop()
+
+export function selectBackdrop(identity, backdropId) {
+  const backdrop = getBackdropById(backdropId)
+  return backdrop ? { ...identity, backdrop: { id: backdrop.id, name: backdrop.name } } : identity
+}
 
 // Species + Gender -> portrait set. Mixed Heritage and New Species see every species' portraits for the gender;
 // an anyPortrait gender (Other) sees the species' portraits of every gender. Empty until both species and gender are chosen.

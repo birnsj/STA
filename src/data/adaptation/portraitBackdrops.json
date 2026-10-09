@@ -1,8 +1,9 @@
 {
   "notes": [
-    "Prototype presentation only, no game-rule effect. Backdrops drawn behind a portrait's transparent characterImage (portraits.json backdropImage points at one of these files).",
-    "The images are placeholders (scripts/makePortraitBackdrops.mjs), 480 x 600 like the head-and-shoulders portraits. Replace a file to swap the art; the id is the file name."
+    "Prototype presentation only, no game-rule effect. The player picks one backdrop on Finishing Touches (Portrait); it is drawn behind a portrait's transparent characterImage and saved as identity.backdrop { id, name }. Characters with none (saved before the choice existed) show the default.",
+    "Starship Bridge is designer art (256 x 320). The others are placeholders (scripts/makePortraitBackdrops.mjs, 480 x 600). Every backdrop is scaled to the portrait's size when composited. Replace a file to swap the art; the id is the file name."
   ],
+  "default": "starship-bridge",
   "backdrops": [
     { "id": "starship-bridge", "name": "Starship Bridge", "image": "/art/portraits/backdrops/starship-bridge.png" },
     { "id": "starship-corridor", "name": "Starship Corridor", "image": "/art/portraits/backdrops/starship-corridor.png" },

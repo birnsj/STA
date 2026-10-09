@@ -37,9 +37,10 @@ function PortraitImage({ src }) {
 }
 
 // Labeled placeholder until prototype art assets are supplied. `image` is an optional path into public/.
-// uniform: a character portrait's shirt colour (rules/uniform.js); omit it for any other picture.
-export default function Portrait({ label, className = '', unknown = false, image = null, uniform = null }) {
-  const shownImage = useUniformImage(image, uniform)
+// uniform: a character portrait's shirt colour (rules/uniform.js); backdrop: the image drawn behind a layered portrait
+// (rules/appearance.js getCharacterBackdrop). Omit both for any other picture.
+export default function Portrait({ label, className = '', unknown = false, image = null, uniform = null, backdrop = null }) {
+  const shownImage = useUniformImage(image, uniform, backdrop)
   if (unknown) {
     return (
       <div className={`portrait portrait-unknown ${className}`} role="img" aria-label="Unknown portrait">

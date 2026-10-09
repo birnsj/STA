@@ -3,11 +3,23 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { describe, it } from 'node:test'
-import backdropData from '../src/data/adaptation/portraitBackdrops.json' with { type: 'json' }
 import portraitData from '../src/data/adaptation/portraits.json' with { type: 'json' }
-import { getPortraitById, getPortraitLayers } from '../src/rules/appearance.js'
-import { getDivisionForDepartment, getUniformColour } from '../src/rules/uniform.js'
-import { recolourShirtPixels } from '../src/components/useUniformImage.js'
+import {
+  getBackdropById,
+  getBackdrops,
+  getCharacterBackdrop,
+  getDefaultBackdrop,
+  getAvailablePortraits,
+  getPortraitById,
+  getPortraitLayers,
+} from '../src/rules/appearance.js'
+import { createInitialState, createRestoredState, creatorReducer } from '../src/character/characterReducer.js'
+import { createEmptyCharacter } from '../src/character/characterModel.js'
+import { normalizeCharacterRecord } from '../src/character/runtimeCharacter.js'
+import { serializeCharacter } from '../src/export/serializeCharacter.js'
+import { getDivisionColour, getDivisionForDepartment, getUniformColour } from '../src/rules/uniform.js'
+import { recolourMaskedPixels, recolourShirtPixels } from '../src/components/useUniformImage.js'
+import { decodePng } from '../scripts/png.mjs'
 
 const GOLD = '#c9a227'
 const RED = '#b3262c'
@@ -53,27 +65,34 @@ describe('mock portrait recolour', () => {
   })
 })
 
+const pngSize = (src) => {
+  const bytes = fs.readFileSync(new URL(`../public${src}`, import.meta.url))
+  return `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`
+}
+
 describe('layered portraits', () => {
-  const pngSize = (src) => {
-    const bytes = fs.readFileSync(new URL(`../public${src}`, import.meta.url))
-    return `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`
-  }
-  const composited = portraitData.portraits.filter((portrait) => portrait.characterImage || portrait.backdropImage)
+  const composited = portraitData.portraits.filter((portrait) => portrait.characterImage)
   const pictures = (portrait) => [getPortraitLayers(portrait.image ?? portrait.characterImage), getPortraitLayers(portrait.fullBody)].filter(Boolean)
 
-  it('Prototype: a composited portrait stacks backdrop, character, then the uniform overlay', () => {
-    const portrait = getPortraitById('human-male-1')
+  it('Prototype: a composited portrait stacks the character, then the uniform overlay (the backdrop is the character\'s own)', () => {
+    const portrait = getPortraitById('vulcan-male-1')
     assert.deepEqual(getPortraitLayers(portrait.image), [
-      { role: 'backdrop', src: portrait.backdropImage },
       { role: 'character', src: portrait.characterImage },
       { role: 'uniform', src: portrait.uniformImage },
     ])
+    assert.ok(portraitData.portraits.every((entry) => !('backdropImage' in entry)), 'backdrops are chosen per character, not per portrait')
     assert.deepEqual(getPortraitLayers(portrait.fullBody), portrait.fullBodyLayers)
   })
 
-  it('a single-image portrait keeps its one picture, with no layers', () => {
+  it('a transparent single picture (the Human batch) is its own character layer, so the backdrop shows behind it', () => {
     const portrait = getPortraitById('human-male-2')
-    assert.equal(portrait.image, '/art/portraits/human-male-2.png')
+    assert.equal(portrait.characterImage, '/art/portraits/human-male-2.png')
+    assert.equal(getPortraitLayers(portrait.image)[0].src, '/art/portraits/human-male-2.png')
+  })
+
+  it('a single-image portrait keeps its one picture, with no layers', () => {
+    const portrait = getPortraitById('vulcan-male-2')
+    assert.equal(portrait.image, '/art/portraits/vulcan-male-2.png')
     assert.equal(getPortraitLayers(portrait.image), null)
     assert.equal(getPortraitLayers('/art/combat/klingon-warrior-1.png'), null)
   })
@@ -91,13 +110,115 @@ describe('layered portraits', () => {
   it('Prototype: the insignia is on full-body portraits only', () => {
     for (const portrait of composited) {
       assert.ok(!getPortraitLayers(portrait.image).some((layer) => layer.role === 'insignia'), portrait.id)
+    }
+    for (const portrait of portraitData.portraits.filter((entry) => entry.fullBodyLayers)) {
       assert.ok(portrait.fullBodyLayers.some((layer) => layer.role === 'insignia'), portrait.id)
     }
   })
 
-  it('every placeholder backdrop exists at the portrait size, and composited portraits use listed backdrops', () => {
-    const listed = new Set(backdropData.backdrops.map((backdrop) => backdrop.image))
-    for (const src of listed) assert.equal(pngSize(src), '480x600', src)
-    for (const portrait of composited) assert.ok(listed.has(portrait.backdropImage), portrait.id)
+})
+
+describe('uniform mask recolour (Prototype: the ten Human portraits)', () => {
+  const read = (src) => decodePng(fs.readFileSync(new URL(`../public${src}`, import.meta.url)))
+  const masked = portraitData.portraits.filter((entry) => entry.uniformMask)
+  const humans = portraitData.portraits.filter((entry) => entry.species === 'human')
+
+  it('every Human portrait has its own mask, and each character layer carries it with the colour the art wears', () => {
+    assert.deepEqual(masked.map((entry) => entry.id), humans.map((entry) => entry.id))
+    assert.equal(new Set(masked.map((entry) => entry.uniformMask)).size, masked.length)
+    for (const entry of masked) {
+      const portrait = getPortraitById(entry.id)
+      assert.deepEqual(getPortraitLayers(portrait.image), [
+        { role: 'character', src: portrait.characterImage, mask: portrait.uniformMask, baseColour: getUniformColour('command') },
+      ])
+    }
+  })
+
+  for (const entry of masked) {
+    describe(entry.id, () => {
+      const art = read(entry.characterImage)
+      const mask = read(entry.uniformMask)
+      const isMasked = (index) => mask.bytes[index * 4 + 3] > 0
+
+      it('the mask matches the portrait size, covers only opaque pixels and nothing in the head area', () => {
+        assert.equal(`${mask.width}x${mask.height}`, `${art.width}x${art.height}`)
+        let covered = 0
+        for (let index = 0; index < art.width * art.height; index++) {
+          if (!isMasked(index)) continue
+          covered++
+          assert.ok(art.bytes[index * 4 + 3] > 0, `mask over a transparent pixel at ${index}`)
+          assert.ok(Math.floor(index / art.width) >= 165, `mask in the head area at ${index}`)
+        }
+        assert.ok(covered > 15000, `uniform pixels: ${covered}`)
+      })
+
+      for (const division of ['sciences', 'operations']) {
+        it(`recolouring to ${division} changes only uniform pixels and never alpha`, () => {
+          const pixels = new Uint8Array(art.bytes)
+          recolourMaskedPixels(pixels, mask.bytes, getDivisionColour(division))
+          let changed = 0
+          for (let index = 0; index < art.width * art.height; index++) {
+            const offset = index * 4
+            assert.equal(pixels[offset + 3], art.bytes[offset + 3])
+            const same = [0, 1, 2].every((channel) => pixels[offset + channel] === art.bytes[offset + channel])
+            if (!isMasked(index)) assert.ok(same, `pixel ${index} outside the mask changed`)
+            else if (!same) changed++
+          }
+          assert.ok(changed > 15000, `recoloured pixels: ${changed}`)
+        })
+      }
+    })
+  }
+  it('the typical shirt pixel becomes the division colour; darker folds stay darker', () => {
+    const pixels = new Uint8Array([200, 160, 40, 255, 100, 80, 20, 255, 200, 160, 40, 255])
+    const all = new Uint8Array([0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+    recolourMaskedPixels(pixels, all, '#2d6fb3')
+    assert.deepEqual([...pixels.slice(0, 3)], [0x2d, 0x6f, 0xb3])
+    assert.ok(pixels[6] < 0xb3 && pixels[5] < 0x6f)
+  })
+})
+
+describe('Portrait backdrops (Prototype: chosen per character on Finishing Touches)', () => {
+  const autofilled = creatorReducer(createInitialState(), { type: 'autofill', seed: 0.42 })
+  const portraitIds = getAvailablePortraits(autofilled.character).map((portrait) => portrait.id)
+
+  it('every backdrop file exists in the portrait 4:5 shape; Starship Bridge is the 256x320 designer art', () => {
+    for (const backdrop of getBackdrops()) {
+      const [width, height] = pngSize(backdrop.image).split('x').map(Number)
+      assert.equal(width * 5, height * 4, backdrop.id)
+    }
+    assert.equal(pngSize(getBackdropById('starship-bridge').image), '256x320')
+    assert.equal(getBackdropById('starship-bridge').name, 'Starship Bridge')
+  })
+
+  it('Starship Bridge is the default for new characters and for saves made before the choice existed', () => {
+    assert.equal(getDefaultBackdrop().id, 'starship-bridge')
+    assert.deepEqual(createEmptyCharacter().identity.backdrop, { id: 'starship-bridge', name: 'Starship Bridge' })
+    assert.equal(getCharacterBackdrop({ name: 'Old Save', portrait: null }).id, 'starship-bridge')
+    assert.equal(getCharacterBackdrop({ backdrop: { id: 'no-longer-listed', name: 'Gone' } }).id, 'starship-bridge')
+  })
+
+  it('changing the backdrop keeps the portrait, and changing the portrait keeps the backdrop', () => {
+    assert.ok(portraitIds.length >= 2)
+    let state = creatorReducer(autofilled, { type: 'selectPortrait', portraitId: portraitIds[0] })
+    state = creatorReducer(state, { type: 'selectBackdrop', backdropId: 'sickbay' })
+    assert.equal(state.character.identity.portrait.id, portraitIds[0])
+    assert.deepEqual(state.character.identity.backdrop, { id: 'sickbay', name: 'Sickbay' })
+    state = creatorReducer(state, { type: 'selectPortrait', portraitId: portraitIds[1] })
+    assert.equal(state.character.identity.portrait.id, portraitIds[1])
+    assert.equal(state.character.identity.backdrop.id, 'sickbay')
+    assert.equal(creatorReducer(state, { type: 'selectBackdrop', backdropId: 'unknown' }).character.identity.backdrop.id, 'sickbay')
+  })
+
+  it('the chosen backdrop survives export and load; an export without one loads with the default', () => {
+    const { character } = creatorReducer(autofilled, { type: 'selectBackdrop', backdropId: 'engineering' })
+    const exported = JSON.parse(JSON.stringify(serializeCharacter(character)))
+    assert.deepEqual(exported.character.identity.backdrop, { id: 'engineering', name: 'Engineering' })
+    assert.equal(createRestoredState(exported.character).character.identity.backdrop.id, 'engineering')
+    assert.equal(normalizeCharacterRecord(exported).character.portrait.backdrop, getBackdropById('engineering').image)
+
+    const { backdrop: _omitted, ...oldIdentity } = exported.character.identity
+    const oldRecord = { ...exported, character: { ...exported.character, identity: oldIdentity } }
+    assert.equal(normalizeCharacterRecord(oldRecord).character.portrait.backdrop, getDefaultBackdrop().image)
   })
 })

@@ -8,4 +8,6 @@ export const getDivisionForDepartment = (departmentId) =>
 
 export const getUniformColour = (departmentId) => getDivisionForDepartment(departmentId)?.colour ?? null
 
+export const getDivisionColour = (divisionId) => divisionsById.get(divisionId)?.colour ?? null
+
 export const getMockShirtArt = () => uniformData.mockArt

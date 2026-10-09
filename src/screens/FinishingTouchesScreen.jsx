@@ -19,7 +19,7 @@ import {
 } from '../rules/finishingTouches.js'
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { NAME_GROUPS, randomName } from '../rules/names.js'
-import { getAvailablePortraits } from '../rules/appearance.js'
+import { getAvailablePortraits, getBackdrops, getCharacterBackdrop } from '../rules/appearance.js'
 import { getUniformColour } from '../rules/uniform.js'
 import { getLifeTrackSentences } from '../rules/lifeTrack.js'
 import { getSpeciesById, isMixedHeritage, isNewSpecies } from '../rules/species.js'
@@ -306,10 +306,16 @@ function PortraitPanels({ character, dispatch, met }) {
   const index = selected ? portraits.indexOf(selected) : -1
   const setLabel = portraitSetLabel(character)
   const uniform = getUniformColour(character.career.department?.id)
+  const backdrop = getCharacterBackdrop(character.identity)
   const step = (direction) => {
     if (!portraits.length) return
     const next = portraits[(index + direction + portraits.length) % portraits.length]
     dispatch({ type: 'selectPortrait', portraitId: next.id })
+  }
+  const stepBackdrop = (direction) => {
+    const backdrops = getBackdrops()
+    const next = backdrops[(backdrops.indexOf(backdrop) + direction + backdrops.length) % backdrops.length]
+    dispatch({ type: 'selectBackdrop', backdropId: next.id })
   }
   return (
     <>
@@ -318,7 +324,13 @@ function PortraitPanels({ character, dispatch, met }) {
           {setLabel ? `Select a preset (${setLabel}).` : 'Choose a species and gender on Species to see portraits.'}
         </p>
         <div className="finishing-portrait-row">
-          <PortraitPicker portraits={portraits} selectedId={selected?.id} onSelect={(portraitId) => dispatch({ type: 'selectPortrait', portraitId })} uniform={uniform} />
+          <PortraitPicker
+            portraits={portraits}
+            selectedId={selected?.id}
+            onSelect={(portraitId) => dispatch({ type: 'selectPortrait', portraitId })}
+            uniform={uniform}
+            backdrop={backdrop.image}
+          />
           <div className="finishing-portrait-actions">
             <button type="button" className="dev-button" disabled title="Not available in this prototype">Customize</button>
             <button type="button" className="dev-button" disabled title="Not available in this prototype">Import</button>
@@ -326,11 +338,16 @@ function PortraitPanels({ character, dispatch, met }) {
         </div>
       </Panel>
       <Panel title="Portrait Details" helpId="portraitDetails" className="finishing-portrait-details">
-        <Portrait label={selected?.name} image={selected?.image} uniform={uniform} className="portrait-finishing-preview" />
+        <Portrait label={selected?.name} image={selected?.image} uniform={uniform} backdrop={backdrop.image} className="portrait-finishing-preview" />
         <div className="finishing-preset-row">
           <button type="button" className="carousel-arrow" onClick={() => step(-1)} aria-label="Previous portrait">‹</button>
           <span className="finishing-preset-counter">Preset {index >= 0 ? index + 1 : '–'} / {portraits.length}</span>
           <button type="button" className="carousel-arrow" onClick={() => step(1)} aria-label="Next portrait">›</button>
+        </div>
+        <div className="finishing-preset-row">
+          <button type="button" className="carousel-arrow" onClick={() => stepBackdrop(-1)} aria-label="Previous backdrop">‹</button>
+          <span className="finishing-preset-counter">Backdrop: {backdrop.name}</span>
+          <button type="button" className="carousel-arrow" onClick={() => stepBackdrop(1)} aria-label="Next backdrop">›</button>
         </div>
         <div className="finishing-life-track">
           <h4 className="finishing-life-track-heading">Life Track</h4>

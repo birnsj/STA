@@ -9,7 +9,7 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, 228 tests (tests/*.test.js)
+npm test           # node --test, 264 tests (tests/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run app        # build, then open it in Electron
@@ -54,7 +54,7 @@ made, are in `docs/design-tracker.md`.
 ## The character model
 
 The creator holds one canonical draft (`src/character/characterModel.js`) that every screen edits through the reducer
-(`src/character/characterReducer.js`). Export (`src/export/serializeCharacter.js`, schema `0.10.0`) writes the draft plus
+(`src/character/characterReducer.js`). Export (`src/export/serializeCharacter.js`, schema `0.11.0`) writes the draft plus
 the derived `final` scores, values, focuses, talents and service details. Everyone in the game, player or NPC, is then
 read back through `src/character/runtimeCharacter.js` into the same runtime shape, so combat and exploration never care
 where a character came from.

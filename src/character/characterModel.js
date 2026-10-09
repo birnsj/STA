@@ -33,7 +33,7 @@ export function createEmptyCharacter() {
     // Core p.132: four talents, one per granting step. Kept apart from the Species Ability (species.speciesAbility).
     // { earlyOutlook, education, career, finishingTouches }: each { id, name, choice: { id, name } | null } or null.
     talents: createEmptyTalents(),
-    // Prototype presentation data, not book mechanics: { name, pronouns, portrait: { id, name } }
+    // Prototype presentation data, not book mechanics: { name, pronouns, portrait: { id, name }, backdrop: { id, name } }
     identity: createEmptyIdentity(),
     // Prototype: optional player-written notes; never read by the rules.
     backgroundNotes: '',

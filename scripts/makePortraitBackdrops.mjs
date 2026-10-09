@@ -1,5 +1,5 @@
 // Placeholder portrait backdrops (480 x 600, the head-and-shoulders portrait size): simple flat scenes drawn behind a
-// portrait's transparent characterImage. Listed in src/data/adaptation/portraitBackdrops.json; replace the PNGs with
+// portrait's transparent characterImage, scaled to the portrait's size when composited. Listed in src/data/adaptation/portraitBackdrops.json; replace the PNGs with
 // real art freely. Writes public/art/portraits/backdrops/<backdrop id>.png. Run: node scripts/makePortraitBackdrops.mjs
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,16 +30,8 @@ function stars(layer, x0, y0, x1, y1, count, seed) {
 // Darkens the bottom so the portrait's shoulders stand out.
 const shade = (layer) => fill(layer, polygon([[0, 380], [W, 380], [W, H], [0, H]]), [0, 0, 0], 0.25)
 
+// starship-bridge is designer art (256 x 320) and is deliberately not drawn here, so a re-run never overwrites it.
 const BACKDROPS = {
-  'starship-bridge': (layer) => {
-    verticalGradient(layer, [34, 30, 44], [14, 12, 20])
-    fill(layer, roundRect(40, 40, 440, 230, 14), [8, 8, 16])
-    stars(layer, 50, 50, 430, 220, 70, 1)
-    fill(layer, roundRect(40, 40, 440, 230, 14), [120, 140, 200], 0.06)
-    fill(layer, polygon([[0, 330], [W, 330], [W, 400], [0, 400]]), [60, 48, 52])
-    for (let x = 20; x < W; x += 46) fill(layer, roundRect(x, 345, x + 26, 357, 3), [[230, 80, 70], [250, 200, 70], [90, 170, 240]][(x / 46) % 3 | 0])
-    shade(layer)
-  },
   'starship-corridor': (layer) => {
     verticalGradient(layer, [70, 62, 72], [30, 26, 32])
     fill(layer, polygon([[0, 0], [170, 180], [170, 420], [0, H]]), [96, 86, 96])

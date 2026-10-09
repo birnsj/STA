@@ -288,6 +288,7 @@ export default function CharacterStepSummaryModal({ summary, onClose }) {
                 label={summary.image.label}
                 image={summary.image.src}
                 uniform={summary.image.uniform}
+                backdrop={summary.image.backdrop}
                 className={`summary-portrait${TALL_PORTRAIT_STEPS.has(summary.stepId) ? ' summary-portrait-tall' : ''}`}
               />
             )}

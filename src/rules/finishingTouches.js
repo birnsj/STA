@@ -6,7 +6,7 @@ import careerLengths from '../data/source/careerLengths.json'
 import finishingAdaptation from '../data/adaptation/finishingTouches.json'
 import { getSampleValues, getValueById, reconcileValue } from './values.js'
 import { getAttributeTotals, getDisciplineTotals } from './characterTotals.js'
-import { getPortraitById, isPortraitAvailable } from './appearance.js'
+import { getDefaultBackdrop, getPortraitById, isPortraitAvailable } from './appearance.js'
 import { areAllMet } from './requirements.js'
 import { getFixedCareerTalentId, getTalentById, isTalentSlotMet } from './talents.js'
 
@@ -42,8 +42,10 @@ export function createEmptyFinishingTouches() {
 // Prototype identity/presentation data (not book mechanics). gender is { id, name } (chosen on Screen 1);
 // portrait is { id, name } of a preset from the species + gender set. Pronouns are separate free text (required).
 // Core p.132: age (guided by Experience, p.127) and an optional pastime (pp.132-133) are optional free text here.
+// backdrop is { id, name } of the portrait backdrop (portraitBackdrops.json), the default until the player picks another.
 export function createEmptyIdentity() {
-  return { name: '', pronouns: '', age: '', pastime: '', gender: null, portrait: null }
+  const backdrop = getDefaultBackdrop()
+  return { name: '', pronouns: '', age: '', pastime: '', gender: null, portrait: null, backdrop: { id: backdrop.id, name: backdrop.name } }
 }
 
 export const getCategories = () => finishingAdaptation.categories

@@ -11,7 +11,8 @@ import { getRoleRecord } from '../rules/roles.js'
 // 0.9.0: character.faction and final.faction (every authored person in the game shares this record shape).
 // 0.10.0: Core Rulebook lifepath. education.trait (Career Path trait, also in final.traits), identity.age and
 // identity.pastime, two species traits for mixed heritage, and a player-written species ability (id 'custom').
-export const SCHEMA_VERSION = '0.10.0'
+// 0.11.0: identity.backdrop { id, name }, the portrait backdrop (older files have none and show the default).
+export const SCHEMA_VERSION = '0.11.0'
 
 const ref = (value) => (value ? { id: value.id, name: value.name } : null)
 

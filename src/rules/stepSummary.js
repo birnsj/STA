@@ -27,6 +27,7 @@ import { getConceptHelp, getSectionHelp } from './sectionHelp.js'
 import { getRequiredTalentCount, getRequirementSummary, getTalentById, getTalentEntries, getTalentLabel } from './talents.js'
 import { getRoleById, getRoleTip } from './roles.js'
 import { getUniformColour } from './uniform.js'
+import { getCharacterBackdrop } from './appearance.js'
 
 // Builds the Step Complete popup content for screens 1-7 from the canonical character. Plain data only:
 // the modal renders it and calculates nothing itself.
@@ -424,7 +425,12 @@ function finishingSummary(character) {
   const complete = book.completeCharacter
   const issues = validateCharacter(character)
   return {
-    image: { src: portrait?.image ?? null, label: identity.name.trim() || portrait?.name, uniform: getUniformColour(character.career.department?.id) },
+    image: {
+      src: portrait?.image ?? null,
+      label: identity.name.trim() || portrait?.name,
+      uniform: getUniformColour(character.career.department?.id),
+      backdrop: getCharacterBackdrop(identity).image,
+    },
     choices: [
       { label: 'Final value', value: finishingTouches.value.text.trim(), tip: getConceptHelp('value') },
       { label: 'Attribute increases', value: nameList(finishingTouches.attributes.increases), tip: getConceptHelp('attribute') },
