@@ -38,9 +38,10 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 // bounds: world rectangle { minX, maxX, minY, maxY }; view: { width, height }; focus: { key, point }.
 // follow false: the camera stays where the player left it (it still starts centred on focus).
 // onRightClick: a right-button press released without dragging (a drag pans instead).
+// rightPans: the right button drags the camera too (false where it has another use). The middle button always does.
 // The mouse wheel zooms; zoom divides the visible world size, so 2 shows half as much at twice the size. Following, it
 // zooms around the followed point so that stays put on screen; free, it zooms toward the pointer.
-export default function useCamera(bounds, view, focus, follow = true, onRightClick = null) {
+export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true) {
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const [zoom, setZoom] = useState(1)
   const cameraRef = useRef(camera)
@@ -174,7 +175,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     const isTouch = event.pointerType === 'touch'
     // A middle-button press would start the browser's autoscroll; the wheel zooms instead.
     if (!isTouch && event.button === 1) event.preventDefault()
-    if (isTouch ? !event.isPrimary : event.button !== 2) return
+    if (isTouch ? !event.isPrimary : !(event.button === 1 || (rightPans && event.button === 2))) return
     if (!isTouch) event.preventDefault()
     const scale = event.currentTarget.getBoundingClientRect().width / width
     const start = { x: event.clientX, y: event.clientY, camera: cameraRef.current }
@@ -208,7 +209,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
         setCamera(cameraRef.current)
       }
       if (isTouch && panning) swallowNextClick()
-      if (!isTouch && !dragged) onRightClick?.()
+      if (!isTouch && !dragged && event.button === 2) onRightClick?.()
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)

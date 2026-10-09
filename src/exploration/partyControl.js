@@ -10,6 +10,7 @@ import data from '../data/adaptation/exploration/partyControl.json'
 import { isDefeated } from '../rules/personalCondition.js'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
 import { distance, isClearLine, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
+import { sneakCatchUpSpeed, sneakSpeed } from './sneak.js'
 
 const MOVE = data.movement
 const TURN_RATE = (MOVE.turnRateDegrees * Math.PI) / 180
@@ -48,6 +49,7 @@ export function createPartyState(map, characters) {
       facing: { x: Math.cos(heading), y: Math.sin(heading) },
       moving: false,
       running: false,
+      sneaking: false,
       order: null,
       path: [],
       replanIn: 0,
@@ -219,8 +221,10 @@ function steer(state, member, seconds, followTarget) {
     const stall = progressed ? { seconds: 0, best: remaining } : { ...member.stall, seconds: member.stall.seconds + seconds }
     const done = !path.length || remaining < AT_POINT || (stall.seconds > STALL_SECONDS && remaining < STALL_NEAR) || stall.seconds > STALL_GIVE_UP_SECONDS
     if (done) return { member: { ...member, order: null, path: [], stall: { seconds: 0, best: Infinity } }, velocity: { x: 0, y: 0 }, direction: null }
-    const { run } = member.order
-    const velocity = seek(member.position, path[0], run ? MOVE.runSpeed : MOVE.walkSpeed, seconds)
+    // A sneaking character never runs (sneak.json).
+    const run = member.order.run && !member.sneaking
+    const speed = member.sneaking ? sneakSpeed(member.character) : run ? MOVE.runSpeed : MOVE.walkSpeed
+    const velocity = seek(member.position, path[0], speed, seconds)
     return { member: { ...member, path, replanIn, stall }, velocity, direction: velocity, run }
   }
 
@@ -246,8 +250,11 @@ function steer(state, member, seconds, followTarget) {
   }
   // Followers keep the leader's pace and hurry when they fall behind; close to the slot they ease in instead of bumping into it.
   const leaderOrder = state.members[member.order.leaderId]?.order
-  const run = leaderOrder?.type === 'point' && leaderOrder.run
-  let speed = toTarget > MOVE.catchUpDistance ? (run ? MOVE.runCatchUpSpeed : MOVE.catchUpSpeed) : run ? MOVE.runSpeed : MOVE.walkSpeed
+  const run = leaderOrder?.type === 'point' && leaderOrder.run && !member.sneaking
+  const behind = toTarget > MOVE.catchUpDistance
+  let speed
+  if (member.sneaking) speed = behind ? sneakCatchUpSpeed(member.character) : sneakSpeed(member.character)
+  else speed = behind ? (run ? MOVE.runCatchUpSpeed : MOVE.catchUpSpeed) : run ? MOVE.runSpeed : MOVE.walkSpeed
   if (toTarget < MOVE.arriveDistance) speed *= Math.max(0.25, toTarget / MOVE.arriveDistance)
   const velocity = seek(member.position, path[0], speed, seconds)
   return { member: { ...member, path, replanIn, parkedFor: null, blocked: blockedFor }, velocity, direction: velocity, run }
@@ -389,9 +396,27 @@ export function partyReducer(state, action) {
       const selectedIds = state.selectedIds.filter((id) => id !== action.id)
       return { ...state, selectedIds, leaderId: state.leaderId === action.id ? selectedIds[0] : state.leaderId }
     }
+    // Box selection: the characters inside the box (ids) become the selection, or join it when additive. A box with no
+    // one able to act inside changes nothing. The lead stays if still selected, else the first selected in team order.
+    case 'selectBox': {
+      const boxed = action.ids.filter((id) => canAct(state.members[id]))
+      if (!boxed.length) return state
+      const selectedIds = state.memberIds.filter((id) => boxed.includes(id) || (action.additive && isSelected(state, id)))
+      return { ...state, selectedIds, leaderId: selectedIds.includes(state.leaderId) ? state.leaderId : selectedIds[0] }
+    }
     // Selects the whole team; everyone walks back into formation around the lead character. Nobody is moved instantly.
     case 'regroup':
       return regroup(state)
+    // Sneak on or off for the selected characters: on for all of them unless every one is already sneaking.
+    case 'toggleSneak': {
+      if (!state.selectedIds.length) return state
+      const sneaking = !state.selectedIds.every((id) => state.members[id].sneaking)
+      const members = { ...state.members }
+      state.selectedIds.forEach((id) => {
+        members[id] = { ...members[id], sneaking }
+      })
+      return { ...state, members }
+    }
     case 'setLeader':
       return isSelected(state, action.id) ? { ...state, leaderId: action.id } : state
     case 'setFormation':

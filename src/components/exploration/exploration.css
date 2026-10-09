@@ -21,6 +21,23 @@
   stroke: var(--yellow);
 }
 
+/* Right-drag selection box (ExplorationBoard). */
+.explore-unit.is-sneaking {
+  opacity: 0.8;
+}
+
+.explore-sneak-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.explore-select-box {
+  fill: rgba(246, 185, 40, 0.12);
+  stroke: var(--yellow);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
+
 .explore-unit.is-lead .iso-unit-facing {
   fill: var(--yellow);
 }

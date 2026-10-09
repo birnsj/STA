@@ -9,7 +9,7 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, 441 tests (tests/*.test.js)
+npm test           # node --test, 575 tests (tests/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run app        # build, then open it in Electron

@@ -91,9 +91,11 @@ export function ambushStep(state, action) {
     ...rerolls.map((reroll) => `Focus reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`),
     `Rolls: ${diceText(evaluation.dice)} (${evaluation.successes} ${evaluation.successes === 1 ? 'success' : 'successes'})`,
   ]
+  let ambushWeaponId = null
   if (passed) {
     // The ambusher's first weapon with a shot, on Stun when it has a Stun setting (see actions.json ambush notes).
     const weapon = getCombatantWeapon(ambusher, ambusher.weaponIds.find((weaponId) => previewAttack(state, ambusher.id, target.id, weaponId).available))
+    ambushWeaponId = weapon.id
     const mode = weapon.injuryModes.includes('stun') ? 'stun' : weapon.injuryModes[0]
     // The ambushed target is unaware of the ambusher (Ambush Tactics, combatTalents.js).
     const hit = inflictInjury(next, ambusher.id, target.id, injuryFor(next, ambusher, target, weapon, mode, 0, { aimed: false, targetUnaware: true }))
@@ -109,7 +111,7 @@ export function ambushStep(state, action) {
     stats.momentum.saved += saving.saved
     stats.momentum.lost += saving.lost
   })
-  next = markAction(next, 'ambush', ambusher.id, { targetId: target.id, passed, removed: !isActive(next.combatants[target.id]) })
+  next = markAction(next, 'ambush', ambusher.id, { targetId: target.id, weaponId: ambushWeaponId, passed, removed: !isActive(next.combatants[target.id]) })
   next = addLog(next, lines)
   next = {
     ...next,

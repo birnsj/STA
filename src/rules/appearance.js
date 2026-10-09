@@ -68,6 +68,38 @@ export function getSpriteSet(portraitId) {
   return spriteData.sets.find((set) => set.species === portrait.species && set.gender === portrait.gender) ?? null
 }
 
+// A set's PNG for one of characterSprites.json's sheets: the base sheet path with the sheet's suffix (and its uniform
+// mask beside it, or null when the set has none).
+const withSuffix = (file, suffix) => file.replace(/(-uniform)?\.png$/, `${suffix}$1.png`)
+export const spriteSheetFile = (set, sheetId) => withSuffix(set.sheet, spriteData.sheets[sheetId].suffix)
+export const spriteMaskFile = (set, sheetId) => (set.uniformMask ? withSuffix(set.uniformMask, spriteData.sheets[sheetId].suffix) : null)
+
+// An animation by name with the sheet that draws it: { name, sheetId, sheet, start, frames, seconds, play }, or null.
+export function getSpriteAnimation(name) {
+  for (const [sheetId, sheet] of Object.entries(spriteData.sheets)) {
+    if (sheet.animations[name]) return { name, sheetId, sheet, ...sheet.animations[name] }
+  }
+  return null
+}
+
+// Columns in one of the sheets (its animations end to end).
+export const spriteSheetColumns = (sheetId) => Math.max(...Object.values(spriteData.sheets[sheetId].animations).map((animation) => animation.start + animation.frames))
+
+function hashOf(seed) {
+  let h = 0
+  for (const character of String(seed)) h = (Math.imul(h, 31) + character.charCodeAt(0)) | 0
+  return h >>> 0
+}
+
+// How a Defeated character falls (presentation only): Stun (or a Minor NPC left Unconscious) crumples; Deadly picks
+// one of deadlyFalls by seed, so a figure always falls the same way for the same hit. The Injury that defeated it is
+// defeatedBy (Minor NPCs) or the latest Injury.
+export function defeatAnimation(condition, seed = '') {
+  const injury = condition?.defeatedBy ?? condition?.injuries?.at(-1)
+  if (condition?.unconscious || injury?.type !== 'deadly') return spriteData.stunFall
+  return spriteData.deadlyFalls[hashOf(`${seed}:${condition.injuries?.length ?? 0}`) % spriteData.deadlyFalls.length]
+}
+
 // The eight directions in world terms (x and y are the map's axes; screen down is +x +y), a quarter turn apart.
 const WORLD_DIRECTIONS = ['se', 's', 'sw', 'w', 'nw', 'n', 'ne', 'e']
 

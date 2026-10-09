@@ -172,7 +172,8 @@ function FormationIcon({ formation }) {
 
 const REGROUP_ICON = 'M4 4l5 5M9 5v4H5M20 4l-5 5M15 5v4h4M4 20l5-5M9 19v-4H5M20 20l-5-5M15 19v-4h4'
 
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup }) {
+// sneaking: every selected character is sneaking.
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, sneaking, onSneak }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
@@ -203,6 +204,15 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
           </svg>
         </button>
       </div>
+      <button
+        type="button"
+        className={`combat-button is-small explore-sneak-button${sneaking ? ' is-primary' : ''}`}
+        aria-pressed={sneaking}
+        title="Sneak (C): the selected characters crouch and move slowly, harder to notice. Speed and stealth come from each one's Control + Security."
+        onClick={onSneak}
+      >
+        Sneak (C): {sneaking ? 'On' : 'Off'}
+      </button>
     </div>
   )
 })

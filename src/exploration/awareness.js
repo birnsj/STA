@@ -12,6 +12,7 @@ import { blocksLineOfFire } from '../combat/battleMap.js'
 import data from '../data/adaptation/exploration/awareness.json'
 import { isDefeated } from '../rules/personalCondition.js'
 import { distance, planRoute, RADIUS, slide } from './navigation.js'
+import { sneakDetectionMultiplier } from './sneak.js'
 
 export const STATE = { UNAWARE: 'UNAWARE', SUSPICIOUS: 'SUSPICIOUS', INVESTIGATING: 'INVESTIGATING', ALERTED: 'ALERTED', COMBAT_READY: 'COMBAT_READY' }
 const RANK = { UNAWARE: 0, SUSPICIOUS: 1, INVESTIGATING: 2, ALERTED: 3, COMBAT_READY: 4 }
@@ -97,7 +98,8 @@ export function perceive(map, npc, member) {
     if (!member.moving) rate *= V.stationaryAtLongRangeMultiplier
   }
   if (angle > halfView * V.peripheralFraction) rate *= V.peripheralMultiplier
-  if (member.moving) rate *= member.running ? V.runningMultiplier : V.movingMultiplier
+  if (member.sneaking) rate *= sneakDetectionMultiplier(member.character, member.moving)
+  else if (member.moving) rate *= member.running ? V.runningMultiplier : V.movingMultiplier
   return { immediate: false, rate }
 }
 

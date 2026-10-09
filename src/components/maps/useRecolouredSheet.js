@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import { getDivisionColour } from '../../rules/uniform.js'
 import { recolourWithMask } from '../useUniformImage.js'
 
-// `${sheet}|${colour}` -> { url } once drawn, or { promise } while drawing. A sheet that can't be recoloured (missing
+// `${file}|${colour}` -> { url } once drawn, or { promise } while drawing. A sheet that can't be recoloured (missing
 // mask, or a canvas the browser won't let us read) is shown as drawn.
 const cache = new Map()
+// Sheets shown as drawn that were already asked for, so the browser has them before a figure switches to them.
+const preloaded = new Set()
 
-function draw(set, colour) {
-  const key = `${set.sheet}|${colour}`
+function draw(file, mask, colour) {
+  const key = `${file}|${colour}`
   if (!cache.has(key)) {
-    const promise = recolourWithMask(set.sheet, set.uniformMask, colour)
-      .catch(() => set.sheet)
+    const promise = recolourWithMask(file, mask, colour)
+      .catch(() => file)
       .then((url) => {
         cache.set(key, { url })
       })
@@ -19,26 +21,34 @@ function draw(set, colour) {
   return cache.get(key)
 }
 
-// A sprite set's sheet (characterSprites.json) wearing `colour` (from getUniformColour). The sheet itself when it needs
-// no change (no colour, no mask, or already that colour); null while the recoloured copy is drawn, so the figure
-// doesn't flash the wrong colour.
-export default function useRecolouredSheet(set, colour) {
-  const recolours = Boolean(set?.uniformMask && colour && colour !== getDivisionColour(set.uniformDivision))
-  const key = recolours ? `${set.sheet}|${colour}` : null
+// One of a sprite set's sheet PNGs (file, its uniform mask or null, and the division colour the sheet already wears)
+// wearing `colour` (from getUniformColour). The file itself when it needs no change (no colour, no mask, or already
+// that colour); null while the recoloured copy is drawn, so the figure doesn't flash the wrong colour. enabled false:
+// not needed yet (null, nothing loaded).
+export default function useRecolouredSheet(file, mask, division, colour, enabled = true) {
+  const recolours = Boolean(enabled && file && mask && colour && colour !== getDivisionColour(division))
+  const key = recolours ? `${file}|${colour}` : null
   const [, setReady] = useState(null)
 
   useEffect(() => {
-    if (!key) return undefined
-    const entry = draw(set, colour)
+    if (!enabled || !file) return undefined
+    if (!key) {
+      if (!preloaded.has(file) && typeof Image !== 'undefined') {
+        preloaded.add(file)
+        new Image().src = file
+      }
+      return undefined
+    }
+    const entry = draw(file, mask, colour)
     if (!entry.promise) return undefined
     let live = true
     entry.promise.then(() => live && setReady(key))
     return () => {
       live = false
     }
-  }, [key, set, colour])
+  }, [enabled, key, file, mask, colour])
 
-  if (!set) return null
-  if (!key) return set.sheet
+  if (!enabled || !file) return null
+  if (!key) return file
   return cache.get(key)?.url ?? null
 }

@@ -17,7 +17,7 @@ import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
-import { hasCharacterSprite } from '../../rules/appearance.js'
+import { defeatAnimation, hasCharacterSprite } from '../../rules/appearance.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -34,6 +34,11 @@ const HOLD_MIN_CHANGE = 0.2
 const CLICK_MAX_MS = 250
 // How long the ring stays (its CSS animation, explore-click-pulse, runs 380ms).
 const CLICK_PULSE_MS = 400
+// A right-button press must move this far (screen pixels) before it draws a selection box.
+const BOX_MIN_DRAG = 6
+// A character is in the box when any of their figure (feet at the point, about 50 high, 20 wide) is.
+const figureInBox = (feet, a, b) =>
+  feet.x + 10 >= Math.min(a.x, b.x) && feet.x - 10 <= Math.max(a.x, b.x) && feet.y >= Math.min(a.y, b.y) && feet.y - 50 <= Math.max(a.y, b.y)
 
 const worldBounds = (map) => ({
   minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
@@ -55,9 +60,13 @@ function FacingArrow({ facing }) {
   return <polygon className="iso-unit-facing" points={`${tip} ${left} ${right}`} />
 }
 
-// Down after a fight (incapacitated or defeated): drawn as Combat Type 1 draws a downed combatant.
+// Down after a fight (incapacitated or defeated): drawn as Combat Type 1 draws a downed combatant, lying as it fell
+// (already down, so the fall doesn't play again), or a flat body without a sprite set.
 const isDownAfterFight = (entity) => isDefeated(entity.condition)
-const DownBody = () => <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
+function DownBody({ condition, spriteSet = null, uniform = null, facing, seed }) {
+  if (!hasCharacterSprite(spriteSet)) return <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
+  return <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} seed={seed} animation={defeatAnimation(condition, seed)} settled />
+}
 
 function Explorer({ member, selected, lead, onPress }) {
   const centre = project(member.position)
@@ -67,7 +76,7 @@ function Explorer({ member, selected, lead, onPress }) {
   const down = isDownAfterFight(member)
   return (
     <g
-      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}`}
+      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${member.sneaking && !down ? ' is-sneaking' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }}
       onPointerDown={onPress}
       onClick={(event) => event.stopPropagation()}
@@ -75,9 +84,9 @@ function Explorer({ member, selected, lead, onPress }) {
       <title>{member.character.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {down ? (
-        <DownBody />
+        <DownBody condition={member.condition} spriteSet={member.character.portrait.spriteSet} uniform={uniform} facing={member.facing} seed={member.id} />
       ) : (
-        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={member.moving} running={member.running} seed={member.id} clipId={clipId} name={member.character.name} facing={member.facing} />
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={member.moving} running={member.running} sneaking={member.sneaking} seed={member.id} clipId={clipId} name={member.character.name} facing={member.facing} />
       )}
       {lead && (
         <text className="explore-unit-lead" x="0" y="-58" textAnchor="middle">
@@ -89,13 +98,13 @@ function Explorer({ member, selected, lead, onPress }) {
 }
 
 // The character's full-body sprite where they have one (characterSprites.json), else their portrait on a stand.
-function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = false, running = false, seed, clipId, name, facing }) {
+function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = false, running = false, sneaking = false, seed, clipId, name, facing }) {
   const hasSprite = hasCharacterSprite(spriteSet)
   const shownImage = useUniformImage(hasSprite ? null : image, uniform)
   if (hasSprite) {
     return (
       <>
-        <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} walking={walking} running={running} seed={seed} />
+        <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} walking={walking} running={running} sneaking={sneaking} seed={seed} />
         <FacingArrow facing={facing} />
       </>
     )
@@ -127,23 +136,15 @@ function NpcToken({ npc, unperceived = false }) {
   const uniform = npc.character?.portrait.uniform
   const clipId = `npc-clip-${npc.id.replace(/[^a-z0-9]/gi, '')}`
   const down = isDownAfterFight(npc)
+  const facing = { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }
   return (
     <g className={`iso-unit is-enemy explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}`} style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }} pointerEvents="none">
       <title>{npc.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {down ? (
-        <DownBody />
+        <DownBody condition={npc.condition} spriteSet={npc.character?.portrait.spriteSet} uniform={uniform} facing={facing} seed={npc.id} />
       ) : (
-        <ExplorerFigure
-          image={image}
-          uniform={uniform}
-          spriteSet={npc.character?.portrait.spriteSet}
-          walking={npc.moving}
-          seed={npc.id}
-          clipId={clipId}
-          name={npc.name}
-          facing={{ x: Math.cos(npc.heading), y: Math.sin(npc.heading) }}
-        />
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={npc.character?.portrait.spriteSet} walking={npc.moving} seed={npc.id} clipId={clipId} name={npc.name} facing={facing} />
       )}
     </g>
   )
@@ -324,10 +325,12 @@ function ClickPulse({ point }) {
 // while the party sees it, with a marker where it was last seen otherwise. The debug view shows every NPC.
 // challenges: challenge object views (challengeObjects.js); reachableIds: those a party member can act on now;
 // onInteract(id): a reachable object was clicked.
-export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect }) {
+// onSelectBox(ids, additive): a right-drag box closed around these characters (Ctrl adds them to the selection).
+// The right button draws the box, so the middle button drags the camera here.
+export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox }) {
   const { map } = state
   const leader = state.members[state.leaderId]
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')
@@ -398,10 +401,50 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     holdRef.current = { stop }
   }
 
+  // Right-drag: a selection box in board coordinates. It ends at the pointer's board point, so it stays right while the
+  // camera follows the lead character. A press without a drag selects nothing.
+  const [box, setBox] = useState(null)
+  const membersRef = useRef(state)
+  useEffect(() => {
+    membersRef.current = state
+  }, [state])
+  const toBoard = (clientX, clientY) => {
+    const matrix = svgRef.current?.getScreenCTM()
+    return matrix ? new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse()) : null
+  }
+  const startBox = (event) => {
+    const from = toBoard(event.clientX, event.clientY)
+    if (!from) return
+    const start = { x: event.clientX, y: event.clientY }
+    let current = null
+    const move = (moveEvent) => {
+      if (moveEvent.pointerId !== event.pointerId) return
+      if (!current && Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) < BOX_MIN_DRAG) return
+      current = toBoard(moveEvent.clientX, moveEvent.clientY) ?? current
+      setBox({ from: { x: from.x, y: from.y }, to: { x: current.x, y: current.y } })
+    }
+    const end = (endEvent) => {
+      if (endEvent.pointerId !== event.pointerId) return
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      setBox(null)
+      if (!current || endEvent.type !== 'pointerup') return
+      const ids = getMembers(membersRef.current)
+        .filter((member) => figureInBox(project(member.position), from, current))
+        .map((member) => member.id)
+      onSelectBox?.(ids, endEvent.ctrlKey || endEvent.metaKey)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   const handlePointerDown = (event) => {
     pointerTypeRef.current = event.pointerType
     startCameraDrag(event)
     if (event.pointerType === 'mouse' && event.button === 0) startHold(event)
+    if (event.pointerType === 'mouse' && event.button === 2) startBox(event)
   }
   // A finger can't hold-to-steer (a one-finger drag pans), so a tap is a single move order.
   const handleClick = (event) => {
@@ -479,6 +522,16 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}
+      {box && (
+        <rect
+          className="explore-select-box"
+          x={Math.min(box.from.x, box.to.x)}
+          y={Math.min(box.from.y, box.to.y)}
+          width={Math.abs(box.to.x - box.from.x)}
+          height={Math.abs(box.to.y - box.from.y)}
+          pointerEvents="none"
+        />
+      )}
     </svg>
   )
 }

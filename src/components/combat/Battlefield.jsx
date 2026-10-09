@@ -13,6 +13,7 @@ import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
 import { hasCharacterSprite } from '../../rules/appearance.js'
+import useUnitAnimation from './useUnitAnimation.js'
 import { DoneIcon } from './ActionPoints.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
@@ -171,7 +172,8 @@ function UnitToken({ image, shownImage, clipId, name }) {
 }
 
 // isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, onClick, onHover }) {
+// lastAction / speed: state.lastAction and the Auto Combat speed, for the figure's strike, fall and getting up.
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const down = Boolean(combatant.condition?.defeated)
@@ -181,6 +183,10 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const hasSprite = hasCharacterSprite(spriteSet)
   const shownImage = useUniformImage(hasSprite ? null : image, combatant.character.portrait?.uniform)
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
+  const pose = useUnitAnimation(combatant, { isWalking, lastAction, speed })
+  const sprite = hasSprite && (
+    <CharacterSprite setId={spriteSet} colour={combatant.character.portrait.uniform} facing={facing} seed={combatant.id} speed={speed} preload={!isBystander} {...pose} />
+  )
   return (
     <g
       className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}`}
@@ -193,11 +199,11 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {isSelected && !isActive && <ellipse className="iso-unit-selected" cx="0" cy="0" rx="25" ry="12.5" />}
       {down ? (
-        <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
+        sprite || <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
       ) : (
         <>
           {hasSprite ? (
-            <CharacterSprite setId={spriteSet} colour={combatant.character.portrait.uniform} facing={facing} walking={isWalking} seed={combatant.id} />
+            sprite
           ) : (
             <UnitToken image={image} shownImage={shownImage} clipId={clipId} name={combatant.character.name} />
           )}
@@ -442,6 +448,8 @@ export default function Battlefield({
           isTarget={unit.id === targetId}
           isSelected={unit.id === selectedId}
           turnStatus={turnInfo[unit.id]}
+          lastAction={state.lastAction}
+          speed={speed}
           onClick={() => onUnitClick(unit.id)}
           onHover={(entering) => onUnitHover(unit.id, entering)}
         />

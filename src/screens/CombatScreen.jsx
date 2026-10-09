@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import actionData from '../data/adaptation/combat/actions.json'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
@@ -266,6 +267,8 @@ export function Battle({
   worldActors = null,
   children = null,
 }) {
+  // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays).
+  const showHints = useDisplaySettings().helpHints
   const active = getActiveCombatant(state)
   // The opening banner plays before anything else: the AI waits and the first turn banner follows it.
   const [openingDone, setOpeningDone] = useState(!openingBanner)
@@ -985,9 +988,9 @@ export function Battle({
       <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
-      {hint && (
-        <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}`} aria-live="polite">
-          {hint}
+      {hint && (showHints || ambusher) && (
+        <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${showHints ? '' : ' is-controls-only'}`} aria-live="polite">
+          {showHints && hint}
           {ambusher && (
             <button
               type="button"

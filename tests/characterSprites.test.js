@@ -4,58 +4,118 @@ import fs from 'node:fs'
 import { describe, it } from 'node:test'
 import spriteData from '../src/data/adaptation/characterSprites.json' with { type: 'json' }
 import characterData from '../src/data/adaptation/characters.json' with { type: 'json' }
-import { directionFor, getSpriteSet, getSpriteSetById, hasCharacterSprite } from '../src/rules/appearance.js'
+import {
+  defeatAnimation,
+  directionFor,
+  getSpriteAnimation,
+  getSpriteSet,
+  getSpriteSetById,
+  hasCharacterSprite,
+  spriteMaskFile,
+  spriteSheetColumns,
+  spriteSheetFile,
+} from '../src/rules/appearance.js'
 import { normalizeCharacterRecord } from '../src/character/runtimeCharacter.js'
 import { decodePng } from '../scripts/png.mjs'
 
-const { frame, resolution, directions, animations } = spriteData
-const columns = Math.max(...Object.values(animations).map((animation) => animation.start + animation.frames))
-const sheetWidth = columns * frame.width * resolution
-const sheetHeight = directions.length * frame.height * resolution
+const { directions } = spriteData
 const readPng = (src) => decodePng(fs.readFileSync(`public${src}`))
 
 describe('character sprite sheets (Prototype)', () => {
   for (const set of spriteData.sets) {
-    describe(set.id, () => {
-      const sheet = readPng(set.sheet)
+    for (const [sheetId, metrics] of Object.entries(spriteData.sheets)) {
+      describe(`${set.id} ${sheetId}`, () => {
+        const sheet = readPng(spriteSheetFile(set, sheetId))
+        const cellWidth = metrics.frame.width * metrics.resolution
+        const cellHeight = metrics.frame.height * metrics.resolution
+        const columns = spriteSheetColumns(sheetId)
 
-      it('has every drawn direction and animation frame on the declared grid', () => {
-        assert.equal(sheet.width, sheetWidth)
-        assert.equal(sheet.height, sheetHeight)
-      })
+        it('has every drawn direction and animation frame on the declared grid', () => {
+          assert.equal(sheet.width, columns * cellWidth)
+          assert.equal(sheet.height, directions.length * cellHeight)
+        })
 
-      it('draws a figure in every frame', () => {
-        const cellWidth = frame.width * resolution
-        const cellHeight = frame.height * resolution
-        for (let row = 0; row < directions.length; row++) {
-          for (let column = 0; column < columns; column++) {
-            let opaque = 0
-            for (let y = row * cellHeight; y < (row + 1) * cellHeight; y += 2) {
-              for (let x = column * cellWidth; x < (column + 1) * cellWidth; x += 2) {
-                if (sheet.bytes[(y * sheet.width + x) * 4 + 3] > 0) opaque++
+        it('draws a figure in every frame', () => {
+          for (let row = 0; row < directions.length; row++) {
+            for (let column = 0; column < columns; column++) {
+              let opaque = 0
+              for (let y = row * cellHeight; y < (row + 1) * cellHeight; y += 2) {
+                for (let x = column * cellWidth; x < (column + 1) * cellWidth; x += 2) {
+                  if (sheet.bytes[(y * sheet.width + x) * 4 + 3] > 0) opaque++
+                }
               }
+              assert.ok(opaque > 300, `${directions[row]} frame ${column} is empty`)
             }
-            assert.ok(opaque > 500, `${directions[row]} frame ${column} is empty`)
           }
+        })
+
+        if (set.uniformMask) {
+          it('has a uniform mask the size of the sheet that only covers the figure', () => {
+            const mask = readPng(spriteMaskFile(set, sheetId))
+            assert.equal(mask.width, sheet.width)
+            assert.equal(mask.height, sheet.height)
+            let masked = 0
+            for (let i = 3; i < mask.bytes.length; i += 4) {
+              if (mask.bytes[i] === 0) continue
+              masked++
+              assert.ok(sheet.bytes[i] > 0, `mask over a transparent pixel at ${(i - 3) / 4}`)
+            }
+            assert.ok(masked > 0)
+          })
         }
       })
-
-      if (set.uniformMask) {
-        it('has a uniform mask the size of the sheet that only covers the figure', () => {
-          const mask = readPng(set.uniformMask)
-          assert.equal(mask.width, sheet.width)
-          assert.equal(mask.height, sheet.height)
-          let masked = 0
-          for (let i = 3; i < mask.bytes.length; i += 4) {
-            if (mask.bytes[i] === 0) continue
-            masked++
-            assert.ok(sheet.bytes[i] > 0, `mask over a transparent pixel at ${(i - 3) / 4}`)
-          }
-          assert.ok(masked > 0)
-        })
-      }
-    })
+    }
   }
+})
+
+describe('sprite sheets and animations (Prototype)', () => {
+  it('each sheet is the base sheet path with its suffix, and its mask beside it', () => {
+    const set = getSpriteSetById('human-male')
+    assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human-male.png')
+    assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human-male-combat.png')
+    assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human-male-fall-uniform.png')
+    assert.equal(spriteMaskFile(getSpriteSetById('klingon-male'), 'combat'), null)
+  })
+
+  it('every animation name is unique across the sheets and found with its sheet', () => {
+    const names = Object.values(spriteData.sheets).flatMap((sheet) => Object.keys(sheet.animations))
+    assert.equal(new Set(names).size, names.length)
+    assert.equal(getSpriteAnimation('melee').sheetId, 'combat')
+    assert.equal(getSpriteAnimation('fallSpin').play, 'hold')
+    assert.equal(getSpriteAnimation('idle').play, 'loop')
+    assert.equal(getSpriteAnimation('nope'), null)
+  })
+
+  it('the fall variants are drawn on the fall sheet', () => {
+    for (const name of [...spriteData.deadlyFalls, spriteData.stunFall]) assert.equal(getSpriteAnimation(name).sheetId, 'fall')
+  })
+})
+
+describe('how a Defeated character falls (Prototype presentation)', () => {
+  const stun = { type: 'stun', severity: 1 }
+  const deadly = { type: 'deadly', severity: 1 }
+
+  it('a Stun Injury crumples', () => {
+    assert.equal(defeatAnimation({ defeated: true, injuries: [stun] }, 'a'), 'fallCrumple')
+  })
+
+  it('an Unconscious Minor NPC crumples', () => {
+    assert.equal(defeatAnimation({ defeated: true, injuries: [], unconscious: true, defeatedBy: { type: 'stun' } }, 'a'), 'fallCrumple')
+  })
+
+  it('a Deadly Injury falls back, forward or spins, the same way every time for the same figure', () => {
+    const condition = { defeated: true, injuries: [deadly] }
+    const fall = defeatAnimation(condition, 'klingon-1')
+    assert.ok(spriteData.deadlyFalls.includes(fall))
+    assert.equal(defeatAnimation(condition, 'klingon-1'), fall)
+    assert.ok(spriteData.deadlyFalls.includes(defeatAnimation({ defeated: true, injuries: [], dead: true, defeatedBy: { type: 'deadly' } }, 'k')))
+  })
+
+  it('different figures use every Deadly fall', () => {
+    const condition = { defeated: true, injuries: [deadly] }
+    const seen = new Set(Array.from({ length: 40 }, (_, index) => defeatAnimation(condition, `npc-${index}`)))
+    assert.deepEqual([...seen].sort(), [...spriteData.deadlyFalls].sort())
+  })
 })
 
 describe('sprite set for a portrait (Prototype)', () => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import CharacterInspector from '../components/CharacterInspector.jsx'
 import FrameRate from '../components/FrameRate.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
@@ -400,6 +401,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const [followCamera, setFollowCamera] = useState(true)
   const [debugOpen, setDebugOpen] = useState(false)
   const [noiseTool, setNoiseTool] = useState(false)
+  const showHints = useDisplaySettings().helpHints
   // UI state: the challenge object whose interaction panel is open. Move orders wait while it's open.
   const [interactionId, setInteractionId] = useState(null)
   // UI state: who is best at the approach being considered in the interaction panel (party card highlight).
@@ -440,9 +442,18 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     },
     [dispatch],
   )
+  const selectBox = useCallback(
+    (ids, additive) => {
+      setSheetClosed(false)
+      dispatch({ type: 'selectBox', ids, additive })
+    },
+    [dispatch],
+  )
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
+  const toggleSneak = useCallback(() => dispatch({ type: 'toggleSneak' }), [dispatch])
+  const allSneaking = party.selectedIds.length > 0 && party.selectedIds.every((id) => party.members[id].sneaking)
   const sheetMember = !sheetClosed && !debugOpen && party.selectedIds.length === 1 ? party.members[party.selectedIds[0]] : null
 
   // Number keys 1-n pick party members (Shift adds / removes), like clicking their portraits.
@@ -457,17 +468,18 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [party.memberIds, select])
 
-  // E interacts with the nearest object in reach; Escape closes the panel.
+  // E interacts with the nearest object in reach; Escape closes the panel; C toggles sneak for the selected characters.
   const firstReachable = reachableIds[0] ?? null
   useEffect(() => {
     const onKey = (event) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
       if (event.code === 'Escape') setInteractionId(null)
       if (event.code === 'KeyE' && firstReachable) setInteractionId((open) => open ?? firstReachable)
+      if (event.code === 'KeyC' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleSneak()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [firstReachable])
+  }, [firstReachable, toggleSneak])
 
   const move = useCallback(
     (target, fresh) => {
@@ -498,18 +510,22 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         followCamera={followCamera}
         onMove={move}
         onSelect={select}
+        onSelectBox={selectBox}
       />
       <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
       <div className="combat-top-left">
         <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
       </div>
-      <p className="combat-hint is-player-turn">
-        {openId
-          ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
-          : noiseTool
-            ? 'Noise tool: click the floor to make a noise there.'
-            : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove.`}
-      </p>
+      {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
+      {(showHints || noiseTool) && (
+        <p className="combat-hint is-player-turn">
+          {openId
+            ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
+            : noiseTool
+              ? 'Noise tool: click the floor to make a noise there.'
+              : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak.`}
+        </p>
+      )}
       {!openId && reachableIds.length > 0 && (
         <div className="challenge-prompts">
           {reachableIds.map((id, index) => (
@@ -567,7 +583,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
       {!openId && (
         <div className="explore-bottom-right">
           <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />
-          <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />
+          <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} sneaking={allSneaking} onSneak={toggleSneak} />
         </div>
       )}
       {debugOpen && (

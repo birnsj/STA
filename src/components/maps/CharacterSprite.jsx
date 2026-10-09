@@ -1,20 +1,23 @@
-import { directionFor, getSpriteMetrics, getSpriteSetById } from '../../rules/appearance.js'
+import { directionFor, getSpriteAnimation, getSpriteMetrics, getSpriteSetById, spriteMaskFile, spriteSheetColumns, spriteSheetFile } from '../../rules/appearance.js'
 import useRecolouredSheet from './useRecolouredSheet.js'
 
 const METRICS = getSpriteMetrics()
-const FRAME = { width: METRICS.frame.width * METRICS.resolution, height: METRICS.frame.height * METRICS.resolution }
-const COLUMNS = Math.max(...Object.values(METRICS.animations).map((animation) => animation.start + animation.frames))
+const frameSize = (sheet) => ({ width: sheet.frame.width * sheet.resolution, height: sheet.frame.height * sheet.resolution })
 const keyframeName = (name) => `char-sprite-${name}`
+// The last frame a non-looping animation shows (a loop slides on to the next frame's edge and starts again).
+const lastColumn = ({ start, frames, play }) => (play === 'loop' ? start + frames : start + frames - 1)
 
-// One keyframe animation per animation in characterSprites.json, sliding the sheet a frame at a time along its row
+// One keyframe animation per animation in characterSprites.json, sliding its sheet a frame at a time along the row
 // (the steps are set where it is used), so the figures animate without re-rendering. Added to the page once.
 if (typeof document !== 'undefined') {
   const style = document.createElement('style')
   style.dataset.characterSprites = ''
-  style.textContent = Object.entries(METRICS.animations)
-    .map(
-      ([name, { start, frames }]) =>
-        `@keyframes ${keyframeName(name)} { from { transform: translateX(${-start * FRAME.width}px); } to { transform: translateX(${-(start + frames) * FRAME.width}px); } }`,
+  style.textContent = Object.values(METRICS.sheets)
+    .flatMap((sheet) =>
+      Object.entries(sheet.animations).map(([name, animation]) => {
+        const width = frameSize(sheet).width
+        return `@keyframes ${keyframeName(name)} { from { transform: translateX(${-animation.start * width}px); } to { transform: translateX(${-lastColumn(animation) * width}px); } }`
+      }),
     )
     .join('\n')
   document.head.appendChild(style)
@@ -27,44 +30,62 @@ function phaseOf(seed) {
   return ((h >>> 0) % 1000) / 1000
 }
 
+// The image's inline style. Its transform is the frame shown without animation (reduced motion): a loop's first, a
+// once's middle, a hold's last (or first, played backwards).
+function animationStyle(animation, { seed, settled, reverse, speed }) {
+  const width = frameSize(animation.sheet).width
+  const { start, frames, seconds, play } = animation
+  const rest = play === 'loop' ? start : play === 'once' ? start + Math.floor(frames / 2) : reverse ? start : start + frames - 1
+  const style = { transform: `translateX(${-rest * width}px)` }
+  if (play === 'loop') {
+    style.animation = `${keyframeName(animation.name)} ${seconds}s steps(${frames}) ${-phaseOf(seed) * seconds}s infinite`
+  } else if (!settled) {
+    style.animation = `${keyframeName(animation.name)} ${seconds / speed}s steps(${frames}, jump-none) 0s 1 ${reverse ? 'reverse' : 'normal'} both`
+  }
+  return style
+}
+
 // The full-body figure of a character on the maps, its feet at (0, 0). setId: characterSprites.json set; colour: the
-// uniform colour (getUniformColour) or null; facing: { x, y } along the map axes; walking / running: plays the walk or
-// run loop, else idle.
-export default function CharacterSprite({ setId, colour = null, facing, walking = false, running = false, seed = '' }) {
+// uniform colour (getUniformColour) or null; facing: { x, y } along the map axes.
+// animation: an animation by name (characterSprites.json), else walk / run / idle from walking and running, or the
+// crouched sneakWalk / sneakIdle while sneaking.
+// playKey: a non-looping animation plays again whenever it changes. settled: a hold animation (a fall) shows its last
+// frame without playing. reverse: plays it backwards (getting up). speed: divides a non-looping animation's time.
+// preload: load every sheet now (combat), not when first shown.
+export default function CharacterSprite({ setId, colour = null, facing, animation: named = null, walking = false, running = false, sneaking = false, seed = '', playKey = 0, settled = false, reverse = false, speed = 1, preload = false }) {
   const set = getSpriteSetById(setId)
-  const sheet = useRecolouredSheet(set, colour)
+  const moving = sneaking ? (walking ? 'sneakWalk' : 'sneakIdle') : running ? 'run' : walking ? 'walk' : 'idle'
+  const animation = getSpriteAnimation(named ?? moving)
+  // Each sheet loads only once it is in use (or all at once, with preload); base always.
+  const sheetArgs = (sheetId) => [set && spriteSheetFile(set, sheetId), set && spriteMaskFile(set, sheetId), set?.uniformDivision, colour, Boolean(set) && (preload || sheetId === 'base' || sheetId === animation.sheetId)]
+  const sheets = {
+    base: useRecolouredSheet(...sheetArgs('base')),
+    combat: useRecolouredSheet(...sheetArgs('combat')),
+    fall: useRecolouredSheet(...sheetArgs('fall')),
+    sneak: useRecolouredSheet(...sheetArgs('sneak')),
+  }
   if (!set) return null
   const { row, mirror } = directionFor(facing)
-  const name = running ? 'run' : walking ? 'walk' : 'idle'
-  const animation = METRICS.animations[name]
-  const style = {
-    transform: `translateX(${-animation.start * FRAME.width}px)`,
-    animation: `${keyframeName(name)} ${animation.seconds}s steps(${animation.frames}) ${-phaseOf(seed) * animation.seconds}s infinite`,
-  }
+  const sheet = animation.sheet
+  const frame = frameSize(sheet)
+  const href = sheets[animation.sheetId]
   return (
     <g className="char-sprite">
       <ellipse className="char-sprite-shadow" cx="0" cy="0" rx="11" ry="5" />
       {/* What a click lands on: the figure's outline, not the whole sheet. */}
       <rect x="-9" y="-54" width="18" height="56" rx="6" fill="transparent" />
-      {sheet && (
-        <svg
-          pointerEvents="none"
-          x={-METRICS.anchor.x}
-          y={-METRICS.anchor.y}
-          width={METRICS.frame.width}
-          height={METRICS.frame.height}
-          viewBox={`0 0 ${FRAME.width} ${FRAME.height}`}
-          overflow="hidden"
-        >
-          <g transform={mirror ? `matrix(-1 0 0 1 ${FRAME.width} 0)` : undefined}>
+      {href && (
+        <svg pointerEvents="none" x={-sheet.anchor.x} y={-sheet.anchor.y} width={sheet.frame.width} height={sheet.frame.height} viewBox={`0 0 ${frame.width} ${frame.height}`} overflow="hidden">
+          <g transform={mirror ? `matrix(-1 0 0 1 ${frame.width} 0)` : undefined}>
             <image
+              key={animation.play === 'loop' ? animation.name : `${animation.name}:${playKey}:${reverse}`}
               className="char-sprite-sheet"
-              href={sheet}
+              href={href}
               x="0"
-              y={-row * FRAME.height}
-              width={COLUMNS * FRAME.width}
-              height={METRICS.directions.length * FRAME.height}
-              style={style}
+              y={-row * frame.height}
+              width={spriteSheetColumns(animation.sheetId) * frame.width}
+              height={METRICS.directions.length * frame.height}
+              style={animationStyle(animation, { seed, settled, reverse, speed })}
             />
           </g>
         </svg>

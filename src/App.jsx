@@ -15,6 +15,7 @@ import creationSteps from './data/adaptation/creationSteps.json'
 import ScaledStage from './components/ScaledStage.jsx'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
+import { DisplaySettingsContext } from './settings/DisplaySettingsContext.js'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ShipBuilderPlaceholder from './screens/ShipBuilderPlaceholder.jsx'
@@ -110,6 +111,7 @@ function Views() {
 
   // While a view's code is still arriving the stage stays black, as it is between views anyway.
   return (
+    <DisplaySettingsContext.Provider value={displaySettings}>
     <Suspense fallback={null}>
       {view === 'menu' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
@@ -166,6 +168,7 @@ function Views() {
         </ScaledStage>
       )}
     </Suspense>
+    </DisplaySettingsContext.Provider>
   )
 }
 

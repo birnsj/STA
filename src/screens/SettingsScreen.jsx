@@ -41,6 +41,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               onChange={(event) => onChangeDisplay({ ...displaySettings, guideHighlight: event.target.checked })}
             />
           </label>
+          <label className="settings-toggle">
+            <span className="settings-toggle-text">
+              <span className="settings-slider-label">Help Hints</span>
+              <span className="settings-option-description">In combat and exploration, a box at the top says what to do next.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={displaySettings.helpHints}
+              onChange={(event) => onChangeDisplay({ ...displaySettings, helpHints: event.target.checked })}
+            />
+          </label>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
           <h2 id="settings-audio" className="settings-heading">

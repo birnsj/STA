@@ -2,20 +2,62 @@
   "notes": [
     "Prototype presentation only (no book rule, no game-rule effect): the full-body figure drawn for a character on the isometric maps (exploration and Combat Type 1). Chosen from the character's portrait, so saves and the character JSON are unchanged.",
     "A portrait in portraits.json uses the set of its species and gender (or its own optional spriteSet); portraitSets names the set for portraits that are not in portraits.json (the Klingon warriors). A character whose portrait resolves to no set keeps the portrait token.",
-    "Each set is one sheet PNG: a row per drawn direction (directions, in order), and in each row the idle, walk and run frames (animations: first column and frame count). Run is used in exploration only, when a character runs (partyControl.json). The other three directions are the mirror image of drawnFor's direction. frame is the design size of one frame (the sheet is drawn at resolution times that) and anchor the point in a frame where the feet stand.",
-    "uniformMask (optional): a PNG the sheet's size, opaque where the shirt is; uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
+    "Each set has one PNG per entry in sheets: the set's sheet path with the sheet's suffix before .png (base: none; e.g. human-male-combat.png). In a sheet, a row per drawn direction (directions, in order) and the sheet's animations side by side (first column and frame count). The other three directions are the mirror image of drawnFor's direction. frame is the design size of one frame (the PNG is drawn at resolution times that) and anchor the point in a frame where the feet stand. The fall sheet's frame is wide and low-resolution because a body lying on the floor reaches far from its feet.",
+    "Animation play: loop repeats (idle, walk, run, cover); once plays and the figure goes back to its loop (attack, melee); hold plays and stays on its last frame (the falls). Run is used in exploration only, when a character runs (partyControl.json); sneakIdle and sneakWalk (a crouch) while a character sneaks (sneak.json).",
+    "Combat Type 1 (Battlefield.jsx): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). First Aid that ends Defeated plays the fall backwards (getting up). Downed characters in exploration lie in the same pose.",
+    "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it."
   ],
-  "frame": { "width": 40, "height": 64 },
-  "anchor": { "x": 20, "y": 60 },
-  "resolution": 4,
   "directions": ["s", "se", "e", "ne", "n"],
   "mirrored": { "sw": "se", "w": "e", "nw": "ne" },
-  "animations": {
-    "idle": { "start": 0, "frames": 4, "seconds": 2.4 },
-    "walk": { "start": 4, "frames": 8, "seconds": 0.8 },
-    "run": { "start": 12, "frames": 8, "seconds": 0.6 }
+  "sheets": {
+    "base": {
+      "suffix": "",
+      "frame": { "width": 40, "height": 64 },
+      "anchor": { "x": 20, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "idle": { "start": 0, "frames": 4, "seconds": 2.4, "play": "loop" },
+        "walk": { "start": 4, "frames": 8, "seconds": 0.8, "play": "loop" },
+        "run": { "start": 12, "frames": 8, "seconds": 0.6, "play": "loop" }
+      }
+    },
+    "combat": {
+      "suffix": "-combat",
+      "frame": { "width": 56, "height": 64 },
+      "anchor": { "x": 28, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "attack": { "start": 0, "frames": 6, "seconds": 0.7, "play": "once" },
+        "melee": { "start": 6, "frames": 6, "seconds": 0.6, "play": "once" },
+        "cover": { "start": 12, "frames": 4, "seconds": 2.4, "play": "loop" }
+      }
+    },
+    "fall": {
+      "suffix": "-fall",
+      "frame": { "width": 112, "height": 96 },
+      "anchor": { "x": 56, "y": 64 },
+      "resolution": 3,
+      "animations": {
+        "fallCrumple": { "start": 0, "frames": 6, "seconds": 0.9, "play": "hold" },
+        "fallBack": { "start": 6, "frames": 6, "seconds": 0.7, "play": "hold" },
+        "fallForward": { "start": 12, "frames": 6, "seconds": 0.8, "play": "hold" },
+        "fallSpin": { "start": 18, "frames": 6, "seconds": 0.8, "play": "hold" }
+      }
+    },
+    "sneak": {
+      "suffix": "-sneak",
+      "frame": { "width": 40, "height": 64 },
+      "anchor": { "x": 20, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "sneakIdle": { "start": 0, "frames": 4, "seconds": 2.8, "play": "loop" },
+        "sneakWalk": { "start": 4, "frames": 8, "seconds": 1.1, "play": "loop" }
+      }
+    }
   },
+  "deadlyFalls": ["fallBack", "fallForward", "fallSpin"],
+  "stunFall": "fallCrumple",
   "sets": [
     { "id": "human-male", "species": "human", "gender": "male", "sheet": "/art/sprites/characters/human-male.png", "uniformMask": "/art/sprites/characters/human-male-uniform.png", "uniformDivision": "command" },
     { "id": "human-female", "species": "human", "gender": "female", "sheet": "/art/sprites/characters/human-female.png", "uniformMask": "/art/sprites/characters/human-female-uniform.png", "uniformDivision": "command" },

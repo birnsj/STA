@@ -6,6 +6,9 @@ import './styles.css'
 import './components/combat/combat.css'
 import App from './App.jsx'
 
+// Right click belongs to the game (camera drag, commands), so the browser's context menu never opens, anywhere.
+window.addEventListener('contextmenu', (event) => event.preventDefault())
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

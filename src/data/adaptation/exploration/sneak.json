@@ -1,0 +1,11 @@
+{
+  "notes": [
+    "Sneaking in exploration (designer decision, 2026-10-09). Book (Captain's Log p.74): Control is the attribute for remaining stealthy; the books have no real-time stealth rules. Prototype: sneak skill = Control + Security, as for the combat Ambush (combatAmbush.js). Every number here is first-pass tuning, not a book value.",
+    "Toggled per character (the C key or the Sneak button, for the selected characters). A sneaking character never runs: a long move order still sneaks.",
+    "Each character uses their own skill. speed: tiles per second = baseSpeed + perPoint x (skill - referenceSkill), kept between min and max (walking is partyControl.json walkSpeed). A follower who falls behind catches up at catchUpFactor times their sneak speed.",
+    "detection: how fast an NPC's awareness of a sneaking character builds. It replaces awareness.json's movingMultiplier / runningMultiplier with movingMultiplier (moving) or stillMultiplier (standing still), then multiplies by the skill factor = 1 - perPoint x (skill - referenceSkill), kept between minFactor and maxFactor. Inside an NPC's closeRange a sneaking character is still identified at once."
+  ],
+  "referenceSkill": 11,
+  "speed": { "baseSpeed": 1.7, "perPoint": 0.12, "min": 1.1, "max": 2.6, "catchUpFactor": 1.4 },
+  "detection": { "movingMultiplier": 0.8, "stillMultiplier": 0.6, "perPoint": 0.06, "minFactor": 0.4, "maxFactor": 1.4 }
+}

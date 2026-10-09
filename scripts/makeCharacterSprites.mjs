@@ -1,10 +1,10 @@
-// Placeholder full-body map sprites (src/data/adaptation/characterSprites.json): one sheet per species and gender, a
-// row per drawn direction, idle, walk and run frames side by side, plus a uniform mask (opaque where the shirt is) for the
-// department recolour. Rendered like the v2 tiles: the same isometric projection, light, fill and highlight
+// Placeholder full-body map sprites (src/data/adaptation/characterSprites.json): for each species and gender, one PNG
+// per sheet (base: idle, walk, run; combat: attack, melee, cover; fall: the falls; sneak: crouched idle and walk), a row per drawn direction and the
+// frames side by side, plus a uniform mask (opaque where the shirt is) for the department recolour. Rendered like the v2 tiles: the same isometric projection, light, fill and highlight
 // (scripts/v2/engine.mjs) at 4x, so the figures stand in the same light as the world. Each figure is a handful of
 // capsules and ellipsoids, ray-cast analytically. Never overwrites an existing PNG without --force: the designer may
 // have replaced it with real art.
-// Run: node scripts/makeCharacterSprites.mjs [set id ...] [--force]
+// Run: node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak] [--force]
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,10 +14,6 @@ import { encodePng } from './png.mjs'
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/data/adaptation/characterSprites.json'), 'utf8'))
 const FORCE = process.argv.includes('--force')
-const RES = DATA.resolution
-const FRAME_W = DATA.frame.width * RES
-const FRAME_H = DATA.frame.height * RES
-const COLUMNS = Math.max(...Object.values(DATA.animations).map((animation) => animation.start + animation.frames))
 const SUBSAMPLES = 2
 // Body space: x forward, y to the figure's left, z up, in screen pixels. The map's 2:1 projection shows a horizontal
 // length l (in tile texels) as l * sqrt 2 pixels across the screen, so body lengths are divided by K on the ground.
@@ -29,6 +25,16 @@ const hex = (value) => [1, 3, 5].map((start) => parseInt(value.slice(start, star
 const v3 = (x, y, z) => [x, y, z]
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 const deg = (value) => (value * Math.PI) / 180
+// 3x3 matrices as arrays of rows.
+const mulMatrix = (m, v) => m.map((row) => dot(row, v))
+const mulTransposed = (m, v) => [0, 1, 2].map((k) => m[0][k] * v[0] + m[1][k] * v[1] + m[2][k] * v[2])
+const transpose = (m) => [0, 1, 2].map((k) => [m[0][k], m[1][k], m[2][k]])
+const matMul = (a, b) => a.map((row) => [0, 1, 2].map((k) => row[0] * b[0][k] + row[1] * b[1][k] + row[2] * b[2][k]))
+// Turns about the body's axes: pitch about y (positive tips the top forward, +x), roll about x (positive tips the top to
+// the figure's left, +y), yaw about z (positive turns forward towards the left).
+const pitchMatrix = (a) => [[Math.cos(a), 0, Math.sin(a)], [0, 1, 0], [-Math.sin(a), 0, Math.cos(a)]]
+const rollMatrix = (a) => [[1, 0, 0], [0, Math.cos(a), Math.sin(a)], [0, -Math.sin(a), Math.cos(a)]]
+const yawMatrix = (a) => [[Math.cos(a), -Math.sin(a), 0], [Math.sin(a), Math.cos(a), 0], [0, 0, 1]]
 
 // ---------- materials ----------
 const material = (colour, { spec = 0.12, shininess = 18, part = 'body', albedo = null } = {}) => ({ base: hex(colour), spec, shininess, part, albedo })
@@ -38,22 +44,28 @@ const TROUSERS = material('#20212b', { spec: 0.12, shininess: 16 })
 const BOOTS = material('#121217', { spec: 0.45, shininess: 34 })
 const INSIGNIA = material('#f0d890', { spec: 0.5, shininess: 30 })
 const EYES = material('#17120e', { spec: 0.4, shininess: 40 })
+const WEAPON = material('#4c4f58', { spec: 0.55, shininess: 36 })
 
 // ---------- primitives (body space) ----------
 // Ray-ellipsoid: the nearest t along a unit direction, with the body-space normal. A shape cut by `keep` (hair, the
 // dress) is open where it is cut, so a ray entering through the opening sees the inside of the far wall.
+// A turned ellipsoid has rot, the matrix from body space into its own axes.
 function hitEllipsoid(shape, origin, direction) {
   const [rx, ry, rz] = shape.r
-  const o = [(origin[0] - shape.c[0]) / rx, (origin[1] - shape.c[1]) / ry, (origin[2] - shape.c[2]) / rz]
-  const d = [direction[0] / rx, direction[1] / ry, direction[2] / rz]
+  const local = (v) => (shape.rot ? mulMatrix(shape.rot, v) : v)
+  const oc = local(sub(origin, shape.c))
+  const dl = local(direction)
+  const o = [oc[0] / rx, oc[1] / ry, oc[2] / rz]
+  const d = [dl[0] / rx, dl[1] / ry, dl[2] / rz]
   const a = dot(d, d)
   const b = dot(o, d)
   const disc = b * b - a * (dot(o, o) - 1)
   if (disc < 0) return null
   const surface = (t, side) => {
     const p = add(origin, scale(direction, t))
-    const q = sub(p, shape.c)
-    return { t, p, n: scale(normalize([q[0] / (rx * rx), q[1] / (ry * ry), q[2] / (rz * rz)]), side) }
+    const q = local(sub(p, shape.c))
+    const n = [q[0] / (rx * rx), q[1] / (ry * ry), q[2] / (rz * rz)]
+    return { t, p, n: scale(normalize(shape.rot ? mulTransposed(shape.rot, n) : n), side) }
   }
   const near = surface((-b - Math.sqrt(disc)) / a, 1)
   if (near.t < 0) return null
@@ -94,7 +106,7 @@ function hitCapsule(shape, origin, direction) {
   return { t, p, n: normalize(sub(sub(p, pa), scale(ba, along))) }
 }
 
-const ellipsoid = (c, r, mat, keep = null) => ({ kind: 'e', c, r, mat, keep, bound: Math.max(...r) })
+const ellipsoid = (c, r, mat, keep = null, rot = null) => ({ kind: 'e', c, r, mat, keep, rot, bound: Math.max(...r) })
 const capsule = (a, b, r, mat) => ({ kind: 'c', a, b, r, mat, bound: r + Math.hypot(...sub(b, a)) / 2, c: scale(add(a, b), 0.5) })
 
 // ---------- species ----------
@@ -176,7 +188,10 @@ function buildFigure(speciesId, gender, pose) {
     const wrist = add(elbow, v3(Math.sin(forearm) * 7 * hs, side * 0.3, -Math.cos(forearm) * 7 * hs))
     put(capsule(shoulder, elbow, 1.75 * ws, sleeve))
     put(capsule(elbow, wrist, 1.5 * ws, sleeve))
-    put(ellipsoid(add(wrist, v3(Math.sin(forearm) * 1.1, 0, -Math.cos(forearm) * 1.1)), [1.3, 1.1, 1.4], skin))
+    const along = v3(Math.sin(forearm), 0, -Math.cos(forearm))
+    put(ellipsoid(add(wrist, scale(along, 1.1)), [1.3, 1.1, 1.4], skin))
+    // A hand weapon in the right hand, pointing along the forearm.
+    if (pose.prop && index === 1) put(ellipsoid(add(wrist, scale(along, 2.4)), [2.3, 0.75, 0.95], WEAPON, null, [along, [0, 1, 0], [Math.cos(forearm), 0, Math.sin(forearm)]]))
   })
 
   // Neck, collar, head and face.
@@ -189,21 +204,58 @@ function buildFigure(speciesId, gender, pose) {
   addEars(species, head, skin, put)
   addHair(species, female, head, hair, put)
   addFeatures(species, gender, head, z, skin, hair, put)
-  return pose.lean ? leanForward(shapes, Math.tan(pose.lean)) : shapes
+  let figure = pose.lean ? leanForward(shapes, Math.tan(pose.lean)) : shapes
+  for (const matrix of pose.turns ?? []) figure = turnAboutFeet(figure, matrix)
+  return pose.turns ? ontoGround(figure) : figure
 }
 
-// Tilts the figure forward from the ground up (a shear: x moves by height * k). Hairlines, skirt hems and Trill spots
-// are tested where the point was before the tilt, so they stay put on the body.
-function leanForward(shapes, k) {
-  const tilt = (p) => [p[0] + p[2] * k, p[1], p[2]]
-  const untilt = (p) => [p[0] - p[2] * k, p[1], p[2]]
+// Moves every shape by move (back undoes it; turn: the rotation's matrix, or null when the move only shifts or
+// shears). Hairlines, skirt hems and Trill spots are tested where the point was before the move, so they stay put on
+// the body.
+function transformShapes(shapes, move, back, turn = null) {
+  const inverse = turn && transpose(turn)
   return shapes.map((shape) => {
     const { albedo } = shape.mat
-    const mat = albedo ? { ...shape.mat, albedo: (p) => albedo(untilt(p)) } : shape.mat
-    if (shape.kind === 'c') return capsule(tilt(shape.a), tilt(shape.b), shape.r, mat)
+    const mat = albedo ? { ...shape.mat, albedo: (p) => albedo(back(p)) } : shape.mat
+    if (shape.kind === 'c') return capsule(move(shape.a), move(shape.b), shape.r, mat)
     const { keep } = shape
-    return ellipsoid(tilt(shape.c), shape.r, mat, keep && ((p) => keep(untilt(p))))
+    const rot = inverse ? (shape.rot ? matMul(shape.rot, inverse) : inverse) : shape.rot
+    return ellipsoid(move(shape.c), shape.r, mat, keep && ((p) => keep(back(p))), rot)
   })
+}
+
+// Tilts the figure forward from the ground up (a shear: x moves by height * k).
+const leanForward = (shapes, k) =>
+  transformShapes(
+    shapes,
+    (p) => [p[0] + p[2] * k, p[1], p[2]],
+    (p) => [p[0] - p[2] * k, p[1], p[2]],
+  )
+
+const turnAboutFeet = (shapes, matrix) =>
+  transformShapes(
+    shapes,
+    (p) => mulMatrix(matrix, p),
+    (p) => mulTransposed(matrix, p),
+    matrix,
+  )
+
+// Lifts or drops a turned (falling) figure so its lowest point rests on the floor.
+function ontoGround(shapes) {
+  const lowest = Math.min(
+    // The tail may lie under the body, so it doesn't lift the figure (the floor hides what is under it).
+    ...shapes.filter((shape) => shape.mat.part !== 'tail').map((shape) => {
+      if (shape.kind === 'c') return Math.min(shape.a[2], shape.b[2]) - shape.r
+      const reach = shape.rot ? Math.hypot(...shape.rot.map((row, k) => row[2] * shape.r[k])) : shape.r[2]
+      return shape.c[2] - reach
+    }),
+  )
+  const rise = 0.3 - lowest
+  return transformShapes(
+    shapes,
+    (p) => [p[0], p[1], p[2] + rise],
+    (p) => [p[0], p[1], p[2] - rise],
+  )
 }
 
 function trillSpots(skin, spot) {
@@ -256,7 +308,7 @@ function addFeatures(species, gender, head, z, skin, hair, put) {
     ;[1, -1].forEach((side) => put(capsule(add(head, v3(-0.3, side * 1.9, 2.6)), add(head, v3(-0.7, side * 2.5, 5.4)), 0.85, skin)))
   }
   if (species.tail) {
-    const furry = material(species.hair[gender], { spec: 0.05 })
+    const furry = material(species.hair[gender], { spec: 0.05, part: 'tail' })
     put(capsule(v3(-3.0, 0, z(24)), v3(-6.5, 0.6, z(18)), 1.0, furry))
     put(capsule(v3(-6.5, 0.6, z(18)), v3(-8.0, 1.4, z(11)), 0.9, furry))
   }
@@ -285,7 +337,8 @@ function frameScene(shapes, angle) {
     for (const { shape, at, reach } of culled) {
       if (Math.abs(at[0] - sx) > reach || Math.abs(at[1] - sy) > reach) continue
       const hit = shape.kind === 'e' ? hitEllipsoid(shape, origin, direction) : hitCapsule(shape, origin, direction)
-      if (!hit || (best && hit.t >= best.t)) continue
+      // Below the floor (a falling figure's tail): not drawn.
+      if (!hit || hit.p[2] < 0 || (best && hit.t >= best.t)) continue
       best = { ...hit, mat: shape.mat }
     }
     if (!best) return null
@@ -299,18 +352,21 @@ function frameScene(shapes, angle) {
   }
 }
 
-// One frame into the sheet (and the mask) at column, row.
-function renderFrame(scene, sheet, mask, column, row, width) {
+// One frame into the sheet (and the mask) at column, row. metrics: the sheet's entry in characterSprites.json.
+function renderFrame(scene, metrics, sheet, mask, column, row, width) {
   const samples = SUBSAMPLES * SUBSAMPLES
-  for (let oy = 0; oy < FRAME_H; oy++) {
-    for (let ox = 0; ox < FRAME_W; ox++) {
+  const res = metrics.resolution
+  const frameW = metrics.frame.width * res
+  const frameH = metrics.frame.height * res
+  for (let oy = 0; oy < frameH; oy++) {
+    for (let ox = 0; ox < frameW; ox++) {
       const colour = [0, 0, 0]
       let hits = 0
       let shirt = 0
       for (let sy = 0; sy < SUBSAMPLES; sy++) {
         for (let sx = 0; sx < SUBSAMPLES; sx++) {
-          const px = (ox + (sx + 0.5) / SUBSAMPLES) / RES - DATA.anchor.x
-          const py = (oy + (sy + 0.5) / SUBSAMPLES) / RES - DATA.anchor.y
+          const px = (ox + (sx + 0.5) / SUBSAMPLES) / res - metrics.anchor.x
+          const py = (oy + (sy + 0.5) / SUBSAMPLES) / res - metrics.anchor.y
           const result = scene(px, py)
           if (!result) continue
           hits++
@@ -319,7 +375,7 @@ function renderFrame(scene, sheet, mask, column, row, width) {
         }
       }
       if (!hits) continue
-      const index = ((row * FRAME_H + oy) * width + column * FRAME_W + ox) * 4
+      const index = ((row * frameH + oy) * width + column * frameW + ox) * 4
       for (let k = 0; k < 3; k++) sheet[index + k] = Math.round(clamp01(colour[k] / hits) * 255)
       sheet[index + 3] = Math.round((hits / samples) * 255)
       if (mask && shirt * 2 >= hits) mask.set([255, 255, 255, 255], index)
@@ -327,12 +383,125 @@ function renderFrame(scene, sheet, mask, column, row, width) {
   }
 }
 
-function poseFor(animation, frame) {
+// How far through a fall each of its frames is (it speeds up, then the last frame lies still).
+const FALL_PROGRESS = [0, 0.12, 0.34, 0.64, 0.9, 1]
+const pick = (values, frame) => values[Math.min(frame, values.length - 1)]
+
+// Shooting: the right arm comes up level with the weapon, a kick on the shot, then lowers.
+function attackPose(frame) {
+  return {
+    thigh: [deg(8), deg(-6)],
+    knee: [deg(6), deg(4)],
+    arm: [deg(6), deg(pick([15, 55, 88, 93, 88, 55], frame))],
+    elbow: [deg(14), deg(pick([20, 12, 2, 0, 2, 12], frame))],
+    breathe: 0,
+    lean: deg(pick([1, 2, 2, -3, 1, 1], frame)),
+    prop: true,
+  }
+}
+
+// A melee strike: wind up, lunge with the right arm on the front foot, recover.
+function meleePose(frame) {
+  return {
+    thigh: [deg(pick([0, -5, 6, 24, 22, 8], frame)), deg(pick([0, 4, -4, -14, -12, -4], frame))],
+    knee: [deg(pick([4, 4, 6, 14, 12, 6], frame)), deg(pick([4, 6, 6, 4, 4, 4], frame))],
+    arm: [deg(30), deg(pick([-10, -45, -20, 85, 78, 30], frame))],
+    elbow: [deg(80), deg(pick([30, 110, 90, 4, 10, 40], frame))],
+    breathe: 0,
+    lean: deg(pick([0, -6, 2, 14, 12, 4], frame)),
+  }
+}
+
+// In cover: down on the right knee, weapon ready, breathing.
+function coverPose(frame, frames) {
+  const breathe = Math.sin((frame / frames) * Math.PI * 2)
+  return {
+    thigh: [deg(80), deg(15)],
+    knee: [deg(95), deg(105)],
+    arm: [deg(30 + breathe), deg(40 + breathe)],
+    elbow: [deg(60), deg(45)],
+    breathe,
+    lean: deg(10),
+    prop: true,
+  }
+}
+
+// The falls. e: 0 standing .. 1 down. turns tip the whole figure over about its feet before it is set on the floor.
+function fallPose(animation, e) {
+  const buckle = Math.sin(Math.PI * e)
+  if (animation === 'fallBack') {
+    return {
+      thigh: [deg(25) * buckle, deg(18) * buckle],
+      knee: [deg(45) * buckle, deg(35) * buckle],
+      arm: [deg(10 + 130 * e), deg(10 + 110 * e)],
+      elbow: [deg(20), deg(30)],
+      breathe: 0,
+      turns: [pitchMatrix(-deg(90) * e)],
+    }
+  }
+  if (animation === 'fallForward') {
+    return {
+      thigh: [deg(30) * buckle, deg(30) * buckle],
+      knee: [deg(60) * buckle, deg(60) * buckle],
+      arm: [deg(10 + 160 * e), deg(10 + 150 * e)],
+      elbow: [deg(25), deg(25)],
+      breathe: 0,
+      turns: [pitchMatrix(deg(90) * e)],
+    }
+  }
+  if (animation === 'fallSpin') {
+    return {
+      thigh: [deg(20) * e, -deg(10) * e],
+      knee: [deg(30) * e, deg(10) * e],
+      arm: [deg(10 + 70 * e), deg(10 - 40 * e)],
+      elbow: [deg(20), deg(40)],
+      breathe: 0,
+      turns: [rollMatrix(deg(88) * e), yawMatrix(deg(150) * e)],
+    }
+  }
+  // fallCrumple: the knees go, the body slumps forward, then rolls onto its side.
+  const kneel = Math.min(1, e / 0.55)
+  const roll = Math.max(0, (e - 0.45) / 0.55)
+  return {
+    thigh: [deg(80) * kneel, deg(80) * kneel],
+    knee: [deg(140) * kneel, deg(140) * kneel],
+    arm: [deg(5 + 20 * kneel), deg(5 + 20 * kneel)],
+    elbow: [deg(12 + 30 * kneel), deg(12 + 30 * kneel)],
+    breathe: 0,
+    lean: deg(25) * kneel,
+    turns: [rollMatrix(deg(85) * roll)],
+  }
+}
+
+// Sneaking: a crouch, leaning in, hands up in front; the walk takes short, low steps.
+function sneakPose(animation, frame, frames) {
+  const phase = (frame / frames) * Math.PI * 2
+  if (animation === 'sneakIdle') {
+    const breathe = Math.sin(phase)
+    return { thigh: [deg(52), deg(46)], knee: [deg(86), deg(80)], arm: [deg(28 + breathe), deg(34 - breathe)], elbow: [deg(70), deg(64)], breathe, lean: deg(16) }
+  }
+  const swing = Math.sin(phase)
+  return {
+    thigh: [deg(48) + deg(16) * swing, deg(48) - deg(16) * swing],
+    knee: [deg(78 + 22 * Math.max(0, Math.cos(phase))), deg(78 + 22 * Math.max(0, -Math.cos(phase)))],
+    arm: [deg(26) - deg(6) * swing, deg(32) + deg(6) * swing],
+    elbow: [deg(70), deg(64)],
+    breathe: 0,
+    lean: deg(18),
+  }
+}
+
+function poseFor(animation, frame, frames) {
+  if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
+  if (animation === 'attack') return attackPose(frame)
+  if (animation === 'melee') return meleePose(frame)
+  if (animation === 'cover') return coverPose(frame, frames)
+  if (animation.startsWith('fall')) return fallPose(animation, pick(FALL_PROGRESS, frame))
   if (animation === 'idle') {
-    const breathe = Math.sin((frame / DATA.animations.idle.frames) * Math.PI * 2)
+    const breathe = Math.sin((frame / frames) * Math.PI * 2)
     return { thigh: [deg(2), deg(-2)], knee: [deg(3), deg(3)], arm: [deg(3 + breathe), deg(3 - breathe)], breathe }
   }
-  const phase = (frame / DATA.animations[animation].frames) * Math.PI * 2
+  const phase = (frame / frames) * Math.PI * 2
   const swing = Math.sin(phase)
   if (animation === 'run') {
     // Longer stride, the back leg folding high behind, arms bent and pumping, a lean, and a lift between footfalls.
@@ -354,31 +523,43 @@ function poseFor(animation, frame) {
   }
 }
 
-function makeSet(set) {
-  const out = path.join(ROOT, 'public', set.sheet)
+// The set's PNG for a sheet: its base path with the sheet's suffix (rules/appearance.js spriteSheetFile).
+const withSuffix = (file, suffix) => file.replace(/(-uniform)?\.png$/, `${suffix}$1.png`)
+
+function makeSheet(set, sheetId) {
+  const metrics = DATA.sheets[sheetId]
+  const out = path.join(ROOT, 'public', withSuffix(set.sheet, metrics.suffix))
   if (fs.existsSync(out) && !FORCE) {
     console.log(`${set.id}: ${path.relative(ROOT, out)} exists, skipped (use --force to redraw)`)
     return
   }
-  const width = FRAME_W * COLUMNS
-  const height = FRAME_H * DATA.directions.length
+  const columns = Math.max(...Object.values(metrics.animations).map((animation) => animation.start + animation.frames))
+  const width = metrics.frame.width * metrics.resolution * columns
+  const height = metrics.frame.height * metrics.resolution * DATA.directions.length
   const sheet = new Uint8Array(width * height * 4)
   const mask = set.uniformMask ? new Uint8Array(width * height * 4) : null
   DATA.directions.forEach((direction, row) => {
-    for (const [name, animation] of Object.entries(DATA.animations)) {
+    for (const [name, animation] of Object.entries(metrics.animations)) {
       for (let frame = 0; frame < animation.frames; frame++) {
-        const scene = frameScene(buildFigure(set.species, set.gender, poseFor(name, frame)), DIRECTION_ANGLE[direction])
-        renderFrame(scene, sheet, mask, animation.start + frame, row, width)
+        const scene = frameScene(buildFigure(set.species, set.gender, poseFor(name, frame, animation.frames)), DIRECTION_ANGLE[direction])
+        renderFrame(scene, metrics, sheet, mask, animation.start + frame, row, width)
       }
     }
   })
   fs.mkdirSync(path.dirname(out), { recursive: true })
   fs.writeFileSync(out, encodePng(width, height, sheet))
-  if (mask) fs.writeFileSync(path.join(ROOT, 'public', set.uniformMask), encodePng(width, height, mask))
+  if (mask) fs.writeFileSync(path.join(ROOT, 'public', withSuffix(set.uniformMask, metrics.suffix)), encodePng(width, height, mask))
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-const wanted = process.argv.slice(2).filter((arg) => !arg.startsWith('--'))
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak] [--force]
+const args = process.argv.slice(2)
+const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
+const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)
+if (sheetArg && !DATA.sheets[sheetArg]) throw new Error(`Unknown sheet: ${sheetArg}`)
+const wanted = args.filter((arg) => !arg.startsWith('--'))
 const unknown = wanted.filter((id) => !DATA.sets.some((set) => set.id === id))
 if (unknown.length) throw new Error(`Unknown sprite set(s): ${unknown.join(', ')}`)
-for (const set of DATA.sets.filter((entry) => !wanted.length || wanted.includes(entry.id))) makeSet(set)
+for (const set of DATA.sets.filter((entry) => !wanted.length || wanted.includes(entry.id))) {
+  for (const sheetId of sheetIds) makeSheet(set, sheetId)
+}
