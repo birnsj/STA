@@ -1,13 +1,12 @@
-// Retreat (designer decision, Oct 2026; actions.json social): an enemy whose Stress track is full (no Stress left) runs
-// from the party and leaves the fight once no party member has line of fire to it. The book has no morale rule; Core
-// p.284 only notes that a fight can end with one side retreating. Its return later (regrouping) is the world's business
-// (exploration/combatLink.js endCombat).
+// Retreat (designer decisions, Oct 2026; actions.json social): an enemy whose Stress track is full (no Stress left) breaks
+// and runs from the party, but never leaves the fight: the party has to hunt it down. The book has no morale rule;
+// Core p.284 only notes that a fight can end with one side retreating. Only enemies with a Stress track can break
+// (Minor, Notable and Major NPCs have none).
 import { getMaxStress, remainingStress } from '../rules/personalCondition.js'
 import { addLog, updateCombatant } from './combatLog.js'
 import { canMove, canSprint, getReachable } from './combatMovement.js'
-import { awaitingDecision, getActiveCombatant, getCombatantList, isActive } from './combatSelectors.js'
+import { getCombatantList, isActive } from './combatSelectors.js'
 import { hasLineOfFire, tileDistance } from './rangeSystem.js'
-import { advanceTurn, withOutcome } from './combatTurnOrder.js'
 
 const breaksAndRuns = (combatant) =>
   combatant.side === 'enemy' &&
@@ -20,8 +19,7 @@ const partyMembers = (state) => getCombatantList(state).filter((c) => c.side ===
 const exposure = (state, position) => partyMembers(state).filter((member) => hasLineOfFire(state.map, member.position, position)).length
 const nearestParty = (state, position) => Math.min(...partyMembers(state).map((member) => tileDistance(member.position, position)))
 
-// After every combat step: enemies out of Stress start retreating, and retreating enemies out of every party member's
-// line of fire leave the fight (not while a roll or decision is still open). One that leaves on its own turn ends it.
+// After every combat step: enemies out of Stress start retreating.
 export function withRetreats(state) {
   if (state.outcome) return state
   let next = state
@@ -31,22 +29,15 @@ export function withRetreats(state) {
       next = updateCombatant(next, enemy.id, { retreating: true })
       next = addLog(next, [`${enemy.character.name} has no Stress left and retreats.`], 'info')
     })
-  if (next.pending || awaitingDecision(next) || next.directed) return next
-  const leaving = getCombatantList(next).filter((c) => c.retreating && isActive(c) && !exposure(next, c.position))
-  if (!leaving.length) return next
-  const activeId = getActiveCombatant(next)?.id
-  leaving.forEach((enemy) => {
-    next = updateCombatant(next, enemy.id, { left: true })
-    next = addLog(next, [`${enemy.character.name} is out of sight and leaves the fight.`], 'info')
-  })
-  next = withOutcome(next)
-  return !next.outcome && leaving.some((enemy) => enemy.id === activeId) ? advanceTurn(next) : next
+  return next
 }
 
 // The AI's step for a retreating enemy: Sprint (else Move) to the reachable tile fewest party members can shoot at,
-// then the farthest from the party; end the turn when that gains nothing. Prototype heuristic, flag for designer.
+// then the farthest from the party; end the turn when that gains nothing. Once out of sight it stays hidden there, so
+// the party can catch it (running on would let a faster enemy circle the map forever). Prototype heuristic, flagged.
 export function retreatStep(state, self) {
   const here = { exposure: exposure(state, self.position), distance: nearestParty(state, self.position) }
+  if (here.exposure === 0) return { type: 'endTurn', decision: 'Retreat (hide)', reason: 'Out of Stress: hiding out of the party\'s sight.' }
   for (const kind of ['sprint', 'move']) {
     if (!(kind === 'sprint' ? canSprint(state, self) : canMove(state, self))) continue
     const best = [...getReachable(state, self, kind).values()]

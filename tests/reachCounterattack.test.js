@@ -115,7 +115,8 @@ describe('Counterattack (Core p.290)', () => {
     assert.equal(countered.result.counterattack.decided, 'taken')
     const hit = countered.combatants[enemy.id]
     assert.ok(hit.condition.stress > 0 || hit.condition.defeated, 'the Counterattack inflicts an Injury (avoided with Stress or suffered)')
-    assert.ok(countered.log.at(-1).lines.some((line) => line.startsWith('COUNTERATTACK')))
+    // A Minor NPC goes down to the hit, so the victory entry may follow it.
+    assert.ok(countered.log.slice(-2).some((entry) => entry.lines.some((line) => line.startsWith('COUNTERATTACK'))))
   })
 
   it('declining keeps the Momentum', () => {

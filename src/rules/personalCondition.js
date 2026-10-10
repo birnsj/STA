@@ -31,10 +31,12 @@ import { getEquippedItems } from './equipment.js'
 // 'major') apply only when an actor or encounter explicitly authors them for that instance: character.npcRules, set at
 // runtime (authoredCharacters.js), never stored in a character record. Being AI-controlled, hostile or a Klingon never
 // sets it, and a record's sourceClassification (the book stat block it came from) is metadata only.
+// 'supporting' is the book's supporting character with one value (Book p.278): Stress and Avoid Injury as a main
+// character, with half the maximum Stress.
 export const npcCategoryOf = (character) => character.npcRules ?? 'main'
-const CATEGORY_NAMES = { main: 'Main character', minor: 'Minor NPC', notable: 'Notable NPC', major: 'Major NPC' }
+const CATEGORY_NAMES = { main: 'Main character', supporting: 'Supporting character', minor: 'Minor NPC', notable: 'Notable NPC', major: 'Major NPC' }
 export const npcCategoryName = (character) => CATEGORY_NAMES[npcCategoryOf(character)]
-const hasStress = (character) => npcCategoryOf(character) === 'main'
+const hasStress = (character) => ['main', 'supporting'].includes(npcCategoryOf(character))
 
 export const createCondition = () => ({ stress: 0, injuries: [], defeated: false, dying: false, fatigued: false, fatiguedAttribute: null, complications: [] })
 
@@ -87,7 +89,12 @@ export function getStressBaseAttribute(character) {
 export function getMaxStress(character) {
   if (!hasStress(character)) return { value: 0, lines: [{ label: `${npcCategoryName(character)}: no Stress`, change: 0 }] }
   const { attributeId, sourceName } = getStressBaseAttribute(character)
-  const lines = [{ label: `${getAttributeName(attributeId)}${sourceName ? ` (${sourceName})` : ''}`, change: character.attributes[attributeId] ?? 0 }]
+  const base = character.attributes[attributeId] ?? 0
+  // Book p.278: half their Fitness, rounded up. Prototype: talent bonuses aren't added (the book gives none).
+  if (npcCategoryOf(character) === 'supporting') {
+    return { value: Math.ceil(base / 2), lines: [{ label: `Half ${getAttributeName(attributeId)}, rounded up (supporting character)`, change: Math.ceil(base / 2) }] }
+  }
+  const lines = [{ label: `${getAttributeName(attributeId)}${sourceName ? ` (${sourceName})` : ''}`, change: base }]
   character.talents.forEach((talent) => {
     talent.effects
       .filter((effect) => effect.type === 'maxStress')

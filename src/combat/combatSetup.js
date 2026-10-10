@@ -37,10 +37,10 @@ function createCombatant(character, { id = character.id, side, controller, posit
 }
 
 // The roster (authored character ids, adaptation/characters.json) fills the map's enemy spawns in order; a map with fewer
-// spawns fields fewer enemies.
+// spawns fields fewer enemies. encounter.npcRules: the book's streamlined NPC rules for the whole roster, if authored.
 function createEnemyCharacters(encounter, mapFile) {
   return encounter.roster.slice(0, mapFile.markers.enemySpawns.length).map((characterId, index) => ({
-    character: getAuthoredCharacter(characterId),
+    character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null }),
     position: mapFile.markers.enemySpawns[index],
   }))
 }

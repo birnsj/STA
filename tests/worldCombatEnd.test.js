@@ -1,5 +1,5 @@
-// Designer decision (2026-10-09): a fight started in the world ends in victory once every enemy the away team can see is
-// dead or stunned; an enemy still up out of sight (an alert-group member waiting in another room) doesn't hold it open.
+// Designer decision (Oct 2026): a fight started in the world ends only when every enemy in it is down or surrendered (or
+// the party is); an enemy still up out of sight (an alert-group member waiting in another room) keeps it going.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { addCombatant } from '../src/combat/combatState.js'
@@ -35,11 +35,24 @@ function guardADown(wall) {
   return { ...fighting, combat, link: { ...fighting.link, npcIds: [...new Set([...fighting.link.npcIds, 'guardB'])] } }
 }
 
-describe('a world fight ends when every enemy in sight is down', () => {
-  it('ends in victory while the last enemy up is out of sight', () => {
+const withGuardB = (state, changes) => ({ ...state, combat: { ...state.combat, combatants: { ...state.combat.combatants, guardB: { ...state.combat.combatants.guardB, ...changes } } } })
+
+describe('a world fight ends only when every enemy in it is down or surrendered', () => {
+  it('goes on while the last enemy up is out of sight', () => {
     const next = combatAction(guardADown(true), { type: 'endTurn' })
-    assert.equal(next.combat.outcome, 'victory')
-    assert.ok(next.combat.log.at(-1).lines.some((line) => /out of sight leaves the fight/.test(line)))
+    assert.equal(next.mode, MODE.COMBAT)
+    assert.equal(next.combat.outcome, null)
+  })
+
+  it('the AI-played party goes looking for an enemy it can\'t see instead of waiting', () => {
+    let state = guardADown(true)
+    const moves = []
+    for (let i = 0; i < 40 && !moves.length && !state.combat.outcome; i++) {
+      state = combatAction(state, { type: 'aiStep', partyAI: 'classic', enemyAI: 'classic', partyAuto: true })
+      const latest = state.combat.log.at(-1).lines[0] ?? ''
+      if (/AI Decision: (Search|Track)/.test(latest)) moves.push(latest)
+    }
+    assert.ok(moves.length, 'a party member searched or tracked')
   })
 
   it('goes on while that enemy is in sight', () => {
@@ -47,32 +60,30 @@ describe('a world fight ends when every enemy in sight is down', () => {
     assert.equal(next.combat.outcome, null)
   })
 
-  it('the enemy that left still up attacks on sight afterwards, whatever its disposition', () => {
-    const ended = endCombat(combatAction(guardADown(true), { type: 'endTurn' }))
+  it('an enemy still up when a fight ends attacks on sight afterwards, whatever its disposition', () => {
+    const ended = endCombat(guardADown(true))
     assert.equal(ended.mode, MODE.EXPLORATION)
     assert.equal(ended.world.npcs.guardB.responseType, 'combat')
     assert.equal(ended.world.npcs.guardA.responseType, null)
 
-    // Guard B, made Wary (which only confronts), walks into the party's room facing them. Control: without the
-    // after-the-fight override it never attacks.
-    const seeParty = (responseType) => {
-      const guardB = { ...ended.world.npcs.guardB, disposition: 'wary', responseType, position: { x: 7.5, y: 6.5 }, heading: Math.PI, patrol: null }
+    // Guard B walks into the party's room facing them. Made Neutral (which only observes), it attacks only with the
+    // after-the-fight override; Wary (which confronts) attacks on sight anyway (designer decision, Oct 2026).
+    const seeParty = (disposition, responseType) => {
+      const guardB = { ...ended.world.npcs.guardB, disposition, responseType, position: { x: 7.5, y: 6.5 }, heading: Math.PI, patrol: null }
       let state = { ...ended, world: { ...ended.world, npcs: { ...ended.world.npcs, guardB } } }
       for (let i = 0; i < 100 && state.mode !== MODE.COMBAT; i++) state = explorationReducer(state, { type: 'tick', seconds: 0.1 })
       return state
     }
-    const attacked = seeParty('combat')
+    const attacked = seeParty('neutral', 'combat')
     assert.equal(attacked.mode, MODE.COMBAT)
     assert.equal(attacked.link.trigger.npcId, 'guardB')
-    assert.equal(seeParty(null).mode, MODE.EXPLORATION)
+    assert.equal(seeParty('neutral', null).mode, MODE.EXPLORATION)
+    assert.equal(seeParty('wary', null).mode, MODE.COMBAT)
   })
 })
 
-// Designer decisions (Oct 2026): a surrendered enemy stands down; one that retreated out of the fight regroups (a breather,
-// Book Core p.278) and attacks on sight once regroupSeconds have passed.
-describe('surrendered and retreated enemies after a world fight', () => {
-  const withGuardB = (state, changes) => ({ ...state, combat: { ...state.combat, combatants: { ...state.combat.combatants, guardB: { ...state.combat.combatants.guardB, ...changes } } } })
-
+// Designer decision (Oct 2026): a surrendered enemy stands down.
+describe('surrendered enemies after a world fight', () => {
   it('a surrendered enemy is neutral, stays put and never joins a fight', () => {
     const ended = endCombat(withGuardB(guardADown(false), { surrendered: true }))
     const guardB = ended.world.npcs.guardB
@@ -80,26 +91,5 @@ describe('surrendered and retreated enemies after a world fight', () => {
     assert.equal(guardB.patrol, null)
     assert.equal(guardB.surrendered, true)
     assert.deepEqual(ended.lastCombat.surrendered, ['guardB'])
-  })
-
-  it('a retreated enemy recovers 4 Stress and waits out its regroup before attacking on sight', () => {
-    const fighting = guardADown(false)
-    const guardB = fighting.combat.combatants.guardB
-    const character = { ...guardB.character, npcRules: 'main' }
-    const ended = endCombat(withGuardB(fighting, { left: true, character, condition: { ...guardB.condition, stress: 6 } }))
-    const npc = ended.world.npcs.guardB
-    assert.equal(npc.condition.stress, 2)
-    assert.equal(npc.responseType, 'combat')
-    assert.ok(npc.regroupUntil > ended.world.time)
-    assert.deepEqual(ended.lastCombat.retreated, ['guardB'])
-
-    const seeParty = (regroupUntil) => {
-      const placed = { ...npc, regroupUntil, position: { x: 7.5, y: 6.5 }, heading: Math.PI, patrol: null }
-      let state = { ...ended, world: { ...ended.world, npcs: { ...ended.world.npcs, guardB: placed } } }
-      for (let i = 0; i < 50 && state.mode !== MODE.COMBAT; i++) state = explorationReducer(state, { type: 'tick', seconds: 0.1 })
-      return state
-    }
-    assert.equal(seeParty(ended.world.time + 1000).mode, MODE.EXPLORATION)
-    assert.equal(seeParty(ended.world.time).mode, MODE.COMBAT)
   })
 })

@@ -1,5 +1,5 @@
 // Scanning an enemy in combat (PROTOTYPE, designer decision Oct 2026): before a scan the party sees only what is in plain
-// view; a successful Scan (combatTasks.js previewScan, actions.json tasks.scan) adds its Stress, Protection, weapons and
+// view; a successful Scan (combatTasks.js previewScan, actions.json tasks.scan) adds its Protection, weapons and
 // tactical tips for the rest of the fight (state.scanned). The tips are worked out from the rules, never authored per enemy.
 import { conditionSummary, getAvoidOption, getMaxStress, getProtection, npcCategoryName, npcCategoryOf } from '../rules/personalCondition.js'
 import { getBandIndex, getRangeBand, tileDistance } from './rangeSystem.js'
@@ -7,8 +7,8 @@ import { describeRange, getCombatantWeapon, getInjuryMode } from './weaponSystem
 
 export const isScanned = (state, enemyId) => Boolean(state.scanned?.[enemyId])
 
-// The enemy's condition as the party sees it: Stress and Fatigue only once scanned.
-export const visibleCondition = (state, enemy) => conditionSummary(enemy.character, enemy.condition, { stress: isScanned(state, enemy.id) })
+// The enemy's condition as the party sees it. Designer decision (Oct 2026): its Stress is always visible.
+export const visibleCondition = (state, enemy) => conditionSummary(enemy.character, enemy.condition)
 
 // What a scan shows: { rows: [[label, value]], tips: [text] }. viewer: the party member looking (for range).
 export function scanReport(state, viewer, enemy) {
@@ -17,7 +17,7 @@ export function scanReport(state, viewer, enemy) {
   const protectionAgainst = (injuryType) => getProtection(character, { injuryType, inCover: enemy.inCover }).value
   const protection = { stun: protectionAgainst('stun'), deadly: protectionAgainst('deadly') }
   const stress =
-    npcCategoryOf(character) === 'main'
+    getMaxStress(character).value > 0
       ? `${condition.stress}/${getMaxStress(character).value}${condition.fatigued ? ' (Fatigued)' : ''}`
       : `None (${npcCategoryName(character)})`
   const rows = [

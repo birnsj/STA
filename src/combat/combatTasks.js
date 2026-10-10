@@ -75,7 +75,7 @@ export function previewFirstAid(state, actorId, targetId, mode) {
   return previewCombatTask(state, actor, { kind: 'firstAid', label: option?.label ?? 'First Aid', target, spec, block })
 }
 
-// Scan an enemy (PROTOTYPE, combatScan.js): success shows its Stress, Protection, weapons and tactics for the fight.
+// Scan an enemy (PROTOTYPE, combatScan.js): success shows its Protection, weapons and tactics for the fight.
 export function previewScan(state, actorId, targetId) {
   const actor = state.combatants[actorId]
   const target = state.combatants[targetId]

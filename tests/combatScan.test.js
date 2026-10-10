@@ -62,11 +62,8 @@ describe('Combat Scan', () => {
     assert.ok(report.tips.length >= 1)
   })
 
-  it('Stress is hidden from the condition until scanned', () => {
+  it('Stress is shown in the condition without a scan (designer decision, Oct 2026)', () => {
     const { state, enemy } = fight()
-    const stressed = { ...state, combatants: { ...state.combatants, [enemy.id]: { ...enemy, character: { ...enemy.character, npcRules: 'main' } } } }
-    assert.doesNotMatch(visibleCondition(stressed, stressed.combatants[enemy.id]), /Stress/)
-    const scanned = { ...stressed, scanned: { [enemy.id]: true } }
-    assert.match(visibleCondition(scanned, scanned.combatants[enemy.id]), /Stress/)
+    assert.match(visibleCondition(state, enemy), /Stress 0\/5/)
   })
 })

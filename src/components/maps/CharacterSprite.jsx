@@ -93,7 +93,7 @@ export default function CharacterSprite({ setId, colour = null, facing, animatio
   const frame = frameSize(sheet)
   const href = sheets[animation.sheetId]
   return (
-    <g className="char-sprite">
+    <g className="char-sprite" transform={METRICS.displayScale && METRICS.displayScale !== 1 ? `scale(${METRICS.displayScale})` : undefined}>
       <ellipse className="char-sprite-shadow" cx="0" cy="0" rx="11" ry="5" />
       {/* What a click lands on: the figure's outline, not the whole sheet. */}
       <rect x="-9" y="-54" width="18" height="56" rx="6" fill="transparent" />

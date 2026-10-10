@@ -5,6 +5,7 @@
     "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order, as character ids (full characters in src/data/adaptation/characters.json, the same records the exploration actors use); extra spawns stay empty.",
     "The objective text is placeholder content.",
     "autoCombat.playerInjuryMode: the setting AI-controlled player characters use in Auto Combat. Designer spec: 'stun' (Starfleet default); 'deadly' only if set here explicitly.",
+    "npcRules (optional): the book's NPC rules for every enemy in the roster: 'supporting' (a supporting character with one value: Stress and Avoid Injury as a main character, maximum Stress half Fitness rounded up, Book Core p.278) or 'minor' | 'notable' | 'major' (Book Core pp.291, 347). Designer decision (Oct 2026): the Klingon Warriors use 'supporting', though their stat block is a Minor NPC (Book: Core p.355), so they have some Stress to wear down.",
     "standardIssueWeapon: designer decision (Oct 2026) for balance. A party member who brings no weapon of their own (only the always-available Unarmed Strike) is issued this one for the fight. Combat-only: the character's file and export are not changed."
   ],
   "encounters": [
@@ -14,6 +15,7 @@
       "objectives": [{ "id": "defeatBoarders", "text": "Defeat the Klingon boarding party" }],
       "autoCombat": { "playerInjuryMode": "stun" },
       "standardIssueWeapon": "phaserType2",
+      "npcRules": "supporting",
       "roster": ["klingonWarrior1", "klingonWarrior2", "klingonWarrior3", "klingonWarrior4"]
     },
     {

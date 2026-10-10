@@ -52,7 +52,7 @@
       "difficulty": 2,
       "focuses": ["Sensor Operations", "Sensor Calibration", "Astrometrics", "Planetary Surveys", "Imaging Equipment", "Computer Science"],
       "tags": ["sensors", "analysis"],
-      "note": "VIDEOGAME ADAPTATION (designer decision, Oct 2026): Scan an enemy, the same task as the exploration Scan (partyActions.json): Reason + Science, Difficulty 2, no tricorder needed. Implementation detail (flag for designer): a major action, like the book's other combat tasks (Guard, First Aid, p.289). Success: the party knows the enemy's Stress, Protection, weapons and tactical tips for the rest of the fight (combatScan.js); before that it sees only injuries, Defeated, cover, range and its own odds."
+      "note": "VIDEOGAME ADAPTATION (designer decision, Oct 2026): Scan an enemy, the same task as the exploration Scan (partyActions.json): Reason + Science, Difficulty 2, no tricorder needed. Implementation detail (flag for designer): a major action, like the book's other combat tasks (Guard, First Aid, p.289). Success: the party knows the enemy's Protection, weapons and tactical tips for the rest of the fight (combatScan.js); before that it sees only Stress, injuries, Defeated, cover, range and its own odds."
     },
     "directAssist": {
       "attribute": "control",
@@ -86,13 +86,11 @@
   },
   "social": {
     "intimidatedDifficulty": 1,
-    "regroupSeconds": 30,
-    "breatherStress": 4,
     "notes": [
       "Book (Core p.280): if the asker wins, the resister gives in or resists by suffering Stress equal to the asker's successes; if the resister wins, nothing happens. Designer decision (Oct 2026): an enemy resists while it has any Stress left, and surrenders once it has none. A surrendered enemy stands down: out of the fight, can't be attacked, and neutral afterwards in the world.",
       "Book (Core p.256): the side that sets the Difficulty generates 1 Momentum per success the other side fell short; here that is the asker.",
       "Not implemented (book): the asker spending 2 Momentum per +1 Stress (p.280); a resisted request can't be repeated without a change (p.279); a failed Intimidation makes later attempts harder (p.282).",
-      "Designer decision (Oct 2026): an enemy whose Stress track is full (none left) retreats: it runs from the party and leaves the fight once no party member has line of fire to it. It regroups and attacks on sight later. Book (Core p.278): a breather recovers breatherStress Stress, applied when it leaves. regroupSeconds (world seconds before it can start a fight again) is a PLACEHOLDER, flag for designer."
+      "Designer decision (Oct 2026): an enemy whose Stress track is full (none left) retreats: it runs from the party, away and into cover, but never leaves the fight; the party has to hunt it down. Enemies with no Stress track (Minor, Notable and Major NPCs; Book Core pp.278, 291) never retreat, and surrender on any won request."
     ]
   },
   "actions": [
@@ -114,7 +112,7 @@
     { "id": "assist", "name": "Assist", "type": "major", "implemented": true, "description": "Pick an ally who still has a turn this round. Their next task this round (an attack, Guard, First Aid or an object task) adds your 1d20; its successes count if they score at least one." },
     { "id": "guard", "name": "Guard", "type": "major", "implemented": true, "description": "Insight + Security, Difficulty 0: attacks against you are +1 Difficulty until the start of your next turn. Guard an ally within Reach instead at Difficulty 1 (until the start of their next turn)." },
     { "id": "firstAid", "name": "First Aid", "type": "major", "implemented": true, "description": "Daring + Medicine on an ally within Reach: revive a Defeated ally (Difficulty 2; the Injury stays), or treat one Injury (Difficulty = its severity)." },
-    { "id": "scan", "name": "Scan", "type": "major", "implemented": true, "description": "Reason + Science, Difficulty 2, on an enemy you can see. Success: its Stress, Protection, weapons and tactical tips are known for the rest of the fight." },
+    { "id": "scan", "name": "Scan", "type": "major", "implemented": true, "description": "Reason + Science, Difficulty 2, on an enemy you can see. Success: its Protection, weapons and tactical tips are known for the rest of the fight." },
     { "id": "persuade", "name": "Persuade", "type": "major", "implemented": true, "description": "Presence + Command, on an enemy within earshot: ask it to surrender. It resists with Control + Command against your successes. If you win, it takes Stress equal to your successes, or surrenders once it has no Stress left." },
     { "id": "intimidate", "name": "Intimidate", "type": "major", "implemented": true, "description": "Control + Security, on an enemy within earshot: threaten it into surrendering. Works like Persuade; a win also leaves it Intimidated (+1 Difficulty to resist from then on)." },
     { "id": "direct", "name": "Direct", "type": "major", "implemented": true, "description": "Only the character in authority. Spend 1 Momentum: an ally who can hear you (in earshot or by communicator) takes one action now, and you assist it with Control + Command. Never a third major action for them this round." },

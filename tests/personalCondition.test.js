@@ -65,6 +65,11 @@ describe('maximum Stress', () => {
     }
   })
 
+  it('Book p.278: a supporting character with one value has half their Fitness, rounded up', () => {
+    assert.equal(getMaxStress(makeCharacter({ npcRules: 'supporting', attributes: { fitness: 10 } })).value, 5)
+    assert.equal(getMaxStress(makeCharacter({ npcRules: 'supporting', attributes: { fitness: 9 } })).value, 5)
+  })
+
   it('Prototype: being AI-controlled or hostile does not change the rules; only authored npcRules does', () => {
     assert.equal(npcCategoryOf(makeCharacter()), 'main')
     assert.equal(npcCategoryOf(makeCharacter({ npcRules: 'minor' })), 'minor')

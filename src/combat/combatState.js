@@ -573,7 +573,7 @@ function reduceAction(state, action) {
       next = markAction(next, 'firstAid', actor.id, { targetId: target.id, mode: action.mode, passed: rolled.passed })
       return addLog(next, [...decided.lines, ...rolled.lines, outcome])
     }
-    // Scan an enemy (PROTOTYPE, major, combatScan.js): success makes its Stress, Protection, weapons and tactics known to
+    // Scan an enemy (PROTOTYPE, major, combatScan.js): success makes its Protection, weapons and tactics known to
     // the party for the rest of the fight.
     case 'scan': {
       const preview = previewScan(state, actor.id, action.targetId)
@@ -588,7 +588,7 @@ function reduceAction(state, action) {
       return addLog(next, [
         ...decided.lines,
         ...rolled.lines,
-        rolled.passed ? `${name} is scanned: Stress, Protection, weapons and tactics are known for the rest of the fight.` : `The scan of ${name} reveals nothing useful.`,
+        rolled.passed ? `${name} is scanned: Protection, weapons and tactics are known for the rest of the fight.` : `The scan of ${name} reveals nothing useful.`,
       ])
     }
     // Persuade / Intimidate (major, designer decision Oct 2026; Book pp.279-282): ask an enemy in earshot to surrender.

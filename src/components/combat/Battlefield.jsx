@@ -445,8 +445,7 @@ export default function Battlefield({
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  // A retreated enemy has left the fight (combatRetreat.js) and is no longer drawn.
-  const units = Object.values(state.combatants).filter((unit) => !unit.left && !hiddenIds?.includes(unit.id))
+  const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
   // Walls fade in front of every combatant shown, enemies too; one the party can't perceive isn't in units, so a fading
   // wall never gives it away.
   const hidden = fadedBlockKeys(map, units.map(shownPosition), bigGroups)

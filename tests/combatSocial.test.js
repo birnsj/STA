@@ -1,6 +1,6 @@
 // Persuade, Intimidate, surrender and retreat (designer decisions Oct 2026; Book Core pp.256, 278-282). The asker's
 // successes set the Difficulty of the enemy's Control + Command roll; if the asker wins, the enemy takes that much Stress
-// while it has Stress left, else surrenders. An enemy with no Stress left retreats and leaves once out of sight.
+// while it has Stress left, else surrenders. An enemy with no Stress left retreats, but stays in the fight.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { combatReducer, createCombat, isActive, previewSocial } from '../src/combat/combatState.js'
@@ -96,15 +96,36 @@ describe('Retreat', () => {
     assert.equal(next.outcome, null)
   })
 
-  it('a retreating enemy runs out of sight and leaves the fight, which ends it', () => {
+  it('a retreating enemy runs out of sight but stays in the fight, which goes on', () => {
     const { state: fresh, enemy } = fight({ enemyAt: { x: 7, y: 5 }, wall: true })
     let state = combatReducer(withEnemyStress(fresh, enemy.id, 99), { type: 'endTurn' })
     assert.equal(state.combatants[enemy.id].retreating, true)
-    for (let i = 0; i < 6 && !state.outcome; i++) {
+    const start = state.combatants[enemy.id].position
+    for (let i = 0; i < 6; i++) {
       const self = state.combatants[state.order[state.turnIndex]]
       state = combatReducer(state, self.side === 'enemy' ? retreatStep(state, self) : { type: 'endTurn' })
     }
-    assert.equal(state.combatants[enemy.id].left, true)
-    assert.equal(state.outcome, 'victory')
+    const fled = state.combatants[enemy.id]
+    assert.ok(fled.position.x > start.x)
+    assert.ok(isActive(fled))
+    assert.equal(state.outcome, null)
+  })
+
+  it('a Minor NPC (no Stress track) never retreats, and surrenders on any won request', () => {
+    const asMinor = ({ state, enemy }) => {
+      const minor = { ...enemy, character: { ...enemy.character, npcRules: 'minor' } }
+      return { state: { ...state, combatants: { ...state.combatants, [enemy.id]: minor } }, enemy: minor }
+    }
+    const { state, enemy } = asMinor(fight())
+    assert.equal(getMaxStress(enemy.character).value, 0)
+    assert.equal(combatReducer(state, { type: 'endTurn' }).combatants[enemy.id].retreating, undefined)
+    for (let seed = 1; seed < 400; seed += 1) {
+      const { state: fresh, enemy: minor } = asMinor(fight({ seed }))
+      const next = combatReducer(fresh, { type: 'persuade', targetId: minor.id })
+      if (!next.result?.passed) continue
+      assert.equal(next.combatants[minor.id].surrendered, true)
+      return
+    }
+    assert.fail('no seed gave a won Persuade')
   })
 })

@@ -759,8 +759,8 @@ export function Battle({
       active: ringInfo,
       ...(scanTask ? { details: taskDetails(scanTask.task) } : {}),
       title: scanned
-        ? 'Show what the scan found: Stress, Protection, weapons and tactics.'
-        : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows its Stress, Protection, weapons and tactics for the rest of the fight.`,
+        ? 'Show what the scan found: Protection, weapons and tactics.'
+        : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows its Protection, weapons and tactics for the rest of the fight.`,
       onClick: () => {
         if (scanned || setUp) {
           setRingInfo(!ringInfo)
