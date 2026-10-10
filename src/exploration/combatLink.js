@@ -24,6 +24,7 @@ import {
   isActive,
   occupiesTile,
   reachLines,
+  SCAN_TRAIT,
   secondMajorLines,
 } from '../combat/combatState.js'
 import { WORLD_ENCOUNTER_ID } from '../combat/encounters.js'
@@ -219,11 +220,13 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
     source === 'PLAYER_ATTACK' ? `${targetName} attacks ${trigger.character.name}.` : `${trigger.character.name} engages ${targetName}.`,
     ...(turnsHostile ? [`${trigger.character.name} turns hostile.`] : []),
     ...joined.filter((join) => join.reason !== 'trigger').map((join) => `${world.npcs[join.npcId].character.name} ${REASON_TEXT[join.reason]}.`),
+    ...Object.keys(scannedInWorld(state, npcIds)).map((id) => scannedLine(world.npcs[id])),
   ]
   const combat = {
     ...created,
     knowledge,
     blockedKeys,
+    scanned: scannedInWorld(state, npcIds),
     // The party has been spotted, so Combat Type 1's opening Ambush is not offered (no ambush rules in this pass).
     ambush: { passed: true },
     log: [...created.log, { id: created.log.length, round: 1, kind: 'info', lines }],
@@ -363,6 +366,14 @@ function spottersOf(combat, world, inFight) {
     .filter((entry) => entry.seen.length)
 }
 
+// NPCs the party scanned successfully in exploration (partyScan.js scanNpc) start the fight already scanned, with the
+// scan trait (designer decision Oct 2026; combatScan.js): { [npcId]: true }.
+function scannedInWorld(state, npcIds) {
+  return Object.fromEntries(npcIds.filter((id) => state.npcScans?.[id]?.success).map((id) => [id, true]))
+}
+
+const scannedLine = (npc) => `${npc.character.name} was scanned earlier: Protection, weapons and tactics are known, and it has the trait ${SCAN_TRAIT.name}.`
+
 // Late arrivals join from where they stand, on the nearest free cell.
 function joinFight(state, joins, searchPoints, seenBy) {
   let { combat, link } = state
@@ -376,7 +387,14 @@ function joinFight(state, joins, searchPoints, seenBy) {
     ;(seenBy[npc.id] ?? []).forEach((player) => {
       knowledge[player.id] = { ...knowledge[player.id], known: true, lastKnownPosition: { ...player.position }, source: 'sight' }
     })
-    combat = { ...combat, knowledge: { ...combat.knowledge, [npc.id]: knowledge }, log: [...combat.log, { id: combat.log.length, round: combat.round, kind: 'info', lines: [`${npc.character.name} ${REASON_TEXT[join.reason]}.`] }] }
+    const scanned = scannedInWorld(state, [npc.id])
+    const lines = [`${npc.character.name} ${REASON_TEXT[join.reason]}.`, ...(scanned[npc.id] ? [scannedLine(npc)] : [])]
+    combat = {
+      ...combat,
+      knowledge: { ...combat.knowledge, [npc.id]: knowledge },
+      scanned: { ...combat.scanned, ...scanned },
+      log: [...combat.log, { id: combat.log.length, round: combat.round, kind: 'info', lines }],
+    }
     link = {
       ...link,
       npcIds: [...link.npcIds, npc.id],

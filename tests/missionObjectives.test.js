@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
+import { objectivePosition } from '../src/exploration/challengeObjects.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { objectiveStatus } from '../src/exploration/missionFlags.js'
 import { updateObjectives } from '../src/exploration/missionObjectives.js'
@@ -44,6 +45,14 @@ describe('objectives with conditions', () => {
     const two = updateObjectives(withFlags(brig(), { eastSectionOpen: true, 'defeated.guardA': true, 'defeated.guardB': true }))
     assert.equal(status(two, 'klingonGuards'), 'active')
     assert.equal(status(updateObjectives(withFlags(two, { 'defeated.guardC': true })), 'klingonGuards'), 'complete')
+  })
+
+  it('a linked objective is marked on its challenge object, wherever the map puts it', () => {
+    const map = brigMap()
+    assert.deepEqual(objectivePosition(map, map.objectives[0]), { x: 23, y: 23 })
+    const moved = { ...map, objectPlacements: { powerJunction01: { x: 20, y: 22 } } }
+    assert.deepEqual(objectivePosition(moved, moved.objectives[0]), { x: 20, y: 22 })
+    assert.deepEqual(objectivePosition(map, { ...map.objectives[0], objectId: null }), map.objectives[0].position)
   })
 
   it('never moves an objective back', () => {

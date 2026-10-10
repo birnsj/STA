@@ -5,6 +5,7 @@ import engineerFile from '../conversations/engineerSealedSection.json'
 import brigFile from '../maps/Deck 10 Brig.json'
 import logData from '../src/data/adaptation/exploration/missionLog.json'
 import { createNode, parseConversation } from '../src/conversation/conversationFormat.js'
+import { objectivePosition } from '../src/exploration/challengeObjects.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { addLogEntry, stardateAt } from '../src/exploration/missionLog.js'
 import { createBlankMap, parseMapFile, resizeMap, serializeMap } from '../src/maps/mapFormat.js'
@@ -98,7 +99,7 @@ describe("the map's briefing and stardate", () => {
     const map = parseMapFile(brigFile, 'Deck 10 Brig')
     assert.match(map.briefing, /Okafor/)
     assert.equal(map.stardate, 4523.3)
-    assert.deepEqual(map.objectives[0].position, { x: 23, y: 23 })
+    assert.deepEqual(objectivePosition(map, map.objectives[0]), { x: 23, y: 23 })
   })
 })
 
@@ -106,8 +107,8 @@ describe("an objective's minimap position", () => {
   it('is saved as [x, y], left out when unset, and dropped when outside the map or cut off by a resize', () => {
     const map = createBlankMap({ name: 'Marked', width: 10, height: 10 })
     map.objectives = [
-      { id: 'here', title: 'Here', description: '', position: { x: 7, y: 2 }, activeWhen: [], completeWhen: [] },
-      { id: 'nowhere', title: 'Nowhere', description: '', position: null, activeWhen: [], completeWhen: [] },
+      { id: 'here', title: 'Here', description: '', position: { x: 7, y: 2 }, objectId: null, activeWhen: [], completeWhen: [] },
+      { id: 'nowhere', title: 'Nowhere', description: '', position: null, objectId: null, activeWhen: [], completeWhen: [] },
     ]
     const file = serializeMap(map)
     assert.deepEqual(file.objectives[0].position, [7, 2])

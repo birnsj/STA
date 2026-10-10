@@ -30,6 +30,33 @@ Open design decisions for the designer. Each entry separates what the book says 
 **Related questions:**
 - Should the Novice rank cap stay once rank has gameplay effects?
 
+### Combat Scan weakens the enemy (implemented 2026-10-10)
+
+**Decided:** a successful combat Scan gives the enemy the trait Weak Point Located (like Create Trait, Core p.289): its opponents' attacks on it are -1 Difficulty for the rest of the fight. See prototype-rules "Combat Scan".
+
+**Implementer picks, for review:** Potency stays 1, because an enemy can be scanned once. The trait applies before an opposed roll (cover), like a scene trait. It never takes Difficulty below 0. Any combatant on the other side benefits, not only the scanner.
+
+**Decided (2026-10-10):** a successful exploration scan of an NPC carries into combat: it starts the fight scanned, with the trait.
+
+**Questions:** should extra successes (or a second scan) raise it to Potency 2? Should enemies be able to scan the party?
+
+### Party AI uses support actions in Auto Combat (implemented 2026-10-10, tuning for review)
+
+**Decided:** every party AI in the Auto Combat dropdown can Scan, Persuade, Intimidate, give First Aid, Guard and Direct. Enemies are unchanged.
+
+**Implementer picks (AI tuning, not rules; `src/combat/supportAI.js`):**
+- Each option is scored in the same units as an attack. A hit is worth 1. Defeating an enemy or making it surrender is worth 2, and reviving an ally 1.5.
+- The best support option replaces the character's turn only when it beats that character's own best attack, counting the Aim it would take first.
+- **Scan:** the party's extra chance to hit that enemy, counted at 75% because the payoff comes later. A skilled scanner (around 80% to succeed) scans; an average one (35%) doesn't.
+- **Persuade or Intimidate:** worth a lot only on an enemy with no Stress left, where a win makes it surrender. Against a fresh enemy a win is worth 0.4, so the AI shoots instead.
+- **Guard:** counts the drop in each enemy's chance to hit, weighted by whether that enemy is likely to shoot the guarded character, and taken at half value.
+- **Direct:** the ally's assisted shot, less 0.3 for the Momentum spent.
+- **First Aid:** revives an ally within Reach, or walks next to a downed ally first. A dying ally's Deadly Injury is treated first.
+- **Random AI:** adds every legal support action to its random picks.
+- **Headless check:** 40 fights each, three against three. With a scientist and a medic in the party, the win rate with support matches the old AI (Classic 40/40, Turn Planner 38/40). With three average characters, support no longer lowers it either.
+
+**Questions:** should the planner styles (Aggressive, Cautious and so on) weigh support differently? They currently share one rule.
+
 ### NPC and conversation authoring, phase 1 (implemented 2026-10-09, choices awaiting designer review)
 
 **Book:** social interaction is roleplay with tasks where the outcome is uncertain (Core p.279); there is no rule for dialogue trees, flags or objectives.
@@ -37,7 +64,7 @@ Open design decisions for the designer. Each entry separates what the book says 
 **Prototype (designer decisions, Oct 2026):** NPCs are placed and edited in Dev Edit and saved in the map file (a map with its own NPCs no longer uses `npcs.json`). Conversations are node graphs edited in Dev Edit and saved under `conversations/`. Objective status is stored as mission flags and shown in an Objectives panel. The validation encounter uses an authored Federation engineer from the Core Rulebook Starfleet Officer (p.352), with a hand-authored junction and bulkheads in `challenges.json`.
 
 **Implementer picks, open for review:**
-- The talk range is the challenge-object reach (2 tiles). E interacts with an object first, then talks.
+- The talk range is the challenge-object reach (2 tiles). Interact and Talk are buttons only; the E key shortcut was removed (designer request, 2026-10-10).
 - Left-clicking a visible NPC opens a ring. The designer chose Scan, Attack, Info and greyed placeholders, on top of the implementer's Talk and Go To. Talk from out of reach walks the party over first.
 - NPC ring details:
   - Scan uses the area Scan's task, Difficulty and cooldown. The scanner is the first selected character who can scan.
@@ -63,6 +90,8 @@ Open design decisions for the designer. Each entry separates what the book says 
   - "Get Lt. Okafor's clearance": active once you have met her (`engineerMet`), complete once she grants access (`sectionAccessGranted`). No map marker, because it would cover her on the editor board.
   - "Get into the east section": active once the power is back (`stationPowerRestored`), complete once either east bulkhead opens, by clearance or by override (the doors now set `eastSectionOpen`). Marked at the south bulkhead (24, 20).
   - "Deal with the Klingon guards": active once a bulkhead opens, complete once guards A, B and C are each down or surrendered (`defeated.guardA/B/C`, set when a fight ends).
+
+- Challenge objects placed by the map (designer request, 2026-10-10). Their states and actions stay in `challenges.json`, but the map file's `objectPlacements` says where each one stands on that map; a doorway's second tile moves with it. In Dev Edit, clicking an object (teal C marker) shows it, with Move on Map and Reset Position, and dragging its tile with the toolbar's Move carries the object along. An objective can be marked on an object (`objectId`, "Marked on" in the Objective Editor), and its marker follows the object. The Deck 10 Brig's "Restore power" is marked on the EPS junction and "Get into the east section" on the south bulkhead. Not yet possible: adding or removing challenge objects, or editing their actions, in the editor.
 
 **Questions:** should a surrendered NPC count as defeated for objectives? Should conversations ever run in combat (for example a surrender parley)? Should a fight's outcome be logged automatically? Should flags and objectives be saved once save games exist? What should `engineerTrust` (or disposition changes) affect?
 

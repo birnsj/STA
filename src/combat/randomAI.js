@@ -3,6 +3,7 @@
 // exactly. Pending rolls are still answered, since the fight cannot continue otherwise.
 import { canAfford, canAim, canMove, canSprint, getAssistableAllies, getOpponents, getReachable } from './combatState.js'
 import { bestShot, injuryModesFor, pendingStep } from './combatAI.js'
+import { supportOptions } from './supportAI.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 
 // Keeps these picks apart from the combat's own roll sequence.
@@ -40,5 +41,7 @@ export function randomStep(state, self) {
       options.push({ type: 'assist', allyId: ally.id, decision: `Assist ${ally.character.name}` })
     }
   }
+  // The party's support actions (supportAI.js), each one more legal choice whatever it is worth.
+  if (self.side === 'player' && !state.turn.aimed) options.push(...supportOptions(state, self).map((option) => option.action))
   return { ...pick(options), reason: `Random pick from ${options.length} legal actions.` }
 }

@@ -2,7 +2,8 @@
 // enemy's Stress, Protection, weapons and tactical tips known for the rest of the fight.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { combatReducer, createCombat, isScanned, previewScan, scanReport, visibleCondition } from '../src/combat/combatState.js'
+import { combatReducer, createCombat, isScanned, previewAttack, previewScan, SCAN_TRAIT, scanReport, visibleCondition } from '../src/combat/combatState.js'
+import { scanTraitLines } from '../src/combat/combatScan.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -58,8 +59,30 @@ describe('Combat Scan', () => {
     const labels = report.rows.map(([label]) => label)
     assert.ok(labels.includes('Stress'))
     assert.ok(labels.includes('Protection'))
-    assert.equal(report.rows.length, 2 + next.combatants[enemy.id].weaponIds.length)
+    assert.ok(labels.includes('Trait'))
+    assert.equal(report.rows.length, 3 + next.combatants[enemy.id].weaponIds.length)
     assert.ok(report.tips.length >= 1)
+  })
+
+  it('a scanned enemy carries Weak Point Located: attacks on it are -1 Difficulty, never below 0', () => {
+    const { state, alpha, enemy } = fight()
+    const weaponId = alpha.weaponIds[0]
+    const plain = previewAttack(state, alpha.id, enemy.id, weaponId)
+    const scanned = { ...state, scanned: { [enemy.id]: true } }
+    const helped = previewAttack(scanned, alpha.id, enemy.id, weaponId)
+    const line = helped.difficultyLines.find((entry) => entry.label === `Trait: ${SCAN_TRAIT.name}`)
+    assert.ok(plain.task.difficulty > 0)
+    assert.deepEqual(line, { label: 'Trait: Weak Point Located', change: -1 })
+    assert.equal(helped.task.difficulty, plain.task.difficulty - 1)
+    assert.ok(helped.traitLines.includes(line))
+    assert.deepEqual(scanTraitLines(scanned, alpha, enemy, 0), [])
+  })
+
+  it('the trait only helps the scanned enemy\'s opponents', () => {
+    const { state, alpha, enemy } = fight()
+    const scanned = { ...state, scanned: { [enemy.id]: true } }
+    assert.deepEqual(scanTraitLines(scanned, enemy, enemy, 2), [])
+    assert.deepEqual(scanTraitLines(state, alpha, enemy, 2), [])
   })
 
   it('Stress is shown in the condition without a scan (designer decision, Oct 2026)', () => {

@@ -1,4 +1,5 @@
 import { isHostile } from '../../exploration/awareness.js'
+import { objectivePosition } from '../../exploration/challengeObjects.js'
 import MinimapTiles from './MinimapTiles.jsx'
 
 function Marker({ position, kind, label }) {
@@ -25,15 +26,17 @@ export default function EditorMinimap({ map }) {
             {area.name.toUpperCase()}
           </text>
         ))}
-        {(map.objectives ?? []).map(
-          (objective, index) =>
-            objective.position && (
-              <g key={`o${index}`} className="me-minimap-marker is-objective" transform={`translate(${objective.position.x} ${objective.position.y})`}>
+        {(map.objectives ?? []).map((objective, index) => {
+          const position = objectivePosition(map, objective)
+          return (
+            position && (
+              <g key={`o${index}`} className="me-minimap-marker is-objective" transform={`translate(${position.x} ${position.y})`}>
                 <title>{`Objective: ${objective.title || objective.id}`}</title>
                 <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
               </g>
-            ),
-        )}
+            )
+          )
+        })}
         {(map.npcs ?? []).map((npc) => (
           <Marker key={`n${npc.id}`} position={npc.position} kind={isHostile(npc) ? 'enemy' : 'npc'} label={npc.name || npc.characterId || npc.id} />
         ))}

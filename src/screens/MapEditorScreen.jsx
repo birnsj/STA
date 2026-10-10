@@ -11,8 +11,9 @@ import TextDialog from '../components/maps/TextDialog.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import NpcInspector from '../components/maps/NpcInspector.jsx'
 import MarkerInspector from '../components/maps/MarkerInspector.jsx'
+import ObjectInspector from '../components/maps/ObjectInspector.jsx'
+import { challengeDefinitionsFor } from '../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../maps/facing.js'
-import ObjectivesEditor from '../components/maps/ObjectivesEditor.jsx'
 import missionLogData from '../data/adaptation/exploration/missionLog.json'
 import '../components/maps/mapEditor.css'
 import { listAuthoredCharacters } from '../character/authoredCharacters.js'
@@ -47,6 +48,7 @@ import WeatherFx from '../effects/WeatherFx.jsx'
 
 const ExplorationPlaytest = lazy(() => import('./ExplorationScreen.jsx').then((module) => ({ default: module.ExplorationPlaytest })))
 const ConversationEditorScreen = lazy(() => import('./ConversationEditorScreen.jsx'))
+const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const PLAY_TEAM_SIZE = 4
 // The character a newly placed NPC starts as (changed in its inspector).
 const FIRST_CHARACTER_ID = listAuthoredCharacters()[0]?.id ?? null
@@ -130,6 +132,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   // The conversation files NPCs can open ([{ id, name }]), and the conversation editor while open ({ id } | null).
   const [conversations, setConversations] = useState([])
   const [conversationEditor, setConversationEditor] = useState(null)
+  // The objective editor while open ({ index }: the objective selected) | null. When its Place on Map sent the user to
+  // the board, placingFromEditor brings them back to it once the tile is clicked (or Escape cancels).
+  const [objectiveEditor, setObjectiveEditor] = useState(null)
+  const [placingFromEditor, setPlacingFromEditor] = useState(false)
   const selectedNpc = (map.npcs ?? []).find((npc) => npc.id === selectedNpcId) ?? null
   // The player start or enemy spawn shown in its inspector ({ kind, x, y }), or null. Looked up by tile, so moving or
   // deleting it closes the inspector.
@@ -141,6 +147,11 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     if (index < 0) return null
     return { ...list[index], kind: selectedMarker.kind, label: `${selectedMarker.kind === 'playerStarts' ? 'P' : 'E'}${index + 1}` }
   }, [map, selectedMarker])
+  // The challenge object shown in its inspector (an id), and whether the next board click moves it.
+  const [selectedObjectId, setSelectedObjectId] = useState(null)
+  const [placingObject, setPlacingObject] = useState(false)
+  const objectDefinitions = useMemo(() => challengeDefinitionsFor(map), [map])
+  const selectedObject = objectDefinitions.find((definition) => definition.id === selectedObjectId) ?? null
 
   const refreshConversations = () =>
     listConversations()
@@ -159,7 +170,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   }, [notice])
   // Escape puts the brush down (no tool selected, Place Tiles off), unless a dialog is open (its own Escape cancels it)
   // or a text box has focus.
-  const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam) || Boolean(textQuestion) || Boolean(conversationEditor)
+  const dialogOpen = Boolean(question) || showLoad || Boolean(playTeam) || Boolean(textQuestion) || Boolean(conversationEditor) || Boolean(objectiveEditor)
   useEffect(() => {
     if (dialogOpen) return undefined
     const onKey = (event) => {
@@ -169,6 +180,13 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         return
       }
       if (event.key !== 'Escape') return
+      if (placingObject) return setPlacingObject(false)
+      if (placingObjective !== null) {
+        if (placingFromEditor) setObjectiveEditor({ index: placingObjective })
+        setPlacingObjective(null)
+        setPlacingFromEditor(false)
+        return
+      }
       setTool(null)
       setPlacing(false)
       setMoving(false)
@@ -177,7 +195,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dialogOpen, placing, tool])
+  }, [dialogOpen, placing, tool, placingObjective, placingFromEditor, placingObject])
 
   const edit = (next) => {
     if (next === map) return
@@ -209,6 +227,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     setSelectedNpcId(null)
     setSelectedMarker(null)
     setPlacingObjective(null)
+    setPlacingFromEditor(false)
+    setSelectedObjectId(null)
+    setPlacingObject(false)
     setMovingNpc(false)
     setMoveFrom(null)
   }
@@ -238,16 +259,28 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const selectAt = (position) => {
     const npc = npcAt(map, position)
     const kind = ['playerStarts', 'enemySpawns'].find((id) => map.markers[id].some((marker) => marker.x === position.x && marker.y === position.y))
+    const object = objectDefinitions.find((definition) => definition.position[0] === position.x && definition.position[1] === position.y)
     setSelectedNpcId(npc?.id ?? null)
     setSelectedMarker(kind ? { kind, x: position.x, y: position.y } : null)
+    setSelectedObjectId(object?.id ?? null)
+    setPlacingObject(false)
     setMovingNpc(false)
   }
 
   const onPaint = (position, { first }) => {
+    if (placingObject && selectedObject) {
+      if (!first) return
+      edit({ ...map, objectPlacements: { ...(map.objectPlacements ?? {}), [selectedObject.id]: position } })
+      setPlacingObject(false)
+      setStatus(`Moved ${selectedObject.name} to (${position.x}, ${position.y}).`)
+      return
+    }
     if (placingObjective !== null) {
       if (!first) return
       edit({ ...map, objectives: map.objectives.map((objective, index) => (index === placingObjective ? { ...objective, position } : objective)) })
+      if (placingFromEditor) setObjectiveEditor({ index: placingObjective })
       setPlacingObjective(null)
+      setPlacingFromEditor(false)
       return
     }
     if (moving) {
@@ -288,8 +321,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
       return
     }
     const [from, to] = [map.tiles[moveFrom.y][moveFrom.x], map.tiles[position.y][position.x]]
-    edit(swapTiles(map, moveFrom, position))
-    setStatus(`Swapped ${getTile(from).label} (${moveFrom.x}, ${moveFrom.y}) with ${getTile(to).label} (${position.x}, ${position.y}).`)
+    // A challenge object goes with the tile it stands on (the junction with its machinery).
+    const at = (point) => objectDefinitions.filter((definition) => definition.position[0] === point.x && definition.position[1] === point.y)
+    const carried = [...at(moveFrom).map((definition) => [definition.id, position]), ...at(position).map((definition) => [definition.id, { x: moveFrom.x, y: moveFrom.y }])]
+    const swapped = swapTiles(map, moveFrom, position)
+    edit(carried.length ? { ...swapped, objectPlacements: { ...(map.objectPlacements ?? {}), ...Object.fromEntries(carried) } } : swapped)
+    setStatus(`Swapped ${getTile(from).label} (${moveFrom.x}, ${moveFrom.y}) with ${getTile(to).label} (${position.x}, ${position.y})${carried.length ? ', with its challenge object' : ''}.`)
   }
   // Right click: with Place Tiles on, the brush picks up the tile under the pointer, rotation included; otherwise an NPC,
   // player start or enemy spawn there turns 45° clockwise.
@@ -490,6 +527,29 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     )
   }
 
+  if (objectiveEditor) {
+    return (
+      <Suspense fallback={null}>
+        <ObjectiveEditorScreen
+          objectives={map.objectives ?? []}
+          onChange={(objectives) => edit({ ...map, objectives })}
+          mapName={map.name}
+          width={map.width}
+          height={map.height}
+          initialIndex={objectiveEditor.index}
+          objects={objectDefinitions}
+          onPick={(index) => {
+            setObjectiveEditor(null)
+            setPlacingObjective(index)
+            setPlacingFromEditor(true)
+            setStatus(`Click a tile to mark ${map.objectives[index].title || map.objectives[index].id} (Escape cancels).`)
+          }}
+          onBack={() => setObjectiveEditor(null)}
+        />
+      </Suspense>
+    )
+  }
+
   // The editor stays mounted underneath, so Exit comes back to the same map, unsaved edits and all.
   if (playTeam) {
     return (
@@ -562,6 +622,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             erasing={tool === 'erase'}
             selectedNpcId={selectedNpcId}
             selectedMarker={markerInspected && selectedMarker}
+            selectedObjectId={selectedObjectId}
             moveFrom={moveFrom}
             onPaint={onPaint}
             onPaintEnd={onPaintEnd}
@@ -597,6 +658,18 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             />
           )}
           {!selectedNpc && tool === 'npcs' && <p className="me-text">NPC tool: click a floor tile to place an NPC, or click an NPC to edit it.</p>}
+          {selectedObject && (
+            <ObjectInspector
+              definition={selectedObject}
+              home={challengeDefinitionsFor({ ...map, objectPlacements: {} }).find((definition) => definition.id === selectedObject.id).position}
+              placing={placingObject}
+              onPlace={() => setPlacingObject((value) => !value)}
+              onReset={() => {
+                const { [selectedObject.id]: _reset, ...rest } = map.objectPlacements ?? {}
+                edit({ ...map, objectPlacements: rest })
+              }}
+            />
+          )}
           {markerInspected && (
             <MarkerInspector
               marker={markerInspected}
@@ -669,13 +742,23 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             />
           </label>
           <p className="me-heading">Objectives</p>
-          <ObjectivesEditor
-            objectives={map.objectives ?? []}
-            onChange={(objectives) => edit({ ...map, objectives })}
-            placingIndex={placingObjective}
-            onPlace={setPlacingObjective}
-          />
-          <p className="me-text">Conversations and challenge objects set an objective active or complete (the flag objective.&lt;id&gt;); exploration lists those.</p>
+          {(map.objectives ?? []).length ? (
+            <ul className="me-objective-list">
+              {map.objectives.map((objective, index) => (
+                <li key={index}>
+                  <button type="button" className="me-link" onClick={() => setObjectiveEditor({ index })}>
+                    O{index + 1} · {objective.title || objective.id}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="me-text">None yet.</p>
+          )}
+          {placingObjective !== null && <p className="me-text">Click a tile to mark the objective (Escape cancels).</p>}
+          <button type="button" className="me-button me-generate" onClick={() => setObjectiveEditor({ index: 0 })}>
+            Objective Editor
+          </button>
           <p className="me-heading">Conversations</p>
           <button type="button" className="me-button me-generate" onClick={() => setConversationEditor({ id: null })}>
             Conversation Editor

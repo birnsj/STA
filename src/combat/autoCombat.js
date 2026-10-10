@@ -21,6 +21,7 @@ import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from '
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
 import { randomStep } from './randomAI.js'
+import { supportStep } from './supportAI.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 
 // Test options for comparing AIs: which AI plays the party in Auto Combat, and which plays the enemies (always AI-run).
@@ -40,6 +41,9 @@ export const ENEMY_AIS = PARTY_AIS
 function normalStep(state, self, ai) {
   if (self.retreating) return retreatStep(state, self)
   if (ai === 'random') return randomStep(state, self)
+  // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
+  const support = supportStep(state, self)
+  if (support) return support
   if (PLANNER_PROFILES[ai]) return plannerStep(state, self, ai)
   return nextAIStep(state)
 }

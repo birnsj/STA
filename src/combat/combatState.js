@@ -57,6 +57,7 @@ import { withRetreats } from './combatRetreat.js'
 import { createCombat } from './combatSetup.js'
 import { socialStep } from './combatSocial.js'
 import { directBlock, getAuthority, getDirectableAllies, previewFirstAid, previewGuard, previewScan, rollCombatTask } from './combatTasks.js'
+import { SCAN_TRAIT } from './combatScan.js'
 import { advanceTurn, settleDirected, switchToMember, withOutcome } from './combatTurnOrder.js'
 import { canTakeCover } from './coverSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, ADAPTATION_MOMENTUM_SPENDS, EXTRA_ACTIONS, freshTurn, spendTurnAction } from './turnActions.js'
@@ -104,7 +105,7 @@ export {
   rollAwaitsPlayer,
 } from './combatAttacks.js'
 export { directBlock, directTargetBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
-export { isScanned, scanReport, visibleCondition } from './combatScan.js'
+export { isScanned, scanReport, SCAN_TRAIT, visibleCondition } from './combatScan.js'
 export { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
 export { injuryFor, previewInjuries } from './combatInjuries.js'
 export { AMBUSH_DIFFICULTY, AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
@@ -588,7 +589,9 @@ function reduceAction(state, action) {
       return addLog(next, [
         ...decided.lines,
         ...rolled.lines,
-        rolled.passed ? `${name} is scanned: Protection, weapons and tactics are known for the rest of the fight.` : `The scan of ${name} reveals nothing useful.`,
+        rolled.passed
+          ? `${name} is scanned: Protection, weapons and tactics are known, and it has the trait ${SCAN_TRAIT.name} (attacks on it ${SCAN_TRAIT.attackDifficulty * SCAN_TRAIT.potency} Difficulty) for the rest of the fight.`
+          : `The scan of ${name} reveals nothing useful.`,
       ])
     }
     // Persuade / Intimidate (major, designer decision Oct 2026; Book pp.279-282): ask an enemy in earshot to surrender.

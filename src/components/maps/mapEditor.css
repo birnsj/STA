@@ -305,8 +305,9 @@
 .me-field-label { color: #8fb4ba; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
 .me-inspector { padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid #23434a; }
 .me-inspector-actions { display: flex; gap: 4px; }
-.me-objective { display: flex; flex-direction: column; gap: 3px; padding: 4px 0 6px; border-bottom: 1px solid #1a3136; margin-bottom: 4px; }
-.me-objective textarea { resize: vertical; }
+.me-objective-list { margin: 0 0 6px; padding: 0; list-style: none; }
+.me-link { padding: 2px 0; border: 0; background: none; color: #cfe3e6; font: inherit; text-align: left; cursor: pointer; }
+.me-link:hover { color: #ffb347; }
 .me-swatch.is-area { background: #9fb9bd; }
 .me-swatch.is-erase { background: repeating-linear-gradient(45deg, #444 0 3px, #222 3px 6px); }
 
@@ -451,6 +452,7 @@
 .me-marker.is-enemy polygon { fill: #e5483a; }
 .me-marker.is-npc polygon { fill: #b07ee8; }
 .me-marker.is-objective polygon { fill: #e0a800; }
+.me-marker.is-object polygon { fill: #1fa59a; }
 .me-marker.is-selected polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; }
 /* Facing arrow (player starts, NPCs, enemy spawns): solid white with a dark outline so it reads on any marker colour
    and floor. g.me-facing out-ranks the marker polygon colours above. */

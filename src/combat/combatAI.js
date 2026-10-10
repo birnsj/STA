@@ -5,8 +5,9 @@
 //
 // Profiles:
 // Cover is automatic next to a cover object (no Take Cover action), so "taking cover" always means moving there.
-// Both profiles have one Major and one Minor action a turn (Book p.288; actions.json). Neither uses Guard, First Aid,
-// Direct or challenge objects yet.
+// Both profiles have one Major and one Minor action a turn (Book p.288; actions.json). Neither uses challenge objects
+// yet; in Auto Combat the party also weighs Scan, Persuade, Intimidate, First Aid, Guard and Direct first (supportAI.js,
+// via autoCombat.js).
 // - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (with the Minor action free, first
 //   moving into cover if a covered tile keeps the shot, else aiming); otherwise move to the best reachable firing position
 //   (lower Difficulty, covered preferred, fewer steps); otherwise close the distance. Prefers Deadly.

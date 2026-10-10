@@ -23,7 +23,8 @@ import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import { getFaction } from '../rules/factions.js'
 import { getEquippedItems } from '../rules/equipment.js'
-import { getAvailableActions, getChallengeViews, getDefinition, objectsInReach } from '../exploration/challengeObjects.js'
+import { getAvailableActions, getChallengeViews, getDefinition, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
+import { SCAN_TRAIT } from '../combat/combatScan.js'
 import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
@@ -132,6 +133,7 @@ function npcInfo(state, npc) {
     const gear = getEquippedItems(character).map((item) => item.name)
     rows.push(['Equipment', gear.length ? gear.join(', ') : 'None'])
     tips.push(`Scanned by ${state.party.members[scan.memberId]?.character.name ?? 'the away team'}.`)
+    tips.push(`In a fight it starts scanned, with the trait ${SCAN_TRAIT.name}: your attacks on it are easier.`)
   } else if (scan) {
     tips.push('Scan failed: no clear readings. Scan again to retry.')
   } else {
@@ -564,7 +566,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     [dispatch],
   )
   const knownObjectives = (party.map.objectives ?? [])
-    .map((objective) => ({ ...objective, status: objectiveStatus(state.scenario.flags, objective.id) }))
+    .map((objective) => ({ ...objective, position: objectivePosition(party.map, objective), status: objectiveStatus(state.scenario.flags, objective.id) }))
     .filter(({ status }) => status)
   const objectives = knownObjectives.map(({ id, title, status }) => ({ id, text: title || id, complete: status === 'complete' }))
 
@@ -640,11 +642,8 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [party.memberIds, select])
 
-  // E interacts with the nearest object in reach, or else talks to the nearest NPC who has something to say; Escape
-  // closes the panel or leaves the conversation; C toggles sneak for the selected characters; I opens or closes the
-  // character sheet; L the Captain's Log.
-  const firstReachable = reachableIds[0] ?? null
-  const firstTalkable = talkable[0] ?? null
+  // Escape closes the panel or leaves the conversation; C toggles sneak for the selected characters; I opens or closes
+  // the character sheet; L the Captain's Log.
   useEffect(() => {
     const onKey = (event) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
@@ -656,17 +655,13 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         setLogOpen(false)
         if (talking) dispatch({ type: 'conversationLeave' })
       }
-      if (event.code === 'KeyE' && !talking && !event.repeat) {
-        if (firstReachable) setInteractionId((open) => open ?? firstReachable)
-        else if (firstTalkable) talkTo(firstTalkable)
-      }
       if (event.code === 'KeyC' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleSneak()
       if (event.code === 'KeyI' && !event.repeat && !event.ctrlKey && !event.metaKey) setSheetOpen((open) => !open)
       if (event.code === 'KeyL' && !event.repeat && !event.ctrlKey && !event.metaKey) setLogOpen((open) => !open)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [firstReachable, firstTalkable, talkTo, talking, dispatch, toggleSneak])
+  }, [talking, dispatch, toggleSneak])
 
   const move = useCallback(
     (target, fresh) => {
@@ -787,16 +782,14 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
       {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
       {!panelOpen && (reachableIds.length > 0 || talkable.length > 0 || talkError) && (
         <div className="challenge-prompts">
-          {reachableIds.map((id, index) => (
+          {reachableIds.map((id) => (
             <button key={id} type="button" className="combat-button is-small is-primary" onClick={() => setInteractionId(id)}>
               Interact: {getDefinition(state.scenario, id).name}
-              {index === 0 ? ' (E)' : ''}
             </button>
           ))}
-          {talkable.map((npc, index) => (
+          {talkable.map((npc) => (
             <button key={npc.id} type="button" className="combat-button is-small is-primary" onClick={() => talkTo(npc)}>
               Talk: {npc.name}
-              {index === 0 && !reachableIds.length ? ' (E)' : ''}
             </button>
           ))}
           {talkError && <span className="task-warning">{talkError}</span>}

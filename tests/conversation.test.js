@@ -125,7 +125,7 @@ describe('NPCs placed on a map', () => {
     const map = roomWithEngineer()
     const again = parseMapFile(JSON.parse(JSON.stringify(serializeMap(map))), map.id)
     assert.deepEqual(again.npcs[0], { ...map.npcs[0], faction: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null })
-    assert.deepEqual(again.objectives, map.objectives.map((objective) => ({ ...objective, activeWhen: [], completeWhen: [] })))
+    assert.deepEqual(again.objectives, map.objectives.map((objective) => ({ ...objective, objectId: null, activeWhen: [], completeWhen: [] })))
     assert.deepEqual(npcConfigsFor(again).map((config) => config.id), ['eng'])
     const [npc] = getNpcs(createExplorationState(again, team()).world)
     assert.equal(npc.name, 'Lt. Mara Okafor')
@@ -250,7 +250,10 @@ describe('the Deck 10 Brig encounter', () => {
     assert.equal(state.party.map.tiles[20][24], 'hatchWall')
     assert.equal(state.party.map.tiles[21][24], 'hatchWall')
     assert.deepEqual(getAvailableActions(state, 'eastBulkheadSouth'), [])
-    assert.deepEqual(npcsInTalkRange(state, state.party.memberIds).map((npc) => npc.id), ['engineer'])
+    const okafor = state.world.npcs.engineer.position
+    const members = Object.fromEntries(Object.entries(state.party.members).map(([id, member]) => [id, { ...member, position: { x: okafor.x + 1, y: okafor.y } }]))
+    const beside = { ...state, party: { ...state.party, members } }
+    assert.deepEqual(npcsInTalkRange(beside, beside.party.memberIds).map((npc) => npc.id), ['engineer'])
   })
 
   it('a diagnosis makes the junction easier; restoring power opens the bulkhead for a cleared party', () => {

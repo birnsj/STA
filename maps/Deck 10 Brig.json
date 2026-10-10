@@ -6,7 +6,7 @@
   "mapType": "starshipDeck",
   "biome": "temperate",
   "weather": "clear",
-  "ambient": 100,
+  "ambient": 15,
   "rows": [
     "############òò######òò##########òò##ðð##",
     "ñc..ccc..ccc#c..cc..cc..#cc..ccc..c..MM#",
@@ -29,9 +29,9 @@
     "ñ...........D...........ò..............#",
     "#c..........ò..........cìc............c#",
     "#c.........cò...........D.............c#",
-    "òc.........c#c..........D..............ï",
+    "òc.........c#cM.........D..............ï",
     "ò...........#c.........còc.............ï",
-    "#...........òc.........Mò.............c#",
+    "#...........òc..........ò.............c#",
     "#c.........cò..........M#.............c#",
     "ò...........#...........#c.............#",
     "ò..c..ccc...#cc..c..cc..íc..cc..ccc....#",
@@ -86,26 +86,30 @@
     "playerStarts": [
       [
         5,
-        24
+        21,
+        0
       ],
       [
-        5,
-        23
+        6,
+        22,
+        270
       ],
       [
-        4,
-        24
+        7,
+        21,
+        180
       ],
       [
-        8,
-        17
+        6,
+        20,
+        90
       ]
     ],
     "enemySpawns": [
       [
         33,
         7,
-        180
+        135
       ],
       [
         33,
@@ -115,7 +119,7 @@
       [
         31,
         7,
-        315
+        45
       ],
       [
         31,
@@ -129,10 +133,10 @@
       "id": "engineer",
       "characterId": "stationEngineer",
       "position": [
-        21,
-        21
+        19,
+        22
       ],
-      "facing": 180,
+      "facing": 225,
       "disposition": "friendly",
       "conversationId": "engineerSealedSection"
     },
@@ -143,7 +147,7 @@
         33,
         7
       ],
-      "facing": 180,
+      "facing": 135,
       "name": "Guard A",
       "disposition": "wary",
       "npcRules": "supporting",
@@ -172,7 +176,7 @@
         31,
         7
       ],
-      "facing": 315,
+      "facing": 45,
       "name": "Guard C",
       "disposition": "aggressive",
       "npcRules": "supporting",
@@ -186,9 +190,10 @@
       "title": "Restore power to the section",
       "description": "Bring the EPS power junction beside Lt. Okafor back online so the east bulkheads can cycle.",
       "position": [
-        23,
-        23
-      ]
+        13,
+        20
+      ],
+      "objectId": "powerJunction01"
     },
     {
       "id": "okaforClearance",
@@ -212,9 +217,10 @@
       "title": "Get into the east section",
       "description": "With the power back, open one of the east bulkheads, with Lt. Okafor's clearance or by overriding the lockout.",
       "position": [
-        24,
-        20
+        14,
+        17
       ],
+      "objectId": "eastBulkheadSouth",
       "activeWhen": [
         {
           "flag": "stationPowerRestored",
@@ -254,6 +260,16 @@
       ]
     }
   ],
+  "objectPlacements": {
+    "eastBulkheadSouth": [
+      24,
+      20
+    ],
+    "powerJunction01": [
+      14,
+      21
+    ]
+  },
   "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
   "stardate": 4523.3
 }

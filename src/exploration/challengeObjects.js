@@ -26,8 +26,31 @@ const isUp = (member) => !isDefeated(member.condition)
 // The tiles a state's tile replaces: the object's own, plus covers [[x, y]] (the rest of a two-tile doorway).
 const tilesOf = (definition) => [definition.position, ...(definition.covers ?? [])].map(([x, y]) => ({ x, y }))
 
-// The challenge objects authored for a map (challenges.json), by map file name.
-export const challengeDefinitionsFor = (map) => data.maps[map.id] ?? data.maps[map.name] ?? []
+// The challenge objects authored for a map (challenges.json, by map file name), each where the map's objectPlacements
+// puts it (mapFormat.js); a doorway's other tiles (covers) move with it.
+export function challengeDefinitionsFor(map) {
+  const definitions = data.maps[map.id] ?? data.maps[map.name] ?? []
+  const placements = map.objectPlacements ?? {}
+  return definitions.map((definition) => {
+    const placed = placements[definition.id]
+    if (!placed) return definition
+    const [dx, dy] = [placed.x - definition.position[0], placed.y - definition.position[1]]
+    if (!dx && !dy) return definition
+    const inside = ([x, y]) => x >= 0 && y >= 0 && x < map.width && y < map.height
+    return {
+      ...definition,
+      position: [placed.x, placed.y],
+      ...(definition.covers ? { covers: definition.covers.map(([x, y]) => [x + dx, y + dy]).filter(inside) } : {}),
+    }
+  })
+}
+
+// Where an objective's marker goes: on its linked challenge object (objectId), else its own position (or null).
+export function objectivePosition(map, objective) {
+  if (!objective.objectId) return objective.position ?? null
+  const definition = challengeDefinitionsFor(map).find((entry) => entry.id === objective.objectId)
+  return definition ? { x: definition.position[0], y: definition.position[1] } : null
+}
 
 export function createScenario(map) {
   const definitions = challengeDefinitionsFor(map)

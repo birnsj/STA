@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { diamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
 import { isHostile } from '../../exploration/awareness.js'
+import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
@@ -95,7 +96,8 @@ function MovePreview({ map, from, to }) {
 // onPaintEnd(position or null): the left button released after a press on the map, over that tile (null: off the map).
 // onHover(position or null): the tile under the pointer. brush: the tile id being painted, or null (no tile tool).
 // rotated: the brush paints tiles rotated (mapFormat.js rotated). onRightClick(position or null): a right click without
-// dragging, over that tile. selectedMarker: the player start or enemy spawn in its inspector ({ kind, x, y }). moveFrom: the tile the Move tool is carrying ({ x, y, markers: true when it carries the
+// dragging, over that tile. selectedMarker: the player start or enemy spawn in its inspector ({ kind, x, y }). selectedObjectId: the
+// challenge object in its inspector (challenge objects are drawn as C markers where the map places them). moveFrom: the tile the Move tool is carrying ({ x, y, markers: true when it carries the
 // tile's markers rather than the tile }), or null.
 // lighting: draw shadows, light pools and the map's darkness. animate: animated tiles play (off: each holds its first
 // frame). erasing: the Erase Marker tool is held, so the markers and label on the hovered tile are highlighted as the
@@ -110,6 +112,7 @@ export default function EditorBoard({
   erasing = false,
   selectedNpcId = null,
   selectedMarker = null,
+  selectedObjectId = null,
   moveFrom = null,
   onPaint,
   onPaintEnd,
@@ -198,6 +201,16 @@ export default function EditorBoard({
             </text>
           )
         })}
+        {challengeDefinitionsFor(map).map((definition) => (
+          <Marker
+            key={`c${definition.id}`}
+            position={{ x: definition.position[0], y: definition.position[1] }}
+            kind="object"
+            label="C"
+            title={`${definition.name} (${definition.id})`}
+            selected={definition.id === selectedObjectId}
+          />
+        ))}
         {map.markers.playerStarts.map((start, index) => (
           <Marker key={`p${start.x},${start.y}`} position={start} kind="player" label={`P${index + 1}`} doomed={doomed(start)} selected={isSelected('playerStarts', start)} facing={npcAt(map, start) ? null : snapFacing(spawnFacing(map, start))} />
         ))}
@@ -216,12 +229,10 @@ export default function EditorBoard({
             facing={npc.facing ?? 0}
           />
         ))}
-        {(map.objectives ?? []).map(
-          (objective, index) =>
-            objective.position && (
-              <Marker key={`o${index}`} position={objective.position} kind="objective" label={`O${index + 1}`} title={`Objective: ${objective.title || objective.id}`} />
-            ),
-        )}
+        {(map.objectives ?? []).map((objective, index) => {
+          const position = objectivePosition(map, objective)
+          return position && <Marker key={`o${index}`} position={position} kind="objective" label={`O${index + 1}`} title={`Objective: ${objective.title || objective.id}`} />
+        })}
         {moveFrom && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
         {moveFrom && hover && !moveFrom.markers && <MovePreview map={map} from={moveFrom} to={hover} />}
         {hover && brush && hover.x < map.width && hover.y < map.height && <BrushPreview map={map} position={hover} tileId={brush} rotated={rotated} />}

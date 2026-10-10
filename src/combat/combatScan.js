@@ -4,8 +4,20 @@
 import { conditionSummary, getAvoidOption, getMaxStress, getProtection, npcCategoryName, npcCategoryOf } from '../rules/personalCondition.js'
 import { getBandIndex, getRangeBand, tileDistance } from './rangeSystem.js'
 import { describeRange, getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
+import actionData from '../data/adaptation/combat/actions.json'
 
 export const isScanned = (state, enemyId) => Boolean(state.scanned?.[enemyId])
+
+// The trait a successful Scan leaves on the enemy (designer decision Oct 2026, like Create Trait, Book p.289).
+export const SCAN_TRAIT = actionData.tasks.scan.trait
+
+// The Difficulty line the scan trait adds to an attack on a scanned enemy by its opponents. difficultyBefore keeps the
+// total from dropping below 0.
+export function scanTraitLines(state, attacker, target, difficultyBefore) {
+  if (!isScanned(state, target.id) || attacker.side === target.side || difficultyBefore <= 0) return []
+  const change = Math.max(-difficultyBefore, SCAN_TRAIT.attackDifficulty * SCAN_TRAIT.potency)
+  return [{ label: `Trait: ${SCAN_TRAIT.name}`, change }]
+}
 
 // The enemy's condition as the party sees it. Designer decision (Oct 2026): its Stress is always visible.
 export const visibleCondition = (state, enemy) => conditionSummary(enemy.character, enemy.condition)
@@ -27,6 +39,7 @@ export function scanReport(state, viewer, enemy) {
       weapon.name,
       `Severity ${weapon.severity}, ${weapon.injuryModes.map((modeId) => getInjuryMode(modeId).name).join('/')}, ${describeRange(weapon)}`,
     ]),
+    ['Trait', `${SCAN_TRAIT.name}: your attacks ${SCAN_TRAIT.attackDifficulty * SCAN_TRAIT.potency} Difficulty`],
   ]
   return { rows, tips: scanTips(state, viewer, enemy, weapons, protection) }
 }

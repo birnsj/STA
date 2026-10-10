@@ -227,8 +227,20 @@ function choiceRing(state, choice, pressKey = null) {
   if (choice.type === 'attack') return show(choice.targetId, enemyButtonDefs(weapon), choice.injuryMode)
   if (choice.type === 'aim' && choice.targetId) return show(choice.targetId, enemyButtonDefs(weapon), 'aim')
   if (choice.type === 'assist') return show(choice.allyId, [{ id: 'assist', label: 'Assist', icon: 'assist' }], 'assist')
+  if (['scan', 'persuade', 'intimidate'].includes(choice.type) && choice.targetId) return show(choice.targetId, enemyButtonDefs(weapon), choice.type)
+  const support = SUPPORT_BUTTONS[choice.type]
+  const unitId = choice.allyId ?? choice.targetId
+  if (support && unitId) return show(unitId, [{ id: choice.type, ...support }], choice.type)
   return null
 }
+
+// The single button shown on the ally (or self) an AI party member Guards, gives First Aid to or Directs.
+const SUPPORT_BUTTONS = {
+  guard: { label: 'Guard', icon: 'guard' },
+  firstAid: { label: 'First Aid', icon: 'firstAid' },
+  direct: { label: 'Direct', icon: 'direct' },
+}
+const SHOWN_CHOICES = ['attack', 'aim', 'assist', 'scan', 'persuade', 'intimidate', ...Object.keys(SUPPORT_BUTTONS)]
 
 // The party's next AI step in Auto Combat, when it is one that shows buttons (so it can be shown before it runs).
 function plannedChoice(state, partyAI) {
@@ -236,7 +248,7 @@ function plannedChoice(state, partyAI) {
   const active = getActiveCombatant(state)
   if (active.side !== 'player') return null
   const step = chooseAIStep(state, { partyAI })
-  return ['attack', 'aim', 'assist'].includes(step.type) ? { ...step, actorId: active.id } : null
+  return SHOWN_CHOICES.includes(step.type) ? { ...step, actorId: active.id } : null
 }
 
 // The action just taken, for the buttons to stay up while its dice roll.

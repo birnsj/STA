@@ -8,6 +8,7 @@ import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS } from './turnActions.js'
 import { assistTalents, attackAttribute, defenceLines } from './combatTalents.js'
 import { getAttackTaskSpec, getCombatantWeapon, getRangeModifier } from './weaponSystem.js'
+import { scanTraitLines } from './combatScan.js'
 
 // Book (STA 2e Core p.288): Aim (minor action) lets the next Attack this turn reroll a single d20; with an Accurate
 // weapon (p.241: the Accurate quality) up to two d20s. A focus does nothing extra for Aim: its only effect is the critical
@@ -132,7 +133,11 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   const reach = weapon.type === 'melee' ? [] : reachLines(state, attacker, position)
   const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon), ...reach]
   const extraModifier = extraLines.reduce((total, line) => total + line.change, 0)
-  const task = { ...prepared.task, difficulty: prepared.difficulty + range.modifier + guardModifier + extraModifier }
+  // The scan trait counts as one of the attacker's own Difficulty changes, like a scene trait (before any opposed roll).
+  const difficultyBefore = prepared.difficulty + range.modifier + guardModifier + extraModifier
+  const scanLines = scanTraitLines(state, attacker, target, difficultyBefore)
+  const scanModifier = scanLines.reduce((total, line) => total + line.change, 0)
+  const task = { ...prepared.task, difficulty: difficultyBefore + scanModifier }
   const opposition = getOpposition(state, attacker, target, spec, weapon)
   const base = {
     weapon,
@@ -143,10 +148,12 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
     rangeModifier: range.modifier,
     guardModifier,
     extraLines,
-    traitLines: prepared.difficultyLines.filter((line) => line.label.startsWith('Trait')),
-    // Every change that makes up task.difficulty, for the Task panel (the prepared lines, then range, Guard, extra action).
+    traitLines: [...prepared.difficultyLines.filter((line) => line.label.startsWith('Trait')), ...scanLines],
+    // Every change that makes up task.difficulty, for the Task panel (the prepared lines, the scan trait, then range,
+    // Guard, extra action).
     difficultyLines: [
       ...prepared.difficultyLines,
+      ...scanLines,
       ...(range.modifier ? [{ label: `Range: ${band.name}`, change: range.modifier }] : []),
       ...(guardModifier ? [{ label: 'Target guarded', change: guardModifier }] : []),
       ...extraLines,

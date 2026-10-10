@@ -15,7 +15,10 @@
 // objectives: [{ id, title, description, position (the minimap marks it while active; null: no marker), activeWhen,
 // completeWhen }]; their progress is a mission flag (exploration/missionFlags.js). activeWhen / completeWhen: mission
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
-// out: only actions change it.
+// out: only actions change it. objectId: a challenge object the objective is marked on (its marker follows the object;
+// position is then unused).
+// objectPlacements: { [challenge object id]: position } where this map puts the challenge objects authored for it
+// (challenges.json); an object left out stands where challenges.json puts it (challengeObjects.js).
 // briefing: the Captain's Log opening text (blank lines split paragraphs); stardate: the episode's starting stardate
 // (a number, or null for missionLog.json's default). Both are left out on disk when empty.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
@@ -100,6 +103,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     markers: { playerStarts: [], enemySpawns: [] },
     npcs: [],
     objectives: [],
+    objectPlacements: {},
     briefing: '',
     stardate: null,
   }
@@ -129,6 +133,7 @@ const parseObjective = (raw, inside) => {
     title: raw.title ?? '',
     description: raw.description ?? '',
     position: position && inside(position) ? position : null,
+    objectId: typeof raw.objectId === 'string' && raw.objectId ? raw.objectId : null,
     activeWhen: conditionList(raw.activeWhen),
     completeWhen: conditionList(raw.completeWhen),
   }
@@ -138,6 +143,7 @@ const serializeObjective = (objective) => ({
   title: objective.title,
   description: objective.description,
   ...(objective.position ? { position: fromPosition(objective.position) } : {}),
+  ...(objective.objectId ? { objectId: objective.objectId } : {}),
   ...(objective.activeWhen?.length ? { activeWhen: objective.activeWhen } : {}),
   ...(objective.completeWhen?.length ? { completeWhen: objective.completeWhen } : {}),
 })
@@ -170,6 +176,12 @@ export function parseMapFile(file, id) {
     },
     npcs: (file.npcs ?? []).filter((raw) => raw?.id != null).map(parseNpc).filter((npc) => inside(npc.position)),
     objectives: (file.objectives ?? []).filter((raw) => raw?.id != null).map((raw) => parseObjective(raw, inside)),
+    objectPlacements: Object.fromEntries(
+      Object.entries(file.objectPlacements ?? {})
+        .filter(([, position]) => Array.isArray(position))
+        .map(([objectId, position]) => [objectId, toPosition(position)])
+        .filter(([, position]) => inside(position)),
+    ),
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     stardate: Number.isFinite(file.stardate) ? file.stardate : null,
   }
@@ -194,6 +206,9 @@ export function serializeMap(map) {
     },
     ...(map.npcs?.length ? { npcs: map.npcs.map(serializeNpc) } : {}),
     ...(map.objectives?.length ? { objectives: map.objectives.map(serializeObjective) } : {}),
+    ...(Object.keys(map.objectPlacements ?? {}).length
+      ? { objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements).map(([objectId, position]) => [objectId, fromPosition(position)])) }
+      : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(Number.isFinite(map.stardate) ? { stardate: map.stardate } : {}),
   }
@@ -214,6 +229,7 @@ export function resizeMap(map, width, height) {
     markers: { playerStarts: map.markers.playerStarts.filter(inside), enemySpawns: map.markers.enemySpawns.filter(inside) },
     npcs: (map.npcs ?? []).filter((npc) => inside(npc.position)),
     objectives: (map.objectives ?? []).map((objective) => (objective.position && !inside(objective.position) ? { ...objective, position: null } : objective)),
+    objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements ?? {}).filter(([, position]) => inside(position))),
   }
 }
 
