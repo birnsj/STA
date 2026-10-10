@@ -32,8 +32,9 @@ import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
-import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, joinsCombat, perceive, STATE } from './awareness.js'
+import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
 import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
+import { defeatedFlag } from './missionObjectives.js'
 import { getMembers, withAbleSelection } from './partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
@@ -172,12 +173,16 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
   const members = getMembers(party)
   if (!trigger || !canFight(trigger) || !members.some(isUp)) return state
 
+  // Attacking someone who wasn't hostile (an innocent) turns them Hostile (designer request, Oct 2026).
+  const turnsHostile = source === 'PLAYER_ATTACK' && !isHostile(trigger)
+  const startWorld = turnsHostile ? { ...state.world, npcs: { ...state.world.npcs, [triggerNpcId]: { ...trigger, disposition: 'hostile', responseType: null } } } : state.world
+
   // 1. Who fights: the trigger, any NPC already alerted to the party, and whoever their alert groups reach.
-  const alerted = getNpcs(state.world).filter(
+  const alerted = getNpcs(startWorld).filter(
     (npc) => npc.id !== triggerNpcId && canFight(npc) && joinsCombat(npc) && (npc.combatReady || party.memberIds.some((id) => npc.awareness[id]?.state === STATE.ALERTED)),
   )
   const { world, joined, searchPoints } = spreadAlerts(
-    state.world,
+    startWorld,
     [{ npcId: triggerNpcId, reason: 'trigger' }, ...alerted.map((npc) => ({ npcId: npc.id, reason: 'alerted' }))],
     [],
   )
@@ -211,7 +216,8 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
   })
   const targetName = party.members[triggerTargetId]?.character.name ?? 'the away team'
   const lines = [
-    `${trigger.character.name} engages ${targetName}.`,
+    source === 'PLAYER_ATTACK' ? `${targetName} attacks ${trigger.character.name}.` : `${trigger.character.name} engages ${targetName}.`,
+    ...(turnsHostile ? [`${trigger.character.name} turns hostile.`] : []),
     ...joined.filter((join) => join.reason !== 'trigger').map((join) => `${world.npcs[join.npcId].character.name} ${REASON_TEXT[join.reason]}.`),
   ]
   const combat = {
@@ -652,9 +658,12 @@ export function endCombat(state) {
     dying: getCombatantList(combat).filter((c) => c.condition.dying).map((c) => c.id),
     wouldDie: getCombatantList(combat).filter((c) => wouldDieAtSceneEnd(c.condition)).map((c) => c.id),
   }
-  // Combat locks count rounds of this fight; the next fight starts again at round 1.
+  // Combat locks count rounds of this fight; the next fight starts again at round 1. Each NPC left down or surrendered
+  // gets its defeated flag (missionObjectives.js) for objectives and conversations to read.
+  const defeatedFlags = Object.fromEntries([...lastCombat.down, ...lastCombat.surrendered].filter((id) => world.npcs[id]).map((id) => [defeatedFlag(id), true]))
   const scenario = state.scenario && {
     ...state.scenario,
+    flags: Object.keys(defeatedFlags).length ? { ...state.scenario.flags, ...defeatedFlags } : state.scenario.flags,
     objects: Object.fromEntries(Object.entries(state.scenario.objects).map(([id, object]) => [id, object.combatLocks ? { ...object, combatLocks: {} } : object])),
   }
   return {

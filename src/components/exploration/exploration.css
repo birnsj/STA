@@ -170,6 +170,83 @@
   width: 330px;
 }
 
+/* The Captain's Log: right side, under the top-right buttons. */
+.captains-log {
+  position: absolute;
+  top: 76px;
+  right: 8px;
+  bottom: 100px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  padding: 0;
+  overflow: hidden;
+  background: rgba(6, 12, 28, 0.97);
+}
+
+.log-briefing {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.log-objectives,
+.log-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.log-objective,
+.log-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+}
+
+.log-objective-title {
+  display: flex;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--yellow);
+}
+
+.log-objective.is-complete .log-objective-title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.log-objective-mark {
+  flex: none;
+  width: 12px;
+  text-decoration: none;
+}
+
+.log-objective-text {
+  padding-left: 18px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.log-entry-date {
+  font-family: var(--display-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.log-entry-text {
+  line-height: 1.4;
+  color: var(--text);
+}
+
 /* On the away-team screen: beside the roster. */
 .character-sheet.is-in-setup {
   flex: 1;
@@ -550,6 +627,20 @@
 
 .minimap-marker.is-enemy.is-down-stunned circle {
   fill: #ffd23f;
+}
+
+.minimap-marker.is-neutral circle {
+  fill: #b07ee8;
+}
+
+.minimap-marker.is-neutral.is-down-stunned circle {
+  fill: #ffd23f;
+}
+
+.minimap-marker.is-objective path {
+  fill: #ffcc33;
+  stroke: #03060e;
+  stroke-width: 1px;
 }
 
 .minimap-marker.is-unseen {
@@ -971,6 +1062,10 @@
   opacity: 1;
 }
 
+.explore-unit.is-clickable {
+  cursor: pointer;
+}
+
 .challenge-marker ellipse {
   fill: color-mix(in srgb, var(--challenge) 12%, transparent);
   stroke: var(--challenge);
@@ -1058,6 +1153,41 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* A conversation (ConversationPanel.jsx) uses the interaction panel's frame. */
+.conversation-line {
+  padding: 8px 10px;
+  border-left: 3px solid var(--yellow);
+  background: rgba(3, 6, 14, 0.6);
+}
+
+.conversation-speaker {
+  margin: 0 0 4px;
+  color: var(--label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.conversation-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.conversation-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversation-option-check {
+  color: var(--yellow);
+}
+
+.challenge-performer.is-best {
+  border-color: var(--yellow);
 }
 
 .challenge-panel h3,

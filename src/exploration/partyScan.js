@@ -55,6 +55,49 @@ export function compassPoint(from, to) {
   return COMPASS[Math.round(((degrees + 360) % 360) / 45) % 8]
 }
 
+// { possible, reason }: whether the member can scan this NPC now (as canScan, and the NPC within their tricorder's range).
+export function canScanNpc(state, memberId, npcId) {
+  const check = canScan(state, memberId)
+  if (!check.possible) return check
+  const member = state.party.members[memberId]
+  const npc = state.world.npcs[npcId]
+  if (!npc) return { possible: false, reason: 'Nobody there.' }
+  const radius = scanRadius(member.character)
+  if (distance(member.position, npc.position) > radius) return { possible: false, reason: `Out of tricorder range (${radius} tiles).` }
+  return { possible: true, reason: null }
+}
+
+// The member scans one NPC with the same Scan task (videogame adaptation, designer request 2026-10-09). Returns the
+// state with the roll's Momentum saved, the cooldown started (shared with area scans) and npcScans[npcId]:
+// { key, memberId, success, successes, difficulty } (the NPC's radial-menu card shows what a success reveals).
+// Unchanged when the member can't scan that NPC (or the task is impossible for them).
+export function scanNpc(state, memberId, npcId) {
+  if (!canScanNpc(state, memberId, npcId).possible) return state
+  const member = state.party.members[memberId]
+  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  if (!prepared.possible) return state
+
+  const key = state.scenario.taskCount
+  const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + key))
+  const result = resolveStaTask({
+    leader: { task: prepared.task, dice: rollDice(random, checkDicePurchase(state.resources).dice) },
+    difficulty: prepared.difficulty,
+    ignoreComplications: prepared.ignoreComplications,
+    bonusMomentum: prepared.bonusMomentum,
+  })
+  const { resources } = saveMomentum(state.resources, savableMomentum(result))
+  // A success keeps what was learned even if a later scan of the same NPC fails.
+  const previous = state.npcScans?.[npcId]
+  const success = result.success || Boolean(previous?.success)
+  return {
+    ...state,
+    resources,
+    scenario: { ...state.scenario, taskCount: key + 1 },
+    scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
+    npcScans: { ...state.npcScans, [npcId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty } },
+  }
+}
+
 // The member scans. Returns the state with the roll's Momentum saved, the life signs revealed, the cooldown started
 // and lastScan: { key, memberId, success, successes, difficulty, radius, found, enemies, enemyContacts, location } for
 // the screen (found / enemies: life signs and enemies among them, 0 on a failure; enemyContacts: { direction, distance }

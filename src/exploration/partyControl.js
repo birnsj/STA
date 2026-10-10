@@ -38,8 +38,10 @@ export function createPartyState(map, characters) {
   const starts = map.markers.playerStarts
   const centre = { x: (map.width - 1) / 2, y: (map.height - 1) / 2 }
   const members = characters.slice(0, starts.length).map((character, index) => {
-    const position = { ...starts[index] }
-    const heading = headingTo(position, centre)
+    // A start turned in the map editor sets the member's facing; otherwise they look toward the middle of the map.
+    const { x, y, facing } = starts[index]
+    const position = { x, y }
+    const heading = facing == null ? headingTo(position, centre) : (facing * Math.PI) / 180
     return {
       id: character.id,
       character,

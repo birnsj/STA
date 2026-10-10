@@ -22,17 +22,17 @@ import {
 
 // One two-tile doorway in every wall two rooms share, so each room is reachable. Returns the tiles either side of each
 // doorway, which stay clear floor.
-function connectRooms(tiles, grid, random) {
+function connectRooms(tiles, grid, random, door) {
   const keep = new Set()
   grid.forEach((row) =>
     row.forEach((room, col) => {
       if (row[col + 1]) {
         const cells = doorwayOffsets(random, room.y0, room.y1).map((y) => ({ x: room.x1 + 1, y }))
-        cutDoorway(tiles, keep, cells, [1, 0], DOOR_TILE)
+        cutDoorway(tiles, keep, cells, [1, 0], door)
       }
       if (grid[room.row + 1]?.[col]) {
         const cells = doorwayOffsets(random, room.x0, room.x1).map((x) => ({ x, y: room.y1 + 1 }))
-        cutDoorway(tiles, keep, cells, [0, 1], DOOR_TILE)
+        cutDoorway(tiles, keep, cells, [0, 1], door)
       }
     }),
   )
@@ -50,8 +50,17 @@ function placeMarkers(tiles, playerRoom, enemyRoom, random) {
   return pickMarkers(openIn(playerRoom), openIn(enemyRoom), random)
 }
 
-// style: { floor, wall, crate, machinery, hazard (whether to place the EPS grating and control) }.
-export function makeDeckGenerator({ floor = FLOOR_TILE, wall = WALL_TILE, crate = CRATE_TILE, machinery = MACHINERY_TILE, hazard = true } = {}) {
+// style: { floor, wall, door, crate, machinery, hazard (whether to place the EPS grating and control),
+// furnishRooms(tiles, keep, rooms, random, style) instead of the default crates and consoles }.
+export function makeDeckGenerator({
+  floor = FLOOR_TILE,
+  wall = WALL_TILE,
+  door = DOOR_TILE,
+  crate = CRATE_TILE,
+  machinery = MACHINERY_TILE,
+  hazard = true,
+  furnishRooms = null,
+} = {}) {
   const walls = new Set([wall])
   return function generateDeck(map, random, areaNames) {
     const { width, height } = map
@@ -68,7 +77,7 @@ export function makeDeckGenerator({ floor = FLOOR_TILE, wall = WALL_TILE, crate 
       for (let x = 1; x < width - 1; x++) tiles[y1 + 1][x] = wall
     })
 
-    const keep = connectRooms(tiles, grid, random)
+    const keep = connectRooms(tiles, grid, random, door)
 
     // Players start in a corner room and enemies in the opposite one.
     const playerRow = random() < 0.5 ? 0 : rows.length - 1
@@ -76,7 +85,8 @@ export function makeDeckGenerator({ floor = FLOOR_TILE, wall = WALL_TILE, crate 
     const playerRoom = grid[playerRow][playerCol]
     const enemyRoom = grid[rows.length - 1 - playerRow][columns.length - 1 - playerCol]
 
-    rooms.forEach((room) => furnishRoom(tiles, keep, room, random, { floor, walls, crate, machinery }))
+    if (furnishRooms) furnishRooms(tiles, keep, rooms, random, { floor, wall, crate, machinery })
+    else rooms.forEach((room) => furnishRoom(tiles, keep, room, random, { floor, walls, crate, machinery }))
 
     if (hazard) {
       const markerRooms = new Set([playerRoom, enemyRoom])

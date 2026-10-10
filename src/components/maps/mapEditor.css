@@ -297,6 +297,16 @@
 
 .me-swatch.is-player { background: #3fb6e8; }
 .me-swatch.is-enemy { background: #e5483a; }
+.me-swatch.is-npc { background: #b07ee8; }
+
+/* The NPC inspector and objectives list in the side panel. */
+.me-wide { width: 100%; max-width: none; box-sizing: border-box; }
+.me-field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 5px; }
+.me-field-label { color: #8fb4ba; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.me-inspector { padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid #23434a; }
+.me-inspector-actions { display: flex; gap: 4px; }
+.me-objective { display: flex; flex-direction: column; gap: 3px; padding: 4px 0 6px; border-bottom: 1px solid #1a3136; margin-bottom: 4px; }
+.me-objective textarea { resize: vertical; }
 .me-swatch.is-area { background: #9fb9bd; }
 .me-swatch.is-erase { background: repeating-linear-gradient(45deg, #444 0 3px, #222 3px 6px); }
 
@@ -371,6 +381,8 @@
 
 .me-minimap-marker.is-player circle { fill: #3fb6e8; }
 .me-minimap-marker.is-enemy circle { fill: #e5483a; }
+.me-minimap-marker.is-npc circle { fill: #b07ee8; }
+.me-minimap-marker.is-objective path { fill: #e0a800; stroke: #03060e; stroke-width: 1px; vector-effect: non-scaling-stroke; }
 
 /* The save confirmation: shown over the top of the board for a few seconds. */
 .me-notice {
@@ -437,8 +449,16 @@
 .me-marker polygon { stroke: #ffffff; stroke-width: 1; opacity: 0.9; }
 .me-marker.is-player polygon { fill: #3fb6e8; }
 .me-marker.is-enemy polygon { fill: #e5483a; }
+.me-marker.is-npc polygon { fill: #b07ee8; }
+.me-marker.is-objective polygon { fill: #e0a800; }
+.me-marker.is-selected polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; }
+/* Facing arrow (player starts, NPCs, enemy spawns): solid white with a dark outline so it reads on any marker colour
+   and floor. g.me-facing out-ranks the marker polygon colours above. */
+.me-facing line { stroke: #ffffff; stroke-width: 2.5; stroke-linecap: round; filter: drop-shadow(0 0 1px #03060e) drop-shadow(0 0 1px #03060e); }
+.me-marker g.me-facing polygon { fill: #ffffff; stroke: #03060e; stroke-width: 1.2; stroke-linejoin: round; opacity: 1; animation: none; }
 /* Erase Marker: what a click on the hovered tile would remove. */
 .me-hover.is-erase { fill: rgba(255, 179, 71, 0.18); stroke: #ffb347; stroke-width: 3; }
+.me-hover.is-move-source { fill: rgba(102, 204, 255, 0.15); stroke: #66ccff; stroke-width: 3; stroke-dasharray: 6 4; }
 .me-marker.is-doomed polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; animation: me-doomed 0.8s ease-in-out infinite alternate; }
 .me-area-label.is-doomed { fill: #ffb347; text-decoration: line-through; animation: me-doomed 0.8s ease-in-out infinite alternate; }
 @keyframes me-doomed {

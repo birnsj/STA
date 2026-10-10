@@ -7,9 +7,9 @@
     "Combat Type 1 (Battlefield.jsx): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). First Aid that ends Defeated plays the fall backwards (getting up). Downed characters in exploration lie in the same pose.",
     "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
-    "displayScale: every figure (and its shadow and click area) is drawn this much larger than its frame, scaled from the feet. Designer request (Oct 2026): 15% bigger."
+    "displayScale: every figure (and its shadow and click area) is drawn this much larger than its frame, scaled from the feet. Designer requests (Oct 2026): 15% bigger, then 10% bigger again (1.15 x 1.1)."
   ],
-  "displayScale": 1.15,
+  "displayScale": 1.265,
   "directions": ["s", "se", "e", "ne", "n"],
   "mirrored": { "sw": "se", "w": "e", "nw": "ne" },
   "sheets": {

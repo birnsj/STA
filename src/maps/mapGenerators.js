@@ -21,6 +21,7 @@ import {
   generateDetention,
   generateLaboratory,
 } from './generators/interiors.js'
+import { generateKlingonShip, generateKlingonStation } from './generators/klingon.js'
 import { generateLandingField } from './generators/landingField.js'
 import { generateMiningSite } from './generators/miningSite.js'
 import { generateOutpost } from './generators/outpost.js'
@@ -48,6 +49,8 @@ export const MAP_GENERATORS = [
   { id: 'starshipDeck', label: 'Starship Deck', group: 'space', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateStarshipDeck },
   { id: 'spaceStation', label: 'Space Station', group: 'space', setting: 'space', nameCategory: 'stationRoom', areaNames: stationAreaNames, generate: generateSpaceStation },
   { id: 'derelict', label: 'Derelict Ship', group: 'space', setting: 'space', nameCategory: 'derelict', areaNames: locationList('shipRoom'), generate: generateDerelict },
+  { id: 'klingonShip', label: 'Klingon Ship', group: 'klingon', setting: 'space', ...own('klingonShip'), generate: generateKlingonShip },
+  { id: 'klingonStation', label: 'Klingon Station', group: 'klingon', setting: 'space', ...own('klingonStation'), generate: generateKlingonStation },
   { id: 'colony', label: 'Small Colony', group: 'surface', setting: 'ground', ...own('colony'), generate: generateColony },
   { id: 'outpost', label: 'Outpost', group: 'surface', setting: 'ground', ...own('outpost'), generate: generateOutpost },
   { id: 'city', label: 'Small City', group: 'surface', setting: 'ground', ...own('city'), generate: generateCity },
@@ -69,6 +72,7 @@ export const MAP_GENERATORS = [
 // The Location list's groups, in order.
 export const LOCATION_GROUPS = [
   { id: 'space', label: 'Space' },
+  { id: 'klingon', label: 'Klingon' },
   { id: 'surface', label: 'Planet Surface' },
   { id: 'indoor', label: 'Indoor' },
   { id: 'alien', label: 'Alien' },

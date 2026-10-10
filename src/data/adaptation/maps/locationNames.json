@@ -339,6 +339,38 @@
       "names": ["Unknown Vessel Interior", "The Seedship", "Bioship Corridors", "Alien Derelict Core", "The Silent Ark", "Probe Vessel Interior", "The Wanderer's Hold", "Living Ship Chambers", "Sphere Vessel Deck", "The Harvester", "Monolith Ship Interior", "The Shepherd's Vessel"]
     },
     {
+      "id": "klingonShip",
+      "label": "Klingon Ship",
+      "names": [
+        "Bridge of the I.K.S. Qo'vath",
+        "I.K.S. Ma'tok Engine Room",
+        "I.K.S. Vor'kang Weapons Deck",
+        "Torpedo Bay of the I.K.S. Gharen",
+        "I.K.S. Kel'dor Brig",
+        "Bird-of-Prey Command Deck",
+        "Battle Cruiser Lower Decks",
+        "I.K.S. Toh'gar Mess Hall",
+        "Warrior's Hold of the I.K.S. Rek'nar",
+        "I.K.S. Duj'Hegh Troop Deck"
+      ]
+    },
+    {
+      "id": "klingonStation",
+      "label": "Klingon Station",
+      "names": [
+        "Kor'vath Station Great Hall",
+        "Outpost Gar'tok",
+        "Klingon Border Station Ghar",
+        "Mak'lor Starbase Docking Ring",
+        "Fortress Station Ta'vek",
+        "Kronos Orbital Shipyard Hall",
+        "Listening Post Qeylis",
+        "Supply Depot Mor'gath",
+        "Station H'atoria Garrison",
+        "Ty'rok Military Outpost"
+      ]
+    },
+    {
       "id": "wilderness",
       "label": "Wilderness",
       "names": [

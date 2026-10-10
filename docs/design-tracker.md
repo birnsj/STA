@@ -30,6 +30,59 @@ Open design decisions for the designer. Each entry separates what the book says 
 **Related questions:**
 - Should the Novice rank cap stay once rank has gameplay effects?
 
+### NPC and conversation authoring, phase 1 (implemented 2026-10-09, choices awaiting designer review)
+
+**Book:** social interaction is roleplay with tasks where the outcome is uncertain (Core p.279); there is no rule for dialogue trees, flags or objectives.
+
+**Prototype (designer decisions, Oct 2026):** NPCs are placed and edited in Dev Edit and saved in the map file (a map with its own NPCs no longer uses `npcs.json`). Conversations are node graphs edited in Dev Edit and saved under `conversations/`. Objective status is stored as mission flags and shown in an Objectives panel. The validation encounter uses an authored Federation engineer from the Core Rulebook Starfleet Officer (p.352), with a hand-authored junction and bulkheads in `challenges.json`.
+
+**Implementer picks, open for review:**
+- The talk range is the challenge-object reach (2 tiles). E interacts with an object first, then talks.
+- Left-clicking a visible NPC opens a ring. The designer chose Scan, Attack, Info and greyed placeholders, on top of the implementer's Talk and Go To. Talk from out of reach walks the party over first.
+- NPC ring details:
+  - Scan uses the area Scan's task, Difficulty and cooldown. The scanner is the first selected character who can scan.
+  - The Info card shows the highest awareness state toward any party member.
+  - Attack asks for confirmation only for friendly and neutral NPCs.
+  - Attack never offers the opening Ambush, even on an unaware NPC. Should attacking someone unaware allow it?
+  - The placeholders are Persuade, Intimidate, Use Item and First Aid.
+- A conversation check can be answered by any able party member within reach. There is no assist and the NPC never rolls back.
+- The Task Check node's complication actions run once if any complication is left after the roll.
+- A conversation can't start or continue during combat. A `startCombat` action fights the speaking NPC.
+- Flags last for the episode only, because there is no save game.
+- The `engineerTrust` flag is set but nothing reads it yet.
+- A successful diagnosis unlocks an easier junction action (Control + Engineering, Difficulty 1, instead of Reason + Engineering, Difficulty 3).
+- The east bulkheads can also be forced with a Control + Security override (Difficulty 2) once power is back, without Lt. Okafor's clearance.
+- Sealing the east section keeps the two Klingon spawns out of reach until the bulkheads open.
+
+- Captain's Log (designer request, 2026-10-09; see `prototype-rules.md`):
+  - The stardate starts at the map's stardate (default 4523.3) and goes up 0.1 per minute of exploration time.
+  - Automatic entries: objectives becoming active or complete, and conversation check results. Fights, scans and challenge rolls are not logged unless the author adds an entry.
+  - The Deck 10 Brig briefing is an implementer draft for the designer to rewrite.
+- Objective markers on the minimap (designer request, 2026-10-09): the Deck 10 Brig's "Restore power" marker is placed on the EPS junction (23, 23), an implementer pick. Markers show regardless of whether the party has seen that spot.
+- More Deck 10 Brig objectives (designer request, 2026-10-10). The titles, descriptions, triggers and markers are implementer drafts:
+  - "Get Lt. Okafor's clearance": active once you have met her (`engineerMet`), complete once she grants access (`sectionAccessGranted`). No map marker, because it would cover her on the editor board.
+  - "Get into the east section": active once the power is back (`stationPowerRestored`), complete once either east bulkhead opens, by clearance or by override (the doors now set `eastSectionOpen`). Marked at the south bulkhead (24, 20).
+  - "Deal with the Klingon guards": active once a bulkhead opens, complete once guards A, B and C are each down or surrendered (`defeated.guardA/B/C`, set when a fight ends).
+
+**Questions:** should a surrendered NPC count as defeated for objectives? Should conversations ever run in combat (for example a surrender parley)? Should a fight's outcome be logged automatically? Should flags and objectives be saved once save games exist? What should `engineerTrust` (or disposition changes) affect?
+
+### Klingon locations in Generate Map (implemented 2026-10-09, choices awaiting designer review)
+
+**Request:** add Klingon locations to the map editor's Location list.
+
+**Book:** no rule; map layout is wholly prototype.
+
+**Prototype** (`src/maps/generators/klingon.js`): a new "Klingon" heading in the Location list with two entries, both implementer proposals:
+- **Klingon Ship:** the Starship Deck room grid built from the Klingon tile set.
+- **Klingon Station:** the Space Station layout (a Great Hall with rooms off it) from the same tiles.
+- Each map has a warp core on a ring of lit grates in one roomy room and a command chair in another (small maps can lack room for the chair). Consoles and cargo line the walls. The station's hall has struts down both sides and a strip of grates.
+- About 25% of bulkheads become display or conduit walls. The closed door is never generated.
+- There is no EPS hazard patch, because the set has no hazard tile.
+- Sizes copy Starship Deck and Space Station. The Generate Card picture is the existing interior painter in its dark red hull.
+- Map names (`locationNames.json` klingonShip, klingonStation) and area labels (`areaNames.json`) are invented placeholders.
+
+**Questions:** are these the right two locations (for example, should a Bird-of-Prey, a battle cruiser or a planetside fortress be separate)? Should the warp core and chair always appear? Should generated maps use the closed door anywhere?
+
 ## Decided
 
 ### Core Rulebook is the rules authority (decided 2026-10-08)
@@ -213,3 +266,9 @@ Open design decisions for the designer. Each entry separates what the book says 
 **Book:** Captain's Log p.74: Control is the attribute for remaining stealthy. The STA 2e Core Rulebook (p.88) describes Control as precision and "deliberate, measured actions". No book has real-time stealth or movement speed rules.
 
 **Prototype (designer decisions, 2026-10-09):** the C key or the Sneak button (under the formations) toggles sneak for the selected characters: on for all of them unless every one already sneaks. Sneak skill is Control + Security, as for the combat Ambush; each character uses their own. A sneaking character crouches (new sneak idle and sneak walk animations), never runs (a long move order still sneaks), and moves at a speed from their skill. NPC awareness of a sneaking character builds more slowly, scaled by the same skill; there is no roll. Implementer picks, all first-pass tuning in `src/data/adaptation/exploration/sneak.json`, open for review: speed 1.7 tiles per second at skill 11, plus 0.12 per point, between 1.1 and 2.6 (walk is 3.2); a follower who falls behind catches up at 1.4 times their sneak speed. Detection replaces the moving (1.5x) or running (2.5x) multiplier with 0.8x while moving or 0.6x standing still, multiplied by 1 - 0.06 per point above 11, between 0.4 and 1.4. Inside an NPC's close range (2 tiles) a sneaker is still identified at once. A sneaking figure is drawn slightly faded, so portrait-token characters show it too. Sneak stays on after a fight. Focuses (Camouflage) have no effect. Logic in `src/exploration/sneak.js`, `partyControl.js` (`toggleSneak`, `member.sneaking`) and `awareness.js` (`perceive`); sprite sheet `sneak` in `characterSprites.json`, drawn by `scripts/makeCharacterSprites.mjs --sheet=sneak`.
+
+### Wall fade grouping: room cutaway (decided 2026-10-09, numbers awaiting tuning)
+
+**Book:** no rule (presentation only).
+
+**Prototype (designer decisions, 2026-10-09):** walls that hide a figure fade in logical groups instead of block by block, and a wall that has faded stays faded until the figure is clearly clear of it (a stickiness margin), so walls don't flicker at the edge. The map's floor is split into spaces bounded by walls and doorways. A character in a room fades that room's camera-facing walls (east and south sides, the corner between them and the corner posts at their ends), each side as one whole wall, doorways included, while a character is less than 4 tiles from that side measured straight out from it (solid again at 4 tiles; for the characters' own room nothing else, not even a wall covering a character, fades those walls) (the x distance for the east side, the y distance for the south side), wherever they are along it (designer decisions, 2026-10-09; implementer pick: the corner where the sides meet belongs to both, each far corner post to its own side, so a back wall never fades with them), so the room is seen into where the party stands while the walls beyond it stay solid. A character standing in a doorway keeps the room they came from. In corridors and open areas, a wall that hides a figure fades its whole straight section. Wall fade now shares one 200 ms fade timing between the map and the figure overlays (fixes a flicker), and figures are measured at the current sprite scale (1.265). Implementer picks, tuning in `src/data/adaptation/maps/wallFade.json`, open for review: a space touching the map edge or over 300 tiles is open ground, not a room; a space with under 15% of its tiles away from walls is a corridor; sections are cut every 6 tiles; the stickiness margin is 12 px. A faded section reappears once every character cutting walls away is more than 2 tiles from all of it (designer decision, 2026-10-09; implementer pick: diagonal steps count as one tile). A section with a wall actually covering a character fades however far away it is. Only the selected characters cut walls away in exploration, and in combat only whoever's turn it is (an enemy the party can see, on its turn) (designer decisions, 2026-10-09). Logic in `src/maps/wallFade.js` (`analyseWalls`, `wallFadeStep`) and `src/components/maps/useWallFade.js`; fade timing in `src/components/maps/fadeLevels.js`.

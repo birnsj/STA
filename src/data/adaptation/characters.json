@@ -7,7 +7,8 @@
     "Klingon species (Book: STA 2e Core p.108): +1 Daring, Fitness, Presence; trait Klingon; Species Ability Brak'lul (+1 Protection stacking with armour; First Aid on them may re-roll a d20). The stat block's Protection 1 is matched by Brak'lul, so no separate stat-block Protection is kept.",
     "Not yet authored for the Klingon Warriors (no source-backed build exists in the project): focuses (the Minor NPC stat block has none), talents (Klingon species talents, Core p.151, are not transcribed: talents.json excludes non-creator species), rank, assignment and role, lifepath (environment, upbringing, education, career events), and personal names. The Bat'leth is left out (no Escalation rules) and Warrior's Spirit is not implemented.",
     "identity.portrait.image is used because Klingon portraits are not in portraits.json. Warriors 3 and 4 share portrait art with Warriors 1 and 2.",
-    "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.108), the Klingon Veteran (p.355) and Moq'var, Son of Koloth (p.356). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented."
+    "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.108), the Klingon Veteran (p.355) and Moq'var, Son of Koloth (p.356). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented.",
+    "Station Engineer (Book: STA 2e Core p.352, Starfleet Officer, Minor NPC): stat block Control 10, Daring 10, Fitness 8, Insight 8, Presence 9, Reason 9 before species ('add 3 points to attributes based on species'); every department 1; traits Species, Starfleet Officer; Unarmed Strike, Phaser Type-1. GM note: add 1 point to two different departments to make a type. Implementer picks for the NPC and conversation test encounter (Oct 2026), open for review: Human (Core p.98: +1 to three attributes) taking Control, Insight and Reason; the engineer type takes +1 Engineering and +1 Science; name Lt. Mara Okafor; portrait human-female-3. No values, focuses or talents (the Minor NPC stat block has none); Intensive Training (p.351) is not implemented."
   ],
   "characters": [
     {
@@ -541,6 +542,113 @@
         "department": {
           "id": "security",
           "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "stationEngineer",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "insight",
+              "name": "Insight",
+              "value": 1
+            },
+            {
+              "id": "reason",
+              "name": "Reason",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "engineering",
+            "name": "Engineering"
+          },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Lt. Mara Okafor",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "human-female-3",
+            "name": "Human Female 3"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "phaserType1"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 11,
+          "daring": 10,
+          "fitness": 8,
+          "insight": 9,
+          "presence": 9,
+          "reason": 10
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 2,
+          "security": 1,
+          "science": 2,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": {
+          "id": "engineering",
+          "name": "Engineering"
         },
         "assignment": null,
         "role": null

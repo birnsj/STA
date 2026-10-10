@@ -1,11 +1,12 @@
 {
   "notes": [
-    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: Ĕ (allocation order in docs/tiles.md)."
+    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: ğ (allocation order in docs/tiles.md)."
   ],
   "imageSize": { "width": 64, "height": 96 },
   "paletteGroups": [
     { "id": "starship", "section": "Locations", "label": "Starship & Station", "tiles": ["floor", "doorway", "bulkhead", "plainBulkhead", "lcarsWall", "conduitWall", "hatchWall", "computerWall", "lcarsPanel", "conduitPanel", "hatchPanel", "computerPanel", "machinery", "crate", "grating", "epsControl"] },
     { "id": "tosBridge", "section": "Locations", "label": "Bridge (TOS)", "tiles": ["tosDeck", "tosWell", "tosWall", "tosViewscreen", "tosTurbolift", "tosChair", "tosHelm", "tosStation", "tosScience", "tosRail", "tosHull", "tosVoid"] },
+    { "id": "klingon", "section": "Locations", "label": "Klingon Ship & Station", "tiles": ["klingonDeck", "klingonGrate", "klingonBulkhead", "klingonDisplayWall", "klingonConduitWall", "klingonDoor", "klingonStrut", "klingonChair", "klingonConsole", "klingonWarpCore", "klingonCrate"] },
     { "id": "derelict", "section": "Locations", "label": "Derelict Ship", "tiles": ["derelictDeck", "breachedBulkhead", "debris", "scorched"] },
     { "id": "settlement", "section": "Locations", "label": "Colony & Outpost", "tiles": ["ground", "path", "prefabWall", "fence", "tree", "rock"] },
     { "id": "city", "section": "Locations", "label": "Small City", "tiles": ["pavement", "cityWall", "planter", "fountain"] },
@@ -361,6 +362,17 @@
     { "id": "tosScience", "symbol": "ď", "label": "Science Station", "image": "/art/sprites/environment/tosBridge/tosScience.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 26, "role": null },
     { "id": "tosRail", "symbol": "Đ", "label": "Bridge Railing", "image": "/art/sprites/environment/tosBridge/tosRail.png", "joinImages": "/art/sprites/environment/tosBridge/tosRail-{joins}.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 14, "role": null },
     { "id": "tosHull", "symbol": "đ", "label": "Bridge Outer Wall", "image": "/art/sprites/environment/tosBridge/tosHull.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 64, "imageHeight": 100, "role": null },
-    { "id": "tosVoid", "symbol": "Ē", "label": "Outside (Empty)", "image": "/art/sprites/environment/tosBridge/tosVoid.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null }
+    { "id": "tosVoid", "symbol": "Ē", "label": "Outside (Empty)", "image": "/art/sprites/environment/tosBridge/tosVoid.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "klingonDeck", "symbol": "Ĕ", "label": "Klingon Deck", "image": "/art/sprites/environment/klingon/klingonDeck.png", "altImage": "/art/sprites/environment/klingon/klingonDeck-alt.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "klingonGrate", "symbol": "ĕ", "label": "Lit Deck Grate", "image": "/art/sprites/environment/klingon/klingonGrate.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "klingonBulkhead", "symbol": "Ė", "label": "Klingon Bulkhead", "image": "/art/sprites/environment/klingon/klingonBulkhead.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonDisplayWall", "symbol": "ė", "label": "Tactical Display Wall", "image": "/art/sprites/environment/klingon/klingonDisplayWall.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonConduitWall", "symbol": "Ę", "label": "Plasma Conduit Wall", "image": "/art/sprites/environment/klingon/klingonConduitWall.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonDoor", "symbol": "ę", "label": "Klingon Door (Closed)", "image": "/art/sprites/environment/klingon/klingonDoor.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonStrut", "symbol": "Ě", "label": "Support Strut", "image": "/art/sprites/environment/klingon/klingonStrut.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonChair", "symbol": "ě", "label": "Command Chair", "image": "/art/sprites/environment/klingon/klingonChair.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 38, "role": null },
+    { "id": "klingonConsole", "symbol": "Ĝ", "label": "Klingon Console", "image": "/art/sprites/environment/klingon/klingonConsole.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 24, "role": null },
+    { "id": "klingonWarpCore", "symbol": "ĝ", "label": "Warp Core", "image": "/art/sprites/environment/klingon/klingonWarpCore.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "klingonCrate", "symbol": "Ğ", "label": "Klingon Cargo Container", "image": "/art/sprites/environment/klingon/klingonCrate.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 18, "role": null }
   ]
 }

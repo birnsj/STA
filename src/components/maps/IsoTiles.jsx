@@ -119,13 +119,20 @@ function WallTile({ tile, position, panel }) {
 // ghost: drawn see-through (the editor uses it to see tiles behind tall blocks). faded: see-through because it hides a
 // party member (wallFade.js). panel: this wall's place in a two-tile panel (wallPanels.js), or null. A railing is drawn
 // as the piece joining its neighbours (railJoins.js), never mirrored.
-export const BlockTile = memo(function BlockTile({ map, position, ghost = false, faded = false, panel = null }) {
+// fadeLevel: its opacity part way through fading (fadeLevels.js), else null for the CSS one.
+const fadeStyle = (fadeLevel) => (fadeLevel == null ? undefined : { opacity: fadeLevel, transition: 'none' })
+
+export const BlockTile = memo(function BlockTile({ map, position, ghost = false, faded = false, fadeLevel = null, panel = null }) {
   const tile = getTile(map.tiles[position.y][position.x])
   const joined = joinedImage(map, position)
   const size = imageSize(tile)
   const book = tile.wall || joined ? null : tileFlipbook(tile)
   return (
-    <g className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`} transform={!joined && isMirrored(map, position) ? mirrorTransform(position) : undefined}>
+    <g
+      className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`}
+      style={faded ? fadeStyle(fadeLevel) : undefined}
+      transform={!joined && isMirrored(map, position) ? mirrorTransform(position) : undefined}
+    >
       {tile.wall ? (
         <WallTile tile={tile} position={position} panel={panel} />
       ) : book ? (
@@ -145,9 +152,9 @@ export const BlockTile = memo(function BlockTile({ map, position, ghost = false,
 // Both halves of a faded two-tile panel, faded as one group: drawn solid inside it, the nearer half covers the seam
 // between them as it does on a solid wall, so the panel fades as one wall rather than two overlapping tiles.
 // positions: the far half then the near half.
-function FadedPanel({ map, positions, panels }) {
+function FadedPanel({ map, positions, panels, fadeLevel = null }) {
   return (
-    <g className="tilemap-block is-faded">
+    <g className="tilemap-block is-faded" style={fadeStyle(fadeLevel)}>
       {positions.map((position) => (
         <BlockTile key={`${position.x},${position.y}`} map={map} position={position} panel={panels.get(`${position.x},${position.y}`)} />
       ))}
@@ -163,7 +170,7 @@ function FadedPanel({ map, positions, panels }) {
 // strip: [from, to] across the image, as fractions of its width.
 // mirror: the object is drawn mirrored (its origin tile is rotated); each strip still covers the same part of the
 // footprint, cut from the mirrored image.
-const BigObjectStrip = memo(function BigObjectStrip({ tile, origin, strip, faded, ghost = false, mirror = false }) {
+const BigObjectStrip = memo(function BigObjectStrip({ tile, origin, strip, faded, fadeLevel = null, ghost = false, mirror = false }) {
   const centre = project({ x: origin.x + 0.5, y: origin.y + 0.5 })
   const { width, height } = BIG_IMAGE
   const [from, to] = strip
@@ -171,7 +178,7 @@ const BigObjectStrip = memo(function BigObjectStrip({ tile, origin, strip, faded
   const book = bigFlipbook(tile)
   const draw = (href) => <image className="tilemap-tile" href={href} width={width} height={height} transform={flip} />
   return (
-    <g className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`}>
+    <g className={`tilemap-block${ghost ? ' is-ghost' : ''}${faded ? ' is-faded' : ''}`} style={faded ? fadeStyle(fadeLevel) : undefined}>
       <svg x={centre.x - width / 2 + from * width} y={centre.y + TILE_H - height} width={(to - from) * width} height={height} viewBox={`${from * width} 0 ${(to - from) * width} ${height}`}>
         {book ? <Flipbook book={book} delay={animationDelay(origin)} draw={draw} /> : draw(tile.big.image)}
       </svg>
@@ -191,12 +198,13 @@ function bigStrip(position, origin) {
   return null
 }
 
-// A block in a tall-wall view (exploration, Combat Type 1, the map editor). faded: Set of faded 'x,y' keys; panels:
-// getWallPanels; bigGroups: getBigObjects; ghost: the editor's See-through blocks. A big object is drawn in strips by
-// three of its tiles (BigObjectStrip).
+// A block in a tall-wall view (exploration, Combat Type 1, the map editor). faded: Set of faded 'x,y' keys, or a Map of
+// keys to their opacity while fading in or out (fadeLevels.js); panels: getWallPanels; bigGroups: getBigObjects; ghost:
+// the editor's See-through blocks. A big object is drawn in strips by three of its tiles (BigObjectStrip).
 // A faded panel is drawn whole by its nearer half (half 1, one step further along its axis), so the far half draws nothing.
 export function WallBlock({ map, position, faded, panels, bigGroups, ghost = false }) {
   const key = `${position.x},${position.y}`
+  const fadeLevel = faded instanceof Map ? (faded.get(key) ?? null) : null
   const origin = bigGroups.get(key)
   if (origin) {
     const strip = bigStrip(position, origin)
@@ -207,6 +215,7 @@ export function WallBlock({ map, position, faded, panels, bigGroups, ghost = fal
         origin={origin}
         strip={strip}
         faded={faded.has(key)}
+        fadeLevel={fadeLevel}
         ghost={ghost}
         mirror={isRotated(map, origin)}
        
@@ -214,10 +223,10 @@ export function WallBlock({ map, position, faded, panels, bigGroups, ghost = fal
     )
   }
   const panel = panels.get(key) ?? null
-  if (!faded.has(key) || !panel) return <BlockTile map={map} position={position} ghost={ghost} faded={faded.has(key)} panel={panel} />
+  if (!faded.has(key) || !panel) return <BlockTile map={map} position={position} ghost={ghost} faded={faded.has(key)} fadeLevel={fadeLevel} panel={panel} />
   if (panel.half === 0) return null
   const far = panel.axis === 'x' ? { x: position.x - 1, y: position.y } : { x: position.x, y: position.y - 1 }
-  return <FadedPanel map={map} positions={[far, position]} panels={panels} />
+  return <FadedPanel map={map} positions={[far, position]} panels={panels} fadeLevel={fadeLevel} />
 }
 
 // One tile on its own as the map views draw it (the editor's brush): a block with its panel (getWallPanels), or a

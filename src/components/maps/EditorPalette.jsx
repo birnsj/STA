@@ -4,10 +4,11 @@ import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
 import { TilePreview } from './IsoTiles.jsx'
 
 // The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
-// and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'area' | 'erase'.
+// and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'npcs' | 'area' | 'erase'.
 const MARKER_TOOLS = [
   { id: 'playerStarts', label: 'Player Start', swatch: 'player' },
   { id: 'enemySpawns', label: 'Enemy Spawn', swatch: 'enemy' },
+  { id: 'npcs', label: 'NPC', swatch: 'npc' },
   { id: 'area', label: 'Area Label', swatch: 'area' },
   { id: 'erase', label: 'Erase Marker', swatch: 'erase' },
 ]
@@ -57,8 +58,8 @@ function FlagBox({ tile, box, onStatus }) {
 
 // The tile list only chooses which tile the brush holds; the toolbar's Place Tiles turns painting on.
 export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks, animateTiles, onAnimateTiles, showLighting, onShowLighting, onStatus }) {
-  // UI state: which categories are open. Starts with just the selected tile's category open.
-  const [open, setOpen] = useState(() => new Set(GROUPS.filter((group) => group.tiles.some((tile) => tool === `tile:${tile.id}`)).map((group) => group.id)))
+  // UI state: which categories are open. All start closed (designer request, Oct 2026).
+  const [open, setOpen] = useState(() => new Set())
   const toggle = (id) =>
     setOpen((current) => {
       const next = new Set(current)

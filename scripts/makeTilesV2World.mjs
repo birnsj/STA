@@ -270,7 +270,7 @@ const TALL = {
 const file = (image) => image?.split('/').pop()
 // Tiles whose art the other two scripts draw.
 const groupOf = new Map(catalogue.paletteGroups.flatMap((group) => group.tiles.map((id) => [id, group.id])))
-const OTHER_SCRIPTS = new Set(['starship', 'tosBridge'])
+const OTHER_SCRIPTS = new Set(['starship', 'tosBridge', 'klingon'])
 const ours = (tile) => !OTHER_SCRIPTS.has(groupOf.get(tile.id))
 // A tile's image height has to match what its art reaches (engine.mjs imageHeightFor); a mismatch is reported.
 const mismatched = []

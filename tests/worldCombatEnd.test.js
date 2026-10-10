@@ -92,4 +92,11 @@ describe('surrendered enemies after a world fight', () => {
     assert.equal(guardB.surrendered, true)
     assert.deepEqual(ended.lastCombat.surrendered, ['guardB'])
   })
+
+  it('every NPC left down or surrendered gets its defeated flag; one still up does not', () => {
+    const flags = endCombat(withGuardB(guardADown(false), { surrendered: true })).scenario.flags
+    assert.equal(flags['defeated.guardA'], true)
+    assert.equal(flags['defeated.guardB'], true)
+    assert.equal(endCombat(guardADown(true)).scenario.flags['defeated.guardB'], undefined)
+  })
 })

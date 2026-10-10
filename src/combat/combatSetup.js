@@ -1,6 +1,7 @@
 // Building a combat: the combatants from the party and the encounter's roster (or from where everyone stands in the
 // world), initiative, the stats block and the opening log. addCombatant lets a late arrival join a running fight.
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
+import { gridFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { normalizeCondition } from '../rules/personalCondition.js'
 import { seededRandomInt } from '../rules/seededRandom.js'
@@ -38,11 +39,16 @@ function createCombatant(character, { id = character.id, side, controller, posit
 
 // The roster (authored character ids, adaptation/characters.json) fills the map's enemy spawns in order; a map with fewer
 // spawns fields fewer enemies. encounter.npcRules: the book's streamlined NPC rules for the whole roster, if authored.
+// A spawn turned in the map editor starts facing that way; otherwise each enemy faces its nearest opponent.
 function createEnemyCharacters(encounter, mapFile) {
-  return encounter.roster.slice(0, mapFile.markers.enemySpawns.length).map((characterId, index) => ({
-    character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null }),
-    position: mapFile.markers.enemySpawns[index],
-  }))
+  return encounter.roster.slice(0, mapFile.markers.enemySpawns.length).map((characterId, index) => {
+    const { x, y, facing } = mapFile.markers.enemySpawns[index]
+    return {
+      character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null }),
+      position: { x, y },
+      ...(facing == null ? {} : { facing: gridFacing(facing) }),
+    }
+  })
 }
 
 // Running totals for diagnosing and (later) batch-simulating combat. Counts events, not UI.
@@ -86,7 +92,11 @@ export function createCombat({
   const encounter = getEncounter(encounterId)
   const combatSeed = seed >>> 0
   const playerPlacements =
-    placements?.players ?? players.slice(0, mapFile.markers.playerStarts.length).map((character, index) => ({ character, position: mapFile.markers.playerStarts[index] }))
+    placements?.players ??
+    players.slice(0, mapFile.markers.playerStarts.length).map((character, index) => {
+      const { x, y, facing } = mapFile.markers.playerStarts[index]
+      return { character, position: { x, y }, ...(facing == null ? {} : { facing: gridFacing(facing) }) }
+    })
   const playerCombatants = playerPlacements.map((placement) =>
     createCombatant(withStandardIssue(placement.character, encounter.standardIssueWeapon), { ...placement, side: 'player', controller: 'player' }),
   )

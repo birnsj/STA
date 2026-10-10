@@ -137,6 +137,10 @@ export function createNpc(config, character = null) {
     character,
     // 'ai' for every NPC today; who controls an actor is never read from its character.
     controller: config.controller ?? 'ai',
+    // Authored on the map (mapFormat.js npcs): the faction this actor stands for (blank: its character's) and the
+    // conversation talking to it opens (conversations/{id}.json), or null.
+    faction: config.faction || character?.faction?.id || null,
+    conversationId: config.conversationId ?? null,
     disposition: DISPOSITIONS[config.disposition] ? config.disposition : 'neutral',
     responseType: config.responseType ?? null,
     alertGroupId: config.alertGroupId ?? null,
@@ -177,6 +181,10 @@ export function createNpc(config, character = null) {
 // Defeated in a fight (rules/personalCondition.js): stays where it fell and no longer perceives, moves or reacts.
 export const isDown = (npc) => isDefeated(npc.condition)
 export const joinsCombat = (npc) => Boolean(DISPOSITIONS[npc.disposition]?.joinsCombat)
+// Shown as an enemy (red) in the editor and in play: it would fight the away team, by disposition or because it attacks
+// on sight (responseType 'combat', e.g. left standing after a fight). Everyone else is shown as a non-hostile NPC.
+// Works on a map file's NPC as well as a world NPC (same field names).
+export const isHostile = (npc) => joinsCombat(npc) || npc.responseType === 'combat'
 // Identified by the NPC itself (Alerted and not merely told about by its group).
 export const hasIdentified = (npc, characterId) => {
   const record = npc.awareness[characterId]

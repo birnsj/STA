@@ -3,34 +3,38 @@
 // of the game uses: the map (a sealed door's tile), NPC awareness (noise), Party Knowledge (scans) and scenario flags.
 //
 // Definitions (static, authored: challenges.json now, the map editor later) are kept apart from the scenario's runtime
-// state: scenario = { definitions, objects: { [id]: { state, locks, combatLocks, difficultyMods, originalTile } }, flags,
+// state: scenario = { definitions, objects: { [id]: { state, locks, combatLocks, difficultyMods, originalTiles } }, flags,
 // traits: [{ name, potency, description, source }], log, taskCount }. The resolver decides success / failure /
 // complications; the object decides what that means. The same objects stay usable in combat (exploration/combatLink.js):
 // same definitions, same state, same rules; combat only decides who acts, what it costs and who assists.
 import data from '../data/adaptation/exploration/challenges.json'
-import { checkDicePurchase, payForDice, savableMomentum, saveMomentum } from '../rules/missionResources.js'
 import { isDefeated } from '../rules/personalCondition.js'
-import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
-import { resolveStaTask, rollD20, rollDice } from '../rules/taskResolver.js'
 import { emitNoise, getNpcs, isDown } from './awareness.js'
+import { applyFlagChange, checkCondition, checkConditions } from './missionFlags.js'
+import { addLogEntry } from './missionLog.js'
 import { getMembers } from './partyControl.js'
 import { addKnowledgeFact, revealEntity } from './partyKnowledge.js'
+import { rollPartyTask, TASK_SEED_OFFSET } from './partyTaskRoll.js'
 
 export const INTERACT_RANGE = data.interactRange
-// Task rolls draw their own seeds, apart from the fights' (combat uses the seed's first indices). Scans (partyScan.js)
-// share this sequence through scenario.taskCount.
-export const TASK_SEED_OFFSET = 100000
+// Scans (partyScan.js) and conversation checks share this seed sequence through scenario.taskCount.
+export { TASK_SEED_OFFSET }
 
 const pointOf = (definition) => ({ x: definition.position[0], y: definition.position[1] })
 const isUp = (member) => !isDefeated(member.condition)
+// The tiles a state's tile replaces: the object's own, plus covers [[x, y]] (the rest of a two-tile doorway).
+const tilesOf = (definition) => [definition.position, ...(definition.covers ?? [])].map(([x, y]) => ({ x, y }))
+
+// The challenge objects authored for a map (challenges.json), by map file name.
+export const challengeDefinitionsFor = (map) => data.maps[map.id] ?? data.maps[map.name] ?? []
 
 export function createScenario(map) {
-  const definitions = data.maps[map.id] ?? data.maps[map.name] ?? []
+  const definitions = challengeDefinitionsFor(map)
   const objects = Object.fromEntries(
     definitions.map((definition) => {
-      const { x, y } = pointOf(definition)
-      return [definition.id, { state: definition.state, locks: {}, combatLocks: {}, difficultyMods: {}, originalTile: map.tiles[y][x] }]
+      const originalTiles = tilesOf(definition).map(({ x, y }) => map.tiles[y][x])
+      return [definition.id, { state: definition.state, locks: {}, combatLocks: {}, difficultyMods: {}, originalTiles }]
     }),
   )
   return { definitions, objects, flags: {}, traits: [], log: [], taskCount: 0 }
@@ -40,10 +44,10 @@ export function createScenario(map) {
 // so movement caches keyed by the map stay valid.
 export function applyScenarioTiles(map, scenario) {
   const changes = scenario.definitions
-    .map((definition) => {
-      const { x, y } = pointOf(definition)
+    .flatMap((definition) => {
       const object = scenario.objects[definition.id]
-      return { x, y, tile: definition.states[object.state]?.tile ?? object.originalTile }
+      const stateTile = definition.states[object.state]?.tile
+      return tilesOf(definition).map(({ x, y }, index) => ({ x, y, tile: stateTile ?? object.originalTiles[index] }))
     })
     .filter(({ x, y, tile }) => map.tiles[y][x] !== tile)
   if (!changes.length) return map
@@ -82,9 +86,12 @@ export const membersInRange = (party, definition) => getMembers(party).filter((m
 export const objectsInReach = (state, memberIds) =>
   state.scenario.definitions.filter((definition) => memberIds.some((id) => isUp(state.party.members[id]) && distanceTo(definition, state.party.members[id].position) <= INTERACT_RANGE))
 
+// requires.flags { flag: value } (each must equal its value; an unset flag reads as false, 0 or '') and
+// requires.conditions [missionFlags.js conditions].
 const meetsRequirements = (scenario, definition, requires = {}) =>
   (!requires.states || requires.states.includes(scenario.objects[definition.id].state)) &&
-  Object.entries(requires.flags ?? {}).every(([flag, value]) => (scenario.flags[flag] ?? false) === value)
+  Object.entries(requires.flags ?? {}).every(([flag, value]) => checkCondition(scenario.flags, { flag, op: 'equals', value })) &&
+  checkConditions(scenario.flags, requires.conditions)
 
 // The actions the object offers now: [{ action, available, reason }]. Actions whose requirements aren't met are not offered.
 export function getAvailableActions(state, objectId) {
@@ -144,7 +151,10 @@ function applyEffect(state, definition, action, effect, ctx) {
     case 'setState':
       return setObject({ state: effect.state })
     case 'setFlag':
-      return { ...state, scenario: { ...state.scenario, flags: { ...state.scenario.flags, [effect.flag]: effect.value } } }
+      return { ...state, scenario: { ...state.scenario, flags: applyFlagChange(state.scenario.flags, { flag: effect.flag, op: 'set', value: effect.value }) } }
+    // { flag, op: 'set' | 'clear' | 'add', value } (missionFlags.js).
+    case 'changeFlag':
+      return { ...state, scenario: { ...state.scenario, flags: applyFlagChange(state.scenario.flags, effect) } }
     case 'noise':
       return { ...state, world: emitNoise(state.world, { position: pointOf(definition), radius: effect.radius, intensity: effect.intensity ?? 1, source: `challenge:${definition.id}` }) }
     case 'revealNpcs': {
@@ -189,12 +199,16 @@ function applyEffect(state, definition, action, effect, ctx) {
     case 'message':
       ctx.messages.push(effect.text)
       return state
+    // { text }: an entry in the Captain's Log (missionLog.js).
+    case 'addLogEntry':
+      return addLogEntry(state, { kind: 'authored', text: effect.text })
     default:
       return state
   }
 }
 
-const withMap = (state) => {
+// The exploration state with the world map showing every object's current tile (after an object's state changed).
+export const withMap = (state) => {
   const map = applyScenarioTiles(state.party.map, state.scenario)
   return map === state.party.map ? state : { ...state, party: { ...state.party, map }, world: { ...state.world, map } }
 }
@@ -215,37 +229,22 @@ export function attemptChallenge(state, request) {
   const { action } = offered
 
   const ctx = { performerId, messages: [] }
+  const key = state.scenario.taskCount
   let result = null
   let preview = { prepared: null, assist: null }
   let effects = action.onSuccess ?? []
-  let resources = state.resources
   let purchase = null
   let saving = null
+  let next = { ...state, scenario: { ...state.scenario, taskCount: key + 1 } }
   if (!action.routine) {
     preview = previewChallenge(state, request)
-    if (!preview.prepared.possible) return state
-    purchase = checkDicePurchase(state.resources, request.purchase)
-    if (!purchase.valid) return state
-    resources = payForDice(resources, purchase)
-    const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + state.scenario.taskCount))
-    const dice = rollDice(random, purchase.dice)
-    const assistDie = preview.assist ? rollD20(random) : null
-    result = resolveStaTask({
-      leader: { task: preview.prepared.task, dice },
-      assist: preview.assist && { task: preview.assist.task, die: assistDie },
-      difficulty: preview.prepared.difficulty,
-      ignoreComplications: preview.prepared.ignoreComplications,
-      bonusMomentum: preview.prepared.bonusMomentum,
-    })
+    // No Momentum spends on challenge results yet, so it all goes to the group pool (partyTaskRoll.js).
+    const roll = rollPartyTask(state, { prepared: preview.prepared, assist: preview.assist, purchase: request.purchase })
+    if (!roll) return state
+    ;({ result, purchase, saving } = roll)
+    next = roll.state
     effects = [...(action.always ?? []), ...((result.success ? action.onSuccess : action.onFailure) ?? []), ...(result.complications ? (action.onComplication ?? []) : [])]
-    // No Momentum spends on challenge results yet, so it all goes to the group pool (bonus Momentum too: PROTOTYPE
-    // RULE, missionResources.js savableMomentum).
-    saving = saveMomentum(resources, savableMomentum(result))
-    resources = saving.resources
   }
-
-  const key = state.scenario.taskCount
-  let next = { ...state, resources, scenario: { ...state.scenario, taskCount: key + 1 } }
   next = effects.reduce((current, effect) => applyEffect(current, definition, action, effect, ctx), next)
   const entry = {
     key,

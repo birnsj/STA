@@ -6,7 +6,9 @@ import { describe, it } from 'node:test'
 import scanData from '../src/data/adaptation/exploration/scan.json' with { type: 'json' }
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { getEntityKnowledge, KNOWLEDGE } from '../src/exploration/partyKnowledge.js'
-import { canScan, compassPoint, scanCooldown, scanRadius } from '../src/exploration/partyScan.js'
+import { canScan, canScanNpc, compassPoint, scanCooldown, scanRadius } from '../src/exploration/partyScan.js'
+import { isHostile } from '../src/exploration/awareness.js'
+import { MODE } from '../src/exploration/combatLink.js'
 import { partyReducer } from '../src/exploration/partyControl.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
@@ -86,6 +88,66 @@ describe('Scan (Prototype)', () => {
     const from = { x: 5, y: 5 }
     const points = [[5, 0, 'N'], [9, 1, 'NE'], [10, 5, 'E'], [9, 9, 'SE'], [5, 10, 'S'], [1, 9, 'SW'], [0, 5, 'W'], [1, 1, 'NW'], [6, 0, 'N']]
     for (const [x, y, expected] of points) assert.equal(compassPoint(from, { x, y }), expected)
+  })
+})
+
+describe('An NPC radial menu: Scan and Attack (Prototype)', () => {
+  it('scanning one NPC rolls the Scan task, records the result and starts the shared cooldown; out of range or no tricorder, nothing', () => {
+    const state = start(1)
+    const npcId = npcIdOf(state)
+    assert.equal(canScanNpc(state, 'beta', npcId).possible, false)
+    const scanned = explorationReducer(state, { type: 'scanNpc', memberId: 'alpha', npcId })
+    const entry = scanned.npcScans[npcId]
+    assert.equal(entry.memberId, 'alpha')
+    assert.equal(typeof entry.success, 'boolean')
+    assert.equal(scanned.scenario.taskCount, state.scenario.taskCount + 1)
+    assert.equal(scanCooldown(scanned, 'alpha'), scanData.cooldownSeconds)
+    assert.equal(explorationReducer(scanned, { type: 'scanNpc', memberId: 'alpha', npcId }), scanned)
+    // Out of range: move the NPC beyond the science tricorder's 40 tiles.
+    const far = { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npcId]: { ...state.world.npcs[npcId], position: { x: 60, y: 6 } } } } }
+    assert.equal(canScanNpc(far, 'alpha', npcId).possible, false)
+  })
+
+  it('keeps a success through a later failed scan of the same NPC', () => {
+    let success = null
+    for (let seed = 0; seed < 200 && !success; seed++) {
+      const next = explorationReducer(start(seed), { type: 'scanNpc', memberId: 'alpha', npcId: npcIdOf(start(seed)) })
+      if (next.npcScans[npcIdOf(next)].success) success = next
+    }
+    assert.ok(success)
+    const npcId = npcIdOf(success)
+    for (let tries = 0; tries < 50; tries++) {
+      const ready = { ...success, world: { ...success.world, time: success.world.time + scanData.cooldownSeconds * (tries + 1) } }
+      const again = explorationReducer(ready, { type: 'scanNpc', memberId: 'alpha', npcId })
+      if (!again.npcScans[npcId].rolledSuccess) {
+        assert.equal(again.npcScans[npcId].success, true)
+        return
+      }
+      success = again
+    }
+    assert.fail('no failed rescan found')
+  })
+
+  it('Attack starts Combat Type 1 with that NPC as the enemy, even one who would never fight', () => {
+    const state = start(1)
+    const npcId = npcIdOf(state)
+    const friendly = { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npcId]: { ...state.world.npcs[npcId], disposition: 'friendly' } } } }
+    const next = explorationReducer(friendly, { type: 'attackNpc', npcId, targetId: 'alpha' })
+    assert.equal(next.mode, MODE.COMBAT)
+    assert.deepEqual(next.link.npcIds, [npcId])
+    assert.equal(next.link.trigger.source, 'PLAYER_ATTACK')
+    assert.match(next.combat.log.at(-1).lines[0], /^alpha attacks /)
+  })
+
+  it('an innocent who is attacked turns hostile', () => {
+    const state = start(1)
+    const npcId = npcIdOf(state)
+    const neutral = { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npcId]: { ...state.world.npcs[npcId], disposition: 'neutral' } } } }
+    assert.equal(isHostile(neutral.world.npcs[npcId]), false)
+    const next = explorationReducer(neutral, { type: 'attackNpc', npcId, targetId: 'alpha' })
+    assert.equal(next.world.npcs[npcId].disposition, 'hostile')
+    assert.equal(isHostile(next.world.npcs[npcId]), true)
+    assert.match(next.combat.log.at(-1).lines[1], /turns hostile\.$/)
   })
 })
 

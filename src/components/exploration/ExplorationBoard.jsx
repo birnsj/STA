@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { dispositionName, getNpcs, isDown, stateName } from '../../exploration/awareness.js'
+import { dispositionName, getNpcs, isDown, isHostile, stateName } from '../../exploration/awareness.js'
 import { getFormation, slotPoint } from '../../exploration/formations.js'
 import { getFollowTargets, getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
@@ -7,7 +7,8 @@ import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
-import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import useWallFade from '../maps/useWallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
@@ -18,7 +19,7 @@ import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
-import { defeatAnimation, hasCharacterSprite } from '../../rules/appearance.js'
+import { defeatAnimation, getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -37,6 +38,8 @@ const CLICK_MAX_MS = 250
 const CLICK_PULSE_MS = 400
 // A right-button press must move this far (screen pixels) before it draws a selection box.
 const BOX_MIN_DRAG = 6
+// Figures are drawn this much larger than their frames (characterSprites.json displayScale), so their windows are too.
+const FIGURE_SCALE = getSpriteMetrics().displayScale ?? 1
 // A character is in the box when any of their figure (feet at the point, about 50 high, 20 wide) is.
 const figureInBox = (feet, a, b) =>
   feet.x + 10 >= Math.min(a.x, b.x) && feet.x - 10 <= Math.max(a.x, b.x) && feet.y >= Math.min(a.y, b.y) && feet.y - 50 <= Math.max(a.y, b.y)
@@ -133,7 +136,7 @@ function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = fal
 
 // An NPC on the map. Not clickable: a click on it is a move order to that spot.
 // unperceived: shown only because the debug view is on (the party can't see it now).
-function NpcToken({ npc, unperceived = false }) {
+function NpcToken({ npc, unperceived = false, onPress = null }) {
   const centre = project(npc.position)
   const image = npc.character?.portrait.image
   const uniform = npc.character?.portrait.uniform
@@ -141,7 +144,13 @@ function NpcToken({ npc, unperceived = false }) {
   const down = isDownAfterFight(npc)
   const facing = { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }
   return (
-    <g className={`iso-unit is-enemy explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}`} style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }} pointerEvents="none">
+    <g
+      className={`iso-unit ${isHostile(npc) ? 'is-enemy' : 'is-neutral'} explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}${onPress ? ' is-clickable' : ''}`}
+      style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }}
+      pointerEvents={onPress ? undefined : 'none'}
+      onPointerDown={onPress ?? undefined}
+      onClick={onPress ? (event) => event.stopPropagation() : undefined}
+    >
       <title>{npc.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {down ? (
@@ -330,9 +339,10 @@ function ClickPulse({ point }) {
 // onInteract(id): a reachable object was clicked.
 // onSelectBox(ids, additive): a right-drag box closed around these characters (Ctrl adds them to the selection).
 // The right button draws the box, so the middle button drags the camera here.
-// onOpenMenu(id): a right-click (no drag) on a party member (id), or elsewhere (null). menu: { memberId, buttons } drawn
-// around that member (UnitActionRing), or null.
-export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, menu = null }) {
+// onOpenMenu(id): a right-click (no drag) on a party member (id), or elsewhere (null). onOpenNpcMenu(id): a left click on
+// an NPC the party can see. menu: { memberId, buttons } or { npcId, buttons } drawn over that character
+// (UnitActionRing), or null.
+export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null }) {
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false)
@@ -359,7 +369,14 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
 
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  const hidden = fadedBlockKeys(map, getMembers(state).map((member) => member.position), bigGroups)
+  // Only the selected characters cut walls away.
+  const hidden = useWallFade(
+    map,
+    getMembers(state)
+      .filter((member) => isSelected(state, member.id))
+      .map((member) => ({ id: member.id, position: member.position })),
+    bigGroups,
+  )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
 
   const toTiles = (clientX, clientY) => {
@@ -475,6 +492,12 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     event.stopPropagation()
     onSelect(id, isAdditive(event))
   }
+  const pressNpc = (id) => (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    event.stopPropagation()
+    onOpenNpcMenu(id)
+  }
+  const menuPosition = menu?.memberId ? state.members[menu.memberId]?.position : menu?.npcId ? world.npcs[menu.npcId]?.position : null
 
   // On the floor, under every block: where NPCs were last seen, and the click rings.
   const ground = (
@@ -495,15 +518,15 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   const figures = [
     ...getMembers(state).map((member) => ({
       depth: atDepth(member.position, 0.5),
-      box: around(member.position, 30, 72),
+      box: around(member.position, 30 * FIGURE_SCALE, 72 * FIGURE_SCALE),
       element: <Explorer key={`u${member.id}`} member={member} selected={isSelected(state, member.id)} lead={member.id === state.leaderId} onPress={pressMember(member.id)} />,
     })),
     ...getNpcs(world)
       .filter((npc) => debug || isVisibleToParty(knowledge, npc.id))
       .map((npc) => ({
         depth: atDepth(npc.position, 0.5),
-        box: around(npc.position, 30, 62),
-        element: <NpcToken key={`n${npc.id}`} npc={npc} unperceived={!isVisibleToParty(knowledge, npc.id)} />,
+        box: around(npc.position, 30 * FIGURE_SCALE, 72 * FIGURE_SCALE),
+        element: <NpcToken key={`n${npc.id}`} npc={npc} unperceived={!isVisibleToParty(knowledge, npc.id)} onPress={onOpenNpcMenu && isVisibleToParty(knowledge, npc.id) ? pressNpc(npc.id) : null} />,
       })),
     ...challenges.map((view) => {
       const inReach = reachableIds.includes(view.id)
@@ -537,7 +560,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}
-      {menu && state.members[menu.memberId] && <UnitActionRing position={state.members[menu.memberId].position} buttons={menu.buttons} info={null} placement="top" prominent />}
+      {menuPosition && <UnitActionRing position={menuPosition} buttons={menu.buttons} info={menu.info ?? null} placement="top" prominent />}
       {box && (
         <rect
           className="explore-select-box"

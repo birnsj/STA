@@ -1,0 +1,10 @@
+{
+  "notes": [
+    "VIDEOGAME ADAPTATION (designer request, 2026-10-09): the Captain's Log in exploration shows the map's briefing, its objectives and a log of entries stamped with a stardate. exploration/missionLog.js.",
+    "Entries are added automatically when an objective becomes active or complete and when a conversation Task Check is rolled, and by the authored 'addLogEntry' action (conversation Action nodes, challenge-object outcomes).",
+    "Stardates (implementer picks, open for review): an episode starts at the map's stardate, else defaultStardate; the log's stardate goes up by stardateStep for every stepSeconds of world time, so entries made a minute apart read differently. Neither book sets a rate for play."
+  ],
+  "defaultStardate": 4523.3,
+  "stardateStep": 0.1,
+  "stepSeconds": 60
+}

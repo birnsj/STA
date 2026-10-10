@@ -3,15 +3,187 @@
     "Challenge objects: things in the world that offer authored approaches, resolved with the one STA 2E task (src/rules/taskResolver.js). Framework = videogame adaptation; everything in 'maps' is TEST EPISODE CONTENT (Oct 2026), not book rules: the objects, their Difficulties, focus lists, equipment rules and outcomes are authoring choices to exercise the framework.",
     "Designer decision (Oct 2026): exploration has no per-character action budget. In real time any party member in range may attempt any offered action as often as they like; only object state, requires, authored locks, complications and personal condition limit them. actionCost.exploration is metadata only. (Book: outside encounters there are no rounds or turns, p.250; group challenges p.268 and time pressure p.269 are optional tools, not used here.)",
     "interactRange: how close (tiles, from the object's tile centre) a party member must stand to attempt or assist an action.",
-    "Object: id, name, type, position [x, y] (tile), state (starting state id), states { id: { label, description, tile } } where tile (optional) replaces the map tile at the object's position while in that state (e.g. a sealed door blocks the doorway); otherwise the map's own tile shows.",
+    "Object: id, name, type, position [x, y] (tile), state (starting state id), states { id: { label, description, tile } } where tile (optional) replaces the map tile at the object's position while in that state (e.g. a sealed door blocks the doorway); otherwise the map's own tile shows. covers (optional) [[x, y]]: more tiles the state's tile replaces (the second tile of a two-tile doorway).",
     "Action: id, label, description; routine: true = simply works, no roll. task = { attribute, department, difficulty, focuses [exact focus names], tags [task tags for species abilities], complicationRange, equipment { label, tags, itemIds, without: 'impossible' | { difficulty }, bonus [{ label, tags, itemIds, difficulty }] }, talentIds, roleIds (talents / role benefits whose prose condition the author says this task meets), traitRules [{ trait, difficulty } | { trait, impossible: true }] }.",
-    "assist: the approaches a second party member may help with (each { label, attribute, department, focuses }); omitted = no assistance. requires: { states: [object states], flags: { flag: value } }; unmet = the action is not offered. actionCost: { exploration, combat } metadata for later tactical use.",
-    "Outcomes: onSuccess, onFailure, onComplication (once if any complication remains after the roll, whether the task passed or failed), always. Effects: setState, setFlag, noise { radius, intensity } (the NPC awareness noise event), revealNpcs { radius, source, identified } and addFact { id, text } (into Party Knowledge), adjustDifficulty { actionId (default: this action), change, label }, setNpcResponse { alertGroupId, from, to } (NPC reaction override), lock { seconds } (no retry until then; during combat, where the world clock stands still, no retry until the next combat round), message { text }.",
+    "assist: the approaches a second party member may help with (each { label, attribute, department, focuses }); omitted = no assistance. requires: { states: [object states], flags: { flag: value }, conditions: [mission flag conditions, src/exploration/missionFlags.js] }; unmet = the action is not offered. Flags are the shared mission flags conversations and objectives use too; an objective's progress is the flag 'objective.{id}' ('active' | 'complete'). actionCost: { exploration, combat } metadata for later tactical use.",
+    "Outcomes: onSuccess, onFailure, onComplication (once if any complication remains after the roll, whether the task passed or failed), always. Effects: setState, setFlag { flag, value }, changeFlag { flag, op: 'set' | 'clear' | 'add', value }, noise { radius, intensity } (the NPC awareness noise event), revealNpcs { radius, source, identified } and addFact { id, text } (into Party Knowledge), adjustDifficulty { actionId (default: this action), change, label }, setNpcResponse { alertGroupId, from, to } (NPC reaction override), lock { seconds } (no retry until then; during combat, where the world clock stands still, no retry until the next combat round), message { text }, addLogEntry { text } (an entry in the Captain's Log, exploration/missionLog.js).",
     "Scene traits (Book p.252, Create Trait p.289): addTrait { name, potency (default 1), description }, removeTrait { name }, changePotency { name, change } (a trait at Potency 0 is gone). The trait applies to any task (exploration or combat) whose traitRules name it. kind: 'createTrait' marks an action as Create Trait for the UI (Book: Difficulty 2, a contextual Attribute + Department). Which traits exist and where they can be created is authored (VIDEOGAME ADAPTATION: no free-text GM interface).",
+    "Deck 10 Brig (conversation validation encounter, Oct 2026, test content): the east section's two doorways are sealed bulkheads; the EPS Power Junction beside Lt. Okafor restores power. Talking to her (conversations/engineerSealedSection.json) can grant clearance (sectionAccessGranted: the bulkheads open normally) or diagnose the fault (faultDiagnosed: the junction offers the easier Replace the EPS Coupling instead of Restore Power). Without clearance the bulkheads need Override the Lockout once powered. Opening either bulkhead sets eastSectionOpen (the map's 'Get into the east section' objective reads it).",
     "In combat (Book p.288): an action takes the action type in actionCost.combat (major or minor; a routine action without one is minor, any other action major), is attempted by the character whose turn it is, and is assisted by whoever set up an Assist for them or by the commander on a Direct (Control + Command), not by the assist approaches below."
   ],
   "interactRange": 2,
   "maps": {
+    "Deck 10 Brig": [
+      {
+        "id": "powerJunction01",
+        "name": "EPS Power Junction",
+        "type": "powerRelay",
+        "position": [23, 23],
+        "state": "offline",
+        "states": {
+          "offline": { "label": "Offline", "description": "The junction that feeds this section's grid. It is dark and smells of burnt insulation." },
+          "online": { "label": "Online", "description": "The junction hums steadily; the section has power." }
+        },
+        "actions": [
+          {
+            "id": "restorePower",
+            "label": "Restore Power",
+            "description": "Trace the fault through the junction and bring the section's grid back up.",
+            "requires": { "states": ["offline"], "flags": { "faultDiagnosed": false } },
+            "task": {
+              "attribute": "reason",
+              "department": "engineering",
+              "difficulty": 3,
+              "focuses": ["Power Management", "Electro-Plasma Systems", "Emergency Repairs", "Troubleshooting", "Diagnostics"],
+              "tags": ["electronics", "power"]
+            },
+            "assist": [{ "label": "Hand them the right parts", "attribute": "control", "department": "engineering", "focuses": ["Emergency Repairs", "Repairs and Maintenance"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "online" },
+              { "type": "setFlag", "flag": "stationPowerRestored", "value": true },
+              { "type": "setFlag", "flag": "objective.restorePower", "value": "complete" },
+              { "type": "message", "text": "Lights flicker back on across the section." },
+              { "type": "addLogEntry", "text": "We traced the fault through the EPS junction and brought the section's grid back online." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The fault is buried somewhere in the junction; the grid stays dark." }],
+            "onComplication": [
+              { "type": "noise", "radius": 6, "intensity": 0.7 },
+              { "type": "message", "text": "The junction arcs with a loud crack." }
+            ]
+          },
+          {
+            "id": "replaceCoupling",
+            "label": "Replace the EPS Coupling",
+            "description": "Lt. Okafor's diagnosis points straight at the burnt-out coupling. Swap it out.",
+            "requires": { "states": ["offline"], "flags": { "faultDiagnosed": true } },
+            "task": {
+              "attribute": "control",
+              "department": "engineering",
+              "difficulty": 1,
+              "focuses": ["Power Management", "Electro-Plasma Systems", "Emergency Repairs", "Repairs and Maintenance"],
+              "tags": ["electronics", "power"]
+            },
+            "assist": [{ "label": "Hand them the right parts", "attribute": "control", "department": "engineering", "focuses": ["Emergency Repairs", "Repairs and Maintenance"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "online" },
+              { "type": "setFlag", "flag": "stationPowerRestored", "value": true },
+              { "type": "setFlag", "flag": "objective.restorePower", "value": "complete" },
+              { "type": "message", "text": "The new coupling seats with a click and the section's lights come back on." },
+              { "type": "addLogEntry", "text": "Following Lt. Okafor's diagnosis, we replaced the burnt-out EPS coupling. The section has power again." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The coupling won't seat yet." }],
+            "onComplication": [
+              { "type": "noise", "radius": 6, "intensity": 0.7 },
+              { "type": "message", "text": "The junction arcs with a loud crack." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "eastBulkheadSouth",
+        "name": "East Bulkhead",
+        "type": "door",
+        "position": [24, 20],
+        "covers": [[24, 21]],
+        "state": "sealed",
+        "states": {
+          "sealed": { "label": "Sealed", "description": "The bulkhead to the east section sealed itself when the power failed. Without power it won't cycle.", "tile": "hatchWall" },
+          "open": { "label": "Open", "description": "The bulkhead stands open." }
+        },
+        "actions": [
+          {
+            "id": "openDoor",
+            "label": "Open Bulkhead",
+            "description": "Lt. Okafor has cleared the party through; with power back the bulkhead cycles normally.",
+            "routine": true,
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": true } },
+            "actionCost": { "exploration": "free", "combat": "minor" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "setFlag", "flag": "eastSectionOpen", "value": true },
+              { "type": "message", "text": "The bulkhead slides open." }
+            ]
+          },
+          {
+            "id": "overrideLock",
+            "label": "Override the Lockout",
+            "description": "Power is back but the lockout still holds. Bypass it without the engineer's clearance.",
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": false } },
+            "task": {
+              "attribute": "control",
+              "department": "security",
+              "difficulty": 2,
+              "focuses": ["Security Systems", "Computer Security Systems", "Infiltration"],
+              "tags": ["electronics", "security"]
+            },
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "setFlag", "flag": "eastSectionOpen", "value": true },
+              { "type": "message", "text": "The lockout gives and the bulkhead slides open." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The lockout holds." }],
+            "onComplication": [
+              { "type": "noise", "radius": 7, "intensity": 0.8 },
+              { "type": "message", "text": "A warning chime sounds from the bulkhead." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "eastBulkheadNorth",
+        "name": "East Bulkhead",
+        "type": "door",
+        "position": [24, 2],
+        "covers": [[24, 3]],
+        "state": "sealed",
+        "states": {
+          "sealed": { "label": "Sealed", "description": "The bulkhead to the east section sealed itself when the power failed. Without power it won't cycle.", "tile": "hatchWall" },
+          "open": { "label": "Open", "description": "The bulkhead stands open." }
+        },
+        "actions": [
+          {
+            "id": "openDoor",
+            "label": "Open Bulkhead",
+            "description": "Lt. Okafor has cleared the party through; with power back the bulkhead cycles normally.",
+            "routine": true,
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": true } },
+            "actionCost": { "exploration": "free", "combat": "minor" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "setFlag", "flag": "eastSectionOpen", "value": true },
+              { "type": "message", "text": "The bulkhead slides open." }
+            ]
+          },
+          {
+            "id": "overrideLock",
+            "label": "Override the Lockout",
+            "description": "Power is back but the lockout still holds. Bypass it without the engineer's clearance.",
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": false } },
+            "task": {
+              "attribute": "control",
+              "department": "security",
+              "difficulty": 2,
+              "focuses": ["Security Systems", "Computer Security Systems", "Infiltration"],
+              "tags": ["electronics", "security"]
+            },
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setState", "state": "open" },
+              { "type": "setFlag", "flag": "eastSectionOpen", "value": true },
+              { "type": "message", "text": "The lockout gives and the bulkhead slides open." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The lockout holds." }],
+            "onComplication": [
+              { "type": "noise", "radius": 7, "intensity": 0.8 },
+              { "type": "message", "text": "A warning chime sounds from the bulkhead." }
+            ]
+          }
+        ]
+      }
+    ],
     "Vault of the Ancients": [
       {
         "id": "damagedDoor01",

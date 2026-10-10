@@ -21,6 +21,9 @@ function withCreatorShape(authored) {
   return { ...character, species: withSpeciesAbility(character.species) }
 }
 
+// [{ id, name }] of every authored character, for pickers (the map editor's NPC tool).
+export const listAuthoredCharacters = () => characterData.characters.map((entry) => ({ id: entry.id, name: entry.character.identity?.name || entry.id }))
+
 // The full character record for an authored character id, or null.
 export function getAuthoredRecord(characterId) {
   const entry = entriesById.get(characterId)

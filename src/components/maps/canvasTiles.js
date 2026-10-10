@@ -237,6 +237,27 @@ function union(a, b) {
   return { x, y, width: Math.max(a.x + a.width, b.x + b.width) - x, height: Math.max(a.y + a.height, b.y + b.height) - y }
 }
 
+// Areas to repaint, overlapping ones merged wherever the merged rectangle is no bigger than the two apart, so a run of
+// walls fading together (room cutaway, wallFade.js) repaints once rather than once per wall.
+export function mergeAreas(areas) {
+  const size = (area) => area.width * area.height
+  const merged = [...areas]
+  for (let changed = true; changed; ) {
+    changed = false
+    for (let i = 0; i < merged.length && !changed; i++) {
+      for (let j = i + 1; j < merged.length; j++) {
+        const both = union(merged[i], merged[j])
+        if (size(both) > size(merged[i]) + size(merged[j])) continue
+        merged[i] = both
+        merged.splice(j, 1)
+        changed = true
+        break
+      }
+    }
+  }
+  return merged
+}
+
 // Everything the drawing reads from a map, worked out once per map.
 export function boardLayout(map) {
   return { map, panels: getWallPanels(map), bigGroups: getBigObjects(map) }

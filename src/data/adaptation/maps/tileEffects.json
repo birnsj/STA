@@ -26,7 +26,10 @@
     "tosViewscreen": "#7ab8ff",
     "tosHelm": "#ffb040",
     "tosStation": "#ffd060",
-    "tosScience": "#5ad0ff"
+    "tosScience": "#5ad0ff",
+    "klingonWarpCore": "#ff5a24",
+    "klingonChair": "#9fd8ff",
+    "klingonConsole": "#ffa63a"
   },
   "wallGlows": {
     "lcarsWall": "#a8c0ff",
@@ -36,7 +39,9 @@
     "hatchWall": "#ff4040",
     "hatchPanel": "#50ff70",
     "computerWall": "#aab4a3",
-    "computerPanel": "#c2b4c3"
+    "computerPanel": "#c2b4c3",
+    "klingonConduitWall": "#ff6a2a",
+    "klingonDisplayWall": "#60e8b8"
   },
   "activeGlows": {
     "grating": "#ff8a2a"
@@ -625,6 +630,292 @@
             "x": "/art/sprites/environment/derelict/breachedBulkhead-window-x-frame-7-emission.png",
             "y": "/art/sprites/environment/derelict/breachedBulkhead-window-y-frame-7-emission.png"
           }
+        }
+      ]
+    },
+    "klingonGrate": {
+      "frameTime": 0.25,
+      "frames": [0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 2, 2, 1, 1, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonGrate-frame-0.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonGrate-frame-1.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonGrate-frame-2.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonGrate-frame-3.png"
+        }
+      ]
+    },
+    "klingonBulkhead": {
+      "frameTime": 0.25,
+      "frames": [0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 2, 2, 1, 1, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonBulkhead-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonBulkhead-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonBulkhead-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonBulkhead-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonBulkhead-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonBulkhead-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonBulkhead-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonBulkhead-frame-3-emission.png"
+        }
+      ]
+    },
+    "klingonDisplayWall": {
+      "frameTime": 0.1,
+      "frames": [0, 1, 2, 0, 1, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 5, 5, 4, 4, 4, 7, 7, 8, 8, 8, 3, 9, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 4, 10, 10, 10, 10, 5, 5, 5, 5, 5, 11, 11, 11, 11, 11, 4, 10, 7, 4, 4, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 9, 9, 3, 3, 3, 4, 4, 7, 7, 7, 11, 11, 5, 6, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 8, 8, 8, 8, 3, 10, 7, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 4, 10, 10, 10, 9, 3, 3, 3, 3, 1, 0, 0, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-4.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-5.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-6.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-6-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-7.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-7-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-8.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-8-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-9.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-9-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-10.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-10-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDisplayWall-frame-11.png",
+          "emission": "/art/sprites/environment/klingon/klingonDisplayWall-frame-11-emission.png"
+        }
+      ]
+    },
+    "klingonConduitWall": {
+      "frameTime": 0.2,
+      "frames": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-4.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-5.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-6.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-6-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-7.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-7-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-8.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-8-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConduitWall-frame-9.png",
+          "emission": "/art/sprites/environment/klingon/klingonConduitWall-frame-9-emission.png"
+        }
+      ]
+    },
+    "klingonDoor": {
+      "frameTime": 0.2,
+      "frames": [0, 0, 1, 2, 3, 4, 5, 6, 7, 7, 6, 6, 8, 4, 5, 2, 9, 0, 1, 1, 10, 10, 1, 2, 9, 11, 5, 6, 8, 8, 6, 6, 7, 11, 5, 2, 3, 10, 1, 1],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-4.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-4-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-5.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-5-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-6.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-6-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-7.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-7-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-8.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-8-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-9.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-9-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-10.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-10-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonDoor-frame-11.png",
+          "emission": "/art/sprites/environment/klingon/klingonDoor-frame-11-emission.png"
+        }
+      ]
+    },
+    "klingonStrut": {
+      "frameTime": 0.25,
+      "frames": [0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 2, 2, 1, 1, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonStrut-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonStrut-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonStrut-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonStrut-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonStrut-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonStrut-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonStrut-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonStrut-frame-3-emission.png"
+        }
+      ]
+    },
+    "klingonChair": {
+      "frameTime": 0.2,
+      "frames": [0, 0, 1, 2, 3, 4, 4, 4, 4, 3, 2, 1, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonChair-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonChair-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonChair-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonChair-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonChair-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonChair-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonChair-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonChair-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonChair-frame-4.png",
+          "emission": "/art/sprites/environment/klingon/klingonChair-frame-4-emission.png"
+        }
+      ]
+    },
+    "klingonConsole": {
+      "frameTime": 0.1,
+      "frames": [0, 1, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonConsole-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonConsole-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConsole-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonConsole-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonConsole-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonConsole-frame-2-emission.png"
+        }
+      ]
+    },
+    "klingonWarpCore": {
+      "frameTime": 0.1,
+      "frames": [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0],
+      "images": [
+        {
+          "image": "/art/sprites/environment/klingon/klingonWarpCore-frame-0.png",
+          "emission": "/art/sprites/environment/klingon/klingonWarpCore-frame-0-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonWarpCore-frame-1.png",
+          "emission": "/art/sprites/environment/klingon/klingonWarpCore-frame-1-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonWarpCore-frame-2.png",
+          "emission": "/art/sprites/environment/klingon/klingonWarpCore-frame-2-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonWarpCore-frame-3.png",
+          "emission": "/art/sprites/environment/klingon/klingonWarpCore-frame-3-emission.png"
+        },
+        {
+          "image": "/art/sprites/environment/klingon/klingonWarpCore-frame-4.png",
+          "emission": "/art/sprites/environment/klingon/klingonWarpCore-frame-4-emission.png"
         }
       ]
     }

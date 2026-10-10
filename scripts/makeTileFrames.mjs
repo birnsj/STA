@@ -1,6 +1,6 @@
 // Whole-sprite animation frames for the animated tiles (tileEffects.json animations), baked from each tile's own art
 // (tiles.json image, big.image or panelImages) and its light layers (art-layers/, written by scripts/makeTilesV2.mjs).
-// Run after the tile scripts:   node scripts/makeTileFrames.mjs
+// Run after the tile scripts:   node scripts/makeTileFrames.mjs [--only=prefix,...]
 //
 // An animation is one loop of frames, frameTime seconds each. A frame shows every light layer at its level at the
 // frame's middle (the curves below, the timings the views animated the old light overlays with); frames with the same
@@ -52,6 +52,10 @@ const flicker = stepped(
 const warning = (period) => (t) => [1, 0.675, 0.35, 0.675][Math.floor(((t % period) / period) * 4)]
 // A star's twinkle.
 const twinkle = swell(4, 0.9, 0.25)
+// Klingon light slits and floor grates: a slow, shallow breath that never goes dark.
+const breathe = stepped(swell(4, 0.45, 1), 4, 0.45, 1)
+// A warp core's pulse: quicker and deeper than pulse.
+const corePulse = stepped(swell(2, 0.3, 1), 5, 0.3, 1)
 
 // ---------- the animations ----------
 // variants: which of the tile's images animate ('image', 'bigImage', 'panel.x', 'panel.y'). layers: { curve, blend
@@ -112,6 +116,31 @@ const ANIMATIONS = {
   bulkhead: spaceWindow,
   alienBulkhead: spaceWindow,
   breachedBulkhead: spaceWindow,
+  // Klingon Ship & Station (scripts/makeTilesKlingon.mjs).
+  klingonGrate: { emission: false, loop: 4, frameTime: 0.25, variants: ['image'], layers: [lightsOn(breathe, { image: 'klingonGrate-glow.png' })] },
+  klingonBulkhead: { loop: 4, frameTime: 0.25, variants: ['image'], layers: [lightsOn(breathe, { image: 'klingonBulkhead-lights.png' })] },
+  klingonDisplayWall: {
+    loop: 16,
+    frameTime: 0.1,
+    variants: ['image'],
+    layers: [lightsOn(flicker, { image: 'klingonDisplayWall-screen.png' }), lightsOn(breathe, { image: 'klingonDisplayWall-lights.png' })],
+  },
+  klingonConduitWall: {
+    loop: 4,
+    frameTime: 0.2,
+    variants: ['image'],
+    layers: [lightsOn(corePulse, { image: 'klingonConduitWall-core.png' }), lightsOn(breathe, { image: 'klingonConduitWall-lights.png' })],
+  },
+  klingonDoor: {
+    loop: 8,
+    frameTime: 0.2,
+    variants: ['image'],
+    layers: [lightsOn(warning(1.6), { image: 'klingonDoor-warn.png' }, 'normal'), lightsOn(breathe, { image: 'klingonDoor-lights.png' })],
+  },
+  klingonStrut: { loop: 4, frameTime: 0.25, variants: ['image'], layers: [lightsOn(breathe, { image: 'klingonStrut-lights.png' })] },
+  klingonChair: { loop: 2.8, frameTime: 0.2, variants: ['image'], layers: [lightsOn(pulse, { image: 'klingonChair-glow.png' })] },
+  klingonConsole: { loop: 3.2, frameTime: 0.1, variants: ['image'], layers: [lightsOn(flicker, { image: 'klingonConsole-lights.png' })] },
+  klingonWarpCore: { loop: 2, frameTime: 0.1, variants: ['image'], layers: [lightsOn(corePulse, { image: 'klingonWarpCore-core.png' })] },
 }
 
 // ---------- images ----------
@@ -239,8 +268,16 @@ function bake(id, animation) {
   return { ...(animation.active ? { active: true } : {}), frameTime: animation.frameTime, frames, images }
 }
 
+// --only=prefix,...: bake just the animations whose tile id starts with one of these, keeping every other tile's frames
+// and tileEffects.json entry as they are.
+const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).split(',')
+const chosen = (id) => !only || only.some((prefix) => id.startsWith(prefix))
 const effects = JSON.parse(fs.readFileSync(EFFECTS, 'utf8'))
-effects.animations = Object.fromEntries(Object.entries(ANIMATIONS).map(([id, animation]) => [id, bake(id, animation)]))
+effects.animations = Object.fromEntries(
+  Object.entries(ANIMATIONS)
+    .map(([id, animation]) => [id, chosen(id) ? bake(id, animation) : effects.animations[id]])
+    .filter(([, baked]) => baked),
+)
 // Each frame list on one line.
 const json = JSON.stringify(effects, null, 2).replace(/"frames": \[[\d,\s]+\]/g, (list) => list.replace(/\s+/g, ' ').replace('[ ', '[').replace(' ]', ']'))
 fs.writeFileSync(EFFECTS, `${json}\n`)

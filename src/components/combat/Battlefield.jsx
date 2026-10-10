@@ -2,7 +2,8 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
-import { fadedBlockKeys, TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import useWallFade from '../maps/useWallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { boardLayout } from '../maps/canvasTiles.js'
@@ -177,7 +178,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const down = Boolean(combatant.condition?.defeated)
-  const sideClass = combatant.side === 'player' ? 'is-player' : 'is-enemy'
+  const sideClass = combatant.side === 'player' ? 'is-player' : combatant.hostile === false ? 'is-neutral' : 'is-enemy'
   const image = combatant.character.portrait?.image
   const spriteSet = combatant.character.portrait?.spriteSet
   const hasSprite = hasCharacterSprite(spriteSet)
@@ -403,7 +404,8 @@ function ObjectMarker({ mark, onClick }) {
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
 // ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
-// bystanders: [{ id, character, position, facing, status }] - NPCs outside the fight (combat started in the world).
+// bystanders: [{ id, character, position, facing, status, hostile }] - NPCs outside the fight (combat started in the
+// world); hostile false draws them as non-hostile NPCs (purple) rather than enemies (red).
 // snapMarks: [{ id, from, cell }] - debug: each fighter's world position and the cell it was snapped to.
 // hiddenIds: combatants the party can't perceive now (not drawn). lastKnownMarks: [{ id, position, label }].
 export default function Battlefield({
@@ -446,9 +448,13 @@ export default function Battlefield({
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
   const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
-  // Walls fade in front of every combatant shown, enemies too; one the party can't perceive isn't in units, so a fading
-  // wall never gives it away.
-  const hidden = fadedBlockKeys(map, units.map(shownPosition), bigGroups)
+  // Only the combatant whose turn it is cuts walls away; one the party can't perceive isn't in units, so a fading wall
+  // never gives it away.
+  const hidden = useWallFade(
+    map,
+    units.filter((unit) => unit.id === activeId).map((unit) => ({ id: unit.id, position: shownPosition(unit) })),
+    bigGroups,
+  )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
   // A unit with its badges above it, and the tile it is stepping from while it walks (a tile's step on screen).
   const unitBox = (position) => around(position, 44 + TILE_W / 2, 86 + TILE_H / 2, 52 + TILE_W / 2, 20 + TILE_H / 2)
@@ -481,7 +487,7 @@ export default function Battlefield({
       element: (
         <Unit
           key={`n${npc.id}`}
-          combatant={{ id: npc.id, character: npc.character, side: 'enemy', condition: npc.condition, inCover: false }}
+          combatant={{ id: npc.id, character: npc.character, side: 'enemy', hostile: npc.hostile, condition: npc.condition, inCover: false }}
           position={npc.position}
           facing={npc.facing}
           msPerTile={0}

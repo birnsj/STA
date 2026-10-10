@@ -1,4 +1,4 @@
-import { getNpcs } from '../../exploration/awareness.js'
+import { getNpcs, isHostile } from '../../exploration/awareness.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { isDefeated, isDying, minorDefeatText } from '../../rules/personalCondition.js'
@@ -25,8 +25,9 @@ function Marker({ position, className, title, shape }) {
 
 // Exploration minimap, top down: the level in its tile art with the map's area names (as the map editor labels them),
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
-// as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. Display only.
-export default function Minimap({ map, party, world, knowledge, debug = false }) {
+// as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
+// objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. Display only.
+export default function Minimap({ map, party, world, knowledge, objectives = [], debug = false }) {
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
 
@@ -51,6 +52,12 @@ export default function Minimap({ map, party, world, knowledge, debug = false })
               {area.name.toUpperCase()}
             </text>
           ))}
+          {objectives.map((objective) => (
+            <g key={objective.id} className="minimap-marker is-objective" transform={`translate(${objective.position.x} ${objective.position.y})`}>
+              <title>{`Objective: ${objective.title || objective.id}`}</title>
+              <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
+            </g>
+          ))}
           {npcs.map(({ npc, name, state, position, kind }) => {
             if (kind === 'lastSeen') {
               return (
@@ -66,7 +73,7 @@ export default function Minimap({ map, party, world, knowledge, debug = false })
               <Marker
                 key={npc.id}
                 position={position}
-                className={`is-enemy${kind === 'unseen' ? ' is-unseen' : ''}${mark ? ` is-down-${mark}` : ''}`}
+                className={`${isHostile(npc) ? 'is-enemy' : 'is-neutral'}${kind === 'unseen' ? ' is-unseen' : ''}${mark ? ` is-down-${mark}` : ''}`}
                 title={`${name}${state ? `: ${state}` : ''}`}
                 shape={mark === 'dead' ? 'cross' : 'dot'}
               />

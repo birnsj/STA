@@ -1,0 +1,16 @@
+{
+  "notes": [
+    "Which walls fade together (exploration and Combat Type 1). Presentation only: sight, cover and movement are unchanged. No book rule. Designer decisions 2026-10-09: room cutaway, wall sections elsewhere, a stickiness margin. Every number is implementer tuning, open for review.",
+    "Spaces: the map's floor split by walls (tiles.json wall) and doorways. A space touching the map's edge, or bigger than roomMaxTiles, is open; one where fewer than corridorInnerFraction of its tiles have all eight neighbours in the space is a corridor; any other is a room.",
+    "Room cutaway: a figure in a room fades every fading wall on the room's camera-facing sides (the +x and +y sides, and the corner between them). A figure standing in a doorway keeps the space it came from.",
+    "Wall sections: a wall that hides a figure (as before) fades with its section: its straight run of fading wall, cut every sectionLength tiles. Used everywhere, so corridors, open areas and walls inside a room fade in sections.",
+    "Stickiness: a block that has faded stays faded until the figure is releaseMargin pixels clear of it, so walls don't pop in and out at an edge.",
+    "Range (designer decisions 2026-10-09): each front side of a room (east, south; the corner between them in both) fades as one whole wall while a figure (the selected characters in exploration, the active combatant in combat) is less than roomSideRange tiles from it straight out from the wall, and is solid once every figure is that far or further; for the figures' own rooms nothing else fades those walls. Elsewhere a section with a wall that hides a figure fades however far away it is, and comes back once every figure is more than fadeRange tiles from all of it (diagonal steps count as one)."
+  ],
+  "roomSideRange": 4,
+  "roomMaxTiles": 300,
+  "corridorInnerFraction": 0.15,
+  "sectionLength": 6,
+  "releaseMargin": 12,
+  "fadeRange": 2
+}

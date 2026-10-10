@@ -1,5 +1,6 @@
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { TILE_W } from '../../maps/iso.js'
+import { FADE_MS, fadeLevels, retarget } from './fadeLevels.js'
 import { MapReadyContext } from './mapReady.js'
 import { DARK_MARGIN, darknessOpacity, frameAt } from '../../maps/tileArt.js'
 import {
@@ -11,10 +12,10 @@ import {
   drawBoard,
   drawDarkness,
   emissiveTiles,
-  FADED_OPACITY,
   imagesFor,
   isLoaded,
   loadImage,
+  mergeAreas,
   snapToPixels,
 } from './canvasTiles.js'
 import './maps.css'
@@ -58,27 +59,6 @@ function visibleArea(element) {
 }
 const sizeCanvas = (canvas, area, scale) => Object.assign(canvas, { width: Math.ceil(area.width * scale), height: Math.ceil(area.height * scale) })
 
-// A block fading in or out eases between solid and FADED_OPACITY over this long (maps.css .tilemap-block transition).
-const FADE_MS = 200
-// fade: { target (the Set of keys to be see-through), changes (key -> { from, to, start } while a block fades) }.
-function fadeLevelAt(fade, key, now) {
-  const change = fade.changes.get(key)
-  if (!change) return fade.target.has(key) ? FADED_OPACITY : 1
-  const t = Math.min(1, (now - change.start) / FADE_MS)
-  return change.from + (change.to - change.from) * t
-}
-// What to draw see-through now, as canvasTiles.js drawBoard takes it: the Set itself, or a Map of opacities mid-fade.
-function fadeLevels(fade, now) {
-  if (!fade.changes.size) return fade.target
-  const levels = new Map([...fade.target].map((key) => [key, FADED_OPACITY]))
-  for (const key of fade.changes.keys()) {
-    const level = fadeLevelAt(fade, key, now)
-    if (level < 1) levels.set(key, level)
-    else levels.delete(key)
-  }
-  return levels
-}
-
 export default function MapCanvas({ layout, ghost = false, lighting = true, animate = true, faded = NONE, holes = NO_HOLES, ground = null, children = null }) {
   const { map } = layout
   const floorRef = useRef(null)
@@ -111,13 +91,8 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
   useLayoutEffect(() => {
     live.current = { holes, ghost }
     const fadeState = fade.current
-    const fadeStart = performance.now()
     const fadeKeys = fadeState.target === faded ? [] : [...faded].filter((key) => !fadeState.target.has(key)).concat([...fadeState.target].filter((key) => !faded.has(key)))
-    for (const key of fadeKeys) {
-      if (playing) fadeState.changes.set(key, { from: fadeLevelAt(fadeState, key, fadeStart), to: faded.has(key) ? FADED_OPACITY : 1, start: fadeStart })
-      else fadeState.changes.delete(key)
-    }
-    fadeState.target = faded
+    Object.assign(fadeState, retarget(fadeState, faded, performance.now(), playing))
     const floor = floorRef.current
     const blocks = blocksRef.current
     if (!floor || !blocks) return undefined
@@ -148,8 +123,7 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
     }
     const paintFading = (keys) => {
       const at = playing ? performance.now() / 1000 : null
-      for (const key of keys) {
-        const area = blockAreaOf(layout, key)
+      for (const area of mergeAreas(keys.map((key) => blockAreaOf(layout, key)).filter(Boolean))) {
         paintTiles(area, false, at)
         paintDark(area, at)
       }

@@ -49,7 +49,8 @@ function ApproachButton({ entry, recommendation, nameOf, onChoose }) {
 }
 
 // The math that decides the task, before the roll, for the chosen performer: what the player confirms.
-function CharacterMath({ performer, prepared, assist, assistant, action }) {
+// action: anything with the task spec as action.task (a conversation's Task Check passes { task: its spec }).
+export function CharacterMath({ performer, prepared, assist, assistant, action }) {
   const { task } = prepared
   return (
     <div className="challenge-math">
@@ -85,8 +86,8 @@ function Die({ die, label = null }) {
 }
 
 // What happened: the task as rolled, each die and what it scored, the count against the Difficulty, Momentum and
-// complications, and the object's outcome.
-function TaskResultView({ lastTask, performer, assistant }) {
+// complications, and the object's outcome. A conversation's Task Check shows its roll with this too.
+export function TaskResultView({ lastTask, performer, assistant }) {
   const { result, messages, prepared } = lastTask
   if (!result) {
     return (

@@ -104,20 +104,156 @@
     "enemySpawns": [
       [
         33,
-        1
+        7,
+        180
       ],
       [
-        38,
-        12
+        33,
+        9,
+        225
       ],
       [
-        25,
-        7
+        31,
+        7,
+        315
       ],
       [
-        30,
-        10
+        31,
+        9,
+        0
       ]
     ]
-  }
+  },
+  "npcs": [
+    {
+      "id": "engineer",
+      "characterId": "stationEngineer",
+      "position": [
+        21,
+        21
+      ],
+      "facing": 180,
+      "disposition": "friendly",
+      "conversationId": "engineerSealedSection"
+    },
+    {
+      "id": "guardA",
+      "characterId": "klingonWarrior1",
+      "position": [
+        33,
+        7
+      ],
+      "facing": 180,
+      "name": "Guard A",
+      "disposition": "wary",
+      "npcRules": "supporting",
+      "alertGroupId": "security-a",
+      "alertMethod": "shout"
+    },
+    {
+      "id": "guardB",
+      "characterId": "klingonWarrior2",
+      "position": [
+        33,
+        9
+      ],
+      "facing": 225,
+      "name": "Guard B",
+      "disposition": "hostile",
+      "npcRules": "supporting",
+      "alertGroupId": "security-a",
+      "alertMethod": "shout",
+      "responseType": "alarm"
+    },
+    {
+      "id": "guardC",
+      "characterId": "klingonWarrior3",
+      "position": [
+        31,
+        7
+      ],
+      "facing": 315,
+      "name": "Guard C",
+      "disposition": "aggressive",
+      "npcRules": "supporting",
+      "alertGroupId": "security-b",
+      "alertMethod": "shout"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "restorePower",
+      "title": "Restore power to the section",
+      "description": "Bring the EPS power junction beside Lt. Okafor back online so the east bulkheads can cycle.",
+      "position": [
+        23,
+        23
+      ]
+    },
+    {
+      "id": "okaforClearance",
+      "title": "Get Lt. Okafor's clearance",
+      "description": "Lt. Okafor won't let anyone into the sealed east section without her say-so. Persuade her, or earn it by bringing the power back.",
+      "activeWhen": [
+        {
+          "flag": "engineerMet",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "sectionAccessGranted",
+          "op": "isTrue"
+        }
+      ]
+    },
+    {
+      "id": "enterEastSection",
+      "title": "Get into the east section",
+      "description": "With the power back, open one of the east bulkheads, with Lt. Okafor's clearance or by overriding the lockout.",
+      "position": [
+        24,
+        20
+      ],
+      "activeWhen": [
+        {
+          "flag": "stationPowerRestored",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "eastSectionOpen",
+          "op": "isTrue"
+        }
+      ]
+    },
+    {
+      "id": "klingonGuards",
+      "title": "Deal with the Klingon guards",
+      "description": "Klingon warriors hold the east section. Defeat them or force them to surrender.",
+      "activeWhen": [
+        {
+          "flag": "eastSectionOpen",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "defeated.guardA",
+          "op": "isTrue"
+        },
+        {
+          "flag": "defeated.guardB",
+          "op": "isTrue"
+        },
+        {
+          "flag": "defeated.guardC",
+          "op": "isTrue"
+        }
+      ]
+    }
+  ],
+  "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
+  "stardate": 4523.3
 }

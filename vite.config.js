@@ -3,11 +3,13 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { listCharacters, putCharacter, removeCharacter } from './tools/characterStore.cjs'
+import { listConversations, putConversation, removeConversation } from './tools/conversationStore.cjs'
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
 const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
+const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.meta.url))
 const TILES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tiles.json', import.meta.url))
 const EPISODE_ART_FOLDER = fileURLToPath(new URL('./public/art/episodes', import.meta.url))
 const EPISODE_CARDS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/episodeCards.json', import.meta.url))
@@ -15,6 +17,7 @@ const catalogueCardIds = () => JSON.parse(readFileSync(EPISODE_CARDS_FILE, 'utf8
 // Root maps/ only: a '**/maps/**' glob would also stop watching the src/maps source code.
 const toSlashes = (file) => file.replace(/\\/g, '/').toLowerCase()
 const isInMapsFolder = (file) => toSlashes(file).startsWith(`${toSlashes(MAPS_FOLDER)}/`)
+const isInConversationsFolder = (file) => toSlashes(file).startsWith(`${toSlashes(CONVERSATIONS_FOLDER)}/`)
 
 // Dev server only: a JSON endpoint that reads the request body and answers with handlers[method](body).
 function jsonEndpoint(name, route, handlers) {
@@ -61,6 +64,14 @@ const mapFilesEndpoint = () =>
     DELETE: (body) => removeMap(MAPS_FOLDER, EPISODE_ART_FOLDER, body.id, catalogueCardIds()),
   })
 
+// The dev conversation editor saves conversations as files in ./conversations. Builds bundle the folder.
+const conversationFilesEndpoint = () =>
+  jsonEndpoint('conversation-files-endpoint', '/__conversations', {
+    GET: () => listConversations(CONVERSATIONS_FOLDER),
+    PUT: (entry) => putConversation(CONVERSATIONS_FOLDER, entry),
+    DELETE: (body) => removeConversation(CONVERSATIONS_FOLDER, body.id),
+  })
+
 // The map editor's palette Cover checkboxes save into the tile catalogue. The page already updated its copy, so the
 // file change this causes is not hot-reloaded: a reload would throw away an unsaved map. Hand edits still reload.
 function tileFilesEndpoint() {
@@ -81,13 +92,13 @@ function tileFilesEndpoint() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), tileFilesEndpoint()],
+  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), conversationFilesEndpoint(), tileFilesEndpoint()],
   // Relative asset paths so the built app also loads from disk inside the Electron .exe.
   base: './',
   server: {
     // Media, PDFs, packaged builds and saved characters/maps aren't app code; watching them crashes the server when another program locks a file.
     watch: {
-      ignored: ['**/music/**', '**/reference/**', '**/extracted-art/**', '**/release/**', '**/dist/**', '**/characters/**', isInMapsFolder],
+      ignored: ['**/music/**', '**/reference/**', '**/extracted-art/**', '**/release/**', '**/dist/**', '**/characters/**', isInMapsFolder, isInConversationsFolder],
     },
   },
 })

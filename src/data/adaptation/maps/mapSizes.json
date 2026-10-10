@@ -10,6 +10,8 @@
   "byType": {
     "starshipDeck": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
     "spaceStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30], "gigantic": [88, 60] },
+    "klingonShip": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
+    "klingonStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30], "gigantic": [88, 60] },
     "colony": { "small": [20, 17], "medium": [26, 18], "large": [34, 24], "huge": [48, 34], "gigantic": [96, 68] },
     "outpost": { "small": [14, 12], "medium": [20, 16], "large": [28, 22], "huge": [38, 30], "gigantic": [76, 60] },
     "surfaceSite": { "small": [16, 12], "medium": [24, 18], "large": [32, 24], "huge": [48, 36], "gigantic": [96, 72] },

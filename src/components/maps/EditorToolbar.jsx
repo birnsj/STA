@@ -157,6 +157,9 @@ export default function EditorToolbar({
   // placing / onPlacing: the Place Tiles toggle (the board only paints the chosen tile while it is on).
   placing,
   onPlacing,
+  // moving / onMoving: the Move toggle (dragging a tile swaps it with the tile it is dropped on).
+  moving,
+  onMoving,
   // Generate Map's Room size and Building size sliders, grouped with Light.
   children,
 }) {
@@ -191,6 +194,15 @@ export default function EditorToolbar({
           onClick={() => onPlacing(!placing)}
         >
           Place Tiles: {placing ? 'On' : 'Off'}
+        </button>
+        <button
+          type="button"
+          className={`me-button me-place${moving ? ' is-on' : ''}`}
+          aria-pressed={moving}
+          title="On: press on a tile and drag it onto another; the two tiles swap places. A tile with a player start, enemy spawn, NPC, area label or objective on it moves those instead."
+          onClick={() => onMoving(!moving)}
+        >
+          Move: {moving ? 'On' : 'Off'}
         </button>
         <SizeFields width={map.width} height={map.height} onResize={onResize} />
         <button type="button" className="me-button" onClick={onNew}>

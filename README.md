@@ -16,8 +16,9 @@ npm run app        # build, then open it in Electron
 npm run dist:win   # portable Windows .exe (electron-builder)
 ```
 
-The dev server also saves files for you: characters to `characters/`, maps to `maps/` and tile edits to the tile
-catalogue (endpoints in `vite.config.js`, stores in `tools/`). `characters/` and `maps/` are both tracked by git, so
+The dev server also saves files for you: characters to `characters/`, maps to `maps/`, conversations to
+`conversations/` and tile edits to the tile catalogue (endpoints in `vite.config.js`, stores in `tools/`).
+`characters/`, `maps/` and `conversations/` are tracked by git, so
 commit them to share the same content between machines. Each map has at most one generated episode thumbnail,
 `public/art/episodes/<map name>.png`, which `tools/mapStore.cjs` writes, renames and deletes along with the map; the
 catalogue card art in the same folder (`episodeCards.json`) is never touched. The unpackaged Electron app
@@ -33,8 +34,8 @@ them the app runs silently.
 | --- | --- | --- |
 | Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON. |
 | Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat on the game's maps: the STA 2E task roll, Momentum and Threat, Injuries, Guard / First Aid / Direct / Assist, an AI for both sides, and a seeded reducer so any fight replays exactly. |
-| Exploration | `src/exploration/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll; hands off to combat and back (`combatLink.js`). |
-| Map editor | `src/maps/`, `src/components/maps/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`). |
+| Exploration | `src/exploration/`, `src/conversation/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll, conversations with NPCs, mission flags and objectives; hands off to combat and back (`combatLink.js`). |
+| Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`); places NPCs and objectives; edits conversations as node graphs. |
 `src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
 
 ## Book vs. Prototype

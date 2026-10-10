@@ -1209,6 +1209,10 @@ export function drawEpisodeCard(location, palette, random = Math.random, name = 
   else if (location === 'spaceStation') {
     if (namedRoom || random() < 0.5) interior(c, name)
     else station(c)
+  } else if (location === 'klingonShip') interior(c, name, { hull: HULLS[3] })
+  else if (location === 'klingonStation') {
+    if (namedRoom || random() < 0.5) interior(c, name, { hull: HULLS[3] })
+    else station(c)
   } else if (location === 'derelict') {
     if (random() < 0.5) interior(c, name, { damaged: true })
     else derelict(c)

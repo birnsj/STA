@@ -141,6 +141,20 @@
   stroke: var(--red);
 }
 
+/* An NPC who isn't hostile (awareness.js isHostile): purple, as in the map editor. */
+.iso-unit.is-neutral .iso-unit-ring {
+  fill: rgba(176, 126, 232, 0.15);
+  stroke: #b07ee8;
+}
+
+.iso-unit.is-neutral .iso-unit-facing {
+  fill: #b07ee8;
+}
+
+.iso-unit.is-neutral .iso-unit-body {
+  stroke: #b07ee8;
+}
+
 .iso-unit.is-active .iso-unit-ring {
   stroke: var(--yellow);
   stroke-width: 3;

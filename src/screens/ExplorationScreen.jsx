@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import CharacterInspector from '../components/CharacterInspector.jsx'
 import FrameRate from '../components/FrameRate.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
+import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
+import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
+import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
+import { loadConversation } from '../conversation/conversationFiles.js'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
 import { ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
@@ -12,22 +16,27 @@ import useExplorationFootsteps from '../components/exploration/useExplorationFoo
 import Minimap from '../components/exploration/Minimap.jsx'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import '../components/exploration/exploration.css'
+import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
-import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady, getNpcs, isDown, stateName } from '../exploration/awareness.js'
+import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady, getNpcs, isDown, isHostile, STATE, stateName } from '../exploration/awareness.js'
+import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import { getFaction } from '../rules/factions.js'
+import { getEquippedItems } from '../rules/equipment.js'
 import { getAvailableActions, getChallengeViews, getDefinition, objectsInReach } from '../exploration/challengeObjects.js'
 import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
-import { createExplorationState, explorationReducer } from '../exploration/explorationState.js'
+import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
+import { objectiveStatus } from '../exploration/missionFlags.js'
 import { getFormation } from '../exploration/formations.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
-import { canScan, scanRadius } from '../exploration/partyScan.js'
+import { canScan, canScanNpc, scanRadius } from '../exploration/partyScan.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
 import useFadeAfter from '../components/useFadeAfter.js'
 import { playScanSound } from '../audio/uiSounds.js'
-import { conditionSummary, isDefeated, minorDefeatText, normalizeCondition } from '../rules/personalCondition.js'
+import { conditionSummary, getProtection, isDefeated, minorDefeatText, normalizeCondition } from '../rules/personalCondition.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import { Battle } from './CombatScreen.jsx'
 
@@ -65,6 +74,70 @@ function memberMenuButtons(state, member, actions) {
     },
     { id: 'sneak', label: 'Sneak', icon: 'sneak', enabled: up, active: member.sneaking, title: `Sneak: ${name} crouches and moves slowly, harder to notice.`, onClick: actions.sneak },
   ]
+}
+
+// The selected character who would scan this NPC (the lead first): the first who can, else the lead with the reason.
+// Returns { member, check } or null when nobody is selected.
+function npcScanner(state, npcId) {
+  const { party } = state
+  const ids = [party.leaderId, ...party.selectedIds.filter((id) => id !== party.leaderId)].filter((id) => party.selectedIds.includes(id))
+  if (!ids.length) return null
+  const checks = ids.map((id) => ({ member: party.members[id], check: canScanNpc(state, id, npcId) }))
+  return checks.find(({ check }) => check.possible) ?? checks[0]
+}
+
+// An NPC's radial menu (left click on an NPC the party can see; designer requests 2026-10-09): Talk, when they have a
+// conversation (out of reach, the selected characters walk over first); Scan (one selected character scans them); Info
+// (a card beside the ring); Attack; Go To. Persuade, Intimidate, Use Item and First Aid are shown but not built yet.
+// actions: { talk, scan, info, attack, goTo }; infoOpen: whether the card is showing.
+function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions) {
+  const up = !isDown(npc)
+  const canTalk = up && Boolean(npc.conversationId)
+  const talkTitle = !npc.conversationId ? `${npc.name} has nothing to say.` : !up ? `${npc.name} can't talk now.` : inTalkRange ? `Talk to ${npc.name}.` : `Walk over to ${npc.name} and talk.`
+  const scanner = npcScanner(state, npc.id)
+  const scanTitle = !scanner ? 'Scan: select a character first.' : scanner.check.possible ? `${scanner.member.character.name} scans ${npc.name} (Reason + Science): condition and equipment.` : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
+  const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
+  return [
+    { id: 'talk', label: 'Talk', icon: 'persuade', enabled: canTalk, title: talkTitle, onClick: actions.talk },
+    { id: 'scan', label: 'Scan', icon: 'scan', enabled: Boolean(scanner?.check.possible), title: scanTitle, onClick: () => actions.scan(scanner.member.id) },
+    unbuilt('persuade', 'Persuade', 'persuade'),
+    unbuilt('intimidate', 'Intimidate', 'intimidate'),
+    { id: 'info', label: 'Info', icon: 'info', enabled: true, active: infoOpen, title: infoOpen ? 'Hide what the party knows about them.' : `What the party knows about ${npc.name}.`, onClick: actions.info, keepOpen: true },
+    unbuilt('useItem', 'Use Item', 'useItem'),
+    unbuilt('firstAid', 'First Aid', 'firstAid'),
+    { id: 'attack', label: 'Attack', icon: 'attack', enabled: up, title: up ? `Attack ${npc.name}: starts a fight.` : `${npc.name} is down.`, onClick: actions.attack },
+    { id: 'goTo', label: 'Go To', icon: 'move', enabled: true, title: `Walk the selected characters over to ${npc.name}.`, onClick: actions.goTo },
+  ]
+}
+
+const AWARENESS_ORDER = [STATE.UNAWARE, STATE.SUSPICIOUS, STATE.INVESTIGATING, STATE.ALERTED, STATE.COMBAT_READY]
+
+// The card beside an NPC's ring: what the party can see, plus their condition and equipment once a scan has succeeded.
+function npcInfo(state, npc) {
+  const { character } = npc
+  const factionName = (npc.faction && npc.faction !== character.faction?.id ? getFaction(npc.faction)?.name : character.faction?.name) ?? 'Unknown'
+  const noticed = state.party.memberIds.map((id) => npc.awareness[id]?.state ?? STATE.UNAWARE).sort((a, b) => AWARENESS_ORDER.indexOf(b) - AWARENESS_ORDER.indexOf(a))[0]
+  const rows = [
+    ['Species', character.species?.name || 'Unknown'],
+    ['Faction', factionName],
+    ['Disposition', dispositionName(npc.disposition)],
+    ['Noticed you', isDown(npc) ? 'Down' : stateName(noticed ?? STATE.UNAWARE)],
+  ]
+  const scan = state.npcScans?.[npc.id]
+  const tips = []
+  if (scan?.success) {
+    const condition = normalizeCondition(npc.condition)
+    rows.push(['Condition', conditionSummary(character, condition) || 'Unhurt'])
+    rows.push(['Protection', `Stun ${getProtection(character, { injuryType: 'stun' }).value} / Deadly ${getProtection(character, { injuryType: 'deadly' }).value}`])
+    const gear = getEquippedItems(character).map((item) => item.name)
+    rows.push(['Equipment', gear.length ? gear.join(', ') : 'None'])
+    tips.push(`Scanned by ${state.party.members[scan.memberId]?.character.name ?? 'the away team'}.`)
+  } else if (scan) {
+    tips.push('Scan failed: no clear readings. Scan again to retry.')
+  } else {
+    tips.push('Scan them for their condition and equipment.')
+  }
+  return { title: npc.name, rows, tips }
 }
 
 // Developer-only readout of the party-control state.
@@ -382,7 +455,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debugOpen ? npc.name : entry.identified ? null : 'Life sign' }))
   const bystanders = getNpcs(world)
     .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && isVisibleToParty(knowledge, npc.id))
-    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }, condition: normalizeCondition(npc.condition) }))
+    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }, condition: normalizeCondition(npc.condition), hostile: isHostile(npc) }))
   const trigger = combat.combatants[link.trigger.npcId]
   const target = combat.combatants[link.trigger.targetId]
   const openingFocus = trigger && target ? { x: (trigger.position.x + target.position.x) / 2, y: (trigger.position.y + target.position.y) / 2 } : (trigger?.position ?? null)
@@ -456,13 +529,44 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const [consideredActionId, setConsideredActionId] = useState(null)
   // UI state: whether the character sheet is open (I toggles it); selecting never opens it (designer decision).
   const [sheetOpen, setSheetOpen] = useState(false)
+  // UI state: whether the Captain's Log panel is open.
+  const [logOpen, setLogOpen] = useState(false)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
   const challengeViews = getChallengeViews(state.scenario)
   const inReachIds = objectsInReach(state, party.memberIds).map((definition) => definition.id)
   const reachableIds = inReachIds.filter((id) => getAvailableActions(state, id).length > 0)
-  const openId = interactionId && inReachIds.includes(interactionId) ? interactionId : null
+  const talking = Boolean(state.conversation)
+  const openId = !talking && interactionId && inReachIds.includes(interactionId) ? interactionId : null
+  // Either panel holds move orders and takes the right-hand side.
+  const panelOpen = Boolean(openId) || talking
+  const talkable = talking ? [] : npcsInTalkRange(state, party.memberIds)
+  // UI state: why the last conversation couldn't be opened (its file is missing or broken), or null.
+  const [talkError, setTalkError] = useState(null)
+  // UI state: { npcId, combatId } the NPC the party is walking over to talk to (and the last fight when asked); the
+  // conversation opens once one of them is in reach.
+  const [pendingTalk, setPendingTalk] = useState(null)
+  const talkTo = useCallback(
+    (npc) => {
+      loadConversation(npc.conversationId)
+        .then((definition) => {
+          setTalkError(null)
+          setInteractionId(null)
+          setPendingTalk(null)
+          dispatch({ type: 'talk', npcId: npc.id, definition })
+        })
+        .catch((error) => {
+          setPendingTalk(null)
+          setTalkError(`${npc.name}: ${error.message}`)
+        })
+    },
+    [dispatch],
+  )
+  const knownObjectives = (party.map.objectives ?? [])
+    .map((objective) => ({ ...objective, status: objectiveStatus(state.scenario.flags, objective.id) }))
+    .filter(({ status }) => status)
+  const objectives = knownObjectives.map(({ id, title, status }) => ({ id, text: title || id, complete: status === 'complete' }))
 
   // The world runs in real time: one movement step per animation frame.
   useEffect(() => {
@@ -479,6 +583,11 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
 
   // UI state: the party member whose radial menu is open (right-click on them), or null.
   const [menuMemberId, setMenuMemberId] = useState(null)
+  // UI state: the NPC whose radial menu is open (left click on them), or null; whether its Info card shows; the NPC
+  // whose Attack is waiting for confirmation.
+  const [menuNpcId, setMenuNpcId] = useState(null)
+  const [npcInfoOpen, setNpcInfoOpen] = useState(false)
+  const [confirmAttackId, setConfirmAttackId] = useState(null)
   // UI state: the last scan whose report the player closed (lastScan.key).
   const [closedScanKey, setClosedScanKey] = useState(null)
   const lastScan = state.lastScan
@@ -494,9 +603,23 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     (id) => {
       if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
       setMenuMemberId(id)
+      setMenuNpcId(null)
     },
     [dispatch, selectedIds],
   )
+  const openNpcMenu = useCallback((id) => {
+    setMenuNpcId(id)
+    setMenuMemberId(null)
+  }, [])
+  // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
+  // request cancels it.
+  const pendingTalkNpc = pendingTalk && pendingTalk.combatId === (state.lastCombat?.id ?? null) ? talkable.find((npc) => npc.id === pendingTalk.npcId) : null
+  const requestedTalkRef = useRef(null)
+  useEffect(() => {
+    if (!pendingTalkNpc || requestedTalkRef.current === pendingTalk) return
+    requestedTalkRef.current = pendingTalk
+    talkTo(pendingTalkNpc)
+  }, [pendingTalkNpc, pendingTalk, talkTo])
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
@@ -517,28 +640,42 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [party.memberIds, select])
 
-  // E interacts with the nearest object in reach; Escape closes the panel; C toggles sneak for the selected characters;
-  // I opens or closes the character sheet.
+  // E interacts with the nearest object in reach, or else talks to the nearest NPC who has something to say; Escape
+  // closes the panel or leaves the conversation; C toggles sneak for the selected characters; I opens or closes the
+  // character sheet; L the Captain's Log.
   const firstReachable = reachableIds[0] ?? null
+  const firstTalkable = talkable[0] ?? null
   useEffect(() => {
     const onKey = (event) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
       if (event.code === 'Escape') {
         setInteractionId(null)
         setMenuMemberId(null)
+        setMenuNpcId(null)
+        setPendingTalk(null)
+        setLogOpen(false)
+        if (talking) dispatch({ type: 'conversationLeave' })
       }
-      if (event.code === 'KeyE' && firstReachable) setInteractionId((open) => open ?? firstReachable)
+      if (event.code === 'KeyE' && !talking && !event.repeat) {
+        if (firstReachable) setInteractionId((open) => open ?? firstReachable)
+        else if (firstTalkable) talkTo(firstTalkable)
+      }
       if (event.code === 'KeyC' && !event.repeat && !event.ctrlKey && !event.metaKey) toggleSneak()
       if (event.code === 'KeyI' && !event.repeat && !event.ctrlKey && !event.metaKey) setSheetOpen((open) => !open)
+      if (event.code === 'KeyL' && !event.repeat && !event.ctrlKey && !event.metaKey) setLogOpen((open) => !open)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [firstReachable, toggleSneak])
+  }, [firstReachable, firstTalkable, talkTo, talking, dispatch, toggleSneak])
 
   const move = useCallback(
     (target, fresh) => {
-      if (fresh) setMenuMemberId(null)
-      if (openId) return
+      if (fresh) {
+        setMenuMemberId(null)
+        setMenuNpcId(null)
+        setPendingTalk(null)
+      }
+      if (panelOpen) return
       if (!noiseTool) {
         dispatch({ type: 'moveTo', target, fresh })
         return
@@ -547,11 +684,49 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
       dispatch({ type: 'emitNoise', noise: { position: target, ...awarenessData.debugNoise, source: 'debug' } })
       setNoiseTool(false)
     },
-    [dispatch, noiseTool, openId],
+    [dispatch, noiseTool, panelOpen],
   )
 
+  // Out of reach, the selected characters stop about a tile short of the NPC, on the side the lead comes from.
+  const walkToNpc = (npc) => {
+    const leader = party.members[party.leaderId]
+    const dx = leader.position.x - npc.position.x
+    const dy = leader.position.y - npc.position.y
+    const length = Math.hypot(dx, dy)
+    const target = length > 1.2 ? { x: npc.position.x + (dx / length) * 1.2, y: npc.position.y + (dy / length) * 1.2 } : leader.position
+    dispatch({ type: 'moveTo', target, fresh: true })
+  }
+  const menuNpc = menuNpcId && !inCombat && !panelOpen && (debugOpen || isVisibleToParty(state.partyKnowledge, menuNpcId)) ? world.npcs[menuNpcId] : null
+  const attackNpc = (npc) => dispatch({ type: 'attackNpc', npcId: npc.id, targetId: party.selectedIds.includes(party.leaderId) ? party.leaderId : party.selectedIds[0] })
+  const npcMenu = menuNpc && {
+    npcId: menuNpc.id,
+    info: npcInfoOpen ? npcInfo(state, menuNpc) : null,
+    buttons: npcMenuButtons(state, menuNpc, talkable.some((npc) => npc.id === menuNpc.id), npcInfoOpen, {
+      talk: () => {
+        if (talkable.some((npc) => npc.id === menuNpc.id)) return talkTo(menuNpc)
+        walkToNpc(menuNpc)
+        setPendingTalk({ npcId: menuNpc.id, combatId: state.lastCombat?.id ?? null })
+      },
+      // The card opens to show the result.
+      scan: (memberId) => {
+        dispatch({ type: 'scanNpc', memberId, npcId: menuNpc.id })
+        setNpcInfoOpen(true)
+      },
+      info: () => setNpcInfoOpen((open) => !open),
+      // Attacking someone who wouldn't fight anyway asks first.
+      attack: () => (isHostile(menuNpc) ? attackNpc(menuNpc) : setConfirmAttackId(menuNpc.id)),
+      goTo: () => walkToNpc(menuNpc),
+    }).map((button) => ({
+      ...button,
+      onClick: () => {
+        if (!button.keepOpen && button.id !== 'scan') setMenuNpcId(null)
+        button.onClick?.()
+      },
+    })),
+  }
+  const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
   const menuMember = menuMemberId && !inCombat ? party.members[menuMemberId] : null
-  const menu = menuMember && {
+  const memberMenu = menuMember && {
     memberId: menuMember.id,
     buttons: memberMenuButtons(state, menuMember, {
       scan: () => dispatch({ type: 'scan', memberId: menuMember.id }),
@@ -571,11 +746,13 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   }
   const scanFaded = useFadeAfter(lastScanKey)
   const scanShown = Boolean(lastScan) && closedScanKey !== lastScan.key
-  const hint = openId
+  const hint = talking
+    ? 'In conversation: move orders wait until it ends (Escape leaves). The world keeps moving.'
+    : openId
     ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
     : noiseTool
       ? 'Noise tool: click the floor to make a noise there.'
-      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. Right-click a character for their actions.`
+      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} />
@@ -595,7 +772,8 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         onSelect={select}
         onSelectBox={selectBox}
         onOpenMenu={openMenu}
-        menu={menu}
+        onOpenNpcMenu={openNpcMenu}
+        menu={memberMenu || npcMenu}
       />
       {scanShown && (
         <ScanReport scan={lastScan} faded={scanFaded} scannerName={party.members[lastScan.memberId]?.character.name ?? 'Scan'} onClose={() => setClosedScanKey(lastScan.key)} />
@@ -603,10 +781,11 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
       <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
       <div className="combat-top-left">
         <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
+        {objectives.length > 0 && <ObjectivesPanel objectives={objectives} />}
       </div>
       {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
       {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
-      {!openId && reachableIds.length > 0 && (
+      {!panelOpen && (reachableIds.length > 0 || talkable.length > 0 || talkError) && (
         <div className="challenge-prompts">
           {reachableIds.map((id, index) => (
             <button key={id} type="button" className="combat-button is-small is-primary" onClick={() => setInteractionId(id)}>
@@ -614,7 +793,24 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
               {index === 0 ? ' (E)' : ''}
             </button>
           ))}
+          {talkable.map((npc, index) => (
+            <button key={npc.id} type="button" className="combat-button is-small is-primary" onClick={() => talkTo(npc)}>
+              Talk: {npc.name}
+              {index === 0 && !reachableIds.length ? ' (E)' : ''}
+            </button>
+          ))}
+          {talkError && <span className="task-warning">{talkError}</span>}
         </div>
+      )}
+      {talking && (
+        <ConversationPanel
+          key={`${state.conversation.npcId}:${state.conversation.definition.id}`}
+          state={state}
+          dispatch={dispatch}
+          defaultPerformerId={party.selectedIds[0] ?? party.leaderId}
+          onRecommend={updateRecommendation}
+          dev={debugOpen}
+        />
       )}
       {openId && (
         <ChallengePanel
@@ -629,6 +825,9 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         />
       )}
       <div className="combat-top-right">
+        <button type="button" className="combat-button is-small" aria-pressed={logOpen} title="Briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
+          Captain&apos;s Log
+        </button>
         <button
           type="button"
           className="combat-button is-small"
@@ -650,17 +849,32 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           Exit
         </button>
       </div>
+      {confirmAttackNpc && (
+        <ConfirmDialog
+          title={`Attack ${confirmAttackNpc.name}?`}
+          message={`${confirmAttackNpc.name} is ${dispositionName(confirmAttackNpc.disposition).toLowerCase()}. Attacking turns them hostile and starts a fight, and anyone still standing afterwards stays hostile.`}
+          confirmLabel="Attack"
+          onConfirm={() => {
+            setConfirmAttackId(null)
+            attackNpc(confirmAttackNpc)
+          }}
+          onCancel={() => setConfirmAttackId(null)}
+        />
+      )}
       {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}
-      {!openId && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} debug={debugOpen} />}
+      {logOpen && (
+        <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
+      )}
+      {!panelOpen && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} debug={debugOpen} />}
       <ExplorationPartyBar
         members={members}
         selectedIds={party.selectedIds}
         leaderId={party.leaderId}
         onSelect={select}
         onSetLeader={setLeader}
-        recommendation={openId ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
+        recommendation={panelOpen ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
       />
-      {!openId && (
+      {!panelOpen && (
         <div className="explore-bottom-right">
           <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />
           <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} sneaking={allSneaking} onSneak={toggleSneak} />

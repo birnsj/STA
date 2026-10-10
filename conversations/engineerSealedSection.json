@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "name": "Lt. Okafor: the sealed section",
+  "start": "powerCheck",
+  "nodes": [
+    {
+      "id": "powerCheck",
+      "type": "condition",
+      "position": [40, 300],
+      "conditions": [{ "flag": "stationPowerRestored", "op": "isTrue" }],
+      "match": "all",
+      "pass": "clearedCheck",
+      "fail": "metCheck"
+    },
+    {
+      "id": "clearedCheck",
+      "type": "condition",
+      "position": [300, 60],
+      "conditions": [{ "flag": "sectionAccessGranted", "op": "isTrue" }],
+      "match": "all",
+      "pass": "alreadyCleared",
+      "fail": "grantAccess"
+    },
+    {
+      "id": "grantAccess",
+      "type": "action",
+      "position": [560, 120],
+      "actions": [
+        { "type": "changeFlag", "flag": "sectionAccessGranted", "op": "set", "value": true },
+        { "type": "changeFlag", "flag": "engineerTrust", "op": "add", "value": 1 },
+        { "type": "addLogEntry", "text": "With power restored, Lt. Okafor cleared us through the east bulkheads." }
+      ],
+      "next": "poweredThanks"
+    },
+    {
+      "id": "poweredThanks",
+      "type": "npc",
+      "position": [820, 120],
+      "speaker": "",
+      "text": "Power's back. Nice work. I've cleared the east bulkheads for you. Watch yourselves in there; we lost contact with that section when the grid went down.",
+      "next": "end"
+    },
+    {
+      "id": "alreadyCleared",
+      "type": "npc",
+      "position": [560, 0],
+      "speaker": "",
+      "text": "The bulkheads are yours. Whatever's in there, be careful.",
+      "next": "end"
+    },
+    {
+      "id": "metCheck",
+      "type": "condition",
+      "position": [300, 420],
+      "conditions": [{ "flag": "engineerMet", "op": "isTrue" }],
+      "match": "all",
+      "pass": "returnLine",
+      "fail": "markMet"
+    },
+    {
+      "id": "markMet",
+      "type": "action",
+      "position": [560, 520],
+      "actions": [{ "type": "changeFlag", "flag": "engineerMet", "op": "set", "value": true }],
+      "next": "intro"
+    },
+    {
+      "id": "intro",
+      "type": "npc",
+      "position": [820, 520],
+      "speaker": "",
+      "text": "Hold it there. Lieutenant Okafor, engineering. This whole section went dark an hour ago, and the east bulkheads sealed themselves when the grid dropped. Nobody gets through without power, and nobody gets through without my say-so.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "returnLine",
+      "type": "npc",
+      "position": [820, 380],
+      "speaker": "",
+      "text": "Still no power. The junction beside me is where the grid failed, if you're minded to help.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "mainChoice",
+      "type": "choice",
+      "position": [1080, 440],
+      "options": [
+        {
+          "id": "requestAccess",
+          "text": "Lieutenant, I need access to that section. Authorize it.",
+          "conditions": [{ "flag": "accessRequested", "op": "isFalse" }],
+          "next": "markRequested"
+        },
+        {
+          "id": "investigate",
+          "text": "Let me take a look at what took the grid down.",
+          "conditions": [{ "flag": "faultInvestigated", "op": "isFalse" }],
+          "next": "markInvestigated"
+        },
+        {
+          "id": "offerHelp",
+          "text": "We'll get the power back on ourselves.",
+          "conditions": [{ "flag": "objective.restorePower", "op": "isFalse" }],
+          "next": "activateObjective"
+        },
+        { "id": "leave", "text": "We'll be back.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "markRequested",
+      "type": "action",
+      "position": [1340, 200],
+      "actions": [{ "type": "changeFlag", "flag": "accessRequested", "op": "set", "value": true }],
+      "next": "commandCheck"
+    },
+    {
+      "id": "commandCheck",
+      "type": "check",
+      "position": [1600, 200],
+      "label": "Request access",
+      "attribute": "presence",
+      "department": "command",
+      "difficulty": 2,
+      "focuses": ["Persuasion", "Diplomacy", "Negotiation", "Starfleet Protocols", "Composure"],
+      "complicationRange": 1,
+      "onComplication": [{ "type": "changeFlag", "flag": "engineerTrust", "op": "add", "value": -1 }],
+      "success": "accessGranted",
+      "failure": "accessRefused"
+    },
+    {
+      "id": "accessGranted",
+      "type": "action",
+      "position": [1860, 120],
+      "actions": [
+        { "type": "changeFlag", "flag": "sectionAccessGranted", "op": "set", "value": true },
+        { "type": "changeFlag", "flag": "engineerTrust", "op": "add", "value": 1 },
+        { "type": "setObjective", "objectiveId": "restorePower", "status": "active" },
+        { "type": "addLogEntry", "text": "Lt. Okafor agreed to clear us into the east section once the grid is back up." }
+      ],
+      "next": "accessGrantedLine"
+    },
+    {
+      "id": "accessGrantedLine",
+      "type": "npc",
+      "position": [2120, 120],
+      "speaker": "",
+      "text": "Fair enough. You're cleared. But the bulkheads still won't move without power. Get that junction running and they'll open for you.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "accessRefused",
+      "type": "action",
+      "position": [1860, 280],
+      "actions": [
+        { "type": "changeFlag", "flag": "engineerTrust", "op": "add", "value": -1 },
+        { "type": "setObjective", "objectiveId": "restorePower", "status": "active" }
+      ],
+      "next": "accessRefusedLine"
+    },
+    {
+      "id": "accessRefusedLine",
+      "type": "npc",
+      "position": [2120, 280],
+      "speaker": "",
+      "text": "With respect, no. Not until I know what's on the other side. And it's moot anyway: no power, no doors. Fix the junction and we'll talk.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "markInvestigated",
+      "type": "action",
+      "position": [1340, 480],
+      "actions": [{ "type": "changeFlag", "flag": "faultInvestigated", "op": "set", "value": true }],
+      "next": "engineeringCheck"
+    },
+    {
+      "id": "engineeringCheck",
+      "type": "check",
+      "position": [1600, 480],
+      "label": "Investigate the outage",
+      "attribute": "reason",
+      "department": "engineering",
+      "difficulty": 2,
+      "focuses": ["Power Management", "Electro-Plasma Systems", "Troubleshooting", "Diagnostics", "Emergency Repairs"],
+      "complicationRange": 1,
+      "onComplication": [{ "type": "addThreat", "amount": 1 }],
+      "success": "faultFound",
+      "failure": "faultMissed"
+    },
+    {
+      "id": "faultFound",
+      "type": "action",
+      "position": [1860, 420],
+      "actions": [
+        { "type": "changeFlag", "flag": "faultDiagnosed", "op": "set", "value": true },
+        { "type": "changeFlag", "flag": "engineerTrust", "op": "add", "value": 1 },
+        { "type": "setObjective", "objectiveId": "restorePower", "status": "active" },
+        { "type": "addLogEntry", "text": "Working with Lt. Okafor, we traced the outage to a burnt-out EPS coupling in the junction." }
+      ],
+      "next": "faultFoundLine"
+    },
+    {
+      "id": "faultFoundLine",
+      "type": "npc",
+      "position": [2120, 420],
+      "speaker": "",
+      "text": "You see it too? The EPS coupling in that junction burnt out. It isn't the grid at all. Swap the coupling and the whole section comes back.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "faultMissed",
+      "type": "action",
+      "position": [1860, 580],
+      "actions": [{ "type": "setObjective", "objectiveId": "restorePower", "status": "active" }],
+      "next": "faultMissedLine"
+    },
+    {
+      "id": "faultMissedLine",
+      "type": "npc",
+      "position": [2120, 580],
+      "speaker": "",
+      "text": "Not obvious, is it? I've been staring at it for an hour. The fault's somewhere in that junction; that much I know.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "activateObjective",
+      "type": "action",
+      "position": [1340, 720],
+      "actions": [{ "type": "setObjective", "objectiveId": "restorePower", "status": "active" }],
+      "next": "offerHelpLine"
+    },
+    {
+      "id": "offerHelpLine",
+      "type": "npc",
+      "position": [1600, 720],
+      "speaker": "",
+      "text": "If you can, be my guest. The junction's right beside me.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "position": [1340, 0]
+    }
+  ]
+}
