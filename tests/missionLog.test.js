@@ -107,8 +107,8 @@ describe("an objective's minimap position", () => {
   it('is saved as [x, y], left out when unset, and dropped when outside the map or cut off by a resize', () => {
     const map = createBlankMap({ name: 'Marked', width: 10, height: 10 })
     map.objectives = [
-      { id: 'here', title: 'Here', description: '', position: { x: 7, y: 2 }, objectId: null, activeWhen: [], completeWhen: [] },
-      { id: 'nowhere', title: 'Nowhere', description: '', position: null, objectId: null, activeWhen: [], completeWhen: [] },
+      { id: 'here', title: 'Here', description: '', position: { x: 7, y: 2 }, objectId: null, startsActive: false, activeWhen: [], completeWhen: [] },
+      { id: 'nowhere', title: 'Nowhere', description: '', position: null, objectId: null, startsActive: false, activeWhen: [], completeWhen: [] },
     ]
     const file = serializeMap(map)
     assert.deepEqual(file.objectives[0].position, [7, 2])

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MapReadyContext } from './mapReady.js'
+import { MapReadyContext, MapRevealedContext } from './mapReady.js'
 import { sheetsSettled } from './useRecolouredSheet.js'
 import './maps.css'
 
@@ -40,14 +40,16 @@ export default function MapFadeIn({ children }) {
 
   return (
     <MapReadyContext.Provider value={onMapReady}>
-      {children}
-      {stage !== 'done' && (
-        <div
-          className={`map-fade-in${stage === 'fading' ? ' is-fading' : ''}`}
-          aria-hidden="true"
-          onTransitionEnd={() => setStage('done')}
-        />
-      )}
+      <MapRevealedContext.Provider value={stage !== 'waiting'}>
+        {children}
+        {stage !== 'done' && (
+          <div
+            className={`map-fade-in${stage === 'fading' ? ' is-fading' : ''}`}
+            aria-hidden="true"
+            onTransitionEnd={() => setStage('done')}
+          />
+        )}
+      </MapRevealedContext.Provider>
     </MapReadyContext.Provider>
   )
 }

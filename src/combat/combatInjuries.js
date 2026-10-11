@@ -121,12 +121,20 @@ export function startFatigueChoice(state, combatantId, lines) {
   return updateCombatant(state, combatantId, { condition: chooseFatiguedAttribute(combatant.condition, attributeId) })
 }
 
+// Book p.291-292 Avoid Injury: whether (and at what cost) this target could avoid this Injury now: Stress for a main or
+// supporting character, Threat for a notable NPC (once a scene), never for a minor NPC.
+export const avoidOptionFor = (state, target, injury) =>
+  getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene })
+
+// The Injury would Defeat this target: they couldn't avoid it. What the AI weighs a shot by.
+export const injuryDefeats = (state, target, injury) => !avoidOptionFor(state, target, injury).possible
+
 // A hit lands: the target either decides (party members: the player, through state.incomingInjury and the
 // injuryDecision action) or the decision is made now (no choice possible, or an AI-controlled character through
 // combat/injuryPolicy.js). Returns { state, lines }.
 export function inflictInjury(state, attackerId, targetId, injury) {
   const target = state.combatants[targetId]
-  const option = getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene })
+  const option = avoidOptionFor(state, target, injury)
   const incoming = { targetId, attackerId, injury, option }
   const lines = [`Injury: ${injuryTypeName(injury.type)}, Severity ${injury.severity}${severityText(injury)}`]
   if (!option.possible) {

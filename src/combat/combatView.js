@@ -21,6 +21,7 @@ import {
   getPathTo,
   getReachable,
   hasTargetInRange,
+  maxAttackSuccesses,
   previewAmbush,
   previewAttack,
   previewInjuries,
@@ -90,13 +91,13 @@ export function buildCombatView({
   const attackAssist = getAssistFor(state, active.id, { weapon })
   const assistHelper = attackAssist ? { ...state.combatants[attackAssist.helperId], via: attackAssist.via } : null
   // Why the previewed attack can't be fired now (null = it can): from the enemy's ring buttons or the task panel.
-  const maxAttackSuccesses = purchaseCheck.dice * 2 + (assistHelper ? 2 : 0)
+  const maxSuccesses = maxAttackSuccesses(purchaseCheck.dice, assistHelper)
   const attackBlock = !preview?.available
     ? (preview?.reason ?? 'Not a valid target.')
     : !purchaseCheck.valid
       ? purchaseCheck.reason
-      : preview.task.difficulty > maxAttackSuccesses
-        ? `Needs ${preview.task.difficulty} successes; at most ${maxAttackSuccesses} are possible from ${purchaseCheck.dice}d20: cannot succeed.`
+      : preview.task.difficulty > maxSuccesses
+        ? `Needs ${preview.task.difficulty} successes; at most ${maxSuccesses} are possible from ${purchaseCheck.dice}d20: cannot succeed.`
         : null
 
   // Guard, First Aid, Direct and challenge objects: only what this character could do now is offered.

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { getMembers } from '../../exploration/partyControl.js'
-import { checkDicePurchase, MAX_MOMENTUM } from '../../rules/missionResources.js'
+import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { isDefeated } from '../../rules/personalCondition.js'
-import { prepareAssist } from '../../rules/taskPreparation.js'
+import { TASK_DICE } from '../../rules/taskResolver.js'
 import { objectFor } from '../../world/objects.js'
-import BonusDicePicker from '../BonusDicePicker.jsx'
 import { criticalText, dieVerdict, formulaText } from '../task/taskText.js'
 import {
   TaskBlockers,
@@ -18,6 +18,11 @@ import {
   TaskOutcome,
 } from '../task/TaskMath.jsx'
 
+// After a roll the result stays this long, then the panel and the dice fade out over RESULT_FADE_MS and the panel
+// closes by itself (designer request: no Close needed to carry on). Matches .is-fading in exploration.css.
+const RESULT_HOLD_MS = 2500
+const RESULT_FADE_MS = 600
+
 const firstName = (member) => member.character.name.split(' ')[0]
 const usesText = (task) => `${getAttributeName(task.attribute)} + ${getDisciplineName(task.department)}`
 
@@ -28,25 +33,6 @@ function recommendationFor(state, object, action) {
     .filter((member) => !isDefeated(member.condition))
     .map((member) => member.id)
   return object.recommend(state, action.id, memberIds)
-}
-
-// One approach in the list: what it uses and how hard it is (or that it needs no roll), who is best at it, or why it
-// can't be tried right now.
-function ApproachButton({ entry, recommendation, nameOf, onChoose }) {
-  const { action, available, reason } = entry
-  const best = recommendation?.bestIds ?? []
-  return (
-    <button type="button" className="challenge-approach" disabled={!available} onClick={() => onChoose(action.id)}>
-      <strong>{action.label}</strong>
-      <span className="challenge-approach-detail">{action.routine ? 'No roll required' : `${usesText(action.task)} · Difficulty ${action.task.difficulty}`}</span>
-      {best.length > 0 && (
-        <span className="challenge-approach-best">
-          &#9733; Best: {best.map((id) => `${nameOf(id)} (TN ${recommendation.entries[id].targetNumber} · D${recommendation.entries[id].difficulty})`).join(', ')}
-        </span>
-      )}
-      <span className="challenge-approach-description">{reason ?? action.description}</span>
-    </button>
-  )
 }
 
 // The math that decides the task, before the roll, for the chosen performer: what the player confirms.
@@ -86,9 +72,22 @@ function Die({ die, label = null }) {
   )
 }
 
+// Each die rolled and what it scored, the assistant's last.
+function RolledDice({ result, performer, assistant }) {
+  return (
+    <div className="challenge-dice">
+      {result.dice.map((die, index) => (
+        <Die key={`d${index}`} die={die} label={firstName(performer)} />
+      ))}
+      {result.assist && <Die die={result.assist} label={`${firstName(assistant)} (TN ${result.assist.targetNumber})`} />}
+    </div>
+  )
+}
+
 // What happened: the task as rolled, each die and what it scored, the count against the Difficulty, Momentum and
 // complications, and the object's outcome. A conversation's Task Check shows its roll with this too.
-export function TaskResultView({ lastTask, performer, assistant }) {
+// showDice: false when the dice are shown elsewhere (above the object's ring).
+export function TaskResultView({ lastTask, performer, assistant, showDice = true }) {
   const { result, messages, prepared } = lastTask
   if (!result) {
     return (
@@ -109,12 +108,7 @@ export function TaskResultView({ lastTask, performer, assistant }) {
         Critical success {criticalText(task)}
         {task.focus ? ` (Focus: ${task.focus})` : ' (no applicable Focus)'} &middot; Difficulty {result.difficulty}
       </p>
-      <div className="challenge-dice">
-        {result.dice.map((die, index) => (
-          <Die key={`d${index}`} die={die} label={firstName(performer)} />
-        ))}
-        {result.assist && <Die die={result.assist} label={`${firstName(assistant)} (TN ${result.assist.targetNumber})`} />}
-      </div>
+      {showDice && <RolledDice result={result} performer={performer} assistant={assistant} />}
       {result.assist && (
         <p className="challenge-result-line">
           {result.assist.counted ? `${firstName(assistant)}'s ${result.assist.successes} success${result.assist.successes === 1 ? '' : 'es'} counted.` : `${firstName(assistant)}'s die doesn't count: ${firstName(performer)} scored no successes.`}
@@ -147,39 +141,46 @@ export function TaskResultView({ lastTask, performer, assistant }) {
   )
 }
 
-// The interaction with one challenge object: choose an approach, who attempts it and who (if anyone) assists, see
-// the math, confirm, see the dice and the outcome. UI state only; the attempt itself is the 'challenge' action.
-// onRecommend(recommendation | null): who is best at the approach being considered, for the party cards to highlight.
-// dev: show the raw task details (debug).
-export default function ChallengePanel({ state, objectId, defaultPerformerId, dispatch, onClose, onRecommend = () => {}, dev = false }) {
-  const [actionId, setActionId] = useState(null)
-  const [performerId, setPerformerId] = useState(null)
-  const [assistantId, setAssistantId] = useState(null)
-  const [assistIndex, setAssistIndex] = useState(0)
+// The stats and log of one challenge-object approach: the math before the roll, then the result. The object's ring
+// picks the approach and its party band who attempts it (pickedPerformerId; else the best within reach); there is no
+// assist and no bought dice. UI state only; the attempt itself is the 'challenge' action.
+// onRecommend(recommendation | null): who is best at the approach, for the party cards to highlight.
+// dev: show the raw task details (debug). initialActionId: the approach picked on the object's ring. onClose: the
+// panel is done, from Close or by itself once a result has been shown.
+// rollSlot: the element of the slot above the object's ring, where the Attempt button and the dice go (until it
+// exists the Attempt button stays in the panel). onActionChange(actionId | null): the approach shown changed.
+export default function ChallengePanel({
+  state,
+  objectId,
+  initialActionId = null,
+  pickedPerformerId = null,
+  rollSlot = null,
+  onActionChange = () => {},
+  dispatch,
+  onClose,
+  onRecommend = () => {},
+  dev = false,
+}) {
+  const [actionId] = useState(initialActionId)
   const [resultKey, setResultKey] = useState(null)
-  const [dicePurchase, setDicePurchase] = useState({ bonusDice: 0, momentum: 0 })
 
   const { scenario } = state
   const challenge = objectFor(scenario, objectId)
   const { definition } = challenge
   const object = challenge.runtime(scenario)
   const stateInfo = definition.states[object.state] ?? {}
-  const entries = challenge.availableActions(state)
-  const inRange = challenge.membersInRange(state.party)
-  const inRangeIds = inRange.map((member) => member.id)
+  const inRangeIds = challenge.membersInRange(state.party).map((member) => member.id)
   const action = challenge.action(actionId)
   const showingResult = resultKey !== null && state.lastTask?.key === resultKey
-  const nameOf = (id) => firstName(state.party.members[id])
 
-  const performer = state.party.members[inRangeIds.includes(performerId) ? performerId : inRangeIds.includes(defaultPerformerId) ? defaultPerformerId : inRangeIds[0]] ?? null
-  const assistant = assistantId && assistantId !== performer?.id && inRangeIds.includes(assistantId) ? state.party.members[assistantId] : null
-  const approachIndex = action?.assist?.[assistIndex] ? assistIndex : 0
-  const preview = action && performer ? challenge.preview(state, { actionId, performerId: performer.id, assistantId: assistant && action.assist ? assistant.id : null, assistIndex: approachIndex }) : null
   const recommendation = useMemo(() => {
     if (showingResult) return null
     const considered = objectFor(state.scenario, objectId)
     return recommendationFor(state, considered, considered.action(actionId))
   }, [state, objectId, actionId, showingResult])
+  const bestInRange = (recommendation?.bestIds ?? []).find((id) => inRangeIds.includes(id))
+  const performer = state.party.members[inRangeIds.includes(pickedPerformerId) ? pickedPerformerId : (bestInRange ?? inRangeIds[0])] ?? null
+  const preview = action && performer ? challenge.preview(state, { actionId, performerId: performer.id, assistantId: null, assistIndex: 0 }) : null
 
   // The party cards highlight the best choice only while an approach is being considered.
   const actionLabel = action?.label
@@ -187,178 +188,140 @@ export default function ChallengePanel({ state, objectId, defaultPerformerId, di
     onRecommend(recommendation ? { ...recommendation, label: actionLabel } : null)
   }, [recommendation, actionLabel, onRecommend])
   useEffect(() => () => onRecommend(null), [onRecommend])
+  useEffect(() => onActionChange(actionId), [actionId, onActionChange])
+  useEffect(() => () => onActionChange(null), [onActionChange])
 
-  // The pool can change after the choice, so the Momentum part never exceeds what it holds now.
-  const purchase = { bonusDice: dicePurchase.bonusDice, momentum: Math.min(dicePurchase.momentum, state.resources.momentum) }
-  const purchaseCheck = checkDicePurchase(state.resources, purchase)
-
-  const back = () => {
-    setActionId(null)
-    setResultKey(null)
-    setDicePurchase({ bonusDice: 0, momentum: 0 })
+  // The result closes itself; the pointer resting on the panel holds it open (and stops a fade) so it can be read.
+  const [hovered, setHovered] = useState(false)
+  const [fading, setFading] = useState(false)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+  useEffect(() => {
+    if (!showingResult || hovered) return undefined
+    const timer = setTimeout(() => setFading(true), RESULT_HOLD_MS)
+    return () => clearTimeout(timer)
+  }, [showingResult, hovered])
+  useEffect(() => {
+    if (!fading) return undefined
+    const timer = setTimeout(() => onCloseRef.current(), RESULT_FADE_MS)
+    return () => clearTimeout(timer)
+  }, [fading])
+  const holdOpen = () => {
+    setHovered(true)
+    setFading(false)
   }
+  const fadeClass = fading ? ' is-fading' : ''
+
   const attempt = () => {
     setResultKey(scenario.taskCount)
-    dispatch({ type: 'challenge', objectId, actionId, performerId: performer.id, assistantId: assistant && action.assist ? assistant.id : null, assistIndex: approachIndex, purchase })
-    setDicePurchase({ bonusDice: 0, momentum: 0 })
+    dispatch({ type: 'challenge', objectId, actionId, performerId: performer.id, assistantId: null, assistIndex: 0, purchase: { bonusDice: 0, momentum: 0 } })
   }
 
+  const attemptButton = action && (
+    <button type="button" className="combat-button is-small is-primary" disabled={!performer || (preview?.prepared && !preview.prepared.possible)} onClick={attempt}>
+      {action.routine ? action.label : `Attempt (roll ${TASK_DICE}d20)`}
+    </button>
+  )
+  const lastRoll = showingResult ? state.lastTask : null
+  const ringRoll =
+    rollSlot &&
+    createPortal(
+      <div className={`ring-roll${fadeClass}`} onPointerDown={(event) => event.stopPropagation()}>
+        {lastRoll?.result && (
+          <>
+            <RolledDice
+              result={lastRoll.result}
+              performer={state.party.members[lastRoll.performerId]}
+              assistant={lastRoll.assistantId ? state.party.members[lastRoll.assistantId] : null}
+            />
+            <p className={`ring-roll-outcome ${lastRoll.result.success ? 'is-success' : 'is-failure'}`}>{lastRoll.result.success ? 'Success' : 'Failure'}</p>
+          </>
+        )}
+        {!showingResult && attemptButton}
+      </div>,
+      rollSlot,
+    )
+
   return (
-    <div className="combat-panel challenge-panel" onPointerDown={(event) => event.stopPropagation()}>
-      <div className="challenge-header">
-        <div>
-          <h3>{definition.name}</h3>
-          <p className="challenge-state">
-            {stateInfo.label ?? object.state}. {stateInfo.description}
-          </p>
-        </div>
+    <div
+      className={`combat-panel challenge-panel is-docked${fadeClass}`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerEnter={holdOpen}
+      onPointerLeave={() => setHovered(false)}
+    >
+      {ringRoll}
+      <div className="challenge-body">
+        <h3>{definition.name}</h3>
+        <p className="challenge-state">
+          {stateInfo.label ?? object.state}. {stateInfo.description}
+        </p>
+
+        {showingResult && (
+          <>
+            <h4>
+              {state.lastTask.routine ? action?.label : `${action?.label}: ${state.party.members[state.lastTask.performerId].character.name}`}
+            </h4>
+            <TaskResultView
+              lastTask={state.lastTask}
+              performer={state.party.members[state.lastTask.performerId]}
+              assistant={state.lastTask.assistantId ? state.party.members[state.lastTask.assistantId] : null}
+              showDice={!rollSlot}
+            />
+            {dev && state.lastTask.prepared && (
+              <TaskDevDetails
+                prepared={state.lastTask.prepared}
+                task={{ ...state.lastTask.prepared.task, difficulty: state.lastTask.prepared.difficulty }}
+                bonusDice={state.lastTask.bonusDice}
+                result={state.lastTask.result}
+                rows={[
+                  ['Character', state.party.members[state.lastTask.performerId].character.name],
+                  ['Action', action?.label],
+                ]}
+              />
+            )}
+          </>
+        )}
+
+        {!showingResult && !action && <p className="challenge-state">Pick an approach on the ring.</p>}
+
+        {!showingResult && action && (
+          <>
+            <h4>{action.label}</h4>
+            <p className="challenge-state">{action.description}</p>
+            {!performer && <p className="challenge-math-blocker">Nobody is close enough.</p>}
+            {action.routine && (
+              <div className="challenge-math">
+                <p className="tm-no-roll">No roll required</p>
+                <p className="tm-help">Routine action: it simply happens. Stats matter only when the outcome is uncertain.</p>
+              </div>
+            )}
+            {performer && !action.routine && (
+              <>
+                <CharacterMath performer={performer} prepared={preview.prepared} assist={null} assistant={null} action={action} />
+                {dev && (
+                  <TaskDevDetails
+                    prepared={preview.prepared}
+                    task={{ ...preview.prepared.task, difficulty: preview.prepared.difficulty }}
+                    bonusDice={0}
+                    rows={[
+                      ['Character', performer.character.name],
+                      ['Action', `${definition.name}: ${action.label}`],
+                    ]}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+      <div className="challenge-actions">
+        {!rollSlot && !showingResult && attemptButton}
         <button type="button" className="combat-button is-small" onClick={onClose}>
           Close
         </button>
       </div>
-
-      {showingResult && (
-        <>
-          <h4>
-            {state.lastTask.routine ? action?.label : `${action?.label}: ${state.party.members[state.lastTask.performerId].character.name}`}
-          </h4>
-          <TaskResultView lastTask={state.lastTask} performer={state.party.members[state.lastTask.performerId]} assistant={state.lastTask.assistantId ? state.party.members[state.lastTask.assistantId] : null} />
-          {dev && state.lastTask.prepared && (
-            <TaskDevDetails
-              prepared={state.lastTask.prepared}
-              task={{ ...state.lastTask.prepared.task, difficulty: state.lastTask.prepared.difficulty }}
-              bonusDice={state.lastTask.bonusDice}
-              result={state.lastTask.result}
-              rows={[
-                ['Character', state.party.members[state.lastTask.performerId].character.name],
-                ['Action', action?.label],
-                ['Momentum spent on dice', state.lastTask.momentumSpentOnDice],
-                ['Threat added for dice', state.lastTask.threatAddedForDice],
-              ]}
-            />
-          )}
-          <div className="challenge-actions">
-            <button type="button" className="combat-button is-small" onClick={back}>
-              Other approaches
-            </button>
-            <button type="button" className="combat-button is-small is-primary" onClick={onClose}>
-              Done
-            </button>
-          </div>
-        </>
-      )}
-
-      {!showingResult && !action && (
-        <>
-          <h4>Approaches</h4>
-          {entries.length ? (
-            entries.map((entry) => <ApproachButton key={entry.action.id} entry={entry} recommendation={recommendationFor(state, challenge, entry.action)} nameOf={nameOf} onChoose={setActionId} />)
-          ) : (
-            <p className="challenge-state">Nothing to do here right now.</p>
-          )}
-        </>
-      )}
-
-      {!showingResult && action && (
-        <>
-          <h4>{action.label}</h4>
-          <p className="challenge-state">{action.description}</p>
-          {!performer && <p className="challenge-math-blocker">Nobody is close enough.</p>}
-          {action.routine && (
-            <div className="challenge-math">
-              <p className="tm-no-roll">No roll required</p>
-              <p className="tm-help">Routine action: it simply happens. Stats matter only when the outcome is uncertain.</p>
-            </div>
-          )}
-          {performer && !action.routine && (
-            <>
-              <div className="challenge-pick">
-                <span>Who attempts it</span>
-                <div className="challenge-pick-options">
-                  {getMembers(state.party).map((member) => {
-                    const reachable = inRangeIds.includes(member.id)
-                    const entry = recommendation?.entries[member.id]
-                    return (
-                      <button
-                        key={member.id}
-                        type="button"
-                        className="combat-button is-small challenge-performer"
-                        aria-pressed={member.id === performer.id}
-                        disabled={!reachable}
-                        title={reachable ? (entry ? `TN ${entry.targetNumber}, Difficulty ${entry.difficulty}${entry.focus ? `, Focus ${entry.focus}` : ', no applicable Focus'}` : '') : 'Too far away: move closer to attempt it'}
-                        onClick={() => setPerformerId(member.id)}
-                      >
-                        {firstName(member)} {entry?.targetNumber != null ? `TN ${entry.targetNumber} · D${entry.difficulty}` : ''}
-                        {entry?.focus ? ' · Focus' : ''}
-                        {!reachable && ' (too far)'}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="challenge-pick">
-                <span>Assist</span>
-                {action.assist ? (
-                  <div className="challenge-pick-options">
-                    <button type="button" className="combat-button is-small" aria-pressed={!assistant} onClick={() => setAssistantId(null)}>
-                      No assistant
-                    </button>
-                    {inRange
-                      .filter((member) => member.id !== performer.id)
-                      .map((member) => (
-                        <button key={member.id} type="button" className="combat-button is-small" aria-pressed={assistant?.id === member.id} onClick={() => setAssistantId(member.id)}>
-                          {firstName(member)} TN {prepareAssist(member.character, action.assist[approachIndex], member.condition).task.targetNumber}
-                        </button>
-                      ))}
-                  </div>
-                ) : (
-                  <span className="tm-help">No one can help with this approach.</span>
-                )}
-              </div>
-              {assistant && action.assist.length > 1 && (
-                <div className="challenge-pick">
-                  <span>How they help</span>
-                  <div className="challenge-pick-options">
-                    {action.assist.map((approach, index) => (
-                      <button key={approach.label} type="button" className="combat-button is-small" aria-pressed={index === approachIndex} onClick={() => setAssistIndex(index)}>
-                        {approach.label} ({usesText(approach)})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <CharacterMath performer={performer} prepared={preview.prepared} assist={preview.assist} assistant={assistant} action={action} />
-              <BonusDicePicker resources={state.resources} value={purchase} onChange={setDicePurchase} />
-              {dev && (
-                <TaskDevDetails
-                  prepared={preview.prepared}
-                  task={{ ...preview.prepared.task, difficulty: preview.prepared.difficulty }}
-                  bonusDice={purchase.bonusDice}
-                  rows={[
-                    ['Character', performer.character.name],
-                    ['Action', `${definition.name}: ${action.label}`],
-                    ['Momentum cost (dice)', purchaseCheck.momentum ?? 0],
-                    ['Threat cost (dice)', purchaseCheck.threatAdded ?? 0],
-                  ]}
-                />
-              )}
-            </>
-          )}
-          <div className="challenge-actions">
-            <button type="button" className="combat-button is-small" onClick={back}>
-              Back
-            </button>
-            <button
-              type="button"
-              className="combat-button is-small is-primary"
-              disabled={!performer || (preview?.prepared && !preview.prepared.possible) || (!action.routine && !purchaseCheck.valid)}
-              onClick={attempt}
-            >
-              {action.routine ? action.label : `Attempt (roll ${purchaseCheck.dice}d20)`}
-            </button>
-          </div>
-        </>
-      )}
     </div>
   )
 }

@@ -14,7 +14,7 @@
         "The Difficulty is how many successes you need. TN and Difficulty are separate: TN 14 at Difficulty 2 means each die rolling 14 or lower scores a success, and you need 2 of them.",
         "A Focus that fits the task makes low rolls count as 2 successes: any roll from 1 up to the Department's rating (Engineering 5: a roll of 1-5). Without a Focus only a natural 1 does. A roll of 20 causes a complication.",
         "Different characters have different chances at the same task, because their Attributes, Departments and Focuses differ. The game highlights the strongest choice on the party bar with BEST CHOICE and their TN; it is only advice, and anyone able can still attempt the task.",
-        "The buttons around a character show the short version (for example Control + Security, TN 13 · D2); the Task panel explains every number: the Difficulty and what changed it, the Focus, the dice and the cost of bonus dice. After the roll it shows what each die scored and the result."
+        "Hovering a button around a character shows the short version in its tooltip (for example Control + Security, TN 13 · D2); the Task panel explains every number: the Difficulty and what changed it, the Focus, the dice and the cost of bonus dice. After the roll it shows what each die scored and the result."
       ]
     },
     {
@@ -24,7 +24,7 @@
         "Your characters have Stress (STRESS x/y on the party bar and over their heads): the maximum is their Fitness (some talents and species change it). When one of them is hit, you choose: Avoid Injury takes Stress equal to the Severity and they keep fighting, or Accept Injury and they are Defeated. Without enough Stress left, avoiding fills the track and adds a complication.",
         "At maximum Stress a character is Fatigued: +1 Difficulty on every task, no more Stress (so no more Avoid Injury), and you choose one attribute to shut down: tasks using it automatically fail.",
         "A Defeated character falls and can't act. First Aid revives them (they keep the Injury). A Stun Injury wears off at the end of their next turn after they are back on their feet; a Deadly Injury stays, and a Defeated character with a Deadly Injury is Dying.",
-        "The Klingon Warriors follow the same rules as your characters: Stress equal to their Fitness (10), shown on their card when you target them. They avoid Injuries with Stress while they can, so it takes several hits to bring one down."
+        "The Klingon Warriors follow the same rules as your characters: Stress equal to their Fitness (10), shown on their card when you target them. They avoid Injuries with Stress while they can, so it takes several hits to bring one down. A Klingon with no Stress left breaks, and beams out of the battle on its next turn (finish it before then if you can); once every Klingon still standing has fled, you win."
       ]
     },
     {
@@ -47,7 +47,7 @@
         "First Aid (Major): Daring + Medicine on an ally within one tile. Revive = Difficulty 2: a Defeated ally is back on their feet (the Injury stays). Treat Injury = Difficulty equal to its Severity: no penalty from it any more, but it is still an Injury.",
         "Direct (Major, 1 Momentum): only the character in authority (a nominated leader, else the highest rank, else the first picked). The chosen ally must hear you (nearby, or both carrying a communicator); they take one Major action at once, and the commander assists it with Control + Command. Nobody takes more than two Major actions in a round.",
         "Extra actions: point at your character for Extra Minor (1 Momentum, once per turn) or, after your Major action, Second Major (2 Momentum; that task is +1 Difficulty).",
-        "Objects in the world (the Power Relay, Alarm Panel, Sensor Console, Damaged Door, Injured Crewmember) work in combat exactly as outside it. Stand within reach, point at your character and pick Interact (or click the object's marker). Each approach shows its cost (Major or Minor) and the full roll before you commit; its effect on the world is immediate.",
+        "Objects in the world (the Power Relay, Alarm Panel, Sensor Console, Damaged Door, Injured Crewmember) work in combat exactly as outside it. Stand within reach, point at your character and pick Interact, or click the object to show its approaches around it. Each approach shows its cost (Major or Minor) and the full roll before you commit; its effect on the world is immediate.",
         "Move is selected at the start of each turn: click any blue tile to walk there. On a touch screen, tap a blue tile to see the path, then tap it again to walk there. You can Move once per turn, up to your full movement (shown as >> 5/5 above your character); tiles you don't use are lost. You can't Move while a Klingon is right next to you.",
         "Sprint (Major, no roll): point at your acting character and pick Sprint, then click a blue tile. It goes up to twice your movement (shown as +10 beside >> 5/5), once per turn, and never in the same turn as Move. Klingons sprint too. Sprinting is not an attack, so it doesn't spoil an Ambush.",
         "Aim lets you reroll one die on your next attack this turn; with an Accurate weapon (such as a phaser rifle), up to two dice. A focus doesn't change Aim. Aiming twice doesn't give more rerolls.",

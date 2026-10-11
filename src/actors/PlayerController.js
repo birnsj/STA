@@ -22,7 +22,8 @@ const WAYPOINT_REACHED = 0.06
 const STALL_SECONDS = 0.6
 const STALL_NEAR = 1.2
 const STALL_GIVE_UP_SECONDS = 2.5
-// A follower who has moved less than BLOCKED_MOVE in BLOCKED_SECONDS stops ("parks") until their spot moves UNPARK_DISTANCE.
+// A follower who has got no more than BLOCKED_MOVE closer to an unmoving spot in BLOCKED_SECONDS stops ("parks") until
+// their spot moves UNPARK_DISTANCE.
 const BLOCKED_MOVE = 0.08
 const BLOCKED_SECONDS = 0.8
 const UNPARK_DISTANCE = 0.5
@@ -108,7 +109,7 @@ export class PlayerController extends CharacterController {
       replanIn: 0,
       stall: { seconds: 0, best: Infinity },
       parkedFor: null,
-      blocked: { from: back.position, seconds: 0 },
+      blocked: { seconds: 0 },
     }
   }
 
@@ -151,10 +152,12 @@ export class PlayerController extends CharacterController {
     const still = { member, velocity: { x: 0, y: 0 }, direction: null }
     if (member.parkedFor && distance(member.parkedFor, target) < UNPARK_DISTANCE) return still
     if (toTarget < AT_POINT) return member.path.length || member.parkedFor ? { ...still, member: { ...member, path: [], parkedFor: null } } : still
-    // Trying to move but getting nowhere (the spot is wedged between others or against a wall): stay put until the spot moves.
-    const blocked = distance(member.position, member.blocked.from) < BLOCKED_MOVE
-    const blockedFor = blocked ? { from: member.blocked.from, seconds: member.blocked.seconds + seconds } : { from: member.position, seconds: 0 }
-    if (blockedFor.seconds > BLOCKED_SECONDS) return { ...still, member: { ...member, path: [], parkedFor: target, blocked: { from: member.position, seconds: 0 } } }
+    // Trying to move but getting nowhere (the spot is wedged between others or against a wall): stay put until the spot
+    // moves. Getting nowhere is judged by progress toward a spot that stays put, so bouncing against a neighbour counts.
+    const sameSpot = member.blocked.target && distance(member.blocked.target, target) < BLOCKED_MOVE
+    const blocked = sameSpot && toTarget > member.blocked.best - BLOCKED_MOVE
+    const blockedFor = blocked ? { ...member.blocked, seconds: member.blocked.seconds + seconds } : { target, best: toTarget, seconds: 0 }
+    if (blockedFor.seconds > BLOCKED_SECONDS) return { ...still, member: { ...member, path: [], parkedFor: target, blocked: { seconds: 0 } } }
     let path = member.path
     let replanIn = member.replanIn - seconds
     if (isClearLine(map, member.position, target)) {

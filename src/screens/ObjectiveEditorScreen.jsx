@@ -134,7 +134,7 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
               <span className="oe-item-meta">
                 {objective.id}
                 {objective.objectId ? ` · on ${objective.objectId}` : objective.position ? ` · at ${objective.position.x}, ${objective.position.y}` : ''}
-                {conditionCount(objective.activeWhen) ? ' · auto start' : ''}
+                {objective.startsActive ? ' · starts active' : conditionCount(objective.activeWhen) ? ' · auto start' : ''}
                 {conditionCount(objective.completeWhen) ? ' · auto complete' : ''}
               </span>
             </button>
@@ -171,13 +171,21 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
               <span className="ce-field-label">Marked on (the minimap marks it while active)</span>
               <LinkField objective={selected} objects={objects} onChange={update} />
               {!selected.objectId && <LocationFields objective={selected} width={width} height={height} onChange={update} onPick={() => onPick(selectedIndex)} />}
-              <span className="ce-field-label">Active when (all hold; none: only actions start it)</span>
-              <ConditionsEditor conditions={selected.activeWhen ?? []} onChange={(activeWhen) => update({ activeWhen })} />
+              <label className="ce-field is-inline">
+                <input type="checkbox" checked={Boolean(selected.startsActive)} onChange={(event) => update({ startsActive: event.target.checked })} />
+                <span className="ce-field-label">Starts active (shown from the moment the mission starts)</span>
+              </label>
+              {!selected.startsActive && (
+                <>
+                  <span className="ce-field-label">Active when (all hold; none: only actions start it)</span>
+                  <ConditionsEditor conditions={selected.activeWhen ?? []} onChange={(activeWhen) => update({ activeWhen })} />
+                </>
+              )}
               <span className="ce-field-label">Complete when (all hold; none: only actions complete it)</span>
               <ConditionsEditor conditions={selected.completeWhen ?? []} onChange={(completeWhen) => update({ completeWhen })} />
               <p className="ce-text">
                 Conversations (Set Objective) and challenge objects (setFlag objective.{selected.id || '<id>'}) can also start or complete it. A fight sets defeated.&lt;npc id&gt; for each NPC
-                it leaves down or surrendered.
+                it leaves down, surrendered or fled.
               </p>
             </div>
           ) : (

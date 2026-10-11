@@ -4,7 +4,8 @@
     "Distances are in map tiles (1 = one tile). Positions are continuous, with tile centres at whole numbers.",
     "Formation slots: x = to the leader's right, y = behind the leader. The first slot is the leader; followers take the others. Slots are scaled by the party's spacing and turned to the leader's heading.",
     "Every party member walks and runs at the same speed; only sneaking uses a character stat (sneak.json).",
-    "Walk or run (designer decision, 2026-10-09): a move order to a point more than runDistance from the lead character runs at runSpeed, otherwise walks; while the button is held this follows the cursor. Followers of a running leader run too, and catch up at runCatchUpSpeed."
+    "Walk or run (designer decision, 2026-10-09): a move order to a point more than runDistance from the lead character runs at runSpeed, otherwise walks; while the button is held this follows the cursor. Followers of a running leader run too, and catch up at runCatchUpSpeed.",
+    "A character counts as moving (walk animation, noticed by NPCs as moving) while their speed, averaged over about movingSmoothingSeconds, is above movingSpeed tiles per second, so shuffling on the spot doesn't count."
   ],
   "movement": {
     "walkSpeed": 3.2,
@@ -20,7 +21,9 @@
     "turnRateDegrees": 300,
     "headingDeadbandDegrees": 25,
     "replanSeconds": 0.3,
-    "groupedDistance": 4
+    "groupedDistance": 4,
+    "movingSpeed": 0.5,
+    "movingSmoothingSeconds": 0.25
   },
   "defaultFormation": "diamond",
   "formations": [

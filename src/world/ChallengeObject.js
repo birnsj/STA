@@ -72,6 +72,20 @@ export class ChallengeObject extends WorldObject {
       })
   }
 
+  // Every approach the object's radial menu lists, in authored order: those offered now (availableActions), plus those
+  // with a lockedHint whose object state matches but whose other requirements aren't met yet, greyed with the hint as
+  // their reason (so the player sees the easier and alternative ways in). Presentation only: an attempt still needs
+  // availableActions.
+  listedActions(state) {
+    const offered = new Map(this.availableActions(state).map((entry) => [entry.action.id, entry]))
+    const object = this.runtime(state.scenario)
+    return this.definition.actions.flatMap((action) => {
+      if (offered.has(action.id)) return [offered.get(action.id)]
+      const stateMatches = !action.requires?.states || action.requires.states.includes(object.state)
+      return action.lockedHint && stateMatches ? [{ action, available: false, reason: action.lockedHint }] : []
+    })
+  }
+
   combatCost(actionOrId) {
     return combatCostOf(typeof actionOrId === 'string' ? this.action(actionOrId) : actionOrId)
   }

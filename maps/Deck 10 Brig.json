@@ -6,7 +6,7 @@
   "mapType": "starshipDeck",
   "biome": "temperate",
   "weather": "clear",
-  "ambient": 15,
+  "ambient": 50,
   "rows": [
     "####################òò##########òò##ðð##",
     "ñc..ccc..ccc#c..cc..cc..#cc..ccc..c..MM#",
@@ -193,7 +193,8 @@
         13,
         20
       ],
-      "objectId": "powerJunction01"
+      "objectId": "powerJunction01",
+      "startsActive": true
     },
     {
       "id": "okaforClearance",

@@ -5,6 +5,8 @@ import { getFormation, slotPoint } from '../../exploration/formations.js'
 import { getFollowTargets, getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
+import TransporterBeam from '../combat/TransporterBeam.jsx'
+import ScanPulse from './ScanPulse.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import { isBlock, project, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
 import { getTile, imageSize } from '../../maps/mapFormat.js'
@@ -64,7 +66,8 @@ function DownBody({ condition, spriteSet = null, uniform = null, facing, seed })
   return <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} seed={seed} animation={defeatAnimation(condition, seed)} settled />
 }
 
-function Explorer({ member, selected, lead, onPress }) {
+// beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the mission starts, else null.
+function Explorer({ member, selected, lead, beamIn = null, onPress }) {
   const centre = project(member.position)
   const image = member.character.portrait.image
   const uniform = member.character.portrait.uniform
@@ -74,7 +77,7 @@ function Explorer({ member, selected, lead, onPress }) {
   const facing = controller.facing(member)
   return (
     <g
-      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${sneaking && !down ? ' is-sneaking' : ''}`}
+      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${sneaking && !down ? ' is-sneaking' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }}
       onPointerDown={onPress}
       onClick={(event) => event.stopPropagation()}
@@ -358,7 +361,7 @@ function ObjectHighlight({ view, tiles, layout, filterPrefix, inReach, onPress }
   const { map, panels, bigGroups } = layout
   const filter = `url(#${filterPrefix}-${view.changed ? 'changed' : 'unresolved'}${inReach ? '-glow' : ''})`
   return (
-    <g className={challengeClasses('object-highlight', view, inReach)} onPointerDown={onPress}>
+    <g className={challengeClasses('object-highlight', view, inReach)} onPointerDown={onPress} onClick={inReach ? (event) => event.stopPropagation() : undefined}>
       <title>{challengeTitle(view, inReach)}</title>
       <g filter={filter}>
         {tiles.map((position) =>
@@ -387,7 +390,7 @@ function ChallengeMarker({ view, artTop, inReach, onPress }) {
   const centre = project(view.position)
   const diamond = -artTop - MARKER_DIAMOND
   return (
-    <g className={challengeClasses('challenge-marker', view, inReach)} transform={`translate(${centre.x} ${centre.y})`} onPointerDown={onPress}>
+    <g className={challengeClasses('challenge-marker', view, inReach)} transform={`translate(${centre.x} ${centre.y})`} onPointerDown={onPress} onClick={inReach ? (event) => event.stopPropagation() : undefined}>
       <title>{challengeTitle(view, inReach)}</title>
       <path d={`M0 ${diamond - 20} L9 ${diamond - 10} L0 ${diamond} L-9 ${diamond - 10} Z`} />
       <text className="challenge-marker-name" x="0" y={-artTop - MARKER_NAME} textAnchor="middle">
@@ -449,9 +452,12 @@ function ClickPulse({ point }) {
 // onSelectBox(ids, additive): a right-drag box closed around these characters (Ctrl adds them to the selection).
 // The right button draws the box, so the middle button drags the camera here.
 // onOpenMenu(id): a right-click (no drag) on a party member (id), or elsewhere (null). onOpenNpcMenu(id): a left click on
-// an NPC the party can see. menu: { memberId, buttons } or { npcId, buttons } drawn over that character
-// (UnitActionRing), or null.
-export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null }) {
+// an NPC the party can see. menu: { memberId, buttons } or { npcId, buttons } drawn over that character, or
+// { objectId, buttons } over that challenge object (UnitActionRing), or null; NPC and object menus also carry the
+// ring's party band and button hover (party, onButtonHover); an object menu may carry slotRef (the slot above its ring).
+// beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn).
+// scanPulse: a party Scan's sweep to play ({ key, origin, radius, onDone }, ScanPulse) or null.
+export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false)
@@ -607,7 +613,13 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     event.stopPropagation()
     onOpenNpcMenu(id)
   }
-  const menuPosition = menu?.memberId ? state.members[menu.memberId]?.position : menu?.npcId ? world.npcs[menu.npcId]?.position : null
+  const menuPosition = menu?.memberId
+    ? state.members[menu.memberId]?.position
+    : menu?.npcId
+      ? world.npcs[menu.npcId]?.position
+      : menu?.objectId
+        ? challenges.find((view) => view.id === menu.objectId)?.position
+        : null
 
   // On the floor, under every block: where NPCs were last seen, and the click rings.
   const ground = (
@@ -629,7 +641,16 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
     ...getMembers(state).map((member) => ({
       depth: atDepth(member.position, 0.5),
       box: around(member.position, 30 * FIGURE_SCALE, 72 * FIGURE_SCALE),
-      element: <Explorer key={`u${member.id}`} member={member} selected={isSelected(state, member.id)} lead={member.id === state.leaderId} onPress={pressMember(member.id)} />,
+      element: (
+        <Explorer
+          key={`u${member.id}`}
+          member={member}
+          selected={isSelected(state, member.id)}
+          lead={member.id === state.leaderId}
+          beamIn={beamIn === 'done' ? null : beamIn}
+          onPress={pressMember(member.id)}
+        />
+      ),
     })),
     ...getNpcs(world)
       .filter((npc) => debug || isVisibleToParty(knowledge, npc.id))
@@ -679,10 +700,14 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       <MapCanvas layout={layout} faded={faded} holes={holes} ground={ground}>
         {windows}
       </MapCanvas>
+      {beamIn === 'beaming' && getMembers(state).map((member) => <TransporterBeam key={`beam-${member.id}`} position={project(member.position)} direction="in" />)}
+      {scanPulse && <ScanPulse key={`scan-${scanPulse.key}`} origin={scanPulse.origin} radius={scanPulse.radius} onDone={scanPulse.onDone} />}
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}
-      {menuPosition && <UnitActionRing position={menuPosition} buttons={menu.buttons} info={menu.info ?? null} placement="top" prominent />}
+      {menuPosition && (
+        <UnitActionRing position={menuPosition} buttons={menu.buttons} info={menu.info ?? null} party={menu.party ?? null} onButtonHover={menu.onButtonHover} slotRef={menu.slotRef} placement="top" prominent />
+      )}
       {box && (
         <rect
           className="explore-select-box"

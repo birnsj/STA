@@ -176,6 +176,7 @@
 
 .ce-inspector { display: flex; flex-direction: column; gap: 6px; }
 .ce-field { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.ce-field.is-inline { flex: none; flex-direction: row; align-items: center; gap: 6px; }
 .ce-field-label { color: #8fb4ba; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
 .ce-inspector textarea { resize: vertical; }
 

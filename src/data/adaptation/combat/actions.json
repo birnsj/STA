@@ -91,7 +91,7 @@
       "Book (Core p.280): if the asker wins, the resister gives in or resists by suffering Stress equal to the asker's successes; if the resister wins, nothing happens. Designer decision (Oct 2026): an enemy resists while it has any Stress left, and surrenders once it has none. A surrendered enemy stands down: out of the fight, can't be attacked, and neutral afterwards in the world.",
       "Book (Core p.256): the side that sets the Difficulty generates 1 Momentum per success the other side fell short; here that is the asker.",
       "Not implemented (book): the asker spending 2 Momentum per +1 Stress (p.280); a resisted request can't be repeated without a change (p.279); a failed Intimidation makes later attempts harder (p.282).",
-      "Designer decision (Oct 2026): an enemy whose Stress track is full (none left) retreats: it runs from the party, away and into cover, but never leaves the fight; the party has to hunt it down. Enemies with no Stress track (Minor, Notable and Major NPCs; Book Core pp.278, 291) never retreat, and surrender on any won request."
+      "Designer decision (2026-10-11): an enemy whose Stress track is full (none left) retreats: on its next turn it flees the battle, and the fight is won once every enemy still up has fled. Enemies with no Stress track (Minor, Notable and Major NPCs; Book Core pp.278, 291) never retreat, and surrender on any won request."
     ]
   },
   "actions": [

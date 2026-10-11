@@ -1,10 +1,11 @@
 // Persuade, Intimidate, surrender and retreat (designer decisions Oct 2026; Book Core pp.256, 278-282). The asker's
 // successes set the Difficulty of the enemy's Control + Command roll; if the asker wins, the enemy takes that much Stress
-// while it has Stress left, else surrenders. An enemy with no Stress left retreats, but stays in the fight.
+// while it has Stress left, else surrenders. An enemy with no Stress left retreats, and beams out of the battle on its next turn.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { combatReducer, createCombat, isActive, previewSocial } from '../src/combat/combatState.js'
 import { retreatStep } from '../src/combat/combatRetreat.js'
+import { aiDelay, BEAM_OUT_MS, justFled } from '../src/components/combat/battleHelpers.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { getMaxStress } from '../src/rules/personalCondition.js'
 import { makeCharacter } from './support/characters.js'
@@ -96,19 +97,27 @@ describe('Retreat', () => {
     assert.equal(next.outcome, null)
   })
 
-  it('a retreating enemy runs out of sight but stays in the fight, which goes on', () => {
-    const { state: fresh, enemy } = fight({ enemyAt: { x: 7, y: 5 }, wall: true })
-    let state = combatReducer(withEnemyStress(fresh, enemy.id, 99), { type: 'endTurn' })
-    assert.equal(state.combatants[enemy.id].retreating, true)
-    const start = state.combatants[enemy.id].position
-    for (let i = 0; i < 6; i++) {
-      const self = state.combatants[state.order[state.turnIndex]]
-      state = combatReducer(state, self.side === 'enemy' ? retreatStep(state, self) : { type: 'endTurn' })
-    }
-    const fled = state.combatants[enemy.id]
-    assert.ok(fled.position.x > start.x)
-    assert.ok(isActive(fled))
-    assert.equal(state.outcome, null)
+  it('a retreating enemy flees on its next turn; with no enemy left up, the fight is won', () => {
+    const { state: fresh, enemy } = fight()
+    const state = combatReducer(withEnemyStress(fresh, enemy.id, 99), { type: 'endTurn' })
+    assert.equal(state.order[state.turnIndex], enemy.id)
+    assert.ok(isActive(state.combatants[enemy.id]), 'still in the fight until its turn')
+    const self = state.combatants[enemy.id]
+    assert.equal(retreatStep(state, self).type, 'flee')
+    const next = combatReducer(state, retreatStep(state, self))
+    assert.equal(next.combatants[enemy.id].fled, true)
+    assert.equal(isActive(next.combatants[enemy.id]), false)
+    assert.equal(next.outcome, 'victory')
+    assert.equal(justFled(next)?.id, enemy.id, 'its beam-out plays')
+    assert.equal(aiDelay(next), BEAM_OUT_MS)
+    assert.equal(justFled(state), null)
+  })
+
+  it('only a retreating enemy can flee', () => {
+    const { state: fresh, enemy } = fight()
+    const state = combatReducer(fresh, { type: 'endTurn' })
+    assert.equal(state.order[state.turnIndex], enemy.id)
+    assert.equal(combatReducer(state, { type: 'flee' }), state)
   })
 
   it('a Minor NPC (no Stress track) never retreats, and surrenders on any won request', () => {

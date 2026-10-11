@@ -10,7 +10,6 @@
 // Enemies are judged by the enemy AI's own habits: each walks then shoots, and targets the nearest party member.
 // The profiles below only change weights and add optional terms. All of it is AI tuning (implementation detail), not rules.
 import { tileKey } from './battleMap.js'
-import { canTakeCover } from './coverSystem.js'
 import { getMovementTiles, getReachableTiles } from './movementSystem.js'
 import { RANGE_BANDS, tileDistance } from './rangeSystem.js'
 import { getCombatantWeapon } from './weaponSystem.js'
@@ -20,17 +19,19 @@ import {
   canAim,
   canMove,
   canSprint,
+  combatActionFor,
   getAssistableAllies,
   getBlockers,
   getCombatantList,
   getOpponents,
   getReachable,
+  injuryDefeats,
   injuryFor,
   isActive,
   previewAttack,
 } from './combatState.js'
 import { bestShot, cancelThreatStep, expectedChance, injuryModesFor, pendingStep, shotSummary } from './combatAI.js'
-import { getAvoidOption, getMaxStress } from '../rules/personalCondition.js'
+import { getMaxStress } from '../rules/personalCondition.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 
 const BASE_PROFILE = {
@@ -90,7 +91,7 @@ function hitWouldDefeat(state, target) {
     )
   if (!injuries.length) return false
   const worst = injuries.reduce((a, b) => (b.severity > a.severity ? b : a))
-  return !getAvoidOption(target.character, target.condition, worst, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene }).possible
+  return injuryDefeats(state, target, worst)
 }
 
 // What one hit on a combatant is worth to this profile.
@@ -113,7 +114,7 @@ function createValuer(state, self, profile) {
 
 // The best attack from a position (current one by default), judged by chance to hit x value of the Hit.
 function bestAttack(state, self, valueOf, profile, fromPosition, { aimed = false } = {}) {
-  const judged = aimed ? { ...state, turn: { ...state.turn, aimReroll: true } } : state
+  const judged = aimed ? combatActionFor('aim').hypothetical(state, self) : state
   let best = null
   for (const target of getOpponents(state, self)) {
     const shot = bestShot(state, self, target, fromPosition)
@@ -131,7 +132,7 @@ function bestAssist(state, self, valueOf, profile) {
   if (!canAfford(state, self, 'assist')) return null
   let best = null
   for (const ally of getAssistableAllies(state, self)) {
-    const assisted = { ...state, assists: { ...state.assists, [ally.id]: self.id } }
+    const assisted = combatActionFor('assist').hypothetical(state, self, { allyId: ally.id })
     const positions = [undefined, ...[...getReachable(state, ally).values()].filter((entry) => entry.steps > 0).map((entry) => entry.position)]
     for (const position of positions) {
       for (const target of getOpponents(state, ally)) {
@@ -163,8 +164,8 @@ function createDangerMap(state, self, valueOf) {
   const danger = (position) => {
     const key = tileKey(position)
     if (cache.has(key)) return cache.get(key)
-    const covered = canTakeCover(state.map, position)
-    const placed = { ...state, combatants: { ...state.combatants, [self.id]: { ...self, position, inCover: covered } } }
+    const placed = combatActionFor('move').hypothetical(state, self, { destination: position })
+    const covered = placed.combatants[self.id].inCover
     let total = 0
     for (const { opponent, tiles, weapons } of opponents) {
       let chance = 0
@@ -194,15 +195,14 @@ function createDangerMap(state, self, valueOf) {
 
 // Lookahead: the best shot from position next turn, once each enemy has walked toward its nearest party member.
 function nextTurnShot(state, self, position, opponents, valueOf, profile) {
-  const covered = canTakeCover(state.map, position)
+  const move = combatActionFor('move')
   const party = [{ ...self, position }, ...teammates(state, self)]
-  const combatants = { ...state.combatants, [self.id]: { ...self, position, inCover: covered } }
+  let predicted = move.hypothetical(state, self, { destination: position })
   for (const { opponent, tiles } of opponents) {
     const nearest = party.reduce((a, b) => (tileDistance(opponent.position, a.position) <= tileDistance(opponent.position, b.position) ? a : b))
     const goal = tiles.reduce((a, b) => (tileDistance(a, nearest.position) <= tileDistance(b, nearest.position) ? a : b), opponent.position)
-    combatants[opponent.id] = { ...opponent, position: goal, inCover: canTakeCover(state.map, goal) }
+    predicted = move.hypothetical(predicted, opponent, { destination: goal })
   }
-  const predicted = { ...state, combatants }
   return bestAttack(predicted, predicted.combatants[self.id], valueOf, profile)
 }
 

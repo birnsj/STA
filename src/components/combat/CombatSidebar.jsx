@@ -1,7 +1,7 @@
 import actionData from '../../data/adaptation/combat/actions.json'
 import { getMovementTiles } from '../../combat/movementSystem.js'
 import { describeRange, getInjuryMode } from '../../combat/weaponSystem.js'
-import { AMBUSH_FOCUSES, isAccurate } from '../../combat/combatState.js'
+import { AMBUSH_FOCUSES, isAccurate, maxAttackSuccesses } from '../../combat/combatState.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
 import BonusDicePicker from '../BonusDicePicker.jsx'
 import { RecommendationLine, TaskBlockers, TaskDevDetails, TaskDice, TaskDifficulty, TaskFocus, TaskFormula, TaskModifiers } from '../task/TaskMath.jsx'
@@ -111,7 +111,7 @@ function AttackTask({ preview, helper, dicePurchase, attackMode }) {
   const { task, weapon } = preview
   const bonusDice = dicePurchase.value.bonusDice
   const dice = TASK_DICE + bonusDice
-  const maxSuccesses = dice * 2 + (helper ? 2 : 0)
+  const maxSuccesses = maxAttackSuccesses(dice, helper)
   const mode = attackMode ? getInjuryMode(attackMode) : null
   const injuries = mode ? preview.injuries?.filter((injury) => injury.type === attackMode) : preview.injuries
   return (

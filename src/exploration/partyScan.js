@@ -99,7 +99,8 @@ export function scanNpc(state, memberId, npcId) {
 }
 
 // The member scans. Returns the state with the roll's Momentum saved, the life signs revealed, the cooldown started
-// and lastScan: { key, memberId, success, successes, difficulty, radius, found, enemies, enemyContacts, location } for
+// and lastScan: { key, memberId, origin (where they stood), success, successes, difficulty, radius, found, enemies,
+// enemyContacts, location } for
 // the screen (found / enemies: life signs and enemies among them, 0 on a failure; enemyContacts: { direction, distance }
 // per enemy from the scanner, nearest first, distance in whole tiles; location: locationReport). Unchanged when the
 // member can't scan (or the task is impossible for them).
@@ -134,6 +135,7 @@ export function scanArea(state, memberId) {
     lastScan: {
       key,
       memberId,
+      origin: { x: member.position.x, y: member.position.y },
       success: result.success,
       successes: result.successes,
       difficulty: prepared.difficulty,

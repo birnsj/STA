@@ -1,5 +1,6 @@
-﻿import actionData from '../../data/adaptation/combat/actions.json'
+import actionData from '../../data/adaptation/combat/actions.json'
 import {
+  ACTION_TYPE_NAMES,
   AIM_TEXT,
   aimRerollsFor,
   canAfford,
@@ -25,7 +26,7 @@ import { prepareAssist } from '../../rules/taskPreparation.js'
 import { attackModeDetails, attackModeName, enemyButtonDefs, taskDetails, typeName } from './battleHelpers.js'
 
 // The buttons and info card drawn in a ring around a unit on the map: the acting character's own actions, an enemy's
-// attack / scan / persuade buttons, an ally's Assist and Switch, and the Ambush button. They only describe what a button
+// attack / scan / persuade buttons, an ally's Assist and Switch, the Ambush button, and a challenge object's approaches. They only describe what a button
 // shows and what pressing it asks the screen to do (the callbacks), so a new action's button is added here.
 // Everything passed in is the screen's state at this render; the returned builders are called while it renders the ring.
 export default function createRingButtons({
@@ -61,6 +62,7 @@ export default function createRingButtons({
   setMode,
   setRingInfo,
   setTaskPick,
+  taskPick,
 }) {
   const ambushRingButtons = (enemy) => {
     const ambush = previewAmbush(state, enemy.id)
@@ -337,5 +339,18 @@ export default function createRingButtons({
       }
     })
   }
-  return { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons }
+  // A challenge object in reach: one button per approach it offers now; picking one opens it in the Task panel.
+  const objectRingButtons = (objectId) => {
+    const entry = objectList.find(({ definition }) => definition.id === objectId)
+    return (entry?.actions ?? []).map(({ action, available, reason, cost, affordable }) => ({
+      id: action.id,
+      label: action.label,
+      icon: 'interact',
+      enabled: available && affordable,
+      active: mode === 'interact' && taskPick === `${objectId}:${action.id}`,
+      title: !available ? reason : !affordable ? `No ${ACTION_TYPE_NAMES[cost]} action left.` : `${action.label} (${ACTION_TYPE_NAMES[cost]} action): ${action.description}`,
+      onClick: () => openTask('interact', `${objectId}:${action.id}`),
+    }))
+  }
+  return { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons }
 }

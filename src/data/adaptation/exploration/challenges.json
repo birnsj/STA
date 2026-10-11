@@ -5,10 +5,11 @@
     "interactRange: how close (tiles, from the object's tile centre) a party member must stand to attempt or assist an action.",
     "Object: id, name, type, position [x, y] (tile), state (starting state id), states { id: { label, description, tile } } where tile (optional) replaces the map tile at the object's position while in that state (e.g. a sealed door blocks the doorway); otherwise the map's own tile shows. covers (optional) [[x, y]]: more tiles the state's tile replaces (the second tile of a two-tile doorway).",
     "Action: id, label, description; routine: true = simply works, no roll. task = { attribute, department, difficulty, focuses [exact focus names], tags [task tags for species abilities], complicationRange, equipment { label, tags, itemIds, without: 'impossible' | { difficulty }, bonus [{ label, tags, itemIds, difficulty }] }, talentIds, roleIds (talents / role benefits whose prose condition the author says this task meets), traitRules [{ trait, difficulty } | { trait, impossible: true }] }.",
+    "Radial menu (designer request 2026-10-11): an object's ring lists every approach it offers now, plus any whose object state matches but whose other requirements aren't met yet if it has lockedHint (text): shown greyed with that hint as the reason, so the easier and alternative ways in are visible. icon (optional): the ring icon (components/combat/actionIcons.js; default 'interact').",
     "assist: the approaches a second party member may help with (each { label, attribute, department, focuses }); omitted = no assistance. requires: { states: [object states], flags: { flag: value }, conditions: [mission flag conditions, src/exploration/missionFlags.js] }; unmet = the action is not offered. Flags are the shared mission flags conversations and objectives use too; an objective's progress is the flag 'objective.{id}' ('active' | 'complete'). actionCost: { exploration, combat } metadata for later tactical use.",
     "Outcomes: onSuccess, onFailure, onComplication (once if any complication remains after the roll, whether the task passed or failed), always. Effects: setState, setFlag { flag, value }, changeFlag { flag, op: 'set' | 'clear' | 'add', value }, noise { radius, intensity } (the NPC awareness noise event), revealNpcs { radius, source, identified } and addFact { id, text } (into Party Knowledge), adjustDifficulty { actionId (default: this action), change, label }, setNpcResponse { alertGroupId, from, to } (NPC reaction override), lock { seconds } (no retry until then; during combat, where the world clock stands still, no retry until the next combat round), message { text }, addLogEntry { text } (an entry in the Captain's Log, exploration/missionLog.js).",
     "Scene traits (Book p.252, Create Trait p.289): addTrait { name, potency (default 1), description }, removeTrait { name }, changePotency { name, change } (a trait at Potency 0 is gone). The trait applies to any task (exploration or combat) whose traitRules name it. kind: 'createTrait' marks an action as Create Trait for the UI (Book: Difficulty 2, a contextual Attribute + Department). Which traits exist and where they can be created is authored (VIDEOGAME ADAPTATION: no free-text GM interface).",
-    "Deck 10 Brig (conversation validation encounter, Oct 2026, test content): the east section's two doorways are sealed bulkheads; the EPS Power Junction beside Lt. Okafor restores power. Talking to her (conversations/engineerSealedSection.json) can grant clearance (sectionAccessGranted: the bulkheads open normally) or diagnose the fault (faultDiagnosed: the junction offers the easier Replace the EPS Coupling instead of Restore Power). Without clearance the bulkheads need Override the Lockout once powered. Opening either bulkhead sets eastSectionOpen (the map's 'Get into the east section' objective reads it).",
+    "Deck 10 Brig (conversation validation encounter, Oct 2026, test content): the east section's two doorways are sealed bulkheads; the EPS Power Junction beside Lt. Okafor restores power. Talking to her (conversations/engineerSealedSection.json) can grant clearance (sectionAccessGranted: the bulkheads open normally) or diagnose the fault (faultDiagnosed: the junction also offers the easier Replace the EPS Coupling). The junction's own Scan for the Fault (tricorder) diagnoses it too; Restore Power stays open as the direct way (designer request 2026-10-11). Override the Lockout opens a powered bulkhead with or without clearance. Opening either bulkhead sets eastSectionOpen (the map's 'Get into the east section' objective reads it).",
     "In combat (Book p.288): an action takes the action type in actionCost.combat (major or minor; a routine action without one is minor, any other action major), is attempted by the character whose turn it is, and is assisted by whoever set up an Assist for them or by the commander on a Direct (Control + Command), not by the assist approaches below."
   ],
   "interactRange": 2,
@@ -29,11 +30,11 @@
             "id": "restorePower",
             "label": "Restore Power",
             "description": "Trace the fault through the junction and bring the section's grid back up.",
-            "requires": { "states": ["offline"], "flags": { "faultDiagnosed": false } },
+            "requires": { "states": ["offline"] },
             "task": {
               "attribute": "reason",
               "department": "engineering",
-              "difficulty": 3,
+              "difficulty": 2,
               "focuses": ["Power Management", "Electro-Plasma Systems", "Emergency Repairs", "Troubleshooting", "Diagnostics"],
               "tags": ["electronics", "power"]
             },
@@ -53,10 +54,34 @@
             ]
           },
           {
+            "id": "scanJunction",
+            "label": "Scan for the Fault",
+            "icon": "scan",
+            "description": "Run a tricorder over the junction to find exactly what failed. Knowing the fault makes the repair easier.",
+            "requires": { "states": ["offline"], "flags": { "faultDiagnosed": false } },
+            "task": {
+              "attribute": "reason",
+              "department": "science",
+              "difficulty": 1,
+              "focuses": ["Sensor Operations", "Diagnostics", "Troubleshooting", "Electro-Plasma Systems", "Power Management"],
+              "tags": ["sensors", "analysis"],
+              "equipment": { "label": "a tricorder", "tags": ["scanner"], "without": "impossible", "bonus": [{ "label": "Engineering tricorder", "itemIds": ["engineeringTricorder"], "difficulty": -1 }] }
+            },
+            "assist": [{ "label": "Read out the junction's status lights", "attribute": "reason", "department": "engineering", "focuses": ["Power Management", "Electro-Plasma Systems"] }],
+            "actionCost": { "exploration": "free", "combat": "major" },
+            "onSuccess": [
+              { "type": "setFlag", "flag": "faultDiagnosed", "value": true },
+              { "type": "message", "text": "The tricorder pinpoints a burnt-out EPS coupling." },
+              { "type": "addLogEntry", "text": "A tricorder scan of the EPS junction traced the outage to a burnt-out coupling." }
+            ],
+            "onFailure": [{ "type": "message", "text": "The readings are muddied by residual plasma; no clear fault yet." }]
+          },
+          {
             "id": "replaceCoupling",
             "label": "Replace the EPS Coupling",
-            "description": "Lt. Okafor's diagnosis points straight at the burnt-out coupling. Swap it out.",
+            "description": "The diagnosis points straight at the burnt-out coupling. Swap it out.",
             "requires": { "states": ["offline"], "flags": { "faultDiagnosed": true } },
+            "lockedHint": "Find the fault first: scan the junction, or ask Lt. Okafor.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -83,7 +108,7 @@
       },
       {
         "id": "eastBulkheadSouth",
-        "name": "East Bulkhead",
+        "name": "East Bulkhead (South)",
         "type": "door",
         "position": [24, 20],
         "covers": [[24, 21]],
@@ -99,6 +124,7 @@
             "description": "Lt. Okafor has cleared the party through; with power back the bulkhead cycles normally.",
             "routine": true,
             "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": true } },
+            "lockedHint": "Needs power to the section and Lt. Okafor's clearance.",
             "actionCost": { "exploration": "free", "combat": "minor" },
             "onSuccess": [
               { "type": "setState", "state": "open" },
@@ -109,8 +135,9 @@
           {
             "id": "overrideLock",
             "label": "Override the Lockout",
-            "description": "Power is back but the lockout still holds. Bypass it without the engineer's clearance.",
-            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": false } },
+            "description": "Bypass the lockout without waiting for the engineer's clearance.",
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true } },
+            "lockedHint": "Needs power to the section.",
             "task": {
               "attribute": "control",
               "department": "security",
@@ -134,7 +161,7 @@
       },
       {
         "id": "eastBulkheadNorth",
-        "name": "East Bulkhead",
+        "name": "East Bulkhead (North)",
         "type": "door",
         "position": [24, 2],
         "covers": [[24, 3]],
@@ -150,6 +177,7 @@
             "description": "Lt. Okafor has cleared the party through; with power back the bulkhead cycles normally.",
             "routine": true,
             "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": true } },
+            "lockedHint": "Needs power to the section and Lt. Okafor's clearance.",
             "actionCost": { "exploration": "free", "combat": "minor" },
             "onSuccess": [
               { "type": "setState", "state": "open" },
@@ -160,8 +188,9 @@
           {
             "id": "overrideLock",
             "label": "Override the Lockout",
-            "description": "Power is back but the lockout still holds. Bypass it without the engineer's clearance.",
-            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true, "sectionAccessGranted": false } },
+            "description": "Bypass the lockout without waiting for the engineer's clearance.",
+            "requires": { "states": ["sealed"], "flags": { "stationPowerRestored": true } },
+            "lockedHint": "Needs power to the section.",
             "task": {
               "attribute": "control",
               "department": "security",
@@ -260,6 +289,7 @@
             "description": "With power restored, the door opens normally.",
             "routine": true,
             "requires": { "states": ["sealed"], "flags": { "powerRestored": true } },
+            "lockedHint": "Needs power: restore the Power Relay.",
             "actionCost": { "exploration": "free", "combat": "minor" },
             "onSuccess": [
               { "type": "setState", "state": "open" },

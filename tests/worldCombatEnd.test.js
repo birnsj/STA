@@ -100,3 +100,16 @@ describe('surrendered enemies after a world fight', () => {
     assert.equal(endCombat(guardADown(true)).scenario.flags['defeated.guardB'], undefined)
   })
 })
+
+// Designer decision (Oct 2026): an enemy out of Stress flees the battle, and is gone from the map afterwards.
+describe('fled enemies after a world fight', () => {
+  it('a fled enemy ends the fight, leaves the map and counts as dealt with', () => {
+    const fled = withGuardB(guardADown(true), { retreating: true, fled: true })
+    const ended = endCombat(fled)
+    assert.deepEqual(ended.lastCombat.fled, ['guardB'])
+    assert.equal(ended.world.npcIds.includes('guardB'), false)
+    assert.equal(ended.world.npcs.guardB.fled, true)
+    assert.equal(ended.scenario.flags['defeated.guardB'], true)
+    assert.ok(ended.world.npcIds.includes('guardA'), 'a downed NPC stays on the map')
+  })
+})

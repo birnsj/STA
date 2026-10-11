@@ -7,11 +7,10 @@ import { normalizeCondition } from '../rules/personalCondition.js'
 import { seededRandomInt } from '../rules/seededRandom.js'
 import { toBattleMap } from './battleMap.js'
 import { addLog, turnHeader } from './combatLog.js'
-import { facingToward, getCombatantList, isActive } from './combatSelectors.js'
+import { facingToward, getCombatantList, isActive, nearestTo } from './combatSelectors.js'
 import { canTakeCover } from './coverSystem.js'
 import { DEFAULT_ENCOUNTER_ID, getEncounter } from './encounters.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
-import { tileDistance } from './rangeSystem.js'
 import { freshTurn } from './turnActions.js'
 import { getCharacterWeapons, withStandardIssue } from './weaponSystem.js'
 
@@ -106,10 +105,7 @@ export function createCombat({
     createCombatant(placement.character, { ...placement, side: 'enemy', controller: 'ai' }),
   )
   const map = toBattleMap(mapFile)
-  const nearestOpponent = (combatant) =>
-    [...playerCombatants, ...enemyCombatants]
-      .filter((other) => other.side !== combatant.side)
-      .sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  const nearestOpponent = (combatant) => nearestTo(combatant.position, [...playerCombatants, ...enemyCombatants].filter((other) => other.side !== combatant.side))
   const all = [...playerCombatants, ...enemyCombatants].map((combatant) => ({
     ...combatant,
     inCover: !combatant.condition.defeated && canTakeCover(map, combatant.position),
@@ -193,9 +189,10 @@ export function createCombat({
 export function addCombatant(state, placement, { side = 'enemy', controller = 'ai' } = {}) {
   if (state.combatants[placement.id ?? placement.character.id]) return state
   const combatant = createCombatant(placement.character, { ...placement, side, controller })
-  const nearest = getCombatantList(state)
-    .filter((other) => other.side !== side && isActive(other))
-    .sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  const nearest = nearestTo(
+    combatant.position,
+    getCombatantList(state).filter((other) => other.side !== side && isActive(other)),
+  )
   const joined = {
     ...combatant,
     inCover: canTakeCover(state.map, combatant.position),

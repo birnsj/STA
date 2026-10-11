@@ -2,6 +2,7 @@
 // Guard and Direct. Each option is judged in the same units as an attack (a hit = 1, taking a combatant out of the fight or
 // bringing one back = REMOVAL_VALUE) from the same previews the buttons use, and supportStep takes the best one only when
 // it beats this character's own best attack. Party only: enemies keep their own AI. All weights are AI tuning, not rules.
+import { combatActionFor } from './actions/registry.js'
 import { canMove, getReachable } from './combatMovement.js'
 import { canAfford, canAim, getCombatantList, getOpponents, isActive } from './combatSelectors.js'
 import { getHitChance } from './combatAttacks.js'
@@ -9,7 +10,6 @@ import { directBlock, getDirectableAllies, getFirstAidOptions, getGuardTargets, 
 import { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
 import { bestShot, hitDefeats } from './combatAI.js'
 import { tileDistance } from './rangeSystem.js'
-import { freshTurn } from './turnActions.js'
 import { remainingStress, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { staTaskChance, TASK_DICE } from '../rules/taskResolver.js'
 
@@ -46,7 +46,7 @@ const hitValue = (state, attacker, target, shot) => (hitDefeats(state, attacker,
 export function ownAttackValue(state, self) {
   if (!canAfford(state, self, 'attack')) return 0
   const valueFrom = (position) => {
-    const judged = position === undefined && canAim(state, self) ? { ...state, turn: { ...state.turn, aimReroll: true } } : state
+    const judged = position === undefined && canAim(state, self) ? combatActionFor('aim').hypothetical(state, self) : state
     return Math.max(
       0,
       ...getOpponents(state, self).map((target) => {
@@ -66,7 +66,7 @@ function scanOptions(state, self) {
   return getOpponents(state, self).flatMap((target) => {
     const preview = previewScan(state, self.id, target.id)
     if (!preview.available) return []
-    const scanned = { ...state, scanned: { ...state.scanned, [target.id]: true } }
+    const scanned = combatActionFor('scan').hypothetical(state, self, { targetId: target.id })
     const gain = party(state, self).reduce((total, member) => {
       const before = bestShot(state, member, target)
       const after = bestShot(scanned, member, target)
@@ -153,7 +153,7 @@ function guardOptions(state, self) {
   return getGuardTargets(state, self).flatMap((ally) => {
     const preview = previewGuard(state, self.id, ally.id)
     if (!preview.available) return []
-    const guarded = { ...state, combatants: { ...state.combatants, [ally.id]: { ...ally, guard: { byId: self.id, round: state.round } } } }
+    const guarded = combatActionFor('guard').hypothetical(state, self, { targetId: ally.id })
     const saved = getOpponents(state, ally).reduce((total, opponent) => {
       const before = bestShot(state, opponent, ally)
       if (!before) return total
@@ -179,7 +179,7 @@ function guardOptions(state, self) {
 function directOptions(state, self) {
   if (directBlock(state, self)) return []
   return getDirectableAllies(state, self).flatMap((ally) => {
-    const directed = { ...state, directed: { commanderId: self.id, allyId: ally.id, commanderTurn: state.turn }, turn: { ...freshTurn(), major: 1, minor: 0 } }
+    const directed = combatActionFor('direct').hypothetical(state, self, { allyId: ally.id })
     const options = getOpponents(directed, ally)
       .map((target) => ({ target, shot: bestShot(directed, ally, target) }))
       .filter((option) => option.shot)

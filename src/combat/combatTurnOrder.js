@@ -56,6 +56,9 @@ export function switchToMember(state, id) {
   return startTurnOf(addLog(next, turnHeader(next.combatants[id]), 'turn'), id)
 }
 
+// The once-a-round bookkeeping a new round clears (Assists, Directs, the major-action counts, whose turn has started).
+export const freshRound = () => ({ assists: {}, directedThisRound: [], majorsThisRound: {}, startedThisRound: [] })
+
 // Moves past the whole current group (a single combatant for enemies) to the next active combatant.
 export function advanceTurn(previous) {
   const range = getTurnGroupRange(previous)
@@ -77,10 +80,7 @@ export function advanceTurn(previous) {
     round,
     turn: freshTurn(),
     groupTurns: {},
-    assists: newRound ? {} : state.assists,
-    directedThisRound: newRound ? [] : state.directedThisRound,
-    majorsThisRound: newRound ? {} : state.majorsThisRound,
-    startedThisRound: newRound ? [] : state.startedThisRound,
+    ...(newRound ? freshRound() : {}),
     aiReason: null,
     result: state.result && { ...state.result, closed: true },
   }

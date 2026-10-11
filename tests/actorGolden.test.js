@@ -15,10 +15,10 @@ import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  exploreRoom: '7c2ffd7895900f87',
-  exploreBrig: 'dfc1a74a9e8e7436',
-  autoCombat: '0835d41c965b3676',
-  handOff: 'd2f82f80880c8e32',
+  exploreRoom: 'd10f1cc8e3ad8564',
+  exploreBrig: '87e5f72dd35d8fe1',
+  autoCombat: 'af3a57e92df36fdf',
+  handOff: 'c10e2716c442dae5',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)

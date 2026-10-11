@@ -3,14 +3,13 @@ import { isPlayerControlled } from '../actors/controllers.js'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
-  ADAPTATION_MOMENTUM_SPENDS,
   SOCIAL_KINDS,
   awaitingDecision,
   canAmbush,
   canAssist,
   canMove,
+  combatActionFor,
   getActiveCombatant,
-  getTurnGroup,
   isActive,
   isTurnFinished,
   previewAmbush,
@@ -23,6 +22,7 @@ import { getCombatantWeapon } from '../combat/weaponSystem.js'
 import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
+import useBeamIn from '../components/combat/useBeamIn.js'
 import Battlefield from '../components/combat/Battlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
@@ -47,9 +47,11 @@ import { weatherFor } from '../maps/mapWeather.js'
 import {
   aiTurnTask,
   AUTO_END_TURN_MS,
+  BEAM_OUT_MS,
   cameraFocus,
   choiceRing,
   getPartyTurnInfo,
+  justFled,
   lastChoice,
   MOVE_TILE_MS,
   nearestOpponentId,
@@ -64,7 +66,8 @@ import {
 // openingFocus (the camera starts on the encounter instead of the first to act), hiddenIds (enemies the party can't
 // perceive now: not drawn, not in the turn order, and the camera doesn't follow them), lastKnownMarks, openingBanner
 // ({ title, subtitle } shown as the fight starts) and children (drawn over the battle). debugOpen / onDebug: the world's
-// own debug toggle, so the one Debug button also opens the world's link readout.
+// own debug toggle, so the one Debug button also opens the world's link readout. beamIn (Load Episode's fights, not
+// those started in the world): the away team beams in as the fight starts, and the AI waits for it.
 // objects (combat in the world): the challenge objects, { list: [{ definition, actions: [{ action, available, reason,
 // cost, affordable }] }] in reach of whoever acts, preview(objectId, actionId) -> { prepared, assist } (the object's own
 // task math), recommend(objectId, actionId, memberIds) -> who is best at it (rules/taskRecommendation.js), marks:
@@ -88,6 +91,7 @@ export function Battle({
   hiddenIds = null,
   lastKnownMarks = null,
   openingBanner = null,
+  beamIn = false,
   objects = null,
   debugOpen: worldDebugOpen = null,
   onDebug = null,
@@ -111,7 +115,8 @@ export function Battle({
   const mode = chosen === 'none' ? null : (chosen ?? defaultMode)
   const [targetId, setTargetId] = useState(null)
   const [weaponIds, setWeaponIds] = useState({})
-  // The unit whose action buttons are shown on the map (clicked enemy or party member), and whether its Info card is open.
+  // The unit whose action buttons are shown on the map (clicked enemy or party member; `object:<id>` for a challenge
+  // object), and whether its Info card is open.
   const [ringId, setRingId] = useState(null)
   const [ringInfo, setRingInfo] = useState(false)
   const [destination, setDestination] = useState(null)
@@ -244,8 +249,7 @@ export function Battle({
   }
 
   // During the party's turn, picking a party member who can still act hands them the turn.
-  const groupIds = isPlayerTurn ? getTurnGroup(state) : []
-  const canSwitchTo = (id) => id !== active.id && !state.pending && !state.directed && groupIds.includes(id) && !isTurnFinished(state, id)
+  const canSwitchTo = (id) => isPlayerTurn && !combatActionFor('selectCombatant').unavailableReason(state, active, { combatantId: id })
   const turnInfo = getPartyTurnInfo(state, active)
 
   // With both actions used the turn passes on by itself (to the next Ready member, else to the enemies), after a pause so the result
@@ -256,14 +260,14 @@ export function Battle({
   // turn waits while it is open.
   const extraBuyable = !extraMinorReason || !secondMajorReason
   const holdingForExtra = turnUsedUp && extraBuyable && ringId === active.id
-  // Whoever End Turn hands over to: the first unfinished group member after the active one (as in the endTurn reducer).
-  const nextMemberId = groupIds.find((id) => id !== active.id && !isTurnFinished(state, id)) ?? null
+  const nextMemberId = isPlayerTurn ? combatActionFor('endTurn').nextMember(state, active) : null
   // A rolled player attack resolves on its own after a beat to read the dice, unless it would miss and a reroll is open.
   const autoResolve = isPlayerTurn && Boolean(state.pending) && state.combatants[state.pending.attackerId].side === 'player' && !rollAwaitsPlayer(state)
 
+  const beamPhase = useBeamIn({ enabled: beamIn, held: helpOpen })
   const { openingDone } = useBattlePacing({
     state, dispatch, openingBanner, helpOpen, aiControlled, auto, speed, hasPlan: Boolean(planned), partyAI, enemyAI,
-    turnUsedUp, holdingForExtra, autoEndMs, autoResolve,
+    turnUsedUp, holdingForExtra, autoEndMs, autoResolve, beamingIn: beamPhase !== 'done',
   })
 
   const selectPartyMember = (id) => {
@@ -374,12 +378,13 @@ export function Battle({
     setAttackChoice(null)
   }
 
-  const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons } = createRingButtons({
+  const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons } = createRingButtons({
     state, dispatch, active, weapon, mode, ringInfo, attackMode, attackBlock, targetAttack, ringAttackRoll, preview, purchase, purchaseCheck,
     availability, unavailableReasons, extraMinorReason, secondMajorReason, directReason, isCommander, firstAidOptions, objectList,
-    canSwitchTo, closeRing, openTask, selectAction, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick,
+    canSwitchTo, closeRing, openTask, selectAction, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
   })
 
+  const ringObject = ringId?.startsWith('object:') ? objects?.marks?.find((mark) => `object:${mark.id}` === ringId && mark.inReach) : null
   const ringUnit = ringId ? state.combatants[ringId] : null
   const ringShown = isPlayerTurn && ringUnit && isActive(ringUnit) && !state.pending && (!turnUsedUp || (extraBuyable && ringUnit.id === active.id))
   let ring = null
@@ -391,6 +396,8 @@ export function Battle({
     ring = { unitId: ringUnit.id, buttons: enemyRingButtons(ringUnit), info: ringInfo ? enemyRingInfo(ringUnit) : null }
   } else if (ringShown && ringUnit.side === active.side && mode === 'assist') {
     ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
+  } else if (ringObject && isPlayerTurn && !state.pending) {
+    ring = { position: ringObject.position, buttons: objectRingButtons(ringObject.id), info: null }
   } else if (auto !== 'off' && !state.outcome) {
     ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
   }
@@ -425,8 +432,21 @@ export function Battle({
     setAuto('running')
   }
 
+  const fledNow = justFled(state)
+  const activeHidden = Boolean(hiddenIds?.includes(active.id) || (fledNow && hiddenIds?.includes(fledNow.id)))
+
+  // When the last enemy flees, its beam-out plays before the result covers the map.
+  const beamOutKey = state.outcome && fledNow ? `${state.seed}:${state.lastAction.key}` : null
+  const [beamOutDoneKey, setBeamOutDoneKey] = useState(null)
+  const effectSpeed = auto === 'off' ? 1 : speed
+  useEffect(() => {
+    if (!beamOutKey) return undefined
+    const timer = setTimeout(() => setBeamOutDoneKey(beamOutKey), BEAM_OUT_MS / effectSpeed)
+    return () => clearTimeout(timer)
+  }, [beamOutKey, effectSpeed])
+  const resultShown = Boolean(state.outcome) && (!beamOutKey || beamOutDoneKey === beamOutKey)
+
   // During an unseen enemy's turn the camera stays where it was, so it never points at what the party can't perceive.
-  const activeHidden = Boolean(hiddenIds?.includes(active.id))
   const followFocus = openingFocus && !state.lastAction ? { key: 'opening', position: openingFocus } : cameraFocus(state, turnKey, active)
   const [heldFocus, setHeldFocus] = useState(followFocus)
   const focusChanged = heldFocus.key !== followFocus.key || heldFocus.position.x !== followFocus.position.x || heldFocus.position.y !== followFocus.position.y
@@ -457,11 +477,12 @@ export function Battle({
         onUnitHover={handleUnitHover}
         onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
         onRightClick={releaseSelection}
+        beamIn={beamPhase}
         objectMarks={objects?.marks ?? null}
         onObjectClick={(objectId) => {
-          const entry = objectList.find(({ definition }) => definition.id === objectId)
-          const open = entry?.actions.find((action) => action.available && action.affordable) ?? entry?.actions[0]
-          if (open) openTask('interact', `${objectId}:${open.action.id}`)
+          if (!isPlayerTurn) return
+          setRingId(ringId === `object:${objectId}` ? null : `object:${objectId}`)
+          setRingInfo(false)
         }}
       />
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />
@@ -470,7 +491,7 @@ export function Battle({
         <ResourceIndicators
           momentum={state.resources.momentum}
           threat={state.resources.threat}
-          canCancelThreat={ADAPTATION_MOMENTUM_SPENDS && isPlayerTurn && !state.pending && state.resources.momentum > 0 && state.resources.threat > 0}
+          canCancelThreat={isPlayerTurn && !combatActionFor('cancelThreat').unavailableReason(state, active)}
           onCancelThreat={() => dispatch({ type: 'cancelThreat' })}
         />
       </div>
@@ -598,7 +619,7 @@ export function Battle({
       )}
       {debugOpen && <DebugPanel state={state} auto={auto} worldActors={worldActors} onClose={toggleDebug} />}
       {helpOpen && <HowToPlay onClose={closeHelp} />}
-      {state.outcome && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={onExit} onContinue={onContinue} />}
+      {resultShown && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={onExit} onContinue={onContinue} />}
       {children}
     </div>
   )
@@ -641,6 +662,7 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
       <Battle
         state={state}
         dispatch={dispatch}
+        beamIn
         showHelpOnStart={!helpSeen}
         onHelpSeen={() => setHelpSeen(true)}
         partyAI={partyAI}

@@ -13,6 +13,7 @@ import { MODE } from '../src/exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcConfigsFor, npcsInTalkRange } from '../src/exploration/explorationState.js'
 import { applyFlagChange, checkCondition, checkConditions, objectiveStatus, parseFlagValue } from '../src/exploration/missionFlags.js'
 import { createBlankMap, parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
+import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
 
 const engineerTalk = parseConversation(engineerFile, 'engineerSealedSection')
@@ -125,7 +126,7 @@ describe('NPCs placed on a map', () => {
     const map = roomWithEngineer()
     const again = parseMapFile(JSON.parse(JSON.stringify(serializeMap(map))), map.id)
     assert.deepEqual(again.npcs[0], { ...map.npcs[0], faction: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null })
-    assert.deepEqual(again.objectives, map.objectives.map((objective) => ({ ...objective, objectId: null, activeWhen: [], completeWhen: [] })))
+    assert.deepEqual(again.objectives, map.objectives.map((objective) => ({ ...objective, objectId: null, startsActive: false, activeWhen: [], completeWhen: [] })))
     assert.deepEqual(npcConfigsFor(again).map((config) => config.id), ['eng'])
     const [npc] = getNpcs(createExplorationState(again, team()).world)
     assert.equal(npc.name, 'Lt. Mara Okafor')
@@ -232,12 +233,22 @@ describe('a conversation in exploration', () => {
     const down = { ...state, world: { ...state.world, npcs: { eng: { ...state.world.npcs.eng, condition: { stress: 0, injuries: [], defeated: true } } } } }
     assert.equal(talk(down).conversation, null)
   })
+
+  it('stays open while the party moves within talk range, and ends once nobody is in range (designer decision, 2026-10-11)', () => {
+    let state = talk(createExplorationState(roomWithEngineer(), team(), 0, { enemiesActive: false }))
+    assert.ok(state.conversation, 'control: the conversation opened')
+    state = explorationReducer(state, { type: 'tick', seconds: 0.1 })
+    assert.ok(state.conversation, 'still in range')
+    const away = Object.fromEntries(state.party.memberIds.map((id) => [id, { ...state.party.members[id], position: { x: 11, y: 7 } }]))
+    state = explorationReducer({ ...state, party: { ...state.party, members: away } }, { type: 'tick', seconds: 0.1 })
+    assert.equal(state.conversation, null)
+  })
 })
 
 describe('the Deck 10 Brig encounter', () => {
-  const brig = () => {
+  const brig = (characters = team()) => {
     const map = parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
-    const state = createExplorationState(map, team(), 3, { enemiesActive: false })
+    const state = createExplorationState(map, characters, 3, { enemiesActive: false })
     // Within reach of Lt. Okafor (21, 21), the junction (23, 23) and the south bulkhead (24, 20).
     const near = { x: 23, y: 21 }
     const members = Object.fromEntries(Object.entries(state.party.members).map(([id, member]) => [id, { ...member, position: near }]))
@@ -256,15 +267,15 @@ describe('the Deck 10 Brig encounter', () => {
     assert.deepEqual(npcsInTalkRange(beside, beside.party.memberIds).map((npc) => npc.id), ['engineer'])
   })
 
-  it('a diagnosis makes the junction easier; restoring power opens the bulkhead for a cleared party', () => {
+  it('a diagnosis adds the easier junction approach; restoring power opens the bulkhead for a cleared party', () => {
     let state = withFlags(brig(), { faultDiagnosed: true, sectionAccessGranted: true })
-    assert.deepEqual(getAvailableActions(state, 'powerJunction01').map((entry) => entry.action.id), ['replaceCoupling'])
+    assert.deepEqual(getAvailableActions(state, 'powerJunction01').map((entry) => entry.action.id), ['restorePower', 'replaceCoupling'])
     for (let attempt = 0; attempt < 20 && !state.scenario.flags.stationPowerRestored; attempt += 1) {
       state = explorationReducer(state, { type: 'challenge', objectId: 'powerJunction01', actionId: 'replaceCoupling', performerId: 'beta' })
     }
     assert.equal(state.scenario.flags.stationPowerRestored, true)
     assert.equal(objectiveStatus(state.scenario.flags, 'restorePower'), 'complete')
-    assert.deepEqual(getAvailableActions(state, 'eastBulkheadSouth').map((entry) => entry.action.id), ['openDoor'])
+    assert.deepEqual(getAvailableActions(state, 'eastBulkheadSouth').map((entry) => entry.action.id), ['openDoor', 'overrideLock'])
     state = explorationReducer(state, { type: 'challenge', objectId: 'eastBulkheadSouth', actionId: 'openDoor', performerId: 'beta' })
     assert.equal(state.party.map.tiles[20][24], 'doorway')
     assert.equal(state.party.map.tiles[21][24], 'doorway')
@@ -273,5 +284,34 @@ describe('the Deck 10 Brig encounter', () => {
   it('without clearance a powered bulkhead needs its lockout overridden', () => {
     const state = withFlags(brig(), { stationPowerRestored: true })
     assert.deepEqual(getAvailableActions(state, 'eastBulkheadSouth').map((entry) => entry.action.id), ['overrideLock'])
+  })
+
+  it("the junction's ring lists the direct fix, the scan that eases it and the easier repair, greyed until the fault is found", () => {
+    const listed = (state, objectId) => objectFor(state.scenario, objectId).listedActions(state).map(({ action, available, reason }) => [action.id, available, reason])
+    const state = brig()
+    assert.deepEqual(listed(state, 'powerJunction01'), [
+      ['restorePower', true, null],
+      ['scanJunction', true, null],
+      ['replaceCoupling', false, 'Find the fault first: scan the junction, or ask Lt. Okafor.'],
+    ])
+    assert.deepEqual(listed(state, 'eastBulkheadSouth'), [
+      ['openDoor', false, "Needs power to the section and Lt. Okafor's clearance."],
+      ['overrideLock', false, 'Needs power to the section.'],
+    ])
+    // Once the junction is online its approaches are gone, locked ones included (they need it offline).
+    const online = { ...state, scenario: { ...state.scenario, objects: { ...state.scenario.objects, powerJunction01: { ...state.scenario.objects.powerJunction01, state: 'online' } } } }
+    assert.deepEqual(listed(online, 'powerJunction01'), [])
+  })
+
+  it('scanning the junction needs a tricorder, and a success diagnoses the fault', () => {
+    const scientist = makeCharacter({ id: 'gamma', name: 'Gamma', attributes: { reason: 12 }, disciplines: { science: 4 }, equipment: [{ itemId: 'standardTricorder' }] })
+    let state = brig([...team(), scientist])
+    const junction = objectFor(state.scenario, 'powerJunction01')
+    assert.equal(junction.preview(state, { actionId: 'scanJunction', performerId: 'alpha' }).prepared.possible, false)
+    for (let attempt = 0; attempt < 30 && !state.scenario.flags.faultDiagnosed; attempt += 1) {
+      state = explorationReducer(state, { type: 'challenge', objectId: 'powerJunction01', actionId: 'scanJunction', performerId: 'gamma' })
+    }
+    assert.equal(state.scenario.flags.faultDiagnosed, true)
+    assert.deepEqual(getAvailableActions(state, 'powerJunction01').map((entry) => entry.action.id), ['restorePower', 'replaceCoupling'])
   })
 })

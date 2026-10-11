@@ -18,6 +18,10 @@ export const aimRerollsFor = (weapon) => (isAccurate(weapon) ? 2 : 1)
 
 export const AIM_TEXT = 'may reroll one die on the next attack this turn (two with an Accurate weapon)'
 
+// The most successes an attack can score: 2 a die (a critical), and 2 from a helper's die. A Difficulty above it can't be
+// met however the dice land.
+export const maxAttackSuccesses = (dice, assisted) => dice * 2 + (assisted ? 2 : 0)
+
 // Whether Aim can still reroll this die of the pending attack (rerolls left, and Aim hasn't rerolled this die yet).
 export const canAimReroll = (pending, dieIndex) =>
   pending.aimRerolls > 0 && !pending.rerolls.some((reroll) => reroll.source === 'aim' && reroll.index === dieIndex)

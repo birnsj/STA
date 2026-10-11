@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
@@ -36,39 +36,44 @@ const cardFacts = (character) => ({
   speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
 })
 
-// Compact: species / department, weapon and Stress. Hovering (or focusing) the card opens the rest around them.
+// The card itself, a fixed size: species / department, weapon and Stress.
 function CardDetails({ character, condition }) {
-  const { attribute, department, protection, rankRole, weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
+  const { weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
     <>
-      {rankRole && (
-        <span className="explore-card-more">
-          <span className="explore-card-detail is-rank">{rankRole}</span>
-        </span>
-      )}
       <span className="explore-card-detail is-main">{speciesLine}</span>
       <span className="party-weapon" title="Weapon">{weapon}</span>
-      <span className="explore-card-more">
-        <span className="explore-card-stats">
-          <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>
-          <span title={`Highest department: ${department.name}`}>{department.label} {department.value}</span>
-          <span title="Protection">PROT {protection}</span>
-        </span>
-      </span>
       <ConditionTrack character={character} condition={condition} />
-      <span className="explore-card-more">
-        <span className="explore-card-detail">
-          Fatigue: {condition.fatigued ? 'yes' : 'no'} · Injuries: {condition.injuries.length || 'none'}
-        </span>
-        {character.values.length > 0 && (
-          <ul className="explore-card-values" aria-label="Values">
-            {character.values.map((value) => (
-              <li key={value}>{value}</li>
-            ))}
-          </ul>
-        )}
-      </span>
     </>
+  )
+}
+
+// The Starfleet delta on the card's info button.
+const INSIGNIA_PATH = 'M12 2C15 8 17 15 18.5 22C15.8 19.2 14 18.2 12 18.2C10 18.2 8.2 19.2 5.5 22C7 15 9 8 12 2Z'
+
+// The rest, in a panel above the card that its info button opens and closes.
+function CardInfoPanel({ character, condition }) {
+  const { attribute, department, protection, rankRole } = useMemo(() => cardFacts(character), [character])
+  return (
+    <div className="explore-card-info" role="dialog" aria-label={`${character.name}: details`}>
+      <span className="party-name">{character.name}</span>
+      {rankRole && <span className="explore-card-detail is-rank">{rankRole}</span>}
+      <span className="explore-card-stats">
+        <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>
+        <span title={`Highest department: ${department.name}`}>{department.label} {department.value}</span>
+        <span title="Protection">PROT {protection}</span>
+      </span>
+      <span className="explore-card-detail">
+        Fatigue: {condition.fatigued ? 'yes' : 'no'} · Injuries: {condition.injuries.length || 'none'}
+      </span>
+      {character.values.length > 0 && (
+        <ul className="explore-card-values" aria-label="Values">
+          {character.values.map((value) => (
+            <li key={value}>{value}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -91,14 +96,19 @@ const sameBar = (prev, next) =>
 
 export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, selectedIds, leaderId, onSelect, onSetLeader, recommendation = null }) {
   const several = selectedIds.length > 1
+  // UI state: the member whose info panel is open, or null.
+  const [infoId, setInfoId] = useState(null)
   return (
     <div className="party-bar explore-party-bar">
       {members.map((member, index) => {
         const selected = selectedIds.includes(member.id)
         const lead = member.id === leaderId
         const best = Boolean(recommendation?.bestIds.includes(member.id))
+        const infoOpen = infoId === member.id
+        const condition = normalizeCondition(member.condition)
         return (
           <div key={member.id} className="explore-card-wrap">
+            {infoOpen && <CardInfoPanel character={member.character} condition={condition} />}
             <button
               type="button"
               className={`party-card explore-card${selected ? ' is-active' : ''}${best ? ' is-best' : ''}`}
@@ -111,16 +121,31 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
               </span>
               <span className="party-info">
                 <span className="party-name">{member.character.name}</span>
-                <CardDetails character={member.character} condition={normalizeCondition(member.condition)} />
-                <PartyTaskTag recommendation={recommendation} memberId={member.id} />
+                <CardDetails character={member.character} condition={condition} />
               </span>
-              {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
             </button>
-            {several && selected && !lead && (
-              <button type="button" className="explore-make-lead" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(member.id)}>
-                Make Lead
-              </button>
-            )}
+            {/* Every notification sits on the card's top edge, so the card never changes size. */}
+            <div className="explore-card-badges">
+              <PartyTaskTag recommendation={recommendation} memberId={member.id} />
+              {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
+              {several && selected && !lead && (
+                <button type="button" className="explore-make-lead" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(member.id)}>
+                  Make Lead
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className={`explore-card-info-toggle${infoOpen ? ' is-open' : ''}`}
+              aria-expanded={infoOpen}
+              aria-label={`${member.character.name}: details`}
+              title={infoOpen ? 'Hide the details.' : `Show ${member.character.name}'s details.`}
+              onClick={() => setInfoId(infoOpen ? null : member.id)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={INSIGNIA_PATH} />
+              </svg>
+            </button>
           </div>
         )
       })}

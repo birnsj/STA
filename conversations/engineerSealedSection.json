@@ -100,7 +100,10 @@
         {
           "id": "offerHelp",
           "text": "We'll get the power back on ourselves.",
-          "conditions": [{ "flag": "objective.restorePower", "op": "isFalse" }],
+          "conditions": [
+            { "flag": "helpOffered", "op": "isFalse" },
+            { "flag": "stationPowerRestored", "op": "isFalse" }
+          ],
           "next": "activateObjective"
         },
         { "id": "leave", "text": "We'll be back.", "conditions": [], "next": "end" }
@@ -225,7 +228,10 @@
       "id": "activateObjective",
       "type": "action",
       "position": [1340, 720],
-      "actions": [{ "type": "setObjective", "objectiveId": "restorePower", "status": "active" }],
+      "actions": [
+        { "type": "setObjective", "objectiveId": "restorePower", "status": "active" },
+        { "type": "changeFlag", "flag": "helpOffered", "op": "set", "value": true }
+      ],
       "next": "offerHelpLine"
     },
     {

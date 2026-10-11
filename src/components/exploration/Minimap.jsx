@@ -1,8 +1,12 @@
+import { useMemo } from 'react'
 import { getNpcs, isHostile } from '../../exploration/awareness.js'
+import { areaLabelCentres } from '../../maps/areaCentres.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { isDefeated, isDying, minorDefeatText } from '../../rules/personalCondition.js'
 import MinimapTiles from '../maps/MinimapTiles.jsx'
+import ReadoutNoise from './ReadoutNoise.jsx'
+import { scanSweepSeconds } from './scanSweep.js'
 
 // A defeated person's state in the rules' own words: Dead / Unconscious (a Minor NPC's outright Defeat), Dying (Defeated
 // with a Deadly Injury), Defeated; null while they're up.
@@ -14,6 +18,9 @@ const stateClass = (state) => (state ? ` is-${state.toLowerCase()}` : '')
 
 const CROSS = 'M-0.7 -0.7L0.7 0.7M0.7 -0.7L-0.7 0.7'
 
+// A door object's tiles as one path of unit squares.
+const cellsPath = (cells) => cells.map(({ x, y }) => `M${x - 0.5} ${y - 0.5}h1v1h-1z`).join('')
+
 function Marker({ position, className, title, shape }) {
   return (
     <g className={`minimap-marker ${className}`} transform={`translate(${position.x} ${position.y})`}>
@@ -23,11 +30,15 @@ function Marker({ position, className, title, shape }) {
   )
 }
 
-// Exploration minimap, top down: the level in its tile art with the map's area names (as the map editor labels them),
+// Exploration minimap, top down: the level in its tile art with the map's area names, each centred in its room,
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
 // as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
-// objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. Display only.
-export default function Minimap({ map, party, world, knowledge, objectives = [], debug = false, children }) {
+// objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. scanPulse: a party
+// Scan's sweep while it plays ({ key, origin, radius }, ScanPulse.jsx), drawn as a ring spreading from the scanner.
+// doors: the map's door objects ({ id, name, stateLabel, closed, cells }), such as the Deck 10 Brig's sealed bulkheads:
+// yellow over their doorway, solid while closed and outlined once open. Display only.
+export default function Minimap({ map, party, world, knowledge, objectives = [], doors = [], scanPulse = null, debug = false, children }) {
+  const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
 
@@ -44,11 +55,18 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
 
   return (
     <div className="explore-minimap-column">
-      <section className="explore-minimap" aria-label="Minimap">
+      <section className={`explore-minimap${scanPulse ? ' is-scanning' : ''}`} aria-label="Minimap">
         <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
-          <MinimapTiles tiles={map.tiles} />
-          {(map.areas ?? []).map((area) => (
-            <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={area.position.x - 0.4} y={area.position.y + 0.3}>
+          <g className="minimap-readout-tiles">
+            <MinimapTiles tiles={map.tiles} />
+          </g>
+          {doors.map((door) => (
+            <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)}>
+              <title>{`${door.name}: ${door.stateLabel}`}</title>
+            </path>
+          ))}
+          {(map.areas ?? []).map((area, index) => (
+            <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={labelCentres[index].x} y={labelCentres[index].y} textAnchor="middle" dominantBaseline="central">
               {area.name.toUpperCase()}
             </text>
           ))}
@@ -88,7 +106,14 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
               shape={state ? 'cross' : 'dot'}
             />
           ))}
+          {scanPulse && (
+            <g key={scanPulse.key} className="minimap-scan-pulse" transform={`translate(${scanPulse.origin.x} ${scanPulse.origin.y})`} style={{ '--scan-seconds': `${scanSweepSeconds(scanPulse.radius)}s`, '--scan-radius': `${scanPulse.radius}px` }}>
+              <circle className="minimap-scan-pulse-fill" />
+              <circle className="minimap-scan-pulse-ring" />
+            </g>
+          )}
         </svg>
+        <ReadoutNoise sweep={scanPulse && { key: scanPulse.key, seconds: scanSweepSeconds(scanPulse.radius) }} />
       </section>
       {children}
     </div>

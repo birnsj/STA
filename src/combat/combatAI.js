@@ -32,6 +32,7 @@ import {
   canAssistReroll,
   canMove,
   canSprint,
+  combatActionFor,
   evaluateAttack,
   EXTRA_ACTIONS,
   extraMinorBlock,
@@ -42,6 +43,7 @@ import {
   getHitChance,
   getOpponents,
   getReachable,
+  injuryDefeats,
   injuryFor,
   isActive,
   previewAttack,
@@ -50,7 +52,7 @@ import {
 } from './combatState.js'
 import { getEncounter } from './encounters.js'
 import { bonusDiceCost, MAX_BONUS_DICE } from '../rules/missionResources.js'
-import { getAvoidOption, npcCategoryOf } from '../rules/personalCondition.js'
+import { npcCategoryOf } from '../rules/personalCondition.js'
 import { staDieOdds, TASK_DICE } from '../rules/taskResolver.js'
 
 // AI tuning (implementation detail, not rules): how much a covered firing position is worth in Difficulty steps x10,
@@ -115,7 +117,7 @@ function extraMinorStep(state, self, target, shot) {
 function secondMajorStep(state, self, target) {
   if (!PROFILES[self.side].spendsThreat || !state.turn.attacks || state.turn.major > 0) return null
   if (secondMajorBlock(state, self) || spendableThreat(state, self) < EXTRA_ACTIONS.secondMajorCost) return null
-  const bought = { ...state, turn: { ...state.turn, major: 1, secondMajor: true } }
+  const bought = combatActionFor('buySecondMajor').hypothetical(state, self)
   const shot = bestShot(bought, self, target)
   if (!shot) return null
   const chance = getHitChance(bought, self.id, shot)
@@ -152,8 +154,7 @@ export function bestShot(state, self, target, fromPosition) {
 // Whether a hit with this shot would Defeat the target: the same Injury and Avoid Injury rules the resolver uses (a Minor
 // NPC always; a main character without the Stress left to avoid it; an NPC without the Threat).
 export function hitDefeats(state, self, target, shot) {
-  const injury = injuryFor(state, self, target, shot.weapon, injuryModesFor(state, self, shot.weapon)[0])
-  return !getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene }).possible
+  return injuryDefeats(state, target, injuryFor(state, self, target, shot.weapon, injuryModesFor(state, self, shot.weapon)[0]))
 }
 
 const byDistanceFrom = (position) => (a, b) => tileDistance(position, a.position) - tileDistance(position, b.position)
@@ -315,7 +316,7 @@ export const expectedChance = (state, attackerId, shot) => getHitChance(state, a
 // mostly pays at Difficulty 2+. Only party members share a turn, so only the player profile assists.
 function assistStep(state, self, ownChance) {
   if (!PROFILES[self.side].assists || !canAfford(state, self, 'assist')) return null
-  const assisted = (allyId) => ({ ...state, assists: { ...state.assists, [allyId]: self.id } })
+  const assisted = (allyId) => combatActionFor('assist').hypothetical(state, self, { allyId })
   const options = getAssistableAllies(state, self)
     .map((ally) => {
       const here = bestShotTarget(state, ally)

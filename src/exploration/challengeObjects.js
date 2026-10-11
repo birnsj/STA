@@ -11,6 +11,7 @@ import { isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
 import { combatCostOf } from '../world/ChallengeObject.js'
 import { applyScenarioTiles as retile, objectFor, objectForDefinition, objectsOf, withMap as withRetiledMap } from '../world/objects.js'
+import { objectiveFlag } from './missionFlags.js'
 import { TASK_SEED_OFFSET } from './partyTaskRoll.js'
 
 export const INTERACT_RANGE = data.interactRange
@@ -43,10 +44,12 @@ export function objectivePosition(map, objective) {
   return definition ? { x: definition.position[0], y: definition.position[1] } : null
 }
 
+// The map's startsActive objectives are active from the first moment.
 export function createScenario(map) {
   const definitions = challengeDefinitionsFor(map)
   const objects = Object.fromEntries(definitions.map((definition) => [definition.id, objectForDefinition(definition).createRuntime(map)]))
-  return { definitions, objects, flags: {}, traits: [], log: [], taskCount: 0 }
+  const flags = Object.fromEntries((map.objectives ?? []).filter((objective) => objective.startsActive).map((objective) => [objectiveFlag(objective.id), 'active']))
+  return { definitions, objects, flags, traits: [], log: [], taskCount: 0 }
 }
 
 // The map with every object's current tile; the same map when nothing changes (world/objects.js).

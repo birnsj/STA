@@ -6,7 +6,8 @@ import partyData from '../src/data/adaptation/exploration/partyControl.json' wit
 import awarenessData from '../src/data/adaptation/exploration/awareness.json' with { type: 'json' }
 import { perceive } from '../src/exploration/awareness.js'
 import { createPartyState, partyReducer } from '../src/exploration/partyControl.js'
-import { createBlankMap } from '../src/maps/mapFormat.js'
+import brigFile from '../maps/Deck 10 Brig.json' with { type: 'json' }
+import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const MOVE = partyData.movement
@@ -69,6 +70,25 @@ describe('walk or run by distance (Prototype)', () => {
     const stopped = run(moveTo(party, { x: 12, y: 4 }), 5)
     assert.equal(stopped.members.alpha.moving, false)
     assert.equal(stopped.members.alpha.running, false)
+  })
+
+  // Followers crowded against each other used to bounce and shuffle (the walk animation) long after the party stopped.
+  it('once the party has stopped on the Deck 10 Brig, nobody keeps walking on the spot', () => {
+    const map = parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
+    const four = ['a', 'b', 'c', 'd'].map((id) => makeCharacter({ id, name: id.toUpperCase() }))
+    let seed = 7
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+    for (let trial = 0; trial < 120; trial++) {
+      let party = createPartyState(map, four)
+      const start = party.members.a.position
+      for (let move = 0; move < 2; move++) party = run(moveTo(party, { x: start.x + random() * 16 - 8, y: start.y + random() * 16 - 8 }), 8)
+      const walkingFrames = {}
+      for (let t = 0; t < 2; t += 0.02) {
+        party = partyReducer(party, { type: 'tick', seconds: 0.02 })
+        party.memberIds.filter((id) => party.members[id].moving).forEach((id) => (walkingFrames[id] = (walkingFrames[id] ?? 0) + 1))
+      }
+      assert.deepEqual(walkingFrames, {}, `trial ${trial}: still walking after stopping`)
+    }
   })
 })
 

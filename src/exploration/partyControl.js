@@ -16,6 +16,9 @@ const MOVE = data.movement
 // How readily a character gives way when two get too close: someone standing still never does, and a lead character
 // mostly holds their line while followers step aside.
 const GIVE_WAY = { none: 0, point: 0.35, follow: 1 }
+// A parked follower (stopped because their spot is crowded) stands still like anyone without an order. Pushed about,
+// they and the follower beside them would keep shuffling, walking on the spot, after the party has stopped.
+const giveWay = (member) => (member.parkedFor ? GIVE_WAY.none : GIVE_WAY[member.order?.type ?? 'none'])
 const MAX_TICK_SECONDS = 0.05
 
 // characters: RuntimeCharacters in party order; each starts on the map's player start with the same index.
@@ -43,7 +46,7 @@ export function createPartyState(map, characters) {
       replanIn: 0,
       stall: { seconds: 0, best: Infinity },
       parkedFor: null,
-      blocked: { from: position, seconds: 0 },
+      blocked: { seconds: 0 },
     }
   })
   const memberIds = members.map((member) => member.id)
@@ -118,7 +121,7 @@ const followOrder = (member, leaderId, slot) => ({
   path: [],
   replanIn: 0,
   parkedFor: null,
-  blocked: { from: member.position, seconds: 0 },
+  blocked: { seconds: 0 },
 })
 
 // Gives a leader's followers formation slots, shortest total walk first.
@@ -193,8 +196,8 @@ function separation(list) {
       if (!canAct(a) || !canAct(b)) continue
       const d = distance(a.position, b.position)
       if (d >= MOVE.personalSpace) continue
-      const wa = GIVE_WAY[a.order?.type ?? 'none']
-      const wb = GIVE_WAY[b.order?.type ?? 'none']
+      const wa = giveWay(a)
+      const wb = giveWay(b)
       if (!wa && !wb) continue
       // Exactly on top of each other: split along a fixed direction so the result doesn't depend on rounding.
       const dir = d > 1e-4 ? { x: (b.position.x - a.position.x) / d, y: (b.position.y - a.position.y) / d } : { x: Math.cos(i + j), y: Math.sin(i + j) }
@@ -210,11 +213,21 @@ function separation(list) {
   return pushes
 }
 
+// A member's velocity averaged over about movingSmoothingSeconds (tiles per second), or null once it has died away.
+// Back-and-forth shuffling averages out, so only real travel counts as moving.
+function smoothPace(pace, velocity, seconds) {
+  const k = Math.min(1, seconds / MOVE.movingSmoothingSeconds)
+  const previous = pace ?? { x: 0, y: 0 }
+  const next = { x: previous.x + (velocity.x - previous.x) * k, y: previous.y + (velocity.y - previous.y) * k }
+  return Math.hypot(next.x, next.y) < 1e-3 ? null : next
+}
+const isMovingPace = (pace) => Boolean(pace) && Math.hypot(pace.x, pace.y) > MOVE.movingSpeed
+
 // Each member's own controller (actors/PlayerController.js) steers them; the party then keeps everyone apart.
 function tick(state, rawSeconds) {
   const seconds = Math.min(MAX_TICK_SECONDS, Math.max(0, rawSeconds))
   const current = getMembers(state)
-  if (!seconds || !current.some((member) => member.order)) return state
+  if (!seconds || !current.some((member) => member.order || member.moving || member.pace)) return state
   const followTargets = getFollowTargets(state)
   const steered = current.map((member) => {
     if (!member.order) return { member, velocity: { x: 0, y: 0 }, direction: null }
@@ -225,17 +238,20 @@ function tick(state, rawSeconds) {
   let members = {}
   steered.forEach(({ member, velocity, direction, run }, i) => {
     const step = { x: (velocity.x + pushes[i].x) * seconds, y: (velocity.y + pushes[i].y) * seconds }
-    const moving = Math.hypot(step.x, step.y) > 1e-4
+    const stepping = Math.hypot(step.x, step.y) > 1e-4
     let next = member
-    if (moving) {
+    if (stepping) {
       const position = slide(state.map, member.position, step)
-      const moved = distance(position, member.position) > 1e-5
+      const pace = smoothPace(member.pace, { x: (position.x - member.position.x) / seconds, y: (position.y - member.position.y) / seconds }, seconds)
+      const moving = isMovingPace(pace)
       // A runner easing into place at the end, or held up, drops to a walk.
-      const running = moved && Boolean(run) && Math.hypot(velocity.x, velocity.y) > MOVE.walkSpeed + 0.01
-      next = { ...controllerFor(member).turn(member, direction, seconds), position, moving: moved, running }
+      const running = moving && Boolean(run) && Math.hypot(velocity.x, velocity.y) > MOVE.walkSpeed + 0.01
+      next = { ...controllerFor(member).turn(member, direction, seconds), position, pace, moving, running }
       if (direction && Math.hypot(direction.x, direction.y) > 0.05) next.facing = { x: direction.x, y: direction.y }
-    } else if (member.moving) {
-      next = { ...member, moving: false, running: false }
+    } else if (member.moving || member.pace) {
+      const pace = smoothPace(member.pace, { x: 0, y: 0 }, seconds)
+      const moving = isMovingPace(pace)
+      next = { ...member, pace, moving, running: moving && member.running }
     }
     if (next !== current[i]) changed = true
     members[member.id] = next

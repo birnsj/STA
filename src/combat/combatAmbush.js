@@ -13,7 +13,7 @@ import { previewAttack } from './combatAttacks.js'
 import { inflictInjury, injuryFor } from './combatInjuries.js'
 import { addLog, diceText, focusText, markAction, momentumLine, recordDecision, takeRandom, taskText, turnHeader, withStats } from './combatLog.js'
 import { getActiveCombatant, getCombatantList, getOpponents, isActive, reachLines } from './combatSelectors.js'
-import { endTurnsOf, startTurnOf, withOutcome } from './combatTurnOrder.js'
+import { endTurnsOf, freshRound, startTurnOf, withOutcome } from './combatTurnOrder.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { freshTurn } from './turnActions.js'
 import { getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
@@ -151,10 +151,7 @@ export function ambushStep(state, action) {
     turnIndex: order.indexOf(first.id),
     turn: freshTurn(),
     groupTurns: {},
-    assists: {},
-    directedThisRound: [],
-    majorsThisRound: {},
-    startedThisRound: [],
+    ...freshRound(),
     aiReason: null,
   }
   next = addLog(next, [`Initiative (sides alternate, Klingons first; each side by Daring, then Control): ${order.map((id) => next.combatants[id].character.name).join(', ')}`], 'info')

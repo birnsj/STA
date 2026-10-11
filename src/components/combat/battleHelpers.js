@@ -27,6 +27,10 @@ export const MOVE_TILE_MS = 140
 // How long Auto Combat shows a party member's chosen button before the action runs.
 export const AI_CHOICE_MS = 900
 export const AUTO_END_TURN_MS = 1200
+// A fleeing enemy's beam-out and the away team's beam-in as a mission starts (match the unit-beam-out, unit-beam-in and
+// fx-transporter animations in combat.css).
+export const BEAM_OUT_MS = 1600
+export const BEAM_IN_MS = 1600
 // The same beat the AI's rolls get, so the dice can be read before the result lands.
 export const AUTO_RESOLVE_MS = AI_ROLL_MS
 // The acting character's own ring opens on mouse-over and closes this long after the mouse leaves both them and the ring,
@@ -35,9 +39,19 @@ export const SELF_RING_CLOSE_MS = 350
 // A fight's seed is drawn when it starts (never during render) unless the player typed one in.
 export const newSeed = () => Math.floor(Math.random() * MAX_SEED)
 
-// The delay before the next AI step: long enough to read a roll, or to watch a move finish.
+// The enemy that fled in the step just taken, while its beam-out plays: only the next turn's ROUND and turn header have
+// been logged since, or the flee ended the fight (nothing happens after that). Otherwise null.
+export function justFled(state) {
+  const action = state.lastAction
+  if (action?.type !== 'flee') return null
+  const quiet = state.outcome || state.log.slice(action.key + 1).every((entry) => entry.kind === 'round' || entry.kind === 'turn')
+  return quiet ? state.combatants[action.actorId] : null
+}
+
+// The delay before the next AI step: long enough to read a roll, watch a move finish or an enemy beam out.
 export function aiDelay(state) {
   if (state.pending) return AI_ROLL_MS
+  if (justFled(state)) return BEAM_OUT_MS
   // Just after the ambush roll (its log entry, plus the initiative, round and turn entries when spotted): time to read it.
   if (state.lastAction?.type === 'ambush' && state.log.length - state.lastAction.key <= (state.ambush.success ? 1 : 4)) return AI_ROLL_MS * 1.5
   const justMoved = state.lastMove && state.lastMove.key === state.log.length - 1
@@ -54,6 +68,8 @@ export function cameraFocus(state, turnKey, active) {
     const to = state.combatants[roll.targetId].position
     return { key: `${turnKey}:shot`, position: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }
   }
+  const fled = justFled(state)
+  if (fled) return { key: `${turnKey}:fled`, position: fled.position }
   return { key: `${turnKey}:${state.lastMove?.key ?? ''}`, position: active.position }
 }
 
@@ -113,7 +129,7 @@ export const taskDetails = (task, { opposed = false, showDifficulty = true } = {
   `TN ${task.targetNumber}${showDifficulty ? ` Â· D${task.difficulty}${opposed ? '+' : ''}` : ''}`,
 ]
 
-// What a firing mode does, shown under its button: the attacker's roll (when known), the weapon's Severity, and +1 Threat
+// What a firing mode does, shown in its button's tooltip: the attacker's roll (when known), the weapon's Severity, and +1 Threat
 // for a mode that escalates (a party member's Deadly attack, charged when the attack resolves: combatState resolveAttack).
 export const attackModeDetails = (weapon, modeId, roll = null) => [
   ...(roll ? taskDetails(roll.task, { opposed: roll.opposed }) : []),

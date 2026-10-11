@@ -28,5 +28,5 @@ export function updateObjectives(state) {
   return flags === state.scenario.flags ? state : { ...state, scenario: { ...state.scenario, flags } }
 }
 
-// The flag a fight sets on each NPC it leaves down or surrendered, for objectives and conversations to read.
+// The flag a fight sets on each NPC it leaves down, surrendered or fled, for objectives and conversations to read.
 export const defeatedFlag = (npcId) => `defeated.${npcId}`

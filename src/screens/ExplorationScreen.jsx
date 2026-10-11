@@ -4,6 +4,7 @@ import CharacterInspector from '../components/CharacterInspector.jsx'
 import FrameRate from '../components/FrameRate.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
+import useBeamIn from '../components/combat/useBeamIn.js'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
@@ -36,6 +37,7 @@ import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { canScan, canScanNpc, scanRadius } from '../exploration/partyScan.js'
+import { npcButtonPerformer, ringPartyView } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
 import useFadeAfter from '../components/useFadeAfter.js'
 import { playScanSound } from '../audio/uiSounds.js'
@@ -79,10 +81,28 @@ function memberMenuButtons(state, member, actions) {
   ]
 }
 
-// The selected character who would scan this NPC (the lead first): the first who can, else the lead with the reason.
-// Returns { member, check } or null when nobody is selected.
-function npcScanner(state, npcId) {
+// A challenge object's radial menu (left click on it while in reach): one button per approach it offers now. open(actionId)
+// opens the interaction panel on that approach; activeId: the approach the open panel is on (lit).
+function objectMenuButtons(state, objectId, open, activeId = null) {
+  return objectFor(state.scenario, objectId)
+    .listedActions(state)
+    .map(({ action, available, reason }) => ({
+      id: action.id,
+      label: action.label,
+      icon: action.icon ?? 'interact',
+      enabled: available,
+      active: action.id === activeId,
+      title: available ? `${action.label}: ${action.description}` : reason,
+      onClick: () => open(action.id),
+    }))
+}
+
+// The character who would scan this NPC: the one picked on the ring's party band when they can, else the selected
+// characters (the lead first): the first who can, else the first of them with the reason.
+// Returns { member, check } or null when nobody is picked or selected.
+function npcScanner(state, npcId, pickedId = null) {
   const { party } = state
+  if (pickedId && canScanNpc(state, pickedId, npcId).possible) return { member: party.members[pickedId], check: canScanNpc(state, pickedId, npcId) }
   const ids = [party.leaderId, ...party.selectedIds.filter((id) => id !== party.leaderId)].filter((id) => party.selectedIds.includes(id))
   if (!ids.length) return null
   const checks = ids.map((id) => ({ member: party.members[id], check: canScanNpc(state, id, npcId) }))
@@ -92,27 +112,55 @@ function npcScanner(state, npcId) {
 // An NPC's radial menu (left click on an NPC the party can see; designer requests 2026-10-09): Talk, when they have a
 // conversation (out of reach, the selected characters walk over first); Scan (one selected character scans them); Info
 // (a card beside the ring); Attack; Go To. Persuade, Intimidate, Use Item and First Aid are shown but not built yet.
-// actions: { talk, scan, info, attack, goTo }; infoOpen: whether the card is showing.
-function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions) {
+// actions: { talk, scan, info, attack, goTo }; infoOpen: whether the card is showing; pickedId: the member picked on the
+// party band (they scan when they can, and open fire; unpicked, the best at Attack does).
+function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions, pickedId = null) {
   const up = !isDown(npc)
   const canTalk = up && Boolean(npc.conversationId)
   const talkTitle = !npc.conversationId ? `${npc.name} has nothing to say.` : !up ? `${npc.name} can't talk now.` : inTalkRange ? `Talk to ${npc.name}.` : `Walk over to ${npc.name} and talk.`
-  const scanner = npcScanner(state, npc.id)
+  const scanner = npcScanner(state, npc.id, pickedId)
   const scanTitle = !scanner ? 'Scan: select a character first.' : scanner.check.possible ? `${scanner.member.character.name} scans ${npc.name} (Reason + Science): condition and equipment.` : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
+  const attacker = state.party.members[npcButtonPerformer(state, npc.id, 'attack', pickedId)]
   const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
   return [
-    { id: 'talk', label: 'Talk', icon: 'persuade', enabled: canTalk, title: talkTitle, onClick: actions.talk },
+    { id: 'talk', label: 'Talk', icon: 'talk', enabled: canTalk, title: talkTitle, onClick: actions.talk },
     { id: 'scan', label: 'Scan', icon: 'scan', enabled: Boolean(scanner?.check.possible), title: scanTitle, onClick: () => actions.scan(scanner.member.id) },
     unbuilt('persuade', 'Persuade', 'persuade'),
     unbuilt('intimidate', 'Intimidate', 'intimidate'),
     { id: 'info', label: 'Info', icon: 'info', enabled: true, active: infoOpen, title: infoOpen ? 'Hide what the party knows about them.' : `What the party knows about ${npc.name}.`, onClick: actions.info, keepOpen: true },
     unbuilt('useItem', 'Use Item', 'useItem'),
     unbuilt('firstAid', 'First Aid', 'firstAid'),
-    { id: 'attack', label: 'Attack', icon: 'attack', enabled: up, title: up ? `Attack ${npc.name}: starts a fight.` : `${npc.name} is down.`, onClick: actions.attack },
+    { id: 'attack', label: 'Attack', icon: 'attack', enabled: up, title: !up ? `${npc.name} is down.` : attacker ? `Attack ${npc.name}: ${attacker.character.name} opens fire, starting a fight.` : `Attack ${npc.name}: starts a fight.`, onClick: actions.attack },
     { id: 'goTo', label: 'Go To', icon: 'move', enabled: true, title: `Walk the selected characters over to ${npc.name}.`, onClick: actions.goTo },
   ]
 }
 
+// The ring's party band (exploration/ringParty.js): each member's TN for the button last hovered, a star on the best,
+// and the member picked to do the next action (clicking a slice picks or unpicks them).
+// target: { objectId } or { npcId }; buttons: the ring's buttons; hoveredId: the button last hovered (null: none yet).
+function ringPartyBand(state, target, buttons, hoveredId, pickedId, onPick) {
+  const button = buttons.find((candidate) => candidate.id === hoveredId) ?? null
+  const view = ringPartyView(state, target, button?.id ?? null)
+  const caption = !button ? 'Hover an action: who is best at it' : !view.hasTask ? `${button.label}: no roll to compare` : view.allTied ? `${button.label}: all equally suited` : `Best at ${button.label}`
+  const slices = view.members.map((entry) => {
+    const { character } = state.party.members[entry.id]
+    const picked = entry.id === pickedId
+    const odds = !view.hasTask
+      ? null
+      : entry.reason ?? (entry.possible ? `TN ${entry.targetNumber}, Difficulty ${entry.difficulty}, ${Math.round(entry.chance * 100)}% chance` : "Can't succeed.")
+    const label = !view.hasTask ? null : !entry.available ? '-' : entry.possible ? `${entry.best ? '\u2605 ' : ''}TN ${entry.targetNumber}` : "Can't"
+    return {
+      id: entry.id,
+      character,
+      label,
+      best: entry.best,
+      picked,
+      available: entry.available,
+      title: [`${character.name}${odds ? `: ${odds}` : ''}`, picked ? 'Picked for the next action. Click to unpick.' : 'Click to pick them for the next action.'].join('\n'),
+    }
+  })
+  return { caption, slices, onPick }
+}
 const AWARENESS_ORDER = [STATE.UNAWARE, STATE.SUSPICIOUS, STATE.INVESTIGATING, STATE.ALERTED, STATE.COMBAT_READY]
 
 // The card beside an NPC's ring: what the party can see, plus their condition and equipment once a scan has succeeded.
@@ -455,7 +503,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
     .map((unit) => unit.id)
   const lastKnownMarks = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
-    .filter(({ entry }) => entry.state === KNOWLEDGE.KNOWN)
+    .filter(({ npc, entry }) => entry.state === KNOWLEDGE.KNOWN && !combat.combatants[npc.id]?.fled)
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debugOpen ? npc.name : entry.identified ? null : 'Life sign' }))
   const bystanders = getNpcs(world)
     .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && isVisibleToParty(knowledge, npc.id))
@@ -520,8 +568,20 @@ function Exploration({ state, dispatch, onExit }) {
   const [debugOpen, setDebugOpen] = useState(false)
   const [noiseTool, setNoiseTool] = useState(false)
   const showHints = useDisplaySettings().helpHints
-  // UI state: the challenge object whose interaction panel is open. Move orders wait while it's open.
-  const [interactionId, setInteractionId] = useState(null)
+  // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
+  // picked on its ring (null: the panel lists them) and the member picked on the ring's party band (null: the selection
+  // decides). The party can still move while it's open (designer decision: never pause the players); walking out of
+  // reach closes it.
+  const [interaction, setInteraction] = useState(null)
+  const interactionId = interaction?.objectId ?? null
+  // UI state: the approach the open interaction panel is on (lit on the object's ring), and the element of the slot
+  // above that ring where the panel puts its Roll button and dice (null: they stay in the panel).
+  const [panelActionId, setPanelActionId] = useState(null)
+  const [rollSlot, setRollSlot] = useState(null)
+  const setInteractionId = useCallback(
+    (objectId, actionId = null, performerId = null) => setInteraction(objectId ? { objectId, actionId, performerId } : null),
+    [],
+  )
   // UI state: who is best at the approach being considered in the interaction panel (party card highlight).
   const [recommendation, setRecommendation] = useState(null)
   // The panel recomputes on every world tick (most animation frames); keeping the old object when nothing changed
@@ -545,12 +605,24 @@ function Exploration({ state, dispatch, onExit }) {
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
+  // The away team beams in as the mission starts; move orders wait until they are all here.
+  const beamPhase = useBeamIn()
   const challengeViews = getChallengeViews(state.scenario)
+  // The door objects for the minimap; a door is closed while its state puts a tile over the doorway.
+  const minimapDoors = challengeViews
+    .map((view) => objectFor(state.scenario, view.id))
+    .filter((object) => object.definition.type === 'door')
+    .map((object) => {
+      const doorState = object.runtime(state.scenario).state
+      const info = object.definition.states[doorState] ?? {}
+      return { id: object.id, name: object.definition.name, stateLabel: info.label ?? doorState, closed: Boolean(info.tile), cells: object.tiles() }
+    })
   const inReachIds = objectsInReach(state, party.memberIds).map((definition) => definition.id)
-  const reachableIds = inReachIds.filter((id) => getAvailableActions(state, id).length > 0)
+  // An object whose approaches are all still locked can be clicked too, to see what it would take.
+  const reachableIds = inReachIds.filter((id) => objectFor(state.scenario, id).listedActions(state).length > 0)
   const talking = Boolean(state.conversation)
   const openId = !talking && interactionId && inReachIds.includes(interactionId) ? interactionId : null
-  // Either panel holds move orders and takes the right-hand side.
+  // An object's panel or a conversation is open: other rings and the action buttons stay closed meanwhile.
   const panelOpen = Boolean(openId) || talking
   const talkable = talking ? [] : npcsInTalkRange(state, party.memberIds)
   // UI state: why the last conversation couldn't be opened (its file is missing or broken), or null.
@@ -563,7 +635,7 @@ function Exploration({ state, dispatch, onExit }) {
       loadConversation(npc.conversationId)
         .then((definition) => {
           setTalkError(null)
-          setInteractionId(null)
+          setInteraction(null)
           setPendingTalk(null)
           dispatch({ type: 'talk', npcId: npc.id, definition })
         })
@@ -577,7 +649,15 @@ function Exploration({ state, dispatch, onExit }) {
   const knownObjectives = (party.map.objectives ?? [])
     .map((objective) => ({ ...objective, position: objectivePosition(party.map, objective), status: objectiveStatus(state.scenario.flags, objective.id) }))
     .filter(({ status }) => status)
-  const objectives = knownObjectives.map(({ id, title, status }) => ({ id, text: title || id, complete: status === 'complete' }))
+  // UI state: the Objectives panel's Show all, which adds the objectives not started yet (greyed).
+  const [showAllObjectives, setShowAllObjectives] = useState(false)
+  const objectives = (party.map.objectives ?? [])
+    .map(({ id, title }) => {
+      const status = objectiveStatus(state.scenario.flags, id)
+      return { id, text: title || id, complete: status === 'complete', pending: !status }
+    })
+    .filter((objective) => showAllObjectives || !objective.pending)
+  const hasPendingObjectives = (party.map.objectives ?? []).some(({ id }) => !objectiveStatus(state.scenario.flags, id))
 
   // The world runs in real time: one movement step per animation frame.
   useEffect(() => {
@@ -597,8 +677,18 @@ function Exploration({ state, dispatch, onExit }) {
   // UI state: the NPC whose radial menu is open (left click on them), or null; whether its Info card shows; the NPC
   // whose Attack is waiting for confirmation.
   const [menuNpcId, setMenuNpcId] = useState(null)
+  // UI state: the challenge object whose radial menu is open (left click on it while in reach), or null.
+  const [menuObjectId, setMenuObjectId] = useState(null)
   const [npcInfoOpen, setNpcInfoOpen] = useState(false)
   const [confirmAttackId, setConfirmAttackId] = useState(null)
+  // UI state, for the open NPC or object ring (ringKey): the button last hovered and the member picked on its party band.
+  // Opening another ring starts both afresh.
+  const [ringHover, setRingHover] = useState(null)
+  const [ringPick, setRingPick] = useState(null)
+  // UI state: who opens fire once an Attack is confirmed, and who was picked to answer the checks of the conversation
+  // last opened from Talk (null: the best for each check).
+  const [confirmAttackerId, setConfirmAttackerId] = useState(null)
+  const [talkPickedId, setTalkPickedId] = useState(null)
   // UI state: the last scan whose report the player closed (lastScan.key).
   const [closedScanKey, setClosedScanKey] = useState(null)
   const lastScan = state.lastScan
@@ -606,22 +696,29 @@ function Exploration({ state, dispatch, onExit }) {
   useEffect(() => {
     if (lastScanKey != null) playScanSound()
   }, [lastScanKey])
+  // UI state: the scan whose sweep has finished playing, so a fight and back doesn't replay it.
+  const [sweptScanKey, setSweptScanKey] = useState(null)
+  const scanPulse = lastScan?.origin && sweptScanKey !== lastScanKey ? { key: lastScanKey, origin: lastScan.origin, radius: lastScan.radius, onDone: () => setSweptScanKey(lastScanKey) } : null
   const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
   const selectBox = useCallback((ids, additive) => dispatch({ type: 'selectBox', ids, additive }), [dispatch])
   // Right-click opens a member's menu and adds them to the selection; whoever else is selected stays selected.
   const selectedIds = state.party.selectedIds
-  const openMenu = useCallback(
-    (id) => {
-      if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
-      setMenuMemberId(id)
-      setMenuNpcId(null)
-    },
-    [dispatch, selectedIds],
-  )
-  const openNpcMenu = useCallback((id) => {
+  const openMenu = (id) => {
+    if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
+    setMenuMemberId(id)
+    setMenuNpcId(null)
+    setMenuObjectId(null)
+  }
+  const openNpcMenu = (id) => {
     setMenuNpcId(id)
     setMenuMemberId(null)
-  }, [])
+    setMenuObjectId(null)
+  }
+  const openObjectMenu = (id) => {
+    setMenuObjectId((current) => (current === id ? null : id))
+    setMenuMemberId(null)
+    setMenuNpcId(null)
+  }
   // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
   // request cancels it.
   const pendingTalkNpc = pendingTalk && pendingTalk.combatId === (state.lastCombat?.id ?? null) ? talkable.find((npc) => npc.id === pendingTalk.npcId) : null
@@ -656,9 +753,10 @@ function Exploration({ state, dispatch, onExit }) {
     const onKey = (event) => {
       if (event.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return
       if (event.code === 'Escape') {
-        setInteractionId(null)
+        setInteraction(null)
         setMenuMemberId(null)
         setMenuNpcId(null)
+        setMenuObjectId(null)
         setPendingTalk(null)
         setLogOpen(false)
         if (talking) dispatch({ type: 'conversationLeave' })
@@ -671,24 +769,22 @@ function Exploration({ state, dispatch, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [talking, dispatch, toggleSneak])
 
-  const move = useCallback(
-    (target, fresh) => {
-      if (fresh) {
-        setMenuMemberId(null)
-        setMenuNpcId(null)
-        setPendingTalk(null)
-      }
-      if (panelOpen) return
-      if (!noiseTool) {
-        dispatch({ type: 'moveTo', target, fresh })
-        return
-      }
-      if (!fresh) return
-      dispatch({ type: 'emitNoise', noise: { position: target, ...awarenessData.debugNoise, source: 'debug' } })
-      setNoiseTool(false)
-    },
-    [dispatch, noiseTool, panelOpen],
-  )
+  const move = (target, fresh) => {
+    if (fresh) {
+      setMenuMemberId(null)
+      setMenuNpcId(null)
+      setMenuObjectId(null)
+      setPendingTalk(null)
+    }
+    if (beamPhase !== 'done') return
+    if (!noiseTool) {
+      dispatch({ type: 'moveTo', target, fresh })
+      return
+    }
+    if (!fresh) return
+    dispatch({ type: 'emitNoise', noise: { position: target, ...awarenessData.debugNoise, source: 'debug' } })
+    setNoiseTool(false)
+  }
 
   // Out of reach, the selected characters stop about a tile short of the NPC, on the side the lead comes from.
   const walkToNpc = (npc) => {
@@ -700,32 +796,52 @@ function Exploration({ state, dispatch, onExit }) {
     dispatch({ type: 'moveTo', target, fresh: true })
   }
   const menuNpc = menuNpcId && !inCombat && !panelOpen && (debugOpen || isVisibleToParty(state.partyKnowledge, menuNpcId)) ? world.npcs[menuNpcId] : null
-  const attackNpc = (npc) => dispatch({ type: 'attackNpc', npcId: npc.id, targetId: party.selectedIds.includes(party.leaderId) ? party.leaderId : party.selectedIds[0] })
-  const npcMenu = menuNpc && {
-    npcId: menuNpc.id,
-    info: npcInfoOpen ? npcInfo(state, menuNpc) : null,
-    buttons: npcMenuButtons(state, menuNpc, talkable.some((npc) => npc.id === menuNpc.id), npcInfoOpen, {
-      talk: () => {
-        if (talkable.some((npc) => npc.id === menuNpc.id)) return talkTo(menuNpc)
-        walkToNpc(menuNpc)
-        setPendingTalk({ npcId: menuNpc.id, combatId: state.lastCombat?.id ?? null })
-      },
-      // The card opens to show the result.
-      scan: (memberId) => {
-        dispatch({ type: 'scanNpc', memberId, npcId: menuNpc.id })
-        setNpcInfoOpen(true)
-      },
-      info: () => setNpcInfoOpen((open) => !open),
-      // Attacking someone who wouldn't fight anyway asks first.
-      attack: () => (isHostile(menuNpc) ? attackNpc(menuNpc) : setConfirmAttackId(menuNpc.id)),
-      goTo: () => walkToNpc(menuNpc),
-    }).map((button) => ({
+  // The object's ring stays up while its interaction panel is open, with the Roll button and the dice above it.
+  const menuObject = openId ?? (menuObjectId && !inCombat && !panelOpen && reachableIds.includes(menuObjectId) ? menuObjectId : null)
+  const ringKey = menuNpc ? `npc:${menuNpc.id}` : menuObject ? `object:${menuObject}` : null
+  const hoveredRingButton = ringHover?.key === ringKey ? ringHover.buttonId : null
+  const pickedId = ringPick?.key === ringKey ? ringPick.memberId : null
+  const hoverRingButton = (buttonId) => setRingHover({ key: ringKey, buttonId })
+  const pickRingMember = (memberId) => setRingPick({ key: ringKey, memberId: memberId === pickedId ? null : memberId })
+  const attackNpc = (npc, attackerId) =>
+    dispatch({ type: 'attackNpc', npcId: npc.id, targetId: attackerId ?? (party.selectedIds.includes(party.leaderId) ? party.leaderId : party.selectedIds[0]) })
+  const npcActions = menuNpc && {
+    talk: () => {
+      setTalkPickedId(pickedId)
+      if (talkable.some((npc) => npc.id === menuNpc.id)) return talkTo(menuNpc)
+      walkToNpc(menuNpc)
+      setPendingTalk({ npcId: menuNpc.id, combatId: state.lastCombat?.id ?? null })
+    },
+    // The card opens to show the result.
+    scan: (memberId) => {
+      dispatch({ type: 'scanNpc', memberId, npcId: menuNpc.id })
+      setNpcInfoOpen(true)
+    },
+    info: () => setNpcInfoOpen((open) => !open),
+    // Attacking someone who wouldn't fight anyway asks first.
+    attack: () => {
+      const attackerId = npcButtonPerformer(state, menuNpc.id, 'attack', pickedId)
+      if (isHostile(menuNpc)) return attackNpc(menuNpc, attackerId)
+      setConfirmAttackId(menuNpc.id)
+      setConfirmAttackerId(attackerId)
+    },
+    goTo: () => walkToNpc(menuNpc),
+  }
+  const npcButtons =
+    menuNpc &&
+    npcMenuButtons(state, menuNpc, talkable.some((npc) => npc.id === menuNpc.id), npcInfoOpen, npcActions, pickedId).map((button) => ({
       ...button,
       onClick: () => {
         if (!button.keepOpen && button.id !== 'scan') setMenuNpcId(null)
         button.onClick?.()
       },
-    })),
+    }))
+  const npcMenu = menuNpc && {
+    npcId: menuNpc.id,
+    info: npcInfoOpen ? npcInfo(state, menuNpc) : null,
+    buttons: npcButtons,
+    party: ringPartyBand(state, { npcId: menuNpc.id }, npcButtons, hoveredRingButton, pickedId, pickRingMember),
+    onButtonHover: hoverRingButton,
   }
   const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
   const menuMember = menuMemberId && !inCombat ? party.members[menuMemberId] : null
@@ -747,12 +863,33 @@ function Exploration({ state, dispatch, onExit }) {
       },
     })),
   }
-  const scanFaded = useFadeAfter(lastScanKey)
-  const scanShown = Boolean(lastScan) && closedScanKey !== lastScan.key
+  const objectButtons =
+    menuObject &&
+    objectMenuButtons(
+      state,
+      menuObject,
+      (actionId) => {
+        setMenuObjectId(null)
+        setInteractionId(menuObject, actionId, pickedId)
+      },
+      openId ? panelActionId : null,
+    )
+  const objectMenu = menuObject && {
+    objectId: menuObject,
+    buttons: objectButtons,
+    // Once every approach is spent (the panel is still showing the last roll) only the dice stay above the object.
+    party: objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, hoveredRingButton, pickedId, pickRingMember) : null,
+    onButtonHover: hoverRingButton,
+    slotRef: openId ? setRollSlot : undefined,
+  }
+  // The report waits for the sweep to reach the edge of the scan, and its fade timer starts when it appears.
+  const scanSwept = !scanPulse
+  const scanFaded = useFadeAfter(scanSwept ? lastScanKey : null)
+  const scanShown = Boolean(lastScan) && scanSwept && closedScanKey !== lastScan.key
   const hint = talking
-    ? 'In conversation: move orders wait until it ends (Escape leaves). The world keeps moving.'
+    ? 'In conversation: Escape leaves. You can still move; the world keeps moving.'
     : openId
-    ? 'Interacting: move orders wait until the panel is closed (Escape). The world keeps moving.'
+    ? 'Interacting: Escape closes the panel; walking out of reach closes it too. The world keeps moving.'
     : noiseTool
       ? 'Noise tool: click the floor to make a noise there.'
       : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
@@ -768,7 +905,7 @@ function Exploration({ state, dispatch, onExit }) {
         knowledge={state.partyKnowledge}
         challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles() }))}
         reachableIds={reachableIds}
-        onInteract={setInteractionId}
+        onInteract={openObjectMenu}
         debug={debugOpen}
         followCamera={followCamera}
         onMove={move}
@@ -776,7 +913,9 @@ function Exploration({ state, dispatch, onExit }) {
         onSelectBox={selectBox}
         onOpenMenu={openMenu}
         onOpenNpcMenu={openNpcMenu}
-        menu={memberMenu || npcMenu}
+        menu={memberMenu || npcMenu || objectMenu}
+        beamIn={beamPhase}
+        scanPulse={scanPulse}
       />
       {scanShown && (
         <ScanReport scan={lastScan} faded={scanFaded} scannerName={party.members[lastScan.memberId]?.character.name ?? 'Scan'} onClose={() => setClosedScanKey(lastScan.key)} />
@@ -784,23 +923,15 @@ function Exploration({ state, dispatch, onExit }) {
       <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
       <div className="combat-top-left">
         <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
-        {objectives.length > 0 && <ObjectivesPanel objectives={objectives} />}
+        {(objectives.length > 0 || hasPendingObjectives) && (
+          <ObjectivesPanel objectives={objectives} showAll={hasPendingObjectives ? showAllObjectives : undefined} onShowAll={() => setShowAllObjectives(!showAllObjectives)} />
+        )}
       </div>
       {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
       {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
-      {!panelOpen && (reachableIds.length > 0 || talkable.length > 0 || talkError) && (
+      {!panelOpen && talkError && (
         <div className="challenge-prompts">
-          {reachableIds.map((id) => (
-            <button key={id} type="button" className="combat-button is-small is-primary" onClick={() => setInteractionId(id)}>
-              Interact: {getDefinition(state.scenario, id).name}
-            </button>
-          ))}
-          {talkable.map((npc) => (
-            <button key={npc.id} type="button" className="combat-button is-small is-primary" onClick={() => talkTo(npc)}>
-              Talk: {npc.name}
-            </button>
-          ))}
-          {talkError && <span className="task-warning">{talkError}</span>}
+          <span className="task-warning">{talkError}</span>
         </div>
       )}
       {talking && (
@@ -809,18 +940,7 @@ function Exploration({ state, dispatch, onExit }) {
           state={state}
           dispatch={dispatch}
           defaultPerformerId={party.selectedIds[0] ?? party.leaderId}
-          onRecommend={updateRecommendation}
-          dev={debugOpen}
-        />
-      )}
-      {openId && (
-        <ChallengePanel
-          key={openId}
-          state={state}
-          objectId={openId}
-          defaultPerformerId={party.selectedIds[0] ?? party.leaderId}
-          dispatch={dispatch}
-          onClose={() => setInteractionId(null)}
+          pickedPerformerId={talkPickedId}
           onRecommend={updateRecommendation}
           dev={debugOpen}
         />
@@ -832,7 +952,7 @@ function Exploration({ state, dispatch, onExit }) {
           confirmLabel="Attack"
           onConfirm={() => {
             setConfirmAttackId(null)
-            attackNpc(confirmAttackNpc)
+            attackNpc(confirmAttackNpc, confirmAttackerId)
           }}
           onCancel={() => setConfirmAttackId(null)}
         />
@@ -841,11 +961,9 @@ function Exploration({ state, dispatch, onExit }) {
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
-      {!panelOpen && (
-        <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} debug={debugOpen}>
-          <ActionsToggle open={actionsOpen} onToggle={toggleActions} />
-        </Minimap>
-      )}
+      <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen}>
+        <ActionsToggle open={actionsOpen} onToggle={toggleActions} />
+      </Minimap>
       <ExplorationPartyBar
         members={members}
         selectedIds={party.selectedIds}
@@ -854,6 +972,22 @@ function Exploration({ state, dispatch, onExit }) {
         onSetLeader={setLeader}
         recommendation={panelOpen ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
       />
+      {/* An object's stats and log: between the minimap and the menu buttons. */}
+      {openId && (
+        <ChallengePanel
+          key={`${openId}:${interaction.actionId ?? ''}`}
+          state={state}
+          objectId={openId}
+          initialActionId={interaction.actionId}
+          pickedPerformerId={pickedId ?? interaction.performerId}
+          rollSlot={rollSlot}
+          onActionChange={setPanelActionId}
+          dispatch={dispatch}
+          onClose={() => setInteraction(null)}
+          onRecommend={updateRecommendation}
+          dev={debugOpen}
+        />
+      )}
       {/* The menu buttons stay while a challenge or conversation is open (that panel ends above them). */}
       <div className="explore-bottom-right">
         {!panelOpen && actionsOpen && <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />}
@@ -877,7 +1011,7 @@ function Exploration({ state, dispatch, onExit }) {
             Exit
           </button>
         </div>
-        {!panelOpen && <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />}
+        <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />
       </div>
       {debugOpen && (
         <div className="explore-debug-column">

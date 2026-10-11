@@ -22,10 +22,6 @@
 }
 
 /* Right-drag selection box (ExplorationBoard). */
-.explore-unit.is-sneaking {
-  opacity: 0.8;
-}
-
 .explore-select-box {
   fill: rgba(246, 185, 40, 0.12);
   stroke: var(--yellow);
@@ -72,10 +68,12 @@
   --explore-card-height: 75px;
 }
 
+/* A fixed size whatever it shows: the notifications sit on its top edge and the details open in a panel above it. */
 .explore-card {
   width: 178px;
-  min-height: var(--explore-card-height);
+  height: var(--explore-card-height);
   padding: 6px 10px 6px 6px;
+  overflow: hidden;
 }
 
 .explore-card .party-info {
@@ -95,27 +93,102 @@
   text-overflow: ellipsis;
 }
 
-/* Small by default; hovering or focusing the card grows it upward (the bar sits on its bottom edge) to show the rest. */
-.explore-card-more {
-  display: none;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.explore-card:hover,
-.explore-card:focus-visible {
-  z-index: 30;
-  align-items: flex-start;
-}
-
-.explore-card:hover .explore-card-more,
-.explore-card:focus-visible .explore-card-more {
+/* One row along the card's top edge: Best Choice and the TN on the left, Lead / Make Lead on the right. Only Make Lead
+   takes clicks; the rest let them through to the card. */
+.explore-card-badges {
+  position: absolute;
+  top: -9px;
+  left: 6px;
+  right: 6px;
+  z-index: 1;
   display: flex;
+  gap: 4px;
+  min-width: 0;
+  pointer-events: none;
 }
 
-.explore-card:hover .explore-card-detail.is-main,
-.explore-card:focus-visible .explore-card-detail.is-main {
-  white-space: normal;
+.explore-card-badges .party-task-tag {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.explore-card-badges .party-task-best,
+.explore-card-badges .party-task-tn,
+.explore-card-badges .party-turn-badge,
+.explore-card-badges .explore-make-lead {
+  position: static;
+  flex-shrink: 0;
+  line-height: 14px;
+}
+
+.explore-card-badges .party-task-tn {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  pointer-events: auto;
+}
+
+.explore-card-badges .party-turn-badge,
+.explore-card-badges .explore-make-lead {
+  margin-left: auto;
+}
+
+.explore-card-badges .explore-make-lead {
+  pointer-events: auto;
+}
+
+.explore-card-info-toggle {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #b8962e;
+}
+
+.explore-card-info-toggle svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: #03060e;
+  stroke-width: 1.2;
+  paint-order: stroke;
+}
+
+.explore-card-info-toggle:hover,
+.explore-card-info-toggle.is-open {
+  color: var(--yellow);
+}
+
+.explore-card-info-toggle.is-open svg {
+  filter: drop-shadow(0 0 2px var(--yellow));
+}
+
+/* Above the card, clear of the badges on its top edge. */
+.explore-card-info {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 14px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.96);
 }
 
 .explore-card-detail.is-rank {
@@ -148,9 +221,6 @@
 }
 
 .explore-make-lead {
-  position: absolute;
-  top: -9px;
-  right: 6px;
   padding: 0 5px;
   border: 1px solid var(--yellow);
   border-radius: 3px;
@@ -608,17 +678,145 @@
   pointer-events: none;
 }
 
+/* The minimap as a computer readout: blue-tinted tiles (the markers keep their colours), still scanlines and a dark
+   vignette (::after), a faint cyan pulse at random intervals and, during a Scan, a bright band led by a solid line
+   rolling down once (ReadoutNoise.jsx), and a cyan edge glow. The map itself never moves; only the overlays animate,
+   with transform and opacity, so the browser doesn't repaint the map every frame. */
 .explore-minimap {
+  position: relative;
+  overflow: hidden;
   padding: 6px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid rgba(110, 200, 255, 0.55);
   border-radius: 4px;
-  background: rgba(6, 12, 28, 0.88);
+  background: rgba(4, 14, 32, 0.92);
+  box-shadow:
+    0 0 8px rgba(80, 180, 255, 0.25),
+    inset 0 0 12px rgba(80, 180, 255, 0.2);
+}
+
+.explore-minimap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(140, 220, 255, 0.08) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 8, 24, 0.55) 100%);
 }
 
 .explore-minimap svg {
   display: block;
   width: 100%;
   aspect-ratio: 1;
+}
+
+.readout-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.readout-noise-pulse {
+  position: absolute;
+  inset: 0;
+  background: rgba(150, 225, 255, 0.07);
+  opacity: 0;
+  animation: minimap-readout-pulse 2.5s ease-in-out forwards;
+}
+
+.readout-noise-band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, transparent, rgba(140, 220, 255, 0.1) 60%, rgba(200, 240, 255, 0.3));
+  border-bottom: 2px solid #ffffff;
+  box-shadow: 0 3px 6px rgba(120, 220, 255, 0.7);
+  transform: translateY(-100%);
+  animation: minimap-scan-bar 3s linear forwards;
+}
+
+/* While a Scan sweeps, the readout brightens a touch. */
+.explore-minimap.is-scanning .minimap-readout-tiles {
+  filter: grayscale(1) sepia(1) hue-rotate(165deg) saturate(2.6) brightness(1.05);
+}
+
+.minimap-readout-tiles {
+  filter: grayscale(1) sepia(1) hue-rotate(165deg) saturate(2.2) brightness(0.8);
+}
+
+/* A door object (a sealed bulkhead): solid yellow while closed, a yellow outline once open. */
+.minimap-door {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+}
+
+.minimap-door.is-closed {
+  fill: var(--yellow);
+}
+
+.minimap-scan-pulse circle {
+  r: 0;
+  animation: minimap-scan-grow var(--scan-seconds, 1.5s) cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.minimap-scan-pulse-fill {
+  fill: rgba(120, 220, 255, 0.12);
+}
+
+.minimap-scan-pulse-ring {
+  fill: none;
+  stroke: #bff1ff;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.minimap-scan-pulse {
+  animation: minimap-scan-fade var(--scan-seconds, 1.5s) linear forwards;
+}
+
+@keyframes minimap-scan-grow {
+  from {
+    r: 0;
+  }
+  to {
+    r: var(--scan-radius);
+  }
+}
+
+@keyframes minimap-scan-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes minimap-readout-pulse {
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* From above the minimap (its own height up) to below it (the minimap is about 3.4 bands tall). */
+@keyframes minimap-scan-bar {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(340%);
+  }
 }
 
 /* The column ignores the pointer so the map stays clickable around it; the toggle opts back in. */
@@ -653,7 +851,7 @@
 }
 
 .minimap-area-label {
-  fill: rgba(225, 240, 245, 0.85);
+  fill: rgba(175, 230, 255, 0.9);
   font-size: 0.75px;
   font-weight: 700;
   letter-spacing: 0.04px;
@@ -1208,7 +1406,7 @@
   }
 }
 
-/* "Interact: <object>" prompts while someone stands in reach. */
+/* Why the last conversation couldn't be opened. */
 .challenge-prompts {
   position: absolute;
   left: 50%;
@@ -1235,6 +1433,66 @@
   font-size: 12px;
 }
 
+/* An object's stats and log, as wide as the bottom-right stack: below the minimap column (it ends 284px down) and
+   above the menu buttons and Formation panel (103px tall, 8px from the bottom); the text scrolls. */
+.challenge-panel.is-docked {
+  top: 292px;
+  right: 8px;
+  bottom: 117px;
+  width: 247px;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+/* A shown result fading out before the panel closes itself (RESULT_FADE_MS in ChallengePanel.jsx). */
+.challenge-panel.is-fading,
+.ring-roll.is-fading {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.challenge-panel.is-docked .challenge-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.challenge-panel.is-docked h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.challenge-panel.is-docked .challenge-actions {
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.objectives-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.objectives-show-all {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--label);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.objectives-show-all:hover,
+.objectives-show-all[aria-pressed='true'] {
+  color: var(--yellow);
+}
+
 .challenge-header {
   display: flex;
   justify-content: space-between;
@@ -1242,6 +1500,18 @@
 }
 
 /* A conversation (ConversationPanel.jsx) uses the interaction panel's frame. */
+/* The conversation box (designer mockup, 2026-10-11): the usual RPG dialogue spot, centred low on the screen just above
+   the party cards (8px from the bottom, 75px tall, with their tags on top). It grows upward with its text and scrolls
+   past about half the screen. */
+.conversation-panel {
+  top: auto;
+  right: auto;
+  bottom: 100px;
+  left: calc(50% - 270px);
+  width: 540px;
+  max-height: 46%;
+}
+
 .conversation-line {
   padding: 8px 10px;
   border-left: 3px solid var(--yellow);
@@ -1503,6 +1773,101 @@
 .challenge-die-owner {
   color: var(--text-muted);
   font-size: 10px;
+}
+
+/* A party Scan's sweep (ScanPulse.jsx): jagged arcs that spread along the floor and fade. The component sizes the
+   shapes and sets the fade each frame; these rules only colour them. */
+.fx-scan-pulse-glow {
+  fill: rgba(120, 220, 255, 0.05);
+  stroke: rgba(120, 220, 255, 0.3);
+  stroke-width: 8px;
+}
+
+.fx-scan-pulse-arc {
+  fill: none;
+  stroke: #bff1ff;
+  stroke-width: 1.6px;
+  stroke-linejoin: bevel;
+}
+
+.fx-scan-pulse-arc.is-arc-1 {
+  stroke: #7fdcff;
+}
+
+.fx-scan-pulse-arc.is-arc-2 {
+  stroke: #ffffff;
+  stroke-width: 1px;
+}
+
+/* The Roll button and the dice above an object's ring: drawn in the map's world pixels, so they scale with the ring. */
+.unit-ring-slot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ring-roll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border: 1px solid #7cc4ff;
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.92);
+  pointer-events: auto;
+}
+
+.ring-roll:empty {
+  display: none;
+}
+
+.ring-roll .combat-button {
+  min-height: 0;
+  padding: 2px 7px;
+  font-size: 7px;
+}
+
+.ring-roll .challenge-dice {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.ring-roll .challenge-die {
+  min-width: 26px;
+  gap: 1px;
+}
+
+.ring-roll .challenge-die-face {
+  width: 18px;
+  height: 18px;
+  border-width: 1px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.ring-roll .challenge-die-tag,
+.ring-roll .challenge-die-owner {
+  font-size: 5px;
+}
+
+.ring-roll-outcome {
+  margin: 0;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ring-roll-outcome.is-success {
+  color: #4fd6c4;
+}
+
+.ring-roll-outcome.is-failure {
+  color: #8a93a8;
 }
 
 @keyframes challenge-die-roll {

@@ -329,6 +329,77 @@ export function playScanSound() {
   withRunningContext(playScan)
 }
 
+// A transporter: a shimmering chord of sines under a fast tremolo, over a low drone and a high sparkle of noise; it
+// swells, holds, then fades. Beaming out the pitch rises as the figure dematerialises; beaming in it settles down
+// from above as the figure solidifies.
+const BEAM_OUT_GAIN = 0.07
+const BEAM_OUT_CHORD = [
+  [620, 0.5],
+  [930, 0.3],
+  [1240, 0.35],
+  [1860, 0.22],
+  [2790, 0.12],
+]
+function playTransporter(audio, duration, inbound) {
+  const [pitchFrom, pitchTo] = inbound ? [1.3, 1] : [1, 1.3]
+  const start = audio.currentTime + LOOKAHEAD_S
+  const end = start + duration
+  const peak = BEAM_OUT_GAIN * level
+  const output = audio.createGain()
+  output.gain.setValueAtTime(0, start)
+  output.gain.linearRampToValueAtTime(peak, start + duration * 0.25)
+  output.gain.setValueAtTime(peak, start + duration * 0.6)
+  output.gain.exponentialRampToValueAtTime(0.0001, end)
+  output.connect(audio.destination)
+
+  const shimmer = audio.createGain()
+  shimmer.gain.value = 0.6
+  const tremolo = audio.createOscillator()
+  const tremoloDepth = audio.createGain()
+  tremolo.frequency.value = 17
+  tremoloDepth.gain.value = 0.4
+  tremolo.connect(tremoloDepth).connect(shimmer.gain)
+  shimmer.connect(output)
+
+  for (const [index, [frequency, gain]] of BEAM_OUT_CHORD.entries()) {
+    const tone = audio.createOscillator()
+    const toneGain = audio.createGain()
+    tone.type = 'sine'
+    tone.detune.value = index % 2 ? 6 : -6
+    tone.frequency.setValueAtTime(frequency * pitchFrom, start)
+    tone.frequency.exponentialRampToValueAtTime(frequency * pitchTo, end)
+    toneGain.gain.value = gain
+    tone.connect(toneGain).connect(shimmer)
+    tone.start(start)
+    tone.stop(end + 0.02)
+  }
+
+  const drone = audio.createOscillator()
+  const droneGain = audio.createGain()
+  drone.type = 'triangle'
+  drone.frequency.setValueAtTime(inbound ? 210 : 155, start)
+  drone.frequency.exponentialRampToValueAtTime(inbound ? 155 : 210, end)
+  droneGain.gain.value = 0.35
+  drone.connect(droneGain).connect(output)
+  for (const node of [tremolo, drone]) {
+    node.start(start)
+    node.stop(end + 0.02)
+  }
+  playNoiseBurst(audio, { start, length: duration, gain: BEAM_OUT_GAIN * 0.5, filterType: 'highpass', frequency: 6500 })
+}
+
+// An enemy beaming out of the battle (it fled). seconds: the beam-out's length on screen, already scaled by the speed.
+export function playBeamOutSound(seconds) {
+  if (level === 0) return
+  withRunningContext((audio) => playTransporter(audio, seconds, false))
+}
+
+// The away team beaming in as a mission starts. seconds: the beam-in's length on screen.
+export function playBeamInSound(seconds) {
+  if (level === 0) return
+  withRunningContext((audio) => playTransporter(audio, seconds, true))
+}
+
 // One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.
 // loudness scales the step (0..1), e.g. softer while sneaking.
 export function playFootstep(stepIndex = 0, loudness = 1) {

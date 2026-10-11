@@ -16,11 +16,11 @@ export const facingToward = (from, to) => {
 
 // The directed ally acts (Direct) while the commander's turn waits; otherwise whoever's turn it is.
 export const getActiveCombatant = (state) => state.combatants[state.directed?.allyId ?? state.order[state.turnIndex]]
-// Able to act: not Defeated (Book p.292: a Defeated character is prone and takes no actions). Designer decision (Oct
-// 2026): an enemy that surrendered is out of the fight too (combatSocial.js).
-export const isActive = (combatant) => !combatant.condition.defeated && !combatant.surrendered
-// Stands on its tile and blocks movement: a surrendered enemy still does; the Defeated (prone) don't.
-export const occupiesTile = (combatant) => !combatant.condition.defeated
+// Able to act: not Defeated (Book p.292: a Defeated character is prone and takes no actions). Designer decisions (Oct
+// 2026): an enemy that surrendered (combatSocial.js) or fled (combatRetreat.js) is out of the fight too.
+export const isActive = (combatant) => !combatant.condition.defeated && !combatant.surrendered && !combatant.fled
+// Stands on its tile and blocks movement: a surrendered enemy still does; the Defeated (prone) and the fled don't.
+export const occupiesTile = (combatant) => !combatant.condition.defeated && !combatant.fled
 export const getCombatantList = (state) => state.order.map((id) => state.combatants[id])
 // Whether a combatant knows another is there. Only combat started in the world tracks this (state.knowledge), and only
 // for enemies: a party member an enemy hasn't detected is present but not one of its opponents.
@@ -46,10 +46,13 @@ export function getTurnGroupRange(state) {
 
 export const getTurnGroup = (state) => getTurnGroupRange(state).ids
 
+// The closest of candidates to position, by tile distance (the first of equals, in candidates order); undefined if none.
+export const nearestTo = (position, candidates) => [...candidates].sort((a, b) => tileDistance(position, a.position) - tileDistance(position, b.position))[0]
+
 // Every combatant always has a facing; one without a stored facing faces the nearest active opponent.
 export function getFacing(state, combatant) {
   if (combatant.facing) return combatant.facing
-  const nearest = getOpponents(state, combatant).sort((a, b) => tileDistance(combatant.position, a.position) - tileDistance(combatant.position, b.position))[0]
+  const nearest = nearestTo(combatant.position, getOpponents(state, combatant))
   return facingToward(combatant.position, nearest?.position ?? combatant.position)
 }
 

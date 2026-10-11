@@ -16,7 +16,8 @@
 // in exploration), all through the same shared task.
 //
 // This file holds the reducer and re-exports the public surface of the modules it is built from, so callers import
-// everything combat-state from here:
+// everything combat-state from here. The reducer only gates on waiting prompts and hands each plain action to its
+// CombatAction (actions/registry.js: one class per action type, which validates and applies it). The rule modules:
 //   turnActions.js      the action economy (major / minor / free, the round's major-action limit)
 //   combatSelectors.js  read-only questions: who acts, opponents, turn groups, what a combatant can afford
 //   combatMovement.js   Move and Sprint: blocks, allowance, reachable tiles, paths
@@ -28,42 +29,14 @@
 //   combatTurnOrder.js  turns, rounds, switching party members, settling a Direct, the outcome
 //   combatSetup.js      createCombat and late arrivals
 //   combatLog.js        shared state helpers and the log's wording
-import { getAttributeName } from '../character/runtimeCharacter.js'
-import { canCommunicate } from '../rules/communication.js'
-import { addThreat, checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum, spendMomentum, spendThreat } from '../rules/missionResources.js'
-import { chooseFatiguedAttribute, injuryText, needsFatigueAttribute, reviveCondition, treatInjury } from '../rules/personalCondition.js'
-import { evaluateStaDie, rerollDie, rollDice } from '../rules/taskResolver.js'
-import { ambushStep } from './combatAmbush.js'
-import { counterattackStep, defenderWins } from './combatCounterattack.js'
-import {
-  aimRerollsFor,
-  AIM_TEXT,
-  assistTaskFor,
-  attackDifficulty,
-  canAimReroll,
-  canAssist,
-  canAssistReroll,
-  difficultyBreakdown,
-  evaluateAttack,
-  previewAttack,
-  rollOpposition,
-  withoutUsedAssist,
-} from './combatAttacks.js'
-import { affordAddedSeverity, inflictInjury, injuryFor, resolveInjury } from './combatInjuries.js'
-import { addLog, assistLine, bonusMomentumLine, diceText, focusText, formatPosition, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from './combatLog.js'
-import { canMove, canSprint, getPathTo } from './combatMovement.js'
-import { canAfford, canAim, extraActionPool, extraMinorBlock, facingToward, getActiveCombatant, getTurnGroup, isActive, isTurnFinished, secondMajorBlock } from './combatSelectors.js'
+import { INTERACT } from './actions/InteractAction.js'
+import { combatActionFor } from './actions/registry.js'
+import { getActiveCombatant } from './combatSelectors.js'
 import { withRetreats } from './combatRetreat.js'
 import { createCombat } from './combatSetup.js'
-import { socialStep } from './combatSocial.js'
-import { directBlock, getAuthority, getDirectableAllies, previewFirstAid, previewGuard, previewScan, rollCombatTask } from './combatTasks.js'
-import { SCAN_TRAIT } from './combatScan.js'
-import { advanceTurn, settleDirected, switchToMember, withOutcome } from './combatTurnOrder.js'
-import { canTakeCover } from './coverSystem.js'
-import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, ADAPTATION_MOMENTUM_SPENDS, EXTRA_ACTIONS, freshTurn, spendTurnAction } from './turnActions.js'
-import { getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
+import { settleDirected } from './combatTurnOrder.js'
 
-export { ACTIONS_PER_TURN, ACTION_TYPE_NAMES, ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS, EXTRA_ACTIONS, MAX_MAJORS_PER_ROUND, actionTypeOf, actionsLeft, actionsLeftText, majorsTaken } from './turnActions.js'
+export { ACTION_TYPE_NAMES, ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS, EXTRA_ACTIONS, actionTypeOf, actionsLeft, actionsLeftText, majorsTaken } from './turnActions.js'
 export {
   awaitingDecision,
   canAct,
@@ -79,7 +52,6 @@ export {
   getTurnOf,
   isActive,
   isTurnFinished,
-  knowsAbout,
   occupiesTile,
   reachLines,
   secondMajorBlock,
@@ -101,86 +73,27 @@ export {
   getHitChance,
   hasTargetInRange,
   isAccurate,
+  maxAttackSuccesses,
   previewAttack,
   rollAwaitsPlayer,
 } from './combatAttacks.js'
-export { directBlock, directTargetBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
+export { directBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
 export { isScanned, scanReport, SCAN_TRAIT, visibleCondition } from './combatScan.js'
 export { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
-export { injuryFor, previewInjuries } from './combatInjuries.js'
-export { AMBUSH_DIFFICULTY, AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
-export { counterattackOption } from './combatCounterattack.js'
-export { settleDirected } from './combatTurnOrder.js'
+export { injuryDefeats, injuryFor, previewInjuries } from './combatInjuries.js'
+export { combatActionFor } from './actions/registry.js'
+export { AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
 export { addCombatant, createCombat } from './combatSetup.js'
 
-// A challenge object's task or routine action taken in combat (exploration/combatLink.js runs the object's own rules
-// through challengeObjects.js; this records what it means for the fight). interaction: { actorId, cost ('major' |
-// 'minor' | 'free'), resources (the mission pools after the attempt), label, passed (null = no roll), task, dice,
-// successes, complications, momentumGenerated, momentumSaved, assistUsed, lines }.
+// A challenge object's task or routine action taken in combat (WorldEncounter.interact runs the object's own rules; the
+// InteractAction records what it means for the fight).
 export function canInteract(state, actorId, cost) {
   const actor = state.combatants[actorId]
-  return Boolean(actor) && canAfford(state, actor, cost)
+  return Boolean(actor) && !INTERACT.unavailableReason(state, actor, { cost })
 }
 
 export function applyInteraction(state, interaction) {
-  const actor = state.combatants[interaction.actorId]
-  if (!canInteract(state, actor.id, interaction.cost)) return state
-  let next = spendTurnAction({ ...state, resources: interaction.resources }, actor.id, interaction.cost)
-  if (interaction.assistUsed) next = withoutUsedAssist(next, actor.id, { via: 'assist' })
-  next = withStats(next, (stats) => {
-    stats.tasks.interact += 1
-    if (interaction.passed) stats.tasks.passed += 1
-    stats.momentum.generated += interaction.momentumGenerated ?? 0
-    stats.momentum.saved += interaction.momentumSaved ?? 0
-  })
-  if (interaction.passed !== null) {
-    next = {
-      ...next,
-      result: {
-        kind: 'task',
-        key: state.log.length,
-        taskKind: 'interact',
-        label: interaction.label,
-        attackerId: actor.id,
-        targetId: null,
-        task: interaction.task,
-        opposition: null,
-        dice: interaction.dice,
-        assist: interaction.assist ?? null,
-        rerolls: [],
-        successes: interaction.successes,
-        passed: interaction.passed,
-        momentumGenerated: interaction.momentumGenerated ?? 0,
-        momentumSaved: interaction.momentumSaved ?? 0,
-        momentumUnsaved: 0,
-        threatAdded: 0,
-        complications: interaction.complications ?? 0,
-        closed: false,
-      },
-    }
-  }
-  next = markAction(next, 'interact', actor.id, { passed: interaction.passed })
-  next = addLog(next, [`${interaction.label} (${ACTION_TYPE_NAMES[actionTypeOf(interaction.cost)]} action; ${actionsLeftText(next.turn)})`, ...interaction.lines])
-  return withOutcome(settleDirected(next))
-}
-
-// Pays for an Extra Minor or Second Major: the party from group Momentum, an NPC by spending Threat (Book p.265).
-// Returns { state, text } with the log wording for what was paid.
-function payForExtraAction(state, actor, cost, countTask) {
-  if (extraActionPool(actor) === 'momentum') {
-    const resources = spendMomentum(state.resources, cost)
-    const next = withStats({ ...state, resources }, (stats) => {
-      countTask(stats)
-      stats.momentum.spentExtraActions = (stats.momentum.spentExtraActions ?? 0) + cost
-    })
-    return { state: next, text: `Momentum spent: ${cost} (group pool now ${resources.momentum})` }
-  }
-  const resources = spendThreat(state.resources, cost)
-  const next = withStats({ ...state, resources }, (stats) => {
-    countTask(stats)
-    stats.threat.spentByNpcs += cost
-  })
-  return { state: next, text: `Threat spent: ${cost} (Threat now ${resources.threat})` }
+  return INTERACT.reduce(state, state.combatants[interaction.actorId], interaction)
 }
 
 // ---------- reducer ----------
@@ -202,449 +115,6 @@ function reduceAction(state, action) {
   if (state.pendingFatigue && action.type !== 'chooseFatigueAttribute') return state
   if (state.pendingCounterattack && action.type !== 'counterattackDecision') return state
 
-  switch (action.type) {
-    // Book p.290 Counterattack: the player's decision for a party defender who won an opposed attack (action.accept,
-    // action.injuryMode), or autocombat's (action.reason).
-    case 'counterattackDecision':
-      return withOutcome(counterattackStep(state, action))
-    // Book p.278: the player selects the attribute a newly Fatigued party member shuts down (action.attribute), or
-    // autocombat's policy does (action.reason).
-    case 'chooseFatigueAttribute': {
-      const pending = state.pendingFatigue
-      const combatant = pending && state.combatants[pending.combatantId]
-      if (!combatant || !needsFatigueAttribute(combatant.condition)) return state
-      const condition = chooseFatiguedAttribute(combatant.condition, action.attribute)
-      if (condition === combatant.condition) return state
-      const next = updateCombatant({ ...state, pendingFatigue: null }, combatant.id, { condition })
-      return addLog(next, [
-        ...(action.reason ? [`AI Decision: shut down ${getAttributeName(action.attribute)}`, `Reason: ${action.reason}`] : []),
-        `${combatant.character.name} is Fatigued: ${getAttributeName(action.attribute)} is shut down (its tasks automatically fail).`,
-      ])
-    }
-    // Book p.292 Avoid Injury: the player's decision for a party member (action.avoid), or autocombat's (action.reason).
-    case 'injuryDecision': {
-      const incoming = state.incomingInjury
-      if (!incoming) return state
-      const target = state.combatants[incoming.targetId]
-      const resolved = resolveInjury(state, incoming, Boolean(action.avoid))
-      let next = markAction(resolved.state, 'injury', incoming.attackerId, { targetId: target.id, avoided: resolved.avoided, removed: !isActive(resolved.state.combatants[target.id]) })
-      if (next.result?.injury && next.result.targetId === target.id) next = { ...next, result: { ...next.result, injury: { ...next.result.injury, decided: resolved.avoided ? 'avoided' : 'suffered' } } }
-      next = addLog(next, [
-        ...(action.reason ? [`AI Decision: ${resolved.avoided ? 'Avoid Injury' : 'Accept Injury'}`, `Reason: ${action.reason}`] : []),
-        `${target.character.name} ${resolved.avoided ? 'chooses to Avoid Injury' : 'accepts the Injury'}.`,
-        ...resolved.lines,
-      ])
-      return withOutcome(next)
-    }
-    // Book p.260: 1 Momentum (an NPC: 1 Threat), one more minor action this turn (once per turn).
-    case 'buyExtraMinor': {
-      if (extraMinorBlock(state, actor)) return state
-      const decided = recordDecision(state, actor, action)
-      const turn = { ...state.turn, minor: state.turn.minor + 1, extraMinor: true }
-      const paid = payForExtraAction(decided.state, actor, EXTRA_ACTIONS.extraMinorCost, (stats) => (stats.tasks.extraMinor += 1))
-      return addLog(markAction({ ...paid.state, turn }, 'extraMinor', actor.id), [
-        ...decided.lines,
-        `${paid.text} for an extra minor action (${actionsLeftText(turn)})`,
-      ])
-    }
-    // Book p.289: 2 Momentum (an NPC: 2 Threat), a second major action this turn; its task is +1 Difficulty.
-    case 'buySecondMajor': {
-      if (secondMajorBlock(state, actor)) return state
-      const decided = recordDecision(state, actor, action)
-      const turn = { ...state.turn, major: state.turn.major + 1, secondMajor: true }
-      const paid = payForExtraAction(decided.state, actor, EXTRA_ACTIONS.secondMajorCost, (stats) => (stats.tasks.secondMajor += 1))
-      return addLog(markAction({ ...paid.state, turn }, 'secondMajor', actor.id), [
-        ...decided.lines,
-        `${paid.text} for a second major action (${actionsLeftText(turn)}). Its task is +${EXTRA_ACTIONS.secondMajorDifficulty} Difficulty.`,
-      ])
-    }
-    case 'ambush':
-      return ambushStep(state, action)
-    case 'move':
-    case 'sprint': {
-      const kind = action.type
-      if (kind === 'move' ? !canMove(state, actor) : !canSprint(state, actor)) return state
-      const path = getPathTo(state, actor, action.destination, kind)
-      if (!path || path.length < 2) return state
-      const destination = path[path.length - 1]
-      const steps = path.length - 1
-      const decided = recordDecision(state, actor, action, { path })
-      const inCover = canTakeCover(state.map, destination)
-      const moved = updateCombatant(decided.state, actor.id, { position: destination, inCover, facing: facingToward(path[path.length - 2], destination) })
-      const used = spendTurnAction(moved, actor.id, kind)
-      const turn = { ...used.turn, ...(kind === 'move' ? { moved: true } : { sprinted: true }) }
-      const next = { ...used, turn, lastMove: { key: state.log.length, combatantId: actor.id, path } }
-      return addLog(markAction(next, kind, actor.id, { inCover }), [
-        ...decided.lines,
-        `${kind === 'move' ? 'Move' : 'Sprint'} ${steps} ${steps === 1 ? 'tile' : 'tiles'} (${actionsLeftText(turn)})`,
-        `Path: ${path.map(formatPosition).join(' > ')}`,
-        ...(inCover ? [`${actor.character.name} is in cover (next to a cover object).`] : actor.inCover ? [`${actor.character.name} leaves cover.`] : []),
-      ])
-    }
-    case 'aim': {
-      if (!canAim(state, actor)) return state
-      const decided = recordDecision(state, actor, action)
-      const used = spendTurnAction(decided.state, actor.id, 'aim')
-      const turn = { ...used.turn, aimReroll: true, aimed: true }
-      return addLog(markAction({ ...used, turn }, 'aim', actor.id), [
-        ...decided.lines,
-        `Aim: ${AIM_TEXT} (${actionsLeftText(turn)})`,
-      ])
-    }
-    case 'assist': {
-      const ally = state.combatants[action.allyId]
-      if (!canAfford(state, actor, 'assist') || !canAssist(state, actor, ally)) return state
-      const decided = recordDecision(state, actor, action)
-      const used = spendTurnAction(decided.state, actor.id, 'assist')
-      const { turn } = used
-      const next = { ...used, assists: { ...state.assists, [ally.id]: actor.id } }
-      return addLog(markAction(next, 'assist', actor.id, { allyId: ally.id }), [
-        ...decided.lines,
-        `Assist: ${ally.character.name}'s next task this round adds ${actor.character.name}'s 1d20 (${actionsLeftText(turn)})`,
-      ])
-    }
-    case 'attack': {
-      if (!canAfford(state, actor, 'attack')) return state
-      const preview = previewAttack(state, actor.id, action.targetId, action.weaponId)
-      if (!preview.available || !preview.weapon.injuryModes.includes(action.injuryMode)) return state
-      // Buy d20s (Book pp.255, 260): action.purchase = { bonusDice, momentum }; the party pays from the group pool and/or adds
-      // Threat, an NPC spends Threat.
-      const purchase = checkDicePurchase(state.resources, action.purchase, actor.side)
-      if (!purchase.valid) return state
-      const decided = recordDecision(state, actor, action)
-      const { random, next: afterDraw } = takeRandom(decided.state)
-      const target = state.combatants[action.targetId]
-      const opposition = preview.opposition ? rollOpposition(preview.opposition, random) : null
-      const difficulty = attackDifficulty(preview, opposition?.successes)
-      const pending = {
-        attackerId: actor.id,
-        targetId: target.id,
-        weaponId: preview.weapon.id,
-        injuryMode: action.injuryMode,
-        band: preview.band,
-        distance: preview.distance,
-        baseDifficulty: preview.baseDifficulty,
-        rangeModifier: preview.rangeModifier,
-        guardModifier: preview.guardModifier,
-        extraLines: preview.extraLines,
-        traitLines: preview.traitLines,
-        opposition,
-        task: { ...preview.task, difficulty },
-        dice: rollDice(random, purchase.dice),
-        purchase,
-        rerolls: [],
-        aimRerolls: state.turn.aimReroll ? aimRerollsFor(preview.weapon) : 0,
-        assistRerolls: 0,
-        assist: null,
-        // Talents (combatTalents.js): Steady Hands needs the Aim; Ambush Tactics, a target unaware as the shot is taken
-        // (the attack reveals the attacker before it resolves).
-        aimed: state.turn.aimReroll,
-        targetUnaware: preview.targetUnaware,
-        ignoreComplications: preview.ignoreComplications,
-        bonusMomentum: preview.bonusMomentum,
-      }
-      // The helper (an Assist, or the commander on a Direct) rolls after the attacker, against their own Target Number.
-      const assistFor = assistTaskFor(state, actor.id, preview.weapon)
-      if (assistFor) {
-        const [die] = rollDice(random, 1)
-        pending.assist = { helperId: assistFor.helperId, task: assistFor.task, via: assistFor.via, die, talentNotes: assistFor.talents?.notes ?? [] }
-        pending.bonusMomentum += assistFor.talents?.bonusMomentum ?? 0
-        pending.assistRerolls = assistFor.talents?.rerolls ?? 0
-      }
-      const used = spendTurnAction(withoutUsedAssist(updateCombatant(afterDraw, actor.id, { facing: facingToward(actor.position, target.position) }), actor.id, assistFor), actor.id, 'attack')
-      let next = {
-        ...used,
-        resources: payForDice(state.resources, purchase),
-        turn: { ...used.turn, aimReroll: false, attacks: state.turn.attacks + 1 },
-        pending,
-        result: null,
-      }
-      next = withStats(next, (stats) => {
-        stats.attacks += 1
-        stats.byCombatant[actor.id].attacks += 1
-        stats.byCombatant[actor.id].lastAttackRound = state.round
-        stats.momentum.spentDice += purchase.momentum
-        stats.threat.fromDice += purchase.threatAdded
-        stats.threat.spentByNpcs += purchase.threatSpent
-      })
-      const { task } = pending
-      next = markAction(next, 'attack', actor.id, { targetId: target.id, weaponId: preview.weapon.id, injuryMode: action.injuryMode })
-      return addLog(next, [
-        ...decided.lines,
-        `Attack (${actionsLeftText(next.turn)})`,
-        `${actor.character.name} attacks ${target.character.name} with ${preview.weapon.name} (${getInjuryMode(action.injuryMode).name})`,
-        `Range: ${preview.band.name} (${preview.distance} tiles)`,
-        taskText(task),
-        `Focus: ${focusText(task)}`,
-        ...(pending.aimRerolls ? [`Aim: may reroll ${pending.aimRerolls === 1 ? 'one die' : `up to ${pending.aimRerolls} dice (Accurate)`}`] : []),
-        ...(purchase.bonusDice ? [purchaseLine(purchase)] : []),
-        opposition
-          ? `${oppositionName(opposition)}: ${taskText(opposition.task)}, focus ${focusText(opposition.task)}, rolls ${diceText(opposition.dice)}: ${opposition.successes} ${opposition.successes === 1 ? 'success' : 'successes'}`
-          : 'Opposed roll: No',
-        `Difficulty: ${task.difficulty} (${difficultyBreakdown(pending)})`,
-        `Rolls: ${diceText(pending.dice.map((value) => evaluateStaDie(task, value)))}`,
-        ...(pending.assist ? [assistLine(next, pending.assist)] : []),
-        ...(pending.assist?.talentNotes.length ? [`Assist talents: ${pending.assist.talentNotes.join('; ')}`] : []),
-        ...(opposition?.complications ? [`Defender complications: ${opposition.complications}`] : []),
-      ])
-    }
-    case 'reroll': {
-      const { pending } = state
-      if (!pending || action.dieIndex < 0 || action.dieIndex >= pending.dice.length) return state
-      const attacker = state.combatants[pending.attackerId]
-      if (action.source === 'aim' && !canAimReroll(pending, action.dieIndex)) return state
-      if (action.source === 'assist' && !canAssistReroll(pending)) return state
-      // VIDEOGAME ADAPTATION (off unless actions.json turns it on): 1 Momentum from the group pool rerolls one die.
-      if (action.source === 'momentum' && !ADAPTATION_MOMENTUM_SPENDS) return state
-      const resources = action.source === 'momentum' ? attacker.side === 'player' && spendMomentum(state.resources, 1) : state.resources
-      if (!resources) return state
-      const decided = recordDecision(state, attacker, action)
-      const { random, next: afterDraw } = takeRandom(decided.state)
-      const dice = rerollDie(pending.dice, action.dieIndex, random)
-      const reroll = { index: action.dieIndex, from: pending.dice[action.dieIndex], to: dice[action.dieIndex], source: action.source }
-      let next = {
-        ...afterDraw,
-        resources,
-        pending: {
-          ...pending,
-          dice,
-          rerolls: [...pending.rerolls, reroll],
-          aimRerolls: pending.aimRerolls - (action.source === 'aim' ? 1 : 0),
-          assistRerolls: (pending.assistRerolls ?? 0) - (action.source === 'assist' ? 1 : 0),
-        },
-      }
-      if (action.source === 'momentum') next = withStats(next, (stats) => (stats.momentum.spentReroll += 1))
-      const sourceText = { aim: 'Aim', assist: 'Student of War', momentum: 'Momentum spent:' }[action.source]
-      return addLog(markAction(next, 'reroll', attacker.id, { source: action.source }), [
-        ...decided.lines,
-        `${sourceText} reroll die ${reroll.index + 1}: ${reroll.from} -> ${reroll.to}`,
-        `Rolls: ${dice.join(', ')}`,
-      ])
-    }
-    case 'resolveAttack': {
-      const { pending } = state
-      if (!pending) return state
-      const attacker = state.combatants[pending.attackerId]
-      const target = state.combatants[pending.targetId]
-      const weapon = getCombatantWeapon(attacker, pending.weaponId)
-      const evaluation = evaluateAttack(pending)
-      const passed = evaluation.success
-      const playerSide = attacker.side === 'player'
-      // Book p.290: a Deadly attack by a player character is escalation (+1 Threat). Enemy Deadly attacks cost nothing yet.
-      const deadlyThreat = playerSide && getInjuryMode(pending.injuryMode).generatesThreat ? 1 : 0
-      // A party task saves its Momentum to the group pool (bonus Momentum too: PROTOTYPE RULE, missionResources.js
-      // savableMomentum); an NPC's Momentum becomes Threat (Book p.265). Complications stay complications on the result.
-      const saving = playerSide ? saveMomentum(state.resources, savableMomentum(evaluation)) : { resources: state.resources, saved: 0, lost: 0 }
-      const npcThreat = playerSide ? 0 : evaluation.momentumGenerated
-      let resources = addThreat(npcMomentumToThreat(saving.resources, npcThreat), deadlyThreat)
-      // Hook: action.addedSeverity (Momentum for +severity, Book p.292); no UI or AI asks for it yet.
-      const added = passed ? affordAddedSeverity(resources, weapon, action.addedSeverity, playerSide) : { added: 0, cost: 0 }
-      if (added.cost) resources = spendMomentum(resources, added.cost)
-      let next = { ...state, pending: null, resources }
-      let injuryLines = []
-      let injury = null
-      if (passed) {
-        injury = injuryFor(next, attacker, target, weapon, pending.injuryMode, added.added, { aimed: pending.aimed, targetUnaware: pending.targetUnaware })
-        const hit = inflictInjury(next, attacker.id, target.id, injury)
-        next = hit.state
-        injuryLines = hit.lines
-      }
-      const after = next.combatants[target.id]
-      next = withStats(next, (stats) => {
-        if (passed) {
-          stats.attacksHit += 1
-          stats.byCombatant[attacker.id].attacksHit += 1
-        }
-        if (added.cost) stats.momentum.spentSeverity = (stats.momentum.spentSeverity ?? 0) + added.cost
-        if (playerSide) stats.momentum.generated += evaluation.momentumGenerated
-        stats.momentum.saved += saving.saved
-        stats.momentum.lost += saving.lost
-        stats.threat.fromDeadly += deadlyThreat
-        stats.threat.fromNpcMomentum += npcThreat
-      })
-      const { assist } = evaluation
-      const momentumText = playerSide
-        ? momentumLine(evaluation.momentumGenerated, saving, resources)
-        : `Momentum generated: ${evaluation.momentumGenerated}${npcThreat ? ` (NPC: added to Threat, now ${resources.threat})` : ''}`
-      const lines = [
-        `Final rolls vs TN ${pending.task.targetNumber}: ${diceText(evaluation.dice)}`,
-        ...(assist
-          ? [`Assist die ${assist.value}: ${assist.counted ? `counts (+${assist.successes})` : assist.successes ? 'does not count (the attacker scored no success)' : 'no success'}`]
-          : []),
-        `Successes: ${evaluation.successes} vs Difficulty ${pending.task.difficulty}`,
-        `RESULT: ${passed ? 'SUCCESS' : 'FAILURE'}`,
-        ...(added.cost ? [`Momentum spent: ${added.cost} for +${added.added} severity`] : []),
-        ...(passed ? [...injuryLines, momentumText] : []),
-        ...(playerSide && evaluation.bonusMomentum ? [bonusMomentumLine(evaluation.bonusMomentum)] : []),
-        ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
-        ...(deadlyThreat ? [`Threat +1 (Deadly attack), now ${resources.threat}`] : []),
-      ]
-      const awaiting = Boolean(next.incomingInjury)
-      next = markAction(next, 'resolve', attacker.id, { targetId: target.id, weaponId: weapon.id, passed, removed: !isActive(after), injury, awaiting })
-      next = addLog(next, lines)
-      // Book p.290: an opposed attack the target won may be answered with a Counterattack (combatCounterattack.js).
-      const won = !passed && pending.opposition ? defenderWins(next, pending, evaluation) : null
-      if (won) next = addLog(won.state, won.lines)
-      next = {
-        ...next,
-        result: {
-          attackerId: attacker.id,
-          targetId: target.id,
-          weaponId: weapon.id,
-          injuryMode: pending.injuryMode,
-          task: pending.task,
-          opposition: pending.opposition,
-          dice: evaluation.dice,
-          assist: pending.assist && { ...pending.assist, successes: assist.successes, counted: assist.counted },
-          rerolls: pending.rerolls,
-          successes: evaluation.successes,
-          passed,
-          momentumGenerated: evaluation.momentumGenerated,
-          momentumSaved: saving.saved,
-          // Over the pool's maximum: lost.
-          momentumUnsaved: saving.lost,
-          threatAdded: npcThreat + deadlyThreat,
-          complications: evaluation.complications,
-          taskResult: evaluation,
-          // The Injury the hit inflicts; decided: 'pending' (waiting for Avoid Injury), 'avoided' or 'suffered'.
-          injury: injury && { ...injury, decided: awaiting ? 'pending' : isActive(after) ? 'avoided' : 'suffered' },
-          counterattack: won?.counterattack ?? null,
-          closed: false,
-        },
-      }
-      return withOutcome(next)
-    }
-    // VIDEOGAME ADAPTATION (off unless actions.json turns it on; not a book spend): 1 Momentum removes 1 Threat.
-    case 'cancelThreat': {
-      if (!ADAPTATION_MOMENTUM_SPENDS) return state
-      const resources = state.resources.threat > 0 && spendMomentum(state.resources, 1)
-      if (!resources || state.pending) return state
-      const decided = recordDecision(state, actor, action)
-      const next = withStats({ ...decided.state, resources: { ...resources, threat: resources.threat - 1 } }, (stats) => {
-        stats.momentum.spentCancelThreat += 1
-        stats.threat.cancelled += 1
-      })
-      return addLog(markAction(next, 'cancelThreat', actor.id), [...decided.lines, `Momentum spent to cancel 1 Threat (Momentum ${next.resources.momentum}, Threat ${next.resources.threat}).`])
-    }
-    // Book p.289 Guard (major): Insight + Security, Difficulty 0 (+1 for an ally within Reach; +1 with an enemy within
-    // Reach, p.286). Success: attacks against the
-    // guarded character are +1 Difficulty until the start of their next turn. Prototype: always rolled (Book p.254 lets a
-    // Difficulty 0 task skip the roll; rolling still generates Momentum, and keeps one flow for every task).
-    case 'guard': {
-      const preview = previewGuard(state, actor.id, action.targetId)
-      if (!preview.available) return state
-      const decided = recordDecision(state, actor, action)
-      const rolled = rollCombatTask(decided.state, actor, preview, action.purchase, 'guard')
-      if (!rolled) return state
-      const target = state.combatants[preview.targetId]
-      let next = rolled.state
-      if (rolled.passed) next = updateCombatant(next, target.id, { guard: { byId: actor.id, round: state.round } })
-      next = markAction(next, 'guard', actor.id, { targetId: target.id, passed: rolled.passed })
-      return addLog(next, [
-        ...decided.lines,
-        ...rolled.lines,
-        rolled.passed ? `${target.character.name} is guarded: attacks against them are +1 Difficulty until the start of their next turn.` : 'The Guard fails.',
-      ])
-    }
-    // Book p.289 First Aid (major): Daring + Medicine on an adjacent ally. Difficulty 2 revives a Defeated character (the
-    // Injury stays; a Stun Injury then wears off at the end of their next turn, Book p.292); Difficulty = an Injury's
-    // severity treats that Injury (no penalty from it, but it is still an Injury). Revive and treat are separate actions.
-    case 'firstAid': {
-      const preview = previewFirstAid(state, actor.id, action.targetId, action.mode)
-      if (!preview.available) return state
-      const decided = recordDecision(state, actor, action)
-      const rolled = rollCombatTask(decided.state, actor, preview, action.purchase, 'firstAid')
-      if (!rolled) return state
-      const target = state.combatants[preview.targetId]
-      const name = target.character.name
-      const injuryId = action.mode.startsWith('treat:') ? action.mode.slice('treat:'.length) : null
-      let next = rolled.state
-      let outcome = injuryId ? `${name}'s Injury is not treated.` : `${name} stays down.`
-      if (rolled.passed && !injuryId) {
-        const condition = reviveCondition(target.condition)
-        next = updateCombatant(next, target.id, { condition, inCover: canTakeCover(next.map, target.position) })
-        const still = condition.injuries.length ? ` Still injured: ${condition.injuries.map(injuryText).join('; ')}.` : ''
-        outcome = `${name} is no longer Defeated.${still}`
-      }
-      if (rolled.passed && injuryId) {
-        const condition = treatInjury(target.condition, injuryId)
-        next = updateCombatant(next, target.id, { condition })
-        outcome = `${name}'s ${injuryText(condition.injuries.find((injury) => injury.id === injuryId))}: no penalty from it now; it is still an Injury.`
-      }
-      next = markAction(next, 'firstAid', actor.id, { targetId: target.id, mode: action.mode, passed: rolled.passed })
-      return addLog(next, [...decided.lines, ...rolled.lines, outcome])
-    }
-    // Scan an enemy (PROTOTYPE, major, combatScan.js): success makes its Protection, weapons and tactics known to
-    // the party for the rest of the fight.
-    case 'scan': {
-      const preview = previewScan(state, actor.id, action.targetId)
-      if (!preview.available) return state
-      const decided = recordDecision(state, actor, action)
-      const rolled = rollCombatTask(decided.state, actor, preview, action.purchase, 'scan')
-      if (!rolled) return state
-      const name = state.combatants[preview.targetId].character.name
-      let next = rolled.state
-      if (rolled.passed) next = { ...next, scanned: { ...next.scanned, [preview.targetId]: true } }
-      next = markAction(next, 'scan', actor.id, { targetId: preview.targetId, passed: rolled.passed })
-      return addLog(next, [
-        ...decided.lines,
-        ...rolled.lines,
-        rolled.passed
-          ? `${name} is scanned: Protection, weapons and tactics are known, and it has the trait ${SCAN_TRAIT.name} (attacks on it ${SCAN_TRAIT.attackDifficulty * SCAN_TRAIT.potency} Difficulty) for the rest of the fight.`
-          : `The scan of ${name} reveals nothing useful.`,
-      ])
-    }
-    // Persuade / Intimidate (major, designer decision Oct 2026; Book pp.279-282): ask an enemy in earshot to surrender.
-    case 'persuade':
-    case 'intimidate':
-      return socialStep(state, actor, action)
-    // Book p.289 Direct (major): the character in authority spends 1 Momentum; an ally who can hear immediately takes a
-    // major action, which the commander assists (Control + Command). No +1 Difficulty for that ally's second major action.
-    case 'direct': {
-      const ally = state.combatants[action.allyId]
-      if (directBlock(state, actor) || !getDirectableAllies(state, actor).some((candidate) => candidate.id === ally?.id)) return state
-      const resources = spendMomentum(state.resources, 1)
-      const decided = recordDecision(state, actor, action)
-      const used = spendTurnAction(decided.state, actor.id, 'direct')
-      const commanderTurn = used.turn
-      const via = canCommunicate(actor, ally, state.comms).via
-      let next = {
-        ...used,
-        resources,
-        directed: { commanderId: actor.id, allyId: ally.id, commanderTurn },
-        // The ally's directed action counts toward their two major actions this round (spendTurnAction on their action).
-        turn: { ...freshTurn(), major: 1, minor: 0 },
-      }
-      next = withStats(next, (stats) => {
-        stats.tasks.direct += 1
-        stats.momentum.spentDirect += 1
-      })
-      const authority = getAuthority(state, actor.side)
-      return addLog(markAction(next, 'direct', actor.id, { allyId: ally.id }), [
-        ...decided.lines,
-        `Direct: ${actor.character.name} directs ${ally.character.name} (Major action; ${actionsLeftText(commanderTurn)})`,
-        `Authority: ${authority.reason}`,
-        `${ally.character.name} hears the order ${via === 'communicator' ? 'over the communicator' : 'in earshot'}.`,
-        `Momentum spent: 1 (group pool now ${resources.momentum})`,
-        `${ally.character.name} takes one Major action now; ${actor.character.name} assists with Control + Command.`,
-      ])
-    }
-    case 'selectCombatant': {
-      if (state.pending || state.directed || action.combatantId === actor.id) return state
-      if (!getTurnGroup(state).includes(action.combatantId) || isTurnFinished(state, action.combatantId)) return state
-      return switchToMember(state, action.combatantId)
-    }
-    case 'endTurn': {
-      if (state.pending) return state
-      // A directed ally passing gives up the directed action (the Momentum is spent); the commander's turn resumes.
-      if (state.directed) return addLog({ ...state, turn: { ...state.turn, done: true } }, [`${actor.character.name} passes on the directed action.`])
-      const decided = recordDecision(state, actor, action)
-      const ended = addLog({ ...decided.state, turn: { ...state.turn, done: true } }, [...decided.lines, `${actor.character.name} ends their turn.`])
-      // The rest of the group still to act, in initiative order; the next unfinished member takes over.
-      const nextMember = getTurnGroup(ended).find((id) => !isTurnFinished(ended, id))
-      return nextMember ? switchToMember(ended, nextMember) : advanceTurn(ended)
-    }
-    default:
-      return state
-  }
+  const registered = combatActionFor(action.type)
+  return registered ? registered.reduce(state, actor, action) : state
 }

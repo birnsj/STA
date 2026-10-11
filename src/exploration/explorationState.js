@@ -54,6 +54,14 @@ export function npcsInTalkRange(state, memberIds) {
   )
 }
 
+// A conversation ends once no member able to act is in talk range of its NPC (designer decision, 2026-10-11: the party
+// can move while talking, so walking away leaves).
+function endConversationOutOfRange(state) {
+  if (!state.conversation) return state
+  const inRange = npcsInTalkRange(state, state.party.memberIds).some((npc) => npc.id === state.conversation.npcId)
+  return inRange ? state : leaveConversation(state)
+}
+
 // What the conversation runtime needs from exploration (it can't import this layer).
 const CONVERSATION_HOOKS = { refreshMap: withMap, startCombat }
 
@@ -119,10 +127,10 @@ function reduceExploration(state, action) {
       if (state.mode === MODE.COMBAT) return state
       const party = partyReducer(state.party, action)
       // The clock still runs (challenge-object locks expire on it); only the NPCs stand still.
-      if (state.enemiesActive === false) return perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } })
+      if (state.enemiesActive === false) return endConversationOutOfRange(perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } }))
       const next = requestCombat(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }))
       // A fight breaking out ends any conversation.
-      return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : next
+      return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : endConversationOutOfRange(next)
     }
     // action: a combat action (or aiStep) from the combat screen.
     case 'combat':

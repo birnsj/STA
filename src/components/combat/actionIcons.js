@@ -17,6 +17,7 @@ export const ACTION_ICONS = {
   direct: 'M4 10v4h3l6 4V6l-6 4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11',
   ambush: 'M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12zM12 9.5a2.5 2.5 0 1 0 0.01 0',
   scan: 'M12 11a1 1 0 1 0 0.01 0M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.5 5.5a9 9 0 0 0 0 13M18.5 5.5a9 9 0 0 1 0 13',
+  talk: 'M3 4h12v8H8l-4 3v-3H3zM17 8h4v8h-1v3l-3-3h-6v-2',
   persuade: 'M4 5h16v10H10l-5 4v-4H4zM8 10h0.01M12 10h0.01M16 10h0.01',
   intimidate: 'M4 5h16v10H10l-5 4v-4H4zM12 7v4M12 13h0.01',
   search: 'M10 4a6 6 0 1 0 0.01 0M14.5 14.5L20 20',

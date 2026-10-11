@@ -16,7 +16,7 @@
 // completeWhen }]; their progress is a mission flag (exploration/missionFlags.js). activeWhen / completeWhen: mission
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
 // out: only actions change it. objectId: a challenge object the objective is marked on (its marker follows the object;
-// position is then unused).
+// position is then unused). startsActive: active from the moment the mission starts (left out on disk when false).
 // objectPlacements: { [challenge object id]: position } where this map puts the challenge objects authored for it
 // (challenges.json); an object left out stands where challenges.json puts it (challengeObjects.js).
 // briefing: the Captain's Log opening text (blank lines split paragraphs); stardate: the episode's starting stardate
@@ -134,6 +134,7 @@ const parseObjective = (raw, inside) => {
     description: raw.description ?? '',
     position: position && inside(position) ? position : null,
     objectId: typeof raw.objectId === 'string' && raw.objectId ? raw.objectId : null,
+    startsActive: raw.startsActive === true,
     activeWhen: conditionList(raw.activeWhen),
     completeWhen: conditionList(raw.completeWhen),
   }
@@ -144,6 +145,7 @@ const serializeObjective = (objective) => ({
   description: objective.description,
   ...(objective.position ? { position: fromPosition(objective.position) } : {}),
   ...(objective.objectId ? { objectId: objective.objectId } : {}),
+  ...(objective.startsActive ? { startsActive: true } : {}),
   ...(objective.activeWhen?.length ? { activeWhen: objective.activeWhen } : {}),
   ...(objective.completeWhen?.length ? { completeWhen: objective.completeWhen } : {}),
 })

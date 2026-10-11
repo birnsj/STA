@@ -24,7 +24,9 @@ import LastKnownMarker from './LastKnownMarker.jsx'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
-import { playDeathSound, playFootstep, playKnockoutSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
+import TransporterBeam from './TransporterBeam.jsx'
+import { playBeamOutSound, playDeathSound, playFootstep, playKnockoutSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
+import { BEAM_OUT_MS, justFled } from './battleHelpers.js'
 
 // Isometric projection of the logical grid, shared with every map view (src/maps/iso.js), drawn with the shared tile PNGs.
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
@@ -135,7 +137,7 @@ const FloorGrid = memo(
 )
 
 // turnStatus: { state, turn, movement } for a party member during the party's turn. Actions left (count and pips) and
-// movement tiles left (plus +N Sprint tiles while Sprint is unused) show above them; once the turn is used up they are dimmed with a grey ring and a check icon.
+// movement tiles left (plus +N Sprint tiles while Sprint is unused) show above them; once the turn is used up they get a grey ring and a check icon.
 // A shield on the portrait marks a unit in cover; it appears once a walk into cover has finished.
 // Hover callbacks fire for a mouse only: a tap on a touch screen also sends hover events, which would fight the tap.
 const mouseOnly = (callback) => (event) => {
@@ -164,7 +166,9 @@ function UnitToken({ image, shownImage, clipId, name }) {
 
 // isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
 // lastAction / speed: state.lastAction and the Auto Combat speed, for the figure's strike, fall and getting up.
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, onClick, onHover }) {
+// A fled combatant is drawn only while it beams out (fading away, never interactive).
+// beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the fight starts, else null.
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, beamIn = null, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const { down } = controllerFor(combatant).animationState(combatant)
@@ -180,12 +184,12 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
   return (
     <g
-      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}`}
+      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}${combatant.fled ? ' is-beaming' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
-      onClick={down || isBystander || combatant.surrendered ? undefined : onClick}
+      onClick={down || isBystander || combatant.surrendered || combatant.fled ? undefined : onClick}
       onPointerEnter={mouseOnly(() => onHover(true))}
       onPointerLeave={mouseOnly(() => onHover(false))}
-      data-ui-sound={down ? undefined : ''}
+      data-ui-sound={down || combatant.fled ? undefined : ''}
     >
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {isSelected && !isActive && <ellipse className="iso-unit-selected" cx="0" cy="0" rx="25" ry="12.5" />}
@@ -266,7 +270,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
 }
 
-const ACTION_LABELS = { move: 'Move', sprint: 'Sprint', aim: 'Aim', direct: 'Direct', cancelThreat: 'Cancel Threat', extraMinor: 'Extra Minor', secondMajor: 'Second Major', counterattack: 'Counterattack' }
+const ACTION_LABELS = { flee: 'Beams Out', move: 'Move', sprint: 'Sprint', aim: 'Aim', direct: 'Direct', cancelThreat: 'Cancel Threat', extraMinor: 'Extra Minor', secondMajor: 'Second Major', counterattack: 'Counterattack' }
 const TASK_LABELS = { guard: ['Guard', 'Guard failed'], firstAid: ['First Aid', 'First Aid failed'], interact: ['Task', 'Task failed'] }
 const UNIT_HEAD = 30
 
@@ -316,6 +320,7 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   }, [speed])
   const actionKey = action?.key
   const scanned = action?.type === 'scan'
+  const fled = action?.type === 'flee'
   const injuryMode = attackSound ? action.injuryMode : null
   // Taken out by this action: killed or left Dying (death sound), otherwise knocked out (knockout sound).
   const downed = action?.removed && action.targetId ? state.combatants[action.targetId]?.condition : null
@@ -323,9 +328,10 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   useEffect(() => {
     if (attackSound) playWeaponSound(attackSound, speedRef.current, injuryMode)
     if (scanned) playScanSound()
+    if (fled) playBeamOutSound(BEAM_OUT_MS / 1000 / speedRef.current)
     if (downSound === 'death') playDeathSound()
     if (downSound === 'knockout') playKnockoutSound()
-  }, [actionKey, attackSound, injuryMode, scanned, downSound])
+  }, [actionKey, attackSound, injuryMode, scanned, fled, downSound])
   if (!action || hiddenIds?.includes(action.actorId)) return null
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
@@ -346,6 +352,7 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
         </g>
       )}
       {isShot && !beamColor && <circle className="fx-strike" cx={to.x} cy={to.y - UNIT_HEAD} r="14" />}
+      {fled && <TransporterBeam position={from} direction="out" />}
       {label && <FloatingLabel position={positionOf(actor)} text={label} className="is-action" msPerTile={msPerTile} />}
       {showsResult && (
         <FloatingLabel
@@ -393,11 +400,13 @@ function ObjectMarker({ mark, onClick }) {
 
 // overlay: { reachableKeys:Set, pathKeys:Set, path:[positions], shot:{ from, to, available } }
 // focus: { key, position } - the camera glides to position whenever key changes.
-// ring: { unitId, buttons, info } - action buttons drawn around that unit (see UnitActionRing), or null.
+// ring: { unitId, buttons, info } - action buttons drawn over that unit (see UnitActionRing), or { position, buttons,
+// info } over a map tile (a challenge object), or null.
 // bystanders: [{ id, character, position, facing, status, hostile }] - NPCs outside the fight (combat started in the
 // world); hostile false draws them as non-hostile NPCs (purple) rather than enemies (red).
 // snapMarks: [{ id, from, cell }] - debug: each fighter's world position and the cell it was snapped to.
 // hiddenIds: combatants the party can't perceive now (not drawn). lastKnownMarks: [{ id, position, label }].
+// beamIn: the away team beaming in as the fight starts ('waiting' | 'beaming' | 'done', useBeamIn).
 export default function Battlefield({
   state,
   activeId,
@@ -422,6 +431,7 @@ export default function Battlefield({
   onRightClick,
   objectMarks = null,
   onObjectClick = () => {},
+  beamIn = 'done',
 }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
@@ -437,7 +447,8 @@ export default function Battlefield({
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  const units = Object.values(state.combatants).filter((unit) => !hiddenIds?.includes(unit.id))
+  const beamingId = justFled(state)?.id
+  const units = Object.values(state.combatants).filter((unit) => (!unit.fled || unit.id === beamingId) && !hiddenIds?.includes(unit.id))
   // Only the combatant whose turn it is cuts walls away; one the party can't perceive isn't in units, so a fading wall
   // never gives it away.
   const hidden = useWallFade(
@@ -466,6 +477,7 @@ export default function Battlefield({
           turnStatus={turnInfo[unit.id]}
           lastAction={state.lastAction}
           speed={speed}
+          beamIn={unit.side === 'player' && beamIn !== 'done' ? beamIn : null}
           onClick={() => onUnitClick(unit.id)}
           onHover={(entering) => onUnitHover(unit.id, entering)}
         />
@@ -541,6 +553,8 @@ export default function Battlefield({
         {windows}
       </MapCanvas>
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
+      {beamIn === 'beaming' &&
+        units.filter((unit) => unit.side === 'player').map((unit) => <TransporterBeam key={`beam-${unit.id}`} position={tileCentre(unit.position)} direction="in" />)}
       {shot && (
         <line
           className={`iso-shot${shot.available ? '' : ' is-blocked'}`}
@@ -550,12 +564,13 @@ export default function Battlefield({
           y2={shotTo.y - 30}
         />
       )}
-      {ring && state.combatants[ring.unitId] && (
+      {ring && (ring.position || state.combatants[ring.unitId]) && (
         <UnitActionRing
-          position={shownPosition(state.combatants[ring.unitId])}
+          position={ring.position ?? shownPosition(state.combatants[ring.unitId])}
           buttons={ring.buttons}
           info={ring.info}
-          {...(state.combatants[ring.unitId].side === 'player' ? {} : { placement: 'top', prominent: true })}
+          placement="top"
+          prominent
           onPointerEnter={mouseOnly(() => onRingHover(true))}
           onPointerLeave={mouseOnly(() => onRingHover(false))}
         />
