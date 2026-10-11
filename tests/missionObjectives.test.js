@@ -1,4 +1,4 @@
-// Objectives that move by themselves (exploration/missionObjectives.js): a map objective's activeWhen / completeWhen
+﻿// Objectives that move by themselves (exploration/missionObjectives.js): a map objective's activeWhen / completeWhen
 // flag conditions, the map file round trip, and the Deck 10 Brig's authored objectives.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
@@ -10,7 +10,7 @@ import { updateObjectives } from '../src/exploration/missionObjectives.js'
 import { parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
-const brigMap = () => parseMapFile(brigFile, 'Deck 10 Brig')
+const brigMap = () => parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
 const brig = () => createExplorationState(brigMap(), [makeCharacter({ id: 'alpha', name: 'Alpha' })], 3, { enemiesActive: false })
 const withFlags = (state, flags) => ({ ...state, scenario: { ...state.scenario, flags: { ...state.scenario.flags, ...flags } } })
 const status = (state, id) => objectiveStatus(state.scenario.flags, id)

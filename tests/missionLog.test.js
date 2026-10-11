@@ -1,4 +1,4 @@
-// The Captain's Log (Prototype): stardates, entries for objectives, checks and authored text, and the map's briefing.
+﻿// The Captain's Log (Prototype): stardates, entries for objectives, checks and authored text, and the map's briefing.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import engineerFile from '../conversations/engineerSealedSection.json'
@@ -70,7 +70,7 @@ describe("the Captain's Log", () => {
   })
 
   it('the Deck 10 Brig junction logs the repair, the completed objective, then the way in it opens', () => {
-    const map = parseMapFile(brigFile, 'Deck 10 Brig')
+    const map = parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
     const base = createExplorationState(map, team(), 3, { enemiesActive: false })
     const members = Object.fromEntries(Object.entries(base.party.members).map(([id, member]) => [id, { ...member, position: { x: 23, y: 21 } }]))
     let state = { ...base, party: { ...base.party, members }, scenario: { ...base.scenario, flags: { ...base.scenario.flags, faultDiagnosed: true, 'objective.restorePower': 'active' } } }
@@ -96,7 +96,7 @@ describe("the map's briefing and stardate", () => {
   })
 
   it('the Deck 10 Brig has a briefing, and its objective is marked at the power junction', () => {
-    const map = parseMapFile(brigFile, 'Deck 10 Brig')
+    const map = parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
     assert.match(map.briefing, /Okafor/)
     assert.equal(map.stardate, 4523.3)
     assert.deepEqual(objectivePosition(map, map.objectives[0]), { x: 23, y: 23 })

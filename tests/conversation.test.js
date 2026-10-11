@@ -1,4 +1,4 @@
-// NPC conversations (conversation/*) and the shared mission flags (exploration/missionFlags.js): the file format and its
+﻿// NPC conversations (conversation/*) and the shared mission flags (exploration/missionFlags.js): the file format and its
 // validation, branching on flags, actions, Task Checks through the shared STA task, and the Deck 10 Brig encounter
 // (Lt. Okafor, the power junction and the sealed bulkheads).
 import assert from 'node:assert/strict'
@@ -236,7 +236,7 @@ describe('a conversation in exploration', () => {
 
 describe('the Deck 10 Brig encounter', () => {
   const brig = () => {
-    const map = parseMapFile(brigFile, 'Deck 10 Brig')
+    const map = parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig')
     const state = createExplorationState(map, team(), 3, { enemiesActive: false })
     // Within reach of Lt. Okafor (21, 21), the junction (23, 23) and the south bulkhead (24, 20).
     const near = { x: 23, y: 21 }

@@ -40,6 +40,25 @@ export function swapTiles(map, a, b) {
   return paintTile(paintTile(map, a, tileB, rotatedB), b, tileA, rotatedA)
 }
 
+// The Move tool's tile swap when a challenge object stands on either tile (the junction with its machinery): each goes
+// with its tile, recorded in the map's objectPlacements. objectDefinitions: challengeDefinitionsFor(map), whose position is
+// [x, y]. Returns { map, carried: [[objectId, { x, y }]] }.
+export function swapTilesWithObjects(map, a, b, objectDefinitions) {
+  const at = (point) => objectDefinitions.filter((definition) => definition.position[0] === point.x && definition.position[1] === point.y)
+  const carried = [...at(a).map((definition) => [definition.id, { x: b.x, y: b.y }]), ...at(b).map((definition) => [definition.id, { x: a.x, y: a.y }])]
+  const swapped = swapTiles(map, a, b)
+  if (!carried.length) return { map: swapped, carried }
+  return { map: { ...swapped, objectPlacements: { ...(map.objectPlacements ?? {}), ...Object.fromEntries(carried) } }, carried }
+}
+
+// What stands on a tile that the editor can open an inspector for: { npc, markerKind ('playerStarts' | 'enemySpawns' | null),
+// object }. An NPC standing on a start or spawn gives both.
+export function selectionAt(map, objectDefinitions, position) {
+  const markerKind = ['playerStarts', 'enemySpawns'].find((kind) => map.markers[kind].some((marker) => same(marker, position))) ?? null
+  const object = objectDefinitions.find((definition) => definition.position[0] === position.x && definition.position[1] === position.y) ?? null
+  return { npc: npcAt(map, position), markerKind, object }
+}
+
 // Whether anything the Move tool carries instead of the tile stands here: a player start, enemy spawn, NPC, area label
 // or objective marker.
 const standsAt = (map, position) =>
