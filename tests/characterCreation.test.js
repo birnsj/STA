@@ -100,7 +100,7 @@ describe('Starting points (Book p.91)', () => {
   })
 })
 
-describe('Finished character (Book p.129)', () => {
+describe('Finished character (Core p.132)', () => {
   it('a character built through every screen passes validation', () => {
     for (const { seed, character } of BUILT) assert.deepEqual(messages(character), [], `seed ${seed}`)
   })

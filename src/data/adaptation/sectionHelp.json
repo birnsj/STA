@@ -4,27 +4,27 @@
     "trait": {
       "name": "Trait",
       "text": "An enduring part of your character's nature. Every character has at least one trait: their species.",
-      "page": 74
+      "page": 87
     },
     "attribute": {
       "name": "Attributes",
       "text": "Six ratings (Control, Daring, Fitness, Insight, Presence, Reason) for your physical and mental capabilities and the way you approach problems. For humanoids they range from 7 to 12; 8 is average.",
-      "page": 74
+      "page": 88
     },
     "discipline": {
       "name": "Departments",
       "text": "Six areas of expertise (Command, Conn, Engineering, Security, Science, Medicine), matching a starship's departments. Each is rated from 0 to 5.",
-      "page": 79
+      "page": 90
     },
     "focus": {
       "name": "Focus",
       "text": "A short description of a narrower skill, topic, or activity. Focuses improve your odds at tasks they apply to and can be used with any department.",
-      "page": 84
+      "page": 93
     },
     "value": {
       "name": "Value",
       "text": "A short statement of a core belief or conviction. Values define who your character is and can give them an extra push to succeed in difficult situations.",
-      "page": 88
+      "page": 87
     },
     "talent": {
       "name": "Talent",
@@ -112,7 +112,7 @@
     "reviewStatus": {
       "title": "Status",
       "what": "Checks your character against the finished-character requirements: every step complete, a name and pronouns, attributes total 56, departments total 16, four values, six focuses, four legal talents, and no duplicate values, focuses or talents.",
-      "page": 129,
+      "page": 132,
       "does": "Lists each problem with a link to the screen that fixes it. When nothing is listed, Confirm Character becomes available."
     },
     "reviewIdentity": {

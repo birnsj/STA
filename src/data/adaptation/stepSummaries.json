@@ -1,8 +1,8 @@
 {
-  "note": "Copy for the Step Complete popups (screens 1-7). 'concepts' and each step's 'grants' paraphrase Captain's Log (pages cited). 'why' and 'closing' are prototype explanatory copy and add no rules. Choices, numbers, and book descriptions come from the character and the content data, never from this file.",
+  "note": "Copy for the Step Complete popups (screens 1-7). 'concepts' and each step's 'grants' paraphrase the STA 2E Core Rulebook (pages cited). 'why' and 'closing' are prototype explanatory copy and add no rules. Choices, numbers, and book descriptions come from the character and the content data, never from this file.",
   "cumulative": {
     "text": "Every character starts with 7 in each attribute and 1 in each department. Each lifepath step adds to those scores; the gains are cumulative.",
-    "pages": [91]
+    "pages": [99]
   },
   "concepts": {
     "talent": {
@@ -14,27 +14,27 @@
     "attribute": {
       "title": "Attributes",
       "text": "Your character's physical and mental capabilities, and the way they approach problems. For humanoids they run from 7 to 12; 8 is average.",
-      "pages": [74]
+      "pages": [88]
     },
     "discipline": {
       "title": "Departments",
       "text": "Broad areas of training and professional expertise, matching a starship's departments.",
-      "pages": [79]
+      "pages": [90]
     },
     "focus": {
       "title": "Focuses",
       "text": "Narrower specialties that come from deeper study and practical experience: activities where your character shines. A focus is not tied to any one department; it helps with any task it would logically benefit.",
-      "pages": [84]
+      "pages": [93]
     },
     "value": {
       "title": "Values",
       "text": "Short statements of your character's core beliefs and convictions. A value is not a number: it explains why your character acts as they do, can give them an extra push in difficult situations, and can change as they grow.",
-      "pages": [88]
+      "pages": [87]
     },
     "trait": {
       "title": "Traits",
       "text": "Enduring facts about your character's nature. Every character has at least one trait: their species. A trait can provide advantages or complications, depending on the situation.",
-      "pages": [74, 92]
+      "pages": [87, 99]
     }
   },
   "images": {
@@ -50,7 +50,7 @@
     "species": {
       "bookStep": "Book Step One",
       "grants": "Your species is your character's first trait, and it raises three different attributes by 1.",
-      "pages": [74, 91],
+      "pages": [87, 99],
       "why": [
         "Species makes the first changes to the universal starting scores, so your character already leans toward certain approaches before anything else happens to them.",
         "Your species is also your first trait. It stays with your character for good and can matter in play, helping in one situation and complicating another."

@@ -5,7 +5,7 @@ import rankSource from '../data/source/ranks.json'
 // Info box content: { title, text?, sections?: [{ label, text }], note?, source? }. Null means the item has nothing worth showing.
 const scoresById = new Map([...attributeSource.attributes, ...disciplineSource.disciplines].map((entry) => [entry.id, entry]))
 const ranksById = new Map([...rankSource.ranks, ...rankSource.enlistedRanks].map((rank) => [rank.id, rank]))
-const bookSource = (page, book = "Captain's Log") => (page ? `${book}, p.${page}` : null)
+const bookSource = (page, book = 'Star Trek Adventures 2E Core Rulebook') => (page ? `${book}, p.${page}` : null)
 
 export function getCardTip(item) {
   if (!item?.description) return null

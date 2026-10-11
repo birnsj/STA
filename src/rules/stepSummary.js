@@ -43,9 +43,9 @@ const KINDS = {
 
 export const hasStepSummary = (stepId) => STEP_IDS.includes(stepId)
 
-export const cite = (pages, book = "Captain's Log") => (pages?.length ? `${book}, ${pages.length > 1 ? 'pp.' : 'p.'}${pages.join(', ')}` : null)
+export const cite = (pages, book = 'Star Trek Adventures 2E Core Rulebook') => (pages?.length ? `${book}, ${pages.length > 1 ? 'pp.' : 'p.'}${pages.join(', ')}` : null)
 const bookPage = (page) => (page ? cite([page]) : null)
-// Entries that name their own book (e.g. Core Rulebook) are cited from it; the rest are Captain's Log.
+// Entries that name their own book (e.g. Species Sourcebook) are cited from it; the rest are the Core Rulebook.
 const sourceCite = (source) => (source?.book && source.page ? `${source.book}, p.${source.page}` : bookPage(source?.page))
 const fillPattern = (pattern, id) => (pattern && id ? pattern.replace('{id}', id) : null)
 const nameList = (ids) => ids.map((id) => namesById.get(id)).join(', ')
@@ -180,7 +180,7 @@ function speciesSummary(character) {
     { label: 'Species ability', value: getSpeciesAbilityLabel(species), tip: abilityTip(species) },
   ]
   const meaning = isMixedHeritage(definition)
-    ? species.parents.filter(Boolean).map((parent) => ({ title: parent.name, text: getSpeciesById(parent.id).description, source: bookPage(getSpeciesById(parent.id).source.page) }))
+    ? species.parents.filter(Boolean).map((parent) => ({ title: parent.name, text: getSpeciesById(parent.id).description, source: sourceCite(getSpeciesById(parent.id).source) }))
     : [{ title: name, text: isNewSpecies(definition) ? species.description.trim() || definition.description : definition.description, source: sourceCite(definition.source) }]
   return {
     image: { src: getSpeciesArt(species.id, character.identity.gender?.id), label: name },

@@ -50,8 +50,8 @@ export default function SpeciesScreen({ step, navigation }) {
         <div>
           <h1 className={`screen-heading${requirements.species ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
           <p className="screen-intro">
-            Choose your species. Captain's Log gives each species a Species Trait and attribute adjustments; Star Trek
-            Adventures 2E adds a distinct Species Ability.
+            Choose your species. Each species gives a Species Trait, +1 to three attributes, and a distinct Species
+            Ability.
             <br />
             All three are assigned automatically when you select a species. You will assign the final Attribute values
             later in the process. The total must equal 56.
@@ -95,7 +95,7 @@ export default function SpeciesScreen({ step, navigation }) {
           )}
           <div className="species-details-scroll">
             <p>{species?.description ?? 'Select a species above to view its description, traits, and attribute adjustments.'}</p>
-            {species && <p className="source-ref">{species.source.book ?? "Captain's Log"}, p.{species.source.page}</p>}
+            {species && <p className="source-ref">{species.source.book ?? 'Star Trek Adventures 2E Core Rulebook'}, p.{species.source.page}</p>}
           </div>
         </div>
         <div className={`species-gender${requirements.gender ? '' : ' is-missing'}`} inert={locked.gender}>

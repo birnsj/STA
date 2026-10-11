@@ -41,7 +41,7 @@ const HELP_PREFIXES = { attributes: 'attribute', disciplines: 'discipline' }
 
 const BookCaption = ({ source }) => (
   <p className="education-detail-caption">
-    As defined in {source.book === "Captain's Log" ? "Captain's Log" : `the ${source.book}`}, {source.pages ? `pp.${source.pages.join('–')}` : `p.${source.page}`}:
+    As defined in the {source.book}, {source.pages ? `pp.${source.pages.join('–')}` : `p.${source.page}`}:
   </p>
 )
 
