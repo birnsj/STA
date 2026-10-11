@@ -74,18 +74,21 @@ function SheetImage({ animation, timing, ...image }) {
 // crouched sneakWalk / sneakIdle while sneaking.
 // playKey: a non-looping animation plays again whenever it changes. settled: a hold animation (a fall) shows its last
 // frame without playing. reverse: plays it backwards (getting up). speed: divides a non-looping animation's time.
-// preload: load every sheet now (combat), not when first shown.
+// preload: load every sheet now (combat), not after the base sheet.
 export default function CharacterSprite({ setId, colour = null, facing, animation: named = null, walking = false, running = false, sneaking = false, seed = '', playKey = 0, settled = false, reverse = false, speed = 1, preload = false }) {
   const set = getSpriteSetById(setId)
   const moving = sneaking ? (walking ? 'sneakWalk' : 'sneakIdle') : running ? 'run' : walking ? 'walk' : 'idle'
   const animation = getSpriteAnimation(named ?? moving)
-  // Each sheet loads only once it is in use (or all at once, with preload); base always.
-  const sheetArgs = (sheetId) => [set && spriteSheetFile(set, sheetId), set && spriteMaskFile(set, sheetId), set?.uniformDivision, colour, Boolean(set) && (preload || sheetId === 'base' || sheetId === animation.sheetId)]
+  // The base sheet first, then the rest in the background once it is ready, so the figure shows as soon as it can and
+  // its first sneak, attack or fall doesn't wait for a sheet. All at once with preload, which MapFadeIn waits for.
+  const sheetArgs = (sheetId, wanted) => [set && spriteSheetFile(set, sheetId), set && spriteMaskFile(set, sheetId), set?.uniformDivision, colour, Boolean(set) && wanted]
+  const base = useRecolouredSheet(...sheetArgs('base', true))
+  const later = (sheetId) => sheetArgs(sheetId, preload || Boolean(base) || sheetId === animation.sheetId)
   const sheets = {
-    base: useRecolouredSheet(...sheetArgs('base')),
-    combat: useRecolouredSheet(...sheetArgs('combat')),
-    fall: useRecolouredSheet(...sheetArgs('fall')),
-    sneak: useRecolouredSheet(...sheetArgs('sneak')),
+    base,
+    combat: useRecolouredSheet(...later('combat')),
+    fall: useRecolouredSheet(...later('fall')),
+    sneak: useRecolouredSheet(...later('sneak')),
   }
   if (!set) return null
   const { row, mirror } = directionFor(facing)

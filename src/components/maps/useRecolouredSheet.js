@@ -25,11 +25,49 @@ function preload(file) {
   image.src = file
 }
 
+// Sheets are recoloured in workers (recolourWorker.js), two so one character's big sheet doesn't hold up the next
+// character; on the page itself where workers can't draw.
+const WORKERS = 2
+const workers = []
+const jobs = new Map()
+let nextJob = 0
+let workersFailed = false
+const canUseWorkers = () => !workersFailed && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined'
+
+function workerFor(id) {
+  const index = id % WORKERS
+  if (!workers[index]) {
+    workers[index] = new Worker(new URL('./recolourWorker.js', import.meta.url), { type: 'module' })
+    workers[index].onmessage = ({ data: { id: done, blob, error } }) => {
+      const job = jobs.get(done)
+      jobs.delete(done)
+      if (error) job.reject(new Error(error))
+      else job.resolve(URL.createObjectURL(blob))
+    }
+    // A worker that won't start: every waiting sheet is drawn on the page instead, and so is every later one.
+    workers[index].onerror = () => {
+      workersFailed = true
+      for (const job of jobs.values()) job.reject(new Error('Recolour worker failed'))
+      jobs.clear()
+    }
+  }
+  return workers[index]
+}
+
+function recolourOffPage(file, mask, colour) {
+  if (!canUseWorkers()) return recolourWithMask(file, mask, colour)
+  const id = nextJob++
+  return new Promise((resolve, reject) => {
+    jobs.set(id, { resolve, reject })
+    workerFor(id).postMessage({ id, file, mask, colour })
+  }).catch(() => recolourWithMask(file, mask, colour))
+}
+
 function draw(file, mask, colour) {
   const key = `${file}|${colour}`
   if (!cache.has(key)) {
     const promise = track(
-      recolourWithMask(file, mask, colour)
+      recolourOffPage(file, mask, colour)
         .catch(() => file)
         .then((url) => {
           cache.set(key, { url })

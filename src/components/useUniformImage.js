@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { getPortraitLayers } from '../rules/appearance.js'
 import { getMockShirtArt } from '../rules/uniform.js'
+import { recolourMaskedPixels, toRgb } from './recolourPixels.js'
 
-const toRgb = (hex) => [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16))
+export { recolourMaskedPixels }
+
 const shade = (rgb, factor) => rgb.map((channel) => Math.round(channel * factor))
 
 // Swaps the mock art's flat shirt colours (also where the name label darkens them) for `colour`, in place.
@@ -28,34 +30,6 @@ export function recolourShirtPixels(pixels, colour, { shirtColours, labelShade, 
       pixels[index] = swap.to[0]
       pixels[index + 1] = swap.to[1]
       pixels[index + 2] = swap.to[2]
-    }
-  }
-  return pixels
-}
-
-const luminance = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b
-
-// Recolours the pixels under the mask (RGBA data of the same size, opaque where the uniform is) to `colour`, in place.
-// Each pixel keeps its brightness relative to the shirt's typical (median) brightness: the median becomes `colour`
-// itself, darker folds darken it and highlights blend it toward white. Alpha, and every pixel outside the mask, is
-// left exactly as it was.
-export function recolourMaskedPixels(pixels, maskPixels, colour) {
-  const target = toRgb(colour)
-  const levels = []
-  for (let index = 0; index < pixels.length; index += 4) {
-    if (maskPixels[index + 3]) levels.push(luminance(pixels[index], pixels[index + 1], pixels[index + 2]))
-  }
-  if (!levels.length) return pixels
-  levels.sort((a, b) => a - b)
-  const reference = Math.max(1, levels[Math.floor(levels.length / 2)])
-  const highlightRange = Math.max(1, 255 - reference)
-  for (let index = 0; index < pixels.length; index += 4) {
-    if (!maskPixels[index + 3]) continue
-    const level = luminance(pixels[index], pixels[index + 1], pixels[index + 2])
-    for (let channel = 0; channel < 3; channel++) {
-      const base = target[channel]
-      const value = level <= reference ? (base * level) / reference : base + ((255 - base) * (level - reference)) / highlightRange
-      pixels[index + channel] = Math.round(Math.min(255, value))
     }
   }
   return pixels
