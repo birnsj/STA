@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useSyncExternalStore } from 'react'
 import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
 import { isBlock, project, pts, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { BIG_IMAGE } from '../../maps/bigObjects.js'
@@ -227,6 +227,13 @@ export function WallBlock({ map, position, faded, panels, bigGroups, ghost = fal
   if (panel.half === 0) return null
   const far = panel.axis === 'x' ? { x: position.x - 1, y: position.y } : { x: position.x, y: position.y - 1 }
   return <FadedPanel map={map} positions={[far, position]} panels={panels} fadeLevel={fadeLevel} />
+}
+
+// A WallBlock whose faded blocks come from fade, a store ({ subscribe, get }) of what WallBlock's faded takes, so it
+// re-renders as they change without its parent doing so.
+export function FadingWallBlock({ fade, ...block }) {
+  const faded = useSyncExternalStore(fade.subscribe, fade.get)
+  return <WallBlock {...block} faded={faded} />
 }
 
 // One tile on its own as the map views draw it (the editor's brush): a block with its panel (getWallPanels), or a
