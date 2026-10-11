@@ -16,7 +16,7 @@ export const FACINGS = [
 export const snapFacing = (degrees) => (((Math.round(degrees / FACING_STEP) * FACING_STEP) % 360) + 360) % 360
 // The editor's right click: the next of the eight facings clockwise.
 export const nextFacing = (degrees) => snapFacing(snapFacing(degrees) + FACING_STEP)
-// The grid direction Combat Type 1 stores (combatSelectors.js facing), e.g. 45 -> { x: 1, y: 1 }.
+// The grid direction combat stores (combatSelectors.js facing), e.g. 45 -> { x: 1, y: 1 }.
 export function gridFacing(degrees) {
   const radians = (snapFacing(degrees) * Math.PI) / 180
   return { x: Math.round(Math.cos(radians)), y: Math.round(Math.sin(radians)) }

@@ -1,14 +1,14 @@
 // The running exploration: the away team (partyControl.js) and the NPCs' awareness of them (awareness.js), advanced
 // together each frame. Party actions go to the party reducer unchanged; NPCs only read the party's positions.
-// mode is the authority on what is running: EXPLORATION (real time) or COMBAT (Combat Type 1 on the same world, which
+// mode is the authority on what is running: EXPLORATION (real time) or COMBAT (a fight on the same world, which
 // stays frozen until the fight ends; see combatLink.js).
+import { controllerFor, isUp } from '../actors/controllers.js'
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
 import npcData from '../data/adaptation/exploration/npcs.json'
 import { spawnFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
-import { isDefeated } from '../rules/personalCondition.js'
 import { chooseOption, continueConversation, leaveConversation, rollCheck, startConversation } from '../conversation/conversationRuntime.js'
-import { createNpc, createWorld, emitNoise, getNpcs, isDown, tickWorld } from './awareness.js'
+import { createNpc, createWorld, emitNoise, getNpcs, tickWorld } from './awareness.js'
 import { applyScenarioTiles, attemptChallenge, createScenario, INTERACT_RANGE, withMap } from './challengeObjects.js'
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
@@ -16,8 +16,6 @@ import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 import { scanArea, scanNpc } from './partyScan.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { updateObjectives } from './missionObjectives.js'
-
-const isUp = (entity) => !isDefeated(entity.condition)
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -50,9 +48,9 @@ const createNpcWorld = (map) => createWorld(map, npcConfigsFor(map).map((config)
 // NPCs with a conversation that any of the given members (able to act) stands close enough to talk to.
 export function npcsInTalkRange(state, memberIds) {
   if (state.mode === MODE.COMBAT) return []
-  const members = memberIds.map((id) => state.party.members[id]).filter((member) => member && !isDefeated(member.condition))
+  const members = memberIds.map((id) => state.party.members[id]).filter(isUp)
   return getNpcs(state.world).filter(
-    (npc) => npc.conversationId && !isDown(npc) && members.some((member) => Math.hypot(member.position.x - npc.position.x, member.position.y - npc.position.y) <= INTERACT_RANGE),
+    (npc) => controllerFor(npc).canTalk(npc) && members.some((member) => Math.hypot(member.position.x - npc.position.x, member.position.y - npc.position.y) <= INTERACT_RANGE),
   )
 }
 
@@ -75,7 +73,7 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
     lastTask: null,
     // The conversation open now (conversation/conversationRuntime.js), or null.
     conversation: null,
-    // The mission's group Momentum and Threat (rules/missionResources.js): challenge objects and Combat Type 1 use this
+    // The mission's group Momentum and Threat (rules/missionResources.js): challenge objects and combat use this
     // one pair; a fight holds it while it runs and hands it back (combatLink.js).
     resources: createMissionResources(),
     // What the away team knows of the NPCs (shared), and what each member perceives now (partyKnowledge.js).
@@ -87,7 +85,7 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
     npcScans: {},
     // The Captain's Log entries (missionLog.js).
     missionLog: createMissionLog(),
-    // While mode is COMBAT: the Combat Type 1 state and what links it to the world (trigger, participants, snaps).
+    // While mode is COMBAT: the combat state and what links it to the world (trigger, participants, snaps).
     combat: null,
     link: null,
     lastCombat: null,
@@ -126,7 +124,7 @@ function reduceExploration(state, action) {
       // A fight breaking out ends any conversation.
       return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : next
     }
-    // action: a Combat Type 1 action (or aiStep) from the combat screen.
+    // action: a combat action (or aiStep) from the combat screen.
     case 'combat':
       return combatAction(state, action.action)
     case 'endCombat':
@@ -140,7 +138,7 @@ function reduceExploration(state, action) {
     // { memberId, npcId }: that character scans one NPC (partyScan.js).
     case 'scanNpc':
       return state.mode === MODE.COMBAT ? state : scanNpc(state, action.memberId, action.npcId)
-    // { npcId, targetId }: the away team attacks that NPC (Combat Type 1 on the same map, combatLink.js).
+    // { npcId, targetId }: the away team attacks that NPC (combat on the same map, combatLink.js).
     case 'attackNpc':
       return state.mode === MODE.COMBAT ? state : startCombat(state, { triggerNpcId: action.npcId, triggerTargetId: action.targetId ?? state.party.leaderId, source: 'PLAYER_ATTACK' })
     // Conversations (conversation/conversationRuntime.js). talk: { npcId, definition (a parsed conversation file) }.
@@ -162,7 +160,7 @@ function reduceExploration(state, action) {
     case 'resetNpcs':
       return state.mode === MODE.COMBAT ? state : { ...state, world: createNpcWorld(state.party.map), partyKnowledge: createPartyKnowledge(), lastCombat: null }
     default: {
-      // Party orders are frozen while combat runs: the Combat Type 1 screen gives the orders then.
+      // Party orders are frozen while combat runs: the combat screen gives the orders then.
       if (state.mode === MODE.COMBAT) return state
       const party = partyReducer(state.party, action)
       return party === state.party ? state : { ...state, party }

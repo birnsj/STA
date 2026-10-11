@@ -7,10 +7,10 @@
 // traits: [{ name, potency, description, source }], log, taskCount }. The resolver decides success / failure /
 // complications; the object decides what that means. The same objects stay usable in combat (exploration/combatLink.js):
 // same definitions, same state, same rules; combat only decides who acts, what it costs and who assists.
+import { isDown, isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
-import { isDefeated } from '../rules/personalCondition.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
-import { emitNoise, getNpcs, isDown } from './awareness.js'
+import { emitNoise, getNpcs } from './awareness.js'
 import { applyFlagChange, checkCondition, checkConditions } from './missionFlags.js'
 import { addLogEntry } from './missionLog.js'
 import { getMembers } from './partyControl.js'
@@ -22,7 +22,6 @@ export const INTERACT_RANGE = data.interactRange
 export { TASK_SEED_OFFSET }
 
 const pointOf = (definition) => ({ x: definition.position[0], y: definition.position[1] })
-const isUp = (member) => !isDefeated(member.condition)
 // The tiles a state's tile replaces: the object's own, plus covers [[x, y]] (the rest of a two-tile doorway).
 const tilesOf = (definition) => [definition.position, ...(definition.covers ?? [])].map(([x, y]) => ({ x, y }))
 

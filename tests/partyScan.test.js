@@ -128,7 +128,7 @@ describe('An NPC radial menu: Scan and Attack (Prototype)', () => {
     assert.fail('no failed rescan found')
   })
 
-  it('Attack starts Combat Type 1 with that NPC as the enemy, even one who would never fight', () => {
+  it('Attack starts combat with that NPC as the enemy, even one who would never fight', () => {
     const state = start(1)
     const npcId = npcIdOf(state)
     const friendly = { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npcId]: { ...state.world.npcs[npcId], disposition: 'friendly' } } } }

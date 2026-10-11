@@ -1,4 +1,4 @@
-/* The tactical HUD for Combat Type 1 and the exploration mode that reuses it (party cards, panels, condition
+/* The tactical HUD for combat and the exploration mode that reuses it (party cards, panels, condition
    tracks, the isometric board). Loaded from main.jsx straight after styles.css, because
    components/exploration/exploration.css deliberately overrides some of these rules (.explore-card over
    .party-card, .explore-party-bar over .party-bar) and so has to come after. */

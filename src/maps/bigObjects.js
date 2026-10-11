@@ -1,4 +1,4 @@
-// Big objects (exploration and Combat Type 1). A 2x2 square of the same object marked big in tiles.json (boulders,
+// Big objects (exploration and combat). A 2x2 square of the same object marked big in tiles.json (boulders,
 // trees, silos...) is drawn as one object twice the size, from its own image (tiles.json big.image): a 2x2 footprint is
 // a single tile's diamond scaled by 2, so that image is BIG_IMAGE in size, its floor diamond covering the footprint.
 // Presentation only: movement, sight and cover still read the single tiles.

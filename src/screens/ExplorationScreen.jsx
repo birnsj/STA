@@ -17,6 +17,7 @@ import Minimap from '../components/exploration/Minimap.jsx'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
+import { controllerFor } from '../actors/controllers.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { alertMethodName, dispositionName, getCharacterAwareness, getCombatReady, getNpcs, isDown, isHostile, STATE, stateName } from '../exploration/awareness.js'
@@ -438,11 +439,11 @@ function CombatLinkPanel({ diagnostics, onForceEnd }) {
   )
 }
 
-// Combat Type 1 over the same world: the exploration view is swapped for the combat battlefield on the same map, with
+// Combat over the same world: the exploration view is swapped for the combat battlefield on the same map, with
 // everyone where they stood. Exploration stays frozen underneath until the result's Return to Exploration.
 function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
   const { combat, link, world } = state
-  // Test options for Auto Combat, as on the Combat Type 1 screen.
+  // Test options for Auto Combat, as on the combat screen.
   const [partyAI, setPartyAI] = useState('classic')
   const [enemyAI, setEnemyAI] = useState('classic')
   const combatDispatch = useCallback((action) => dispatch({ type: 'combat', action }), [dispatch])
@@ -457,7 +458,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debugOpen ? npc.name : entry.identified ? null : 'Life sign' }))
   const bystanders = getNpcs(world)
     .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && isVisibleToParty(knowledge, npc.id))
-    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }, condition: normalizeCondition(npc.condition), hostile: isHostile(npc) }))
+    .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: controllerFor(npc).facing(npc), condition: normalizeCondition(npc.condition), hostile: isHostile(npc) }))
   const trigger = combat.combatants[link.trigger.npcId]
   const target = combat.combatants[link.trigger.targetId]
   const openingFocus = trigger && target ? { x: (trigger.position.x + target.position.x) / 2, y: (trigger.position.y + target.position.y) / 2 } : (trigger?.position ?? null)

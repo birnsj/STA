@@ -1,8 +1,11 @@
 // Combat in the exploration world. COMBAT_READY asks for combat; startCombat turns the world's current moment into a
-// Combat Type 1 fight on the same map, with the same characters standing where they are; every combat action then runs
+// fight on the same map, with the same characters standing where they are; every combat action then runs
 // through combatAction (so enemies only fight the party members they know about, and noise or sight can pull more NPCs
 // in); endCombat writes the outcome back into the world and hands control back to exploration.
 // Pure functions over the exploration state (src/exploration/explorationState.js); no React.
+import { facingToHeading } from '../actors/CharacterController.js'
+import { controllerFor, isDown, isUp } from '../actors/controllers.js'
+import { lastSeenPlace } from '../actors/PlayerController.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
 import { tileKey, toBattleMap } from '../combat/battleMap.js'
 import {
@@ -11,16 +14,11 @@ import {
   applyInteraction,
   awaitingDecision,
   canInteract,
-  canMove,
-  canSprint,
   combatReducer,
   createCombat,
   getActiveCombatant,
   getAssistFor,
-  getBlockers,
   getCombatantList,
-  getOpponents,
-  getReachable,
   isActive,
   occupiesTile,
   reachLines,
@@ -28,12 +26,11 @@ import {
   secondMajorLines,
 } from '../combat/combatState.js'
 import { WORLD_ENCOUNTER_ID } from '../combat/encounters.js'
-import { getReachableTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
-import { isDefeated, normalizeCondition, wouldDieAtSceneEnd } from '../rules/personalCondition.js'
+import { wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
-import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isDown, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
+import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
 import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
 import { defeatedFlag } from './missionObjectives.js'
 import { getMembers, withAbleSelection } from './partyControl.js'
@@ -52,17 +49,10 @@ const REASON_TEXT = {
   saw: 'saw the fighting',
 }
 
-const headingToFacing = (heading) => {
-  const x = Math.round(Math.cos(heading))
-  const y = Math.round(Math.sin(heading))
-  return x || y ? { x, y } : { x: 1, y: 0 }
-}
-const facingToHeading = (facing) => Math.atan2(facing.y, facing.x)
 // Each character's personal condition (rules/personalCondition.js: Stress, Injuries, Defeated) is the same object in the
-// world and in the fight: handed in when combat starts, handed back when it ends.
-const isUp = (entity) => !isDefeated(entity.condition)
+// world and in the fight: handed in when combat starts (actors/CharacterController.js toCombatant), handed back when it
+// ends (fromCombatant).
 const conditionOf = (combatant) => combatant.condition
-const fromCondition = (entity) => ({ condition: normalizeCondition(entity.condition) })
 
 // ---------- who fights ----------
 
@@ -196,12 +186,12 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
   const snaps = snapToGrid(battleMap, fighters, new Set(blockedKeys))
   const players = members
     .filter((member) => snaps[member.id])
-    .map((member) => ({ character: member.character, position: snaps[member.id].cell, facing: headingToFacing(member.heading), ...fromCondition(member) }))
+    .map((member) => controllerFor(member).toCombatant(member, snaps[member.id].cell))
   const enemies = npcIds
     .filter((id) => snaps[id])
-    .map((id) => ({ id, character: world.npcs[id].character, position: snaps[id].cell, facing: headingToFacing(world.npcs[id].heading), ...fromCondition(world.npcs[id]) }))
+    .map((id) => controllerFor(world.npcs[id]).toCombatant(world.npcs[id], snaps[id].cell))
 
-  // 3. Combat Type 1 on that moment, carrying over what each NPC knows. Each NPC fights as itself: the combatant has the
+  // 3. A fight on that moment, carrying over what each NPC knows. Each NPC fights as itself: the combatant has the
   // world actor's id and the actor's own character and condition (no combat-only stat block).
   const combatCount = state.combatCount + 1
   const knowledge = Object.fromEntries(enemies.map((enemy) => [enemy.id, knowledgeFromWorld(world.npcs[enemy.id], party.memberIds)]))
@@ -227,7 +217,7 @@ export function startCombat(state, { triggerNpcId, triggerTargetId = null, sourc
     knowledge,
     blockedKeys,
     scanned: scannedInWorld(state, npcIds),
-    // The party has been spotted, so Combat Type 1's opening Ambush is not offered (no ambush rules in this pass).
+    // The party has been spotted, so combat's opening Ambush is not offered (no ambush rules in this pass).
     ambush: { passed: true },
     log: [...created.log, { id: created.log.length, round: 1, kind: 'info', lines }],
   }
@@ -252,16 +242,8 @@ export function requestCombat(state) {
 
 // ---------- during the fight ----------
 
-// A party member the AI plays that sees no enemy hunts: it moves toward the nearest place an enemy still up was last
-// seen, else toward the nearest enemy still up (a fight goes on until every enemy is down, so the party must find them;
-// tracking it without a sighting is a prototype heuristic, flagged). Returns a combat action, or null.
 // A last-seen place counts as searched once any party member is this close to it (prototype heuristic).
 const SEARCHED_RADIUS = 2
-
-const lastSeenPlace = (combat, viewerId, enemyId) => {
-  const place = combat.knowledge?.[viewerId]?.[enemyId]?.lastKnownPosition
-  return place ? worldToGrid(place) : null
-}
 
 // Marks each enemy's last-seen place searched once a party member gets close (link.searched: { [enemyId]: tile key });
 // a newer sighting moves the place, so it is searched afresh.
@@ -281,52 +263,14 @@ function withSearchedPlaces(state) {
   return searched === link.searched ? state : { ...state, link: { ...link, searched } }
 }
 
-function partySearchStep(state, self) {
-  const { combat, link } = state
-  const hunted = getCombatantList(combat).filter((c) => c.side === 'enemy' && isActive(c))
-  const byDistance = (a, b) => tileDistance(self.position, a) - tileDistance(self.position, b)
-  const lastSeen = hunted
-    .map((enemy) => ({ enemy, place: lastSeenPlace(combat, self.id, enemy.id) }))
-    .filter(({ enemy, place }) => place && link.searched?.[enemy.id] !== tileKey(place))
-    .map(({ place }) => place)
-    .sort(byDistance)[0]
-  const goal = lastSeen ?? hunted.map((enemy) => enemy.position).sort(byDistance)[0]
-  if (!goal) return null
-  const toward = getReachableTiles(combat.map, goal, combat.map.width * combat.map.height, { blockedKeys: getBlockers(combat, self).blockedKeys })
-  const remaining = (position) => toward.get(tileKey(position))?.steps ?? Infinity
-  for (const kind of ['move', 'sprint']) {
-    if (!(kind === 'sprint' ? canSprint(combat, self) : canMove(combat, self))) continue
-    const best = [...getReachable(combat, self, kind).values()].filter((entry) => entry.steps > 0).sort((a, b) => remaining(a.position) - remaining(b.position) || a.steps - b.steps)[0]
-    if (best && remaining(best.position) < remaining(self.position)) {
-      return {
-        type: kind,
-        destination: best.position,
-        decision: lastSeen ? 'Search' : 'Track',
-        reason: lastSeen ? `No enemy in sight; heading for where one was last seen (${goal.x},${goal.y}).` : 'No enemy in sight or last seen; tracking the nearest one still up.',
-      }
-    }
-  }
-  return null
-}
-
-// An enemy that knows of no party member searches instead of fighting: it moves toward the nearest place it last knew
-// of one (or where it was called to), then waits. Returns a combat action, or null to let the normal AI play.
+// Someone who knows of no opponent searches instead of fighting (the party in Auto Combat hunts the enemies; an enemy
+// heads for where it last knew of the party): the acting combatant's controller decides (actors/PlayerController.js,
+// actors/EnemyController.js). Returns a combat action, or null to let the normal AI play.
 function searchStep(state, action) {
   const { combat, link } = state
   const self = getActiveCombatant(combat)
   if (combat.pending || awaitingDecision(combat)) return null
-  if (self.side === 'player') return action.partyAuto && combat.knowledge?.[self.id] && !getOpponents(combat, self).length ? partySearchStep(state, self) : null
-  if (self.side !== 'enemy' || self.retreating || !combat.knowledge?.[self.id] || getOpponents(combat, self).length) return null
-  const places = Object.values(combat.knowledge[self.id]).map((entry) => entry.lastKnownPosition).filter(Boolean)
-  if (link.searchPoints[self.id]) places.push(link.searchPoints[self.id])
-  const goal = places.sort((a, b) => tileDistance(self.position, a) - tileDistance(self.position, b))[0]
-  const hold = (reason) => ({ type: 'endTurn', decision: 'Hold position', reason })
-  if (!goal) return hold('No party member known, and nowhere to search.')
-  if (!canMove(combat, self)) return hold('No party member in sight.')
-  const tiles = [...getReachable(combat, self).values()].sort((a, b) => tileDistance(a.position, goal) - tileDistance(b.position, goal) || a.steps - b.steps)
-  const best = tiles[0]
-  if (!best || tileDistance(best.position, goal) >= tileDistance(self.position, goal)) return hold('Reached the last known position; no party member in sight.')
-  return { type: 'move', destination: best.position, decision: 'Search', reason: `No party member known; moving toward the last known position (${goal.x},${goal.y}).` }
+  return controllerFor(self).searchStep(combat, self, { link, partyAuto: action.partyAuto })
 }
 
 // What each enemy in the fight can see now (its view cone from its combat facing, its own vision range, line of sight).
@@ -382,7 +326,7 @@ function joinFight(state, joins, searchPoints, seenBy) {
     const taken = new Set([...getCombatantList(combat).filter(occupiesTile).map((c) => tileKey(c.position)), ...bystanderKeys(state.world, [...link.npcIds, npc.id])])
     const snap = nearestFreeCell(combat.map, npc.position, taken)
     if (!snap) return
-    combat = addCombatant(combat, { id: npc.id, character: npc.character, position: snap.cell, facing: headingToFacing(npc.heading), ...fromCondition(npc) })
+    combat = addCombatant(combat, controllerFor(npc).toCombatant(npc, snap.cell))
     const knowledge = knowledgeFromWorld(npc, state.party.memberIds)
     ;(seenBy[npc.id] ?? []).forEach((player) => {
       knowledge[player.id] = { ...knowledge[player.id], known: true, lastKnownPosition: { ...player.position }, source: 'sight' }
@@ -564,7 +508,7 @@ function interactInCombat(state, action) {
   return withPartyPerception(joinFight({ ...next, world: spread.world }, spread.joined, { ...searchPoints, ...spread.searchPoints }, {}))
 }
 
-// Every combat action from the Combat Type 1 screen comes through here. action: a Combat Type 1 action,
+// Every combat action from the combat screen comes through here. action: a combat action,
 // { type: 'interact', objectId, actionId, purchase, assistIndex } (a challenge object), or { type: 'aiStep', partyAI, enemyAI }.
 // Designer decision (Oct 2026): a fight ends only when every enemy in it is down or surrendered, or the party is
 // (combatState withOutcome); enemies out of sight keep it going.
@@ -609,9 +553,6 @@ export function combatAction(state, action) {
 
 // ---------- end ----------
 
-// Designer decision (Oct 2026): a surrendered enemy stands down where it is: neutral, no patrol, never joins a fight.
-const STANDS_DOWN = { disposition: 'neutral', responseType: null, patrol: null, investigation: null, alertGroupId: null, surrendered: true }
-
 // The single way out of combat: final cells become world positions, each character's and NPC's condition (Stress,
 // Injuries, Defeated) stays with them, and exploration resumes from there (no return to earlier positions, no formation
 // snap). Hook (Book p.292): a Dying character whose Deadly Injury had no medical attention dies at the end of the scene;
@@ -622,49 +563,12 @@ export function endCombat(state) {
   const members = { ...party.members }
   party.memberIds.forEach((id) => {
     const combatant = combat.combatants[id]
-    if (!combatant) return
-    const position = gridToWorld(combatant.position)
-    const heading = facingToHeading(combatant.facing)
-    members[id] = {
-      ...members[id],
-      position,
-      heading,
-      facing: { x: Math.cos(heading), y: Math.sin(heading) },
-      turning: false,
-      moving: false,
-      running: false,
-      order: null,
-      path: [],
-      replanIn: 0,
-      stall: { seconds: 0, best: Infinity },
-      parkedFor: null,
-      blocked: { from: position, seconds: 0 },
-      condition: conditionOf(combatant),
-    }
+    if (combatant) members[id] = controllerFor(members[id]).fromCombatant(members[id], combatant)
   })
   const npcs = { ...world.npcs }
   link.npcIds.forEach((id) => {
     const combatant = combat.combatants[id]
-    if (!combatant) return
-    npcs[id] = {
-      ...npcs[id],
-      position: gridToWorld(combatant.position),
-      heading: facingToHeading(combatant.facing),
-      moving: false,
-      path: [],
-      pathGoal: null,
-      stuck: { best: Infinity, seconds: 0 },
-      // What it sees is worked out again on the next exploration frame (never, if it is down).
-      visibleIds: [],
-      combatReady: null,
-      response: null,
-      alarmAt: null,
-      condition: conditionOf(combatant),
-      // Designer decision (2026-10-09): an enemy that leaves a fight still up attacks on sight from then on, whatever
-      // its disposition (it skips raising the alarm first).
-      ...(isActive(combatant) ? { responseType: 'combat' } : {}),
-      ...(combatant.surrendered && !combatant.condition.defeated ? STANDS_DOWN : {}),
-    }
+    if (combatant) npcs[id] = controllerFor(npcs[id]).fromCombatant(npcs[id], combatant)
   })
   const lastCombat = {
     id: link.id,

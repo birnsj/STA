@@ -1,4 +1,4 @@
-// Two-tile wall panels (exploration and Combat Type 1). Two of the same built wall (tiles.json panels) side by side in
+// Two-tile wall panels (exploration and combat). Two of the same built wall (tiles.json panels) side by side in
 // a straight run are drawn as one panel; every other panel along a run has a window. Presentation only: sight, cover
 // and movement still read the single tiles.
 import { getTile, isRotated } from './mapFormat.js'

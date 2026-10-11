@@ -185,7 +185,7 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 ### Combat talents automated in personal combat (decided 2026-10-07)
 
-**Decision:** automate three groups of talents in Combat Type 1: the attacker's own, Defensive Training, and the Assist talents. Each is applied by talent id in `combat/combatTalents.js`, since the talents' conditions are prose in `talents.json`.
+**Decision:** automate three groups of talents in combat: the attacker's own, Defensive Training, and the Assist talents. Each is applied by talent id in `combat/combatTalents.js`, since the talents' conditions are prose in `talents.json`.
 
 **Book (STA 2e Core Rulebook):**
 - p.161 Applied Force: a Melee Attack may use Fitness instead of Daring; +1 Severity to Unarmed Attacks.
@@ -230,10 +230,6 @@ Open design decisions for the designer. Each entry separates what the book says 
 - To fit the bigger buildings, map presets grew: Small Colony 18 x 14 to 20 x 17; Landing Field to 28 x 22 / 34 x 24 / 42 x 30 / 52 x 36 / 96 x 70 (its pad covers about half the map, so the hut needs a big map; a Small field still has no hut about 1 time in 10).
 - Not covered, on purpose: the derelict's wreckage (debris and collapsed bulkheads are meant to clutter), the cantina's staff aisle behind the bar, the temple's pillar aisles, and station promenades, which are halls that may be 2 tiles wide on small maps.
 
-### Combat Type 2 removed (decided 2026-10-08)
-
-**Decision:** Combat Type 2 (the separate tactical-positioning experiment: 1 character, 2 action points a turn, telegraphed enemy intents, Push, an EPS hazard) is dropped from the game. Its code, data and the Load Episode entry are deleted; Combat Type 1 is the only combat. Replaces the 2026-10-07 decision to keep it frozen.
-
 ### Stages 05 and 06 keep their titles (decided 2026-10-08)
 
 **Book (STA 2e Core Rulebook):** p.98: Step Five is Experience, Step Six is Career Events.
@@ -270,7 +266,7 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 **Book:** STA 2e Core p.292: a Defeated character falls prone and can't act; a Defeated character with a Deadly Injury is Dying. p.291: a hit simply Defeats a Minor NPC (Prototype, designer decision Oct 2026: Stun leaves it Unconscious, Deadly kills it). First Aid ends Defeated. Nothing about how any of it looks.
 
-**Prototype (designer request: attack, cover and several death animations in combat, for party, enemies and NPCs):** every sprite set gains a combat sheet (shoot: the arm comes up with a hand weapon and kicks on the shot; melee: wind-up and lunge; cover: down on one knee, weapon ready, breathing) and a fall sheet (four falls). In Combat Type 1 a character shoots on its Attack, Counterattack or successful Ambush with a ranged weapon and strikes with a melee one (`weapons.json` type), crouches while in cover, and falls when Defeated, then lies there; First Aid that ends Defeated plays its fall backwards (getting up). Enemies and bystander NPCs use the same figures and rules. Downed characters in exploration lie in the same pose without replaying the fall. Implementer picks, presentation only, open for review: a Stun Injury (or an Unconscious Minor NPC) crumples to the knees and onto its side; a Deadly Injury (Dying, or a Dead Minor NPC) falls back, falls forward or spins down, chosen from the character's id so the same character always falls the same way; there is no separate "dead" look; there is no hit flinch. Downed figures keep the existing dimming. Combat already lets a character stand on a Defeated combatant's tile, so bodies can lie on top of each other. Data `characterSprites.json` (`sheets`, `deadlyFalls`, `stunFall`), choice `defeatAnimation` in `src/rules/appearance.js`, combat state to animation in `src/components/combat/useUnitAnimation.js`.
+**Prototype (designer request: attack, cover and several death animations in combat, for party, enemies and NPCs):** every sprite set gains a combat sheet (shoot: the arm comes up with a hand weapon and kicks on the shot; melee: wind-up and lunge; cover: down on one knee, weapon ready, breathing) and a fall sheet (four falls). In combat a character shoots on its Attack, Counterattack or successful Ambush with a ranged weapon and strikes with a melee one (`weapons.json` type), crouches while in cover, and falls when Defeated, then lies there; First Aid that ends Defeated plays its fall backwards (getting up). Enemies and bystander NPCs use the same figures and rules. Downed characters in exploration lie in the same pose without replaying the fall. Implementer picks, presentation only, open for review: a Stun Injury (or an Unconscious Minor NPC) crumples to the knees and onto its side; a Deadly Injury (Dying, or a Dead Minor NPC) falls back, falls forward or spins down, chosen from the character's id so the same character always falls the same way; there is no separate "dead" look; there is no hit flinch. Downed figures keep the existing dimming. Combat already lets a character stand on a Defeated combatant's tile, so bodies can lie on top of each other. Data `characterSprites.json` (`sheets`, `deadlyFalls`, `stunFall`), choice `defeatAnimation` in `src/rules/appearance.js`, combat state to animation in `src/components/combat/useUnitAnimation.js`.
 
 ### Walk or run in exploration (decided 2026-10-09)
 

@@ -1,6 +1,6 @@
-﻿import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
-import { ENEMY_SPAWNS_NEEDED as TYPE1_SPAWNS } from '../combat/encounters.js'
+import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import EditorMinimap from '../components/maps/EditorMinimap.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
@@ -91,7 +91,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   })
   const { tool, placing, rotated, selection } = tools
 
-  const warnings = useMemo(() => validateMap(map, { enemySpawns: TYPE1_SPAWNS, label: 'Combat Type 1' }), [map])
+  const warnings = useMemo(() => validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat' }), [map])
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
   const onPlay = () => {

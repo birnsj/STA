@@ -1,4 +1,4 @@
-// Exploration and the hand-offs to and from Combat Type 1 (exploration/combatLink.js): what a Defeated character can
+// Exploration and the hand-offs to and from combat (exploration/combatLink.js): what a Defeated character can
 // do, what survives the end of a fight, and the clock in the editor's passive play-test.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'

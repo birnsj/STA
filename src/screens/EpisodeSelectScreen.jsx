@@ -8,7 +8,7 @@ import { episodeTitle } from '../maps/mapFormat.js'
 // Load Episode: every map file in maps/ is an episode (its name is the mission location). For now the prototype
 // that plays it is chosen here too, as a development comparison tool.
 const MODES = [
-  { id: 'combat', label: 'Combat Type 1', text: 'Party of up to 4, initiative, Major and Minor actions.' },
+  { id: 'combat', label: 'Combat', text: 'Party of up to 4, initiative, Major and Minor actions.' },
   { id: 'exploration', label: 'Exploration', text: 'Away team movement: party selection, splitting up and formations. No enemies yet.' },
 ]
 

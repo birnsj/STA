@@ -2,7 +2,7 @@
 // that the layout owns. Rects are { x0, x1, y0, y1 } with inclusive edges.
 import { getTile } from '../mapFormat.js'
 
-// Enough for Combat Type 1's roster of 4 enemies.
+// Enough for combat's roster of 4 enemies.
 export const MARKERS_PER_SIDE = 4
 export const DOOR_TILE = 'doorway'
 export const CRATE_TILE = 'crate'

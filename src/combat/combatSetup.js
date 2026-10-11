@@ -28,6 +28,8 @@ function createCombatant(character, { id = character.id, side, controller, posit
     character,
     side,
     controller,
+    // Which controller class runs it (actors/controllers.js): the party's members are the player's, everyone else an enemy.
+    controllerId: side === 'player' ? 'player' : 'enemy',
     position,
     condition: normalizeCondition(condition),
     inCover: false,

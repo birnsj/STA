@@ -3,6 +3,7 @@
 // suffers it and is Defeated. The player decides for party members (state.incomingInjury waits for the injuryDecision
 // action) and which attribute a newly Fatigued member shuts down (state.pendingFatigue); AI-controlled combatants decide
 // through injuryPolicy.js.
+import { controllerFor } from '../actors/controllers.js'
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import {
   addedSeverityCost,
@@ -114,7 +115,7 @@ export function resolveInjury(state, incoming, avoid) {
 // Injury); anyone else gets combat/injuryPolicy.js's choice now. lines: the log lines being built (appended to).
 export function startFatigueChoice(state, combatantId, lines) {
   const combatant = state.combatants[combatantId]
-  if (combatant.controller === 'player') return { ...state, pendingFatigue: { combatantId } }
+  if (controllerFor(combatant).answersPrompts(combatant)) return { ...state, pendingFatigue: { combatantId } }
   const { attributeId, reason } = chooseFatigueAttribute({ combatant })
   lines.push(`AI Decision: shut down ${getAttributeName(attributeId)}`, `Reason: ${reason}`)
   return updateCombatant(state, combatantId, { condition: chooseFatiguedAttribute(combatant.condition, attributeId) })
@@ -133,7 +134,7 @@ export function inflictInjury(state, attackerId, targetId, injury) {
     const resolved = resolveInjury(state, incoming, false)
     return { state: resolved.state, lines: [...lines, ...resolved.lines] }
   }
-  if (target.controller === 'player') {
+  if (controllerFor(target).answersPrompts(target)) {
     const offer = option.overflow ? `take ${option.taken} Stress, filling the track, plus a complication` : `take ${option.cost} Stress`
     return { state: { ...state, incomingInjury: incoming }, lines: [...lines, `${target.character.name} may Avoid Injury: ${offer} (${statusText(target)}).`] }
   }

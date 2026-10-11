@@ -10,7 +10,7 @@ import { boardLayout } from './canvasTiles.js'
 import { LoneTile } from './IsoTiles.jsx'
 import MapCanvas from './MapCanvas.jsx'
 
-// The map editor's board: the map drawn as exploration and Combat Type 1 draw it (MapCanvas) under one clickable
+// The map editor's board: the map drawn as exploration and combat draw it (MapCanvas) under one clickable
 // floor-level outline of the whole map; the tile under the pointer is worked out from where its floor would be (blocks
 // never take clicks). The markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through
 // blocks shows what is behind blocks.

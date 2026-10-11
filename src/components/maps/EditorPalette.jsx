@@ -31,7 +31,7 @@ function ToolButton({ selected, onClick, children }) {
 
 const FLAG_BOXES = [
   { flag: 'cover', label: 'Cover', title: 'Standing next to this tile gives cover', on: 'now gives cover', off: 'no longer gives cover' },
-  { flag: 'fade', label: 'Fade', title: 'Turns see-through when a party member is behind it (exploration and Combat Type 1)', on: 'now fades', off: 'no longer fades' },
+  { flag: 'fade', label: 'Fade', title: 'Turns see-through when a party member is behind it (exploration and combat)', on: 'now fades', off: 'no longer fades' },
 ]
 
 // Cover and Fade are properties of the tile type, so ticking one changes every map that uses the tile.

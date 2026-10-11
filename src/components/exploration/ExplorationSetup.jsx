@@ -5,7 +5,7 @@ import CombatPortrait from '../combat/CombatPortrait.jsx'
 import CharacterSheetPanel from './CharacterSheetPanel.jsx'
 import useEpisodeMap from '../maps/useEpisodeMap.js'
 
-// Picks the away team from the saved characters (one per player start on the map, as in Combat Type 1). Each member is
+// Picks the away team from the saved characters (one per player start on the map, as in combat). Each member is
 // the RuntimeCharacter built from that character's saved JSON; exploration adds no stats of its own.
 export default function ExplorationSetup({ savedCharacters, initialParty, mapId, onStart, onBack }) {
   const { map, problem } = useEpisodeMap(mapId)

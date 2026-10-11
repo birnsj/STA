@@ -1,5 +1,6 @@
 // The one-line instruction shown during combat: what the player can do next, from the combat state and the UI selection.
 import { actionsLeft, actionsLeftText, ADAPTATION_MOMENTUM_SPENDS, canAimReroll, canAssistReroll, getActiveCombatant, getMovementBlock, getMovementLeft, rollAwaitsPlayer } from './combatState.js'
+import { isPlayerControlled } from '../actors/controllers.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
 import { getInjuryMode } from './weaponSystem.js'
 
@@ -92,7 +93,7 @@ export function getCombatHint(state, ui) {
     const reason = ui.planned ? `${ui.planned.decision}: ${ui.planned.reason}` : state.aiReason
     return `${prefix}: ${active.character.name}${reason ? ` - ${reason}` : ' is deciding.'}`
   }
-  if (active.controller !== 'player') return `${active.character.name} is acting. Watch the dice at the bottom.`
+  if (!isPlayerControlled(active)) return `${active.character.name} is acting. Watch the dice at the bottom.`
   const roll = rollHint(state)
   if (roll) return roll
   const selected = modeHint(ui.mode, ui)

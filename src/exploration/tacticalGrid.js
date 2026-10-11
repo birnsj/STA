@@ -1,5 +1,5 @@
-// The one conversion between exploration positions and Combat Type 1 cells. Exploration positions are continuous with
-// tile centres on whole numbers (tile x covers x - 0.5 .. x + 0.5); Combat Type 1 cells are those same tiles.
+// The one conversion between exploration positions and combat cells. Exploration positions are continuous with
+// tile centres on whole numbers (tile x covers x - 0.5 .. x + 0.5); combat cells are those same tiles.
 import { blocksMovement, isInside, tileKey } from '../combat/battleMap.js'
 
 export const worldToGrid = (position) => ({ x: Math.round(position.x), y: Math.round(position.y) })

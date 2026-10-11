@@ -1,4 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { controllerFor } from '../../actors/controllers.js'
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
@@ -13,6 +14,7 @@ import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
+import FacingArrow from '../maps/FacingArrow.jsx'
 import { hasCharacterSprite } from '../../rules/appearance.js'
 import useUnitAnimation from './useUnitAnimation.js'
 import { DoneIcon } from './ActionPoints.jsx'
@@ -132,18 +134,6 @@ const FloorGrid = memo(
     sameKeys(before.pathKeys, after.pathKeys),
 )
 
-// Arrow on the ground ring pointing along a grid direction, drawn in the same isometric projection as the tiles.
-function FacingArrow({ facing }) {
-  const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
-  const dir = { x: (facing.x - facing.y) / length, y: (facing.x + facing.y) / length }
-  const side = { x: -dir.y, y: dir.x }
-  const toScreen = (x, y) => `${x.toFixed(1)},${(y / 2).toFixed(1)}`
-  const tip = toScreen(dir.x * 38, dir.y * 38)
-  const left = toScreen(dir.x * 21 + side.x * 11, dir.y * 21 + side.y * 11)
-  const right = toScreen(dir.x * 21 - side.x * 11, dir.y * 21 - side.y * 11)
-  return <polygon className="iso-unit-facing" points={`${tip} ${left} ${right}`} />
-}
-
 // turnStatus: { state, turn, movement } for a party member during the party's turn. Actions left (count and pips) and
 // movement tiles left (plus +N Sprint tiles while Sprint is unused) show above them; once the turn is used up they are dimmed with a grey ring and a check icon.
 // A shield on the portrait marks a unit in cover; it appears once a walk into cover has finished.
@@ -177,7 +167,7 @@ function UnitToken({ image, shownImage, clipId, name }) {
 function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
-  const down = Boolean(combatant.condition?.defeated)
+  const { down } = controllerFor(combatant).animationState(combatant)
   const sideClass = combatant.side === 'player' ? 'is-player' : combatant.hostile === false ? 'is-neutral' : 'is-enemy'
   const image = combatant.character.portrait?.image
   const spriteSet = combatant.character.portrait?.spriteSet

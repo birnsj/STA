@@ -1,4 +1,4 @@
-// Tall walls and objects and see-through blocks (exploration and Combat Type 1). Presentation only: nothing here changes
+// Tall walls and objects and see-through blocks (exploration and combat). Presentation only: nothing here changes
 // movement, sight or cover. tiles.json: height (how tall a block stands), imageHeight (walls' and tall objects' taller
 // images), big (2x2 squares drawn as one object twice the size, bigObjects.js), fade (see-through while hiding a party
 // member). Which walls fade together (room cutaway, wall sections, stickiness): data/adaptation/maps/wallFade.json.

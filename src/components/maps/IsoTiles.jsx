@@ -198,7 +198,7 @@ function bigStrip(position, origin) {
   return null
 }
 
-// A block in a tall-wall view (exploration, Combat Type 1, the map editor). faded: Set of faded 'x,y' keys, or a Map of
+// A block in a tall-wall view (exploration, combat, the map editor). faded: Set of faded 'x,y' keys, or a Map of
 // keys to their opacity while fading in or out (fadeLevels.js); panels: getWallPanels; bigGroups: getBigObjects; ghost:
 // the editor's See-through blocks. A big object is drawn in strips by three of its tiles (BigObjectStrip).
 // A faded panel is drawn whole by its nearer half (half 1, one step further along its axis), so the far half draws nothing.

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { controllerFor } from '../../actors/controllers.js'
 import { dispositionName, getNpcs, isDown, isHostile, stateName } from '../../exploration/awareness.js'
 import { getFormation, slotPoint } from '../../exploration/formations.js'
 import { getFollowTargets, getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
-import { isDefeated } from '../../rules/personalCondition.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
@@ -19,6 +19,7 @@ import useFigureWindows from '../maps/useFigureWindows.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
+import FacingArrow from '../maps/FacingArrow.jsx'
 import { defeatAnimation, getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
@@ -54,21 +55,8 @@ const worldBounds = (map) => ({
 // Read only from pointer handlers, never while rendering.
 const clockNow = () => performance.now()
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
-// Arrow on the ground ring pointing along a direction on the tile grid, in the tiles' isometric projection.
-function FacingArrow({ facing }) {
-  const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
-  const dir = { x: (facing.x - facing.y) / length, y: (facing.x + facing.y) / length }
-  const side = { x: -dir.y, y: dir.x }
-  const toScreen = (x, y) => `${x.toFixed(1)},${(y / 2).toFixed(1)}`
-  const tip = toScreen(dir.x * 38, dir.y * 38)
-  const left = toScreen(dir.x * 21 + side.x * 11, dir.y * 21 + side.y * 11)
-  const right = toScreen(dir.x * 21 - side.x * 11, dir.y * 21 - side.y * 11)
-  return <polygon className="iso-unit-facing" points={`${tip} ${left} ${right}`} />
-}
-
-// Down after a fight (incapacitated or defeated): drawn as Combat Type 1 draws a downed combatant, lying as it fell
+// Down after a fight (incapacitated or defeated): drawn as combat draws a downed combatant, lying as it fell
 // (already down, so the fall doesn't play again), or a flat body without a sprite set.
-const isDownAfterFight = (entity) => isDefeated(entity.condition)
 function DownBody({ condition, spriteSet = null, uniform = null, facing, seed }) {
   if (!hasCharacterSprite(spriteSet)) return <rect className="iso-unit-body" x="-16" y="-12" width="32" height="14" rx="3" />
   return <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} seed={seed} animation={defeatAnimation(condition, seed)} settled />
@@ -79,10 +67,12 @@ function Explorer({ member, selected, lead, onPress }) {
   const image = member.character.portrait.image
   const uniform = member.character.portrait.uniform
   const clipId = `explorer-clip-${member.id.replace(/[^a-z0-9]/gi, '')}`
-  const down = isDownAfterFight(member)
+  const controller = controllerFor(member)
+  const { walking, running, sneaking, down } = controller.animationState(member)
+  const facing = controller.facing(member)
   return (
     <g
-      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${member.sneaking && !down ? ' is-sneaking' : ''}`}
+      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${sneaking && !down ? ' is-sneaking' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }}
       onPointerDown={onPress}
       onClick={(event) => event.stopPropagation()}
@@ -90,9 +80,9 @@ function Explorer({ member, selected, lead, onPress }) {
       <title>{member.character.name}</title>
       <ellipse className="iso-unit-ring" cx="0" cy="0" rx="22" ry="11" />
       {down ? (
-        <DownBody condition={member.condition} spriteSet={member.character.portrait.spriteSet} uniform={uniform} facing={member.facing} seed={member.id} />
+        <DownBody condition={member.condition} spriteSet={member.character.portrait.spriteSet} uniform={uniform} facing={facing} seed={member.id} />
       ) : (
-        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={member.moving} running={member.running} sneaking={member.sneaking} seed={member.id} clipId={clipId} name={member.character.name} facing={member.facing} />
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={walking} running={running} sneaking={sneaking} seed={member.id} clipId={clipId} name={member.character.name} facing={facing} />
       )}
       {lead && (
         <text className="explore-unit-lead" x="0" y="-58" textAnchor="middle">
@@ -141,8 +131,9 @@ function NpcToken({ npc, unperceived = false, onPress = null }) {
   const image = npc.character?.portrait.image
   const uniform = npc.character?.portrait.uniform
   const clipId = `npc-clip-${npc.id.replace(/[^a-z0-9]/gi, '')}`
-  const down = isDownAfterFight(npc)
-  const facing = { x: Math.cos(npc.heading), y: Math.sin(npc.heading) }
+  const controller = controllerFor(npc)
+  const { walking, down } = controller.animationState(npc)
+  const facing = controller.facing(npc)
   return (
     <g
       className={`iso-unit ${isHostile(npc) ? 'is-enemy' : 'is-neutral'} explore-unit${down ? ' is-down' : ''}${unperceived ? ' is-unperceived' : ''}${onPress ? ' is-clickable' : ''}`}
@@ -156,7 +147,7 @@ function NpcToken({ npc, unperceived = false, onPress = null }) {
       {down ? (
         <DownBody condition={npc.condition} spriteSet={npc.character?.portrait.spriteSet} uniform={uniform} facing={facing} seed={npc.id} />
       ) : (
-        <ExplorerFigure image={image} uniform={uniform} spriteSet={npc.character?.portrait.spriteSet} walking={npc.moving} seed={npc.id} clipId={clipId} name={npc.name} facing={facing} />
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={npc.character?.portrait.spriteSet} walking={walking} seed={npc.id} clipId={clipId} name={npc.name} facing={facing} />
       )}
     </g>
   )

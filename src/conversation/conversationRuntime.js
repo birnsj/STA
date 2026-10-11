@@ -9,10 +9,10 @@
 //   ended (true when a check's outcome ended it: the panel shows the result until closed) } | null.
 // Condition and Action nodes run straight through. Reaching an End node, a missing link or a 'startCombat' action
 // closes the conversation.
+import { isDown, isUp } from '../actors/controllers.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { checkCondition } from '../exploration/missionFlags.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
-import { isDefeated } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { getActionType } from './conversationActions.js'
@@ -20,8 +20,6 @@ import { getNode } from './conversationFormat.js'
 
 // A graph that loops through Condition and Action nodes without stopping is cut off after this many steps.
 const MAX_STEPS = 200
-
-const isUp = (member) => !isDefeated(member.condition)
 
 // hooks: what the runtime needs from the exploration layer without importing it (it imports the runtime):
 // { refreshMap(state): the world map after a challenge object's state changed, startCombat(state, { triggerNpcId,
@@ -77,7 +75,7 @@ function advance(state, nodeId, hooks) {
 // definition or for an NPC that is down.
 export function startConversation(state, { npcId, definition }, hooks = NO_HOOKS) {
   const npc = state.world.npcs[npcId]
-  if (state.combat || state.conversation || !definition || !npc || isDefeated(npc.condition)) return state
+  if (state.combat || state.conversation || !definition || !npc || isDown(npc)) return state
   const opened = { ...state, conversation: { definition, npcId, nodeId: null, choiceId: null, line: null, lastCheck: null } }
   return advance(opened, definition.start, hooks)
 }

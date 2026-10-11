@@ -20,7 +20,7 @@ import {
 } from './canvasTiles.js'
 import './maps.css'
 
-// Every map view's map (the map editor, exploration, Combat Type 1), drawn into canvases inside the view's SVG so the
+// Every map view's map (the map editor, exploration, combat), drawn into canvases inside the view's SVG so the
 // camera's viewBox moves and zooms them with everything else. Bottom up: the floor (tiles, contact shadows, light
 // pools); `ground` (SVG lying on the floor under every block: move highlights, markers); the blocks; the animated tiles'
 // current frames; `children` (SVG figures standing among the blocks, occlusion.js); the map's darkness. A canvas is one

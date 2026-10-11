@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { isPlayerControlled } from '../actors/controllers.js'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
@@ -98,7 +99,7 @@ export function Battle({
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
   const [auto, setAuto] = useState('off')
   const [speed, setSpeed] = useState(1)
-  const aiControlled = active.controller === 'ai' || auto !== 'off'
+  const aiControlled = !isPlayerControlled(active) || auto !== 'off'
   const isPlayerTurn = !aiControlled && !state.outcome
   // UI state only: the chosen action, target, weapon, injury mode, move destination, hovered tile, panels and camera follow.
   // chosenMode null = the default (Move while it is still possible); 'none' = the player deselected everything.
@@ -153,7 +154,7 @@ export function Battle({
     setRingInfo(false)
     setDicePurchase({ bonusDice: 0, momentum: 0 })
     setTaskPick(null)
-    if (active.controller === 'player') setTargetId(nearestOpponentId(state, active))
+    if (isPlayerControlled(active)) setTargetId(nearestOpponentId(state, active))
   }
   if (isPlayerTurn && !target && targetId !== nearestOpponentId(state, active)) setTargetId(nearestOpponentId(state, active))
 
@@ -398,7 +399,7 @@ export function Battle({
   const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getCombatantWeapon(member, weaponIds[member.id] ?? member.weaponIds[0])]))
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
-  const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && state.combatants[(state.pending ?? state.result).attackerId].controller === 'player')
+  const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && isPlayerControlled(state.combatants[(state.pending ?? state.result).attackerId]))
   const hint = hiddenIds?.includes(active.id) ? 'The enemy is acting.' : getCombatHint(state, {
     taskPreview: combatTask?.task?.prepared
       ? { available: combatTask.task.available, reason: combatTask.task.reason, label: combatTask.task.label, task: { difficulty: combatTask.task.prepared.difficulty, targetNumber: combatTask.task.prepared.task.targetNumber } }
@@ -522,7 +523,7 @@ export function Battle({
         <TaskPanel
           mode={mode}
           isPlayerTurn={isPlayerTurn}
-          autoTurn={auto !== 'off' && active.controller === 'player'}
+          autoTurn={auto !== 'off' && isPlayerControlled(active)}
           preview={preview}
           movePath={movePath}
           routeInCover={routeInCover}

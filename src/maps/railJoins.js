@@ -1,4 +1,4 @@
-// Joined railings (the editor, exploration and Combat Type 1). A tile with joinImages (tiles.json) is drawn as a piece
+// Joined railings (the editor, exploration and combat). A tile with joinImages (tiles.json) is drawn as a piece
 // running from its centre towards up to two neighbouring tiles of the same kind, so a run of them, straight or curved,
 // reads as one railing. Presentation only: movement, sight and cover still read the single tiles.
 import { getTile } from './mapFormat.js'

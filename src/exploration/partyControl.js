@@ -6,32 +6,17 @@
 // { type: 'follow', leaderId, slot } (keep to formation slot `slot` around that leader, wherever they go).
 // A move order goes to the selected characters only: the lead character walks to the point and the other selected
 // characters follow in formation. Characters outside the selection keep whatever they were doing.
+import { headingTo } from '../actors/CharacterController.js'
+import { controllerFor, isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/partyControl.json'
-import { isDefeated } from '../rules/personalCondition.js'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
-import { distance, isClearLine, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
-import { sneakCatchUpSpeed, sneakSpeed } from './sneak.js'
+import { distance, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
 const MOVE = data.movement
-const TURN_RATE = (MOVE.turnRateDegrees * Math.PI) / 180
-const HEADING_DEADBAND = (MOVE.headingDeadbandDegrees * Math.PI) / 180
 // How readily a character gives way when two get too close: someone standing still never does, and a lead character
 // mostly holds their line while followers step aside.
 const GIVE_WAY = { none: 0, point: 0.35, follow: 1 }
 const MAX_TICK_SECONDS = 0.05
-const AT_POINT = 0.04
-const WAYPOINT_REACHED = 0.06
-// A point order ends early when the character stops making progress near the end (someone is standing on the spot).
-const STALL_SECONDS = 0.6
-const STALL_NEAR = 1.2
-const STALL_GIVE_UP_SECONDS = 2.5
-// A follower who has moved less than BLOCKED_MOVE in BLOCKED_SECONDS stops ("parks") until their spot moves UNPARK_DISTANCE.
-const BLOCKED_MOVE = 0.08
-const BLOCKED_SECONDS = 0.8
-const UNPARK_DISTANCE = 0.5
-
-const wrapAngle = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle))
-const headingTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x)
 
 // characters: RuntimeCharacters in party order; each starts on the map's player start with the same index.
 export function createPartyState(map, characters) {
@@ -45,6 +30,7 @@ export function createPartyState(map, characters) {
     return {
       id: character.id,
       character,
+      controllerId: 'player',
       position,
       heading,
       turning: false,
@@ -76,7 +62,7 @@ export const getMembers = (state) => state.memberIds.map((id) => state.members[i
 export const isSelected = (state, id) => state.selectedIds.includes(id)
 
 // A Defeated character stays where they fell: they can't be selected, lead or follow.
-export const canAct = (member) => Boolean(member) && !isDefeated(member.condition)
+export const canAct = (member) => isUp(member)
 
 // After a fight: anyone Defeated drops out of the selection and the lead. If no one selected can act, the whole team
 // that can is selected. With everyone down the lead stays put (the camera follows it) and nothing is selected.
@@ -196,72 +182,6 @@ function changeFormation(state, formationId) {
   return { ...next, members }
 }
 
-// Velocity toward the next waypoint (tiles per second), capped so the character stops on it rather than overshooting.
-function seek(position, waypoint, speed, seconds) {
-  const d = distance(position, waypoint)
-  if (d < 1e-6) return { x: 0, y: 0 }
-  const v = Math.min(speed, d / seconds)
-  return { x: ((waypoint.x - position.x) / d) * v, y: ((waypoint.y - position.y) / d) * v }
-}
-
-const remainingLength = (position, path) => path.reduce((sum, point, i) => sum + distance(i ? path[i - 1] : position, point), 0)
-
-// One character's intended velocity this frame, plus their updated route and order.
-function steer(state, member, seconds, followTarget) {
-  const { map } = state
-  if (member.order.type === 'point') {
-    let path = member.path
-    while (path.length > 1 && distance(member.position, path[0]) < WAYPOINT_REACHED) path = path.slice(1)
-    let replanIn = member.replanIn - seconds
-    if (replanIn <= 0) {
-      replanIn = MOVE.replanSeconds
-      // Pushed off the route (e.g. around a corner by a crowd): find a new one.
-      if (path.length && !isClearLine(map, member.position, path[0])) path = planRoute(map, member.position, member.order.target)
-    }
-    const remaining = remainingLength(member.position, path)
-    const progressed = remaining < member.stall.best - 0.05
-    const stall = progressed ? { seconds: 0, best: remaining } : { ...member.stall, seconds: member.stall.seconds + seconds }
-    const done = !path.length || remaining < AT_POINT || (stall.seconds > STALL_SECONDS && remaining < STALL_NEAR) || stall.seconds > STALL_GIVE_UP_SECONDS
-    if (done) return { member: { ...member, order: null, path: [], stall: { seconds: 0, best: Infinity } }, velocity: { x: 0, y: 0 }, direction: null }
-    // A sneaking character never runs (sneak.json).
-    const run = member.order.run && !member.sneaking
-    const speed = member.sneaking ? sneakSpeed(member.character) : run ? MOVE.runSpeed : MOVE.walkSpeed
-    const velocity = seek(member.position, path[0], speed, seconds)
-    return { member: { ...member, path, replanIn, stall }, velocity, direction: velocity, run }
-  }
-
-  const target = followTarget
-  const toTarget = distance(member.position, target)
-  const still = { member, velocity: { x: 0, y: 0 }, direction: null }
-  if (member.parkedFor && distance(member.parkedFor, target) < UNPARK_DISTANCE) return still
-  if (toTarget < AT_POINT) return member.path.length || member.parkedFor ? { ...still, member: { ...member, path: [], parkedFor: null } } : still
-  // Trying to move but getting nowhere (the spot is wedged between others or against a wall): stay put until the spot moves.
-  const blocked = distance(member.position, member.blocked.from) < BLOCKED_MOVE
-  const blockedFor = blocked ? { from: member.blocked.from, seconds: member.blocked.seconds + seconds } : { from: member.position, seconds: 0 }
-  if (blockedFor.seconds > BLOCKED_SECONDS) return { ...still, member: { ...member, path: [], parkedFor: target, blocked: { from: member.position, seconds: 0 } } }
-  let path = member.path
-  let replanIn = member.replanIn - seconds
-  if (isClearLine(map, member.position, target)) {
-    path = [target]
-  } else {
-    while (path.length > 1 && distance(member.position, path[0]) < WAYPOINT_REACHED) path = path.slice(1)
-    if (replanIn <= 0 || !path.length) {
-      path = planRoute(map, member.position, target)
-      replanIn = MOVE.replanSeconds
-    }
-  }
-  // Followers keep the leader's pace and hurry when they fall behind; close to the slot they ease in instead of bumping into it.
-  const leaderOrder = state.members[member.order.leaderId]?.order
-  const run = leaderOrder?.type === 'point' && leaderOrder.run && !member.sneaking
-  const behind = toTarget > MOVE.catchUpDistance
-  let speed
-  if (member.sneaking) speed = behind ? sneakCatchUpSpeed(member.character) : sneakSpeed(member.character)
-  else speed = behind ? (run ? MOVE.runCatchUpSpeed : MOVE.catchUpSpeed) : run ? MOVE.runSpeed : MOVE.walkSpeed
-  if (toTarget < MOVE.arriveDistance) speed *= Math.max(0.25, toTarget / MOVE.arriveDistance)
-  const velocity = seek(member.position, path[0], speed, seconds)
-  return { member: { ...member, path, replanIn, parkedFor: null, blocked: blockedFor }, velocity, direction: velocity, run }
-}
-
 // Pushes apart any two characters closer than personal space, so nobody stacks on anyone else. Defeated characters
 // take no part.
 function separation(list) {
@@ -290,34 +210,7 @@ function separation(list) {
   return pushes
 }
 
-// The formation turns with the direction the character walks, but small wobbles (a slight bend in the route) are ignored
-// and big turns are made gradually, so the slots around them don't jitter.
-function turn(member, direction, seconds) {
-  if (!direction || Math.hypot(direction.x, direction.y) < 1e-3) return member
-  const diff = wrapAngle(Math.atan2(direction.y, direction.x) - member.heading)
-  if (!member.turning && Math.abs(diff) < HEADING_DEADBAND) return member
-  const step = Math.sign(diff) * Math.min(Math.abs(diff), TURN_RATE * seconds)
-  return { ...member, heading: wrapAngle(member.heading + step), turning: Math.abs(diff - step) > 0.02 }
-}
-
-// Right of way when two moving characters meet in a narrow gap: a character walking to a point (a lead character)
-// first, then followers by slot. Lower goes first.
-const rightOfWay = (member) => (member.order?.type === 'follow' ? member.order.slot : 0)
-
-// Whether a character should wait a moment: someone with right of way is moving right in front of them. Without this,
-// two followers reaching a one-tile gap side by side push each other into its walls and neither gets through.
-function mustGiveWay(member, direction, others) {
-  if (member.order?.type !== 'follow' || !direction) return false
-  const speed = Math.hypot(direction.x, direction.y)
-  if (speed < 1e-3) return false
-  return others.some((other) => {
-    if (other === member || !other.moving || rightOfWay(other) >= rightOfWay(member)) return false
-    const d = distance(member.position, other.position)
-    if (d >= MOVE.personalSpace || d < 1e-4) return false
-    return ((other.position.x - member.position.x) * direction.x + (other.position.y - member.position.y) * direction.y) / (d * speed) > 0
-  })
-}
-
+// Each member's own controller (actors/PlayerController.js) steers them; the party then keeps everyone apart.
 function tick(state, rawSeconds) {
   const seconds = Math.min(MAX_TICK_SECONDS, Math.max(0, rawSeconds))
   const current = getMembers(state)
@@ -325,8 +218,7 @@ function tick(state, rawSeconds) {
   const followTargets = getFollowTargets(state)
   const steered = current.map((member) => {
     if (!member.order) return { member, velocity: { x: 0, y: 0 }, direction: null }
-    const result = steer(state, member, seconds, followTargets[member.id])
-    return mustGiveWay(member, result.direction, current) ? { ...result, velocity: { x: 0, y: 0 } } : result
+    return controllerFor(member).exploreTick(member, { party: state, seconds, followTarget: followTargets[member.id], others: current })
   })
   const pushes = separation(current)
   let changed = false
@@ -340,7 +232,7 @@ function tick(state, rawSeconds) {
       const moved = distance(position, member.position) > 1e-5
       // A runner easing into place at the end, or held up, drops to a walk.
       const running = moved && Boolean(run) && Math.hypot(velocity.x, velocity.y) > MOVE.walkSpeed + 0.01
-      next = { ...turn(member, direction, seconds), position, moving: moved, running }
+      next = { ...controllerFor(member).turn(member, direction, seconds), position, moving: moved, running }
       if (direction && Math.hypot(direction.x, direction.y) > 0.05) next.facing = { x: direction.x, y: direction.y }
     } else if (member.moving) {
       next = { ...member, moving: false, running: false }

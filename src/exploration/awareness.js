@@ -8,31 +8,26 @@
 // Detection and reaction are separate: awareness says what the NPC knows; its disposition (or responseType) says what
 // it does once it has identified someone. COMBAT_READY is a state and an event here; combatLink.js starts combat from it.
 // Tuning: src/data/adaptation/exploration/awareness.json.
+import { headingTo, wrapAngle } from '../actors/CharacterController.js'
+import { controllerFor, isDown, isUp } from '../actors/controllers.js'
 import { blocksLineOfFire } from '../combat/battleMap.js'
 import data from '../data/adaptation/exploration/awareness.json'
-import { isDefeated } from '../rules/personalCondition.js'
-import { distance, planRoute, RADIUS, slide } from './navigation.js'
+import { distance } from './navigation.js'
 import { sneakDetectionMultiplier, sneakSkill } from './sneak.js'
 
 export const STATE = { UNAWARE: 'UNAWARE', SUSPICIOUS: 'SUSPICIOUS', INVESTIGATING: 'INVESTIGATING', ALERTED: 'ALERTED', COMBAT_READY: 'COMBAT_READY' }
-const RANK = { UNAWARE: 0, SUSPICIOUS: 1, INVESTIGATING: 2, ALERTED: 3, COMBAT_READY: 4 }
+export const RANK = { UNAWARE: 0, SUSPICIOUS: 1, INVESTIGATING: 2, ALERTED: 3, COMBAT_READY: 4 }
 const STATE_NAMES = Object.fromEntries(data.states.map((state) => [state.id, state.name]))
 const DISPOSITIONS = Object.fromEntries(data.dispositions.map((disposition) => [disposition.id, disposition]))
 const ALERT_METHODS = Object.fromEntries(data.alertMethods.map((method) => [method.id, method]))
 const T = data.timing
 const V = data.vision
-const MOVE = data.movement
 const STEPS = data.footsteps
 
 const toRadians = (degrees) => (degrees * Math.PI) / 180
-const TURN_RATE = toRadians(MOVE.turnRateDegrees)
-const SEARCH_SWEEP = toRadians(T.searchSweepDegrees)
 const MAX_TICK_SECONDS = 0.05
 const MAX_EVENTS = 40
 const NOISE_SHOW_SECONDS = 1.5
-const WAYPOINT_REACHED = 0.06
-// An NPC that can't get any closer to where it is walking (a party member in the way) gives up after this long.
-const STUCK_SECONDS = 1.5
 // Which investigation wins when a new one comes up: checking on a character it identified beats one it only glimpsed,
 // which beats a noise.
 const PRIORITY = { noise: 1, alert: 1, glimpse: 2, lost: 3 }
@@ -40,11 +35,10 @@ const PRIORITY = { noise: 1, alert: 1, glimpse: 2, lost: 3 }
 export const stateName = (id) => STATE_NAMES[id] ?? id
 export const dispositionName = (id) => DISPOSITIONS[id]?.name ?? id
 export const alertMethodName = (id) => ALERT_METHODS[id]?.name ?? id
+export const dispositionOf = (npc) => DISPOSITIONS[npc.disposition]
 
-const wrapAngle = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle))
-const headingTo = (from, to) => Math.atan2(to.y - from.y, to.x - from.x)
 const toPoint = ([x, y]) => ({ x, y })
-const EMPTY_RECORD = { state: STATE.UNAWARE, confidence: 0, lastKnownPosition: null, lastSeenTime: null, reported: false, searched: false }
+export const EMPTY_RECORD = { state: STATE.UNAWARE, confidence: 0, lastKnownPosition: null, lastSeenTime: null, reported: false, searched: false }
 
 // Whether anything that blocks sight lies between two points. Walks the tiles the line crosses (each tile x covers
 // x - 0.5 .. x + 0.5); the two end tiles don't count. A line squeezing exactly between two diagonal blocking tiles is
@@ -179,7 +173,7 @@ export function createNpc(config, character = null) {
 }
 
 // Defeated in a fight (rules/personalCondition.js): stays where it fell and no longer perceives, moves or reacts.
-export const isDown = (npc) => isDefeated(npc.condition)
+export { isDown }
 export const joinsCombat = (npc) => Boolean(DISPOSITIONS[npc.disposition]?.joinsCombat)
 // Shown as an enemy (red) in the editor and in play: it would fight the away team, by disposition or because it attacks
 // on sight (responseType 'combat', e.g. left standing after a fight). Everyone else is shown as a non-hostile NPC.
@@ -209,7 +203,7 @@ const startInvestigation = (position, targetId, reason, phase) => ({
 const canStart = (current, reason) => !current || PRIORITY[reason] >= current.priority
 
 // One party member's awareness record when the NPC can't see them this frame.
-function whileUnseen(record, id, npc, disposition, time, seconds, investigation) {
+export function whileUnseen(record, id, npc, disposition, time, seconds, investigation) {
   const sinceSeen = time - (record.lastSeenTime ?? time)
   if (record.state === STATE.ALERTED) {
     if (!record.reported && sinceSeen <= T.alertedHoldSeconds) return { record, investigation }
@@ -231,229 +225,15 @@ function whileUnseen(record, id, npc, disposition, time, seconds, investigation)
   return { record: { ...EMPTY_RECORD, lastKnownPosition: record.lastKnownPosition, lastSeenTime: record.lastSeenTime }, investigation }
 }
 
-const pickFocus = (awareness, visibleIds) => {
+export const pickFocus = (awareness, visibleIds) => {
   const ids = Object.keys(awareness).filter((id) => awareness[id].state !== STATE.UNAWARE)
   const score = (id) => (visibleIds.includes(id) ? 10 : 0) + RANK[awareness[id].state] + awareness[id].confidence
   return ids.sort((a, b) => score(b) - score(a))[0] ?? null
 }
 
-const turnToward = (heading, target, seconds) => {
-  const diff = wrapAngle(target - heading)
-  return wrapAngle(heading + Math.sign(diff) * Math.min(Math.abs(diff), TURN_RATE * seconds))
-}
-
-// Walks an NPC toward a goal along a planned route. Returns its new position, route and whether it has arrived.
-function walk(map, npc, goal, speed, seconds) {
-  let path = npc.path
-  const replan = !npc.pathGoal || distance(npc.pathGoal, goal) > 0.5 || !path.length
-  if (replan) path = planRoute(map, npc.position, goal)
-  while (path.length > 1 && distance(npc.position, path[0]) < WAYPOINT_REACHED) path = path.slice(1)
-  // Progress is measured along the route: going round a wall first leads away from the goal in a straight line.
-  const remaining = path.reduce((sum, point, i) => sum + distance(i ? path[i - 1] : npc.position, point), 0)
-  const best = replan ? Infinity : npc.stuck.best
-  const stuck = remaining < best - 0.05 ? { best: remaining, seconds: 0 } : { best, seconds: npc.stuck.seconds + seconds }
-  const waypoint = path[0]
-  if (!waypoint || remaining < MOVE.arriveDistance || (path.length === 1 && distance(npc.position, waypoint) < WAYPOINT_REACHED) || stuck.seconds > STUCK_SECONDS) {
-    return { position: npc.position, path: [], pathGoal: null, stuck: { best: Infinity, seconds: 0 }, arrived: true, direction: null }
-  }
-  const d = distance(npc.position, waypoint)
-  const step = Math.min(speed * seconds, d)
-  const delta = { x: ((waypoint.x - npc.position.x) / d) * step, y: ((waypoint.y - npc.position.y) / d) * step }
-  return { position: slide(map, npc.position, delta), path, pathGoal: { ...goal }, stuck, arrived: false, direction: Math.atan2(delta.y, delta.x) }
-}
-
-// NPCs never stand inside a party member or another NPC: anyone walking into one pushes it aside.
-function keepClear(map, position, bodies) {
-  let result = position
-  bodies.forEach((body) => {
-    const d = distance(result, body.position)
-    if (d >= RADIUS * 2) return
-    const dir = d > 1e-4 ? { x: (result.x - body.position.x) / d, y: (result.y - body.position.y) / d } : { x: 1, y: 0 }
-    result = slide(map, result, { x: dir.x * (RADIUS * 2 - d), y: dir.y * (RADIUS * 2 - d) })
-  })
-  return result
-}
-
-// otherNpcs: the other NPCs as they stood last frame (only their bodies matter here).
-function updateNpc(map, npc, members, otherNpcs, time, seconds, emit) {
-  const disposition = DISPOSITIONS[npc.disposition]
-  const responseType = npc.responseType ?? disposition.response
-  let investigation = npc.investigation
-  const awareness = {}
-  const visibleIds = []
-
-  // 1. Perception, one party member at a time.
-  members.forEach((member) => {
-    let record = npc.awareness[member.id] ?? EMPTY_RECORD
-    const seen = perceive(map, npc, member)
-    if (seen) {
-      visibleIds.push(member.id)
-      const confidence = seen.immediate ? 1 : Math.min(1, record.confidence + npc.perception.awarenessBuildRate * seen.rate * seconds)
-      let state = record.state
-      if (confidence >= 1) state = STATE.ALERTED
-      else if (state === STATE.UNAWARE) state = STATE.SUSPICIOUS
-      record = { state, confidence, lastKnownPosition: { ...member.position }, lastSeenTime: time, reported: false, searched: false }
-      if (investigation?.targetId === member.id) investigation = state === STATE.ALERTED ? null : { ...investigation, position: { ...member.position } }
-    } else if (record.state !== STATE.UNAWARE) {
-      ;({ record, investigation } = whileUnseen(record, member.id, npc, disposition, time, seconds, investigation))
-    }
-    awareness[member.id] = record
-  })
-
-  let suspicion = investigation ? npc.suspicion : Math.max(0, npc.suspicion - npc.perception.awarenessDecayRate * seconds)
-
-  // 1b. Footsteps of the characters it can't see fill the hearing meter; a full meter is heard as a noise.
-  let { glance } = npc
-  let hearing = npc.hearing ?? { level: 0, position: null }
-  if (!npc.combatReady) {
-    let gain = 0
-    let nearest = null
-    members.forEach((member) => {
-      if (visibleIds.includes(member.id)) return
-      const heard = footstepNoise(map, npc, member)
-      if (!heard) return
-      gain += heard.rate
-      const d = distance(npc.position, member.position)
-      if (!nearest || d < nearest.d) nearest = { d, position: member.position }
-    })
-    if (gain || hearing.level) {
-      const level = gain ? hearing.level + gain * seconds : Math.max(0, hearing.level - npc.perception.awarenessDecayRate * seconds)
-      hearing = { level, position: nearest ? { ...nearest.position } : hearing.position }
-    }
-    if (hearing.level >= 1) {
-      ;({ suspicion, investigation, glance } = hearSomething({ ...npc, suspicion, investigation, glance }, hearing.position, 'noise', T.noiseSuspicion))
-      hearing = { level: 0, position: hearing.position }
-      emit({ type: 'FOOTSTEPS_HEARD', npcId: npc.id })
-    }
-  }
-
-  const focusId = pickFocus(awareness, visibleIds)
-  const focus = focusId ? awareness[focusId] : null
-  const focusVisible = focusId !== null && visibleIds.includes(focusId)
-
-  // 2. Reaction to an identified character, only while actually seeing them (being told is not seeing).
-  let { response, groupAlerted, alarmAt, combatReady } = npc
-  const alerts = []
-  if (!combatReady && focusVisible && focus.state === STATE.ALERTED) {
-    const position = { ...focus.lastKnownPosition }
-    // Raising the alarm always goes out, even from an NPC that was itself only told about the party.
-    if (responseType === 'alarm' && alarmAt === null) {
-      alarmAt = time
-      emit({ type: 'ALARM_RAISED', npcId: npc.id, targetId: focusId })
-      if (npc.alertGroupId) alerts.push({ groupId: npc.alertGroupId, position, sourceNpcId: npc.id, targetId: focusId, method: 'alarm' })
-      groupAlerted = true
-    } else if (!groupAlerted && npc.alertGroupId && disposition.alertsGroup) {
-      alerts.push({ groupId: npc.alertGroupId, position, sourceNpcId: npc.id, targetId: focusId, method: npc.alertMethod })
-      groupAlerted = true
-    }
-    if (responseType !== 'none' && (response?.type !== responseType || response.targetId !== focusId)) {
-      response = { type: responseType, targetId: focusId, since: time }
-      if (responseType === 'confront') emit({ type: 'CONFRONTATION_READY', npcId: npc.id, targetId: focusId })
-      if (responseType === 'observe') emit({ type: 'OBSERVING', npcId: npc.id, targetId: focusId })
-    }
-    // Designer decision (Oct 2026): until confrontation is designed, a confronting NPC attacks on sight.
-    if (responseType === 'combat' || responseType === 'confront' || (responseType === 'alarm' && time - alarmAt >= T.alarmSeconds)) {
-      combatReady = { targetId: focusId, time }
-      emit({ type: 'COMBAT_READY', npcId: npc.id, targetId: focusId })
-    }
-  }
-
-  // 3. Overall state: the most serious thing the NPC knows about.
-  let state = STATE.UNAWARE
-  Object.values(awareness).forEach((record) => {
-    if (RANK[record.state] > RANK[state]) state = record.state
-  })
-  if (investigation && investigation.phase !== 'react' && RANK[state] < RANK.INVESTIGATING) state = STATE.INVESTIGATING
-  if (state === STATE.UNAWARE && (suspicion > 0 || investigation || hearing.level > 0)) state = STATE.SUSPICIOUS
-  if (combatReady) state = STATE.COMBAT_READY
-  if (RANK[state] < RANK.ALERTED) response = null
-  if (state === STATE.UNAWARE) {
-    groupAlerted = false
-    alarmAt = null
-  }
-  if (state !== npc.state) emit({ type: 'AWARENESS_CHANGED', npcId: npc.id, from: npc.state, to: state, targetId: focusId })
-
-  // 4. What the NPC does: face a threat, check something out, or carry on with its patrol / post.
-  let look = null
-  let goal = null
-  let speed = 0
-  let { patrol } = npc
-  if (combatReady) {
-    look = headingTo(npc.position, awareness[combatReady.targetId]?.lastKnownPosition ?? npc.position)
-  } else if (focus && (focus.state === STATE.ALERTED || (focusVisible && focus.state === STATE.SUSPICIOUS))) {
-    // Identified, or glimpsed and trying to make them out: stop and watch (or keep watching where they were).
-    if (responseType !== 'none' || focus.state !== STATE.ALERTED) look = headingTo(npc.position, focus.lastKnownPosition)
-  } else if (investigation) {
-    if (investigation.phase === 'react') {
-      look = headingTo(npc.position, investigation.position)
-      const timeLeft = investigation.timeLeft - seconds
-      investigation = timeLeft > 0 ? { ...investigation, timeLeft } : { ...investigation, phase: 'moving', timeLeft: 0 }
-      if (timeLeft <= 0) emit({ type: 'INVESTIGATION_STARTED', npcId: npc.id, targetId: investigation.targetId, reason: investigation.reason })
-    } else if (investigation.phase === 'moving') {
-      goal = investigation.position
-      speed = MOVE.investigateSpeed
-    } else {
-      const elapsed = T.searchSeconds - investigation.timeLeft
-      look = investigation.baseHeading + SEARCH_SWEEP * Math.sin((elapsed / T.searchSeconds) * Math.PI * 3)
-      const timeLeft = investigation.timeLeft - seconds
-      if (timeLeft > 0) {
-        investigation = { ...investigation, timeLeft }
-      } else {
-        emit({ type: 'INVESTIGATION_ENDED', npcId: npc.id, targetId: investigation.targetId, found: false })
-        suspicion = Math.min(suspicion, T.confidenceAfterSearch)
-        investigation = null
-      }
-    }
-  } else if (glance) {
-    look = headingTo(npc.position, glance.position)
-    glance = glance.timeLeft - seconds > 0 ? { ...glance, timeLeft: glance.timeLeft - seconds } : null
-  }
-  if (!look && !goal && !investigation) {
-    if (patrol) {
-      const point = patrol.points[patrol.index]
-      if (distance(npc.position, point.position) > MOVE.arriveDistance) {
-        goal = point.position
-        speed = MOVE.patrolSpeed
-      } else {
-        const waitLeft = (patrol.waitLeft ?? point.wait) - seconds
-        if (point.facing !== null) look = point.facing
-        patrol = waitLeft > 0 ? { ...patrol, waitLeft } : { ...patrol, index: (patrol.index + 1) % patrol.points.length, waitLeft: null }
-      }
-    } else if (distance(npc.position, npc.home.position) > MOVE.arriveDistance) {
-      goal = npc.home.position
-      speed = MOVE.patrolSpeed
-    } else {
-      look = npc.home.heading
-    }
-  }
-
-  let { position, path, pathGoal, stuck } = npc
-  let moving = false
-  let heading = npc.heading
-  if (goal) {
-    const step = walk(map, npc, goal, speed, seconds)
-    ;({ position, path, pathGoal, stuck } = step)
-    moving = !step.arrived && distance(position, npc.position) > 1e-5
-    if (step.direction !== null && look === null) look = step.direction
-    if (step.arrived && investigation?.phase === 'moving' && goal === investigation.position) {
-      investigation = { ...investigation, phase: 'searching', timeLeft: T.searchSeconds, baseHeading: heading }
-    }
-  } else if (path.length) {
-    path = []
-    pathGoal = null
-  }
-  if (look !== null) heading = turnToward(heading, look, seconds)
-  position = keepClear(map, position, [...members, ...otherNpcs.filter((other) => !isDown(other))])
-
-  return {
-    npc: { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, hearing, awareness, visibleIds, suspicion, investigation, focusId, state, response, groupAlerted, alarmAt, combatReady },
-    alerts,
-  }
-}
-
 // Something heard or reported at a place, with nobody identified: an NPC already dealing with someone it identified
 // ignores it; one that investigates goes to check after a moment; others just turn to look.
-function hearSomething(npc, position, reason, amount) {
+export function hearSomething(npc, position, reason, amount) {
   if (RANK[npc.state] >= RANK.ALERTED) return npc
   const suspicion = Math.max(npc.suspicion, Math.min(1, amount))
   if (!DISPOSITIONS[npc.disposition].investigates) return { ...npc, suspicion, glance: { position: { ...position }, timeLeft: T.reactSeconds * 2 } }
@@ -510,7 +290,7 @@ export function tickWorld(world, party, rawSeconds) {
   if (!seconds) return world
   const time = world.time + seconds
   // A Defeated party member draws no attention: NPCs only notice those still up.
-  const members = party.memberIds.map((id) => party.members[id]).filter((member) => !isDefeated(member.condition))
+  const members = party.memberIds.map((id) => party.members[id]).filter(isUp)
   const events = []
   const emit = (event) => events.push(event)
   const npcs = {}
@@ -521,7 +301,8 @@ export function tickWorld(world, party, rawSeconds) {
       return
     }
     const others = world.npcIds.filter((other) => other !== id).map((other) => world.npcs[other])
-    const result = updateNpc(world.map, world.npcs[id], members, others, time, seconds, emit)
+    const npc = world.npcs[id]
+    const result = controllerFor(npc).exploreTick(npc, { map: world.map, members, others, time, seconds, emit })
     npcs[id] = result.npc
     alerts.push(...result.alerts)
   })

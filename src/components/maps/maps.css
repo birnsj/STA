@@ -1,4 +1,4 @@
-/* Shared isometric tile images (map editor and combat boards). Prefixed tilemap- so Combat Type 1's iso-* styles never apply. */
+/* Shared isometric tile images (map editor and combat boards). Prefixed tilemap- so combat's iso-* styles never apply. */
 .tilemap-tile {
   pointer-events: none;
 }

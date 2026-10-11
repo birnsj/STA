@@ -22,7 +22,7 @@ The current phase is:
 Built so far (all in this React prototype):
 
 - Character creation: the STA 2e Core Rulebook lifepath, saved characters, and JSON export.
-- Personal combat (Combat Type 1) on isometric maps: STA 2e task roll, Momentum and Threat, Injuries, AI for both sides.
+- Personal combat on isometric maps: STA 2e task roll, Momentum and Threat, Injuries, AI for both sides.
 - Exploration: party movement and formations, NPC awareness, challenge objects, hand-off to and from combat.
 - A dev map editor and procedural map generators.
 - An Electron desktop build.

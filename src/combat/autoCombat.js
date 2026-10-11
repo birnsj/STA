@@ -1,7 +1,7 @@
 // Auto Combat: AI-driven combat on the normal engine. Nothing here depends on React or timers; the screen only decides
 // when to take the next step, so the same steps can run headless (runAutoCombat) for later batch simulation.
+import { controllerFor } from '../actors/controllers.js'
 import {
-  canAmbush,
   combatReducer,
   createCombat,
   getActiveCombatant,
@@ -38,7 +38,8 @@ export const PARTY_AIS = [
 
 export const ENEMY_AIS = PARTY_AIS
 
-function normalStep(state, self, ai) {
+// One step by the chosen AI ('brain') for whoever is acting; the character's controller (actors/) picks the AI id.
+export function normalStep(state, self, ai) {
   if (self.retreating) return retreatStep(state, self)
   if (ai === 'random') return randomStep(state, self)
   // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
@@ -68,7 +69,7 @@ function ambushPosition(state, ambusher) {
 // The Ambush for an AI-run party, while the party is unspotted. It is aimed at the Klingon the AI would attack first if the
 // ambusher has a shot at it, else the nearest one they have a shot at. With no shot yet, the party sets it up: the turn
 // goes to the ambusher (while they still have a turn), who moves to a tile with a shot.
-function ambushStep(state, self, ai) {
+export function ambushStep(state, self, ai) {
   const ambusher = getAmbusher(state)
   const chance = previewAmbush(state, null).chance
   const willTry = ai === 'random' ? seededRandomInt(deriveSeed(state.seed ^ AMBUSH_SALT, 0))() < 0.5 : chance >= AMBUSH_MIN_CHANCE
@@ -97,15 +98,11 @@ function ambushStep(state, self, ai) {
   }
 }
 
-// partyAmbush: false skips the opening ambush (to compare fights with and without it).
-export function chooseAIStep(state, { partyAI = 'classic', enemyAI = 'classic', partyAmbush = true } = {}) {
+// partyAmbush: false skips the opening ambush (to compare fights with and without it). The acting combatant's controller
+// decides: a party member plays the party AI (with the opening ambush), an enemy the enemy AI.
+export function chooseAIStep(state, options = {}) {
   const self = getActiveCombatant(state)
-  const ai = self.side === 'player' ? partyAI : enemyAI
-  if (self.side === 'player' && partyAmbush && canAmbush(state)) {
-    const ambush = ambushStep(state, self, ai)
-    if (ambush) return ambush
-  }
-  return normalStep(state, self, ai)
+  return controllerFor(self).combatStep(state, self, options)
 }
 
 // The Avoid Injury decision for a party member when the AI plays the party (combat/injuryPolicy.js).

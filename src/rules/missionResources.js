@@ -1,5 +1,5 @@
 // The mission's two shared pools: the party's group Momentum and the scenario's Threat. One object
-// ({ momentum, threat }) owned by the running mission: the exploration state holds it, and a Combat Type 1 fight holds
+// ({ momentum, threat }) owned by the running mission: the exploration state holds it, and a fight holds
 // the same object while it runs (combatLink.js hands it over and back). Challenge objects and combat change it only
 // through these functions. Pure.
 //

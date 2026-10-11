@@ -50,7 +50,7 @@ function parseSeed(text) {
 
 export default function CombatSetup({ savedCharacters, initialParty, initialSeed, mapId, onStart, onExit }) {
   const { map, problem: mapProblem } = useEpisodeMap(mapId)
-  const mapWarnings = map ? validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat Type 1' }) : []
+  const mapWarnings = map ? validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat' }) : []
   // One party member per player start on the chosen map.
   const maxPartySize = map?.markers.playerStarts.length ?? 0
   // UI state: the chosen party (RuntimeCharacters, in pick order), characters loaded from files, the one being previewed, and the seed text.

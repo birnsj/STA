@@ -1,6 +1,6 @@
 // What the away team knows about the NPCs in the world, as opposed to what the camera shows. Each party member perceives
 // from where they stand; the party's knowledge is everything any of them has perceived (they share what they find).
-// The same layer runs in exploration (every frame) and in Combat Type 1 (after every action), from world/cell positions
+// The same layer runs in exploration (every frame) and in combat (after every action), from world/cell positions
 // only, never from what is on screen.
 //
 // Per NPC: { state, observerIds, source, identified, lastKnownPosition, lastSeenTime, lastObserverId }
