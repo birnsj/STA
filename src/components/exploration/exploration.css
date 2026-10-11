@@ -26,11 +26,6 @@
   opacity: 0.8;
 }
 
-.explore-sneak-button {
-  width: 100%;
-  margin-top: 8px;
-}
-
 .explore-select-box {
   fill: rgba(246, 185, 40, 0.12);
   stroke: var(--yellow);
@@ -40,6 +35,21 @@
 
 .explore-unit.is-lead .iso-unit-facing {
   fill: var(--yellow);
+}
+
+/* An NPC's name over their head, in their ring's colour (combat.css: red hostile, purple otherwise). */
+.explore-npc-tag {
+  fill: #b07ee8;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  paint-order: stroke;
+  stroke: #03060e;
+  stroke-width: 3px;
+}
+
+.iso-unit.is-enemy .explore-npc-tag {
+  fill: var(--red);
 }
 
 .explore-unit-lead {
@@ -56,8 +66,15 @@
   position: relative;
 }
 
+/* The portrait cards and the Formation panel share one resting height so their tops and bottoms line up. */
+.explore-party-bar,
+.explore-bottom-right {
+  --explore-card-height: 75px;
+}
+
 .explore-card {
   width: 178px;
+  min-height: var(--explore-card-height);
   padding: 6px 10px 6px 6px;
 }
 
@@ -170,12 +187,12 @@
   width: 330px;
 }
 
-/* The Captain's Log: right side, under the top-right buttons. */
+/* The Captain's Log: right side, over the minimap and above the menu buttons. */
 .captains-log {
   position: absolute;
-  top: 76px;
+  top: 8px;
   right: 8px;
-  bottom: 100px;
+  bottom: 118px;
   z-index: 25;
   display: flex;
   flex-direction: column;
@@ -549,6 +566,20 @@
   gap: 6px;
 }
 
+.explore-menu-buttons {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+/* Squeezed to the Formation panel's width. */
+.explore-menu-buttons .combat-button {
+  flex: 1 1 auto;
+  padding-inline: 4px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 .explore-action-stack {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -567,7 +598,7 @@
 
 .explore-minimap-column {
   position: absolute;
-  top: 40px;
+  top: 8px;
   right: 8px;
   z-index: 20;
   display: flex;
@@ -588,6 +619,37 @@
   display: block;
   width: 100%;
   aspect-ratio: 1;
+}
+
+/* The column ignores the pointer so the map stays clickable around it; the toggle opts back in. */
+.explore-actions-toggle {
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.88);
+  color: rgba(225, 240, 245, 0.85);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.explore-actions-toggle:hover {
+  border-color: var(--yellow);
+}
+
+.explore-actions-toggle[aria-expanded='true'] {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.explore-actions-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .minimap-area-label {
@@ -677,7 +739,9 @@
 .explore-formation-panel {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 5px;
+  height: var(--explore-card-height);
 }
 
 .explore-formation-options {
@@ -1066,16 +1130,37 @@
   cursor: pointer;
 }
 
-.challenge-marker ellipse {
-  fill: color-mix(in srgb, var(--challenge) 12%, transparent);
-  stroke: var(--challenge);
-  stroke-width: 1.5;
-  stroke-dasharray: 5 3;
+/* A challenge object's outline (ExplorationBoard ObjectOutlineFilters draws it): a faint edge while out of reach, a
+   pulsing glow once a party member can act on it, steady while hovered. */
+.object-highlight {
+  pointer-events: none;
+  opacity: 0.6;
 }
 
-.challenge-marker.is-in-reach ellipse {
-  stroke-dasharray: none;
-  stroke-width: 2.5;
+.object-highlight.is-in-reach {
+  cursor: pointer;
+  opacity: 1;
+  animation: object-highlight-pulse 1.6s ease-in-out infinite;
+}
+
+.object-highlight.is-in-reach .tilemap-tile {
+  pointer-events: auto;
+}
+
+.object-highlight.is-in-reach:hover {
+  animation: none;
+}
+
+@keyframes object-highlight-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .object-highlight.is-in-reach {
+    animation: none;
+  }
 }
 
 .challenge-marker path {
@@ -1134,12 +1219,13 @@
   transform: translateX(-50%);
 }
 
-/* The interaction panel: approaches, performer / assistant, the character math, then the dice and result. */
+/* The interaction panel: approaches, performer / assistant, the character math, then the dice and result. It ends
+   above the menu buttons, which stay in the bottom-right corner while it is open. */
 .challenge-panel {
   position: absolute;
   right: 12px;
   top: 84px;
-  bottom: 12px;
+  bottom: 38px;
   z-index: 30;
   display: flex;
   flex-direction: column;

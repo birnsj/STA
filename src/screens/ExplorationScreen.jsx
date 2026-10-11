@@ -10,7 +10,7 @@ import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
 import { loadConversation } from '../conversation/conversationFiles.js'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
-import { ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
+import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import Minimap from '../components/exploration/Minimap.jsx'
@@ -31,6 +31,7 @@ import { createExplorationState, explorationReducer, npcsInTalkRange } from '../
 import { objectiveStatus } from '../exploration/missionFlags.js'
 import { getFormation } from '../exploration/formations.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
+import { objectFor } from '../world/objects.js'
 import { getCohesion, getMembers } from '../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
@@ -513,7 +514,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
   )
 }
 
-function Exploration({ state, dispatch, onChangeParty, onExit }) {
+function Exploration({ state, dispatch, onExit }) {
   const { party, world } = state
   const [followCamera, setFollowCamera] = useState(true)
   const [debugOpen, setDebugOpen] = useState(false)
@@ -530,6 +531,13 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   }, [])
   // UI state: the action button being considered (the party cards show who is best at it).
   const [consideredActionId, setConsideredActionId] = useState(null)
+  // UI state: whether the action buttons are showing (the Actions button opens and closes them).
+  const [actionsOpen, setActionsOpen] = useState(false)
+  // A hidden action can't stay considered, or the party cards would keep highlighting for a button nobody can see.
+  const toggleActions = useCallback(() => {
+    setActionsOpen((open) => !open)
+    setConsideredActionId(null)
+  }, [])
   // UI state: whether the character sheet is open (I toggles it); selecting never opens it (designer decision).
   const [sheetOpen, setSheetOpen] = useState(false)
   // UI state: whether the Captain's Log panel is open.
@@ -627,7 +635,6 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
   const toggleSneak = useCallback(() => dispatch({ type: 'toggleSneak' }), [dispatch])
-  const allSneaking = party.selectedIds.length > 0 && party.selectedIds.every((id) => party.members[id].sneaking)
   // With several selected, the sheet shows the first of them.
   const sheetMember = sheetOpen && !debugOpen && party.selectedIds.length > 0 ? party.members[party.selectedIds[0]] : null
 
@@ -759,7 +766,7 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         state={party}
         world={world}
         knowledge={state.partyKnowledge}
-        challenges={challengeViews}
+        challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles() }))}
         reachableIds={reachableIds}
         onInteract={setInteractionId}
         debug={debugOpen}
@@ -818,31 +825,6 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
           dev={debugOpen}
         />
       )}
-      <div className="combat-top-right">
-        <button type="button" className="combat-button is-small" aria-pressed={logOpen} title="Briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
-          Captain&apos;s Log
-        </button>
-        <button
-          type="button"
-          className="combat-button is-small"
-          aria-pressed={followCamera}
-          title={followCamera ? 'The view follows the lead character. Click to stop.' : 'The view stays where you put it. Click to follow the lead character.'}
-          onClick={() => setFollowCamera(!followCamera)}
-        >
-          Camera: {followCamera ? 'Follow' : 'Free'}
-        </button>
-        <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={() => setDebugOpen(!debugOpen)}>
-          Debug
-        </button>
-        {onChangeParty && (
-          <button type="button" className="combat-button is-small" onClick={onChangeParty}>
-            Away Team
-          </button>
-        )}
-        <button type="button" className="combat-button is-small" onClick={onExit}>
-          Exit
-        </button>
-      </div>
       {confirmAttackNpc && (
         <ConfirmDialog
           title={`Attack ${confirmAttackNpc.name}?`}
@@ -859,7 +841,11 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
-      {!panelOpen && <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} debug={debugOpen} />}
+      {!panelOpen && (
+        <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} debug={debugOpen}>
+          <ActionsToggle open={actionsOpen} onToggle={toggleActions} />
+        </Minimap>
+      )}
       <ExplorationPartyBar
         members={members}
         selectedIds={party.selectedIds}
@@ -868,12 +854,31 @@ function Exploration({ state, dispatch, onChangeParty, onExit }) {
         onSetLeader={setLeader}
         recommendation={panelOpen ? recommendation : recommendPartyAction(members, consideredActionId, state.scenario.traits)}
       />
-      {!panelOpen && (
-        <div className="explore-bottom-right">
-          <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />
-          <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} sneaking={allSneaking} onSneak={toggleSneak} />
+      {/* The menu buttons stay while a challenge or conversation is open (that panel ends above them). */}
+      <div className="explore-bottom-right">
+        {!panelOpen && actionsOpen && <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />}
+        <div className="explore-menu-buttons">
+          <button type="button" className="combat-button is-small" aria-pressed={logOpen} title="Briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
+            Captain&apos;s Log
+          </button>
+          <button
+            type="button"
+            className="combat-button is-small"
+            aria-pressed={followCamera}
+            title={followCamera ? 'The view follows the lead character. Click to stop.' : 'The view stays where you put it. Click to follow the lead character.'}
+            onClick={() => setFollowCamera(!followCamera)}
+          >
+            Camera: {followCamera ? 'Follow' : 'Free'}
+          </button>
+          <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={() => setDebugOpen(!debugOpen)}>
+            Debug
+          </button>
+          <button type="button" className="combat-button is-small" onClick={onExit}>
+            Exit
+          </button>
         </div>
-      )}
+        {!panelOpen && <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />}
+      </div>
       {debugOpen && (
         <div className="explore-debug-column">
           <DebugPanel state={party} mode={state.mode} lastCombat={state.lastCombat} onSpacing={(spacing) => dispatch({ type: 'setSpacing', spacing })} onClose={() => setDebugOpen(false)} />
@@ -910,7 +915,7 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   }
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} onChangeParty={() => setPhase('setup')} onExit={onExit} />
+      <Exploration state={state} dispatch={dispatch} onExit={onExit} />
     </MapFadeIn>
   )
 }
@@ -921,5 +926,5 @@ export function ExplorationPlaytest({ map, characters, enemiesActive, onExit }) 
   const [state, dispatch] = useReducer(explorationReducer, null, () =>
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
-  return <Exploration state={state} dispatch={dispatch} onChangeParty={null} onExit={onExit} />
+  return <Exploration state={state} dispatch={dispatch} onExit={onExit} />
 }

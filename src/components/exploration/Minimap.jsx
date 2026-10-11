@@ -27,7 +27,7 @@ function Marker({ position, className, title, shape }) {
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
 // as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
 // objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. Display only.
-export default function Minimap({ map, party, world, knowledge, objectives = [], debug = false }) {
+export default function Minimap({ map, party, world, knowledge, objectives = [], debug = false, children }) {
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
 
@@ -90,6 +90,7 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
           ))}
         </svg>
       </section>
+      {children}
     </div>
   )
 }

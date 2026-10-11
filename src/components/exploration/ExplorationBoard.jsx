@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { controllerFor } from '../../actors/controllers.js'
 import { dispositionName, getNpcs, isDown, isHostile, stateName } from '../../exploration/awareness.js'
 import { getFormation, slotPoint } from '../../exploration/formations.js'
@@ -6,11 +6,13 @@ import { getFollowTargets, getMembers, isSelected } from '../../exploration/part
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
-import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { isBlock, project, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
+import { getTile, imageSize } from '../../maps/mapFormat.js'
+import { LoneTile, WallBlock } from '../maps/IsoTiles.jsx'
 import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import useWallFade from '../maps/useWallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
-import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
+import { BIG_IMAGE, fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from '../maps/canvasTiles.js'
 import { around, labelHalfWidth } from '../maps/occlusion.js'
@@ -124,6 +126,10 @@ function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = fal
   )
 }
 
+// The NPC's name tag: over the head where the party's LEAD tag goes, or just above a body lying down.
+const NPC_TAG_Y = -58
+const NPC_TAG_DOWN_Y = -22
+
 // An NPC on the map. Not clickable: a click on it is a move order to that spot.
 // unperceived: shown only because the debug view is on (the party can't see it now).
 function NpcToken({ npc, unperceived = false, onPress = null }) {
@@ -149,6 +155,9 @@ function NpcToken({ npc, unperceived = false, onPress = null }) {
       ) : (
         <ExplorerFigure image={image} uniform={uniform} spriteSet={npc.character?.portrait.spriteSet} walking={walking} seed={npc.id} clipId={clipId} name={npc.name} facing={facing} />
       )}
+      <text className="explore-npc-tag" x="0" y={down ? NPC_TAG_DOWN_Y : NPC_TAG_Y} textAnchor="middle">
+        {npc.name}
+      </text>
     </g>
   )
 }
@@ -262,20 +271,129 @@ function NpcDebugOverlay({ world, party }) {
   )
 }
 
-// A challenge object on the map: its name and current state. In reach = a party member can act on it now; clicking it
-// then opens the interaction (a click elsewhere on the map stays a move order).
-function ChallengeMarker({ view, inReach, onPress }) {
-  const centre = project(view.position)
-  const classes = ['challenge-marker', view.changed ? 'is-changed' : 'is-unresolved', inReach ? 'is-in-reach' : ''].filter(Boolean).join(' ')
+const challengeClasses = (base, view, inReach) => [base, view.changed ? 'is-changed' : 'is-unresolved', inReach ? 'is-in-reach' : ''].filter(Boolean).join(' ')
+const challengeTitle = (view, inReach) => `${view.name}: ${view.stateLabel}${inReach ? ' (click to interact)' : ''}`
+
+// The tiles a challenge object's art is drawn on, in painter's order: its own and its covers, and the whole footprint of
+// a big object (bigObjects.js), which draws its image in strips from three of its four tiles.
+function highlightTiles(tiles, bigGroups) {
+  const keyed = new Map()
+  for (const tile of tiles) {
+    const origin = bigGroups.get(`${tile.x},${tile.y}`)
+    const footprint = origin ? [origin, { x: origin.x + 1, y: origin.y }, { x: origin.x, y: origin.y + 1 }, { x: origin.x + 1, y: origin.y + 1 }] : [tile]
+    for (const point of footprint) keyed.set(`${point.x},${point.y}`, point)
+  }
+  return [...keyed.values()].sort((a, b) => a.x + a.y - (b.x + b.y))
+}
+
+// The world rect the highlighted art (and its glow) is drawn in, for occlusion.
+const HIGHLIGHT_GLOW = 6
+function highlightBox(map, bigGroups, tiles) {
+  const boxes = tiles.map((tile) => {
+    const origin = bigGroups.get(`${tile.x},${tile.y}`)
+    if (origin) {
+      const centre = project({ x: origin.x + 0.5, y: origin.y + 0.5 })
+      return { x: centre.x - BIG_IMAGE.width / 2, y: centre.y + TILE_H - BIG_IMAGE.height, width: BIG_IMAGE.width, height: BIG_IMAGE.height }
+    }
+    return tileImageBox(tile, imageSize(getTile(map.tiles[tile.y][tile.x])))
+  })
+  const left = Math.min(...boxes.map((box) => box.x)) - HIGHLIGHT_GLOW
+  const top = Math.min(...boxes.map((box) => box.y)) - HIGHLIGHT_GLOW
+  const right = Math.max(...boxes.map((box) => box.x + box.width)) + HIGHLIGHT_GLOW
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height)) + HIGHLIGHT_GLOW
+  return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
+// The world y of the top of the object's art: each tile's top face peak (tiles.json height above its floor diamond's
+// top corner), so the marker isn't pushed up by the empty space above the art in a tile image. A big object without a
+// height falls back to its image's top edge.
+function artTopY(map, bigGroups, tiles, art) {
+  return Math.min(
+    ...tiles.map((tile) => {
+      const { height } = getTile(map.tiles[tile.y][tile.x])
+      if (bigGroups.has(`${tile.x},${tile.y}`) && !height) return art.y + HIGHLIGHT_GLOW
+      return project(tile).y - TILE_H / 2 - (height ?? 0)
+    }),
+  )
+}
+
+// The outline filters: the art's silhouette grown by a pixel or two, less the art itself, so only a ring round it is
+// drawn and the map's own art (faded or not) shows through. The glow variant adds a soft halo outside the ring. One
+// pair per state colour (exploration.css .challenge-marker uses the same colours): a filter's flood colour can't come
+// from the element it is applied to.
+const OUTLINE_COLOURS = { unresolved: '#f6b928', changed: '#4fd6c4' }
+function ObjectOutlineFilters({ prefix }) {
   return (
-    <g className={classes} transform={`translate(${centre.x} ${centre.y})`} onPointerDown={onPress}>
-      <title>{`${view.name}: ${view.stateLabel}${inReach ? ' (click to interact)' : ''}`}</title>
-      <ellipse cx="0" cy="0" rx="20" ry="10" />
-      <path d="M0 -40 L9 -30 L0 -20 L-9 -30 Z" />
-      <text className="challenge-marker-name" x="0" y="-46" textAnchor="middle">
+    <defs>
+      {Object.entries(OUTLINE_COLOURS).flatMap(([name, colour]) =>
+        [false, true].map((glow) => (
+          <filter key={`${name}${glow}`} id={`${prefix}-${name}${glow ? '-glow' : ''}`} x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feMorphology in="SourceAlpha" operator="dilate" radius={glow ? 1.6 : 1} result="grown" />
+            <feComposite in="grown" in2="SourceAlpha" operator="out" result="ring" />
+            <feFlood floodColor={colour} />
+            <feComposite in2="ring" operator="in" result="edge" />
+            {glow ? (
+              <>
+                <feGaussianBlur in="edge" stdDeviation="3" />
+                <feComposite in2="SourceAlpha" operator="out" result="halo" />
+                <feMerge>
+                  <feMergeNode in="halo" />
+                  <feMergeNode in="halo" />
+                  <feMergeNode in="edge" />
+                </feMerge>
+              </>
+            ) : null}
+          </filter>
+        )),
+      )}
+    </defs>
+  )
+}
+
+// A challenge object outlined in its state's colour (ObjectOutlineFilters): its art is drawn again only for the filter
+// to trace, so just the outline shows. A thin edge while nobody can reach it; glowing once a party member can act on
+// it, when clicking the art opens the interaction.
+const NO_FADE = new Set()
+function ObjectHighlight({ view, tiles, layout, filterPrefix, inReach, onPress }) {
+  const { map, panels, bigGroups } = layout
+  const filter = `url(#${filterPrefix}-${view.changed ? 'changed' : 'unresolved'}${inReach ? '-glow' : ''})`
+  return (
+    <g className={challengeClasses('object-highlight', view, inReach)} onPointerDown={onPress}>
+      <title>{challengeTitle(view, inReach)}</title>
+      <g filter={filter}>
+        {tiles.map((position) =>
+          isBlock(map.tiles[position.y][position.x]) ? (
+            <WallBlock key={`${position.x},${position.y}`} map={map} position={position} faded={NO_FADE} panels={panels} bigGroups={bigGroups} />
+          ) : (
+            <LoneTile key={`${position.x},${position.y}`} map={map} position={position} />
+          ),
+        )}
+      </g>
+    </g>
+  )
+}
+
+// Where the marker's parts sit above the top of the object's art (y up from it): the diamond just over the art, then
+// the state, then the name on top.
+const MARKER_DIAMOND = 4
+const MARKER_STATE = 28
+const MARKER_NAME = 39
+const MARKER_HEIGHT = MARKER_NAME + 12
+
+// A challenge object on the map: its name, current state and a diamond stacked above its art (ObjectHighlight).
+// artTop: the art's top, in world units above the object's tile centre. In reach = a party member can act on it now;
+// clicking it then opens the interaction (a click elsewhere on the map stays a move order).
+function ChallengeMarker({ view, artTop, inReach, onPress }) {
+  const centre = project(view.position)
+  const diamond = -artTop - MARKER_DIAMOND
+  return (
+    <g className={challengeClasses('challenge-marker', view, inReach)} transform={`translate(${centre.x} ${centre.y})`} onPointerDown={onPress}>
+      <title>{challengeTitle(view, inReach)}</title>
+      <path d={`M0 ${diamond - 20} L9 ${diamond - 10} L0 ${diamond} L-9 ${diamond - 10} Z`} />
+      <text className="challenge-marker-name" x="0" y={-artTop - MARKER_NAME} textAnchor="middle">
         {view.name}
       </text>
-      <text className="challenge-marker-state" x="0" y="20" textAnchor="middle">
+      <text className="challenge-marker-state" x="0" y={-artTop - MARKER_STATE} textAnchor="middle">
         {view.stateLabel}
       </text>
     </g>
@@ -360,6 +478,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
 
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
+  const filterPrefix = useId()
   // Only the selected characters cut walls away.
   const hidden = useWallFade(
     map,
@@ -516,10 +635,10 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       .filter((npc) => debug || isVisibleToParty(knowledge, npc.id))
       .map((npc) => ({
         depth: atDepth(npc.position, 0.5),
-        box: around(npc.position, 30 * FIGURE_SCALE, 72 * FIGURE_SCALE),
+        box: around(npc.position, Math.max(30 * FIGURE_SCALE, labelHalfWidth(npc.name)), Math.max(72 * FIGURE_SCALE, 12 - NPC_TAG_Y)),
         element: <NpcToken key={`n${npc.id}`} npc={npc} unperceived={!isVisibleToParty(knowledge, npc.id)} onPress={onOpenNpcMenu && isVisibleToParty(knowledge, npc.id) ? pressNpc(npc.id) : null} />,
       })),
-    ...challenges.map((view) => {
+    ...challenges.flatMap((view) => {
       const inReach = reachableIds.includes(view.id)
       const press = (event) => {
         if (event.button !== 0 || !inReach) return
@@ -527,11 +646,22 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         onInteract(view.id)
       }
       const half = Math.max(30, labelHalfWidth(view.name), labelHalfWidth(view.stateLabel))
-      return {
-        depth: atDepth(view.position, 0.4),
-        box: around(view.position, half, 60, half, 30),
-        element: <ChallengeMarker key={`c${view.id}`} view={view} inReach={inReach} onPress={press} />,
-      }
+      const tiles = highlightTiles(view.tiles ?? [view.position], bigGroups)
+      const nearest = Math.max(...tiles.map((tile) => tile.x + tile.y))
+      const art = highlightBox(map, bigGroups, tiles)
+      const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, art)
+      return [
+        {
+          depth: nearest + 0.35,
+          box: art,
+          element: <ObjectHighlight key={`h${view.id}`} view={view} tiles={tiles} layout={layout} filterPrefix={filterPrefix} inReach={inReach} onPress={press} />,
+        },
+        {
+          depth: nearest + 0.4,
+          box: around(view.position, half, artTop + MARKER_HEIGHT, half, -artTop + 2),
+          element: <ChallengeMarker key={`c${view.id}`} view={view} artTop={artTop} inReach={inReach} onPress={press} />,
+        },
+      ]
     }),
   ]
   const { holes, windows } = useFigureWindows(layout, faded, figures)
@@ -545,6 +675,7 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       onContextMenu={preventMenu}
       onClick={handleClick}
     >
+      <ObjectOutlineFilters prefix={filterPrefix} />
       <MapCanvas layout={layout} faded={faded} holes={holes} ground={ground}>
         {windows}
       </MapCanvas>

@@ -132,7 +132,7 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
 // party cards show who is best at it; clicking it again stops. Nothing is rolled yet.
 export const ExplorationActionButtons = memo(function ExplorationActionButtons({ consideredId, onConsider }) {
   return (
-    <div className="explore-action-stack" aria-label="Actions: who is best at it">
+    <div id="explore-action-stack" className="explore-action-stack" aria-label="Actions: who is best at it">
       {PARTY_ACTIONS.map((action) => {
         const considered = action.id === consideredId
         return (
@@ -156,6 +156,25 @@ export const ExplorationActionButtons = memo(function ExplorationActionButtons({
   )
 })
 
+// The small square under the minimap that opens and closes the action buttons.
+export function ActionsToggle({ open, onToggle }) {
+  return (
+    <button
+      type="button"
+      className="explore-actions-toggle"
+      aria-expanded={open}
+      aria-controls="explore-action-stack"
+      aria-label="Actions"
+      title={open ? 'Hide the action buttons.' : 'Show the action buttons.'}
+      onClick={onToggle}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h7v5H4zM13 5h7v5h-7zM4 14h7v5H4zM13 14h7v5h-7z" />
+      </svg>
+    </button>
+  )
+}
+
 
 // A formation drawn from its own slots (the lead in front, at the top), all at one scale so Tight looks tight and
 // Spread wide.
@@ -172,8 +191,7 @@ function FormationIcon({ formation }) {
 
 const REGROUP_ICON = 'M4 4l5 5M9 5v4H5M20 4l-5 5M15 5v4h4M4 20l5-5M9 19v-4H5M20 20l-5-5M15 19v-4h4'
 
-// sneaking: every selected character is sneaking.
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, sneaking, onSneak }) {
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
@@ -204,15 +222,6 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
           </svg>
         </button>
       </div>
-      <button
-        type="button"
-        className={`combat-button is-small explore-sneak-button${sneaking ? ' is-primary' : ''}`}
-        aria-pressed={sneaking}
-        title="Sneak (C): the selected characters crouch and move slowly, harder to notice. Speed and stealth come from each one's Control + Security."
-        onClick={onSneak}
-      >
-        Sneak (C): {sneaking ? 'On' : 'Off'}
-      </button>
     </div>
   )
 })
