@@ -26,7 +26,7 @@ import { getFaction } from '../rules/factions.js'
 import { getEquippedItems } from '../rules/equipment.js'
 import { getAvailableActions, getChallengeViews, getDefinition, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
 import { SCAN_TRAIT } from '../combat/combatScan.js'
-import { compareCombatObject, getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject } from '../exploration/combatLink.js'
+import { getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject, recommendCombatObject } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
 import { getFormation } from '../exploration/formations.js'
@@ -472,7 +472,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
   const objects = {
     list: objectList,
     preview: (objectId, actionId) => previewCombatObject(state, objectId, actionId),
-    compare: (objectId, actionId, performerId) => compareCombatObject(state, objectId, actionId, performerId),
+    recommend: (objectId, actionId, memberIds) => recommendCombatObject(state, objectId, actionId, memberIds),
     marks: getChallengeViews(state.scenario).map((view) => ({
       id: view.id,
       name: view.name,

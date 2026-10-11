@@ -13,7 +13,6 @@ import {
   SOCIAL_KINDS,
   socialChance,
 } from '../../combat/combatState.js'
-import { recommendPerformers } from '../../rules/taskRecommendation.js'
 import { typeName } from './battleHelpers.js'
 
 // The Task panel for the action being set up on the player's turn: its explanation, any picker (who to guard, treat,
@@ -166,10 +165,12 @@ export default function buildTaskPanel({
       note: chosen && !prepared && block ? block : null,
       // Guidance only: who in the party (with the action's cost still left this round) has the best odds at this task.
       recommendation: prepared
-        ? recommendPerformers(
+        ? objects.recommend(
+            chosen.definition.id,
+            chosen.action.id,
             Object.values(state.combatants)
               .filter((c) => c.side === 'player' && isActive(c) && !isTurnFinished(state, c.id) && getTurnOf(state, c.id)[chosen.cost] > 0)
-              .map((c) => ({ id: c.id, prepared: objects.compare(chosen.definition.id, chosen.action.id, c.id).prepared })),
+              .map((c) => c.id),
           )
         : null,
       nameOf: (id) => state.combatants[id]?.character.name ?? id,

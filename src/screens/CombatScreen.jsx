@@ -67,7 +67,8 @@ import {
 // own debug toggle, so the one Debug button also opens the world's link readout.
 // objects (combat in the world): the challenge objects, { list: [{ definition, actions: [{ action, available, reason,
 // cost, affordable }] }] in reach of whoever acts, preview(objectId, actionId) -> { prepared, assist } (the object's own
-// task math), marks: [{ id, name, position, stateLabel, inReach }] to draw }. Their actions dispatch { type: 'interact' }.
+// task math), recommend(objectId, actionId, memberIds) -> who is best at it (rules/taskRecommendation.js), marks:
+// [{ id, name, position, stateLabel, inReach }] to draw }. Their actions dispatch { type: 'interact' }.
 export function Battle({
   state,
   dispatch,

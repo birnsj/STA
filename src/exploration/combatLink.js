@@ -30,8 +30,8 @@ import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import { wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
+import { objectFor, objectsOf } from '../world/objects.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
-import { attemptChallenge, combatCostOf, getAvailableActions, getDefinition, INTERACT_RANGE, previewChallenge } from './challengeObjects.js'
 import { defeatedFlag } from './missionObjectives.js'
 import { getMembers, withAbleSelection } from './partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
@@ -374,8 +374,6 @@ function withFightersInWorld(state) {
   return { ...state, party: { ...state.party, members } }
 }
 
-const reachesObject = (definition, position) => Math.hypot(position.x - definition.position[0], position.y - definition.position[1]) <= INTERACT_RANGE
-
 // The objects the combatant whose turn it is can reach from their cell, with what each offers now and what it costs:
 // [{ definition, actions: [{ action, available, reason, cost, affordable }] }]. Empty outside a party turn.
 export function getCombatObjects(state) {
@@ -384,14 +382,14 @@ export function getCombatObjects(state) {
   const actor = getActiveCombatant(combat)
   if (!actor || actor.side !== 'player' || combat.pending || awaitingDecision(combat) || combat.outcome) return []
   const position = gridToWorld(actor.position)
-  return state.scenario.definitions
-    .filter((definition) => reachesObject(definition, position))
-    .map((definition) => ({
-      definition,
-      actions: getAvailableActions(state, definition.id).map((entry) => ({
+  return objectsOf(state.scenario)
+    .filter((object) => object.inReach(position))
+    .map((object) => ({
+      definition: object.definition,
+      actions: object.availableActions(state).map((entry) => ({
         ...entry,
-        cost: combatCostOf(entry.action),
-        affordable: canInteract(combat, actor.id, combatCostOf(entry.action)),
+        cost: object.combatCost(entry.action),
+        affordable: canInteract(combat, actor.id, object.combatCost(entry.action)),
       })),
     }))
     .filter((entry) => entry.actions.length)
@@ -400,7 +398,7 @@ export function getCombatObjects(state) {
 // Who would assist this object task in combat, prepared for challengeObjects (an Assist set up for the performer uses
 // the object's authored approach at assistIndex; the commander on a Direct uses Control + Command).
 export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0) {
-  const action = getDefinition(state.scenario, objectId)?.actions.find((candidate) => candidate.id === actionId)
+  const action = objectFor(state.scenario, objectId)?.action(actionId)
   if (!action || action.routine) return null
   const actor = getActiveCombatant(state.combat)
   const approach = action.assist?.[assistIndex] ?? null
@@ -411,18 +409,18 @@ export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0
 // Difficulty lines combat adds to an object's task: a bought second major action's +1 on a major-cost task, and an enemy
 // within Reach of the performer on any task (Book p.286). Routine actions have no task.
 export function getCombatObjectLines(state, objectId, actionId) {
-  const action = getDefinition(state.scenario, objectId)?.actions.find((candidate) => candidate.id === actionId)
+  const object = objectFor(state.scenario, objectId)
+  const action = object?.action(actionId)
   if (!action || action.routine) return []
   const actor = getActiveCombatant(state.combat)
-  const secondMajor = actionTypeOf(combatCostOf(action)) === 'major' ? secondMajorLines(state.combat, actor.id) : []
+  const secondMajor = actionTypeOf(object.combatCost(action)) === 'major' ? secondMajorLines(state.combat, actor.id) : []
   return [...secondMajor, ...reachLines(state.combat, actor)]
 }
 
 // The object task's math for whoever acts, exactly as interactInCombat will attempt it: the fighters' current condition
 // (Fatigue gained in the fight), combat's assist and its Difficulty lines.
 export function previewCombatObject(state, objectId, actionId) {
-  return previewChallenge(withFightersInWorld(state), {
-    objectId,
+  return objectFor(state.scenario, objectId).preview(withFightersInWorld(state), {
     actionId,
     performerId: getActiveCombatant(state.combat).id,
     combatAssist: getCombatObjectAssist(state, objectId, actionId),
@@ -430,9 +428,9 @@ export function previewCombatObject(state, objectId, actionId) {
   })
 }
 
-// The same task for any party member with their current condition, without the actor's assist or bought extra action,
-// so members can be compared on their own merits (the best-choice highlight).
-export const compareCombatObject = (state, objectId, actionId, performerId) => previewChallenge(withFightersInWorld(state), { objectId, actionId, performerId })
+// Who of memberIds is best at the task, each with their current condition but without the actor's assist or bought
+// extra action, so members are compared on their own merits (the best-choice highlight).
+export const recommendCombatObject = (state, objectId, actionId, memberIds) => objectFor(state.scenario, objectId).recommend(withFightersInWorld(state), actionId, memberIds)
 
 const taskLines = (task, prepared) => [
   `${task.attribute.name} ${task.attribute.value} + ${task.department.name} ${task.department.value} = TN ${task.targetNumber}`,
@@ -441,21 +439,22 @@ const taskLines = (task, prepared) => [
 ]
 
 // A challenge object's action taken by the combatant whose turn it is: { objectId, actionId, purchase, assistIndex }.
-// The object's own rules run unchanged (attemptChallenge: same definition, state, task and outcomes as in exploration);
+// The object's own rules run unchanged (ChallengeObject attempt: same definition, state, task and outcomes as in exploration);
 // the fight then records the action type spent, the mission pools, and the result. Outcomes reach the world at once:
 // the map (doors), NPC awareness (noise, alarm), Party Knowledge and scene traits.
 function interactInCombat(state, action) {
   const { combat } = state
   const actor = getActiveCombatant(combat)
-  const definition = getDefinition(state.scenario, action.objectId)
-  const objectAction = definition?.actions.find((candidate) => candidate.id === action.actionId)
+  const object = objectFor(state.scenario, action.objectId)
+  const objectAction = object?.action(action.actionId)
   if (!objectAction || actor.side !== 'player' || !state.party.members[actor.id]) return state
-  const cost = combatCostOf(objectAction)
+  const { definition } = object
+  const cost = object.combatCost(objectAction)
   if (!canInteract(combat, actor.id, cost)) return state
   const combatAssist = getCombatObjectAssist(state, action.objectId, action.actionId, action.assistIndex ?? 0)
   const synced = withFightersInWorld(state)
   const combatLines = getCombatObjectLines(state, action.objectId, action.actionId)
-  const after = attemptChallenge(synced, { objectId: action.objectId, actionId: action.actionId, performerId: actor.id, purchase: action.purchase, combatAssist, combatLines })
+  const after = object.attempt(synced, { actionId: action.actionId, performerId: actor.id, purchase: action.purchase, combatAssist, combatLines })
   if (after === synced) return state
 
   const { lastTask } = after

@@ -5,6 +5,7 @@ import awareness from '../data/adaptation/exploration/awareness.json'
 import { addThreat } from '../rules/missionResources.js'
 import { applyFlagChange, objectiveFlag } from '../exploration/missionFlags.js'
 import { addLogEntry } from '../exploration/missionLog.js'
+import { objectFor } from '../world/objects.js'
 
 export const DISPOSITION_IDS = awareness.dispositions.map((disposition) => disposition.id)
 
@@ -56,12 +57,7 @@ export const ACTION_TYPES = [
     ],
     create: () => ({ type: 'setChallengeState', objectId: '', state: '' }),
     describe: (action) => `${action.objectId} becomes ${action.state}`,
-    apply: (state, action, ctx) => {
-      const object = state.scenario.objects[action.objectId]
-      const definition = state.scenario.definitions.find((entry) => entry.id === action.objectId)
-      if (!object || !definition?.states[action.state]) return state
-      return ctx.refreshMap({ ...state, scenario: { ...state.scenario, objects: { ...state.scenario.objects, [action.objectId]: { ...object, state: action.state } } } })
-    },
+    apply: (state, action, ctx) => objectFor(state.scenario, action.objectId)?.setState(state, action.state, ctx.refreshMap) ?? state,
   },
   {
     id: 'addThreat',

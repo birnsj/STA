@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
-import { getAvailableActions, getDefinition, membersInRange, previewChallenge } from '../../exploration/challengeObjects.js'
 import { getMembers } from '../../exploration/partyControl.js'
 import { checkDicePurchase, MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { isDefeated } from '../../rules/personalCondition.js'
-import { recommendPerformers } from '../../rules/taskRecommendation.js'
 import { prepareAssist } from '../../rules/taskPreparation.js'
+import { objectFor } from '../../world/objects.js'
 import BonusDicePicker from '../BonusDicePicker.jsx'
 import { criticalText, dieVerdict, formulaText } from '../task/taskText.js'
 import {
@@ -23,10 +22,12 @@ const firstName = (member) => member.character.name.split(' ')[0]
 const usesText = (task) => `${getAttributeName(task.attribute)} + ${getDisciplineName(task.department)}`
 
 // Every party member able to act, judged on this approach with the same task preparation the roll would use.
-function recommendationFor(state, objectId, action) {
-  if (!action || action.routine) return null
-  const members = getMembers(state.party).filter((member) => !isDefeated(member.condition))
-  return recommendPerformers(members.map((member) => ({ id: member.id, prepared: previewChallenge(state, { objectId, actionId: action.id, performerId: member.id }).prepared })))
+function recommendationFor(state, object, action) {
+  if (!action) return null
+  const memberIds = getMembers(state.party)
+    .filter((member) => !isDefeated(member.condition))
+    .map((member) => member.id)
+  return object.recommend(state, action.id, memberIds)
 }
 
 // One approach in the list: what it uses and how hard it is (or that it needs no roll), who is best at it, or why it
@@ -159,24 +160,25 @@ export default function ChallengePanel({ state, objectId, defaultPerformerId, di
   const [dicePurchase, setDicePurchase] = useState({ bonusDice: 0, momentum: 0 })
 
   const { scenario } = state
-  const definition = getDefinition(scenario, objectId)
-  const object = scenario.objects[objectId]
+  const challenge = objectFor(scenario, objectId)
+  const { definition } = challenge
+  const object = challenge.runtime(scenario)
   const stateInfo = definition.states[object.state] ?? {}
-  const entries = getAvailableActions(state, objectId)
-  const inRange = membersInRange(state.party, definition)
+  const entries = challenge.availableActions(state)
+  const inRange = challenge.membersInRange(state.party)
   const inRangeIds = inRange.map((member) => member.id)
-  const action = definition.actions.find((candidate) => candidate.id === actionId) ?? null
+  const action = challenge.action(actionId)
   const showingResult = resultKey !== null && state.lastTask?.key === resultKey
   const nameOf = (id) => firstName(state.party.members[id])
 
   const performer = state.party.members[inRangeIds.includes(performerId) ? performerId : inRangeIds.includes(defaultPerformerId) ? defaultPerformerId : inRangeIds[0]] ?? null
   const assistant = assistantId && assistantId !== performer?.id && inRangeIds.includes(assistantId) ? state.party.members[assistantId] : null
   const approachIndex = action?.assist?.[assistIndex] ? assistIndex : 0
-  const preview = action && performer ? previewChallenge(state, { objectId, actionId, performerId: performer.id, assistantId: assistant && action.assist ? assistant.id : null, assistIndex: approachIndex }) : null
+  const preview = action && performer ? challenge.preview(state, { actionId, performerId: performer.id, assistantId: assistant && action.assist ? assistant.id : null, assistIndex: approachIndex }) : null
   const recommendation = useMemo(() => {
     if (showingResult) return null
-    const considered = getDefinition(state.scenario, objectId).actions.find((candidate) => candidate.id === actionId) ?? null
-    return recommendationFor(state, objectId, considered)
+    const considered = objectFor(state.scenario, objectId)
+    return recommendationFor(state, considered, considered.action(actionId))
   }, [state, objectId, actionId, showingResult])
 
   // The party cards highlight the best choice only while an approach is being considered.
@@ -250,7 +252,7 @@ export default function ChallengePanel({ state, objectId, defaultPerformerId, di
         <>
           <h4>Approaches</h4>
           {entries.length ? (
-            entries.map((entry) => <ApproachButton key={entry.action.id} entry={entry} recommendation={recommendationFor(state, objectId, entry.action)} nameOf={nameOf} onChoose={setActionId} />)
+            entries.map((entry) => <ApproachButton key={entry.action.id} entry={entry} recommendation={recommendationFor(state, challenge, entry.action)} nameOf={nameOf} onChoose={setActionId} />)
           ) : (
             <p className="challenge-state">Nothing to do here right now.</p>
           )}
