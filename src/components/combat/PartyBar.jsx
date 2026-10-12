@@ -1,6 +1,7 @@
 import PartyTaskTag from '../task/PartyTaskTag.jsx'
 import ActionPoints, { DoneIcon } from './ActionPoints.jsx'
 import CombatPortrait from './CombatPortrait.jsx'
+import ConditionIcons from './ConditionIcons.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 
 const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
@@ -16,7 +17,7 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
         const down = member.condition.defeated
         const info = !down ? turnInfo[member.id] : null
         const best = Boolean(recommendation?.bestIds.includes(member.id))
-        // A fixed size, as in exploration (designer request, 2026-10-12): Major / Minor, the condition tags, the task
+        // A fixed size, as in exploration (designer request, 2026-10-12): Major / Minor, the condition icons, the task
         // tag and the turn badge sit on the card's top edge.
         return (
           <div key={member.id} className="party-card-wrap">
@@ -46,7 +47,7 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
             </button>
             <div className="party-card-badges">
               {info && <ActionPoints turn={info.turn} />}
-              <ConditionTrack character={member.character} condition={member.condition} part="tags" />
+              <ConditionIcons condition={member.condition} />
               <PartyTaskTag recommendation={recommendation} memberId={member.id} />
               {info && (
                 <span className={`party-turn-badge is-${info.state}`}>

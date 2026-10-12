@@ -1621,36 +1621,55 @@
   font-size: 9px;
 }
 
-.party-card-badges .condition-track.is-tags {
-  flex-wrap: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  gap: 3px;
+/* Condition icons (ConditionIcons.jsx) on the party cards' top edge, exploration's too; each takes the pointer for its
+   mouseover. A solid backing covers the card's border. */
+.condition-icons {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
 }
 
-.party-card-badges .condition-track.is-tags > * {
-  flex-shrink: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 9px;
-  line-height: 14px;
+.condition-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: #03060e;
+  pointer-events: auto;
+  cursor: help;
 }
 
-/* Tinted chips need a solid backing over the card's border. */
-.party-card-badges .injury-chip,
-.party-card-badges .condition-complication {
-  background-color: #03060e;
+.condition-icon svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
 }
 
-.party-card-badges .injury-chip.is-stun {
-  background-image: linear-gradient(rgba(246, 185, 40, 0.2), rgba(246, 185, 40, 0.2));
+.condition-icon-count {
+  position: absolute;
+  right: -3px;
+  bottom: -4px;
+  min-width: 8px;
+  padding: 0 1px;
+  border-radius: 2px;
+  background: #03060e;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 9px;
+  text-align: center;
 }
 
-.party-card-badges .injury-chip.is-deadly {
-  background-image: linear-gradient(rgba(255, 90, 80, 0.2), rgba(255, 90, 80, 0.2));
-}
+.condition-icon.is-stun { color: #f6b928; }
+.condition-icon.is-deadly { color: #ff7a70; }
+.condition-icon.is-treated { border-style: dashed; }
+.condition-icon.is-fatigued { color: #f0a050; }
+.condition-icon.is-complication { color: #f2c08a; }
+.condition-icon.is-defeated { color: #fff; background: var(--red); border-color: var(--red); }
+.condition-icon.is-defeated.is-dying { background: #7a0f0f; border-color: #7a0f0f; }
 
 .party-card-badges .party-task-tag {
   display: flex;

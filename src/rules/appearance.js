@@ -1,6 +1,7 @@
 // Prototype presentation rules (not book mechanics): gender and portraits. Neither affects any score or trait.
 import genderData from '../data/adaptation/genders.json'
 import portraitData from '../data/adaptation/portraits.json'
+import npcPortraitData from '../data/adaptation/npcPortraits.json'
 import backdropData from '../data/adaptation/portraitBackdrops.json'
 import spriteData from '../data/adaptation/characterSprites.json'
 import { getOwnSpeciesIds, getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
@@ -20,6 +21,8 @@ const portraits = portraitData.portraits.map((portrait) =>
 )
 
 export const getPortraitById = (portraitId) => portraits.find((portrait) => portrait.id === portraitId) ?? null
+// Authored NPCs' portraits (npcPortraits.json), never offered in the creator.
+export const getNpcPortraitById = (portraitId) => npcPortraitData.portraits.find((portrait) => portrait.id === portraitId) ?? null
 
 // Head and shoulders: the transparent character, then the optional uniform overlay (tinted later). The backdrop behind
 // them is the character's own choice (identity.backdrop), added by the compositor. A character with a uniformMask has
@@ -33,12 +36,16 @@ function headLayers({ characterImage, uniformImage, uniformMask, uniformDivision
 }
 
 // A portrait picture's layers ([{ role, src }], bottom to top), looked up by the path the screens already show
-// (`image` or `fullBody`), so each of them gets the composited version. Null for a single-image picture.
+// (`image` or `fullBody`), so each of them gets the composited version. Null for a single-image picture. NPC portraits
+// are transparent characters too, so they take a backdrop.
 const layersBySrc = new Map(
-  portraits.flatMap((portrait) => [
-    [portrait.image, headLayers(portrait)],
-    [portrait.fullBody, portrait.fullBodyLayers],
-  ]).filter(([src, layers]) => src && layers?.length),
+  [
+    ...portraits.flatMap((portrait) => [
+      [portrait.image, headLayers(portrait)],
+      [portrait.fullBody, portrait.fullBodyLayers],
+    ]),
+    ...npcPortraitData.portraits.map((portrait) => [portrait.image, [{ role: 'character', src: portrait.image }]]),
+  ].filter(([src, layers]) => src && layers?.length),
 )
 export const getPortraitLayers = (src) => layersBySrc.get(src) ?? null
 
@@ -48,7 +55,10 @@ export const getBackdrops = () => backdropData.backdrops
 export const getBackdropById = (backdropId) => backdropData.backdrops.find((backdrop) => backdrop.id === backdropId) ?? null
 export const getDepartmentBackdrop = (departmentId) => getBackdropById(backdropData.byDepartment[departmentId] ?? backdropData.noDepartment)
 export const followsDepartment = (identity) => !getBackdropById(identity?.backdrop?.id)
-export const getCharacterBackdrop = (identity, departmentId = null) => getBackdropById(identity?.backdrop?.id) ?? getDepartmentBackdrop(departmentId)
+// NPC backdrops (npcPortraits.json) are never offered in the creator; an NPC shown with one keeps it.
+export const getNpcBackdropById = (backdropId) => npcPortraitData.backdrops.find((backdrop) => backdrop.id === backdropId) ?? null
+export const getCharacterBackdrop = (identity, departmentId = null) =>
+  getBackdropById(identity?.backdrop?.id) ?? getNpcBackdropById(identity?.backdrop?.id) ?? getDepartmentBackdrop(departmentId)
 
 // Picking the department's own backdrop goes back to following the department, so a later department change still
 // moves it.
@@ -60,15 +70,15 @@ export function selectBackdrop(identity, backdropId, departmentId = null) {
 }
 
 // Map figures (characterSprites.json): the full-body sprite set for a portrait, or null (the map keeps the portrait
-// token). A portrait's own spriteSet wins, then its species and gender; portraits outside portraits.json are named in
-// portraitSets.
+// token). A portrait's own spriteSet wins, then its species and gender (portraits.json or npcPortraits.json); other
+// portraits are named in portraitSets.
 export const getSpriteMetrics = () => spriteData
 export const getIdleFidgets = () => spriteData.idleFidgets
 export const getSpriteSetById = (setId) => spriteData.sets.find((set) => set.id === setId) ?? null
 export const hasCharacterSprite = (setId) => Boolean(getSpriteSetById(setId))
 export function getSpriteSet(portraitId) {
   if (!portraitId) return null
-  const portrait = getPortraitById(portraitId)
+  const portrait = getPortraitById(portraitId) ?? getNpcPortraitById(portraitId)
   if (!portrait) return getSpriteSetById(spriteData.portraitSets[portraitId])
   if (portrait.spriteSet) return getSpriteSetById(portrait.spriteSet)
   return spriteData.sets.find((set) => set.species === portrait.species && set.gender === portrait.gender) ?? null

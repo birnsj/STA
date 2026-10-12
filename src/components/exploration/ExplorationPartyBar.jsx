@@ -6,6 +6,7 @@ import { FORMATIONS } from '../../exploration/formations.js'
 import { PARTY_ACTIONS } from '../../exploration/partyActions.js'
 import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
+import ConditionIcons from '../combat/ConditionIcons.jsx'
 import ConditionTrack from '../combat/ConditionTrack.jsx'
 import PartyTaskTag from '../task/PartyTaskTag.jsx'
 
@@ -36,14 +37,14 @@ const cardFacts = (character) => ({
   speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
 })
 
-// The card itself, a fixed size: species / department, weapon and Stress.
+// The card itself, a fixed size: species / department, weapon and Stress (the condition icons sit on its top edge).
 function CardDetails({ character, condition }) {
   const { weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
     <>
       <span className="explore-card-detail is-main">{speciesLine}</span>
       <span className="party-weapon" title="Weapon">{weapon}</span>
-      <ConditionTrack character={character} condition={condition} />
+      <ConditionTrack character={character} condition={condition} part="stress" />
     </>
   )
 }
@@ -126,6 +127,7 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
             </button>
             {/* Every notification sits on the card's top edge, so the card never changes size. */}
             <div className="explore-card-badges">
+              <ConditionIcons condition={condition} />
               <PartyTaskTag recommendation={recommendation} memberId={member.id} />
               {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
               {several && selected && !lead && (

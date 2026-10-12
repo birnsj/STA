@@ -1,0 +1,27 @@
+{
+  "notes": [
+    "Prototype presentation only (designer request, Oct 2026): portraits for authored NPCs of species the creator does not offer, kept apart from portraits.json so the creator's portrait picker never shows them. Not from Captain's Log; no game-rule effect.",
+    "Each entry is Species + Gender + Variant -> image: transparent 256 x 320 pixel art, drawn already dressed (shown as drawn, no uniform recolour).",
+    "A map NPC (mapFormat.js npcs) whose character's species has portraits here may choose its gender and portrait in the map editor; left on Auto it is given one (character/npcAppearance.js), the NPC's gender following the picture. Map figures use the species + gender sprite set (characterSprites.json).",
+    "backdrops (designer request, 2026-10-12): drawn behind the species' portraits, like the creator's portraitBackdrops.json. Each NPC is given one at random (stable for that NPC; character/npcAppearance.js); there is no picker. Generated pixel art, 256 x 320."
+  ],
+  "backdrops": [
+    { "id": "klingon-bridge", "species": "klingon", "name": "Bird-of-Prey Bridge", "image": "/art/portraits/enemy/background/klingon-bridge.png" },
+    { "id": "klingon-corridor", "species": "klingon", "name": "Warship Corridor", "image": "/art/portraits/enemy/background/klingon-corridor.png" },
+    { "id": "klingon-great-hall", "species": "klingon", "name": "Great Hall", "image": "/art/portraits/enemy/background/klingon-great-hall.png" },
+    { "id": "klingon-armoury", "species": "klingon", "name": "Armoury", "image": "/art/portraits/enemy/background/klingon-armoury.png" },
+    { "id": "klingon-homeworld", "species": "klingon", "name": "Qo'noS", "image": "/art/portraits/enemy/background/klingon-homeworld.png" },
+    { "id": "klingon-engine-room", "species": "klingon", "name": "Engine Room", "image": "/art/portraits/enemy/background/klingon-engine-room.png" }
+  ],
+  "portraits": [
+    { "id": "klingon-male-1", "species": "klingon", "gender": "male", "variant": 1, "name": "Klingon Male 1", "image": "/art/portraits/enemy/klingon-male-1.png" },
+    { "id": "klingon-male-2", "species": "klingon", "gender": "male", "variant": 2, "name": "Klingon Male 2", "image": "/art/portraits/enemy/klingon-male-2.png" },
+    { "id": "klingon-male-3", "species": "klingon", "gender": "male", "variant": 3, "name": "Klingon Male 3", "image": "/art/portraits/enemy/klingon-male-3.png" },
+    { "id": "klingon-male-4", "species": "klingon", "gender": "male", "variant": 4, "name": "Klingon Male 4", "image": "/art/portraits/enemy/klingon-male-4.png" },
+    { "id": "klingon-female-1", "species": "klingon", "gender": "female", "variant": 1, "name": "Klingon Female 1", "image": "/art/portraits/enemy/klingon-female-1.png" },
+    { "id": "klingon-female-2", "species": "klingon", "gender": "female", "variant": 2, "name": "Klingon Female 2", "image": "/art/portraits/enemy/klingon-female-2.png" },
+    { "id": "klingon-female-3", "species": "klingon", "gender": "female", "variant": 3, "name": "Klingon Female 3", "image": "/art/portraits/enemy/klingon-female-3.png" },
+    { "id": "klingon-female-4", "species": "klingon", "gender": "female", "variant": 4, "name": "Klingon Female 4", "image": "/art/portraits/enemy/klingon-female-4.png" },
+    { "id": "klingon-female-5", "species": "klingon", "gender": "female", "variant": 5, "name": "Klingon Female 5", "image": "/art/portraits/enemy/klingon-female-5.png" }
+  ]
+}

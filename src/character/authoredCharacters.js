@@ -4,6 +4,7 @@
 // way) and then a RuntimeCharacter through the same normalizer as a player character. There is no second schema.
 import characterData from '../data/adaptation/characters.json'
 import { SCHEMA_VERSION } from '../export/serializeCharacter.js'
+import { getGenderById, getNpcBackdropById, getNpcPortraitById } from '../rules/appearance.js'
 import { getEquippedItems } from '../rules/equipment.js'
 import { getSpeciesAbility, withSpeciesAbility } from '../rules/species.js'
 import { createEmptyCharacter } from './characterModel.js'
@@ -44,11 +45,33 @@ export function getAuthoredRecord(characterId) {
   }
 }
 
+// Pronouns only change with the gender for an NPC shown as the other gender than authored (presentation only).
+const PRONOUNS = { male: 'He / him', female: 'She / her' }
+function withAppearance(record, { genderId, portraitId, backdropId = null }) {
+  const portrait = getNpcPortraitById(portraitId)
+  const gender = getGenderById(genderId)
+  if (!portrait || !gender) return record
+  const identity = record.character.identity ?? {}
+  const pronouns = identity.gender?.id === gender.id ? identity.pronouns : (PRONOUNS[gender.id] ?? identity.pronouns)
+  const backdrop = getNpcBackdropById(backdropId)
+  const shown = {
+    ...identity,
+    gender: { id: gender.id, name: gender.name },
+    pronouns,
+    portrait: { id: portrait.id, name: portrait.name, image: portrait.image },
+    backdrop: backdrop ? { id: backdrop.id, name: backdrop.name } : (identity.backdrop ?? null),
+  }
+  return { ...record, character: { ...record.character, identity: shown } }
+}
+
 // The RuntimeCharacter for an authored character id (its id is the character id). npcRules: the book's streamlined
 // NPC rules ('minor' | 'notable' | 'major'), only when an actor or encounter explicitly authors them for this instance.
-export function getAuthoredCharacter(characterId, { npcRules = null } = {}) {
-  const record = getAuthoredRecord(characterId)
-  if (!record) throw new Error(`Unknown character: ${characterId}`)
+// appearance: { genderId, portraitId, backdropId } from npcAppearance.js assignNpcAppearances, or null for the
+// authored portrait.
+export function getAuthoredCharacter(characterId, { npcRules = null, appearance = null } = {}) {
+  const authored = getAuthoredRecord(characterId)
+  if (!authored) throw new Error(`Unknown character: ${characterId}`)
+  const record = appearance ? withAppearance(authored, appearance) : authored
   const { character, error } = normalizeCharacterRecord(record, { id: characterId })
   if (error) throw new Error(`Character ${characterId}: ${error}`)
   return npcRules ? { ...character, npcRules } : character

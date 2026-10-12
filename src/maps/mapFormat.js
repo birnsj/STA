@@ -12,7 +12,7 @@
 // this instance behaves: { id, characterId, name (blank: the character's), position, facing (degrees, 0 = +x),
 // faction (blank: the character's), disposition (awareness.json), conversationId (conversations/{id}.json or null),
 // npcRules, alertGroupId, alertMethod, responseType, mustSurvive (the mission fails if they are killed; left out on
-// disk when false) }. A map with NPCs of its own doesn't get npcs.json's test NPCs.
+// disk when false), gender and portraitId (npcPortraits.json; null: Auto, see character/npcAppearance.js) }. A map with NPCs of its own doesn't get npcs.json's test NPCs.
 // objectives: [{ id, title, description, position (the minimap marks it while active; null: no marker), activeWhen,
 // completeWhen }]; their progress is a mission flag (exploration/missionFlags.js). activeWhen / completeWhen: mission
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
@@ -121,17 +121,22 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
 
 // The fields an NPC placement keeps (anything else in a file is dropped); empty optional ones are left out on disk.
 const NPC_TEXT_FIELDS = ['name', 'faction', 'disposition', 'conversationId', 'npcRules', 'alertGroupId', 'alertMethod', 'responseType']
+// Only on an NPC that has them (missing: Auto).
+const NPC_APPEARANCE_FIELDS = ['gender', 'portraitId']
 function parseNpc(raw) {
   const npc = { id: String(raw.id), characterId: raw.characterId ?? null, position: toPosition(raw.position ?? [0, 0]), facing: Number(raw.facing) || 0 }
   NPC_TEXT_FIELDS.forEach((field) => {
     npc[field] = raw[field] ?? null
   })
   npc.mustSurvive = raw.mustSurvive === true
+  NPC_APPEARANCE_FIELDS.forEach((field) => {
+    if (typeof raw[field] === 'string' && raw[field]) npc[field] = raw[field]
+  })
   return npc
 }
 function serializeNpc(npc) {
   const record = { id: npc.id, characterId: npc.characterId, position: fromPosition(npc.position), facing: Math.round(npc.facing ?? 0) }
-  NPC_TEXT_FIELDS.forEach((field) => {
+  NPC_TEXT_FIELDS.concat(NPC_APPEARANCE_FIELDS).forEach((field) => {
     if (npc[field] != null && npc[field] !== '') record[field] = npc[field]
   })
   if (npc.mustSurvive) record.mustSurvive = true

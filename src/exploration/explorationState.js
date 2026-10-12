@@ -4,6 +4,7 @@
 // stays frozen until the fight ends; see combatLink.js).
 import { controllerFor, isUp } from '../actors/controllers.js'
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
+import { assignNpcAppearances } from '../character/npcAppearance.js'
 import npcData from '../data/adaptation/exploration/npcs.json'
 import { spawnFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
@@ -30,7 +31,9 @@ function perceive(state) {
 // Each world actor uses an authored character (characterId) and keeps it as its own for the whole mission: the same
 // character fights as the same combatant (the actor's id) in any fight. npcRules: an explicit authored choice of the
 // book's streamlined NPC rules for this actor (rules/personalCondition.js npcCategoryOf); none by default.
-const actorCharacter = (config) => (config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: config.npcRules ?? null }) : null)
+// appearance: the gender and portrait it is shown with (character/npcAppearance.js), or null.
+const actorCharacter = (config, appearance) =>
+  config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: config.npcRules ?? null, appearance }) : null
 
 // A map's NPCs: those placed on it in the map editor; otherwise its own entry in npcs.json, or the fallback test NPCs
 // on its enemy spawns.
@@ -44,7 +47,11 @@ export function npcConfigsFor(map) {
   })
 }
 
-const createNpcWorld = (map) => createWorld(map, npcConfigsFor(map).map((config) => createNpc(config, actorCharacter(config))))
+function createNpcWorld(map) {
+  const configs = npcConfigsFor(map)
+  const appearances = assignNpcAppearances(configs.map((config) => ({ key: config.id, characterId: config.characterId, gender: config.gender ?? null, portraitId: config.portraitId ?? null })))
+  return createWorld(map, configs.map((config, index) => createNpc(config, actorCharacter(config, appearances[index]))))
+}
 
 // NPCs with a conversation that any of the given members (able to act) stands close enough to talk to.
 export function npcsInTalkRange(state, memberIds) {

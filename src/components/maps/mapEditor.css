@@ -305,6 +305,7 @@
 .me-field-label { color: #8fb4ba; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
 .me-inspector { padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid #23434a; }
 .me-inspector-actions { display: flex; gap: 4px; }
+.me-npc-portrait { display: block; width: 64px; height: 80px; margin: 2px 0 6px; border: 1px solid #23434a; border-radius: 3px; background: #0b1a1d center / cover; object-fit: cover; image-rendering: pixelated; }
 .me-objective-list { margin: 0 0 6px; padding: 0; list-style: none; }
 .me-link { padding: 2px 0; border: 0; background: none; color: #cfe3e6; font: inherit; text-align: left; cursor: pointer; }
 .me-link:hover { color: #ffb347; }

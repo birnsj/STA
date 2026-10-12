@@ -101,7 +101,8 @@
     { "id": "trill-female", "species": "trill", "gender": "female", "sheet": "/art/sprites/characters/trill-female.png", "uniformMask": "/art/sprites/characters/trill-female-uniform.png", "uniformDivision": "command" },
     { "id": "caitian-male", "species": "caitian", "gender": "male", "sheet": "/art/sprites/characters/caitian-male.png", "uniformMask": "/art/sprites/characters/caitian-male-uniform.png", "uniformDivision": "command" },
     { "id": "caitian-female", "species": "caitian", "gender": "female", "sheet": "/art/sprites/characters/caitian-female.png", "uniformMask": "/art/sprites/characters/caitian-female-uniform.png", "uniformDivision": "command" },
-    { "id": "klingon-male", "species": "klingon", "gender": "male", "sheet": "/art/sprites/characters/klingon-male.png" }
+    { "id": "klingon-male", "species": "klingon", "gender": "male", "sheet": "/art/sprites/characters/klingon-male.png" },
+    { "id": "klingon-female", "species": "klingon", "gender": "female", "sheet": "/art/sprites/characters/klingon-female.png" }
   ],
   "portraitSets": {
     "klingon-warrior-1": "klingon-male",

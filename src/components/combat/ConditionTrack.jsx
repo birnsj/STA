@@ -4,8 +4,8 @@ import { getMaxStress, injuryTypeName, isDead, isDying, minorDefeatText, npcCate
 // A character's personal condition (no HP): STRESS current/max, FATIGUED (and the shut-down attribute), complications,
 // each Injury (Stun / Deadly, Severity, treated) and DEFEATED / DYING (a Minor NPC: UNCONSCIOUS / DEAD). svg: the
 // compact version drawn over a unit on the battlefield. The Stress bar shows what is left: full when unhurt, draining
-// as Stress is taken (designer request, Oct 2026); the number stays the Stress taken. part: 'all', 'stress' (the meter
-// only) or 'tags' (everything but the meter; nothing when there is none).
+// as Stress is taken (designer request, Oct 2026); the number stays the Stress taken. part: 'all' or 'stress' (the
+// meter only; the party cards show the rest as ConditionIcons).
 export default function ConditionTrack({ character, condition, svg = false, showCategory = false, part = 'all' }) {
   const max = getMaxStress(character).value
   const { stress, injuries, defeated } = condition
@@ -35,12 +35,10 @@ export default function ConditionTrack({ character, condition, svg = false, show
       </g>
     )
   }
-  const meter = part !== 'tags'
   const tags = part !== 'stress'
-  if (!meter && !injuries.length && !condition.fatigued && !condition.complications?.length && !defeated) return null
   return (
-    <span className={`condition-track${part === 'tags' ? ' is-tags' : ''}`}>
-      {!meter ? null : max > 0 ? (
+    <span className="condition-track">
+      {max > 0 ? (
         <span className="stress-meter" title={`Stress ${stress} of ${max}`}>
           <span className="stress-label">Stress</span>
           <span className="stress-bar">

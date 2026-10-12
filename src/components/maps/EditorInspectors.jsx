@@ -1,9 +1,18 @@
+import { assignNpcAppearances } from '../../character/npcAppearance.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../../maps/facing.js'
 import { removeNpc, setFacing, toggleMarker, updateNpc } from '../../maps/mapEdits.js'
 import MarkerInspector from './MarkerInspector.jsx'
 import NpcInspector from './NpcInspector.jsx'
 import ObjectInspector from './ObjectInspector.jsx'
+
+// How an NPC looks in play ({ genderId, portraitId, backdropId } or null): the same picks exploration makes for the
+// whole map.
+function appearanceFor(map, npcId) {
+  const npcs = map.npcs ?? []
+  const appearances = assignNpcAppearances(npcs.map((npc) => ({ key: npc.id, characterId: npc.characterId, gender: npc.gender ?? null, portraitId: npc.portraitId ?? null })))
+  return appearances[npcs.findIndex((npc) => npc.id === npcId)] ?? null
+}
 
 // The map editor's side-panel inspectors for what is selected on the board: an NPC, a challenge object, and a player
 // start or enemy spawn (an NPC standing on a start or spawn opens both). map and edit(map): the map being edited.
@@ -30,6 +39,7 @@ export default function EditorInspectors({
       {npc && (
         <NpcInspector
           npc={npc}
+          appearance={appearanceFor(map, npc.id)}
           conversations={conversations}
           moving={npcMoving}
           onChange={(changes) => edit(updateNpc(map, npc.id, changes))}

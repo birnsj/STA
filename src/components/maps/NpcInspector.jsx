@@ -1,4 +1,6 @@
 import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
+import { npcPortraitOptions } from '../../character/npcAppearance.js'
+import { getGenders, getNpcBackdropById } from '../../rules/appearance.js'
 import awareness from '../../data/adaptation/exploration/awareness.json'
 import factionData from '../../data/adaptation/factions.json'
 import { FACINGS, snapFacing } from '../../maps/facing.js'
@@ -22,19 +24,81 @@ export function Field({ label, children }) {
   )
 }
 
+// Gender and portrait, for a character whose species has NPC portraits (npcPortraits.json). appearance: how
+// npcAppearance.js shows it on this map, named in the Auto entry and previewed over its random backdrop.
+function AppearanceFields({ npc, appearance, onChange }) {
+  const options = npcPortraitOptions(npc.characterId)
+  if (!options.length) return null
+  const genders = getGenders().filter((gender) => options.some((portrait) => portrait.gender === gender.id))
+  const shown = options.filter((portrait) => !npc.gender || portrait.gender === npc.gender)
+  const current = options.find((portrait) => portrait.id === appearance?.portraitId)
+  const auto = npc.portraitId ? null : current
+  const backdrop = getNpcBackdropById(appearance?.backdropId)
+  const setGender = (event) => {
+    const gender = event.target.value || null
+    const keeps = !gender || options.find((portrait) => portrait.id === npc.portraitId)?.gender === gender
+    onChange({ gender, ...(keeps ? {} : { portraitId: null }) })
+  }
+  return (
+    <>
+      <Field label="Gender">
+        <select className="me-select me-wide" value={npc.gender ?? ''} onChange={setGender}>
+          <option value="">Auto</option>
+          {genders.map((gender) => (
+            <option key={gender.id} value={gender.id}>
+              {gender.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Portrait">
+        <select className="me-select me-wide" value={npc.portraitId ?? ''} onChange={(event) => onChange({ portraitId: event.target.value || null })}>
+          <option value="">Auto{auto ? ` (${auto.name})` : ''}</option>
+          {shown.map((portrait) => (
+            <option key={portrait.id} value={portrait.id}>
+              {portrait.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {current && (
+        <img
+          className="me-npc-portrait"
+          src={current.image}
+          alt={current.name}
+          title={backdrop ? `${current.name} · ${backdrop.name} (random backdrop)` : current.name}
+          style={backdrop ? { backgroundImage: `url("${backdrop.image}")` } : undefined}
+          draggable={false}
+        />
+      )}
+    </>
+  )
+}
+
 // npc: the selected NPC; conversations: [{ id, name }]; moving: the next board click moves it (onMove toggles).
-// onFacing(degrees): the Facing list (it also turns a start or spawn the NPC stands on).
-export default function NpcInspector({ npc, conversations, moving, onChange, onFacing, onMove, onDelete, onEditConversation }) {
+// onFacing(degrees): the Facing list (it also turns a start or spawn the NPC stands on). appearance: its gender,
+// portrait and backdrop in play (npcAppearance.js), or null.
+export default function NpcInspector({ npc, appearance = null, conversations, moving, onChange, onFacing, onMove, onDelete, onEditConversation }) {
   const character = CHARACTERS.find((entry) => entry.id === npc.characterId)
   const text = (key) => (event) => onChange({ [key]: event.target.value.trim() ? event.target.value : null })
   const select = (key) => (event) => onChange({ [key]: event.target.value || null })
+  // A new character keeps the chosen gender and portrait only while its species can wear them.
+  const setCharacter = (event) => {
+    const characterId = event.target.value || null
+    const options = npcPortraitOptions(characterId)
+    onChange({
+      characterId,
+      gender: options.some((portrait) => portrait.gender === npc.gender) ? npc.gender : null,
+      portraitId: options.some((portrait) => portrait.id === npc.portraitId) ? npc.portraitId : null,
+    })
+  }
   return (
     <div className="me-inspector">
       <p className="me-heading">
         NPC {npc.id} &middot; {npc.position.x}, {npc.position.y}
       </p>
       <Field label="Character">
-        <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={select('characterId')}>
+        <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
           {!character && <option value="">Choose a character</option>}
           {CHARACTERS.map((entry) => (
             <option key={entry.id} value={entry.id}>
@@ -43,6 +107,7 @@ export default function NpcInspector({ npc, conversations, moving, onChange, onF
           ))}
         </select>
       </Field>
+      <AppearanceFields npc={npc} appearance={appearance} onChange={onChange} />
       <Field label="Name">
         <input className="me-name me-wide" value={npc.name ?? ''} placeholder={character?.name ?? 'The character’s name'} onChange={text('name')} />
       </Field>

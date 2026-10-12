@@ -1,6 +1,7 @@
 // Building a combat: the combatants from the party and the encounter's roster (or from where everyone stands in the
 // world), initiative, the stats block and the opening log. addCombatant lets a late arrival join a running fight.
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
+import { assignNpcAppearances } from '../character/npcAppearance.js'
 import { gridFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { normalizeCondition } from '../rules/personalCondition.js'
@@ -41,11 +42,14 @@ function createCombatant(character, { id = character.id, side, controller, posit
 // The roster (authored character ids, adaptation/characters.json) fills the map's enemy spawns in order; a map with fewer
 // spawns fields fewer enemies. encounter.npcRules: the book's streamlined NPC rules for the whole roster, if authored.
 // A spawn turned in the map editor starts facing that way; otherwise each enemy faces its nearest opponent.
+// Species with NPC portraits get theirs on Auto (character/npcAppearance.js).
 function createEnemyCharacters(encounter, mapFile) {
-  return encounter.roster.slice(0, mapFile.markers.enemySpawns.length).map((characterId, index) => {
+  const roster = encounter.roster.slice(0, mapFile.markers.enemySpawns.length)
+  const appearances = assignNpcAppearances(roster.map((characterId, index) => ({ key: `enemy${index + 1}`, characterId, gender: null, portraitId: null })))
+  return roster.map((characterId, index) => {
     const { x, y, facing } = mapFile.markers.enemySpawns[index]
     return {
-      character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null }),
+      character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null, appearance: appearances[index] }),
       position: { x, y },
       ...(facing == null ? {} : { facing: gridFacing(facing) }),
     }
