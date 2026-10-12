@@ -83,6 +83,21 @@ export function createAction(object) {
 const mapEffects = (action, change) =>
   Object.fromEntries(OUTCOME_LISTS.filter(({ key }) => action[key]).map(({ key }) => [key, action[key].map(change)]))
 
+// Removes a state without stranding the object: a removed starting state falls back to the first remaining one, and the
+// state leaves every requires.states (an emptied list is dropped, as the editor shows it as "(any)"). setState effects
+// that named it stay, for objectWarnings to flag. The last state can't be removed.
+export function removeState(object, id) {
+  const remaining = Object.entries(object.states).filter(([other]) => other !== id)
+  if (!object.states[id] || !remaining.length) return object
+  const actions = object.actions.map((action) => {
+    if (!action.requires?.states?.includes(id)) return action
+    const { states, ...requires } = action.requires
+    const kept = states.filter((other) => other !== id)
+    return { ...action, requires: kept.length ? { ...requires, states: kept } : requires }
+  })
+  return { ...object, state: object.state === id ? remaining[0][0] : object.state, states: Object.fromEntries(remaining), actions }
+}
+
 // Renames a state everywhere the object refers to it: its starting state, requires.states and setState effects.
 export function renameState(object, from, to) {
   if (from === to || !to || object.states[to]) return object

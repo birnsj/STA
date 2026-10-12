@@ -111,6 +111,67 @@ describe('ending a fight started in the world', () => {
   })
 })
 
+describe('a whole fight hand-off, in and out', () => {
+  it('carries flags, object states, pools, conditions and positions in, and the fight\u2019s results and objectives out', () => {
+    const base = createExplorationState(testMap(), team(), 5)
+    const [npc] = getNpcs(base.world)
+    const wounded = { stress: 2, injuries: [], defeated: false }
+    const before = {
+      ...base,
+      party: {
+        ...base.party,
+        map: { ...base.party.map, objectives: [{ id: 'clear', title: 'Clear the room', description: '', position: null, startsActive: true, completeWhen: [{ flag: `defeated.${npc.id}`, op: 'isTrue' }] }] },
+        members: { ...base.party.members, beta: { ...base.party.members.beta, condition: wounded, position: { x: 8, y: 8 } } },
+      },
+      scenario: {
+        ...base.scenario,
+        flags: { ...base.scenario.flags, alarmRaised: true, 'objective.clear': 'active' },
+        objects: { ...base.scenario.objects, testPanel: { state: 'open', locks: { open: 30 }, combatLocks: {}, difficultyMods: {} } },
+      },
+      resources: { momentum: 2, threat: 1 },
+    }
+
+    const fighting = explorationReducer(before, { type: 'attackNpc', npcId: npc.id, targetId: 'alpha' })
+    assert.equal(fighting.mode, MODE.COMBAT)
+    // In: the fight starts from what the world had.
+    assert.deepEqual(fighting.combat.resources, before.resources)
+    // (Combat fills in the condition's full shape, so compare what was set.)
+    const { stress, injuries, defeated } = fighting.combat.combatants.beta.condition
+    assert.deepEqual({ stress, injuries, defeated }, wounded)
+    assert.deepEqual(fighting.combat.combatants.beta.position, { x: 8, y: 8 })
+    assert.equal(fighting.scenario.flags.alarmRaised, true)
+    assert.equal(fighting.scenario.objects.testPanel.state, 'open')
+    assert.equal(fighting.party.members.alpha.character, before.party.members.alpha.character)
+
+    // The fight ends with the enemy down, a new position and pools, and a Defeated member.
+    const combatants = {
+      ...fighting.combat.combatants,
+      [npc.id]: { ...fighting.combat.combatants[npc.id], condition: DEFEATED },
+      beta: { ...fighting.combat.combatants.beta, condition: { ...DEFEATED, stress: 2 }, position: { x: 4, y: 4 } },
+    }
+    const ended = explorationReducer({ ...fighting, combat: { ...fighting.combat, combatants, resources: { momentum: 4, threat: 3 } } }, { type: 'endCombat' })
+
+    // Out: everything the fight changed is back in the world, and what it didn't touch is where it was.
+    assert.equal(ended.mode, MODE.EXPLORATION)
+    assert.deepEqual(ended.resources, { momentum: 4, threat: 3 })
+    assert.equal(ended.party.members.beta.condition.defeated, true)
+    assert.deepEqual(ended.party.members.beta.position, { x: 4, y: 4 })
+    assert.deepEqual(ended.party.selectedIds, ['alpha'])
+    assert.equal(ended.world.npcs[npc.id].condition.defeated, true)
+    assert.equal(ended.scenario.flags.alarmRaised, true)
+    assert.equal(ended.scenario.flags[`defeated.${npc.id}`], true)
+    assert.equal(ended.scenario.objects.testPanel.state, 'open')
+    assert.deepEqual(ended.scenario.objects.testPanel.locks, { open: 30 })
+    // Through explorationReducer the objective moves on the new flag, and the fight and the objective are logged.
+    assert.equal(ended.scenario.flags['objective.clear'], 'complete')
+    const texts = ended.missionLog.entries.map((entry) => entry.text)
+    assert.ok(texts.some((text) => text.startsWith('Fight over')))
+    assert.ok(texts.some((text) => text.startsWith('Objective complete: Clear the room')))
+    assert.equal(ended.combat, null)
+    assert.equal(ended.link, null)
+  })
+})
+
 describe("the map editor's passive play-test", () => {
   it('keeps the world clock running (timed locks expire) while NPCs stand still', () => {
     const state = createExplorationState(testMap(), team(), 0, { enemiesActive: false })

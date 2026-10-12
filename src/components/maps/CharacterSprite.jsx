@@ -141,6 +141,7 @@ export default function CharacterSprite({ setId, colour = null, facing, animatio
     combat: useRecolouredSheet(...later('combat')),
     fall: useRecolouredSheet(...later('fall')),
     sneak: useRecolouredSheet(...later('sneak')),
+    surrender: useRecolouredSheet(...later('surrender')),
     idle: useRecolouredSheet(...sheetArgs('idle', fidgets && Boolean(base))),
   }
   const fidget = useIdleFidget(fidgets && !named && moving === 'idle', sheets.idle)

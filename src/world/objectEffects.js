@@ -18,7 +18,8 @@ const setRuntime = (state, object, changes) => ({
 
 const EFFECTS = {
   // The object's own runtime.
-  setState: (state, object, action, effect) => setRuntime(state, object, { state: effect.state }),
+  // An unknown state changes nothing, the same rule as ChallengeObject.setState (a stranded object would match no action).
+  setState: (state, object, action, effect) => (object.definition.states[effect.state] ? setRuntime(state, object, { state: effect.state }) : state),
   adjustDifficulty: (state, object, action, effect) => {
     const { difficultyMods } = object.runtime(state.scenario)
     const actionId = effect.actionId ?? action.id

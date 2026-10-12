@@ -52,6 +52,7 @@ import {
   toggleIncrease,
 } from '../src/rules/finishingTouches.js'
 import { getFixedCareerTalentId, getRequiredTalentCount, getTalentEntries, isTalentSlotMet, TALENT_STEPS } from '../src/rules/talents.js'
+import { normalizeCharacterRecord } from '../src/character/runtimeCharacter.js'
 import { SCHEMA_VERSION, serializeCharacter } from '../src/export/serializeCharacter.js'
 import { createRandomChooser, fillSpecies } from '../src/rules/autofill.js'
 import {
@@ -768,6 +769,44 @@ describe('Export record', () => {
     assert.equal(record.character.identity.age, '34')
     assert.equal(record.character.identity.pastime, 'Kal-toh')
     assert.equal(record.status.valid, true)
+  })
+})
+
+describe('Export round trip', () => {
+  // exportedAt is the only field that is the moment of export rather than the character.
+  const withoutTime = (record) => ({ ...record, exportedAt: null })
+
+  it('an export survives being written and read as JSON, and the game reads from it what the creator exported', () => {
+    for (const { seed, character } of BUILT) {
+      const record = serializeCharacter(character)
+      const read = JSON.parse(JSON.stringify(record))
+      assert.deepEqual(read, record, `seed ${seed}`)
+      const { character: runtime, error } = normalizeCharacterRecord(read, { id: 'test' })
+      assert.equal(error, undefined, `seed ${seed}`)
+      assert.equal(runtime.name, record.character.identity.name)
+      assert.deepEqual(runtime.attributes, record.final.attributes)
+      assert.deepEqual(runtime.disciplines, record.final.disciplines)
+      assert.deepEqual(runtime.values, record.final.values)
+      assert.deepEqual(runtime.focuses, record.final.focuses)
+      assert.deepEqual(runtime.talents.map((talent) => talent.id), record.final.talents.map((talent) => talent.id))
+      assert.equal(runtime.rank?.id, record.final.rank.id)
+      assert.equal(runtime.department?.id, record.final.department.id)
+      assert.equal(runtime.source.schemaVersion, SCHEMA_VERSION)
+    }
+  })
+
+  it("the record's character section restores the creator, which exports the same record again", () => {
+    for (const { seed, character } of BUILT) {
+      const record = serializeCharacter(character)
+      const restored = createRestoredState(JSON.parse(JSON.stringify(record.character))).character
+      assert.deepEqual(withoutTime(serializeCharacter(restored)), withoutTime(record), `seed ${seed}`)
+    }
+  })
+
+  it('refuses a file that is not an export, with a message', () => {
+    assert.match(normalizeCharacterRecord({ character: {} }).error, /not a character export/)
+    assert.match(normalizeCharacterRecord({ final: { attributes: {}, disciplines: {} } }).error, /missing attributes/)
+    assert.ok(normalizeCharacterRecord(null).error)
   })
 })
 

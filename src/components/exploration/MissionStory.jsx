@@ -4,7 +4,7 @@ import { stardateAt } from '../../exploration/missionLog.js'
 import { storyParagraphs } from '../../exploration/missionStory.js'
 
 // The episode's story panels in game mode: the Captain's Log intro before play, Mission Accomplished once every
-// objective is complete, then the Captain's Log outro once the away team has beamed out. Text comes from the map
+// objective is complete (or Mission Failed), then the Captain's Log outro once the away team has beamed out. Text comes from the map
 // (briefing, outro) and the mission log; it may be generated later.
 
 const paragraphsOf = (text) =>
@@ -159,9 +159,31 @@ export function MissionAccomplished({ map, onExit, onReturn }) {
   )
 }
 
+// The mission failed (an NPC the map marks Must survive went down or surrendered): only Exit Mission. names: who.
+export function MissionFailed({ map, names, onExit }) {
+  return (
+    <div className="combat-modal-backdrop mission-accomplished-backdrop">
+      <div className="combat-modal is-defeat" role="dialog" aria-modal="true" aria-labelledby="mission-failed-title">
+        <h2 id="mission-failed-title" className="combat-modal-title">
+          Mission Failed
+        </h2>
+        <p className="combat-modal-text">{map.episodeName || map.name}</p>
+        {names.length > 0 && <p className="combat-modal-text">We failed to protect {names.join(', ')}.</p>}
+        <div className="combat-modal-actions">
+          <button type="button" className="combat-button is-primary" onClick={onExit} autoFocus>
+            Exit Mission
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Shown in place of the outro text when the away team left before every objective was complete and the map has no
 // abandoned outro of its own (implementer placeholder until the designer words it).
 const ABANDONED_TEXT = 'The away team beamed out before the mission was complete. Mission abandoned.'
+// The same when the mission failed and the map has no failed outro of its own (implementer placeholder).
+const failedText = (names) => `We failed to protect ${names.length ? names.join(', ') : 'someone in our care'}. Mission failed.`
 
 // The outro's timings (implementer picks): the wait before the heading, before the first paragraph, between the
 // others, and after the last one before the exit button.
@@ -173,12 +195,15 @@ const OUTRO_END_MS = 1500
 // The mission told as a story (designer request, 2026-10-11): over the episode card like the intro, "Captain's log,
 // stardate …" fades in, then the outro text (or the abandoned line) and the mission log retold as prose
 // (missionStory.js), one paragraph at a time. A click, Space or Enter shows the rest at once. The exit button fades
-// to black, then onDone. abandoned: the mission ended before every objective was complete.
-export function MissionOutro({ map, time, entries, abandoned = false, exitLabel, onDone }) {
+// to black, then onDone. result: 'accomplished', 'abandoned' (the mission ended before every objective was complete)
+// or 'failed' (failedNames: who was killed).
+export function MissionOutro({ map, time, entries, result = 'accomplished', failedNames = [], exitLabel, onDone }) {
   const paragraphs = useMemo(() => {
-    const opening = abandoned ? paragraphsOf(map.outroAbandoned) : paragraphsOf(map.outro)
-    return [...(abandoned && !opening.length ? [ABANDONED_TEXT] : opening), ...storyParagraphs(entries)]
-  }, [abandoned, map, entries])
+    const own = { accomplished: map.outro, abandoned: map.outroAbandoned, failed: map.outroFailed }[result]
+    const fallback = { abandoned: ABANDONED_TEXT, failed: failedText(failedNames) }[result]
+    const opening = paragraphsOf(own)
+    return [...(fallback && !opening.length ? [fallback] : opening), ...storyParagraphs(entries)]
+  }, [result, failedNames, map, entries])
   // UI state: how many lines are showing (the heading is the first); one more than every line once the exit shows.
   const [step, setStep] = useState(0)
   const lineCount = paragraphs.length + 1

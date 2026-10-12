@@ -168,7 +168,8 @@ function UnitToken({ image, shownImage, clipId, name }) {
 // lastAction / speed: state.lastAction and the Auto Combat speed, for the figure's strike, fall and getting up.
 // A fled combatant is drawn only while it beams out (fading away, never interactive).
 // beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the fight starts, else null.
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, beamIn = null, onClick, onHover }) {
+// beamingAway: an away team member beaming up at Exit Mission.
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, beamIn = null, beamingAway = false, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const { down } = controllerFor(combatant).animationState(combatant)
@@ -184,7 +185,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   )
   return (
     <g
-      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}${combatant.fled ? ' is-beaming' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}`}
+      className={`iso-unit ${sideClass}${isActive ? ' is-active' : ''}${isTarget ? ' is-target' : ''}${down ? ' is-down' : ''}${turnDone && !down ? ' is-turn-done' : ''}${isBystander ? ' is-bystander' : ''}${combatant.fled ? ' is-beaming' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}${beamingAway ? ' is-beaming-away' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}
       onClick={down || isBystander || combatant.surrendered || combatant.fled ? undefined : onClick}
       onPointerEnter={mouseOnly(() => onHover(true))}
@@ -406,7 +407,8 @@ function ObjectMarker({ mark, onClick }) {
 // world); hostile false draws them as non-hostile NPCs (purple) rather than enemies (red).
 // snapMarks: [{ id, from, cell }] - debug: each fighter's world position and the cell it was snapped to.
 // hiddenIds: combatants the party can't perceive now (not drawn). lastKnownMarks: [{ id, position, label }].
-// beamIn: the away team beaming in as the fight starts ('waiting' | 'beaming' | 'done', useBeamIn).
+// beamIn: the away team beaming in as the fight starts ('waiting' | 'beaming' | 'done', useBeamIn). beamOut: the away
+// team beaming up at Exit Mission.
 export default function Battlefield({
   state,
   activeId,
@@ -432,6 +434,7 @@ export default function Battlefield({
   objectMarks = null,
   onObjectClick = () => {},
   beamIn = 'done',
+  beamOut = false,
 }) {
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
@@ -478,6 +481,7 @@ export default function Battlefield({
           lastAction={state.lastAction}
           speed={speed}
           beamIn={unit.side === 'player' && beamIn !== 'done' ? beamIn : null}
+          beamingAway={beamOut && unit.side === 'player'}
           onClick={() => onUnitClick(unit.id)}
           onHover={(entering) => onUnitHover(unit.id, entering)}
         />
@@ -555,6 +559,8 @@ export default function Battlefield({
       <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
       {beamIn === 'beaming' &&
         units.filter((unit) => unit.side === 'player').map((unit) => <TransporterBeam key={`beam-${unit.id}`} position={tileCentre(unit.position)} direction="in" />)}
+      {beamOut &&
+        units.filter((unit) => unit.side === 'player').map((unit) => <TransporterBeam key={`beam-away-${unit.id}`} position={tileCentre(unit.position)} direction="away" />)}
       {shot && (
         <line
           className={`iso-shot${shot.available ? '' : ' is-blocked'}`}

@@ -562,7 +562,23 @@ function fidgetPose(animation, frame, frames) {
   return { ...rest, arm: [deg(3), mix(3, 140, e)], elbow: [deg(IDLE_ELBOW), mix(IDLE_ELBOW, 125, e) + deg(scratch)], head: [rollMatrix(-deg(8) * e)] }
 }
 
+// Surrendering: from the idle pose both hands go up, upper arms raised forward, forearms upright beside the head, the
+// weight easing back and the head dipping a little. Held on the last frame.
+function surrenderPose(frame, frames) {
+  const e = smooth(frame / (frames - 1))
+  return {
+    thigh: [deg(2), deg(-2)],
+    knee: [deg(3), deg(3)],
+    arm: [mix(3, 118, e), mix(3, 118, e)],
+    elbow: [mix(IDLE_ELBOW, 52, e), mix(IDLE_ELBOW, 52, e)],
+    breathe: 0,
+    lean: mix(0, -4, e),
+    head: [pitchMatrix(deg(10) * e)],
+  }
+}
+
 function poseFor(animation, frame, frames) {
+  if (animation === 'surrender') return surrenderPose(frame, frames)
   if (animation.startsWith('idle') && animation !== 'idle') return fidgetPose(animation, frame, frames)
   if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
   if (animation === 'attack') return attackPose(keyAt(frame, frames))
@@ -624,7 +640,7 @@ function makeSheet(set, sheetId) {
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle] [--force]
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender] [--force]
 const args = process.argv.slice(2)
 const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
 const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)

@@ -15,7 +15,7 @@ import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 import { scanArea, scanNpc } from './partyScan.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
-import { updateObjectives } from './missionObjectives.js'
+import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
 import { objectFor } from '../world/objects.js'
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
@@ -165,11 +165,21 @@ function logFights(previous, next) {
   return next
 }
 
+// A fight with an NPC the map marks mustSurvive in it (missionObjectives.js) fails the mission as it ends, written in
+// the Captain's Log once. previous.combat is the fight as it ended.
+function checkMissionFailure(previous, next) {
+  if (isMissionFailed(next) || previous.mode !== MODE.COMBAT || next.mode === MODE.COMBAT) return next
+  const npcIds = foughtNpcIds(previous.combat, mustSurviveIds(next.party.map))
+  if (!npcIds.length) return next
+  const names = npcIds.map((id) => npcName(next, id))
+  return addLogEntry({ ...next, missionFailed: { npcIds } }, { kind: 'fight', text: `We failed to protect ${names.join(', ')}. Mission failed.` })
+}
+
 // Objectives with conditions move as the flags change; every change that makes an objective active or complete is
 // written in the Captain's Log, as are object tasks and fights.
 export function explorationReducer(state, action) {
   const next = reduceExploration(state, action)
-  return next === state || !state ? next : logObjectiveChanges(state, updateObjectives(logFights(state, logObjectTask(state, next))))
+  return next === state || !state ? next : logObjectiveChanges(state, updateObjectives(checkMissionFailure(state, logFights(state, logObjectTask(state, next)))))
 }
 
 function reduceExploration(state, action) {

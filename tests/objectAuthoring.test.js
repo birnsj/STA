@@ -6,14 +6,20 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, it } from 'node:test'
 import { setStoryTemplates } from '../tools/storyStore.cjs'
-import { challengeDefinitionsFor, createScenario, definitionProblemsFor } from '../src/exploration/challengeObjects.js'
+import brigFile from '../maps/Deck 10 Brig.json'
+import { challengeDefinitionsFor, createScenario, definitionProblemsFor, getAvailableActions, previewChallenge } from '../src/exploration/challengeObjects.js'
+import { createExplorationState } from '../src/exploration/explorationState.js'
 import { createBlankMap, parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
+import { applyObjectEffect } from '../src/world/objectEffects.js'
+import { objectFor } from '../src/world/objects.js'
+import { makeCharacter } from './support/characters.js'
 import {
   createAction,
   createObject,
   editableObjects,
   moveObject,
   objectWarnings,
+  removeState,
   renameAction,
   renameObjectInObjectives,
   renameState,
@@ -41,6 +47,22 @@ describe('map-owned challenge objects', () => {
     const plain = parseMapFile(serializeMap(createBlankMap()), 'plain')
     assert.equal(plain.objects, null)
     assert.equal(plain.outroAbandoned, '')
+  })
+
+  it('saves and loads Must survive on an NPC and the failed outro, leaving both out when unset', () => {
+    const map = { ...createBlankMap({ width: 8, height: 8 }), outroFailed: ' She died. ' }
+    map.npcs = [
+      { id: 'a', characterId: 'stationEngineer', position: { x: 1, y: 1 }, facing: 0, mustSurvive: true },
+      { id: 'b', characterId: 'stationEngineer', position: { x: 2, y: 1 }, facing: 0, mustSurvive: false },
+    ]
+    const saved = serializeMap(map)
+    assert.equal(saved.outroFailed, 'She died.')
+    assert.equal(saved.npcs[0].mustSurvive, true)
+    assert.equal('mustSurvive' in saved.npcs[1], false)
+    const loaded = parseMapFile(JSON.parse(JSON.stringify(saved)), 'test')
+    assert.deepEqual(loaded.npcs.map((npc) => npc.mustSurvive), [true, false])
+    assert.equal(loaded.outroFailed, 'She died.')
+    assert.equal('outroFailed' in serializeMap(createBlankMap()), false)
   })
 
   it('takes the map placements in when the editor first saves the objects', () => {
@@ -86,6 +108,27 @@ describe('malformed objects', () => {
   })
 })
 
+describe('object outcomes and lookups with bad references', () => {
+  const state = () => createExplorationState(parseMapFile({ ...brigFile, objectPlacements: {} }, 'Deck 10 Brig'), [makeCharacter({ id: 'alpha', name: 'Alpha' })], 3, { enemiesActive: false })
+
+  it('an outcome naming an unknown state leaves the object where it was', () => {
+    const start = state()
+    const object = objectFor(start.scenario, 'powerJunction01')
+    const action = object.definition.actions[0]
+    const before = object.runtime(start.scenario).state
+    assert.equal(applyObjectEffect(start, object, action, { type: 'setState', state: 'noSuchState' }), start)
+    const known = Object.keys(object.definition.states).find((id) => id !== before)
+    const moved = applyObjectEffect(start, object, action, { type: 'setState', state: known })
+    assert.equal(objectFor(moved.scenario, 'powerJunction01').runtime(moved.scenario).state, known)
+  })
+
+  it('an unknown object id gives no actions and no preview instead of throwing', () => {
+    const start = state()
+    assert.deepEqual(getAvailableActions(start, 'nothingHere'), [])
+    assert.equal(previewChallenge(start, { objectId: 'nothingHere', actionId: 'x', performerId: 'alpha' }), null)
+  })
+})
+
 describe('object authoring helpers', () => {
   it('renames an action and the Adjust Difficulty effects that name it', () => {
     const object = { states: { idle: {} }, actions: [{ id: 'scan', onSuccess: [{ type: 'adjustDifficulty', actionId: 'fix', change: -1 }] }, { id: 'fix' }] }
@@ -109,6 +152,29 @@ describe('object authoring helpers', () => {
     assert.equal(offline.state, 'dark')
     assert.deepEqual(offline.actions[0].requires.states, ['dark'])
     assert.equal(renameState(object, 'offline', 'online'), object)
+  })
+
+  it('removes a state without stranding the object or leaving requirements on it', () => {
+    const object = {
+      state: 'a',
+      states: { a: {}, b: {}, c: {} },
+      actions: [
+        { id: 'x', requires: { states: ['a', 'b'], flags: { f: true } }, onSuccess: [{ type: 'setState', state: 'a' }] },
+        { id: 'y', requires: { states: ['a'] } },
+        { id: 'z' },
+      ],
+    }
+    const removed = removeState(object, 'a')
+    assert.deepEqual(Object.keys(removed.states), ['b', 'c'])
+    assert.equal(removed.state, 'b', 'a removed starting state falls back to the first remaining one')
+    assert.deepEqual(removed.actions[0].requires, { states: ['b'], flags: { f: true } })
+    assert.deepEqual(removed.actions[1].requires, {}, 'an emptied list is dropped')
+    assert.equal(removed.actions[2], object.actions[2])
+    assert.equal(removed.actions[0].onSuccess[0].state, 'a', 'setState effects stay for objectWarnings')
+    assert.equal(removeState(object, 'c').state, 'a')
+    assert.equal(removeState(object, 'nope'), object)
+    assert.equal(removeState({ ...object, states: { a: {} } }, 'a').states.a !== undefined, true, 'the last state stays')
+    assert.equal(object.states.a !== undefined, true, 'the input is not mutated')
   })
 
   it('moves an object with its extra tiles', () => {

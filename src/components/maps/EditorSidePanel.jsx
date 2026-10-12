@@ -117,6 +117,16 @@ export default function EditorSidePanel({
           onChange={(event) => edit({ ...map, outroAbandoned: event.target.value })}
         />
       </label>
+      <label className="me-field">
+        Outro (failed)
+        <textarea
+          className="me-name me-wide"
+          rows={4}
+          value={map.outroFailed ?? ''}
+          placeholder="Shown instead of the Outro when the mission failed (the away team fought an NPC marked Must survive). Blank: “We failed to protect {names}. Mission failed.”"
+          onChange={(event) => edit({ ...map, outroFailed: event.target.value })}
+        />
+      </label>
       <button type="button" className="me-button me-generate" onClick={onOpenStory}>
         Story Wording
       </button>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { isPlayerControlled } from '../actors/controllers.js'
+import { playBeamOutSound } from '../audio/uiSounds.js'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
@@ -71,7 +72,9 @@ import {
 // objects (combat in the world): the challenge objects, { list: [{ definition, actions: [{ action, available, reason,
 // cost, affordable }] }] in reach of whoever acts, preview(objectId, actionId) -> { prepared, assist } (the object's own
 // task math), recommend(objectId, actionId, memberIds) -> who is best at it (rules/taskRecommendation.js), marks:
-// [{ id, name, position, stateLabel, inReach }] to draw }. Their actions dispatch { type: 'interact' }.
+// [{ id, name, position, stateLabel, inReach }] to draw }. Their actions dispatch { type: 'interact' }. failedNames
+// (combat in the world): the Must survive NPCs in this fight, so the result reads Mission Failed and offers only
+// onExitMission.
 export function Battle({
   state,
   dispatch,
@@ -96,6 +99,8 @@ export function Battle({
   debugOpen: worldDebugOpen = null,
   onDebug = null,
   worldActors = null,
+  failedNames = [],
+  onExitMission = null,
   children = null,
 }) {
   // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays).
@@ -444,7 +449,15 @@ export function Battle({
     const timer = setTimeout(() => setBeamOutDoneKey(beamOutKey), BEAM_OUT_MS / effectSpeed)
     return () => clearTimeout(timer)
   }, [beamOutKey, effectSpeed])
-  const resultShown = Boolean(state.outcome) && (!beamOutKey || beamOutDoneKey === beamOutKey)
+  // Exit Mission on the result (a Load Episode fight): the away team beams up, then back to the menu.
+  const [partyBeamingOut, setPartyBeamingOut] = useState(false)
+  useEffect(() => {
+    if (!partyBeamingOut) return undefined
+    playBeamOutSound(BEAM_OUT_MS / 1000)
+    const timer = setTimeout(onExit, BEAM_OUT_MS)
+    return () => clearTimeout(timer)
+  }, [partyBeamingOut, onExit])
+  const resultShown = Boolean(state.outcome) && (!beamOutKey || beamOutDoneKey === beamOutKey) && !partyBeamingOut
 
   // During an unseen enemy's turn the camera stays where it was, so it never points at what the party can't perceive.
   const followFocus = openingFocus && !state.lastAction ? { key: 'opening', position: openingFocus } : cameraFocus(state, turnKey, active)
@@ -464,7 +477,7 @@ export function Battle({
         overlay={overlay}
         ring={ring}
         msPerTile={MOVE_TILE_MS / (auto === 'off' ? 1 : speed)}
-        speed={auto === 'off' ? 1 : speed}
+        speed={auto === 'off' || partyBeamingOut ? 1 : speed}
         focus={focus}
         followCamera={followCamera}
         bystanders={bystanders}
@@ -478,6 +491,7 @@ export function Battle({
         onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
         onRightClick={releaseSelection}
         beamIn={beamPhase}
+        beamOut={partyBeamingOut}
         objectMarks={objects?.marks ?? null}
         onObjectClick={(objectId) => {
           if (!isPlayerTurn) return
@@ -619,7 +633,7 @@ export function Battle({
       )}
       {debugOpen && <DebugPanel state={state} auto={auto} worldActors={worldActors} onClose={toggleDebug} />}
       {helpOpen && <HowToPlay onClose={closeHelp} />}
-      {resultShown && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={onExit} onContinue={onContinue} />}
+      {resultShown && <CombatResultModal outcome={state.outcome} onRestart={onRestart} onChangeCharacter={onChangeCharacter} onExit={() => setPartyBeamingOut(true)} onContinue={onContinue} failedNames={failedNames} onExitMission={onExitMission} />}
       {children}
     </div>
   )

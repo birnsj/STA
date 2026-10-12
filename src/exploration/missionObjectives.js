@@ -37,3 +37,15 @@ export function isMissionAccomplished(state) {
 
 // The flag a fight sets on each NPC it leaves down, surrendered or fled, for objectives and conversations to read.
 export const defeatedFlag = (npcId) => `defeated.${npcId}`
+
+// Mission failure (designer decision, 2026-10-12): the away team must never fight an NPC the map marks mustSurvive. Any
+// fight with one in it (attacked, turned hostile) fails the mission when it ends, however it ends: taken down, surrendered,
+// fled or still standing.
+export const mustSurviveIds = (map) => (map?.npcs ?? []).filter((npc) => npc.mustSurvive).map((npc) => npc.id)
+
+// The marked NPCs in a fight (combat state), in the map's order.
+export const foughtNpcIds = (combat, ids) => ids.filter((id) => Boolean(combat?.combatants[id]))
+
+// state.missionFailed: { npcIds } once failed (never cleared), or absent.
+export const isMissionFailed = (state) => Boolean(state?.missionFailed)
+export const failedNpcNames = (state) => (state?.missionFailed?.npcIds ?? []).map((id) => state.world.npcs[id]?.name ?? id)

@@ -1,5 +1,6 @@
 // The radial menus of exploration (ExplorationScreen.jsx): a party member's, a challenge object's and an NPC's, the
 // ring's party band, and the card beside an NPC's ring. Pure: they build button lists from the exploration state.
+import { controllerFor } from '../../actors/controllers.js'
 import { SCAN_TRAIT } from '../../combat/combatScan.js'
 import { dispositionName, isDown, STATE, stateName } from '../../exploration/awareness.js'
 import { getAvailableActions, getDefinition, objectsInReach } from '../../exploration/challengeObjects.js'
@@ -86,7 +87,7 @@ function npcScanner(state, npcId, pickedId = null) {
 // party band (they scan when they can, and open fire; unpicked, the best at Attack does).
 export function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions, pickedId = null) {
   const up = !isDown(npc)
-  const canTalk = up && Boolean(npc.conversationId)
+  const canTalk = controllerFor(npc).canTalk(npc)
   const talkTitle = !npc.conversationId ? `${npc.name} has nothing to say.` : !up ? `${npc.name} can't talk now.` : inTalkRange ? `Talk to ${npc.name}.` : `Walk over to ${npc.name} and talk.`
   const scanner = npcScanner(state, npc.id, pickedId)
   const scanTitle = !scanner ? 'Scan: select a character first.' : scanner.check.possible ? `${scanner.member.character.name} scans ${npc.name} (Reason + Science): condition and equipment.` : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`

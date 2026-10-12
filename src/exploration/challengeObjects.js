@@ -83,12 +83,12 @@ export const objectsInReach = (state, memberIds) =>
     .map((object) => object.definition)
 
 // The actions the object offers now: [{ action, available, reason }]. Actions whose requirements aren't met are not offered.
-export const getAvailableActions = (state, objectId) => objectFor(state.scenario, objectId).availableActions(state)
+export const getAvailableActions = (state, objectId) => objectFor(state.scenario, objectId)?.availableActions(state) ?? []
 
 export { combatCostOf }
 
 // The character math before the roll (ChallengeObject preview).
-export const previewChallenge = (state, request) => objectFor(state.scenario, request.objectId).preview(state, request)
+export const previewChallenge = (state, request) => objectFor(state.scenario, request.objectId)?.preview(state, request) ?? null
 
 // A player's attempt: { objectId, actionId, performerId, assistantId, assistIndex, purchase, combatAssist, combatLines }
 // (ChallengeObject attempt). The state is unchanged (the same object) when the attempt isn't allowed.

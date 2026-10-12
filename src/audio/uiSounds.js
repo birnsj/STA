@@ -388,7 +388,8 @@ function playTransporter(audio, duration, inbound) {
   playNoiseBurst(audio, { start, length: duration, gain: BEAM_OUT_GAIN * 0.5, filterType: 'highpass', frequency: 6500 })
 }
 
-// An enemy beaming out of the battle (it fled). seconds: the beam-out's length on screen, already scaled by the speed.
+// Beaming out: an enemy fleeing the battle, or the away team leaving the mission. seconds: the beam-out's length on
+// screen, already scaled by the speed.
 export function playBeamOutSound(seconds) {
   if (level === 0) return
   withRunningContext((audio) => playTransporter(audio, seconds, false))

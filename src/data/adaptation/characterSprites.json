@@ -8,6 +8,7 @@
     "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
     "Idle fidgets (designer request, 2026-10-11; implementer picks for review): the idle sheet's one-off animations (look around, shift weight, turn in place, check the phaser, scratch the head; at the designer's request turn in place replaced a stretch, and check the phaser replaced checking a PADD). In exploration a figure standing still (not walking, running or sneaking) plays one picked at random, never the same twice running, every gapSeconds [min, max] apart, then goes back to its idle loop. Each starts and ends on the idle pose.",
+    "Surrender (designer request, 2026-10-12; pose an implementer pick): in combat, a character that surrenders (combatSocial.js) puts its weapon away and raises both hands, then holds them up (already standing so if it surrendered before the board appeared).",
     "displayScale: every figure (and its shadow and click area) is drawn this much larger than its frame, scaled from the feet. Designer requests (Oct 2026): 15% bigger, then 10% bigger again (1.15 x 1.1)."
   ],
   "displayScale": 1.265,
@@ -69,6 +70,15 @@
         "idleTurn": { "start": 36, "frames": 20, "seconds": 3.0, "play": "once" },
         "idleCheckPhaser": { "start": 56, "frames": 20, "seconds": 3.2, "play": "once" },
         "idleScratchHead": { "start": 76, "frames": 16, "seconds": 2.2, "play": "once" }
+      }
+    },
+    "surrender": {
+      "suffix": "-surrender",
+      "frame": { "width": 40, "height": 64 },
+      "anchor": { "x": 20, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "surrender": { "start": 0, "frames": 12, "seconds": 0.8, "play": "hold" }
       }
     }
   },

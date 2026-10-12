@@ -1,8 +1,8 @@
 import ConfirmDialog from '../maps/ConfirmDialog.jsx'
-import { MissionAccomplished } from './MissionStory.jsx'
-import { isMissionAccomplished } from '../../exploration/missionObjectives.js'
+import { MissionAccomplished, MissionFailed } from './MissionStory.jsx'
+import { failedNpcNames, isMissionAccomplished, isMissionFailed } from '../../exploration/missionObjectives.js'
 
-// The confirmations for Exit Mission and a member's Beam Out, and the Mission Accomplished banner.
+// The confirmations for Exit Mission and a member's Beam Out, and the Mission Accomplished / Mission Failed banners.
 // ending: useMissionEnding's result.
 export default function MissionEndDialogs({ state, ending }) {
   const { party } = state
@@ -14,7 +14,9 @@ export default function MissionEndDialogs({ state, ending }) {
         <ConfirmDialog
           title="Exit Mission?"
           message={
-            isMissionAccomplished(state)
+            isMissionFailed(state)
+              ? 'The whole away team beams out. The mission has failed.'
+              : isMissionAccomplished(state)
               ? 'The whole away team beams out and the mission ends.'
               : 'The whole away team beams out and the mission ends. Not every objective is complete: the mission will be abandoned.'
           }
@@ -39,6 +41,7 @@ export default function MissionEndDialogs({ state, ending }) {
         />
       )}
       {ending.ending === 'accomplished' && <MissionAccomplished map={party.map} onExit={ending.exitMission} onReturn={ending.dismiss} />}
+      {ending.ending === 'failed' && <MissionFailed map={party.map} names={failedNpcNames(state)} onExit={ending.exitMission} />}
     </>
   )
 }

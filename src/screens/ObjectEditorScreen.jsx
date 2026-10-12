@@ -6,7 +6,7 @@ import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
 import { definitionProblemsFor } from '../exploration/challengeObjects.js'
 import { TILES } from '../maps/mapFormat.js'
-import { createAction, createObject, editableObjects, freshId, moveObject, objectWarnings, renameAction, renameObjectInObjectives, renameState, withObjects } from '../world/objectAuthoring.js'
+import { createAction, createObject, editableObjects, freshId, moveObject, objectWarnings, renameAction, removeState as removeObjectState, renameObjectInObjectives, renameState, withObjects } from '../world/objectAuthoring.js'
 
 // Dev challenge object editor (opened from the map editor): the open map's challenge objects listed on the left, the
 // selected one edited on the right with its states and actions. Edits go into the map (map.objects), so the map
@@ -17,7 +17,7 @@ const clamp = (value, limit) => Math.min(limit - 1, Math.max(0, Math.round(Numbe
 function StatesEditor({ object, onChange }) {
   const entries = Object.entries(object.states)
   const setState = (id, changes) => onChange({ ...object, states: { ...object.states, [id]: { ...object.states[id], ...changes } } })
-  const removeState = (id) => onChange({ ...object, states: Object.fromEntries(entries.filter(([other]) => other !== id)) })
+  const removeState = (id) => onChange(removeObjectState(object, id))
   const addState = () => onChange({ ...object, states: { ...object.states, [freshId(Object.keys(object.states), 'state')]: { label: '', description: '' } } })
   return (
     <div className="ce-list">

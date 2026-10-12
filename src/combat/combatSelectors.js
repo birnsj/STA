@@ -49,11 +49,14 @@ export const getTurnGroup = (state) => getTurnGroupRange(state).ids
 // The closest of candidates to position, by tile distance (the first of equals, in candidates order); undefined if none.
 export const nearestTo = (position, candidates) => [...candidates].sort((a, b) => tileDistance(position, a.position) - tileDistance(position, b.position))[0]
 
-// Every combatant always has a facing; one without a stored facing faces the nearest active opponent.
+// Every combatant always has a facing; one without a stored facing faces the nearest active opponent. Designer request
+// (2026-10-12): one in cover always does (while it knows of one), whatever it last moved or attacked toward.
 export function getFacing(state, combatant) {
-  if (combatant.facing) return combatant.facing
+  const covered = combatant.inCover && isActive(combatant)
+  if (combatant.facing && !covered) return combatant.facing
   const nearest = nearestTo(combatant.position, getOpponents(state, combatant))
-  return facingToward(combatant.position, nearest?.position ?? combatant.position)
+  if (!nearest) return combatant.facing ?? facingToward(combatant.position, combatant.position)
+  return facingToward(combatant.position, nearest.position)
 }
 
 export function getTurnOf(state, id) {

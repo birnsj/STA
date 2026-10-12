@@ -4,13 +4,15 @@ import { CombatLinkPanel } from '../components/exploration/ExplorationDebugPanel
 import { dispositionName, getNpcs, isHostile, stateName } from '../exploration/awareness.js'
 import { getChallengeViews } from '../exploration/challengeObjects.js'
 import { getCombatDiagnostics, getCombatObjects, previewCombatObject, recommendCombatObject } from '../exploration/combatLink.js'
+import { foughtNpcIds, mustSurviveIds } from '../exploration/missionObjectives.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { normalizeCondition } from '../rules/personalCondition.js'
 import { Battle } from './CombatScreen.jsx'
 
 // Combat over the same world: the exploration view is swapped for the combat battlefield on the same map, with
 // everyone where they stood. Exploration stays frozen underneath until the result's Return to Exploration.
-export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
+// onExitMission: ends the fight and beams the away team out (the result offers it when the fight failed the mission).
+export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit, onExitMission }) {
   const { combat, link, world } = state
   // Test options for Auto Combat, as on the combat screen.
   const [partyAI, setPartyAI] = useState('classic')
@@ -36,6 +38,7 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
     subtitle: !target ? null : trigger && isVisibleToParty(knowledge, trigger.id) ? `${trigger.character.name} engages ${target.character.name}` : `${target.character.name} has been spotted`,
   }))
   const diagnostics = debugOpen ? getCombatDiagnostics(state) : null
+  const failedNames = foughtNpcIds(combat, mustSurviveIds(state.party.map)).map((id) => combat.combatants[id].character.name)
   // The same challenge objects as in exploration, usable by whoever acts (combatLink.js runs them).
   const objectList = getCombatObjects(state)
   const objects = {
@@ -63,6 +66,8 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
       onEnemyAI={setEnemyAI}
       onExit={onExit}
       onContinue={() => dispatch({ type: 'endCombat' })}
+      failedNames={failedNames}
+      onExitMission={onExitMission}
       bystanders={bystanders}
       hiddenIds={hiddenIds}
       lastKnownMarks={lastKnownMarks}

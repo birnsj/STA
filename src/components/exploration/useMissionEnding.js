@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { playBeamOutSound } from '../../audio/uiSounds.js'
 import { BEAM_OUT_MS } from '../combat/battleHelpers.js'
-import { isMissionAccomplished } from '../../exploration/missionObjectives.js'
+import { isMissionAccomplished, isMissionFailed } from '../../exploration/missionObjectives.js'
 
 // How long the map stays up after the last objective completes before Mission Accomplished shows (implementer pick),
 // so the roll or line that finished it can be seen.
@@ -13,15 +14,19 @@ const ACCOMPLISHED_DELAY_MS = 1500
 // Returns the UI state the screen and MissionEndDialogs.jsx read, and the actions that change it.
 export default function useMissionEnding({ state, dispatch, inCombat, talking }) {
   const { party } = state
-  // UI state: null | 'accomplished' (the banner is up) | 'dismissed' (it has been answered).
+  // UI state: null | 'accomplished' | 'failed' (the banner is up) | 'dismissed' (Return to Game) | 'exiting' (Exit Mission).
   const [ending, setEnding] = useState(null)
   const beaming = party.memberIds.some((id) => party.members[id].beaming)
-  const accomplished = !inCombat && !talking && !beaming && isMissionAccomplished(state)
+  // Mission Failed (designer decision, 2026-10-12) shows once the fight that failed it has ended and offers only Exit
+  // Mission; it wins over Mission Accomplished.
+  const failed = !inCombat && !beaming && isMissionFailed(state)
+  const accomplished = !failed && !inCombat && !talking && !beaming && isMissionAccomplished(state)
+  const next = failed ? (ending === 'failed' || ending === 'exiting' ? null : 'failed') : accomplished && !ending ? 'accomplished' : null
   useEffect(() => {
-    if (!accomplished || ending) return
-    const timer = setTimeout(() => setEnding('accomplished'), ACCOMPLISHED_DELAY_MS)
+    if (!next) return
+    const timer = setTimeout(() => setEnding(next), ACCOMPLISHED_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [accomplished, ending])
+  }, [next])
   const outro = !inCombat && party.memberIds.length === 0
 
   // UI state: whether Exit Mission is waiting for confirmation; the member whose Beam Out is.
@@ -35,7 +40,9 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
   }, [])
   const startBeamOut = useCallback(
     (ids) => {
+      if (!ids.length) return
       dispatch({ type: 'startBeamOut', ids })
+      playBeamOutSound(BEAM_OUT_MS / 1000)
       const timer = setTimeout(() => {
         beamTimers.current.delete(timer)
         dispatch({ type: 'beamOut', ids })
@@ -45,10 +52,23 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
     [dispatch],
   )
   const exitMission = () => {
-    setEnding('dismissed')
+    setEnding('exiting')
     if (talking) dispatch({ type: 'conversationLeave' })
     startBeamOut(party.memberIds.filter((id) => !party.members[id].beaming))
   }
+  // Exit Mission on the result of the fight that failed the mission: the fight ends, then the away team beams out
+  // (a beam can't start while the fight is on), with no Mission Failed banner between.
+  const exitAfterFight = useRef(false)
+  const exitMissionFromFight = () => {
+    setEnding('exiting')
+    exitAfterFight.current = true
+    dispatch({ type: 'endCombat' })
+  }
+  useEffect(() => {
+    if (inCombat || !exitAfterFight.current) return
+    exitAfterFight.current = false
+    startBeamOut(party.memberIds.filter((id) => !party.members[id].beaming))
+  }, [inCombat, party, startBeamOut])
 
   return {
     ending,
@@ -56,7 +76,7 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
     beaming,
     outro,
     // The world stops while the banner is up and once the outro shows.
-    paused: ending === 'accomplished' || outro,
+    paused: ending === 'accomplished' || ending === 'failed' || outro,
     confirmExit,
     askExitMission,
     cancelExit: () => setConfirmExit(false),
@@ -65,6 +85,7 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
     cancelBeamOut: () => setConfirmBeamOutId(null),
     startBeamOut,
     exitMission,
+    exitMissionFromFight,
   }
 }
 

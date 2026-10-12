@@ -99,6 +99,9 @@ export default function NpcInspector({ npc, conversations, moving, onChange, onF
           ))}
         </select>
       </Field>
+      <label className="me-check" title="If this NPC is killed (dead, or Dying with an untreated Deadly Injury when a fight ends), the mission fails.">
+        <input type="checkbox" checked={Boolean(npc.mustSurvive)} onChange={(event) => onChange({ mustSurvive: event.target.checked })} /> Must survive (mission fails if the away team fights them)
+      </label>
       <Field label="Alert group">
         <input className="me-name me-wide" value={npc.alertGroupId ?? ''} placeholder="None" onChange={text('alertGroupId')} />
       </Field>

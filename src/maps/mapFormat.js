@@ -11,7 +11,8 @@
 // npcs: the NPCs placed in the editor, each a world actor referencing an authored character (characters.json) plus how
 // this instance behaves: { id, characterId, name (blank: the character's), position, facing (degrees, 0 = +x),
 // faction (blank: the character's), disposition (awareness.json), conversationId (conversations/{id}.json or null),
-// npcRules, alertGroupId, alertMethod, responseType }. A map with NPCs of its own doesn't get npcs.json's test NPCs.
+// npcRules, alertGroupId, alertMethod, responseType, mustSurvive (the mission fails if they are killed; left out on
+// disk when false) }. A map with NPCs of its own doesn't get npcs.json's test NPCs.
 // objectives: [{ id, title, description, position (the minimap marks it while active; null: no marker), activeWhen,
 // completeWhen }]; their progress is a mission flag (exploration/missionFlags.js). activeWhen / completeWhen: mission
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
@@ -23,7 +24,8 @@
 // stands where its definition puts it (challengeObjects.js).
 // briefing: the Captain's Log opening text (blank lines split paragraphs), shown as the episode's intro; outro: the
 // Captain's Log closing text shown once the mission is accomplished; outroAbandoned: shown instead when the away team
-// left before every objective was complete (blank: a default line); stardate: the episode's starting stardate
+// left before every objective was complete (blank: a default line); outroFailed: shown instead when the mission failed
+// (an NPC who must survive was killed; blank: a default line); stardate: the episode's starting stardate
 // (a number, or null for missionLog.json's default). All are left out on disk when empty.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
@@ -112,6 +114,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     briefing: '',
     outro: '',
     outroAbandoned: '',
+    outroFailed: '',
     stardate: null,
   }
 }
@@ -123,6 +126,7 @@ function parseNpc(raw) {
   NPC_TEXT_FIELDS.forEach((field) => {
     npc[field] = raw[field] ?? null
   })
+  npc.mustSurvive = raw.mustSurvive === true
   return npc
 }
 function serializeNpc(npc) {
@@ -130,6 +134,7 @@ function serializeNpc(npc) {
   NPC_TEXT_FIELDS.forEach((field) => {
     if (npc[field] != null && npc[field] !== '') record[field] = npc[field]
   })
+  if (npc.mustSurvive) record.mustSurvive = true
   return record
 }
 const conditionList = (raw) => (Array.isArray(raw) ? raw.filter((condition) => condition?.flag) : [])
@@ -195,6 +200,7 @@ export function parseMapFile(file, id) {
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     outro: typeof file.outro === 'string' ? file.outro : '',
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
+    outroFailed: typeof file.outroFailed === 'string' ? file.outroFailed : '',
     stardate: Number.isFinite(file.stardate) ? file.stardate : null,
   }
 }
@@ -225,6 +231,7 @@ export function serializeMap(map) {
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
+    ...(map.outroFailed?.trim() ? { outroFailed: map.outroFailed.trim() } : {}),
     ...(Number.isFinite(map.stardate) ? { stardate: map.stardate } : {}),
   }
 }

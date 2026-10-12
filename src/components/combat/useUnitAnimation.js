@@ -10,19 +10,24 @@ const isStrikeBy = (action, id) => Boolean(action && STRIKES.includes(action.typ
 
 // Which CharacterSprite animation a combatant plays (characterSprites.json): its strike when the last action was its
 // attack, the fall when it is Defeated (already lying there if it was down before this board appeared), getting up
-// (the fall backwards) when First Aid ends Defeated, walking, cover, or idle. Presentation only.
+// (the fall backwards) when First Aid ends Defeated, hands up once it has surrendered (already up if it had before this
+// board appeared), walking, cover, or idle. Presentation only.
 // Returns the CharacterSprite props: { animation, playKey, settled, reverse }.
 export default function useUnitAnimation(combatant, { isWalking, lastAction, speed = 1 }) {
   const down = Boolean(combatant.condition?.defeated)
+  const surrendered = Boolean(combatant.surrendered)
   const fall = defeatAnimation(combatant.condition, combatant.id)
   const strikeKey = isStrikeBy(lastAction, combatant.id) ? lastAction.key : null
   // seenStrike starts at the current action so a board that appears mid-fight doesn't replay an old shot.
-  const [track, setTrack] = useState({ down, fall: down ? fall : null, settled: down, seenStrike: strikeKey, strike: null, gettingUp: null, playKey: 0 })
+  const [track, setTrack] = useState({ down, fall: down ? fall : null, settled: down, surrendered, handsSettled: surrendered, seenStrike: strikeKey, strike: null, gettingUp: null, playKey: 0 })
 
   // Adjusted while rendering (not in an effect) so the figure never shows a frame of the wrong pose.
   let next = track
   if (down !== next.down) {
     next = down ? { ...next, down, fall, settled: false, gettingUp: null, strike: null, playKey: next.playKey + 1 } : { ...next, down, gettingUp: next.fall, playKey: next.playKey + 1 }
+  }
+  if (surrendered !== next.surrendered) {
+    next = { ...next, surrendered, handsSettled: false, strike: null, playKey: next.playKey + 1 }
   }
   if (strikeKey !== null && strikeKey !== next.seenStrike) {
     next = { ...next, seenStrike: strikeKey, strike: down ? null : strikeAnimation(lastAction), playKey: next.playKey + 1 }
@@ -41,6 +46,7 @@ export default function useUnitAnimation(combatant, { isWalking, lastAction, spe
   if (next.down) return { animation: next.fall, playKey: next.playKey, settled: next.settled, reverse: false }
   if (next.gettingUp) return { animation: next.gettingUp, playKey: next.playKey, settled: false, reverse: true }
   if (next.strike) return { animation: next.strike, playKey: next.playKey, settled: false, reverse: false }
+  if (next.surrendered) return { animation: 'surrender', playKey: next.playKey, settled: next.handsSettled, reverse: false }
   if (isWalking) return { animation: 'walk', playKey: 0, settled: false, reverse: false }
   return { animation: combatant.inCover ? 'cover' : 'idle', playKey: 0, settled: false, reverse: false }
 }

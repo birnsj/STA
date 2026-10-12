@@ -30,7 +30,7 @@ import { getChallengeViews, objectivePosition, objectsInReach } from '../explora
 import { MODE } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
-import { isMissionAccomplished } from '../exploration/missionObjectives.js'
+import { failedNpcNames, isMissionAccomplished, isMissionFailed } from '../exploration/missionObjectives.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
 import { getMembers } from '../exploration/partyControl.js'
@@ -357,9 +357,9 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
       : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
-  if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} />
+  if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
   if (outro) {
-    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} abandoned={!isMissionAccomplished(state)} exitLabel={exitLabel} onDone={onExit} />
+    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} exitLabel={exitLabel} onDone={onExit} />
   }
   return (
     <div className="combat-screen exploration-screen">
