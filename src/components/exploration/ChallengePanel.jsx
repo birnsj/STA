@@ -220,7 +220,12 @@ export default function ChallengePanel({
   }
 
   const attemptButton = action && (
-    <button type="button" className="combat-button is-small is-primary" disabled={!performer || (preview?.prepared && !preview.prepared.possible)} onClick={attempt}>
+    <button
+      type="button"
+      className="combat-button is-small is-primary"
+      disabled={showingResult || !performer || (preview?.prepared && !preview.prepared.possible)}
+      onClick={attempt}
+    >
       {action.routine ? action.label : `Attempt (roll ${TASK_DICE}d20)`}
     </button>
   )
@@ -230,16 +235,16 @@ export default function ChallengePanel({
     createPortal(
       <div className={`ring-roll${fadeClass}`} onPointerDown={(event) => event.stopPropagation()}>
         {lastRoll?.result && (
-          <>
+          <div className="ring-roll-dice">
             <RolledDice
               result={lastRoll.result}
               performer={state.party.members[lastRoll.performerId]}
               assistant={lastRoll.assistantId ? state.party.members[lastRoll.assistantId] : null}
             />
             <p className={`ring-roll-outcome ${lastRoll.result.success ? 'is-success' : 'is-failure'}`}>{lastRoll.result.success ? 'Success' : 'Failure'}</p>
-          </>
+          </div>
         )}
-        {!showingResult && attemptButton}
+        {attemptButton}
       </div>,
       rollSlot,
     )
