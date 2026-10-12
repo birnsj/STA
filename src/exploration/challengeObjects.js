@@ -10,6 +10,7 @@
 import { isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
 import { combatCostOf } from '../world/ChallengeObject.js'
+import { playableActions, repairDefinitions } from '../world/objectDefinitions.js'
 import { applyScenarioTiles as retile, objectFor, objectForDefinition, objectsOf, withMap as withRetiledMap } from '../world/objects.js'
 import { objectiveFlag } from './missionFlags.js'
 import { TASK_SEED_OFFSET } from './partyTaskRoll.js'
@@ -21,7 +22,10 @@ export { TASK_SEED_OFFSET }
 // The challenge objects authored for a map: its own (map.objects, the Object Editor) or else challenges.json's for its
 // file name. Each stands where the map's objectPlacements puts it (mapFormat.js); a doorway's other tiles (covers) move
 // with it.
-export const authoredDefinitionsFor = (map) => map.objects ?? data.maps[map.id] ?? data.maps[map.name] ?? []
+// Malformed parts are repaired rather than crashing (world/objectDefinitions.js); definitionProblemsFor lists the repairs.
+const authoredList = (map) => map.objects ?? data.maps[map.id] ?? data.maps[map.name] ?? []
+export const authoredDefinitionsFor = (map) => repairDefinitions(authoredList(map)).definitions
+export const definitionProblemsFor = (map) => repairDefinitions(authoredList(map)).problems
 export function challengeDefinitionsFor(map) {
   const definitions = authoredDefinitionsFor(map)
   const placements = map.objectPlacements ?? {}
@@ -47,8 +51,9 @@ export function objectivePosition(map, objective) {
 }
 
 // The map's startsActive objectives are active from the first moment.
+// Actions the game can't run (a task without an Attribute or Department) are left out of play.
 export function createScenario(map) {
-  const definitions = challengeDefinitionsFor(map)
+  const definitions = challengeDefinitionsFor(map).map(playableActions)
   const objects = Object.fromEntries(definitions.map((definition) => [definition.id, objectForDefinition(definition).createRuntime(map)]))
   const flags = Object.fromEntries((map.objectives ?? []).filter((objective) => objective.startsActive).map((objective) => [objectiveFlag(objective.id), 'active']))
   return { definitions, objects, flags, traits: [], log: [], taskCount: 0 }

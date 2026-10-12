@@ -6,9 +6,19 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, it } from 'node:test'
 import { setStoryTemplates } from '../tools/storyStore.cjs'
-import { challengeDefinitionsFor } from '../src/exploration/challengeObjects.js'
+import { challengeDefinitionsFor, createScenario, definitionProblemsFor } from '../src/exploration/challengeObjects.js'
 import { createBlankMap, parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
-import { createAction, createObject, editableObjects, moveObject, objectWarnings, renameState, withObjects } from '../src/world/objectAuthoring.js'
+import {
+  createAction,
+  createObject,
+  editableObjects,
+  moveObject,
+  objectWarnings,
+  renameAction,
+  renameObjectInObjectives,
+  renameState,
+  withObjects,
+} from '../src/world/objectAuthoring.js'
 
 const brig = () => ({ ...createBlankMap({ name: 'Deck 10 Brig', width: 40, height: 40 }), id: 'Deck 10 Brig' })
 
@@ -42,7 +52,54 @@ describe('map-owned challenge objects', () => {
   })
 })
 
+describe('malformed objects', () => {
+  it('repairs what it can and leaves out what has no id, instead of crashing', () => {
+    const map = {
+      ...createBlankMap({ width: 8, height: 8 }),
+      objects: [
+        { id: 'panel', states: 'nope', actions: [{ id: 'a', label: 'A', onSuccess: 'x' }, { label: 'no id' }, { id: 'b', task: { attribute: 'reason' } }] },
+        { name: 'no id' },
+        null,
+        { id: 'door', position: [2, 2], state: 'open', states: { open: { label: 'Open' } }, actions: 'x', covers: [[3, 2], 'bad'] },
+      ],
+    }
+    const definitions = challengeDefinitionsFor(map)
+    assert.deepEqual(definitions.map((object) => object.id), ['panel', 'door'])
+    const [panel, door] = definitions
+    assert.deepEqual(panel.position, [0, 0])
+    assert.deepEqual(Object.keys(panel.states), ['default'])
+    assert.equal(panel.state, 'default')
+    assert.deepEqual(panel.actions.map((action) => action.id), ['a', 'b'])
+    assert.equal(panel.actions[0].onSuccess, undefined)
+    assert.deepEqual(door.actions, [])
+    assert.deepEqual(door.covers, [[3, 2]])
+    assert.ok(definitionProblemsFor(map).length >= 6)
+    // Play leaves out actions it can't run: b has no Department.
+    assert.deepEqual(createScenario(map).definitions[0].actions.map((action) => action.id), [])
+    assert.ok(editableObjects(map).length === 2)
+  })
+
+  it('does not change well-formed objects', () => {
+    const map = brig()
+    assert.deepEqual(definitionProblemsFor(map), [])
+    assert.equal(createScenario(map).definitions.find((object) => object.id === 'powerJunction01').actions.length, 3)
+  })
+})
+
 describe('object authoring helpers', () => {
+  it('renames an action and the Adjust Difficulty effects that name it', () => {
+    const object = { states: { idle: {} }, actions: [{ id: 'scan', onSuccess: [{ type: 'adjustDifficulty', actionId: 'fix', change: -1 }] }, { id: 'fix' }] }
+    const renamed = renameAction(object, 'fix', 'repair')
+    assert.deepEqual(renamed.actions.map((action) => action.id), ['scan', 'repair'])
+    assert.equal(renamed.actions[0].onSuccess[0].actionId, 'repair')
+    assert.equal(renameAction(object, 'fix', 'scan'), object)
+  })
+
+  it('moves objectives marked on a renamed object with it', () => {
+    const objectives = [{ id: 'o1', objectId: 'junction' }, { id: 'o2', objectId: 'door' }, { id: 'o3' }]
+    assert.deepEqual(renameObjectInObjectives(objectives, 'junction', 'eps').map((objective) => objective.objectId), ['eps', 'door', undefined])
+  })
+
   it('renames a state everywhere the object refers to it', () => {
     const object = editableObjects(brig()).find((entry) => entry.id === 'powerJunction01')
     const renamed = renameState(object, 'online', 'powered')

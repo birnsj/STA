@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import '../components/conversation/conversationEditor.css'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import IdInput from '../components/maps/IdInput.jsx'
 import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
+import { definitionProblemsFor } from '../exploration/challengeObjects.js'
 import { TILES } from '../maps/mapFormat.js'
-import { createAction, createObject, editableObjects, freshId, idText, moveObject, objectWarnings, renameState, withObjects } from '../world/objectAuthoring.js'
+import { createAction, createObject, editableObjects, freshId, moveObject, objectWarnings, renameAction, renameObjectInObjectives, renameState, withObjects } from '../world/objectAuthoring.js'
 
 // Dev challenge object editor (opened from the map editor): the open map's challenge objects listed on the left, the
 // selected one edited on the right with its states and actions. Edits go into the map (map.objects), so the map
@@ -21,7 +23,7 @@ function StatesEditor({ object, onChange }) {
     <div className="ce-list">
       {entries.map(([id, state], index) => (
         <div key={index} className="ce-row is-action">
-          <input className="ce-input ce-flag" value={id} aria-label="State id" onChange={(event) => onChange(renameState(object, id, idText(event.target.value)))} />
+          <IdInput className="ce-input ce-flag" label="State id" value={id} taken={(next) => Boolean(object.states[next])} onChange={(next) => onChange(renameState(object, id, next))} />
           <input className="ce-input" value={state.label ?? ''} placeholder="Label" onChange={(event) => setState(id, { label: event.target.value })} />
           <input className="ce-input oe-long" value={state.description ?? ''} placeholder="Description (the interaction panel)" onChange={(event) => setState(id, { description: event.target.value })} />
           <input className="ce-input ce-flag" list="oe-tiles" value={state.tile ?? ''} placeholder="tile (map's own)" onChange={(event) => setState(id, { tile: event.target.value.trim() || undefined })} />
@@ -37,15 +39,15 @@ function StatesEditor({ object, onChange }) {
   )
 }
 
-function ObjectFields({ object, map, onChange }) {
+function ObjectFields({ object, map, otherIds, onChange }) {
   const set = (changes) => onChange({ ...object, ...changes })
   const [x, y] = object.position
   return (
     <>
       <div className="ce-row">
         <label className="ce-field">
-          <span className="ce-field-label">Id (conversations and objectives refer to it)</span>
-          <input className="ce-input" value={object.id} onChange={(event) => set({ id: idText(event.target.value) })} />
+          <span className="ce-field-label">Id (objectives marked on it follow a rename; conversations that name it don&apos;t)</span>
+          <IdInput value={object.id} label="Object id" taken={(next) => otherIds.includes(next)} onChange={(id) => set({ id })} />
         </label>
         <label className="ce-field">
           <span className="ce-field-label">Name</span>
@@ -105,11 +107,15 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
   const [question, setQuestion] = useState(null)
   const selected = objects[selectedIndex] ?? null
   const action = selected?.actions[actionIndex] ?? null
-  const warnings = objectWarnings(objects, map)
+  const warnings = [...definitionProblemsFor(map), ...objectWarnings(objects, map)]
   const fallback = data.maps[map.id] ?? data.maps[map.name] ?? null
 
-  const commit = (next) => onChange(withObjects(map, next))
-  const updateObject = (object) => commit(objects.map((other, at) => (at === selectedIndex ? object : other)))
+  const commit = (next, changes = {}) => onChange({ ...withObjects(map, next), ...changes })
+  const updateObject = (object) => {
+    const next = objects.map((other, at) => (at === selectedIndex ? object : other))
+    const renamed = selected && object.id !== selected.id
+    commit(next, renamed ? { objectives: renameObjectInObjectives(map.objectives ?? [], selected.id, object.id) } : {})
+  }
   const select = (index) => {
     setSelectedIndex(index)
     setActionIndex(0)
@@ -192,7 +198,7 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
                   Remove Object
                 </button>
               </div>
-              <ObjectFields key={selectedIndex} object={selected} map={map} onChange={updateObject} />
+              <ObjectFields key={selectedIndex} object={selected} map={map} otherIds={objects.filter((_, at) => at !== selectedIndex).map((object) => object.id)} onChange={updateObject} />
               <span className="ce-heading">Actions</span>
               <div className="ce-row">
                 {selected.actions.map((entry, index) => (
@@ -222,6 +228,7 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
                     action={action}
                     object={selected}
                     onChange={(next) => updateObject({ ...selected, actions: selected.actions.map((other, at) => (at === actionIndex ? next : other)) })}
+                    onRename={(to) => updateObject(renameAction(selected, action.id, to))}
                   />
                 </>
               )}

@@ -5,6 +5,8 @@ import './maps.css'
 
 // Never stay black longer than this, even if an image never answers.
 const MAX_WAIT_MS = 5000
+// A little longer than the cover's fade in maps.css.
+const FADE_FALLBACK_MS = 700
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
 
 // An episode's map opens from black: the cover fades out once the map is painted and the figures' sprite sheets have
@@ -38,9 +40,16 @@ export default function MapFadeIn({ children }) {
     return () => clearTimeout(timer)
   }, [reveal])
 
+  // The beam-in waits for the cover to be gone, so a missed transitionend mustn't leave it down.
+  useEffect(() => {
+    if (stage !== 'fading') return undefined
+    const timer = setTimeout(() => setStage('done'), FADE_FALLBACK_MS)
+    return () => clearTimeout(timer)
+  }, [stage])
+
   return (
     <MapReadyContext.Provider value={onMapReady}>
-      <MapRevealedContext.Provider value={stage !== 'waiting'}>
+      <MapRevealedContext.Provider value={stage === 'done'}>
         {children}
         {stage !== 'done' && (
           <div

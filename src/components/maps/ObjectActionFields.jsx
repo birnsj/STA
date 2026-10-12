@@ -4,7 +4,8 @@ import { ConditionsEditor } from '../conversation/ConversationFields.jsx'
 import attributeData from '../../data/source/attributes.json'
 import disciplineData from '../../data/source/disciplines.json'
 import { CHANGE_OPS, flagValueText, parseFlagValue } from '../../exploration/missionFlags.js'
-import { EFFECT_TYPES, getEffectType, idText, OUTCOME_LISTS } from '../../world/objectAuthoring.js'
+import { EFFECT_TYPES, getEffectType, OUTCOME_LISTS } from '../../world/objectAuthoring.js'
+import IdInput from './IdInput.jsx'
 
 // The Object Editor's fields for one challenge-object action (challenges.json notes): what it is, when it's offered,
 // its task, assists, combat cost and outcomes. object: the object it belongs to (its states and other actions).
@@ -143,23 +144,34 @@ function AssistList({ assists, onChange }) {
   )
 }
 
-// requires.flags: { flag: value }, edited as rows.
+// requires.flags: { flag: value }, edited as rows kept here, so a row being typed never merges into another with the
+// same name: only named rows are saved, and a name listed twice is shown (the last row counts, as in the file).
 function RequiredFlags({ flags, onChange }) {
-  const entries = Object.entries(flags)
-  const rebuild = (next) => onChange(Object.fromEntries(next))
+  const [rows, setRows] = useState(() => Object.entries(flags))
+  const update = (next) => {
+    setRows(next)
+    onChange(Object.fromEntries(next.filter(([flag]) => flag)))
+  }
+  const repeated = (flag, index) => Boolean(flag) && rows.some(([other], at) => at > index && other === flag)
   return (
     <div className="ce-list">
-      {entries.map(([flag, value], index) => (
+      {rows.map(([flag, value], index) => (
         <div key={index} className="ce-row">
-          <input className="ce-input ce-flag" value={flag} placeholder="flag" onChange={(event) => rebuild(replaceAt(entries, index, [event.target.value.trim(), value]))} />
+          <input
+            className={`ce-input ce-flag${repeated(flag, index) ? ' is-invalid' : ''}`}
+            value={flag}
+            placeholder="flag"
+            title={repeated(flag, index) ? 'Listed again below; that row counts' : undefined}
+            onChange={(event) => update(replaceAt(rows, index, [event.target.value.trim(), value]))}
+          />
           <span className="ce-text">=</span>
-          <ValueInput value={value} onChange={(next) => rebuild(replaceAt(entries, index, [flag, next]))} />
-          <button type="button" className="ce-button is-small" aria-label="Remove flag" onClick={() => rebuild(removeAt(entries, index))}>
+          <ValueInput value={value} onChange={(next) => update(replaceAt(rows, index, [flag, next]))} />
+          <button type="button" className="ce-button is-small" aria-label="Remove flag" onClick={() => update(removeAt(rows, index))}>
             ×
           </button>
         </div>
       ))}
-      <button type="button" className="ce-button is-small" disabled={'' in flags} onClick={() => onChange({ ...flags, '': true })}>
+      <button type="button" className="ce-button is-small" onClick={() => setRows([...rows, ['', true]])}>
         + Flag
       </button>
     </div>
@@ -238,7 +250,7 @@ const COMBAT_COSTS = [
   { id: 'minor', label: 'Minor action' },
 ]
 
-export default function ObjectActionFields({ action, object, onChange }) {
+export default function ObjectActionFields({ action, object, onChange, onRename }) {
   const set = (changes) => onChange(withoutEmpty({ ...action, ...changes }))
   const requires = action.requires ?? {}
   const setRequires = (changes) => {
@@ -255,7 +267,7 @@ export default function ObjectActionFields({ action, object, onChange }) {
     <div className="ce-inspector">
       <div className="ce-row">
         <Field label="Id">
-          <input className="ce-input" value={action.id} onChange={(event) => set({ id: idText(event.target.value) })} />
+          <IdInput value={action.id} label="Action id" taken={(next) => object.actions.some((other) => other.id === next)} onChange={onRename} />
         </Field>
         <Field label="Label (the ring and the log)">
           <input className="ce-input" value={action.label} onChange={(event) => set({ label: event.target.value })} />

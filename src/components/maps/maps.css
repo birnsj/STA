@@ -105,7 +105,7 @@
   z-index: 1000;
   background: #000;
   opacity: 1;
-  transition: opacity 0.8s ease-out;
+  transition: opacity 0.5s ease-out;
 }
 
 .map-fade-in.is-fading {

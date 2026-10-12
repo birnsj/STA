@@ -108,4 +108,12 @@ export default defineConfig({
       ignored: ['**/music/**', '**/reference/**', '**/extracted-art/**', '**/release/**', '**/dist/**', '**/characters/**', isInMapsFolder, isInConversationsFolder],
     },
   },
+  // React in its own file: it changes far less often than the app, so a browser keeps it cached between builds.
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: { groups: [{ name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ }] },
+      },
+    },
+  },
 })

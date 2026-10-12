@@ -95,6 +95,22 @@ export function renameState(object, from, to) {
   return { ...object, state: object.state === from ? to : object.state, states, actions }
 }
 
+// Renames an action and the Adjust Difficulty effects of the object's actions that name it.
+export function renameAction(object, from, to) {
+  if (from === to || !to || object.actions.some((action) => action.id === to)) return object
+  const actions = object.actions.map((action) => ({
+    ...action,
+    id: action.id === from ? to : action.id,
+    ...mapEffects(action, (effect) => (effect.type === 'adjustDifficulty' && effect.actionId === from ? { ...effect, actionId: to } : effect)),
+  }))
+  return { ...object, actions }
+}
+
+// The map's objectives marked on an object follow it when it's renamed. (Conversations live in their own files and
+// are not changed.)
+export const renameObjectInObjectives = (objectives, from, to) =>
+  objectives.map((objective) => (objective.objectId === from ? { ...objective, objectId: to } : objective))
+
 // Moves an object, its extra tiles (covers) keeping their offsets.
 export function moveObject(object, [x, y]) {
   const [dx, dy] = [x - object.position[0], y - object.position[1]]
@@ -125,7 +141,7 @@ export function objectWarnings(objects, map) {
       else if (actionIds.has(action.id)) warnings.push(`${label}: the action id ${action.id} is used twice.`)
       actionIds.add(action.id)
       if (!action.label?.trim()) warnings.push(`${name} has no label.`)
-      if (!action.routine && (!action.task?.attribute || !action.task?.department)) warnings.push(`${name} needs an Attribute and a Department, or Routine.`)
+      if (!action.routine && (!action.task?.attribute || !action.task?.department)) warnings.push(`${name} needs an Attribute and a Department, or Routine; until then it is left out of play.`)
       ;(action.requires?.states ?? []).forEach((state) => !object.states[state] && warnings.push(`${name} requires the unknown state ${state}.`))
       OUTCOME_LISTS.forEach(({ key }) =>
         (action[key] ?? []).forEach((effect) => {

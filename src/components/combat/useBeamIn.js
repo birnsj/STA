@@ -3,7 +3,7 @@ import { playBeamInSound } from '../../audio/uiSounds.js'
 import { MapRevealedContext } from '../maps/mapReady.js'
 import { BEAM_IN_MS } from './battleHelpers.js'
 
-// The away team beaming in as a mission starts. It waits for the map to be seen (the fade from black lifting) and
+// The away team beaming in as a mission starts. It waits for the map to be seen (the fade from black finished) and
 // for held to clear (How to Play open), then plays once. enabled: false skips it (a fight started from the map).
 // Returns 'waiting' (the party not drawn yet), 'beaming' or 'done'.
 export default function useBeamIn({ enabled = true, held = false } = {}) {
