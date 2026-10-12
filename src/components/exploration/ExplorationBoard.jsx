@@ -45,6 +45,9 @@ const CLICK_PULSE_MS = 400
 const BOX_MIN_DRAG = 6
 // Figures are drawn this much larger than their frames (characterSprites.json displayScale), so their windows are too.
 const FIGURE_SCALE = getSpriteMetrics().displayScale ?? 1
+// The party's starting points are spread evenly over half a stride, not a whole one: half a stride apart, a walk looks
+// the same with the legs swapped.
+const STRIDE_SPREAD = 0.5
 // A character is in the box when any of their figure (feet at the point, about 50 high, 20 wide) is.
 const figureInBox = (feet, a, b) =>
   feet.x + 10 >= Math.min(a.x, b.x) && feet.x - 10 <= Math.max(a.x, b.x) && feet.y >= Math.min(a.y, b.y) && feet.y - 50 <= Math.max(a.y, b.y)
@@ -67,7 +70,8 @@ function DownBody({ condition, spriteSet = null, uniform = null, facing, seed })
 }
 
 // beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the mission starts, else null.
-function Explorer({ member, selected, lead, beamIn = null, onPress }) {
+// stridePhase: where in its looping animations the figure starts (0..1), so the party never steps in time.
+function Explorer({ member, selected, lead, beamIn = null, stridePhase = null, onPress }) {
   const centre = project(member.position)
   const image = member.character.portrait.image
   const uniform = member.character.portrait.uniform
@@ -87,7 +91,7 @@ function Explorer({ member, selected, lead, beamIn = null, onPress }) {
       {down ? (
         <DownBody condition={member.condition} spriteSet={member.character.portrait.spriteSet} uniform={uniform} facing={facing} seed={member.id} />
       ) : (
-        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={walking} running={running} sneaking={sneaking} seed={member.id} clipId={clipId} name={member.character.name} facing={facing} />
+        <ExplorerFigure image={image} uniform={uniform} spriteSet={member.character.portrait.spriteSet} walking={walking} running={running} sneaking={sneaking} seed={member.id} phase={stridePhase} clipId={clipId} name={member.character.name} facing={facing} />
       )}
       {lead && (
         <text className="explore-unit-lead" x="0" y="-58" textAnchor="middle">
@@ -99,13 +103,13 @@ function Explorer({ member, selected, lead, beamIn = null, onPress }) {
 }
 
 // The character's full-body sprite where they have one (characterSprites.json), else their portrait on a stand.
-function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = false, running = false, sneaking = false, seed, clipId, name, facing }) {
+function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = false, running = false, sneaking = false, seed, phase = null, clipId, name, facing }) {
   const hasSprite = hasCharacterSprite(spriteSet)
   const shownImage = useUniformImage(hasSprite ? null : image, uniform)
   if (hasSprite) {
     return (
       <>
-        <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} walking={walking} running={running} sneaking={sneaking} seed={seed} />
+        <CharacterSprite setId={spriteSet} colour={uniform} facing={facing} walking={walking} running={running} sneaking={sneaking} seed={seed} phase={phase} fidgets />
         <FacingArrow facing={facing} />
       </>
     )
@@ -638,13 +642,14 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
   // The figures standing among the blocks, in painter's order by depth.
   const atDepth = (position, offset) => position.x + position.y + offset
   const figures = [
-    ...getMembers(state).map((member) => ({
+    ...getMembers(state).map((member, index, members) => ({
       depth: atDepth(member.position, 0.5),
       box: around(member.position, 30 * FIGURE_SCALE, 72 * FIGURE_SCALE),
       element: (
         <Explorer
           key={`u${member.id}`}
           member={member}
+          stridePhase={(index * STRIDE_SPREAD) / members.length}
           selected={isSelected(state, member.id)}
           lead={member.id === state.leaderId}
           beamIn={beamIn === 'done' ? null : beamIn}

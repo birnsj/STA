@@ -7,6 +7,7 @@
     "Combat (Battlefield.jsx): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). First Aid that ends Defeated plays the fall backwards (getting up). Downed characters in exploration lie in the same pose.",
     "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
+    "Idle fidgets (designer request, 2026-10-11; implementer picks for review): the idle sheet's one-off animations (look around, shift weight, turn in place, check the phaser, scratch the head; at the designer's request turn in place replaced a stretch, and check the phaser replaced checking a PADD). In exploration a figure standing still (not walking, running or sneaking) plays one picked at random, never the same twice running, every gapSeconds [min, max] apart, then goes back to its idle loop. Each starts and ends on the idle pose.",
     "displayScale: every figure (and its shadow and click area) is drawn this much larger than its frame, scaled from the feet. Designer requests (Oct 2026): 15% bigger, then 10% bigger again (1.15 x 1.1)."
   ],
   "displayScale": 1.265,
@@ -19,9 +20,9 @@
       "anchor": { "x": 20, "y": 60 },
       "resolution": 4,
       "animations": {
-        "idle": { "start": 0, "frames": 4, "seconds": 2.4, "play": "loop" },
-        "walk": { "start": 4, "frames": 8, "seconds": 0.8, "play": "loop" },
-        "run": { "start": 12, "frames": 8, "seconds": 0.6, "play": "loop" }
+        "idle": { "start": 0, "frames": 8, "seconds": 2.4, "play": "loop" },
+        "walk": { "start": 8, "frames": 16, "seconds": 0.8, "play": "loop" },
+        "run": { "start": 24, "frames": 16, "seconds": 0.6, "play": "loop" }
       }
     },
     "combat": {
@@ -30,9 +31,9 @@
       "anchor": { "x": 28, "y": 60 },
       "resolution": 4,
       "animations": {
-        "attack": { "start": 0, "frames": 6, "seconds": 0.7, "play": "once" },
-        "melee": { "start": 6, "frames": 6, "seconds": 0.6, "play": "once" },
-        "cover": { "start": 12, "frames": 4, "seconds": 2.4, "play": "loop" }
+        "attack": { "start": 0, "frames": 12, "seconds": 0.7, "play": "once" },
+        "melee": { "start": 12, "frames": 12, "seconds": 0.6, "play": "once" },
+        "cover": { "start": 24, "frames": 8, "seconds": 2.4, "play": "loop" }
       }
     },
     "fall": {
@@ -41,10 +42,10 @@
       "anchor": { "x": 56, "y": 64 },
       "resolution": 3,
       "animations": {
-        "fallCrumple": { "start": 0, "frames": 6, "seconds": 0.9, "play": "hold" },
-        "fallBack": { "start": 6, "frames": 6, "seconds": 0.7, "play": "hold" },
-        "fallForward": { "start": 12, "frames": 6, "seconds": 0.8, "play": "hold" },
-        "fallSpin": { "start": 18, "frames": 6, "seconds": 0.8, "play": "hold" }
+        "fallCrumple": { "start": 0, "frames": 12, "seconds": 0.9, "play": "hold" },
+        "fallBack": { "start": 12, "frames": 12, "seconds": 0.7, "play": "hold" },
+        "fallForward": { "start": 24, "frames": 12, "seconds": 0.8, "play": "hold" },
+        "fallSpin": { "start": 36, "frames": 12, "seconds": 0.8, "play": "hold" }
       }
     },
     "sneak": {
@@ -53,10 +54,27 @@
       "anchor": { "x": 20, "y": 60 },
       "resolution": 4,
       "animations": {
-        "sneakIdle": { "start": 0, "frames": 4, "seconds": 2.8, "play": "loop" },
-        "sneakWalk": { "start": 4, "frames": 8, "seconds": 1.1, "play": "loop" }
+        "sneakIdle": { "start": 0, "frames": 8, "seconds": 2.8, "play": "loop" },
+        "sneakWalk": { "start": 8, "frames": 16, "seconds": 1.1, "play": "loop" }
+      }
+    },
+    "idle": {
+      "suffix": "-idle",
+      "frame": { "width": 40, "height": 64 },
+      "anchor": { "x": 20, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "idleLookAround": { "start": 0, "frames": 20, "seconds": 2.6, "play": "once" },
+        "idleShiftWeight": { "start": 20, "frames": 16, "seconds": 2.2, "play": "once" },
+        "idleTurn": { "start": 36, "frames": 20, "seconds": 3.0, "play": "once" },
+        "idleCheckPhaser": { "start": 56, "frames": 20, "seconds": 3.2, "play": "once" },
+        "idleScratchHead": { "start": 76, "frames": 16, "seconds": 2.2, "play": "once" }
       }
     }
+  },
+  "idleFidgets": {
+    "animations": ["idleLookAround", "idleShiftWeight", "idleTurn", "idleCheckPhaser", "idleScratchHead"],
+    "gapSeconds": [5, 14]
   },
   "deadlyFalls": ["fallBack", "fallForward", "fallSpin"],
   "stunFall": "fallCrumple",

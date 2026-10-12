@@ -172,6 +172,7 @@ function buildFigure(speciesId, gender, pose) {
   // The dress flares to its hem: the upper half of an ellipsoid centred on the hem, narrowing into the waist.
   if (female && !species.armour) put(ellipsoid(v3(0, 0, z(19.6)), [4.3 * ws, hipHalf + 3.2, 8.5 * hs], shirt, (p) => p[2] > z(19.6)))
   else put(ellipsoid(v3(0, 0, z(24.5)), [3.2 * ws, hipHalf + 2.2, 3.6 * hs], TROUSERS))
+  const upperFrom = shapes.length
   put(ellipsoid(v3(0, 0, z(32)), [3.4 * ws, shoulderHalf * 0.92, (8.4 + breathe * 0.2) * hs], shirt))
   const shoulderZ = z(38.2) + breathe * 0.25
   put(capsule(v3(0, -shoulderHalf + 1.6, shoulderZ), v3(0, shoulderHalf - 1.6, shoulderZ), 2.5 * ws, shirt))
@@ -198,12 +199,16 @@ function buildFigure(speciesId, gender, pose) {
   put(capsule(v3(0.2, 0, z(39)), v3(0.3, 0, z(43.4)), 1.6 * ws, skin))
   if (!species.armour) put(ellipsoid(v3(0.15, 0, z(40.5)), [2.3 * ws, 2.4 * ws, 1.2], COLLAR))
   const head = v3(0.3, 0, z(46.6))
+  const headFrom = shapes.length
   put(ellipsoid(head, [3.0, 2.75 * Math.min(ws, 1.05), 3.6], skin))
   put(ellipsoid(add(head, v3(2.8, 0, -0.5)), [0.6, 0.45, 0.8], skin))
   ;[1, -1].forEach((side) => put(ellipsoid(add(head, v3(2.5, side * 1.05, 0.4)), [0.42, 0.42, 0.42], EYES)))
   addEars(species, head, skin, put)
   addHair(species, female, head, hair, put)
   addFeatures(species, gender, head, z, skin, hair, put)
+  for (const matrix of pose.head ?? []) turnPart(shapes, headFrom, matrix, v3(0.3, 0, z(42)))
+  // A twist at the waist: everything above the hips turns about the body's upright axis, the legs stay planted.
+  if (pose.twist) turnPart(shapes, upperFrom, yawMatrix(pose.twist), v3(0, 0, 0))
   let figure = pose.lean ? leanForward(shapes, Math.tan(pose.lean)) : shapes
   for (const matrix of pose.turns ?? []) figure = turnAboutFeet(figure, matrix)
   return pose.turns ? ontoGround(figure) : figure
@@ -239,6 +244,19 @@ const turnAboutFeet = (shapes, matrix) =>
     (p) => mulTransposed(matrix, p),
     matrix,
   )
+
+// Turns part of the figure (every shape from `from` on, except the tail) about pivot, in place: the head about the
+// neck, or the upper body about the waist.
+function turnPart(shapes, from, matrix, pivot) {
+  const partShapes = shapes.slice(from).filter((shape) => shape.mat.part !== 'tail')
+  const turned = transformShapes(
+    partShapes,
+    (p) => add(pivot, mulMatrix(matrix, sub(p, pivot))),
+    (p) => add(pivot, mulTransposed(matrix, sub(p, pivot))),
+    matrix,
+  )
+  partShapes.forEach((shape, index) => (shapes[shapes.indexOf(shape)] = turned[index]))
+}
 
 // Lifts or drops a turned (falling) figure so its lowest point rests on the floor.
 function ontoGround(shapes) {
@@ -383,32 +401,40 @@ function renderFrame(scene, metrics, sheet, mask, column, row, width) {
   }
 }
 
-// How far through a fall each of its frames is (it speeds up, then the last frame lies still).
+// How far through a fall it is at each of its key poses (it speeds up, then the last frame lies still).
 const FALL_PROGRESS = [0, 0.12, 0.34, 0.64, 0.9, 1]
-const pick = (values, frame) => values[Math.min(frame, values.length - 1)]
+// The one-shots (shoot, melee, falls) are written as six key poses; a frame is a point between them, so an animation
+// with more frames blends smoothly from key to key. keyAt: a frame's place along the keys (0 .. keys - 1).
+const KEYS = 6
+const keyAt = (frame, frames) => (frame * (KEYS - 1)) / (frames - 1)
+function pick(values, at) {
+  const index = Math.min(Math.floor(at), values.length - 1)
+  const next = values[Math.min(index + 1, values.length - 1)]
+  return values[index] + (next - values[index]) * (at - index)
+}
 
 // Shooting: the right arm comes up level with the weapon, a kick on the shot, then lowers.
-function attackPose(frame) {
+function attackPose(at) {
   return {
     thigh: [deg(8), deg(-6)],
     knee: [deg(6), deg(4)],
-    arm: [deg(6), deg(pick([15, 55, 88, 93, 88, 55], frame))],
-    elbow: [deg(14), deg(pick([20, 12, 2, 0, 2, 12], frame))],
+    arm: [deg(6), deg(pick([15, 55, 88, 93, 88, 55], at))],
+    elbow: [deg(14), deg(pick([20, 12, 2, 0, 2, 12], at))],
     breathe: 0,
-    lean: deg(pick([1, 2, 2, -3, 1, 1], frame)),
+    lean: deg(pick([1, 2, 2, -3, 1, 1], at)),
     prop: true,
   }
 }
 
 // A melee strike: wind up, lunge with the right arm on the front foot, recover.
-function meleePose(frame) {
+function meleePose(at) {
   return {
-    thigh: [deg(pick([0, -5, 6, 24, 22, 8], frame)), deg(pick([0, 4, -4, -14, -12, -4], frame))],
-    knee: [deg(pick([4, 4, 6, 14, 12, 6], frame)), deg(pick([4, 6, 6, 4, 4, 4], frame))],
-    arm: [deg(30), deg(pick([-10, -45, -20, 85, 78, 30], frame))],
-    elbow: [deg(80), deg(pick([30, 110, 90, 4, 10, 40], frame))],
+    thigh: [deg(pick([0, -5, 6, 24, 22, 8], at)), deg(pick([0, 4, -4, -14, -12, -4], at))],
+    knee: [deg(pick([4, 4, 6, 14, 12, 6], at)), deg(pick([4, 6, 6, 4, 4, 4], at))],
+    arm: [deg(30), deg(pick([-10, -45, -20, 85, 78, 30], at))],
+    elbow: [deg(80), deg(pick([30, 110, 90, 4, 10, 40], at))],
     breathe: 0,
-    lean: deg(pick([0, -6, 2, 14, 12, 4], frame)),
+    lean: deg(pick([0, -6, 2, 14, 12, 4], at)),
   }
 }
 
@@ -491,12 +517,58 @@ function sneakPose(animation, frame, frames) {
   }
 }
 
+// The idle fidgets: one-offs that start and end on the idle pose (its first frame), so they blend back into the loop.
+// t runs 0..1 over the frames; e is how far into the gesture (0 at both ends).
+const mix = (from, to, e) => deg(from + (to - from) * e)
+const smooth = (x) => x * x * (3 - 2 * x)
+const plateau = (t, ramp) => smooth(Math.min(1, t / ramp)) * smooth(Math.min(1, (1 - t) / ramp))
+const IDLE_ELBOW = 12 + 3 * 0.7
+
+function fidgetPose(animation, frame, frames) {
+  const t = frame / (frames - 1)
+  const rest = { thigh: [deg(2), deg(-2)], knee: [deg(3), deg(3)], arm: [deg(3), deg(3)], elbow: [deg(IDLE_ELBOW), deg(IDLE_ELBOW)], breathe: 0 }
+  if (animation === 'idleLookAround') {
+    // A glance to the left, then across to the right, and back.
+    return { ...rest, head: [yawMatrix(deg(55) * Math.sin(t * Math.PI * 2))] }
+  }
+  if (animation === 'idleShiftWeight') {
+    // Weight onto the left leg, the right knee easing, a slight sway.
+    const e = Math.sin(t * Math.PI)
+    return { ...rest, thigh: [mix(2, -1, e), mix(-2, 12, e)], knee: [deg(3), mix(3, 30, e)], arm: [mix(3, 8, e), mix(3, -2, e)], turns: [rollMatrix(deg(7) * e)], head: [rollMatrix(-deg(5) * e)] }
+  }
+  if (animation === 'idleTurn') {
+    // Turning on the spot: feet planted, the upper body twists to the left and the head turns on to look behind, then
+    // back.
+    const e = plateau(t, 0.4)
+    return { ...rest, thigh: [mix(2, 4, e), mix(-2, -4, e)], twist: deg(45) * e, head: [yawMatrix(deg(50) * e)] }
+  }
+  if (animation === 'idleCheckPhaser') {
+    // The phaser drawn and brought up in front, looked over (tilted a little up and down), then put away. It only shows
+    // once the hand is on its way up, so it doesn't pop in at the idle pose.
+    const e = plateau(t, 0.25)
+    const tilt = Math.sin(t * Math.PI * 4) * 10 * e
+    return {
+      ...rest,
+      arm: [mix(3, 14, e), mix(3, 12, e)],
+      elbow: [mix(IDLE_ELBOW, 85, e), mix(IDLE_ELBOW, 112, e) + deg(tilt)],
+      lean: mix(0, 3, e),
+      head: [pitchMatrix(deg(22) * e)],
+      prop: e > 0.2,
+    }
+  }
+  // idleScratchHead: the right hand up to the side of the head, a scratch, the head tilting into it.
+  const e = plateau(t, 0.3)
+  const scratch = Math.sin(t * Math.PI * 6) * 8 * e
+  return { ...rest, arm: [deg(3), mix(3, 140, e)], elbow: [deg(IDLE_ELBOW), mix(IDLE_ELBOW, 125, e) + deg(scratch)], head: [rollMatrix(-deg(8) * e)] }
+}
+
 function poseFor(animation, frame, frames) {
+  if (animation.startsWith('idle') && animation !== 'idle') return fidgetPose(animation, frame, frames)
   if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
-  if (animation === 'attack') return attackPose(frame)
-  if (animation === 'melee') return meleePose(frame)
+  if (animation === 'attack') return attackPose(keyAt(frame, frames))
+  if (animation === 'melee') return meleePose(keyAt(frame, frames))
   if (animation === 'cover') return coverPose(frame, frames)
-  if (animation.startsWith('fall')) return fallPose(animation, pick(FALL_PROGRESS, frame))
+  if (animation.startsWith('fall')) return fallPose(animation, pick(FALL_PROGRESS, keyAt(frame, frames)))
   if (animation === 'idle') {
     const breathe = Math.sin((frame / frames) * Math.PI * 2)
     return { thigh: [deg(2), deg(-2)], knee: [deg(3), deg(3)], arm: [deg(3 + breathe), deg(3 - breathe)], breathe }
@@ -552,7 +624,7 @@ function makeSheet(set, sheetId) {
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak] [--force]
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle] [--force]
 const args = process.argv.slice(2)
 const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
 const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)

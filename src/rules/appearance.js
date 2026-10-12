@@ -63,6 +63,7 @@ export function selectBackdrop(identity, backdropId, departmentId = null) {
 // token). A portrait's own spriteSet wins, then its species and gender; portraits outside portraits.json are named in
 // portraitSets.
 export const getSpriteMetrics = () => spriteData
+export const getIdleFidgets = () => spriteData.idleFidgets
 export const getSpriteSetById = (setId) => spriteData.sets.find((set) => set.id === setId) ?? null
 export const hasCharacterSprite = (setId) => Boolean(getSpriteSetById(setId))
 export function getSpriteSet(portraitId) {
