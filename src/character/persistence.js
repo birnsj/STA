@@ -84,6 +84,27 @@ if (characterFiles) {
   }
 }
 
+// A static build has no characters folder to read, so the project's characters/*.json are bundled and copied into the
+// browser's list, each once (SEEDED_KEY remembers which), so the player's edits and removals stick.
+const BUNDLED = characterFiles ? {} : import.meta.glob('/characters/*.json', { eager: true, import: 'default' })
+const SEEDED_KEY = 'st-adventures.seededCharacters'
+if (!characterFiles) {
+  const seeded = new Set(read(SEEDED_KEY) ?? [])
+  const fresh = Object.entries(BUNDLED)
+    .map(([file, record]) => ({ id: file.slice('/characters/'.length, -'.json'.length), record }))
+    .filter((entry) => !seeded.has(entry.id) && isPlainObject(entry.record))
+    .sort((a, b) => a.id.localeCompare(b.id))
+  if (fresh.length) {
+    const savedAt = new Date().toISOString()
+    const stored = readStoredList()
+    const add = fresh
+      .filter((entry) => !stored.some((existing) => existing.id === entry.id))
+      .map(({ id, record }) => ({ id, savedAt, name: record.character?.identity?.name?.trim() ?? '', record }))
+    writeStoredList([...stored, ...add])
+    write(SEEDED_KEY, [...seeded, ...fresh.map((entry) => entry.id)])
+  }
+}
+
 export function loadSavedCharacters() {
   return characterFiles ? characterFiles.list().filter(isValidEntry) : readStoredList()
 }

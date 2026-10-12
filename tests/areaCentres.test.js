@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json' with { type: 'json' }
-import kelDorFile from "../maps/I.K.S. Kel'dor Brig.json" with { type: 'json' }
 import { areaLabelCentres } from '../src/maps/areaCentres.js'
 import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 
@@ -17,9 +16,17 @@ describe('minimap area name centres', () => {
   })
 
   it('centres a name in a room whose doorways are plain gaps in the wall', () => {
-    const map = parseMapFile(kelDorFile)
-    assert.deepEqual(centreOf(map, 'Cloaking Device Room'), { x: 7, y: 7 })
-    assert.deepEqual(centreOf(map, "Captain's Quarters"), { x: 32.5, y: 20.5 })
+    // A walled room, inside x 3-7, y 3-7, with a one-tile gap in its east wall onto open floor.
+    const map = createBlankMap({ name: 'Gap Room', width: 20, height: 20 })
+    const wall = map.tiles[0][0]
+    for (let i = 2; i <= 8; i++) {
+      map.tiles[2][i] = wall
+      map.tiles[8][i] = wall
+      map.tiles[i][2] = wall
+      if (i !== 5) map.tiles[i][8] = wall
+    }
+    const areas = [{ name: 'Gap Room', position: { x: 3, y: 3 } }]
+    assert.deepEqual(areaLabelCentres(map.tiles, areas), [{ x: 5, y: 5 }])
   })
 
   it('leaves a name on its own tile on open ground', () => {
