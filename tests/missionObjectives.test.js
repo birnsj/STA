@@ -6,7 +6,7 @@ import brigFile from '../maps/Deck 10 Brig.json'
 import { objectivePosition } from '../src/exploration/challengeObjects.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { objectiveStatus } from '../src/exploration/missionFlags.js'
-import { updateObjectives } from '../src/exploration/missionObjectives.js'
+import { isMissionAccomplished, updateObjectives } from '../src/exploration/missionObjectives.js'
 import { parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -58,5 +58,21 @@ describe('objectives with conditions', () => {
   it('never moves an objective back', () => {
     const done = withFlags(brig(), { 'objective.okaforClearance': 'complete' })
     assert.equal(status(updateObjectives(done), 'okaforClearance'), 'complete')
+  })
+})
+
+describe('the mission is accomplished', () => {
+  it('once every objective is complete, not before', () => {
+    const state = brig()
+    const all = Object.fromEntries(state.party.map.objectives.map((objective) => [`objective.${objective.id}`, 'complete']))
+    assert.equal(isMissionAccomplished(state), false)
+    const [lastId] = Object.keys(all).slice(-1)
+    assert.equal(isMissionAccomplished(withFlags(state, { ...all, [lastId]: 'active' })), false)
+    assert.equal(isMissionAccomplished(withFlags(state, all)), true)
+  })
+
+  it('never on a map without objectives', () => {
+    const state = brig()
+    assert.equal(isMissionAccomplished({ ...state, party: { ...state.party, map: { ...state.party.map, objectives: [] } } }), false)
   })
 })

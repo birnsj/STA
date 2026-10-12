@@ -25,6 +25,8 @@ import WeatherFx from '../effects/WeatherFx.jsx'
 const ExplorationPlaytest = lazy(() => import('./ExplorationScreen.jsx').then((module) => ({ default: module.ExplorationPlaytest })))
 const ConversationEditorScreen = lazy(() => import('./ConversationEditorScreen.jsx'))
 const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
+const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
+const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 const PLAY_TEAM_SIZE = 4
 // Play's away team: up to PLAY_TEAM_SIZE saved characters picked at random (no more than the map has player starts),
 // as RuntimeCharacters. Characters whose saved JSON doesn't load are skipped.
@@ -70,6 +72,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [conversationEditor, setConversationEditor] = useState(null)
   // The objective editor while open ({ index }: the objective selected) | null.
   const [objectiveEditor, setObjectiveEditor] = useState(null)
+  // The challenge object editor ({ id }: the object selected) and the Story Wording editor while open.
+  const [objectEditor, setObjectEditor] = useState(null)
+  const [storyEditor, setStoryEditor] = useState(false)
 
   const refreshConversations = () =>
     listConversations()
@@ -79,7 +84,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     refreshConversations()
   }, [])
 
-  const dialogOpen = dialogShowing || doc.showLoad || Boolean(playTeam) || Boolean(conversationEditor) || Boolean(objectiveEditor)
+  const dialogOpen = dialogShowing || doc.showLoad || Boolean(playTeam) || Boolean(conversationEditor) || Boolean(objectiveEditor) || Boolean(objectEditor) || storyEditor
   const tools = useEditorTools({
     map,
     edit,
@@ -136,6 +141,27 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           }}
           onBack={() => setObjectiveEditor(null)}
         />
+      </Suspense>
+    )
+  }
+
+  if (objectEditor) {
+    return (
+      <Suspense fallback={null}>
+        <ObjectEditorScreen
+          map={map}
+          onChange={edit}
+          initialId={objectEditor.id}
+          onBack={() => setObjectEditor(null)}
+        />
+      </Suspense>
+    )
+  }
+
+  if (storyEditor) {
+    return (
+      <Suspense fallback={null}>
+        <StoryEditorScreen onBack={() => setStoryEditor(false)} />
       </Suspense>
     )
   }
@@ -243,6 +269,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           onGenerateMap={() => doc.onGenerate()}
           onOpenObjective={(index) => setObjectiveEditor({ index })}
           onOpenConversations={() => setConversationEditor({ id: null })}
+          onOpenObjects={() => setObjectEditor({ id: tools.selectedObjectId ?? null })}
+          onOpenStory={() => setStoryEditor(true)}
         >
           <EditorInspectors
             map={map}

@@ -77,22 +77,36 @@ describe("the Captain's Log", () => {
     for (let attempt = 0; attempt < 20 && !state.scenario.flags.stationPowerRestored; attempt += 1) {
       state = explorationReducer(state, { type: 'challenge', objectId: 'powerJunction01', actionId: 'replaceCoupling', performerId: 'beta' })
     }
-    assert.deepEqual(texts(state).slice(-3), [
+    assert.deepEqual(texts(state).slice(-4), [
+      'Beta: Replace the EPS Coupling (EPS Power Junction): succeeded.',
       "Following Lt. Okafor's diagnosis, we replaced the burnt-out EPS coupling. The section has power again.",
       'Objective complete: Restore power to the section.',
       'New objective: Get into the east section.',
     ])
+    assert.deepEqual(state.missionLog.entries.at(-4).story, { event: 'taskSuccess', performer: 'Beta', label: 'Replace the EPS Coupling', object: 'EPS Power Junction' })
+  })
+
+  it('a fight breaking out and its end are logged', () => {
+    const base = createExplorationState(roomWithEngineer(), team(), 7)
+    const fighting = explorationReducer(base, { type: 'attackNpc', npcId: 'eng', targetId: 'alpha' })
+    const started = fighting.missionLog.entries.at(-1)
+    assert.equal(started.kind, 'fight')
+    assert.deepEqual(started.story, { event: 'fightStartedByUs', attacker: 'Alpha', target: 'Lt. Mara Okafor', enemies: ['Lt. Mara Okafor'] })
+    const ended = explorationReducer(fighting, { type: 'endCombat' }).missionLog.entries.at(-1)
+    assert.equal(ended.text, 'Fight over (ended).')
+    assert.deepEqual(ended.story, { event: 'fightEnded', outcome: 'ended', down: [], surrendered: [], fled: [], fallen: [] })
   })
 })
 
-describe("the map's briefing and stardate", () => {
+describe("the map's briefing, outro and stardate", () => {
   it('are saved with the map, and left out when blank', () => {
-    const map = { ...createBlankMap({ name: 'Briefed', width: 8, height: 8 }), briefing: '  First.\n\nSecond.  ', stardate: 4400.2 }
+    const map = { ...createBlankMap({ name: 'Briefed', width: 8, height: 8 }), briefing: '  First.\n\nSecond.  ', outro: ' Done. ', stardate: 4400.2 }
     const again = parseMapFile(JSON.parse(JSON.stringify(serializeMap(map))), 'Briefed')
     assert.equal(again.briefing, 'First.\n\nSecond.')
+    assert.equal(again.outro, 'Done.')
     assert.equal(again.stardate, 4400.2)
     const blank = serializeMap(createBlankMap({ name: 'Plain', width: 8, height: 8 }))
-    assert.ok(!('briefing' in blank) && !('stardate' in blank))
+    assert.ok(!('briefing' in blank) && !('outro' in blank) && !('stardate' in blank))
   })
 
   it('the Deck 10 Brig has a briefing, and its objective is marked at the power junction', () => {

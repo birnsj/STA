@@ -1,5 +1,6 @@
 // Whole-sprite animation frames for the animated tiles (tileEffects.json animations), baked from each tile's own art
 // (tiles.json image, big.image or panelImages) and its light layers (art-layers/, written by scripts/makeTilesV2.mjs).
+// Walls get only the light frames (their emission images), drawn over the wall's own image.
 // Run after the tile scripts:   node scripts/makeTileFrames.mjs [--only=prefix,...]
 //
 // An animation is one loop of frames, frameTime seconds each. A frame shows every light layer at its level at the
@@ -219,6 +220,8 @@ function clearFrames(href) {
 function bake(id, animation) {
   const tile = TILES.get(id)
   if (!tile) throw new Error(`${id} isn't in tiles.json`)
+  // A wall's animation is its lights alone (its emission images), drawn over the wall's own image (tileArt.js overlay).
+  const overlay = Boolean(tile.wall)
   const count = Math.round(animation.loop / animation.frameTime)
   // Each frame's layer levels; frames with the same levels share an image (star windows: every frame differs).
   const keys = []
@@ -249,23 +252,23 @@ function bake(id, animation) {
         blend(sprite, source, level, mode)
         blend(emission, source, level, mode)
       })
-      const spriteHref = frameFile(href, index)
-      write(spriteHref, sprite)
+      const spriteHref = overlay ? null : frameFile(href, index)
+      if (spriteHref) write(spriteHref, sprite)
       const entry = images[index]
-      const emissionHref = animation.emission === false ? null : frameFile(href, index, '-emission')
+      const emissionHref = animation.emission === false && !overlay ? null : frameFile(href, index, '-emission')
       if (emissionHref) write(emissionHref, emission)
       if (variant.startsWith('panel.')) {
         const axis = variant.split('.')[1]
-        entry.panel = { ...entry.panel, [axis]: spriteHref }
+        if (spriteHref) entry.panel = { ...entry.panel, [axis]: spriteHref }
         if (emissionHref) entry.panelEmission = { ...entry.panelEmission, [axis]: emissionHref }
       } else {
-        entry[variant] = spriteHref
+        if (spriteHref) entry[variant] = spriteHref
         if (emissionHref) entry[emissionKey(variant)] = emissionHref
       }
     })
   }
   console.log(`baked  ${id}: ${count} frames, ${images.length} images`)
-  return { ...(animation.active ? { active: true } : {}), frameTime: animation.frameTime, frames, images }
+  return { ...(overlay ? { overlay: true } : {}), ...(animation.active ? { active: true } : {}), frameTime: animation.frameTime, frames, images }
 }
 
 // --only=prefix,...: bake just the animations whose tile id starts with one of these, keeping every other tile's frames

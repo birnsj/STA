@@ -276,6 +276,242 @@
   background: rgba(6, 12, 28, 0.97);
 }
 
+/* Mission Accomplished (MissionStory.jsx), over everything on the map. */
+.mission-accomplished-backdrop {
+  z-index: 60;
+}
+
+/* The game-mode intro (MissionStory.jsx MissionIntro), like a film opening: letterbox bars, the episode card drifting
+   slowly closer, the title fading up and away, then the log narrated over the image. */
+.mission-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+  user-select: none;
+}
+
+.mission-intro-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  animation:
+    mission-intro-reveal 2.5s ease-out forwards,
+    mission-intro-drift 40s linear forwards;
+}
+
+@keyframes mission-intro-reveal {
+  to { opacity: 0.6; }
+}
+
+@keyframes mission-intro-drift {
+  from { transform: scale(1.04); }
+  to { transform: scale(1.18) translate(-1.5%, -1%); }
+}
+
+/* Dims the card evenly, a little more at the edges, so the centred text reads. */
+.mission-intro-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.35) 30%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.mission-intro-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 11%;
+  background: #000;
+}
+
+.mission-intro-bar.is-top {
+  top: 0;
+}
+
+.mission-intro-bar.is-bottom {
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding: 0 28px;
+}
+
+.mission-intro-title {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: mission-intro-title ease-in-out forwards;
+}
+
+.mission-intro-title h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f4ead2;
+  text-shadow: 0 0 24px rgba(255, 200, 120, 0.35), 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.mission-intro-title p {
+  margin: 10px 0 0;
+  font-family: var(--display-font);
+  font-size: 14px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes mission-intro-title {
+  0% { opacity: 0; transform: scale(0.96); letter-spacing: 0.08em; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+/* Centred on the screen, each line fading in under the last (designer request, 2026-10-11). */
+.mission-intro-log {
+  position: absolute;
+  top: 11%;
+  bottom: 11%;
+  left: 50%;
+  width: min(640px, calc(100% - 80px));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.mission-intro-line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #f2efe6;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+}
+
+.mission-intro-line.is-shown {
+  opacity: 1;
+}
+
+.mission-intro-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-intro-body p {
+  margin: 0;
+}
+
+/* The outro's story: centred while it fits, otherwise it scrolls (the newest paragraph kept in view) and fades out at
+   its top and bottom edges. */
+.mission-intro-log.is-story {
+  justify-content: safe center;
+  gap: 16px;
+  padding: 28px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
+.mission-intro-line.is-heading {
+  font-family: var(--display-font);
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+@keyframes mission-intro-fade {
+  from { opacity: 0; }
+}
+
+.mission-intro-hint {
+  font-family: var(--display-font);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(242, 239, 230, 0.45);
+  animation: mission-intro-hint 2.4s ease-in-out infinite;
+}
+
+@keyframes mission-intro-hint {
+  50% { opacity: 0.4; }
+}
+
+.mission-intro-skip {
+  padding: 4px 10px;
+  border: 1px solid rgba(242, 239, 230, 0.3);
+  border-radius: 3px;
+  background: transparent;
+  font-family: var(--display-font);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(242, 239, 230, 0.7);
+  cursor: pointer;
+}
+
+.mission-intro-skip:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.mission-intro-begin {
+  animation: mission-intro-fade 1s ease-out both;
+}
+
+/* The fade to black into the game; it takes the clicks meanwhile. */
+.mission-intro-out {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition-property: opacity;
+  transition-timing-function: ease-in;
+}
+
+.mission-intro-out.is-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-intro-card,
+  .mission-intro-title,
+  .mission-intro-hint,
+  .mission-intro-begin {
+    animation: none;
+  }
+
+  .mission-intro-line {
+    transition: none;
+  }
+
+  .mission-intro-card {
+    opacity: 0.6;
+  }
+}
+
 .log-briefing {
   margin: 0 0 6px;
   font-size: 12px;

@@ -3,7 +3,7 @@ import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.
 import { isBlock, project, pts, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { BIG_IMAGE } from '../../maps/bigObjects.js'
 import { joinedImage } from '../../maps/railJoins.js'
-import { animationDelay, bigFlipbook, panelArt, tileFlipbook, wallVariant } from '../../maps/tileArt.js'
+import { animationDelay, bigFlipbook, OVERLAY_GLOW_BLUR, panelArt, tileFlipbook, wallVariant } from '../../maps/tileArt.js'
 import { frameStyle } from './flipbookStyles.js'
 import { FRAME, WINDOW } from './tileShapes.js'
 import './maps.css'
@@ -31,6 +31,20 @@ function Flipbook({ book, delay, draw }) {
       {draw(sprite.href)}
     </g>
   ))
+}
+
+// An overlay's lights, emissive (tileArt.js OVERLAY_GLOW_BLUR), as canvasTiles.js draws them. Each frame's group has
+// its own opacity, so the adding only happens among these three.
+const ADDED = { mixBlendMode: 'plus-lighter' }
+const HALO = { ...ADDED, filter: `blur(${OVERLAY_GLOW_BLUR}px)` }
+function Emissive({ draw, href }) {
+  return (
+    <>
+      {draw(href)}
+      <g style={ADDED}>{draw(href)}</g>
+      <g style={HALO}>{draw(href)}</g>
+    </>
+  )
 }
 
 // This tile's half of a two-tile wall panel (wallPanels.js), drawn over the wall's front face: the panel's outer edge
@@ -86,7 +100,7 @@ function WindowHalf({ half, height, at }) {
 }
 
 // A wall: its image, a wall variant (tileArt.js wallVariant; never on a window half) or its animation (tileArt.js
-// tileFlipbook). Panel art (tileArt.js panelArt) replaces them with this tile's slot of the two-tile image, or of its
+// tileFlipbook; an overlay animation, its lights alone, over its image). Panel art (tileArt.js panelArt) replaces them with this tile's slot of the two-tile image, or of its
 // animation's sprites: a viewport the size of the tile's own image, looking at the slot.
 function WallTile({ tile, position, panel }) {
   const art = panelArt(tile, panel, position)
@@ -97,10 +111,16 @@ function WallTile({ tile, position, panel }) {
   const draw = art
     ? (href) => <image href={href} width={art.size.width} height={art.size.height} />
     : (href) => <image href={href} {...box} />
-  const content = book ? (
-    <Flipbook book={book} delay={animationDelay(art?.timing ?? position)} draw={draw} />
-  ) : (
+  const flipbook = book && <Flipbook book={book} delay={animationDelay(art?.timing ?? position)} draw={book.overlay ? (href) => <Emissive draw={draw} href={href} /> : draw} />
+  const content = !book ? (
     draw(art?.href ?? variant?.href ?? tile.image)
+  ) : book.overlay ? (
+    <>
+      {draw(art?.href ?? tile.image)}
+      {flipbook}
+    </>
+  ) : (
+    flipbook
   )
   return (
     <g className="tilemap-tile">

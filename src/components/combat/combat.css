@@ -731,6 +731,12 @@
   }
 }
 
+/* An away team member beaming out of the mission: the beam-in played backwards. */
+.iso-unit.is-beaming-away {
+  pointer-events: none;
+  animation: unit-beam-in 1.6s ease-in reverse both;
+}
+
 .fx-transporter-column {
   opacity: 0;
   animation: fx-transporter-column calc(1.6s / var(--fx-speed, 1)) ease-in-out forwards;
@@ -740,7 +746,8 @@
   fill: #ff7a3d;
 }
 
-.fx-transporter.is-in .fx-transporter-column {
+.fx-transporter.is-in .fx-transporter-column,
+.fx-transporter.is-away .fx-transporter-column {
   fill: #9fd8ff;
 }
 
@@ -768,7 +775,8 @@
   fill: #ffe2b8;
 }
 
-.fx-transporter.is-in .fx-transporter-spark {
+.fx-transporter.is-in .fx-transporter-spark,
+.fx-transporter.is-away .fx-transporter-spark {
   fill: #f2fbff;
 }
 

@@ -1,6 +1,8 @@
 // The Captain's Log (videogame adaptation; missionLog.json): entries about the episode, each stamped with the world
 // time it happened. The map supplies the briefing and the starting stardate; objectives come from the map and their
-// mission flags. Entries: { id, time, kind: 'objective' | 'check' | 'authored', text }.
+// mission flags. Entries: { id, time, kind: 'objective' | 'check' | 'task' | 'fight' | 'beam' | 'authored', text, story? }; story is
+// what the outro needs to retell the entry (missionStory.js): { event, ...values }; without it the entry is told as
+// written.
 import data from '../data/adaptation/exploration/missionLog.json'
 import { objectiveFlag } from './missionFlags.js'
 
@@ -13,12 +15,15 @@ export function stardateAt(map, time) {
   return (Math.round((start + steps * data.stardateStep) * 10) / 10).toFixed(1)
 }
 
-export function addLogEntry(state, { kind = 'authored', text }) {
+// at: where in the list the entry goes (default: last).
+export function addLogEntry(state, { kind = 'authored', text, story = null, at = null }) {
   const trimmed = String(text ?? '').trim()
   if (!trimmed) return state
   const log = state.missionLog ?? createMissionLog()
-  const entry = { id: log.nextId, time: state.world.time, kind, text: trimmed }
-  return { ...state, missionLog: { entries: [...log.entries, entry], nextId: log.nextId + 1 } }
+  const entry = { id: log.nextId, time: state.world.time, kind, text: trimmed, ...(story ? { story } : {}) }
+  const entries = [...log.entries]
+  entries.splice(at ?? entries.length, 0, entry)
+  return { ...state, missionLog: { entries, nextId: log.nextId + 1 } }
 }
 
 // Entries for the map's objectives that became active or complete between two states.
@@ -30,8 +35,8 @@ export function logObjectiveChanges(previous, next) {
     const after = state.scenario.flags[flag]
     if (before === after) return state
     const title = objective.title || objective.id
-    if (after === 'active') return addLogEntry(state, { kind: 'objective', text: `New objective: ${title}.` })
-    if (after === 'complete') return addLogEntry(state, { kind: 'objective', text: `Objective complete: ${title}.` })
+    if (after === 'active') return addLogEntry(state, { kind: 'objective', text: `New objective: ${title}.`, story: { event: 'objectiveActive', title } })
+    if (after === 'complete') return addLogEntry(state, { kind: 'objective', text: `Objective complete: ${title}.`, story: { event: 'objectiveComplete', title } })
     return state
   }, next)
 }

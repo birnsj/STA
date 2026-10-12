@@ -221,8 +221,9 @@ const DEBUG_ICON = 'M9 6a3 3 0 0 1 6 0M8 9h8v6a4 4 0 0 1-8 0zM12 9v10M8 12H4M20 
 const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
 
 // followCamera / onFollowCamera(on): the view follows the lead character or stays put. debugOpen / onDebug(open): the
-// debug panels (party, awareness, scenario state and the task log). onExit(): leaves the mission.
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onExit }) {
+// debug panels (party, awareness, scenario state and the task log). onExitMission(): Exit Mission (the screen confirms,
+// then beams the away team out); null while it can't be used.
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onExitMission }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
@@ -252,7 +253,14 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
             <path d={DEBUG_ICON} />
           </svg>
         </button>
-        <button type="button" className="explore-panel-icon-button" aria-label="Exit" title="Exit the mission." onClick={onExit}>
+        <button
+          type="button"
+          className="explore-panel-icon-button"
+          aria-label="Exit Mission"
+          title="Exit Mission: the whole away team beams out and the mission ends."
+          disabled={!onExitMission}
+          onClick={onExitMission ?? undefined}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d={EXIT_ICON} />
           </svg>

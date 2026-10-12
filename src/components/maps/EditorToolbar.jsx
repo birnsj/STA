@@ -226,7 +226,7 @@ export default function EditorToolbar({
         >
           Delete Map
         </button>
-        <button type="button" className="me-button is-primary" title="Explore this map with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
+        <button type="button" className="me-button is-primary" title="Play this map in game mode with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
           Play
         </button>
         <label className="me-check" title="Off: enemies stand on their spawns and never notice the away team or start a fight.">

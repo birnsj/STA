@@ -5,9 +5,11 @@ import FrameRate from '../components/FrameRate.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import { BEAM_OUT_MS } from '../components/combat/battleHelpers.js'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
+import { MissionAccomplished, MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
 import { loadConversation } from '../conversation/conversationFiles.js'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
@@ -30,6 +32,7 @@ import { SCAN_TRAIT } from '../combat/combatScan.js'
 import { getCombatDiagnostics, getCombatObjects, MODE, previewCombatObject, recommendCombatObject } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
+import { isMissionAccomplished } from '../exploration/missionObjectives.js'
 import { getFormation } from '../exploration/formations.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
@@ -50,12 +53,16 @@ const ORDER_LABEL = { point: 'Walking', follow: 'Following' }
 const OUTCOME_LABEL = { victory: 'Victory', defeat: 'Defeat', ended: 'Ended (debug)' }
 
 const NOT_BUILT = 'Not built yet.'
+// How long the map stays up after the last objective completes before Mission Accomplished shows (implementer pick),
+// so the roll or line that finished it can be seen.
+const ACCOMPLISHED_DELAY_MS = 1500
 // An open book, for the Captain's Log button in the minimap's corner.
 const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
 
 // A party member's radial menu (right-click on them; designer decision, 2026-10-09): Scan, Use, Switch, Search,
-// First Aid, Attack, Interact and Sneak, each for that character only. Use, Search, First Aid and Attack are shown but
-// not built yet (they may later act on objects). actions: { scan, switchTo, interact(objectId), sneak }.
+// First Aid, Attack, Interact, Sneak and Beam Out (2026-10-11), each for that character only. Use, Search, First Aid
+// and Attack are shown but not built yet (they may later act on objects).
+// actions: { scan, switchTo, interact(objectId), sneak, beamOut }.
 function memberMenuButtons(state, member, actions) {
   const up = !isDefeated(member.condition)
   const scan = canScan(state, member.id)
@@ -80,6 +87,14 @@ function memberMenuButtons(state, member, actions) {
       onClick: () => actions.interact(objectId),
     },
     { id: 'sneak', label: 'Sneak', icon: 'sneak', enabled: up, active: member.sneaking, title: `Sneak: ${name} crouches and moves slowly, harder to notice.`, onClick: actions.sneak },
+    {
+      id: 'beamOut',
+      label: 'Beam Out',
+      icon: 'beamOut',
+      enabled: !state.conversation,
+      title: state.conversation ? 'Beam Out: not during a conversation.' : `Beam Out: ${name} beams up and leaves the mission. Once everyone has beamed out, the mission ends.`,
+      onClick: actions.beamOut,
+    },
   ]
 }
 
@@ -564,7 +579,7 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
   )
 }
 
-function Exploration({ state, dispatch, onExit }) {
+function Exploration({ state, dispatch, onExit, exitLabel }) {
   const { party, world } = state
   const [followCamera, setFollowCamera] = useState(true)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
@@ -663,8 +678,49 @@ function Exploration({ state, dispatch, onExit }) {
     .filter((objective) => showAllObjectives || !objective.pending)
   const hasPendingObjectives = (party.map.objectives ?? []).some(({ id }) => !objectiveStatus(state.scenario.flags, id))
 
+  // The mission's end (designer requests, 2026-10-11): once every objective is complete, and no fight or conversation is
+  // going on, Mission Accomplished shows (the world stops meanwhile): Exit Mission beams the away team out, Return to
+  // Game plays on. Exit Mission in the Formation panel does the same at any time, after a confirmation, and each
+  // member's ring has Beam Out for them alone. With everyone beamed out the Captain's Log outro shows, then onExit.
+  // UI state: null | 'accomplished' (the banner is up) | 'dismissed' (it has been answered).
+  const [ending, setEnding] = useState(null)
+  const beaming = members.some((member) => member.beaming)
+  const accomplished = !inCombat && !talking && !beaming && isMissionAccomplished(state)
+  useEffect(() => {
+    if (!accomplished || ending) return
+    const timer = setTimeout(() => setEnding('accomplished'), ACCOMPLISHED_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [accomplished, ending])
+  const outro = !inCombat && party.memberIds.length === 0
+  // UI state: whether Exit Mission is waiting for confirmation; the member whose Beam Out is.
+  const [confirmExit, setConfirmExit] = useState(false)
+  const askExitMission = useCallback(() => setConfirmExit(true), [setConfirmExit])
+  const [confirmBeamOutId, setConfirmBeamOutId] = useState(null)
+  const beamTimers = useRef(new Set())
+  useEffect(() => {
+    const timers = beamTimers.current
+    return () => timers.forEach(clearTimeout)
+  }, [])
+  const startBeamOut = useCallback(
+    (ids) => {
+      dispatch({ type: 'startBeamOut', ids })
+      const timer = setTimeout(() => {
+        beamTimers.current.delete(timer)
+        dispatch({ type: 'beamOut', ids })
+      }, BEAM_OUT_MS)
+      beamTimers.current.add(timer)
+    },
+    [dispatch],
+  )
+  const exitMission = () => {
+    setEnding('dismissed')
+    if (talking) dispatch({ type: 'conversationLeave' })
+    startBeamOut(party.memberIds.filter((id) => !party.members[id].beaming))
+  }
+
   // The world runs in real time: one movement step per animation frame.
   useEffect(() => {
+    if (ending === 'accomplished' || outro) return
     let frame
     let last = performance.now()
     const step = (now) => {
@@ -674,7 +730,7 @@ function Exploration({ state, dispatch, onExit }) {
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
-  }, [dispatch])
+  }, [dispatch, ending, outro])
 
   // UI state: the party member whose radial menu is open (right-click on them), or null.
   const [menuMemberId, setMenuMemberId] = useState(null)
@@ -848,7 +904,7 @@ function Exploration({ state, dispatch, onExit }) {
     onButtonHover: hoverRingButton,
   }
   const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
-  const menuMember = menuMemberId && !inCombat ? party.members[menuMemberId] : null
+  const menuMember = menuMemberId && !inCombat && party.memberIds.includes(menuMemberId) && !party.members[menuMemberId].beaming ? party.members[menuMemberId] : null
   const memberMenu = menuMember && {
     memberId: menuMember.id,
     buttons: memberMenuButtons(state, menuMember, {
@@ -859,6 +915,7 @@ function Exploration({ state, dispatch, onExit }) {
         setInteractionId(objectId)
       },
       sneak: () => dispatch({ type: 'toggleSneakFor', id: menuMember.id }),
+      beamOut: () => setConfirmBeamOutId(menuMember.id),
     }).map((button) => ({
       ...button,
       onClick: () => {
@@ -900,6 +957,10 @@ function Exploration({ state, dispatch, onExit }) {
   const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} />
+  if (outro) {
+    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} abandoned={!isMissionAccomplished(state)} exitLabel={exitLabel} onDone={onExit} />
+  }
+  const confirmBeamOutMember = confirmBeamOutId && party.memberIds.includes(confirmBeamOutId) && !party.members[confirmBeamOutId].beaming ? party.members[confirmBeamOutId] : null
 
   return (
     <div className="combat-screen exploration-screen">
@@ -962,6 +1023,34 @@ function Exploration({ state, dispatch, onExit }) {
           onCancel={() => setConfirmAttackId(null)}
         />
       )}
+      {confirmExit && (
+        <ConfirmDialog
+          title="Exit Mission?"
+          message={
+            isMissionAccomplished(state)
+              ? 'The whole away team beams out and the mission ends.'
+              : 'The whole away team beams out and the mission ends. Not every objective is complete: the mission will be abandoned.'
+          }
+          confirmLabel="Exit Mission"
+          onConfirm={() => {
+            setConfirmExit(false)
+            exitMission()
+          }}
+          onCancel={() => setConfirmExit(false)}
+        />
+      )}
+      {confirmBeamOutMember && (
+        <ConfirmDialog
+          title={`Beam out ${confirmBeamOutMember.character.name}?`}
+          message={`${confirmBeamOutMember.character.name} leaves the mission and can't come back. Once everyone has beamed out, the mission ends.`}
+          confirmLabel="Beam Out"
+          onConfirm={() => {
+            setConfirmBeamOutId(null)
+            startBeamOut([confirmBeamOutMember.id])
+          }}
+          onCancel={() => setConfirmBeamOutId(null)}
+        />
+      )}
       {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
@@ -1012,7 +1101,7 @@ function Exploration({ state, dispatch, onExit }) {
           onFollowCamera={setFollowCamera}
           debugOpen={debugOpen}
           onDebug={setDebugOpen}
-          onExit={onExit}
+          onExitMission={beaming ? null : askExitMission}
         />
       </div>
       {debugOpen && (
@@ -1022,6 +1111,7 @@ function Exploration({ state, dispatch, onExit }) {
           <ScenarioDebugPanel scenario={state.scenario} knowledge={state.partyKnowledge} views={challengeViews} />
         </div>
       )}
+      {ending === 'accomplished' && <MissionAccomplished map={party.map} onExit={exitMission} onReturn={() => setEnding('dismissed')} />}
     </div>
   )
 }
@@ -1044,14 +1134,16 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
         onStart={(members, map) => {
           setTeam(members)
           dispatch({ type: 'reset', map, characters: members, seed: Math.floor(Math.random() * MAX_SEED) })
-          setPhase('explore')
+          setPhase('intro')
         }}
       />
     )
   }
+  // The map isn't mounted until the intro is closed, so the world (and the beam-in) starts then.
+  if (phase === 'intro') return <MissionIntro map={state.party.map} onBegin={() => setPhase('explore')} />
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} onExit={onExit} />
+      <Exploration state={state} dispatch={dispatch} onExit={onExit} exitLabel="Return to Menu" />
     </MapFadeIn>
   )
 }
@@ -1062,5 +1154,12 @@ export function ExplorationPlaytest({ map, characters, enemiesActive, onExit }) 
   const [state, dispatch] = useReducer(explorationReducer, null, () =>
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
-  return <Exploration state={state} dispatch={dispatch} onExit={onExit} />
+  // UI state: whether the Captain's Log intro is still showing.
+  const [intro, setIntro] = useState(true)
+  if (intro) return <MissionIntro map={state.party.map} onBegin={() => setIntro(false)} />
+  return (
+    <MapFadeIn>
+      <Exploration state={state} dispatch={dispatch} onExit={onExit} exitLabel="Return to Editor" />
+    </MapFadeIn>
+  )
 }

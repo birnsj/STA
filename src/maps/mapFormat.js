@@ -17,12 +17,16 @@
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
 // out: only actions change it. objectId: a challenge object the objective is marked on (its marker follows the object;
 // position is then unused). startsActive: active from the moment the mission starts (left out on disk when false).
-// objectPlacements: { [challenge object id]: position } where this map puts the challenge objects authored for it
-// (challenges.json); an object left out stands where challenges.json puts it (challengeObjects.js).
-// briefing: the Captain's Log opening text (blank lines split paragraphs); stardate: the episode's starting stardate
-// (a number, or null for missionLog.json's default). Both are left out on disk when empty.
+// objects: the map's own challenge objects (the Object Editor; the same definitions challenges.json holds), or null:
+// the map uses challenges.json's objects for its name. An empty list means the map has none.
+// objectPlacements: { [challenge object id]: position } where this map puts its challenge objects; an object left out
+// stands where its definition puts it (challengeObjects.js).
+// briefing: the Captain's Log opening text (blank lines split paragraphs), shown as the episode's intro; outro: the
+// Captain's Log closing text shown once the mission is accomplished; outroAbandoned: shown instead when the away team
+// left before every objective was complete (blank: a default line); stardate: the episode's starting stardate
+// (a number, or null for missionLog.json's default). All are left out on disk when empty.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
-// rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, stardate }
+// rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
 // map's middle);
 // on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
@@ -103,8 +107,11 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     markers: { playerStarts: [], enemySpawns: [] },
     npcs: [],
     objectives: [],
+    objects: null,
     objectPlacements: {},
     briefing: '',
+    outro: '',
+    outroAbandoned: '',
     stardate: null,
   }
 }
@@ -184,7 +191,10 @@ export function parseMapFile(file, id) {
         .map(([objectId, position]) => [objectId, toPosition(position)])
         .filter(([, position]) => inside(position)),
     ),
+    objects: Array.isArray(file.objects) ? structuredClone(file.objects.filter((object) => object?.id != null)) : null,
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
+    outro: typeof file.outro === 'string' ? file.outro : '',
+    outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
     stardate: Number.isFinite(file.stardate) ? file.stardate : null,
   }
 }
@@ -208,10 +218,13 @@ export function serializeMap(map) {
     },
     ...(map.npcs?.length ? { npcs: map.npcs.map(serializeNpc) } : {}),
     ...(map.objectives?.length ? { objectives: map.objectives.map(serializeObjective) } : {}),
+    ...(Array.isArray(map.objects) ? { objects: map.objects } : {}),
     ...(Object.keys(map.objectPlacements ?? {}).length
       ? { objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements).map(([objectId, position]) => [objectId, fromPosition(position)])) }
       : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
+    ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
+    ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
     ...(Number.isFinite(map.stardate) ? { stardate: map.stardate } : {}),
   }
 }

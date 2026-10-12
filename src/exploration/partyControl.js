@@ -58,14 +58,16 @@ export function createPartyState(map, characters) {
     leaderId: memberIds[0] ?? null,
     formationId: DEFAULT_FORMATION_ID,
     spacing: 1,
+    // Beamed out (beamOut), in the order they left.
+    departedIds: [],
   }
 }
 
 export const getMembers = (state) => state.memberIds.map((id) => state.members[id])
 export const isSelected = (state, id) => state.selectedIds.includes(id)
 
-// A Defeated character stays where they fell: they can't be selected, lead or follow.
-export const canAct = (member) => isUp(member)
+// A Defeated character stays where they fell: they can't be selected, lead or follow. Nor can anyone beaming out.
+export const canAct = (member) => isUp(member) && !member.beaming
 
 // After a fight: anyone Defeated drops out of the selection and the lead. If no one selected can act, the whole team
 // that can is selected. With everyone down the lead stays put (the camera follows it) and nothing is selected.
@@ -261,7 +263,47 @@ function tick(state, rawSeconds) {
     members = resolved
     changed = true
   }
-  return changed ? { ...state, members } : state
+  return changed ? { ...state, members: { ...state.members, ...members } } : state
+}
+
+// Those characters stop where they are, as does anyone following them; the leaving ones drop out of the selection.
+function haltLeaving(state, leaving, changes) {
+  const members = { ...state.members }
+  Object.values(members).forEach((member) => {
+    const gone = leaving.includes(member.id)
+    if (gone || (member.order?.type === 'follow' && leaving.includes(member.order.leaderId))) {
+      members[member.id] = { ...member, order: null, path: [], moving: false, running: false, pace: null, ...(gone ? changes : {}) }
+    }
+  })
+  const selectedIds = state.selectedIds.filter((id) => !leaving.includes(id))
+  const leaderId = selectedIds.includes(state.leaderId) ? state.leaderId : (selectedIds[0] ?? state.leaderId)
+  return { ...state, members, selectedIds, leaderId }
+}
+
+// The transporter has locked on: they stand still and can't be selected or given orders until beamOut.
+export function startBeamOut(state, ids) {
+  const leaving = ids.filter((id) => state.memberIds.includes(id) && !state.members[id].beaming)
+  return leaving.length ? withAbleSelection(haltLeaving(state, leaving, { beaming: true })) : state
+}
+
+// The beam-out was interrupted (a fight broke out): they stay on the mission.
+export function cancelBeamOut(state, ids) {
+  const members = { ...state.members }
+  ids.filter((id) => members[id]?.beaming).forEach((id) => {
+    members[id] = { ...members[id], beaming: false }
+  })
+  return { ...state, members }
+}
+
+// Characters beamed out leave the away team (memberIds and the selection) but stay in members, so whatever was logged
+// or rolled by them can still be named. With everyone gone the lead stays put (the camera keeps looking there).
+export function beamOut(state, ids) {
+  const leaving = ids.filter((id) => state.memberIds.includes(id))
+  if (!leaving.length) return state
+  const halted = haltLeaving(state, leaving, { beaming: false })
+  const memberIds = state.memberIds.filter((id) => !leaving.includes(id))
+  const leaderId = memberIds.includes(halted.leaderId) ? halted.leaderId : (memberIds[0] ?? halted.leaderId)
+  return withAbleSelection({ ...halted, memberIds, leaderId, departedIds: [...(state.departedIds ?? []), ...leaving] })
 }
 
 // Personal space is soft (characters may brush past each other), but bodies never overlap: any two closer than two
@@ -346,6 +388,12 @@ export function partyReducer(state, action) {
       return moveSelection(state, action.target, action.fresh !== false)
     case 'tick':
       return tick(state, action.seconds)
+    case 'startBeamOut':
+      return startBeamOut(state, action.ids)
+    case 'cancelBeamOut':
+      return cancelBeamOut(state, action.ids)
+    case 'beamOut':
+      return beamOut(state, action.ids)
     default:
       return state
   }

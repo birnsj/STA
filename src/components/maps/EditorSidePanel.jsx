@@ -1,4 +1,5 @@
 import missionLogData from '../../data/adaptation/exploration/missionLog.json'
+import { authoredDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { getTile, isRotated, mapFileId } from '../../maps/mapFormat.js'
 import { randomMapName } from '../../maps/mapGenerators.js'
 import { weatherFor } from '../../maps/mapWeather.js'
@@ -6,10 +7,11 @@ import { randomEpisodeName } from '../../rules/locationNames.js'
 import EditorControlsHelp from './EditorControlsHelp.jsx'
 import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 
-// The map editor's right-hand panel: the inspectors (children), then the episode, generate, Captain's Log, objective and
-// conversation sections, the file, the tile under the pointer, warnings and controls.
+// The map editor's right-hand panel: the inspectors (children), then the episode, generate, Captain's Log, objective,
+// challenge object and conversation sections, the file, the tile under the pointer, warnings and controls.
 // map and edit(map): the map being edited. cardTools: { canGenerate, busy, onGenerate } for the episode card.
-// onGenerateMap(): Generate Map. onOpenObjective(index) / onOpenConversations(): the full-screen editors.
+// onGenerateMap(): Generate Map. onOpenObjective(index) / onOpenObjects() / onOpenStory() / onOpenConversations(): the
+// full-screen editors.
 export default function EditorSidePanel({
   map,
   edit,
@@ -26,9 +28,12 @@ export default function EditorSidePanel({
   onGenerateMap,
   onOpenObjective,
   onOpenConversations,
+  onOpenObjects,
+  onOpenStory,
   children,
 }) {
   const objectives = map.objectives ?? []
+  const objectCount = authoredDefinitionsFor(map).length
   return (
     <div className="me-side">
       {children}
@@ -83,15 +88,39 @@ export default function EditorSidePanel({
         />
       </label>
       <label className="me-field">
-        Briefing
+        Briefing (intro)
         <textarea
           className="me-name me-wide"
           rows={6}
           value={map.briefing ?? ''}
-          placeholder="What the away team knows when the episode starts. A blank line starts a new paragraph."
+          placeholder="What the away team knows when the episode starts, shown as the Captain's Log intro. A blank line starts a new paragraph."
           onChange={(event) => edit({ ...map, briefing: event.target.value })}
         />
       </label>
+      <label className="me-field">
+        Outro
+        <textarea
+          className="me-name me-wide"
+          rows={6}
+          value={map.outro ?? ''}
+          placeholder="The Captain's Log outro, shown once the away team has beamed out with every objective complete, before the story of the mission. A blank line starts a new paragraph."
+          onChange={(event) => edit({ ...map, outro: event.target.value })}
+        />
+      </label>
+      <label className="me-field">
+        Outro (abandoned)
+        <textarea
+          className="me-name me-wide"
+          rows={4}
+          value={map.outroAbandoned ?? ''}
+          placeholder="Shown instead of the Outro when the away team beams out before every objective is complete. Blank: “The away team beamed out before the mission was complete. Mission abandoned.”"
+          onChange={(event) => edit({ ...map, outroAbandoned: event.target.value })}
+        />
+      </label>
+      <button type="button" className="me-button me-generate" onClick={onOpenStory}>
+        Story Wording
+      </button>
+      <p className="me-text">How the outro retells the mission log (shared by every map).</p>
       <p className="me-heading">Objectives</p>
       {objectives.length ? (
         <ul className="me-objective-list">
@@ -109,6 +138,14 @@ export default function EditorSidePanel({
       {placingObjective !== null && <p className="me-text">Click a tile to mark the objective (Escape cancels).</p>}
       <button type="button" className="me-button me-generate" onClick={() => onOpenObjective(0)}>
         Objective Editor
+      </button>
+      <p className="me-heading">Challenge Objects</p>
+      <p className="me-text">
+        {objectCount ? `${objectCount} on this map` : 'None yet.'}
+        {map.objects ? ' (saved with the map).' : objectCount ? ' (from challenges.json until edited here).' : ''}
+      </p>
+      <button type="button" className="me-button me-generate" onClick={onOpenObjects}>
+        Object Editor
       </button>
       <p className="me-heading">Conversations</p>
       <button type="button" className="me-button me-generate" onClick={onOpenConversations}>

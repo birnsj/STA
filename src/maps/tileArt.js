@@ -4,19 +4,21 @@ import { FULL_LIGHT, getTile, imageSize } from './mapFormat.js'
 import { TILE_H } from './iso.js'
 
 // A flipbook: a tile's animation (tileEffects.json animations) for one of its images, as { id, loop, frameTime,
-// frames, sprites }. sprites: [{ href, emission }], whole images of the tile, one per image index; frames: the image
-// index shown in each frameTime-second step of the loop. emission: the sprite's lit parts alone, kept at full
+// frames, sprites, overlay }. sprites: [{ href, emission }], whole images of the tile, one per image index; frames: the
+// image index shown in each frameTime-second step of the loop. emission: the sprite's lit parts alone, kept at full
 // brightness in a dark map (null on floors). id: the animation's tile id (its CSS keyframes, flipbookStyles.js).
+// overlay (walls): the sprites are the lights alone (their emission images), drawn over the tile's own image.
 const flipbooks = new Map()
 function flipbook(id, variant, pick) {
   const key = `${id}|${variant}`
   if (!flipbooks.has(key)) {
     const animation = effects.animations[id]
-    const sprites = animation?.images.map(pick)
+    const overlay = Boolean(animation?.overlay)
+    const sprites = animation?.images.map(pick).map((sprite) => (overlay ? { href: sprite.emission, emission: sprite.emission } : sprite))
     flipbooks.set(
       key,
       sprites?.every((sprite) => sprite.href)
-        ? { id, loop: animation.frames.length * animation.frameTime, frameTime: animation.frameTime, frames: animation.frames, sprites }
+        ? { id, loop: animation.frames.length * animation.frameTime, frameTime: animation.frameTime, frames: animation.frames, sprites, overlay }
         : null,
     )
   }
@@ -33,6 +35,12 @@ export const bigFlipbook = (tile) => flipbook(tile.id, 'big', (item) => ({ href:
 // A wall's two-tile panel image along axis animated (tiles.json panelImages), or null.
 export const panelFlipbook = (tile, axis) =>
   flipbook(tile.id, `panel.${axis}`, (item) => ({ href: item.panel?.[axis], emission: item.panelEmission?.[axis] ?? null }))
+
+// An overlay's lights are drawn emissive (designer request 2026-10-11): once as they are, once added over themselves to
+// brighten them, and once blurred by OVERLAY_GLOW_BLUR world px and added, a soft halo. OVERLAY_GLOW_SPREAD: how far
+// (world px) the halo reaches past the lights, for repainting.
+export const OVERLAY_GLOW_BLUR = 2
+export const OVERLAY_GLOW_SPREAD = 3 * OVERLAY_GLOW_BLUR
 
 // The image index a flipbook shows `seconds` into its loop.
 export const frameAt = (book, seconds) => book.frames[Math.floor((((seconds % book.loop) + book.loop) % book.loop) / book.frameTime) % book.frames.length]

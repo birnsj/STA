@@ -1,10 +1,31 @@
 {
   "notes": [
     "VIDEOGAME ADAPTATION (designer request, 2026-10-09): the Captain's Log in exploration shows the map's briefing, its objectives and a log of entries stamped with a stardate. exploration/missionLog.js.",
-    "Entries are added automatically when an objective becomes active or complete and when a conversation Task Check is rolled, and by the authored 'addLogEntry' action (conversation Action nodes, challenge-object outcomes).",
-    "Stardates (implementer picks, open for review): an episode starts at the map's stardate, else defaultStardate; the log's stardate goes up by stardateStep for every stepSeconds of world time, so entries made a minute apart read differently. Neither book sets a rate for play."
+    "Intro and outro (designer request, 2026-10-11): game mode opens on the map's briefing as a Captain's Log intro (Begin Mission starts play). Once every objective is complete, Mission Accomplished shows, then the Captain's Log outro: the map's outro text followed by these entries in order, then back to the menu (the editor's Play returns to the editor). Both texts are typed in the map editor for now; they may be generated later.",
+    "Entries are added automatically when an objective becomes active or complete, when a conversation Task Check or a challenge-object task is rolled (routine actions such as opening a door are not logged), when a fight breaks out and when it ends (who went down, surrendered or fled, and which of the away team fell), when someone beams out, and by the authored 'addLogEntry' action (conversation Action nodes, challenge-object outcomes).",
+    "Stardates (implementer picks, open for review): an episode starts at the map's stardate, else defaultStardate; the log's stardate goes up by stardateStep for every stepSeconds of world time, so entries made a minute apart read differently. Neither book sets a rate for play.",
+    "Story (designer request, 2026-10-11): the outro retells the entries as a story in the captain's voice (exploration/missionStory.js) rather than listing them. Each automatic entry is told with the template for its event below; authored entries are told as written. {action} is the objective's title starting lower case, and {label} the check's label likewise (a conversation check's label is best written as a verb phrase, e.g. 'Reassure her'); {names} joins everyone who beamed out together ('A, B and C'). A fight is told as its own paragraph: how it started, then how it ended (fightVictory / fightDefeat / fightBrokeOff, then fightDown, fightSurrendered, fightFled and fightFallen for whoever applies). A new paragraph starts after each completed objective. The templates are implementer drafts, open for the designer to rewrite."
   ],
   "defaultStardate": 4523.3,
   "stardateStep": 0.1,
-  "stepSeconds": 60
+  "stepSeconds": 60,
+  "story": {
+    "objectiveActive": "Our next task was to {action}.",
+    "objectiveComplete": "We managed to {action}.",
+    "checkSuccess": "With {npc}, {performer} tried to {label}, and it worked.",
+    "checkFailure": "With {npc}, {performer} tried to {label}, but it came to nothing.",
+    "taskSuccess": "At the {object}, {performer} tried to {label}, and it worked.",
+    "taskFailure": "At the {object}, {performer} tried to {label}, but failed.",
+    "fightStartedByUs": "{attacker} opened fire on {target}.",
+    "fightStartedByThem": "{enemies} attacked us.",
+    "fightVictory": "The fight was ours.",
+    "fightDefeat": "We lost the fight.",
+    "fightBrokeOff": "The fight broke off.",
+    "fightDown": "{names} went down.",
+    "fightSurrendered": "{names} surrendered.",
+    "fightFled": "{names} fled.",
+    "fightFallen": "{names} fell in the fight.",
+    "beamOut": "{names} beamed back aboard.",
+    "unnamedCheck": "win them over"
+  }
 }

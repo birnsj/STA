@@ -16,6 +16,7 @@ import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 import { scanArea, scanNpc } from './partyScan.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { updateObjectives } from './missionObjectives.js'
+import { objectFor } from '../world/objects.js'
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -109,14 +110,66 @@ function logCheck(previous, next) {
   if (!check || check === previous.conversation?.lastCheck) return next
   const performer = next.party.members[check.performerId]?.character.name ?? 'The away team'
   const npc = next.world.npcs[next.conversation.npcId]?.name ?? 'them'
-  return addLogEntry(next, { kind: 'check', text: `${performer}: ${check.label} (with ${npc}): ${check.result.success ? 'succeeded' : 'failed'}.` })
+  return addLogEntry(next, {
+    kind: 'check',
+    text: `${performer}: ${check.label} (with ${npc}): ${check.result.success ? 'succeeded' : 'failed'}.`,
+    story: { event: check.result.success ? 'checkSuccess' : 'checkFailure', performer, label: check.label, npc },
+  })
+}
+
+const memberName = (state, id) => state.party.members[id]?.character.name ?? 'The away team'
+const npcName = (state, id) => state.world.npcs[id]?.name ?? id
+const listText = (label, names) => (names.length ? ` ${label}: ${names.join(', ')}.` : '')
+
+// A challenge-object task just rolled (in exploration or in a fight) goes in the Captain's Log, ahead of any entry its
+// outcome wrote. Routine actions (no roll, e.g. opening a door) aren't logged.
+function logObjectTask(previous, next) {
+  const task = next.lastTask
+  if (!task || task === previous.lastTask || task.routine) return next
+  const object = objectFor(next.scenario, task.objectId)
+  const objectName = object?.definition.name ?? task.objectId
+  const action = object?.action(task.actionId)?.label ?? task.actionId
+  const performer = memberName(next, task.performerId)
+  return addLogEntry(next, {
+    kind: 'task',
+    text: `${performer}: ${action} (${objectName}): ${task.success ? 'succeeded' : 'failed'}.`,
+    story: { event: task.success ? 'taskSuccess' : 'taskFailure', performer, label: action, object: objectName },
+    at: previous.missionLog?.entries.length ?? 0,
+  })
+}
+
+// A fight breaking out, and how it ended (combatLink.js lastCombat), go in the Captain's Log.
+function logFights(previous, next) {
+  if (previous.mode !== MODE.COMBAT && next.mode === MODE.COMBAT && next.link) {
+    const { trigger, npcIds } = next.link
+    const byUs = trigger.source === 'PLAYER_ATTACK'
+    const attacker = memberName(next, trigger.targetId)
+    const enemies = npcIds.map((id) => npcName(next, id))
+    return addLogEntry(next, {
+      kind: 'fight',
+      text: byUs ? `${attacker} attacked ${npcName(next, trigger.npcId)}. Fight: ${enemies.join(', ')}.` : `Attacked by ${enemies.join(', ')}.`,
+      story: { event: byUs ? 'fightStartedByUs' : 'fightStartedByThem', attacker, target: npcName(next, trigger.npcId), enemies },
+    })
+  }
+  if (previous.mode === MODE.COMBAT && next.mode !== MODE.COMBAT && next.lastCombat) {
+    const { outcome, down, surrendered, fled } = next.lastCombat
+    const isMember = (id) => previous.party.memberIds.includes(id)
+    const names = (ids) => ids.filter((id) => !isMember(id)).map((id) => npcName(next, id))
+    const story = { event: 'fightEnded', outcome, down: names(down), surrendered: names(surrendered), fled: names(fled), fallen: down.filter(isMember).map((id) => memberName(next, id)) }
+    return addLogEntry(next, {
+      kind: 'fight',
+      text: `Fight over (${outcome}).${listText('Down', story.down)}${listText('Surrendered', story.surrendered)}${listText('Fled', story.fled)}${listText('Our wounded', story.fallen)}`,
+      story,
+    })
+  }
+  return next
 }
 
 // Objectives with conditions move as the flags change; every change that makes an objective active or complete is
-// written in the Captain's Log.
+// written in the Captain's Log, as are object tasks and fights.
 export function explorationReducer(state, action) {
   const next = reduceExploration(state, action)
-  return next === state || !state ? next : logObjectiveChanges(state, updateObjectives(next))
+  return next === state || !state ? next : logObjectiveChanges(state, updateObjectives(logFights(state, logObjectTask(state, next))))
 }
 
 function reduceExploration(state, action) {
@@ -164,6 +217,20 @@ function reduceExploration(state, action) {
     // noise: { position, radius, intensity, source } (see emitNoise).
     case 'emitNoise':
       return state.mode === MODE.COMBAT ? state : { ...state, world: emitNoise(state.world, action.noise) }
+    // { ids }: those characters beam out of the mission (partyControl.js startBeamOut, then beamOut once the beam has
+    // played); each is written in the Captain's Log. A fight breaking out meanwhile keeps them on the mission.
+    case 'startBeamOut':
+      return state.mode === MODE.COMBAT ? state : { ...state, party: partyReducer(state.party, action) }
+    case 'beamOut': {
+      if (state.mode === MODE.COMBAT) return { ...state, party: partyReducer(state.party, { type: 'cancelBeamOut', ids: action.ids }) }
+      const ids = action.ids.filter((id) => state.party.memberIds.includes(id))
+      if (!ids.length) return state
+      const next = { ...state, party: partyReducer(state.party, { type: 'beamOut', ids }) }
+      return ids.reduce((logged, id) => {
+        const name = state.party.members[id].character.name
+        return addLogEntry(logged, { kind: 'beam', text: `${name} beamed out.`, story: { event: 'beamOut', name } })
+      }, next)
+    }
     // Puts every NPC back on its post, unaware (developer tool).
     case 'resetNpcs':
       return state.mode === MODE.COMBAT ? state : { ...state, world: createNpcWorld(state.party.map), partyKnowledge: createPartyKnowledge(), lastCombat: null }

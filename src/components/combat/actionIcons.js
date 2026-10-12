@@ -24,4 +24,5 @@ export const ACTION_ICONS = {
   sneak: 'M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12zM12 9.5a2.5 2.5 0 1 0 0.01 0M4 20L20 4',
   extraMinor: 'M12 5v14M5 12h14M17 4l3 3-3 3',
   secondMajor: 'M7 4v16M13 4v16M16 12h6M19 9v6',
+  beamOut: 'M12 21V8M8 12l4-4 4 4M6 3h12M7 17h0.01M17 17h0.01M5 13h0.01M19 13h0.01',
 }

@@ -240,5 +240,8 @@
   padding: 8px 16px;
 }
 
+.oe-detail.oe-wide { max-width: 1100px; }
+.oe-long { flex: 1; min-width: 220px; }
+.ce-button.is-active { border-color: #ffb347; background: #3d2a1a; color: #ffb347; }
 .oe-detail .ce-flag { width: 200px; }
 .oe-detail .ce-list > .ce-button { align-self: flex-start; }

@@ -28,5 +28,12 @@ export function updateObjectives(state) {
   return flags === state.scenario.flags ? state : { ...state, scenario: { ...state.scenario, flags } }
 }
 
+// The mission is accomplished once every one of the map's objectives is complete (designer decision, 2026-10-11). A map
+// without objectives never ends by itself.
+export function isMissionAccomplished(state) {
+  const objectives = state?.party?.map?.objectives ?? []
+  return objectives.length > 0 && objectives.every((objective) => objectiveStatus(state.scenario?.flags, objective.id) === 'complete')
+}
+
 // The flag a fight sets on each NPC it leaves down, surrendered or fled, for objectives and conversations to read.
 export const defeatedFlag = (npcId) => `defeated.${npcId}`

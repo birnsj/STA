@@ -2,7 +2,7 @@
 // STA 2E task (taskPreparation.js + taskResolver.js), and the object's authored outcomes change the same world the rest
 // of the game uses: the map (a sealed door's tile), NPC awareness (noise), Party Knowledge (scans) and scenario flags.
 //
-// Definitions (static, authored: challenges.json now, the map editor later) are kept apart from the scenario's runtime
+// Definitions (static, authored: in the map file through the Object Editor, else challenges.json) are kept apart from the scenario's runtime
 // state: scenario = { definitions, objects: { [id]: { state, locks, combatLocks, difficultyMods, originalTiles } }, flags,
 // traits: [{ name, potency, description, source }], log, taskCount }. The behaviour lives in the object classes
 // (src/world/, docs/world-objects.md); these functions are the scenario-level entry points the screens, the reducers
@@ -18,10 +18,12 @@ export const INTERACT_RANGE = data.interactRange
 // Scans (partyScan.js) and conversation checks share this seed sequence through scenario.taskCount.
 export { TASK_SEED_OFFSET }
 
-// The challenge objects authored for a map (challenges.json, by map file name), each where the map's objectPlacements
-// puts it (mapFormat.js); a doorway's other tiles (covers) move with it.
+// The challenge objects authored for a map: its own (map.objects, the Object Editor) or else challenges.json's for its
+// file name. Each stands where the map's objectPlacements puts it (mapFormat.js); a doorway's other tiles (covers) move
+// with it.
+export const authoredDefinitionsFor = (map) => map.objects ?? data.maps[map.id] ?? data.maps[map.name] ?? []
 export function challengeDefinitionsFor(map) {
-  const definitions = data.maps[map.id] ?? data.maps[map.name] ?? []
+  const definitions = authoredDefinitionsFor(map)
   const placements = map.objectPlacements ?? {}
   return definitions.map((definition) => {
     const placed = placements[definition.id]

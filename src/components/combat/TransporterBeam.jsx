@@ -6,7 +6,8 @@ const BEAM_SPARKS = [
 
 // A transporter column with sparkles over a figure. position: the figure's tile centre on screen.
 // direction 'out': a fleeing enemy's red-amber beam-out (the figure fades with .iso-unit.is-beaming);
-// 'in': the away team's blue-white beam-in as a mission starts (the figure appears with .is-beaming-in).
+// 'in': the away team's blue-white beam-in as a mission starts (the figure appears with .is-beaming-in);
+// 'away': an away team member beaming out of the mission, blue-white too (the figure fades with .is-beaming-away).
 export default function TransporterBeam({ position, direction }) {
   return (
     <g className={`fx-transporter is-${direction}`} transform={`translate(${position.x} ${position.y})`} pointerEvents="none">

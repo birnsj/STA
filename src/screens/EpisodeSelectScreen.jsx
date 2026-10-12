@@ -9,7 +9,7 @@ import { episodeTitle } from '../maps/mapFormat.js'
 // that plays it is chosen here too, as a development comparison tool.
 const MODES = [
   { id: 'combat', label: 'Combat', text: 'Party of up to 4, initiative, Major and Minor actions.' },
-  { id: 'exploration', label: 'Exploration', text: 'Away team movement: party selection, splitting up and formations. No enemies yet.' },
+  { id: 'exploration', label: 'Game', text: "The whole episode: Captain's Log intro, the away team on the map, conversations, challenges and fights, then Mission Accomplished and the closing log." },
 ]
 
 export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack }) {

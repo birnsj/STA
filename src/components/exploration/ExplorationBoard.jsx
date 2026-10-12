@@ -70,8 +70,9 @@ function DownBody({ condition, spriteSet = null, uniform = null, facing, seed })
 }
 
 // beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the mission starts, else null.
+// beamingOut: beaming out of the mission (the figure fades away).
 // stridePhase: where in its looping animations the figure starts (0..1), so the party never steps in time.
-function Explorer({ member, selected, lead, beamIn = null, stridePhase = null, onPress }) {
+function Explorer({ member, selected, lead, beamIn = null, beamingOut = false, stridePhase = null, onPress }) {
   const centre = project(member.position)
   const image = member.character.portrait.image
   const uniform = member.character.portrait.uniform
@@ -81,7 +82,7 @@ function Explorer({ member, selected, lead, beamIn = null, stridePhase = null, o
   const facing = controller.facing(member)
   return (
     <g
-      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${sneaking && !down ? ' is-sneaking' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}`}
+      className={`iso-unit is-player explore-unit${selected ? ' is-selected' : ''}${lead ? ' is-lead' : ''}${down ? ' is-down' : ''}${sneaking && !down ? ' is-sneaking' : ''}${beamIn === 'waiting' ? ' is-beam-waiting' : ''}${beamIn === 'beaming' ? ' is-beaming-in' : ''}${beamingOut ? ' is-beaming-away' : ''}`}
       style={{ transform: `translate(${centre.x}px, ${centre.y}px)` }}
       onPointerDown={onPress}
       onClick={(event) => event.stopPropagation()}
@@ -459,7 +460,8 @@ function ClickPulse({ point }) {
 // an NPC the party can see. menu: { memberId, buttons } or { npcId, buttons } drawn over that character, or
 // { objectId, buttons } over that challenge object (UnitActionRing), or null; NPC and object menus also carry the
 // ring's party band and button hover (party, onButtonHover); an object menu may carry slotRef (the slot above its ring).
-// beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn).
+// beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn). Members beaming
+// out (member.beaming) fade away in a transporter beam.
 // scanPulse: a party Scan's sweep to play ({ key, origin, radius, onDone }, ScanPulse) or null.
 // onCameraPan(): the player panned the camera while it followed the lead (the screen turns following off).
 export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
@@ -654,7 +656,8 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
           selected={isSelected(state, member.id)}
           lead={member.id === state.leaderId}
           beamIn={beamIn === 'done' ? null : beamIn}
-          onPress={pressMember(member.id)}
+          beamingOut={Boolean(member.beaming)}
+          onPress={member.beaming ? undefined : pressMember(member.id)}
         />
       ),
     })),
@@ -707,6 +710,11 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         {windows}
       </MapCanvas>
       {beamIn === 'beaming' && getMembers(state).map((member) => <TransporterBeam key={`beam-${member.id}`} position={project(member.position)} direction="in" />)}
+      {getMembers(state)
+        .filter((member) => member.beaming)
+        .map((member) => (
+          <TransporterBeam key={`beam-out-${member.id}`} position={project(member.position)} direction="away" />
+        ))}
       {scanPulse && <ScanPulse key={`scan-${scanPulse.key}`} origin={scanPulse.origin} radius={scanPulse.radius} onDone={scanPulse.onDone} />}
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}

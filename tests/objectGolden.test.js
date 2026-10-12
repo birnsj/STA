@@ -20,11 +20,11 @@ import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  brigClosed: 'aeca4b9405ef7490',
-  brigCleared: '261f7e8ceb4383a2',
-  brigLockout: 'aeca4b9405ef7490',
-  vault: 'a3a673c538289d3b',
-  combat: '80d3c9d693cc8a3b',
+  brigClosed: '251dc39204d08b22',
+  brigCleared: '7f729b8364c5237c',
+  brigLockout: '251dc39204d08b22',
+  vault: '304eb65df52cc7e3',
+  combat: '6209f6759d917410',
   conversation: 'a1f1cd62a3ec881f',
 }
 

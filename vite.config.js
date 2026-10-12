@@ -5,12 +5,14 @@ import { defineConfig } from 'vite'
 import { listCharacters, putCharacter, removeCharacter } from './tools/characterStore.cjs'
 import { listConversations, putConversation, removeConversation } from './tools/conversationStore.cjs'
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
+import { setStoryTemplates } from './tools/storyStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
 const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
 const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.meta.url))
 const TILES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tiles.json', import.meta.url))
+const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploration/missionLog.json', import.meta.url))
 const EPISODE_ART_FOLDER = fileURLToPath(new URL('./public/art/episodes', import.meta.url))
 const EPISODE_CARDS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/episodeCards.json', import.meta.url))
 const catalogueCardIds = () => JSON.parse(readFileSync(EPISODE_CARDS_FILE, 'utf8')).cards.map((card) => card.id)
@@ -72,27 +74,32 @@ const conversationFilesEndpoint = () =>
     DELETE: (body) => removeConversation(CONVERSATIONS_FOLDER, body.id),
   })
 
-// The map editor's palette Cover checkboxes save into the tile catalogue. The page already updated its copy, so the
-// file change this causes is not hot-reloaded: a reload would throw away an unsaved map. Hand edits still reload.
-function tileFilesEndpoint() {
+// A data file the map editor saves into while the page already holds the change: the file change this causes is not
+// hot-reloaded, as a reload would throw away an unsaved map. Hand edits still reload.
+function quietDataEndpoint(name, route, dataFile, save) {
   let savedAt = 0
-  const endpoint = jsonEndpoint('tile-files-endpoint', '/__tiles', {
-    PUT: (change) => {
+  const endpoint = jsonEndpoint(name, route, {
+    PUT: (body) => {
       savedAt = Date.now()
-      return setTileFlag(TILES_FILE, change)
+      return save(dataFile, body)
     },
   })
   return {
     ...endpoint,
     hotUpdate({ file }) {
-      if (toSlashes(file) === toSlashes(TILES_FILE) && Date.now() - savedAt < 2000) return []
+      if (toSlashes(file) === toSlashes(dataFile) && Date.now() - savedAt < 2000) return []
     },
   }
 }
 
+// The map editor's palette Cover checkboxes save into the tile catalogue.
+const tileFilesEndpoint = () => quietDataEndpoint('tile-files-endpoint', '/__tiles', TILES_FILE, setTileFlag)
+// The map editor's Story Wording saves the outro's story templates into missionLog.json.
+const storyEndpoint = () => quietDataEndpoint('story-endpoint', '/__story', MISSION_LOG_FILE, (file, body) => setStoryTemplates(file, body?.story))
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), conversationFilesEndpoint(), tileFilesEndpoint()],
+  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), conversationFilesEndpoint(), tileFilesEndpoint(), storyEndpoint()],
   // Relative asset paths so the built app also loads from disk inside the Electron .exe.
   base: './',
   server: {

@@ -14,6 +14,8 @@ import {
   darknessLights,
   darknessOpacity,
   frameAt,
+  OVERLAY_GLOW_BLUR,
+  OVERLAY_GLOW_SPREAD,
   panelArt,
   panelFlipbook,
   tileFlipbook,
@@ -59,15 +61,40 @@ function solid(context, pass, draw) {
 // An animated tile's drawing (book, a tileArt.js flipbook; offset, its tileArt.js animationOffset): nothing on the
 // board, its sprite at the pass's frame on 'frames', and on 'cut' the sprite's emission, after cutting out the rest of
 // it (it hides the lights of animated tiles behind it). draw(key) draws one image (a loaded href or a derived key).
-function animated(context, pass, book, offset, draw) {
+// An overlay animation (a wall's lights, book.overlay) leaves the tile's own image (base) on the board, and on both
+// layers cuts it out and draws the lights over it.
+function animated(context, pass, book, offset, draw, base) {
+  if (book.overlay && !pass) {
+    draw(base)
+    return
+  }
   if (!pass) return
   const sprite = book.sprites[pass.time === null ? book.frames[0] : frameAt(book, pass.time + offset)]
+  if (book.overlay) {
+    solid(context, pass, () => draw(base))
+    if (pass.layer === 'frames') drawEmissive(context, () => draw(sprite.href))
+    else draw(sprite.href)
+    return
+  }
   if (pass.layer === 'frames') {
     draw(sprite.href)
     return
   }
   solid(context, pass, () => draw(sprite.href))
   if (sprite.emission) draw(sprite.emission)
+}
+
+// An overlay's lights, emissive (tileArt.js OVERLAY_GLOW_BLUR). A canvas filter's blur is in canvas pixels, so it is
+// scaled by the drawing's transform.
+function drawEmissive(context, draw) {
+  draw()
+  context.save()
+  context.globalCompositeOperation = 'lighter'
+  draw()
+  const { a, b } = context.getTransform()
+  context.filter = `blur(${OVERLAY_GLOW_BLUR * Math.hypot(a, b)}px)`
+  draw()
+  context.restore()
 }
 
 // ---------------------------------------------------------------- images
@@ -432,10 +459,10 @@ function drawWall(context, tile, position, panel, pass) {
     context.drawImage(image, art.offset.x * sx, art.offset.y * sy, size.width * sx, size.height * sy, box.x, box.y, size.width, size.height)
   }
   const book = art ? art.flipbook : variant ? null : tileFlipbook(tile)
-  if (book) animated(context, pass, book, animationOffset(art?.timing ?? position), draw)
+  if (book) animated(context, pass, book, animationOffset(art?.timing ?? position), draw, art?.href ?? tile.image)
   else solid(context, pass, () => draw(art?.href ?? variant?.href ?? tile.image))
-  // An animated wall's panel lines belong on its frames layer with it.
-  if (panel) drawPanelFace(context, tile, position, panel, tile.height, book && pass?.layer === 'frames' ? null : pass)
+  // A whole-sprite animated wall's panel lines belong on its frames layer with it; an overlay wall's stay on the board.
+  if (panel) drawPanelFace(context, tile, position, panel, tile.height, book && !book.overlay && pass?.layer === 'frames' ? null : pass)
 }
 
 // IsoTiles PanelFace: this tile's half of a two-tile panel. Points are (U along the panel 0..2, height above the floor).
@@ -846,7 +873,8 @@ export function animatedArea(layout, item) {
       ].map(([px, py]) => transform.transformPoint({ x: dx + ((px - sx) * dw) / sw, y: dy + ((py - sy) * dh) / sh }))
       const xs = corners.map((point) => point.x)
       const ys = corners.map((point) => point.y)
-      const rect = { x: Math.min(...xs) - 1, y: Math.min(...ys) - 1, width: Math.max(...xs) - Math.min(...xs) + 2, height: Math.max(...ys) - Math.min(...ys) + 2 }
+      const pad = item.book.overlay ? OVERLAY_GLOW_SPREAD : 1
+      const rect = { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad, width: Math.max(...xs) - Math.min(...xs) + 2 * pad, height: Math.max(...ys) - Math.min(...ys) + 2 * pad }
       area = union(area, rect)
     }
   }
