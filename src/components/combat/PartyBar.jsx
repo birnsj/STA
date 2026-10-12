@@ -16,40 +16,46 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
         const down = member.condition.defeated
         const info = !down ? turnInfo[member.id] : null
         const best = Boolean(recommendation?.bestIds.includes(member.id))
+        // A fixed size, as in exploration (designer request, 2026-10-12): Major / Minor, the condition tags, the task
+        // tag and the turn badge sit on the card's top edge.
         return (
-          <button
-            key={member.id}
-            type="button"
-            className={`party-card${member.id === activeId ? ' is-active' : ''}${member.id === selectedId ? ' is-selected' : ''}${down ? ' is-down' : ''}${info ? ` is-${info.state}` : ''}${best ? ' is-best' : ''}`}
-            title={info?.state === 'ready' ? `Switch to ${member.character.name}` : undefined}
-            onClick={() => onSelect(member.id)}
-          >
-            <span className="party-portrait-wrap">
-              <CombatPortrait character={member.character} className="party-portrait" />
-              {info?.state === 'done' && <DoneIcon size={22} className="party-done-icon" />}
-            </span>
-            <span className="party-info">
-              <span className="party-name">{member.character.name}</span>
-              <PartyWeapon weapon={weapons[member.id]} onCycle={member.id === activeId ? onCycleWeapon : null} />
-              <ConditionTrack character={member.character} condition={member.condition} />
-              {!down && info && (
-                <span className="party-hits-row">
-                  <span className={`party-move-left${info.movement.left ? '' : ' is-empty'}`}>Move {info.movement.left}/{info.movement.total}</span>
-                  <span className={`party-move-left${info.movement.sprintLeft ? '' : ' is-empty'}`}>
-                    Sprint {info.movement.sprintLeft}/{info.movement.sprintTotal}
+          <div key={member.id} className="party-card-wrap">
+            <button
+              type="button"
+              className={`party-card${member.id === activeId ? ' is-active' : ''}${member.id === selectedId ? ' is-selected' : ''}${down ? ' is-down' : ''}${info ? ` is-${info.state}` : ''}${best ? ' is-best' : ''}`}
+              title={info?.state === 'ready' ? `Switch to ${member.character.name}` : undefined}
+              onClick={() => onSelect(member.id)}
+            >
+              <span className="party-portrait-wrap">
+                <CombatPortrait character={member.character} className="party-portrait" />
+                {info?.state === 'done' && <DoneIcon size={22} className="party-done-icon" />}
+              </span>
+              <span className="party-info">
+                <span className="party-name">{member.character.name}</span>
+                <PartyWeapon weapon={weapons[member.id]} onCycle={member.id === activeId ? onCycleWeapon : null} />
+                <ConditionTrack character={member.character} condition={member.condition} part="stress" />
+                {!down && info && (
+                  <span className="party-hits-row">
+                    <span className={`party-move-left${info.movement.left ? '' : ' is-empty'}`}>Move {info.movement.left}/{info.movement.total}</span>
+                    <span className={`party-move-left${info.movement.sprintLeft ? '' : ' is-empty'}`}>
+                      Sprint {info.movement.sprintLeft}/{info.movement.sprintTotal}
+                    </span>
                   </span>
+                )}
+              </span>
+            </button>
+            <div className="party-card-badges">
+              {info && <ActionPoints turn={info.turn} />}
+              <ConditionTrack character={member.character} condition={member.condition} part="tags" />
+              <PartyTaskTag recommendation={recommendation} memberId={member.id} />
+              {info && (
+                <span className={`party-turn-badge is-${info.state}`}>
+                  {info.state === 'done' && <DoneIcon size={9} />}
+                  {BADGE_LABEL[info.state]}
                 </span>
               )}
-              {info && <ActionPoints turn={info.turn} />}
-              <PartyTaskTag recommendation={recommendation} memberId={member.id} />
-            </span>
-            {info && (
-              <span className={`party-turn-badge is-${info.state}`}>
-                {info.state === 'done' && <DoneIcon size={9} />}
-                {BADGE_LABEL[info.state]}
-              </span>
-            )}
-          </button>
+            </div>
+          </div>
         )
       })}
     </div>

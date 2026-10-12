@@ -4,8 +4,9 @@ import { getMaxStress, injuryTypeName, isDead, isDying, minorDefeatText, npcCate
 // A character's personal condition (no HP): STRESS current/max, FATIGUED (and the shut-down attribute), complications,
 // each Injury (Stun / Deadly, Severity, treated) and DEFEATED / DYING (a Minor NPC: UNCONSCIOUS / DEAD). svg: the
 // compact version drawn over a unit on the battlefield. The Stress bar shows what is left: full when unhurt, draining
-// as Stress is taken (designer request, Oct 2026); the number stays the Stress taken.
-export default function ConditionTrack({ character, condition, svg = false, showCategory = false }) {
+// as Stress is taken (designer request, Oct 2026); the number stays the Stress taken. part: 'all', 'stress' (the meter
+// only) or 'tags' (everything but the meter; nothing when there is none).
+export default function ConditionTrack({ character, condition, svg = false, showCategory = false, part = 'all' }) {
   const max = getMaxStress(character).value
   const { stress, injuries, defeated } = condition
   const dying = isDying(condition)
@@ -34,9 +35,12 @@ export default function ConditionTrack({ character, condition, svg = false, show
       </g>
     )
   }
+  const meter = part !== 'tags'
+  const tags = part !== 'stress'
+  if (!meter && !injuries.length && !condition.fatigued && !condition.complications?.length && !defeated) return null
   return (
-    <span className="condition-track">
-      {max > 0 ? (
+    <span className={`condition-track${part === 'tags' ? ' is-tags' : ''}`}>
+      {!meter ? null : max > 0 ? (
         <span className="stress-meter" title={`Stress ${stress} of ${max}`}>
           <span className="stress-label">Stress</span>
           <span className="stress-bar">
@@ -49,24 +53,24 @@ export default function ConditionTrack({ character, condition, svg = false, show
       ) : (
         showCategory && <span className="condition-category">{npcCategoryName(character)}: no Stress</span>
       )}
-      {injuries.map((injury) => (
+      {tags && injuries.map((injury) => (
         <span key={injury.id} className={`injury-chip is-${injury.type}${injury.treated ? ' is-treated' : ''}`} title={injury.source?.weaponName ? `From ${injury.source.weaponName}` : undefined}>
           {injuryTypeName(injury.type)} {injury.severity}
           {injury.treated && ' · treated'}
           {injury.recovering && ' · wearing off'}
         </span>
       ))}
-      {condition.fatigued && (
+      {tags && condition.fatigued && (
         <span className="condition-fatigued" title="Book p.278: +1 Difficulty on all tasks, no more Stress; tasks with the shut-down attribute automatically fail.">
           Fatigued{condition.fatiguedAttribute ? ` · ${getAttributeName(condition.fatiguedAttribute)} shut down` : ''}
         </span>
       )}
-      {(condition.complications ?? []).map((complication) => (
+      {tags && (condition.complications ?? []).map((complication) => (
         <span key={complication.id} className="condition-complication" title="Complication (Stress over the maximum, Book p.277)">
           {complication.name}
         </span>
       ))}
-      {defeated && <span className={`condition-defeated${dying || isDead(condition) ? ' is-dying' : ''}`}>{dying ? 'Dying' : minorDefeatText(condition) ?? 'Defeated'}</span>}
+      {tags && defeated && <span className={`condition-defeated${dying || isDead(condition) ? ' is-dying' : ''}`}>{dying ? 'Dying' : minorDefeatText(condition) ?? 'Defeated'}</span>}
     </span>
   )
 }

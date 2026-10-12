@@ -1569,6 +1569,118 @@
   border-color: var(--yellow);
 }
 
+/* The combat card is the exploration card's size whatever it shows (designer request, 2026-10-12); the AI box beside
+   the bar shares its height. */
+.combat-bottom-left .party-card,
+.auto-controls {
+  --party-card-height: 75px;
+}
+
+.party-card-wrap {
+  position: relative;
+}
+
+.combat-bottom-left .party-card {
+  width: 178px;
+  height: var(--party-card-height);
+  padding: 6px 10px 6px 6px;
+  overflow: hidden;
+}
+
+.combat-bottom-left .party-card .party-info {
+  flex: 1;
+  gap: 3px;
+}
+
+/* One row along the card's top edge: Major / Minor and the condition tags on the left, the turn badge on the right.
+   Only the task tag's number takes clicks; the rest let them through to the card. */
+.party-card-badges {
+  position: absolute;
+  top: -8px;
+  left: 6px;
+  right: 6px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.party-card-badges .action-points {
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: #03060e;
+  line-height: 14px;
+}
+
+.party-card-badges .action-points-count {
+  min-width: 0;
+  font-size: 9px;
+}
+
+.party-card-badges .condition-track.is-tags {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  gap: 3px;
+}
+
+.party-card-badges .condition-track.is-tags > * {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 9px;
+  line-height: 14px;
+}
+
+/* Tinted chips need a solid backing over the card's border. */
+.party-card-badges .injury-chip,
+.party-card-badges .condition-complication {
+  background-color: #03060e;
+}
+
+.party-card-badges .injury-chip.is-stun {
+  background-image: linear-gradient(rgba(246, 185, 40, 0.2), rgba(246, 185, 40, 0.2));
+}
+
+.party-card-badges .injury-chip.is-deadly {
+  background-image: linear-gradient(rgba(255, 90, 80, 0.2), rgba(255, 90, 80, 0.2));
+}
+
+.party-card-badges .party-task-tag {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.party-card-badges .party-task-best,
+.party-card-badges .party-task-tn {
+  position: static;
+  flex-shrink: 0;
+  line-height: 14px;
+}
+
+.party-card-badges .party-task-tn {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}
+
+.party-card-badges .party-turn-badge {
+  position: static;
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 14px;
+}
+
 .party-card.is-down {
   opacity: 0.55;
 }
@@ -2259,16 +2371,48 @@
 }
 
 /* Auto Combat controls */
-/* Sits between the party bar and the sidebar along the bottom edge: narrow enough to leave a clear gap on both sides. */
+/* In the party cards' row (.combat-bottom-row), their height, and narrow enough to fit between four cards and the
+   sidebar. */
+.combat-bottom-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .auto-controls {
-  position: absolute;
-  right: 182px;
-  bottom: 8px;
+  position: relative;
+  box-sizing: border-box;
+  width: 104px;
+  height: var(--party-card-height);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 2px;
   padding: 5px;
+}
+
+.auto-controls .combat-button.is-small {
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 10px;
+}
+
+.auto-controls .auto-row .combat-button {
+  flex: 1;
+}
+
+/* Running, the status sits on the box's top edge like the cards' badges, and the controls share one row. */
+.auto-controls.is-on .auto-status {
+  position: absolute;
+  top: -8px;
+  right: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--yellow);
+  color: #1a1200;
+  font-size: 9px;
+  line-height: 14px;
 }
 
 .auto-controls.is-on {
@@ -2284,11 +2428,11 @@
 
 .auto-row {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 .auto-speed {
-  padding: 2px 8px;
+  padding: 2px 4px;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
   background: none;
@@ -2304,13 +2448,13 @@
 .auto-ai {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 4px;
   width: 100%;
 }
 
 .auto-ai-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -2319,15 +2463,16 @@
 .auto-ai-select {
   /* Narrower than the longest AI name ("Squad Tactician"), which the closed box ellipsises; the open list still shows
      every name in full. */
-  width: 80px;
-  padding: 2px 3px;
+  width: 60px;
+  min-width: 0;
+  padding: 1px 2px;
   text-overflow: ellipsis;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
   background: #0b1424;
   color: var(--text);
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .combat-setup-seed {

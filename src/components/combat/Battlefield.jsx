@@ -164,6 +164,12 @@ function UnitToken({ image, shownImage, clipId, name }) {
   )
 }
 
+// Above a standing figure's head (the sprites reach about 63px over their feet; designer request, 2026-10-12): its
+// Stress bar, the turn's action points above that, and a Surrendered / Retreating label on top.
+const BAR_Y = -76
+const POINTS_Y = -88
+const LABEL_Y = -102
+
 // isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
 // lastAction / speed: state.lastAction and the Auto Combat speed, for the figure's strike, fall and getting up.
 // A fled combatant is drawn only while it beams out (fading away, never interactive).
@@ -212,12 +218,12 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
             </g>
           )}
           {combatant.surrendered && (
-            <text className="iso-unit-surrendered" x="0" y="-80" textAnchor="middle">
+            <text className="iso-unit-surrendered" x="0" y={LABEL_Y} textAnchor="middle">
               Surrendered
             </text>
           )}
           {combatant.retreating && !combatant.surrendered && (
-            <text className="iso-unit-surrendered" x="0" y="-80" textAnchor="middle">
+            <text className="iso-unit-surrendered" x="0" y={LABEL_Y} textAnchor="middle">
               Retreating
             </text>
           )}
@@ -233,12 +239,12 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
         </>
       )}
       {!isBystander && combatant.condition && (
-        <g transform={down ? 'translate(0 -20)' : 'translate(0 -60)'}>
+        <g transform={down ? 'translate(0 -20)' : `translate(0 ${BAR_Y})`}>
           <ConditionTrack character={combatant.character} condition={combatant.condition} svg />
         </g>
       )}
       {turnStatus && !down && (
-        <g transform="translate(0 -72)">
+        <g transform={`translate(0 ${POINTS_Y})`}>
           {turnDone ? (
             <DoneIcon svg className="iso-unit-done" />
           ) : (
@@ -461,7 +467,7 @@ export default function Battlefield({
   )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
   // A unit with its badges above it, and the tile it is stepping from while it walks (a tile's step on screen).
-  const unitBox = (position) => around(position, 44 + TILE_W / 2, 86 + TILE_H / 2, 52 + TILE_W / 2, 20 + TILE_H / 2)
+  const unitBox = (position) => around(position, 44 + TILE_W / 2, -LABEL_Y + 10 + TILE_H / 2, 52 + TILE_W / 2, 20 + TILE_H / 2)
   const figures = [
     ...units.map((unit) => ({
       depth: shownPosition(unit).x + shownPosition(unit).y + (unit.condition.defeated ? 0.1 : 0.5),

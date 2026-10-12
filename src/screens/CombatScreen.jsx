@@ -589,26 +589,29 @@ export function Battle({
           onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
-        <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
-          weapons={partyWeapons}
-          onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
-        />
+        {/* The AI box sits in the cards' row, the same height, so it never covers a card. */}
+        <div className="combat-bottom-row">
+          <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
+            weapons={partyWeapons}
+            onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
+          />
+          {!state.outcome && (
+            <AutoCombatControls
+              auto={auto}
+              speed={speed}
+              partyAI={partyAI}
+              onPartyAI={onPartyAI}
+              enemyAI={enemyAI}
+              onEnemyAI={onEnemyAI}
+              onStart={startAuto}
+              onPause={() => setAuto('paused')}
+              onResume={() => setAuto('running')}
+              onStop={() => setAuto('off')}
+              onSpeed={setSpeed}
+            />
+          )}
+        </div>
       </div>
-      {!state.outcome && (
-        <AutoCombatControls
-          auto={auto}
-          speed={speed}
-          partyAI={partyAI}
-          onPartyAI={onPartyAI}
-          enemyAI={enemyAI}
-          onEnemyAI={onEnemyAI}
-          onStart={startAuto}
-          onPause={() => setAuto('paused')}
-          onResume={() => setAuto('running')}
-          onStop={() => setAuto('off')}
-          onSpeed={setSpeed}
-        />
-      )}
       {state.incomingInjury && auto === 'off' && !state.outcome && (
         <InjuryChoice
           incoming={state.incomingInjury}
