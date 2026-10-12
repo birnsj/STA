@@ -215,12 +215,49 @@ function FormationIcon({ formation }) {
 }
 
 const REGROUP_ICON = 'M4 4l5 5M9 5v4H5M20 4l-5 5M15 5v4h4M4 20l5-5M9 19v-4H5M20 20l-5-5M15 19v-4h4'
+const CAMERA_ICON = 'M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7'
+const DEBUG_ICON = 'M9 6a3 3 0 0 1 6 0M8 9h8v6a4 4 0 0 1-8 0zM12 9v10M8 12H4M20 12h-4M8 16l-3 2M16 16l3 2M8 9L5 7M16 9l3-2'
+// A door with an arrow leaving through it.
+const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
 
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup }) {
+// followCamera / onFollowCamera(on): the view follows the lead character or stays put. debugOpen / onDebug(open): the
+// debug panels (party, awareness, scenario state and the task log). onExit(): leaves the mission.
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onExit }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
-      <p className="combat-panel-title">Formation{current ? `: ${current.name}` : ''}</p>
+      <div className="explore-formation-header">
+        <p className="combat-panel-title">Formation{current ? `: ${current.name}` : ''}</p>
+        <button
+          type="button"
+          className="explore-panel-icon-button"
+          aria-pressed={followCamera}
+          aria-label="Camera: follow the lead character"
+          title={followCamera ? 'Camera: follows the lead character. Click to stop.' : 'Camera: stays where you put it. Click to follow the lead character.'}
+          onClick={() => onFollowCamera(!followCamera)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={CAMERA_ICON} />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="explore-panel-icon-button"
+          aria-pressed={debugOpen}
+          aria-label="Debug panels"
+          title={debugOpen ? 'Hide the debug panels.' : 'Show the debug panels (party, awareness, scenario state and task log).'}
+          onClick={() => onDebug(!debugOpen)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={DEBUG_ICON} />
+          </svg>
+        </button>
+        <button type="button" className="explore-panel-icon-button" aria-label="Exit" title="Exit the mission." onClick={onExit}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={EXIT_ICON} />
+          </svg>
+        </button>
+      </div>
       <div className="explore-formation-options">
         {FORMATIONS.map((formation) => (
           <button

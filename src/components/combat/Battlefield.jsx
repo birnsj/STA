@@ -176,7 +176,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const image = combatant.character.portrait?.image
   const spriteSet = combatant.character.portrait?.spriteSet
   const hasSprite = hasCharacterSprite(spriteSet)
-  const shownImage = useUniformImage(hasSprite ? null : image, combatant.character.portrait?.uniform)
+  const shownImage = useUniformImage(hasSprite ? null : image, combatant.character.portrait?.imageUniform)
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
   const pose = useUnitAnimation(combatant, { isWalking, lastAction, speed })
   const sprite = hasSprite && (

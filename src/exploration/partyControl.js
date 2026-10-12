@@ -249,9 +249,8 @@ function tick(state, rawSeconds) {
       next = { ...controllerFor(member).turn(member, direction, seconds), position, pace, moving, running }
       if (direction && Math.hypot(direction.x, direction.y) > 0.05) next.facing = { x: direction.x, y: direction.y }
     } else if (member.moving || member.pace) {
-      const pace = smoothPace(member.pace, { x: 0, y: 0 }, seconds)
-      const moving = isMovingPace(pace)
-      next = { ...member, pace, moving, running: moving && member.running }
+      // Not stepping at all: standing still at once, so the walk animation stops when they do.
+      next = { ...member, pace: null, moving: false, running: false }
     }
     if (next !== current[i]) changed = true
     members[member.id] = next

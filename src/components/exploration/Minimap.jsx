@@ -30,6 +30,9 @@ function Marker({ position, className, title, shape }) {
   )
 }
 
+// A folded map, for the button that hides and shows the minimap.
+const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
+
 // Exploration minimap, top down: the level in its tile art with the map's area names, each centred in its room,
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
 // as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
@@ -37,7 +40,9 @@ function Marker({ position, className, title, shape }) {
 // Scan's sweep while it plays ({ key, origin, radius }, ScanPulse.jsx), drawn as a ring spreading from the scanner.
 // doors: the map's door objects ({ id, name, stateLabel, closed, cells }), such as the Deck 10 Brig's sealed bulkheads:
 // yellow over their doorway, solid while closed and outlined once open. Display only.
-export default function Minimap({ map, party, world, knowledge, objectives = [], doors = [], scanPulse = null, debug = false, children }) {
+// open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
+// cornerButtons: more buttons to the left of that one, which stay in the corner too.
+export default function Minimap({ map, party, world, knowledge, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, children }) {
   const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
@@ -53,9 +58,29 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
     })
     .filter(Boolean)
 
+  const corner = (
+    <div className="explore-minimap-corner">
+      {cornerButtons}
+      <button type="button" className="explore-minimap-toggle" aria-pressed={open} aria-label="Minimap" title={open ? 'Hide the minimap.' : 'Show the minimap.'} onClick={onToggle}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d={MINIMAP_ICON} />
+        </svg>
+      </button>
+    </div>
+  )
+  if (!open) {
+    return (
+      <div className="explore-minimap-column">
+        <div className="explore-minimap-closed">{corner}</div>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="explore-minimap-column">
       <section className={`explore-minimap${scanPulse ? ' is-scanning' : ''}`} aria-label="Minimap">
+        {corner}
         <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
           <g className="minimap-readout-tiles">
             <MinimapTiles tiles={map.tiles} />

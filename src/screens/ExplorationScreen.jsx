@@ -50,6 +50,8 @@ const ORDER_LABEL = { point: 'Walking', follow: 'Following' }
 const OUTCOME_LABEL = { victory: 'Victory', defeat: 'Defeat', ended: 'Ended (debug)' }
 
 const NOT_BUILT = 'Not built yet.'
+// An open book, for the Captain's Log button in the minimap's corner.
+const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
 
 // A party member's radial menu (right-click on them; designer decision, 2026-10-09): Scan, Use, Switch, Search,
 // First Aid, Attack, Interact and Sneak, each for that character only. Use, Search, First Aid and Attack are shown but
@@ -565,7 +567,9 @@ function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit }) {
 function Exploration({ state, dispatch, onExit }) {
   const { party, world } = state
   const [followCamera, setFollowCamera] = useState(true)
+  const stopFollowing = useCallback(() => setFollowCamera(false), [])
   const [debugOpen, setDebugOpen] = useState(false)
+  const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
   const showHints = useDisplaySettings().helpHints
   // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
@@ -908,6 +912,7 @@ function Exploration({ state, dispatch, onExit }) {
         onInteract={openObjectMenu}
         debug={debugOpen}
         followCamera={followCamera}
+        onCameraPan={stopFollowing}
         onMove={move}
         onSelect={select}
         onSelectBox={selectBox}
@@ -961,7 +966,15 @@ function Exploration({ state, dispatch, onExit }) {
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
-      <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen}>
+      <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen} open={minimapOpen} onToggle={() => setMinimapOpen(!minimapOpen)}
+        cornerButtons={
+          <button type="button" className="explore-minimap-toggle" aria-pressed={logOpen} aria-label="Captain's Log" title="Captain's Log: briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={LOG_ICON} />
+            </svg>
+          </button>
+        }
+      >
         <ActionsToggle open={actionsOpen} onToggle={toggleActions} />
       </Minimap>
       <ExplorationPartyBar
@@ -988,30 +1001,19 @@ function Exploration({ state, dispatch, onExit }) {
           dev={debugOpen}
         />
       )}
-      {/* The menu buttons stay while a challenge or conversation is open (that panel ends above them). */}
+      {/* The Formation panel stays while a challenge or conversation is open (that panel ends above it). */}
       <div className="explore-bottom-right">
         {!panelOpen && actionsOpen && <ExplorationActionButtons consideredId={consideredActionId} onConsider={setConsideredActionId} />}
-        <div className="explore-menu-buttons">
-          <button type="button" className="combat-button is-small" aria-pressed={logOpen} title="Briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
-            Captain&apos;s Log
-          </button>
-          <button
-            type="button"
-            className="combat-button is-small"
-            aria-pressed={followCamera}
-            title={followCamera ? 'The view follows the lead character. Click to stop.' : 'The view stays where you put it. Click to follow the lead character.'}
-            onClick={() => setFollowCamera(!followCamera)}
-          >
-            Camera: {followCamera ? 'Follow' : 'Free'}
-          </button>
-          <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={() => setDebugOpen(!debugOpen)}>
-            Debug
-          </button>
-          <button type="button" className="combat-button is-small" onClick={onExit}>
-            Exit
-          </button>
-        </div>
-        <FormationPanel formationId={party.formationId} onFormation={setFormation} onRegroup={regroup} />
+        <FormationPanel
+          formationId={party.formationId}
+          onFormation={setFormation}
+          onRegroup={regroup}
+          followCamera={followCamera}
+          onFollowCamera={setFollowCamera}
+          debugOpen={debugOpen}
+          onDebug={setDebugOpen}
+          onExit={onExit}
+        />
       </div>
       {debugOpen && (
         <div className="explore-debug-column">

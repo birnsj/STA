@@ -5,7 +5,7 @@
     "Formation slots: x = to the leader's right, y = behind the leader. The first slot is the leader; followers take the others. Slots are scaled by the party's spacing and turned to the leader's heading.",
     "Every party member walks and runs at the same speed; only sneaking uses a character stat (sneak.json).",
     "Walk or run (designer decision, 2026-10-09): a move order to a point more than runDistance from the lead character runs at runSpeed, otherwise walks; while the button is held this follows the cursor. Followers of a running leader run too, and catch up at runCatchUpSpeed.",
-    "A character counts as moving (walk animation, noticed by NPCs as moving) while their speed, averaged over about movingSmoothingSeconds, is above movingSpeed tiles per second, so shuffling on the spot doesn't count."
+    "A character counts as moving (walk animation, noticed by NPCs as moving) while their speed, averaged over about movingSmoothingSeconds, is above movingSpeed tiles per second, so shuffling on the spot doesn't count. A character who doesn't move at all stops counting as moving at once (designer request, 2026-10-11: the walk animation stops when they do)."
   ],
   "movement": {
     "walkSpeed": 3.2,

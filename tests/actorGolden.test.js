@@ -15,8 +15,8 @@ import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  exploreRoom: 'd10f1cc8e3ad8564',
-  exploreBrig: '87e5f72dd35d8fe1',
+  exploreRoom: 'f746cb8e2b6405d6',
+  exploreBrig: '855947dac0739d70',
   autoCombat: 'af3a57e92df36fdf',
   handOff: 'c10e2716c442dae5',
 }

@@ -20,8 +20,8 @@ import {
 
 // After a roll the result stays this long, then the panel and the dice fade out over RESULT_FADE_MS and the panel
 // closes by itself (designer request: no Close needed to carry on). Matches .is-fading in exploration.css.
-const RESULT_HOLD_MS = 2500
-const RESULT_FADE_MS = 600
+export const RESULT_HOLD_MS = 2500
+export const RESULT_FADE_MS = 600
 
 const firstName = (member) => member.character.name.split(' ')[0]
 const usesText = (task) => `${getAttributeName(task.attribute)} + ${getDisciplineName(task.department)}`
@@ -73,7 +73,7 @@ function Die({ die, label = null }) {
 }
 
 // Each die rolled and what it scored, the assistant's last.
-function RolledDice({ result, performer, assistant }) {
+export function RolledDice({ result, performer, assistant }) {
   return (
     <div className="challenge-dice">
       {result.dice.map((die, index) => (

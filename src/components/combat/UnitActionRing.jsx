@@ -63,7 +63,7 @@ function PartySlice({ slice, cy, inner, outer, from, to, onPick }) {
   const clipId = `ring-party-${useId().replace(/[^\w-]/g, '')}`
   const { character } = slice
   const image = character.portrait.image
-  const shown = useUniformImage(image, character.portrait.uniform, character.portrait.backdrop)
+  const shown = useUniformImage(image, character.portrait.imageUniform, character.portrait.backdrop)
   const middle = (from + to) / 2
   const centre = polar(cy, (inner + outer) / 2, middle)
   const labelAt = polar(cy, outer + 6, middle)

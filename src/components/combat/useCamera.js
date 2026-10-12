@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
 const GLIDE = 0.14
+// Gentler, for the glide back to focus.point when following is turned back on (about 0.6 s instead of 0.25 s).
+const RETURN_GLIDE = 0.06
 const KEYS = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] }
 
 function clampAxis(value, min, max, view) {
@@ -41,7 +43,9 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 // rightPans: the right button drags the camera too (false where it has another use). The middle button always does.
 // The mouse wheel zooms; zoom divides the visible world size, so 2 shows half as much at twice the size. Following, it
 // zooms around the followed point so that stays put on screen; free, it zooms toward the pointer.
-export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true) {
+// onPan(): the player started panning by key or drag while the camera follows (so the caller can stop following;
+// turning follow back on glides the camera back to focus.point).
+export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null) {
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const [zoom, setZoom] = useState(1)
   const cameraRef = useRef(camera)
@@ -51,6 +55,21 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const heldRef = useRef(new Set())
   const svgRef = useRef(null)
   const followRef = useRef({ follow, point: focus.point })
+  // True from following being turned back on until the camera arrives (RETURN_GLIDE).
+  const returningRef = useRef(false)
+  const wasFollowingRef = useRef(follow)
+  const onPanRef = useRef(onPan)
+  useEffect(() => {
+    onPanRef.current = onPan
+  })
+  // Stops the follow straight away (before the caller re-renders) so it doesn't pull against the player's pan.
+  const panStarted = () => {
+    targetRef.current = null
+    returningRef.current = false
+    if (!followRef.current.follow || !onPanRef.current) return
+    followRef.current = { ...followRef.current, follow: false }
+    onPanRef.current?.()
+  }
   // True while a glide, key-pan or drag is in flight (see writeViewBox).
   const movingRef = useRef(false)
   const { minX, maxX, minY, maxY } = bounds
@@ -104,6 +123,8 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   }, [minX, maxX, minY, maxY, view.width, view.height])
 
   useEffect(() => {
+    if (follow && !wasFollowingRef.current) returningRef.current = true
+    wasFollowingRef.current = follow
     followRef.current = { follow, point: { x: focusX, y: focusY } }
     targetRef.current = follow ? { x: focusX, y: focusY } : null
   }, [focus.key, focusX, focusY, follow])
@@ -144,13 +165,17 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       const current = cameraRef.current
       let next = null
       if (dx || dy) {
-        targetRef.current = null
+        panStarted()
         next = clamp({ x: current.x + Math.sign(dx) * PAN_SPEED * seconds, y: current.y + Math.sign(dy) * PAN_SPEED * seconds }, limits, size)
       } else if (targetRef.current) {
         const target = clamp(centredOn(targetRef.current, size), limits, size)
         const close = Math.abs(target.x - current.x) < 0.5 && Math.abs(target.y - current.y) < 0.5
-        next = close ? target : { x: current.x + (target.x - current.x) * GLIDE, y: current.y + (target.y - current.y) * GLIDE }
-        if (close) targetRef.current = null
+        const glide = returningRef.current ? RETURN_GLIDE : GLIDE
+        next = close ? target : { x: current.x + (target.x - current.x) * glide, y: current.y + (target.y - current.y) * glide }
+        if (close) {
+          targetRef.current = null
+          returningRef.current = false
+        }
       }
       if (next && (next.x !== current.x || next.y !== current.y)) {
         cameraRef.current = next
@@ -182,13 +207,17 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     let panning = !isTouch
     let dragged = false
     if (panning) targetRef.current = null
+    let announced = false
     const move = (moveEvent) => {
       if (moveEvent.pointerId !== event.pointerId) return
       if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) >= TOUCH_SLOP) dragged = true
       if (!panning) {
         if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) < TOUCH_SLOP) return
         panning = true
-        targetRef.current = null
+      }
+      if (!announced) {
+        announced = true
+        panStarted()
       }
       const next = clamp(
         { x: start.camera.x - (moveEvent.clientX - start.x) / scale, y: start.camera.y - (moveEvent.clientY - start.y) / scale },

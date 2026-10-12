@@ -461,10 +461,11 @@ function ClickPulse({ point }) {
 // ring's party band and button hover (party, onButtonHover); an object menu may carry slotRef (the slot above its ring).
 // beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn).
 // scanPulse: a party Scan's sweep to play ({ key, origin, radius, onDone }, ScanPulse) or null.
-export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
+// onCameraPan(): the player panned the camera while it followed the lead (the screen turns following off).
+export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
   const { map } = state
   const leader = state.members[state.leaderId]
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')

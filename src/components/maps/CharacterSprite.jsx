@@ -67,15 +67,18 @@ function loopOffset(animation, seed, phase, nowSeconds) {
 
 // The movement simulation's walking and running can flick for a moment (speed hovering at the walk/run line, a
 // follower easing into its slot, a pause while sidestepping), which would swap the loop every few frames. So a new gait
-// is only shown once it has held for GAIT_SETTLE_MS; setting off from standing still shows at once.
+// is only shown once it has held for GAIT_SETTLE_MS; setting off from standing still shows at once, and stopping shows
+// after STOP_SETTLE_MS (just long enough to ride out a one-frame pause, so the figure stops when the character does).
 const GAIT_SETTLE_MS = 250
+const STOP_SETTLE_MS = 100
 const STANDING = new Set(['idle', 'sneakIdle'])
 function useSteadyGait(gait) {
   const [steady, setSteady] = useState(gait)
   const immediate = STANDING.has(steady) && !STANDING.has(gait)
   useEffect(() => {
     if (gait === steady) return undefined
-    const timer = setTimeout(() => setSteady(gait), immediate ? 0 : GAIT_SETTLE_MS)
+    const delay = immediate ? 0 : STANDING.has(gait) ? STOP_SETTLE_MS : GAIT_SETTLE_MS
+    const timer = setTimeout(() => setSteady(gait), delay)
     return () => clearTimeout(timer)
   }, [gait, steady, immediate])
   return immediate ? gait : steady

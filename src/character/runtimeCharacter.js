@@ -82,6 +82,7 @@ export function normalizeCharacterRecord(record, { id } = {}) {
   // Exports before schema 0.9.0 carry none; they all come from the creator, whose characters share one faction.
   const faction = idName(record.final.faction ?? details.faction) ?? getCreatorFaction()
   const department = idName(career.department)
+  const uniform = faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null
 
   return {
     character: {
@@ -93,9 +94,12 @@ export function normalizeCharacterRecord(record, { id } = {}) {
       portrait: {
         id: portraitId,
         name: identity.portrait?.name ?? name,
-        image: getPortraitById(portraitId)?.image ?? identity.portrait?.image ?? null,
+        image: identity.portrait?.image ?? getPortraitById(portraitId)?.image ?? null,
         // Shirt colour (rules/uniform.js); only Starfleet uniforms follow the department, other factions keep their art.
-        uniform: faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null,
+        uniform,
+        // The colour the portrait picture is recoloured to: none for a character's own painted art (NPC portraits),
+        // which is drawn already dressed. Map sprites still wear `uniform`.
+        imageUniform: identity.portrait?.image ? null : uniform,
         // Drawn behind a layered head-and-shoulders portrait in panels; map figures leave it out.
         backdrop: getCharacterBackdrop(identity, department?.id).image,
         // The full-body figure on the maps (characterSprites.json), or null for the portrait token.
