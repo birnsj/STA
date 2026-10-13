@@ -37,7 +37,7 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
 // as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
 // objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. scanPulse: a party
-// Scan's sweep while it plays ({ key, origin, radius }, ScanPulse.jsx), drawn as a ring spreading from the scanner.
+// Scan's sweeps while they play ({ key, rings: [{ origin, radius }] }, ScanPulse.jsx), drawn as rings on the readout.
 // doors: the map's door objects ({ id, name, stateLabel, closed, cells }), such as the Deck 10 Brig's sealed bulkheads:
 // yellow over their doorway, solid while closed and outlined once open. Display only.
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
@@ -131,14 +131,26 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
               shape={state ? 'cross' : 'dot'}
             />
           ))}
-          {scanPulse && (
-            <g key={scanPulse.key} className="minimap-scan-pulse" transform={`translate(${scanPulse.origin.x} ${scanPulse.origin.y})`} style={{ '--scan-seconds': `${scanSweepSeconds(scanPulse.radius)}s`, '--scan-radius': `${scanPulse.radius}px` }}>
+          {scanPulse?.rings.map((ring, index) => (
+            <g
+              key={`${scanPulse.key}-${index}`}
+              className="minimap-scan-pulse"
+              transform={`translate(${ring.origin.x} ${ring.origin.y})`}
+              style={{ '--scan-seconds': `${scanSweepSeconds(ring.radius)}s`, '--scan-radius': `${ring.radius}px` }}
+            >
               <circle className="minimap-scan-pulse-fill" />
               <circle className="minimap-scan-pulse-ring" />
             </g>
-          )}
+          ))}
         </svg>
-        <ReadoutNoise sweep={scanPulse && { key: scanPulse.key, seconds: scanSweepSeconds(scanPulse.radius) }} />
+        <ReadoutNoise
+          sweep={
+            scanPulse && {
+              key: scanPulse.key,
+              seconds: Math.max(...scanPulse.rings.map((ring) => scanSweepSeconds(ring.radius))),
+            }
+          }
+        />
       </section>
       {children}
     </div>

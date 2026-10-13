@@ -44,7 +44,7 @@ function CardDetails({ character, condition }) {
     <>
       <span className="explore-card-detail is-main">{speciesLine}</span>
       <span className="party-weapon" title="Weapon">{weapon}</span>
-      <ConditionTrack character={character} condition={condition} part="stress" />
+      <ConditionTrack character={character} condition={condition} />
     </>
   )
 }

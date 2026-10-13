@@ -2261,29 +2261,7 @@
   font-size: 10px;
 }
 
-/* A party Scan's sweep (ScanPulse.jsx): jagged arcs that spread along the floor and fade. The component sizes the
-   shapes and sets the fade each frame; these rules only colour them. */
-.fx-scan-pulse-glow {
-  fill: rgba(120, 220, 255, 0.05);
-  stroke: rgba(120, 220, 255, 0.3);
-  stroke-width: 8px;
-}
-
-.fx-scan-pulse-arc {
-  fill: none;
-  stroke: #bff1ff;
-  stroke-width: 1.6px;
-  stroke-linejoin: bevel;
-}
-
-.fx-scan-pulse-arc.is-arc-1 {
-  stroke: #7fdcff;
-}
-
-.fx-scan-pulse-arc.is-arc-2 {
-  stroke: #ffffff;
-  stroke-width: 1px;
-}
+/* ScanPulse colours live in combat.css (loaded globally) so combat and exploration share them. */
 
 /* The Roll button and the dice above an object's ring: drawn in the map's world pixels, so they scale with the ring. */
 .unit-ring-slot {

@@ -1,15 +1,12 @@
-import { getAttributeName } from '../../character/runtimeCharacter.js'
-import { getMaxStress, injuryTypeName, isDead, isDying, minorDefeatText, npcCategoryName } from '../../rules/personalCondition.js'
+import { getMaxStress, npcCategoryName } from '../../rules/personalCondition.js'
 
-// A character's personal condition (no HP): STRESS current/max, FATIGUED (and the shut-down attribute), complications,
-// each Injury (Stun / Deadly, Severity, treated) and DEFEATED / DYING (a Minor NPC: UNCONSCIOUS / DEAD). svg: the
-// compact version drawn over a unit on the battlefield. The Stress bar shows what is left: full when unhurt, draining
-// as Stress is taken (designer request, Oct 2026); the number stays the Stress taken. part: 'all' or 'stress' (the
-// meter only; the party cards show the rest as ConditionIcons).
-export default function ConditionTrack({ character, condition, svg = false, showCategory = false, part = 'all' }) {
+// A character's Stress (no HP): the meter shows what is left, full when unhurt and draining as Stress is taken
+// (designer request, Oct 2026); the number stays the Stress taken. The rest of the condition (Injuries, Fatigued,
+// complications, Defeated / Dying) is ConditionIcons. svg: the compact version drawn over a unit on the battlefield,
+// with a mark per Injury. showCategory: say so for a Minor NPC, who has no Stress.
+export default function ConditionTrack({ character, condition, svg = false, showCategory = false }) {
   const max = getMaxStress(character).value
-  const { stress, injuries, defeated } = condition
-  const dying = isDying(condition)
+  const { stress, injuries } = condition
   if (svg) {
     const width = 30
     const filled = max ? Math.max(0, 1 - stress / max) * width : 0
@@ -35,7 +32,7 @@ export default function ConditionTrack({ character, condition, svg = false, show
       </g>
     )
   }
-  const tags = part !== 'stress'
+  if (!max && !showCategory) return null
   return (
     <span className="condition-track">
       {max > 0 ? (
@@ -49,26 +46,8 @@ export default function ConditionTrack({ character, condition, svg = false, show
           </span>
         </span>
       ) : (
-        showCategory && <span className="condition-category">{npcCategoryName(character)}: no Stress</span>
+        <span className="condition-category">{npcCategoryName(character)}: no Stress</span>
       )}
-      {tags && injuries.map((injury) => (
-        <span key={injury.id} className={`injury-chip is-${injury.type}${injury.treated ? ' is-treated' : ''}`} title={injury.source?.weaponName ? `From ${injury.source.weaponName}` : undefined}>
-          {injuryTypeName(injury.type)} {injury.severity}
-          {injury.treated && ' · treated'}
-          {injury.recovering && ' · wearing off'}
-        </span>
-      ))}
-      {tags && condition.fatigued && (
-        <span className="condition-fatigued" title="Book p.278: +1 Difficulty on all tasks, no more Stress; tasks with the shut-down attribute automatically fail.">
-          Fatigued{condition.fatiguedAttribute ? ` · ${getAttributeName(condition.fatiguedAttribute)} shut down` : ''}
-        </span>
-      )}
-      {tags && (condition.complications ?? []).map((complication) => (
-        <span key={complication.id} className="condition-complication" title="Complication (Stress over the maximum, Book p.277)">
-          {complication.name}
-        </span>
-      ))}
-      {tags && defeated && <span className={`condition-defeated${dying || isDead(condition) ? ' is-dying' : ''}`}>{dying ? 'Dying' : minorDefeatText(condition) ?? 'Defeated'}</span>}
     </span>
   )
 }

@@ -15,6 +15,7 @@ import { combatAction, endCombat, MODE, requestCombat, startCombat } from './com
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 import { scanArea, scanNpc } from './partyScan.js'
+import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
 import { objectFor } from '../world/objects.js'
@@ -94,11 +95,18 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
     resources: createMissionResources(),
     // What the away team knows of the NPCs (shared), and what each member perceives now (partyKnowledge.js).
     partyKnowledge: createPartyKnowledge(),
-    // Scans (partyScan.js): world time each member may scan again, and the latest scan for the screen.
+    // Scans (partyScan.js): world time each member may scan again, the latest area scan for the screen, and the latest
+    // single-NPC scan (rings around the scanner and the NPC).
     scanReadyAt: {},
     lastScan: null,
+    lastTargetScan: null,
     // Scans of single NPCs (partyScan.js scanNpc), by NPC id.
     npcScans: {},
+    // Persuade / Intimidate on NPCs (partySocial.js): world time each member may ask again, per NPC
+    // { intimidated, last }, and the latest request for the screen.
+    socialReadyAt: {},
+    npcSocial: {},
+    lastSocial: null,
     // The Captain's Log entries (missionLog.js).
     missionLog: createMissionLog(),
     // While mode is COMBAT: the combat state and what links it to the world (trigger, participants, snaps).
@@ -216,6 +224,13 @@ function reduceExploration(state, action) {
     // { memberId, npcId }: that character scans one NPC (partyScan.js).
     case 'scanNpc':
       return state.mode === MODE.COMBAT ? state : scanNpc(state, action.memberId, action.npcId)
+    // { memberId, npcId, kind: 'persuade' | 'intimidate' }: that character asks one NPC (partySocial.js).
+    // A lost Intimidate on an aggressive NPC provokes it: it attacks the one who threatened it.
+    case 'askNpc': {
+      if (state.mode === MODE.COMBAT) return state
+      const next = askNpc(state, action.memberId, action.npcId, action.kind)
+      return next !== state && next.lastSocial?.provoked ? startCombat(next, { triggerNpcId: action.npcId, triggerTargetId: action.memberId, source: 'PROVOKED' }) : next
+    }
     // { npcId, targetId }: the away team attacks that NPC (combat on the same map, combatLink.js).
     case 'attackNpc':
       return state.mode === MODE.COMBAT ? state : startCombat(state, { triggerNpcId: action.npcId, triggerTargetId: action.targetId ?? state.party.leaderId, source: 'PLAYER_ATTACK' })

@@ -462,7 +462,7 @@ function ClickPulse({ point }) {
 // ring's party band and button hover (party, onButtonHover); an object menu may carry slotRef (the slot above its ring).
 // beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn). Members beaming
 // out (member.beaming) fade away in a transporter beam.
-// scanPulse: a party Scan's sweep to play ({ key, origin, radius, onDone }, ScanPulse) or null.
+// scanPulse: a party Scan's sweeps to play ({ key, rings: [{ origin, radius }], onDone }, ScanPulse) or null.
 // onCameraPan(): the player panned the camera while it followed the lead (the screen turns following off).
 export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
   const { map } = state
@@ -715,7 +715,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
         .map((member) => (
           <TransporterBeam key={`beam-out-${member.id}`} position={project(member.position)} direction="away" />
         ))}
-      {scanPulse && <ScanPulse key={`scan-${scanPulse.key}`} origin={scanPulse.origin} radius={scanPulse.radius} onDone={scanPulse.onDone} />}
+      {scanPulse?.rings.map((ring, index) => (
+        <ScanPulse key={`scan-${scanPulse.key}-${index}`} origin={ring.origin} radius={ring.radius} onDone={index === 0 ? scanPulse.onDone : undefined} />
+      ))}
       {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
       {debug && <NpcDebugOverlay world={world} party={state} />}
       {debug && <DebugOverlay state={state} />}

@@ -1,5 +1,6 @@
 import { getActiveCombatant, getCombatantList, getTurnGroupRange, isActive, isTurnFinished } from '../../combat/combatState.js'
 import CombatPortrait from './CombatPortrait.jsx'
+import ConditionIcons from './ConditionIcons.jsx'
 
 // The fixed initiative queue, starting from the current turn group, so the portraits advance as turns are taken.
 // Inside a party group the player picks the order: the acting member is enlarged and finished members are dimmed.
@@ -21,7 +22,10 @@ export default function TurnOrderStrip({ state, hiddenIds = null }) {
             title={`${combatant.character.name} (Daring ${combatant.character.attributes.daring}, Control ${combatant.character.attributes.control})${finished ? ' - done' : ''}`}
           >
             {index > 0 && <span className="turn-strip-arrow" aria-hidden="true" />}
-            <CombatPortrait character={combatant.character} className="turn-strip-portrait" />
+            <span className="turn-strip-unit">
+              <CombatPortrait character={combatant.character} className="turn-strip-portrait" />
+              <ConditionIcons condition={combatant.condition} compact />
+            </span>
           </li>
         )
       })}

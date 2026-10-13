@@ -9,6 +9,7 @@ import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { objectFor } from '../world/objects.js'
 import { getMembers } from './partyControl.js'
 import { canScanNpc } from './partyScan.js'
+import { canAskNpc, SOCIAL_KINDS } from './partySocial.js'
 
 const partyTask = (id) => partyActionData.actions.find((action) => action.id === id).task
 // The combat Persuade and Intimidate pairings are opposed tasks with no Difficulty of their own (0); ranked at the same
@@ -43,6 +44,7 @@ export function ringPartyView(state, target, buttonId) {
     recommendation = challenge.recommend(state, buttonId, members.filter((member) => !blocked[member.id]).map((member) => member.id))
   } else if (target.npcId && NPC_BUTTON_TASKS[buttonId]) {
     if (buttonId === 'scan') for (const member of members) blocked[member.id] ??= canScanNpc(state, member.id, target.npcId).reason
+    if (SOCIAL_KINDS.includes(buttonId)) for (const member of members) blocked[member.id] ??= canAskNpc(state, member.id, target.npcId, buttonId).reason
     const task = NPC_BUTTON_TASKS[buttonId]
     recommendation = recommendPerformers(
       members

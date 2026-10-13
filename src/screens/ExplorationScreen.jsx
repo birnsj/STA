@@ -38,8 +38,9 @@ import { isVisibleToParty } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { npcButtonPerformer } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
+import { CHARACTER_SCAN_RADIUS } from '../components/exploration/scanSweep.js'
 import useFadeAfter from '../components/useFadeAfter.js'
-import { playScanSound } from '../audio/uiSounds.js'
+import { playRequestSound, playScanSound } from '../audio/uiSounds.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WorldCombat from './WorldCombat.jsx'
 
@@ -171,12 +172,36 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
   const [closedScanKey, setClosedScanKey] = useState(null)
   const lastScan = state.lastScan
   const lastScanKey = lastScan?.key
+  const lastTargetScan = state.lastTargetScan
+  const lastTargetScanKey = lastTargetScan?.key
   useEffect(() => {
     if (lastScanKey != null) playScanSound()
   }, [lastScanKey])
+  useEffect(() => {
+    if (lastTargetScanKey != null) playScanSound()
+  }, [lastTargetScanKey])
+  const lastSocialKey = state.lastSocial?.key
+  const lastSocialKind = state.lastSocial?.kind
+  const lastSocialPassed = state.lastSocial?.passed
+  useEffect(() => {
+    if (lastSocialKey != null) playRequestSound(lastSocialKind, lastSocialPassed)
+  }, [lastSocialKey, lastSocialKind, lastSocialPassed])
   // UI state: the scan whose sweep has finished playing, so a fight and back doesn't replay it.
   const [sweptScanKey, setSweptScanKey] = useState(null)
-  const scanPulse = lastScan?.origin && sweptScanKey !== lastScanKey ? { key: lastScanKey, origin: lastScan.origin, radius: lastScan.radius, onDone: () => setSweptScanKey(lastScanKey) } : null
+  // Area scan: one ring out to the tricorder radius. NPC scan: a ring around the scanner and one around the NPC.
+  const scanPulse =
+    lastScan?.origin && sweptScanKey !== lastScanKey
+      ? { key: lastScanKey, rings: [{ origin: lastScan.origin, radius: lastScan.radius }], onDone: () => setSweptScanKey(lastScanKey) }
+      : lastTargetScan && sweptScanKey !== lastTargetScanKey
+        ? {
+            key: lastTargetScanKey,
+            rings: [
+              { origin: lastTargetScan.origin, radius: CHARACTER_SCAN_RADIUS },
+              { origin: lastTargetScan.targetOrigin, radius: CHARACTER_SCAN_RADIUS },
+            ],
+            onDone: () => setSweptScanKey(lastTargetScanKey),
+          }
+        : null
   const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
   const selectBox = useCallback((ids, additive) => dispatch({ type: 'selectBox', ids, additive }), [dispatch])
   // Right-click opens a member's menu and adds them to the selection; whoever else is selected stays selected.
@@ -278,6 +303,14 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
       dispatch({ type: 'scanNpc', memberId, npcId: menuNpc.id })
       setNpcInfoOpen(true)
     },
+    persuade: (memberId) => {
+      dispatch({ type: 'askNpc', memberId, npcId: menuNpc.id, kind: 'persuade' })
+      setNpcInfoOpen(true)
+    },
+    intimidate: (memberId) => {
+      dispatch({ type: 'askNpc', memberId, npcId: menuNpc.id, kind: 'intimidate' })
+      setNpcInfoOpen(true)
+    },
     info: () => setNpcInfoOpen((open) => !open),
     // Attacking someone who wouldn't fight anyway asks first.
     attack: () => {
@@ -293,7 +326,8 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
     npcMenuButtons(state, menuNpc, talkable.some((npc) => npc.id === menuNpc.id), npcInfoOpen, npcActions, pickedId).map((button) => ({
       ...button,
       onClick: () => {
-        if (!button.keepOpen && button.id !== 'scan') setMenuNpcId(null)
+        // Scan, Persuade and Intimidate keep the ring up so the card beside it shows the result.
+        if (!button.keepOpen && !['scan', 'persuade', 'intimidate'].includes(button.id)) setMenuNpcId(null)
         button.onClick?.()
       },
     }))

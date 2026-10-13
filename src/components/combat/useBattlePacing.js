@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { awaitingDecision } from '../../combat/combatState.js'
-import { aiDelay, AI_CHOICE_MS, AUTO_RESOLVE_MS, OPENING_BANNER_MS } from './battleHelpers.js'
+import { aiDelay, AI_CHOICE_MS, AUTO_RESOLVE_MS, OPENING_BANNER_MS, pacingEffect } from './battleHelpers.js'
 
 // The battle's timers. Combat itself never waits on them: each only decides when the screen asks the reducer for the
 // next step, so there is time to read a roll or watch a move. All of them hold while How to Play is open.
@@ -37,13 +37,20 @@ export default function useBattlePacing({
 
   // AI turns (enemies, plus the party during Auto Combat): one step at a time, paced so it can be followed.
   // Paused while How to Play is open, the opening banner plays or Auto Combat is paused. The step itself is pure
-  // (autoCombat.stepAI).
+  // (autoCombat.stepAI). A shot or Scan that just played is waited out once so its effect finishes on screen.
+  const effectWaitedRef = useRef(null)
   useEffect(() => {
     if (state.outcome || !aiControlled || helpOpen || !openingDone || beamingIn || auto === 'paused') return undefined
     // An Injury on a party member waits for the player's Avoid Injury choice, a new Fatigue for the attribute choice, a
     // won opposed attack for the Counterattack choice (outside Auto Combat).
     if (awaitingDecision(state) && auto === 'off') return undefined
-    const timer = setTimeout(() => dispatch({ type: 'aiStep', partyAI, enemyAI, partyAuto: auto !== 'off' }), (aiDelay(state) + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
+    const effect = pacingEffect(state)
+    const fresh = effect !== null && effect.key !== effectWaitedRef.current
+    const delay = fresh ? Math.max(aiDelay(state), effect.waitMs) : aiDelay(state)
+    const timer = setTimeout(() => {
+      if (fresh) effectWaitedRef.current = effect.key
+      dispatch({ type: 'aiStep', partyAI, enemyAI, partyAuto: auto !== 'off' })
+    }, (delay + (hasPlan ? AI_CHOICE_MS : 0)) / speed)
     return () => clearTimeout(timer)
   }, [state, aiControlled, dispatch, helpOpen, openingDone, beamingIn, auto, speed, hasPlan, partyAI, enemyAI])
 

@@ -5,6 +5,7 @@ import { SCAN_TRAIT } from '../../combat/combatScan.js'
 import { dispositionName, isDown, STATE, stateName } from '../../exploration/awareness.js'
 import { getAvailableActions, getDefinition, objectsInReach } from '../../exploration/challengeObjects.js'
 import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
+import { canAskNpc } from '../../exploration/partySocial.js'
 import { npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
 import { getEquippedItems } from '../../rules/equipment.js'
 import { getFaction } from '../../rules/factions.js'
@@ -80,11 +81,44 @@ function npcScanner(state, npcId, pickedId = null) {
   return checks.find(({ check }) => check.possible) ?? checks[0]
 }
 
+// Who would Persuade or Intimidate this NPC: the member picked on the band when they can, else the best of those who
+// can, else the picked or first member with the reason they can't. { member, check } or null.
+function npcAsker(state, npcId, kind, pickedId = null) {
+  const { party } = state
+  const checkOf = (id) => ({ member: party.members[id], check: canAskNpc(state, id, npcId, kind) })
+  if (pickedId && canAskNpc(state, pickedId, npcId, kind).possible) return checkOf(pickedId)
+  const best = ringPartyView(state, { npcId }, kind).bestIds[0]
+  if (best) return checkOf(best)
+  const fallback = pickedId ?? party.selectedIds[0] ?? party.memberIds[0]
+  return fallback ? checkOf(fallback) : null
+}
+
+const SOCIAL_TEXT = {
+  persuade: { label: 'Persuade', roll: 'Presence + Command', effect: 'a win makes them friendlier and their conversation checks easier' },
+  intimidate: {
+    label: 'Intimidate',
+    roll: 'Control + Security',
+    effect: 'a win makes them back down and pass every conversation check; a loss angers them, makes checks harder, and an aggressive one attacks',
+  },
+}
+
+function socialButton(state, npc, kind, actions, pickedId) {
+  const asker = npcAsker(state, npc.id, kind, pickedId)
+  const { label, roll, effect } = SOCIAL_TEXT[kind]
+  const title = !asker
+    ? `${label}: select a character first.`
+    : asker.check.possible
+      ? `${asker.member.character.name}: ${label} ${npc.name} (${roll}, opposed by Control + Command); ${effect}.`
+      : `${label} (${asker.member.character.name}): ${asker.check.reason}`
+  return { id: kind, label, icon: kind, enabled: Boolean(asker?.check.possible), title, onClick: () => actions[kind](asker.member.id) }
+}
+
 // An NPC's radial menu (left click on an NPC the party can see; designer requests 2026-10-09): Talk, when they have a
-// conversation (out of reach, the selected characters walk over first); Scan (one selected character scans them); Info
-// (a card beside the ring); Attack; Go To. Persuade, Intimidate, Use Item and First Aid are shown but not built yet.
-// actions: { talk, scan, info, attack, goTo }; infoOpen: whether the card is showing; pickedId: the member picked on the
-// party band (they scan when they can, and open fire; unpicked, the best at Attack does).
+// conversation (out of reach, the selected characters walk over first); Scan (one selected character scans them);
+// Persuade and Intimidate (2026-10-12, partySocial.js); Info (a card beside the ring); Attack; Go To. Use Item and
+// First Aid are shown but not built yet.
+// actions: { talk, scan, persuade, intimidate, info, attack, goTo }; infoOpen: whether the card is showing; pickedId:
+// the member picked on the party band (they scan or ask when they can, and open fire; unpicked, the best does).
 export function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions, pickedId = null) {
   const up = !isDown(npc)
   const canTalk = controllerFor(npc).canTalk(npc)
@@ -96,8 +130,8 @@ export function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions, picke
   return [
     { id: 'talk', label: 'Talk', icon: 'talk', enabled: canTalk, title: talkTitle, onClick: actions.talk },
     { id: 'scan', label: 'Scan', icon: 'scan', enabled: Boolean(scanner?.check.possible), title: scanTitle, onClick: () => actions.scan(scanner.member.id) },
-    unbuilt('persuade', 'Persuade', 'persuade'),
-    unbuilt('intimidate', 'Intimidate', 'intimidate'),
+    socialButton(state, npc, 'persuade', actions, pickedId),
+    socialButton(state, npc, 'intimidate', actions, pickedId),
     { id: 'info', label: 'Info', icon: 'info', enabled: true, active: infoOpen, title: infoOpen ? 'Hide what the party knows about them.' : `What the party knows about ${npc.name}.`, onClick: actions.info, keepOpen: true },
     unbuilt('useItem', 'Use Item', 'useItem'),
     unbuilt('firstAid', 'First Aid', 'firstAid'),
@@ -160,5 +194,26 @@ export function npcInfo(state, npc) {
   } else {
     tips.push('Scan them for their condition and equipment.')
   }
+  const social = state.npcSocial?.[npc.id]
+  if (social?.last) tips.unshift(socialResultText(state, npc, social.last))
+  if (social?.intimidated) tips.push('Intimidated: in conversation, every check with them passes without a roll.')
+  else if (social?.checkDifficulty) {
+    const change = social.checkDifficulty
+    tips.push(`${change < 0 ? 'Persuaded' : 'Angered'}: checks in conversation with them are ${change < 0 ? 'easier' : 'harder'} (Difficulty ${change > 0 ? '+' : ''}${change}).`)
+  }
   return { title: npc.name, rows, tips }
+}
+
+// The latest Persuade / Intimidate on this NPC, for its card.
+function socialResultText(state, npc, last) {
+  const asker = state.party.members[last.memberId]?.character.name ?? 'The away team'
+  const verb = SOCIAL_TEXT[last.kind].label
+  const roll = last.set > 0 ? `${last.set} vs ${last.resistSuccesses}` : 'no successes'
+  if (last.provoked) return `${verb} by ${asker} failed (${roll}): ${npc.name} attacks.`
+  if (!last.passed) {
+    const angrier = last.after !== last.before ? ` and is now ${dispositionName(last.after)}` : ''
+    return `${verb} by ${asker} failed (${roll}): ${npc.name} refused${angrier}.`
+  }
+  const result = last.stoodDown ? 'stands down' : last.after !== last.before ? `is now ${dispositionName(last.after)}` : 'is unmoved'
+  return `${verb} by ${asker} worked (${roll}): ${npc.name} ${result}.`
 }

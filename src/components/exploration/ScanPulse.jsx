@@ -29,9 +29,10 @@ const easeOut = (t) => 1 - (1 - t) ** 3
 
 // The tricorder sweep of a party Scan: an electric ring that spreads along the floor from the scanner out to the scan's
 // radius, then fades. origin: the scanner's position in tiles; radius: the scan radius in tiles (scan.json);
-// onDone: the sweep has finished. A circle on the floor is an ellipse on the isometric map. Drawn at its true size each
-// frame (not scaled), so the line width stays crisp and the browser doesn't re-rasterise a stretched shape.
-export default function ScanPulse({ origin, radius, onDone }) {
+// speed: Auto Combat speed (1 in exploration); onDone: the sweep has finished. A circle on the floor is an ellipse on
+// the isometric map. Drawn at its true size each frame (not scaled), so the line width stays crisp and the browser
+// doesn't re-rasterise a stretched shape.
+export default function ScanPulse({ origin, radius, speed = 1, onDone }) {
   const groupRef = useRef(null)
   const glowRef = useRef(null)
   const arcRefs = useRef([])
@@ -43,7 +44,7 @@ export default function ScanPulse({ origin, radius, onDone }) {
   useEffect(() => {
     const fullRx = (radius * TILE_W) / Math.SQRT2
     const fullRy = (radius * TILE_H) / Math.SQRT2
-    const durationMs = scanSweepSeconds(radius) * 1000
+    const durationMs = (scanSweepSeconds(radius) * 1000) / Math.max(speed, 0.01)
     const start = performance.now()
     let frame = 0
     let seed = 0
@@ -53,7 +54,7 @@ export default function ScanPulse({ origin, radius, onDone }) {
       const grow = 0.02 + 0.98 * easeOut(t)
       const rx = fullRx * grow
       const ry = fullRy * grow
-      if (now - lastCrackle >= CRACKLE_MS) {
+      if (now - lastCrackle >= CRACKLE_MS / Math.max(speed, 0.01)) {
         seed = Math.random() * 100
         lastCrackle = now
       }
@@ -67,7 +68,7 @@ export default function ScanPulse({ origin, radius, onDone }) {
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [radius])
+  }, [radius, speed])
 
   const centre = project(origin)
   return (

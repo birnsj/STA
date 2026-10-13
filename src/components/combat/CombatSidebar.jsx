@@ -8,6 +8,7 @@ import { RecommendationLine, TaskBlockers, TaskDevDetails, TaskDice, TaskDifficu
 import { criticalText, formulaText, successesText } from '../task/taskText.js'
 import { ACTION_ICONS } from './actionIcons.js'
 import CombatPortrait from './CombatPortrait.jsx'
+import ConditionIcons from './ConditionIcons.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
 
 const ACTIONS = Object.fromEntries(actionData.actions.map((action) => [action.id, action]))
@@ -34,6 +35,7 @@ export function SelectedCharacterPanel({ combatant }) {
       </div>
       <div className="panel-condition">
         <ConditionTrack character={character} condition={combatant.condition} showCategory />
+        <ConditionIcons condition={combatant.condition} />
       </div>
     </section>
   )
@@ -75,6 +77,7 @@ export function TargetPanel({ target }) {
           </div>
           <div className="panel-condition">
             <ConditionTrack character={target.character} condition={target.condition} showCategory />
+            <ConditionIcons condition={target.condition} />
           </div>
         </div>
       ) : (

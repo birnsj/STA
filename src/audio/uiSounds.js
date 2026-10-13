@@ -191,7 +191,70 @@ function playPunch(audio) {
   playNoiseBurst(audio, { start, length: 0.05, gain: PUNCH_GAIN * 0.6, filterType: 'bandpass', frequency: 1200, q: 0.8 })
 }
 
-const WEAPON_SOUNDS = { phaser: playPhaser, punch: playPunch }
+// A Klingon disruptor bolt (designer request, 2026-10-12: unlike the phaser's held beam): a short, harsh "pew" diving
+// in pitch (square and sawtooth through a soft clipper), a crack of noise as it leaves the barrel and a low thump
+// under it. Half the phaser's length, to match the travelling pulse drawn on the battlefield.
+const DISRUPTOR_GAIN = 0.1
+let clipCurve = null
+function getClipCurve() {
+  if (!clipCurve) {
+    clipCurve = new Float32Array(256)
+    for (let i = 0; i < clipCurve.length; i++) {
+      const x = (i / (clipCurve.length - 1)) * 2 - 1
+      clipCurve[i] = Math.tanh(3 * x)
+    }
+  }
+  return clipCurve
+}
+
+function playDisruptor(audio, duration) {
+  const length = duration * 0.5
+  const start = audio.currentTime + LOOKAHEAD_S
+  const end = start + length
+  const peak = DISRUPTOR_GAIN * level
+  const output = audio.createGain()
+  output.gain.setValueAtTime(0, start)
+  output.gain.linearRampToValueAtTime(peak, start + 0.005)
+  output.gain.exponentialRampToValueAtTime(peak * 0.35, start + length * 0.45)
+  output.gain.exponentialRampToValueAtTime(0.0001, end)
+
+  const clipper = audio.createWaveShaper()
+  clipper.curve = getClipCurve()
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.setValueAtTime(4200, start)
+  filter.frequency.exponentialRampToValueAtTime(900, end)
+  clipper.connect(filter).connect(output).connect(audio.destination)
+
+  for (const [wave, frequency] of [
+    ['square', 1500],
+    ['sawtooth', 1520],
+  ]) {
+    const tone = audio.createOscillator()
+    tone.type = wave
+    tone.frequency.setValueAtTime(frequency, start)
+    tone.frequency.exponentialRampToValueAtTime(140, end)
+    tone.connect(clipper)
+    tone.start(start)
+    tone.stop(end + 0.02)
+  }
+
+  const thump = audio.createOscillator()
+  const thumpGain = audio.createGain()
+  thump.type = 'sine'
+  thump.frequency.setValueAtTime(120, start)
+  thump.frequency.exponentialRampToValueAtTime(45, start + 0.12)
+  thumpGain.gain.setValueAtTime(0, start)
+  thumpGain.gain.linearRampToValueAtTime(DISRUPTOR_GAIN * 0.9 * level, start + 0.004)
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.14)
+  thump.connect(thumpGain).connect(audio.destination)
+  thump.start(start)
+  thump.stop(start + 0.16)
+
+  playNoiseBurst(audio, { start, length: 0.07, gain: DISRUPTOR_GAIN * 0.7, filterType: 'bandpass', frequency: 2600, q: 0.8 })
+}
+
+const WEAPON_SOUNDS = { phaser: playPhaser, disruptor: playDisruptor, punch: playPunch }
 
 // Combat attacks, by the weapon's attackSound id and the firing mode (stun / deadly). speed (Auto Combat 1x-4x) shortens
 // a phaser with its beam. Opens or wakes the audio itself, since an AI shot can come before the next press; browsers
@@ -284,6 +347,102 @@ function playKnockout(audio) {
 export function playKnockoutSound() {
   if (level === 0) return
   withRunningContext(playKnockout)
+}
+
+// One enveloped tone into `destination`: frequency glides from `from` to `to` over its length.
+function playTone(audio, destination, { at, from, to = from, length, gain, wave = 'sine', attack = 0.01 }) {
+  const tone = audio.createOscillator()
+  const envelope = audio.createGain()
+  tone.type = wave
+  tone.frequency.setValueAtTime(from, at)
+  tone.frequency.exponentialRampToValueAtTime(to, at + length)
+  envelope.gain.setValueAtTime(0, at)
+  envelope.gain.linearRampToValueAtTime(gain * level, at + attack)
+  envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+  tone.connect(envelope).connect(destination)
+  tone.start(at)
+  tone.stop(at + length + 0.01)
+}
+
+// The outcome tag after a request: a bright rising pair when it worked, a low falling pair when it didn't.
+function playRequestTag(audio, at, passed, destination) {
+  const notes = passed
+    ? [
+        [880, 0],
+        [1320, 0.07],
+      ]
+    : [
+        [330, 0],
+        [220, 0.09],
+      ]
+  for (const [frequency, offset] of notes) playTone(audio, destination, { at: at + offset, from: frequency, length: passed ? 0.18 : 0.26, gain: 0.05, wave: 'triangle' })
+}
+
+// Persuade: a warm, rising major chord of soft sines with a slow vibrato, like a reasoned voice, then the outcome tag.
+const PERSUADE_GAIN = 0.045
+function playPersuade(audio, passed) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 2400
+  filter.connect(audio.destination)
+  const vibrato = audio.createOscillator()
+  const vibratoDepth = audio.createGain()
+  vibrato.frequency.value = 5.5
+  vibratoDepth.gain.value = 6
+  vibrato.connect(vibratoDepth)
+  for (const [frequency, offset] of [
+    [392, 0],
+    [494, 0.06],
+    [587, 0.12],
+  ]) {
+    const at = start + offset
+    const tone = audio.createOscillator()
+    const envelope = audio.createGain()
+    tone.type = 'sine'
+    tone.frequency.setValueAtTime(frequency, at)
+    tone.frequency.linearRampToValueAtTime(frequency * 1.03, at + 0.5)
+    vibratoDepth.connect(tone.frequency)
+    envelope.gain.setValueAtTime(0, at)
+    envelope.gain.linearRampToValueAtTime(PERSUADE_GAIN * level, at + 0.05)
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + 0.55)
+    tone.connect(envelope).connect(filter)
+    tone.start(at)
+    tone.stop(at + 0.56)
+  }
+  vibrato.start(start)
+  vibrato.stop(start + 0.7)
+  playRequestTag(audio, start + 0.55, passed, filter)
+}
+
+// Intimidate: a low, distorted growl that swells and drops, a dissonant buzz on top and a heavy thump, then the tag.
+const INTIMIDATE_GAIN = 0.1
+function playIntimidate(audio, passed) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.setValueAtTime(400, start)
+  filter.frequency.linearRampToValueAtTime(1400, start + 0.2)
+  filter.frequency.exponentialRampToValueAtTime(300, start + 0.6)
+  const shaper = audio.createWaveShaper()
+  shaper.curve = getClipCurve()
+  shaper.connect(filter).connect(audio.destination)
+  playTone(audio, shaper, { at: start, from: 110, to: 70, length: 0.6, gain: INTIMIDATE_GAIN, wave: 'sawtooth', attack: 0.08 })
+  playTone(audio, shaper, { at: start, from: 117, to: 74, length: 0.6, gain: INTIMIDATE_GAIN * 0.8, wave: 'sawtooth', attack: 0.08 })
+  playTone(audio, filter, { at: start + 0.05, from: 233, to: 156, length: 0.45, gain: INTIMIDATE_GAIN * 0.35, wave: 'square', attack: 0.04 })
+  playTone(audio, audio.destination, { at: start + 0.16, from: 130, to: 45, length: 0.3, gain: INTIMIDATE_GAIN * 1.4 })
+  playNoiseBurst(audio, { start: start + 0.16, length: 0.12, gain: INTIMIDATE_GAIN * 0.6, filterType: 'lowpass', frequency: 500 })
+  const tagFilter = audio.createBiquadFilter()
+  tagFilter.type = 'lowpass'
+  tagFilter.frequency.value = 2600
+  tagFilter.connect(audio.destination)
+  playRequestTag(audio, start + 0.6, passed, tagFilter)
+}
+
+// Persuade or Intimidate was just tried (exploration and combat). kind: 'persuade' | 'intimidate'; passed: it worked.
+export function playRequestSound(kind, passed) {
+  if (level === 0) return
+  withRunningContext((audio) => (kind === 'intimidate' ? playIntimidate(audio, passed) : playPersuade(audio, passed)))
 }
 
 // A tricorder sweep: a run of quick sine chirps alternating between two pitches and climbing as it goes, over a faint
@@ -399,6 +558,79 @@ export function playBeamOutSound(seconds) {
 export function playBeamInSound(seconds) {
   if (level === 0) return
   withRunningContext((audio) => playTransporter(audio, seconds, true))
+}
+
+// Momentum gained: a bright rising arpeggio of bell-like sines with a shimmer on top, pitched higher the fuller the
+// pool, so the player hears the bar climbing.
+const MOMENTUM_GAIN = 0.07
+const MOMENTUM_STEPS = [1, 1.26, 1.5, 2]
+function playMomentumGain(audio, momentum) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const root = 520 * Math.pow(2, (Math.max(1, momentum) - 1) / 12)
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 5200
+  filter.connect(audio.destination)
+  MOMENTUM_STEPS.forEach((step, index) => {
+    const at = start + index * 0.055
+    const length = index === MOMENTUM_STEPS.length - 1 ? 0.45 : 0.16
+    for (const [partial, gain] of [
+      [1, 1],
+      [2.01, 0.22],
+    ]) {
+      const tone = audio.createOscillator()
+      const envelope = audio.createGain()
+      tone.type = 'sine'
+      tone.frequency.value = root * step * partial
+      envelope.gain.setValueAtTime(0, at)
+      envelope.gain.linearRampToValueAtTime(MOMENTUM_GAIN * gain * level, at + 0.006)
+      envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+      tone.connect(envelope).connect(filter)
+      tone.start(at)
+      tone.stop(at + length + 0.01)
+    }
+  })
+  playNoiseBurst(audio, { start: start + 0.16, length: 0.3, gain: MOMENTUM_GAIN * 0.2, filterType: 'highpass', frequency: 7000 })
+}
+
+// Group Momentum went up (exploration and combat). momentum: the new total.
+export function playMomentumSound(momentum) {
+  if (level === 0) return
+  withRunningContext((audio) => playMomentumGain(audio, momentum))
+}
+
+// Momentum spent or lost: a short falling pair of soft tones, pitched from the total that was just left.
+const MOMENTUM_LOSS_GAIN = 0.06
+function playMomentumLoss(audio, momentum) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const root = 440 * Math.pow(2, Math.max(0, momentum) / 12)
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 2800
+  filter.connect(audio.destination)
+  for (const [step, offset, length, gain] of [
+    [1, 0, 0.14, 1],
+    [0.75, 0.07, 0.28, 0.85],
+  ]) {
+    const at = start + offset
+    const tone = audio.createOscillator()
+    const envelope = audio.createGain()
+    tone.type = 'sine'
+    tone.frequency.setValueAtTime(root * step, at)
+    tone.frequency.linearRampToValueAtTime(root * step * 0.92, at + length)
+    envelope.gain.setValueAtTime(0, at)
+    envelope.gain.linearRampToValueAtTime(MOMENTUM_LOSS_GAIN * gain * level, at + 0.005)
+    envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+    tone.connect(envelope).connect(filter)
+    tone.start(at)
+    tone.stop(at + length + 0.01)
+  }
+}
+
+// Group Momentum went down (spent or lost). momentum: the new total.
+export function playMomentumLossSound(momentum) {
+  if (level === 0) return
+  withRunningContext((audio) => playMomentumLoss(audio, momentum))
 }
 
 // One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.

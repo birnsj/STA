@@ -12,6 +12,7 @@
 import { isDown, isUp } from '../actors/controllers.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { checkCondition } from '../exploration/missionFlags.js'
+import { checkDifficultyChange, checksSkipped } from '../exploration/partySocial.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
@@ -59,6 +60,11 @@ function advance(state, nodeId, hooks) {
       continue
     }
     if (signals.startCombat) return close(current, hooks, true)
+    // An Intimidated NPC gives way: its Task Checks pass without a roll (partySocial.js, designer decision 2026-10-12).
+    if (node.type === 'check' && checksSkipped(current, conversation.npcId)) {
+      id = node.success
+      continue
+    }
     if (node.type === 'npc') {
       const npc = current.world.npcs[conversation.npcId]
       const next = node.next ? getNode(conversation.definition, node.next) : null
@@ -117,10 +123,18 @@ export const checkSpec = (node) => ({ attribute: node.attribute, department: nod
 // Who may answer a check: every away team member able to act.
 export const checkCandidates = (state) => getMembers(state.party).filter(isUp)
 
-// The character math before the roll for one party member (prepareTask's result).
+// The character math before the roll for one party member (prepareTask's result). Persuading the NPC makes its checks
+// easier, a failed Intimidate harder (partySocial.js).
 export function previewCheck(state, node, performerId) {
   const member = state.party.members[performerId]
-  return prepareTask(member.character, checkSpec(node), { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const change = checkDifficultyChange(state, state.conversation?.npcId)
+  return prepareTask(member.character, checkSpec(node), {
+    traits: state.scenario.traits,
+    side: 'player',
+    condition: member.condition,
+    difficultyMod: change,
+    difficultyModLabel: change < 0 ? 'Persuaded' : 'Angered by threats',
+  })
 }
 
 // Who is best placed to answer a check (rules/taskRecommendation.js): a highlight, never a restriction.

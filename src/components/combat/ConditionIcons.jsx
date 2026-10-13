@@ -1,7 +1,9 @@
 import { fatigueText, injuryText, isDead, isDying, minorDefeatText } from '../../rules/personalCondition.js'
 
-// The condition tags as small icons for the party cards' top edge (designer request, 2026-10-12): one per Injury
-// (with its Severity), Fatigued, each complication and Defeated / Dying; the full wording is on the mouseover.
+// A character's condition as small icons (designer request, 2026-10-12): one per Injury (with its Severity),
+// Fatigued, each complication and Defeated / Dying; the full wording is on the mouseover. No Stress icon: the Stress
+// bar shows it. Shown on the party cards, the sidebar's character and Target panels and (compact) under the
+// turn-order portraits.
 const ICONS = {
   stun: 'M13 2L4 14h6l-1 8l9-12h-6z',
   deadly: 'M12 2C9 7 6 10.5 6 14a6 6 0 0 0 12 0c0-3.5-3-7-6-12z',
@@ -21,13 +23,14 @@ function ConditionIcon({ kind, title, count = null, className = '' }) {
   )
 }
 
-export default function ConditionIcons({ condition }) {
+// compact: the smaller row under a turn-order portrait.
+export default function ConditionIcons({ condition, compact = false }) {
   const { injuries, fatigued, defeated } = condition
   const complications = condition.complications ?? []
   if (!injuries.length && !fatigued && !complications.length && !defeated) return null
   const dying = isDying(condition) || isDead(condition)
   return (
-    <span className="condition-icons">
+    <span className={`condition-icons${compact ? ' is-compact' : ''}`}>
       {injuries.map((injury) => (
         <ConditionIcon
           key={injury.id}

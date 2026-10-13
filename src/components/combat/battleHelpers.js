@@ -13,6 +13,7 @@ import {
 import { getMovementTiles, getSprintTiles } from '../../combat/movementSystem.js'
 import { tileDistance } from '../../combat/rangeSystem.js'
 import { getCombatantWeapon, getInjuryMode, getWeapon } from '../../combat/weaponSystem.js'
+import { CHARACTER_SCAN_RADIUS, scanSweepSeconds } from '../exploration/scanSweep.js'
 import { MAX_SEED } from '../../rules/seededRandom.js'
 
 // The combat screen's pure helpers: presentation delays, what the camera follows, the party's turn info, banners and the
@@ -48,6 +49,46 @@ export function justFled(state) {
   return quiet ? state.combatants[action.actorId] : null
 }
 
+// A shot on the battlefield (presentation only): it plays when the roll is resolved, never while the dice are still
+// being read, so the attacker's strike, the shot, the hit and the target's fall line up. The weapon leaves SHOT_FIRE_MS
+// into the attacker's strike animation; a beam lands at once, a pulse after PULSE_TRAVEL_MS. The next AI step waits
+// SHOT_SEQUENCE_MS so the fall and the result label finish before anyone else moves. Divided by the Auto Combat speed.
+export const SHOT_ACTIONS = ['resolve', 'counterattack', 'ambush']
+export const SHOT_FIRE_MS = 220
+const PULSE_TRAVEL_MS = 280
+export const SHOT_SEQUENCE_MS = 1600
+// A combat Scan's rings around the scanner and the target (ScanPulse.jsx CHARACTER_SCAN_RADIUS).
+export const SCAN_SEQUENCE_MS = Math.ceil(scanSweepSeconds(CHARACTER_SCAN_RADIUS) * 1000)
+export { CHARACTER_SCAN_RADIUS }
+// Designer request (2026-10-12): every enemy ranged shot is a red pulse with the disruptor sound.
+const ENEMY_PULSE = '#ff2e1f'
+
+// The shot state.lastAction shows: { attackerId, targetId, weapon, colour, pulse, missed, impactMs, sound } or null.
+// colour null = no beam (a melee strike flash instead). A failed Ambush shoots nobody.
+export function shotOf(state, action) {
+  if (!action || !SHOT_ACTIONS.includes(action.type) || !action.targetId || !action.weaponId) return null
+  if (action.type === 'ambush' && !action.passed) return null
+  const attacker = state.combatants[action.actorId]
+  const weapon = getWeapon(action.weaponId)
+  if (!attacker || !weapon) return null
+  const enemyRanged = attacker.side === 'enemy' && weapon.type === 'ranged'
+  // A resolved roll keeps its firing mode on state.result; an Ambush fires on Stun when the weapon has it.
+  const mode = action.injuryMode ?? (action.type === 'resolve' ? state.result?.injuryMode : null) ?? weapon.injuryModes[0]
+  const colour = enemyRanged ? ENEMY_PULSE : (weapon.beamColors?.[mode] ?? weapon.beamColor ?? null)
+  const pulse = Boolean(colour) && (enemyRanged || weapon.shotStyle === 'pulse')
+  return {
+    attackerId: attacker.id,
+    targetId: action.targetId,
+    weapon,
+    injuryMode: mode,
+    colour,
+    pulse,
+    missed: action.type === 'resolve' && !action.passed,
+    sound: enemyRanged ? 'disruptor' : (weapon.attackSound ?? null),
+    impactMs: SHOT_FIRE_MS + (pulse ? PULSE_TRAVEL_MS : 0),
+  }
+}
+
 // The delay before the next AI step: long enough to read a roll, watch a move finish or an enemy beam out.
 export function aiDelay(state) {
   if (state.pending) return AI_ROLL_MS
@@ -56,6 +97,17 @@ export function aiDelay(state) {
   if (state.lastAction?.type === 'ambush' && state.log.length - state.lastAction.key <= (state.ambush.success ? 1 : 4)) return AI_ROLL_MS * 1.5
   const justMoved = state.lastMove && state.lastMove.key === state.log.length - 1
   return justMoved ? Math.max(AI_STEP_MS, (state.lastMove.path.length - 1) * MOVE_TILE_MS + 300) : AI_STEP_MS
+}
+
+// The key of a shot still playing out on screen (useBattlePacing waits SHOT_SEQUENCE_MS once for it), or null.
+export const shotKey = (state) => (shotOf(state, state.lastAction) ? state.lastAction.key : null)
+
+// A presentation effect the AI should wait out: a shot, or a Scan's rings. { key, waitMs } or null.
+export function pacingEffect(state) {
+  const shot = shotKey(state)
+  if (shot !== null) return { key: shot, waitMs: SHOT_SEQUENCE_MS }
+  if (state.lastAction?.type === 'scan') return { key: state.lastAction.key, waitMs: SCAN_SEQUENCE_MS }
+  return null
 }
 
 // The camera centres on whoever is acting, and on the middle of the line of fire when a shot is fired.

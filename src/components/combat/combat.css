@@ -608,7 +608,7 @@
 
 .fx-beam {
   opacity: 0;
-  animation: fx-beam calc(0.8s / var(--fx-speed, 1)) ease-out forwards;
+  animation: fx-beam calc(0.8s / var(--fx-speed, 1)) ease-out var(--fx-delay, 0ms) forwards;
 }
 
 .fx-beam-glow {
@@ -644,6 +644,76 @@
   }
 }
 
+/* A party Scan's sweep (ScanPulse.jsx, exploration and combat): jagged arcs that spread along the floor and fade.
+   The component sizes the shapes and sets the fade each frame; these rules only colour them. */
+.fx-scan-pulse-glow {
+  fill: rgba(120, 220, 255, 0.05);
+  stroke: rgba(120, 220, 255, 0.3);
+  stroke-width: 8px;
+}
+
+.fx-scan-pulse-arc {
+  fill: none;
+  stroke: #bff1ff;
+  stroke-width: 1.6px;
+  stroke-linejoin: bevel;
+}
+
+.fx-scan-pulse-arc.is-arc-1 {
+  stroke: #7fdcff;
+}
+
+.fx-scan-pulse-arc.is-arc-2 {
+  stroke: #ffffff;
+  stroke-width: 1px;
+}
+
+/* A disruptor's pulse (weapons.json shotStyle 'pulse'): a short red bolt flies from the shooter to the target, then
+   flashes on impact. The dash is a fifth of the shot (pathLength 100) and slides along it. */
+.fx-pulse-glow,
+.fx-pulse-core {
+  stroke-linecap: round;
+  stroke-dasharray: 20 200;
+  stroke-dashoffset: 20;
+  animation: fx-pulse-fly calc(0.32s / var(--fx-speed, 1)) cubic-bezier(0.3, 0, 0.9, 1) var(--fx-delay, 0ms) forwards;
+}
+
+.fx-pulse-glow {
+  stroke: var(--beam);
+  stroke-width: 10;
+  opacity: 0.55;
+}
+
+.fx-pulse-core {
+  stroke: #ffd2c8;
+  stroke-width: 3;
+}
+
+.fx-pulse-impact {
+  fill: var(--beam);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fx-pulse-impact calc(0.4s / var(--fx-speed, 1)) ease-out calc(var(--fx-delay, 0ms) + 0.28s / var(--fx-speed, 1)) forwards;
+}
+
+@keyframes fx-pulse-fly {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes fx-pulse-impact {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
 .fx-strike {
   fill: none;
   stroke: #ffffff;
@@ -651,7 +721,7 @@
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: fx-strike calc(0.6s / var(--fx-speed, 1)) ease-out forwards;
+  animation: fx-strike calc(0.6s / var(--fx-speed, 1)) ease-out var(--fx-delay, 0ms) forwards;
 }
 
 @keyframes fx-strike {
@@ -863,54 +933,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-.injury-chip,
-.condition-defeated,
-.condition-fatigued,
-.condition-complication,
 .condition-category {
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: 0 5px;
-  border-radius: 3px;
   font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.injury-chip.is-stun {
-  background: rgba(246, 185, 40, 0.2);
-  color: #f6b928;
-}
-
-.injury-chip.is-deadly {
-  background: rgba(255, 90, 80, 0.2);
-  color: #ff9a92;
-}
-
-.injury-chip.is-treated {
-  outline: 1px solid currentColor;
-}
-
-.condition-defeated {
-  background: var(--red);
-  color: #fff;
-}
-
-.condition-defeated.is-dying {
-  background: #7a0f0f;
-}
-
-.condition-fatigued {
-  background: #b5651d;
-  color: #fff;
-}
-
-.condition-complication {
-  border: 1px solid #d68a3c;
-  color: #f2c08a;
-}
-
-.condition-category {
   color: var(--text-dim, #9aa6c2);
 }
 
@@ -1085,6 +1111,52 @@
 .resource-indicator.is-momentum .resource-light.is-filled {
   background: #47a8ff;
   box-shadow: 0 0 6px #47a8ff;
+}
+
+/* Momentum gained: each new pip pops in turn (delay set inline) and the bar flashes. */
+.resource-indicator.is-momentum.is-gaining {
+  animation: momentum-flash 0.9s ease-out;
+}
+
+.resource-indicator.is-momentum .resource-light.is-new {
+  animation: momentum-pip 0.6s ease-out both;
+}
+
+@keyframes momentum-flash {
+  0% {
+    background: rgba(71, 168, 255, 0.45);
+    box-shadow: 0 0 16px rgba(71, 168, 255, 0.9);
+    border-color: #bfe2ff;
+  }
+  100% {
+    background: rgba(6, 12, 28, 0.9);
+    box-shadow: 0 0 0 rgba(71, 168, 255, 0);
+  }
+}
+
+@keyframes momentum-pip {
+  0% {
+    transform: scale(0.4);
+    background: #26324b;
+    box-shadow: none;
+  }
+  45% {
+    transform: scale(1.8);
+    background: #e6f4ff;
+    box-shadow: 0 0 12px 3px #8fd0ff;
+  }
+  100% {
+    transform: scale(1);
+    background: #47a8ff;
+    box-shadow: 0 0 6px #47a8ff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resource-indicator.is-momentum.is-gaining,
+  .resource-indicator.is-momentum .resource-light.is-new {
+    animation: none;
+  }
 }
 
 /* Buy d20s (BonusDicePicker) */
@@ -1670,6 +1742,50 @@
 .condition-icon.is-complication { color: #f2c08a; }
 .condition-icon.is-defeated { color: #fff; background: var(--red); border-color: var(--red); }
 .condition-icon.is-defeated.is-dying { background: #7a0f0f; border-color: #7a0f0f; }
+
+.panel-condition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.panel-condition .condition-icons {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Under a turn-order portrait: smaller, overlapping its bottom edge, so the strip keeps its height. */
+.turn-strip-unit {
+  position: relative;
+  display: flex;
+}
+
+.condition-icons.is-compact {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  gap: 1px;
+}
+
+.condition-icons.is-compact .condition-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.condition-icons.is-compact .condition-icon svg {
+  width: 8px;
+  height: 8px;
+}
+
+.condition-icons.is-compact .condition-icon-count {
+  right: -2px;
+  bottom: -3px;
+  min-width: 6px;
+  font-size: 7px;
+  line-height: 7px;
+}
 
 .party-card-badges .party-task-tag {
   display: flex;

@@ -25,8 +25,9 @@ import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import TransporterBeam from './TransporterBeam.jsx'
-import { playBeamOutSound, playDeathSound, playFootstep, playKnockoutSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
-import { BEAM_OUT_MS, justFled } from './battleHelpers.js'
+import ScanPulse from '../exploration/ScanPulse.jsx'
+import { playBeamOutSound, playDeathSound, playFootstep, playKnockoutSound, playRequestSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
+import { BEAM_OUT_MS, CHARACTER_SCAN_RADIUS, justFled, SHOT_FIRE_MS, shotOf } from './battleHelpers.js'
 
 // Isometric projection of the logical grid, shared with every map view (src/maps/iso.js), drawn with the shared tile PNGs.
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
@@ -175,7 +176,7 @@ const LABEL_Y = -102
 // A fled combatant is drawn only while it beams out (fading away, never interactive).
 // beamIn: 'waiting' (not shown yet) or 'beaming' while the away team beams in as the fight starts, else null.
 // beamingAway: an away team member beaming up at Exit Mission.
-function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, speed = 1, beamIn = null, beamingAway = false, onClick, onHover }) {
+function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isTarget, isSelected, turnStatus, isBystander = false, lastAction = null, hitDelayMs = 0, speed = 1, beamIn = null, beamingAway = false, onClick, onHover }) {
   const turnDone = turnStatus?.state === 'done'
   const centre = tileCentre(position)
   const { down } = controllerFor(combatant).animationState(combatant)
@@ -185,7 +186,7 @@ function Unit({ combatant, position, facing, isWalking, msPerTile, isActive, isT
   const hasSprite = hasCharacterSprite(spriteSet)
   const shownImage = useUniformImage(hasSprite ? null : image, combatant.character.portrait?.imageUniform)
   const clipId = `unit-clip-${combatant.id.replace(/[^a-z0-9]/gi, '')}`
-  const pose = useUnitAnimation(combatant, { isWalking, lastAction, speed })
+  const pose = useUnitAnimation(combatant, { isWalking, lastAction, speed, hitDelayMs })
   const sprite = hasSprite && (
     <CharacterSprite setId={spriteSet} colour={combatant.character.portrait.uniform} facing={facing} seed={combatant.id} speed={speed} preload={!isBystander} {...pose} />
   )
@@ -303,23 +304,33 @@ function resultLabel(action, target) {
 }
 
 // A floating label that follows a unit (same transform transition as the unit, so it walks with it).
-function FloatingLabel({ position, text, className, msPerTile }) {
+// delayMs: shown this long after the action (a hit's label waits for the shot to land).
+function FloatingLabel({ position, text, className, msPerTile, delayMs = 0 }) {
   const centre = tileCentre(position)
   return (
     <g className="fx-anchor" style={{ transform: `translate(${centre.x}px, ${centre.y}px)`, transitionDuration: `${msPerTile}ms` }}>
-      <text className={`fx-label ${className}`} y="-76" textAnchor="middle">
+      <text className={`fx-label ${className}`} y="-76" textAnchor="middle" style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}>
         {text}
       </text>
     </g>
   )
 }
 
+// Where a missed shot ends: past the target and off to one side, so it visibly goes wide.
+function wideOf(from, to) {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy) || 1
+  return { x: to.x + (dx / length) * 40 - (dy / length) * 18, y: to.y + (dy / length) * 40 + (dx / length) * 18 }
+}
+
 // Presentation of state.lastAction: what the acting character just did, the shot, and the result on the target.
-// Keyed by the action, so each new action replays its animation once.
+// Keyed by the action, so each new action replays its animation once. A shot (battleHelpers shotOf) plays when the
+// roll is resolved: the weapon fires SHOT_FIRE_MS into the attacker's strike, and the hit label, the impact and the
+// knockout or death sound wait until it lands. All divided by the Auto Combat speed.
 function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const action = state.lastAction
-  const shotTypes = ['attack', 'counterattack']
-  const attackSound = shotTypes.includes(action?.type) && action.targetId ? getWeapon(action.weaponId).attackSound : null
+  const shot = shotOf(state, action)
   // Speed is read from a ref so changing it mid-shot doesn't fire the sound a second time.
   const speedRef = useRef(speed)
   useEffect(() => {
@@ -327,38 +338,59 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   }, [speed])
   const actionKey = action?.key
   const scanned = action?.type === 'scan'
+  const request = action?.type === 'persuade' || action?.type === 'intimidate' ? action.type : null
+  const requestPassed = Boolean(action?.passed)
   const fled = action?.type === 'flee'
-  const injuryMode = attackSound ? action.injuryMode : null
+  const attackSound = shot?.sound ?? null
+  const injuryMode = shot?.injuryMode ?? null
+  const impactMs = shot?.impactMs ?? 0
   // Taken out by this action: killed or left Dying (death sound), otherwise knocked out (knockout sound).
   const downed = action?.removed && action.targetId ? state.combatants[action.targetId]?.condition : null
   const downSound = downed ? (isDead(downed) || isDying(downed) ? 'death' : 'knockout') : null
   useEffect(() => {
-    if (attackSound) playWeaponSound(attackSound, speedRef.current, injuryMode)
+    const timers = []
+    const later = (ms, play) => (ms > 0 ? timers.push(setTimeout(play, ms / speedRef.current)) : play())
+    if (attackSound) later(SHOT_FIRE_MS, () => playWeaponSound(attackSound, speedRef.current, injuryMode))
     if (scanned) playScanSound()
+    if (request) playRequestSound(request, requestPassed)
     if (fled) playBeamOutSound(BEAM_OUT_MS / 1000 / speedRef.current)
-    if (downSound === 'death') playDeathSound()
-    if (downSound === 'knockout') playKnockoutSound()
-  }, [actionKey, attackSound, injuryMode, scanned, fled, downSound])
+    if (downSound === 'death') later(impactMs, playDeathSound)
+    if (downSound === 'knockout') later(impactMs, playKnockoutSound)
+    return () => timers.forEach(clearTimeout)
+  }, [actionKey, attackSound, injuryMode, impactMs, scanned, request, requestPassed, fled, downSound])
   if (!action || hiddenIds?.includes(action.actorId)) return null
   const actor = state.combatants[action.actorId]
   const target = action.targetId ? state.combatants[action.targetId] : null
   const label = actionLabel(action)
-  const isShot = shotTypes.includes(action.type) && target
-  const weapon = isShot ? getWeapon(action.weaponId) : null
-  const beamColor = weapon && (weapon.beamColors?.[action.injuryMode] ?? weapon.beamColor)
   const from = tileCentre(positionOf(actor))
   const to = target && tileCentre(positionOf(target))
+  const end = shot && to && (shot.missed ? wideOf(from, to) : to)
   const showsResult = ['resolve', 'injury', 'counterattack'].includes(action.type) && target
+  const fireDelay = { '--fx-delay': `${SHOT_FIRE_MS / speed}ms` }
   return (
     <g key={action.key} className="fx" pointerEvents="none">
-      {isShot && beamColor && (
-        <g className="fx-beam" style={{ '--beam': beamColor }}>
-          <line className="fx-beam-glow" x1={from.x} y1={from.y - UNIT_HEAD} x2={to.x} y2={to.y - UNIT_HEAD} />
-          <line className="fx-beam-core" x1={from.x} y1={from.y - UNIT_HEAD} x2={to.x} y2={to.y - UNIT_HEAD} />
-          <circle className="fx-impact" cx={to.x} cy={to.y - UNIT_HEAD} r="10" />
+      {shot && to && shot.colour && shot.pulse && (
+        <g className="fx-pulse" style={{ '--beam': shot.colour, ...fireDelay }}>
+          {/* pathLength 100: the bolt's length and travel are fractions of the shot, however far it goes. */}
+          <line className="fx-pulse-glow" pathLength="100" x1={from.x} y1={from.y - UNIT_HEAD} x2={end.x} y2={end.y - UNIT_HEAD} />
+          <line className="fx-pulse-core" pathLength="100" x1={from.x} y1={from.y - UNIT_HEAD} x2={end.x} y2={end.y - UNIT_HEAD} />
+          {!shot.missed && <circle className="fx-pulse-impact" cx={to.x} cy={to.y - UNIT_HEAD} r="11" />}
         </g>
       )}
-      {isShot && !beamColor && <circle className="fx-strike" cx={to.x} cy={to.y - UNIT_HEAD} r="14" />}
+      {shot && to && shot.colour && !shot.pulse && (
+        <g className="fx-beam" style={{ '--beam': shot.colour, ...fireDelay }}>
+          <line className="fx-beam-glow" x1={from.x} y1={from.y - UNIT_HEAD} x2={end.x} y2={end.y - UNIT_HEAD} />
+          <line className="fx-beam-core" x1={from.x} y1={from.y - UNIT_HEAD} x2={end.x} y2={end.y - UNIT_HEAD} />
+          {!shot.missed && <circle className="fx-impact" cx={to.x} cy={to.y - UNIT_HEAD} r="10" />}
+        </g>
+      )}
+      {shot && to && !shot.colour && !shot.missed && <circle className="fx-strike" style={fireDelay} cx={to.x} cy={to.y - UNIT_HEAD} r="14" />}
+      {scanned && actor && (
+        <ScanPulse key={`scan-a-${action.key}`} origin={positionOf(actor)} radius={CHARACTER_SCAN_RADIUS} speed={speed} />
+      )}
+      {scanned && target && (
+        <ScanPulse key={`scan-t-${action.key}`} origin={positionOf(target)} radius={CHARACTER_SCAN_RADIUS} speed={speed} />
+      )}
       {fled && <TransporterBeam position={from} direction="out" />}
       {label && <FloatingLabel position={positionOf(actor)} text={label} className="is-action" msPerTile={msPerTile} />}
       {showsResult && (
@@ -367,6 +399,7 @@ function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
           text={resultLabel(action, target)}
           className={action.type === 'resolve' && !action.passed ? 'is-miss' : 'is-hit'}
           msPerTile={msPerTile}
+          delayMs={shot ? impactMs / speed : 0}
         />
       )}
     </g>
@@ -458,6 +491,7 @@ export default function Battlefield({
   const { panels, bigGroups } = layout
   const beamingId = justFled(state)?.id
   const units = Object.values(state.combatants).filter((unit) => (!unit.fled || unit.id === beamingId) && !hiddenIds?.includes(unit.id))
+  const firing = shotOf(state, state.lastAction)
   // Only the combatant whose turn it is cuts walls away; one the party can't perceive isn't in units, so a fading wall
   // never gives it away.
   const hidden = useWallFade(
@@ -485,6 +519,7 @@ export default function Battlefield({
           isSelected={unit.id === selectedId}
           turnStatus={turnInfo[unit.id]}
           lastAction={state.lastAction}
+          hitDelayMs={firing?.targetId === unit.id ? firing.impactMs : 0}
           speed={speed}
           beamIn={unit.side === 'player' && beamIn !== 'done' ? beamIn : null}
           beamingAway={beamOut && unit.side === 'player'}

@@ -74,6 +74,7 @@ export function canScanNpc(state, memberId, npcId) {
 export function scanNpc(state, memberId, npcId) {
   if (!canScanNpc(state, memberId, npcId).possible) return state
   const member = state.party.members[memberId]
+  const npc = state.world.npcs[npcId]
   const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
   if (!prepared.possible) return state
 
@@ -95,6 +96,14 @@ export function scanNpc(state, memberId, npcId) {
     scenario: { ...state.scenario, taskCount: key + 1 },
     scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
     npcScans: { ...state.npcScans, [npcId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty } },
+    // Where the scanner and the NPC stood: the screen draws a ring around each (ScanPulse.jsx).
+    lastTargetScan: {
+      key,
+      memberId,
+      npcId,
+      origin: { x: member.position.x, y: member.position.y },
+      targetOrigin: { x: npc.position.x, y: npc.position.y },
+    },
   }
 }
 

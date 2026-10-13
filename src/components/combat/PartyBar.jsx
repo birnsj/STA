@@ -34,7 +34,7 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
               <span className="party-info">
                 <span className="party-name">{member.character.name}</span>
                 <PartyWeapon weapon={weapons[member.id]} onCycle={member.id === activeId ? onCycleWeapon : null} />
-                <ConditionTrack character={member.character} condition={member.condition} part="stress" />
+                <ConditionTrack character={member.character} condition={member.condition} />
                 {!down && info && (
                   <span className="party-hits-row">
                     <span className={`party-move-left${info.movement.left ? '' : ' is-empty'}`}>Move {info.movement.left}/{info.movement.total}</span>
