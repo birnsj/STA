@@ -27,8 +27,8 @@ async function click(b, text, { wait = 800, required = true } = {}) {
   return ok
 }
 
-// The probe's frame and heap sampler, injected when the app hasn't installed it (nothing imports src/dev/perfProbe.js
-// now, and a production build has no /src): its module text run as a script with the build-mode test forced on.
+// The probe's frame and heap sampler, injected when the app hasn't installed it (a production build made without
+// VITE_PERF_PROBE=1): its module text run as a script with the build-mode test forced on.
 const PROBE_SCRIPT = `(() => {${readFileSync(new URL('../src/dev/perfProbe.js', import.meta.url), 'utf8')
   .replace(/import\.meta\.env\?\.DEV \|\| import\.meta\.env\?\.VITE_PERF_PROBE/, 'true')
   .replace(/^export /gm, '')}})()`

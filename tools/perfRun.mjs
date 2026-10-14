@@ -40,7 +40,7 @@ function metricsDelta(before, after) {
 
 function summarise(report) {
   const timer = (name) => report.timers[name]?.perFrameMs ?? 0
-  return `fps ${report.frames.fps} mean ${report.frames.meanMs}ms p95 ${report.frames.p95Ms}ms >33ms:${report.frames.over33ms} gc/min ${report.memory.collectionsPerMinute} busy ${report.browser.mainThreadBusyPct}% script ${report.browser.scriptPct}% layout ${report.browser.layoutPct}% style ${report.browser.styleRecalcPct}% | tick ${timer('sim.tickTotal')} board.render ${timer('board.wallFade')}+${timer('board.figureWindows')} draw ${timer('canvas.drawBoard')} dark ${timer('canvas.drawDarkness')} anim ${timer('anim.poll')}+${timer('anim.redraw')}`
+  return `fps ${report.frames.fps} mean ${report.frames.meanMs}ms p95 ${report.frames.p95Ms}ms >33ms:${report.frames.over33ms} gc/min ${report.memory.collectionsPerMinute} busy ${report.browser.mainThreadBusyPct}% script ${report.browser.scriptPct}% layout ${report.browser.layoutPct}% style ${report.browser.styleRecalcPct}% | frame ${timer('world.frame')} tick ${timer('sim.tickTotal')} pixi ${timer('pixi.frame')} board.render ${timer('board.wallFade')}+${timer('board.figureWindows')} draw ${timer('canvas.drawBoard')} dark ${timer('canvas.drawDarkness')} anim ${timer('anim.poll')}+${timer('anim.redraw')}`
 }
 
 async function runOnce(name, runIndex) {

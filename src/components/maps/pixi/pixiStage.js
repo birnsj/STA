@@ -1,5 +1,6 @@
 import { Application, Container, UPDATE_PRIORITY } from 'pixi.js'
 import { MapLayers } from './mapLayers.js'
+import { PERF, perfEnd, perfStart } from '../../../dev/perfProbe.js'
 
 // What every Pixi board shares (exploration, combat, the map editor): one WebGL canvas behind the board's SVG overlay,
 // its camera copied from the overlay's viewBox each frame, and the map's layers. Bottom up, as MapCanvas stacks them:
@@ -101,8 +102,15 @@ export async function startPixiStage(host, isCancelled) {
       return map
     },
     onFrame(fn) {
-      frames.push(fn)
-      app.ticker.add(fn, null, UPDATE_PRIORITY.HIGH)
+      const timed = PERF
+        ? (ticker) => {
+            const started = perfStart()
+            fn(ticker)
+            perfEnd('pixi.frame', started)
+          }
+        : fn
+      frames.push(timed)
+      app.ticker.add(timed, null, UPDATE_PRIORITY.HIGH)
     },
     destroy() {
       for (const fn of frames) app.ticker.remove(fn)

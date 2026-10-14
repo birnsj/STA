@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { playBeamOutSound } from '../../audio/uiSounds.js'
 import { BEAM_OUT_MS } from '../combat/battleHelpers.js'
+import { perfEnd, perfOff, perfStart } from '../../dev/perfProbe.js'
 import { isMissionAccomplished, isMissionFailed } from '../../exploration/missionObjectives.js'
 
 // How long the map stays up after the last objective completes before Mission Accomplished shows (implementer pick),
@@ -100,7 +101,11 @@ export function useWorldClock(dispatch, running) {
     let frame
     let last = performance.now()
     const step = (now) => {
-      flushSync(() => dispatch({ type: 'tick', seconds: (now - last) / 1000 }))
+      if (!perfOff('tick')) {
+        const started = perfStart()
+        flushSync(() => dispatch({ type: 'tick', seconds: (now - last) / 1000 }))
+        perfEnd('world.frame', started)
+      }
       last = now
       frame = requestAnimationFrame(step)
     }

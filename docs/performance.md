@@ -4,11 +4,11 @@ Measured Oct 2026 on one Windows PC, a ~170 Hz monitor (so "fps" tops out near 1
 Deck 10 Brig map, the 4-member party. Tools: `tools/perfRun.mjs`, `tools/perfScenarios.mjs`, `tools/perfSummary.mjs`,
 `tools/perfProfile.mjs`; the browser-side probe is `src/dev/perfProbe.js`.
 
-**Caveat:** the probe's hooks in the game code (timers, counters, Profiler wrappers, `?off=` flags) were lost in an
-accidental `git checkout` on 2026-10-13 and have not been re-added. The runner now injects the probe's frame and heap
-sampler itself, so fps, frame times and main-thread busy work again (dev server or a plain `vite build` preview), but
-the per-stretch timers in the summary line read 0 until the hooks are restored. The tables below "The finding" were
-captured before the checkout.
+**Note:** the probe's hooks in the game code (timers, Profiler wrappers, `?off=` flags) were lost in an accidental
+`git checkout` on 2026-10-13 and re-added on 2026-10-14, now covering the Pixi boards too (`pixi.frame`, and `filters`
+and `animtick` act on the Pixi map). The list of timers and switches is at the top of `src/dev/perfProbe.js`;
+`spritesync` is gone (CharacterSprite no longer re-times its animation). The tables below "The finding" were captured
+before the checkout, with the SVG boards.
 
 ## PixiJS boards (Oct 2026)
 

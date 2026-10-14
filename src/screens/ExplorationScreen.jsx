@@ -48,8 +48,11 @@ import useFadeAfter from '../components/useFadeAfter.js'
 import { playRequestSound, playScanSound } from '../audio/uiSounds.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WorldCombat from './WorldCombat.jsx'
+import PerfProfiler from '../dev/PerfProfiler.jsx'
+import { withPerf } from '../dev/perfReducer.js'
 
 const Board = SVG_BOARDS ? ExplorationBoard : PixiExplorationBoard
+const reducer = withPerf(explorationReducer)
 
 // An open book, for the Captain's Log button in the minimap's corner.
 const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
@@ -422,25 +425,27 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }
   return (
     <div className="combat-screen exploration-screen">
-      <Board
-        state={party}
-        world={world}
-        knowledge={state.partyKnowledge}
-        challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles() }))}
-        reachableIds={reachableIds}
-        onInteract={openObjectMenu}
-        debug={debugOpen}
-        followCamera={followCamera}
-        onCameraPan={stopFollowing}
-        onMove={move}
-        onSelect={select}
-        onSelectBox={selectBox}
-        onOpenMenu={openMenu}
-        onOpenNpcMenu={openNpcMenu}
-        menu={memberMenu || npcMenu || objectMenu}
-        beamIn={beamPhase}
-        scanPulse={scanPulse}
-      />
+      <PerfProfiler id="exploration.board">
+        <Board
+          state={party}
+          world={world}
+          knowledge={state.partyKnowledge}
+          challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles() }))}
+          reachableIds={reachableIds}
+          onInteract={openObjectMenu}
+          debug={debugOpen}
+          followCamera={followCamera}
+          onCameraPan={stopFollowing}
+          onMove={move}
+          onSelect={select}
+          onSelectBox={selectBox}
+          onOpenMenu={openMenu}
+          onOpenNpcMenu={openNpcMenu}
+          menu={memberMenu || npcMenu || objectMenu}
+          beamIn={beamPhase}
+          scanPulse={scanPulse}
+        />
+      </PerfProfiler>
       {scanShown && (
         <ScanReport scan={lastScan} faded={scanFaded} scannerName={party.members[lastScan.memberId]?.character.name ?? 'Scan'} onClose={() => setClosedScanKey(lastScan.key)} />
       )}
@@ -562,7 +567,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
 export default function ExplorationScreen({ savedCharacters, mapId, onBack, onExit }) {
   // UI state: the chosen away team (RuntimeCharacters) and the running exploration. Never saved or exported.
   const [team, setTeam] = useState([])
-  const [state, dispatch] = useReducer(explorationReducer, null)
+  const [state, dispatch] = useReducer(reducer, null)
   const [phase, setPhase] = useState('setup')
   const playIntro = useDisplaySettings().missionIntro
 
@@ -593,7 +598,7 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
 // The map editor's Play: a ready-made away team (RuntimeCharacters) on the open map, straight into exploration with no
 // setup screen. onExit returns to the editor.
 export function ExplorationPlaytest({ map, characters, savedCharacters = [], enemiesActive, onExit }) {
-  const [state, dispatch] = useReducer(explorationReducer, null, () =>
+  const [state, dispatch] = useReducer(reducer, null, () =>
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
   // UI state: whether the Captain's Log intro is still showing (never, with it off in Settings).

@@ -21,6 +21,7 @@ import {
   snapToPixels,
 } from '../canvasTiles.js'
 import { fadeLevelAt, fadeLevels, retarget, settle } from '../fadeLevels.js'
+import { perfEnd, perfOff, perfStart } from '../../../dev/perfProbe.js'
 
 // A board's map in Pixi (pixiStage.js), drawn exactly as MapCanvas draws it (canvasTiles.js does the drawing): the floor and
 // its lighting, and the darkness, as canvases cut into chunks a GPU texture can hold; each block a sprite of its own,
@@ -352,7 +353,11 @@ export class MapLayers {
       this.fade = settle(this.fade, now)
       for (const key of [...this.fading]) if (!this.fade.changes.has(key)) this.fading.delete(key)
     }
-    if (this.playing) this.animate(levels, now, view)
+    if (this.playing && !perfOff('animtick')) {
+      const started = perfStart()
+      this.animate(levels, now, view)
+      perfEnd('anim.redraw', started)
+    }
     this.dark?.flush()
   }
 

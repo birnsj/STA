@@ -3,6 +3,7 @@ import { blocksIn } from './canvasTiles.js'
 import { fadeLevels, retarget, settle } from './fadeLevels.js'
 import { FadingWallBlock } from './IsoTiles.jsx'
 import { occlusionGroups, useHoles } from './occlusion.js'
+import { perfEnd, perfStart } from '../../dev/perfProbe.js'
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -45,6 +46,7 @@ function createFadeClock(faded) {
 // layout: canvasTiles.js boardLayout; faded: the Set of faded block keys MapCanvas draws. The window blocks fade in
 // and out on MapCanvas's timing (createFadeClock), so the part of a wall inside a window never fades apart from the rest.
 export default function useFigureWindows(layout, faded, figures) {
+  const started = perfStart()
   const clipPrefix = useId()
   const groups = occlusionGroups(figures)
   const holes = useHoles(groups)
@@ -82,5 +84,6 @@ export default function useFigureWindows(layout, faded, figures) {
   })
   const items = groups.flatMap((group, index) => [...group.figures.map((i) => figures[i]), ...windowBlocks[index]]).sort((a, b) => a.depth - b.depth)
   const windows = [<defs key={`${clipPrefix}-clips`}>{clips}</defs>, ...items.map((item) => item.element)]
+  perfEnd('board.figureWindows', started)
   return { holes, windows }
 }

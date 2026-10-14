@@ -3,6 +3,7 @@ import { isBlock, project } from '../../../maps/iso.js'
 import { drawBlockAt, drawTileAt } from '../../maps/canvasTiles.js'
 import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../boardGeometry.js'
 import { dashedEllipse, drawnCanvas, makeLabel, placeLabel, textureOf } from '../../maps/pixi/pixiDraw.js'
+import { perfOff } from '../../../dev/perfProbe.js'
 
 // Challenge objects' outlines and markers, the last-known markers and the click rings on the Pixi board, drawn as the
 // SVG board draws them (ExplorationBoard ObjectHighlight / ChallengeMarker / ClickPulse, LastKnownMarker; colours from
@@ -64,6 +65,8 @@ export class HighlightView {
   }
 
   update(layout, object, now) {
+    this.sprite.visible = !perfOff('filters')
+    if (!this.sprite.visible) return
     const look = `${object.changed}|${object.inReach}|${object.tiles.map(({ x, y }) => `${x},${y}`).join(';')}`
     if (this.look !== look || this.layout !== layout) {
       this.look = look

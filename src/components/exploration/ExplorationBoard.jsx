@@ -45,6 +45,7 @@ import {
   worldBounds,
 } from './boardGeometry.js'
 import { DebugOverlay, NpcDebugOverlay, PerceptionDebugOverlay } from './BoardDebugOverlays.jsx'
+import { perfOff } from '../../dev/perfProbe.js'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
@@ -204,7 +205,7 @@ function ObjectHighlight({ view, tiles, layout, filterPrefix, inReach, onPress }
   return (
     <g className={challengeClasses('object-highlight', view, inReach)} onPointerDown={onPress} onClick={inReach ? (event) => event.stopPropagation() : undefined}>
       <title>{challengeTitle(view, inReach)}</title>
-      <g filter={filter}>
+      <g filter={perfOff('filters') ? undefined : filter}>
         {tiles.map((position) =>
           isBlock(map.tiles[position.y][position.x]) ? (
             <WallBlock key={`${position.x},${position.y}`} map={map} position={position} faded={NO_FADE} panels={panels} bigGroups={bigGroups} />

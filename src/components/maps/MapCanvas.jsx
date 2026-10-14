@@ -18,6 +18,7 @@ import {
   mergeAreas,
   snapToPixels,
 } from './canvasTiles.js'
+import { perfEnd, perfOff, perfStart } from '../../dev/perfProbe.js'
 import './maps.css'
 
 // Every map view's map (the map editor, exploration, combat), drawn into canvases inside the view's SVG so the
@@ -109,6 +110,7 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
     const time = playing ? performance.now() / 1000 : null
     // at: the animation time to draw the animated tiles' frames at.
     const paintTiles = (area, withFloor = true, at = time) => {
+      const started = perfStart()
       const shown = fadeLevels(fadeState, performance.now())
       if (withFloor) drawBoard(floor.getContext('2d'), transformFor(bounds, scale), layout, snapToPixels(area, bounds, scale), { lighting, part: 'floor' })
       drawBoard(blocks.getContext('2d'), transformFor(bounds, scale), layout, snapToPixels(area, bounds, scale), { ghost, faded: shown, holes, part: 'blocks' })
@@ -116,10 +118,13 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
         const pass = { layer: 'frames', time: at }
         drawBoard(frames.getContext('2d'), transformFor(bounds, frameScale), layout, snapToPixels(area, bounds, frameScale), { ghost, faded: shown, holes, pass })
       }
+      perfEnd('canvas.drawBoard', started)
     }
     const paintDark = (area, at = time) => {
+      const started = perfStart()
       const shown = fadeLevels(fadeState, performance.now())
       if (dark) drawDarkness(dark.getContext('2d'), transformFor(darkBounds, darkScale), layout, snapToPixels(area, darkBounds, darkScale), { faded: shown, time: at })
+      perfEnd('canvas.drawDarkness', started)
     }
     const paintFading = (keys) => {
       const at = playing ? performance.now() / 1000 : null
@@ -190,12 +195,13 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
   const shownFrames = useRef(new Map())
   const anchorRef = useRef(null)
   useEffect(() => {
-    if (!playing || !hasFrames) return undefined
+    if (!playing || !hasFrames || perfOff('animtick')) return undefined
     const emissive = new Set(emissiveTiles(layout).map((item) => item.key))
     let request = 0
     const tick = () => {
       request = requestAnimationFrame(tick)
       if (drawn.current?.layout !== layout) return
+      const polled = perfStart()
       const time = performance.now() / 1000
       const view = visibleArea(anchorRef.current)
       const changed = []
@@ -209,7 +215,9 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
         const area = animatedArea(layout, item)
         if (area) changed.push({ ...item, area })
       }
+      perfEnd('anim.poll', polled)
       if (!changed.length) return
+      const redrawn = perfStart()
       const lit = changed.filter((item) => emissive.has(item.key))
       const { holes: liveHoles, ghost: liveGhost } = live.current
       const liveFaded = fadeLevels(fade.current, performance.now())
@@ -226,6 +234,7 @@ export default function MapCanvas({ layout, ghost = false, lighting = true, anim
         const areas = lit.length > MAX_TILE_REPAINTS ? [snapToPixels(view ?? darkBounds, darkBounds, darkScale)] : lit.map((item) => snapToPixels(item.area, darkBounds, darkScale))
         for (const area of areas) drawDarkness(context, transformFor(darkBounds, darkScale), layout, area, { faded: liveFaded, time })
       }
+      perfEnd('anim.redraw', redrawn)
     }
     request = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(request)

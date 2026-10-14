@@ -46,6 +46,7 @@ import TurnBanner from '../components/combat/TurnBanner.jsx'
 import useFadeAfter from '../components/useFadeAfter.js'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import WeatherFx from '../effects/WeatherFx.jsx'
+import PerfProfiler from '../dev/PerfProfiler.jsx'
 import { weatherFor } from '../maps/mapWeather.js'
 import {
   aiTurnTask,
@@ -472,37 +473,39 @@ export function Battle({
 
   return (
     <div className="combat-screen">
-      <Battlefield
-        state={state}
-        activeId={active.id}
-        targetId={isPlayerTurn ? target?.id : (state.pending ?? state.result)?.targetId}
-        selectedId={selectedId}
-        turnInfo={active.side === 'player' ? turnInfo : {}}
-        overlay={overlay}
-        ring={ring}
-        msPerTile={MOVE_TILE_MS / (auto === 'off' ? 1 : speed)}
-        speed={auto === 'off' || partyBeamingOut ? 1 : speed}
-        focus={focus}
-        followCamera={followCamera}
-        bystanders={bystanders}
-        snapMarks={snapMarks}
-        hiddenIds={hiddenIds}
-        lastKnownMarks={lastKnownMarks}
-        onTileClick={handleTileClick}
-        onTileHover={setHoverTile}
-        onUnitClick={handleUnitClick}
-        onUnitHover={handleUnitHover}
-        onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
-        onRightClick={releaseSelection}
-        beamIn={beamPhase}
-        beamOut={partyBeamingOut}
-        objectMarks={objects?.marks ?? null}
-        onObjectClick={(objectId) => {
-          if (!isPlayerTurn) return
-          setRingId(ringId === `object:${objectId}` ? null : `object:${objectId}`)
-          setRingInfo(false)
-        }}
-      />
+      <PerfProfiler id="combat.board">
+        <Battlefield
+          state={state}
+          activeId={active.id}
+          targetId={isPlayerTurn ? target?.id : (state.pending ?? state.result)?.targetId}
+          selectedId={selectedId}
+          turnInfo={active.side === 'player' ? turnInfo : {}}
+          overlay={overlay}
+          ring={ring}
+          msPerTile={MOVE_TILE_MS / (auto === 'off' ? 1 : speed)}
+          speed={auto === 'off' || partyBeamingOut ? 1 : speed}
+          focus={focus}
+          followCamera={followCamera}
+          bystanders={bystanders}
+          snapMarks={snapMarks}
+          hiddenIds={hiddenIds}
+          lastKnownMarks={lastKnownMarks}
+          onTileClick={handleTileClick}
+          onTileHover={setHoverTile}
+          onUnitClick={handleUnitClick}
+          onUnitHover={handleUnitHover}
+          onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
+          onRightClick={releaseSelection}
+          beamIn={beamPhase}
+          beamOut={partyBeamingOut}
+          objectMarks={objects?.marks ?? null}
+          onObjectClick={(objectId) => {
+            if (!isPlayerTurn) return
+            setRingId(ringId === `object:${objectId}` ? null : `object:${objectId}`)
+            setRingInfo(false)
+          }}
+        />
+      </PerfProfiler>
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />
       <div className="combat-top-left">
         <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} />

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { between, WEATHER_KINDS } from './weatherKinds.js'
+import { perfOff } from '../dev/perfProbe.js'
 import './effects.css'
 
 // A weather overlay for a positioned parent: a canvas that redraws the weather's layers every frame (layer settings in
@@ -75,7 +76,7 @@ export default function WeatherFx({ fx, virtualWidth = null, follow = null }) {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !fx) return undefined
+    if (!canvas || !fx || perfOff('weather')) return undefined
     const ctx = canvas.getContext('2d')
     const still = reducedMotion()
     let width = 0

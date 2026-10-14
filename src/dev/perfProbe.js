@@ -7,11 +7,13 @@
 //   __perf.report()          { frames, timers, counters, profilers, memory, flags } for the window so far
 //   ?perf=1&off=tick,filters ablation flags: temporarily switch one suspect off to measure its marginal cost
 //     tick     the world clock stops dispatching (isolates React render and simulation cost)
-//     filters  challenge-object outline filters are not applied
+//     filters  challenge-object outlines are not drawn (SVG filter off; Pixi outline sprite hidden)
 //     weather  WeatherFx draws nothing
-//     animtick MapCanvas animated-tile tick does not run
+//     animtick animated tiles stop (MapCanvas's tick does not run; Pixi MapLayers skips animate)
 //     npcs     the exploration world is created with no NPCs
-//     spritesync  CharacterSprite does not re-time its sheet animation after each render (the getAnimations() call)
+//   Timers: world.frame (one world-clock frame, render included), sim.tickTotal (the reducer's tick), pixi.frame (each
+//   Pixi board frame callback), board.wallFade, board.figureWindows, canvas.drawBoard, canvas.drawDarkness, anim.poll,
+//   anim.redraw. Profilers: exploration.board, combat.board (PerfProfiler.jsx).
 //   (tools/perfRun.mjs also takes `scrollpulse`, handled in the runner: it stops the scrollbar-colour animation on <html>.)
 // Flags exist to attribute cost only; they are never read when the probe is off.
 
