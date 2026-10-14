@@ -6,7 +6,7 @@ import { TILE_H } from './iso.js'
 // A flipbook: a tile's animation (tileEffects.json animations) for one of its images, as { id, loop, frameTime,
 // frames, sprites, overlay }. sprites: [{ href, emission }], whole images of the tile, one per image index; frames: the
 // image index shown in each frameTime-second step of the loop. emission: the sprite's lit parts alone, kept at full
-// brightness in a dark map (null on floors). id: the animation's tile id (its CSS keyframes, flipbookStyles.js).
+// brightness in a dark map (null on floors). id: the animation's tile id.
 // overlay (walls): the sprites are the lights alone (their emission images), drawn over the tile's own image.
 const flipbooks = new Map()
 function flipbook(id, variant, pick) {

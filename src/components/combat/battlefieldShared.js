@@ -3,8 +3,8 @@ import { TILE_H, TILE_W } from '../../maps/iso.js'
 import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { playFootstep } from '../../audio/uiSounds.js'
 
-// What the combat boards (Battlefield, SVG; PixiBattlefield) share: the view, where the badges go over a figure, the
-// walk along a move. Presentation only.
+// The combat board's (PixiBattlefield) view, where the badges go over a figure, and the walk along a move.
+// Presentation only.
 
 // The camera (useCamera) picks which 1024 x 576 window of the world is shown.
 export const VIEW = { width: 1024, height: 576 }

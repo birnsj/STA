@@ -1,4 +1,4 @@
-// Shapes shared by the SVG tiles (IsoTiles.jsx) and the editor's canvas (canvasTiles.js), so both draw them the same.
+// Shapes the tile drawing (canvasTiles.js) uses: contact shadow bands, panel edges and windows.
 import { project } from '../../maps/iso.js'
 
 // Soft contact shadows: three bands of decreasing darkness along each floor edge that meets a block.

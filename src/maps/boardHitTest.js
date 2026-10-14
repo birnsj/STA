@@ -24,8 +24,7 @@ export function hitTest(point, targets) {
 // About how wide a label is (SVG text, the display font): for hit areas only.
 export const labelWidth = (text, fontSize) => String(text).length * fontSize * 0.56
 
-// What a figure standing at `centre` (board point of its feet) can be clicked on, as the SVG board's figure groups take
-// clicks: the ground ring, the figure's outline (a sprite's, at its display scale; token: a portrait on a stand), and a
+// What a figure standing at `centre` (board point of its feet) can be clicked on: the ground ring, the figure's outline (a sprite's, at its display scale; token: a portrait on a stand), and a
 // label (text, and the y of its baseline) when it has one.
 export function figureShapes(centre, { scale = 1, token = false, label = null, labelY = 0, labelSize = 9 } = {}) {
   const body = token ? { x: centre.x - 17, y: centre.y - 52, width: 34, height: 52 } : { x: centre.x - 9 * scale, y: centre.y - 54 * scale, width: 18 * scale, height: 56 * scale }

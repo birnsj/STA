@@ -1,9 +1,4 @@
-/* Shared isometric tile images (map editor and combat boards). Prefixed tilemap- so combat's iso-* styles never apply. */
-.tilemap-tile {
-  pointer-events: none;
-}
-
-/* A board's canvas, with its layer canvases stacked over it (MapCanvas.jsx). */
+/* A minimap's tiles canvas, filling its foreignObject (MinimapTiles.jsx). */
 .tile-canvas {
   position: relative;
   width: 100%;
@@ -31,83 +26,22 @@
   display: block;
 }
 
-/* Animated tiles (tileArt.js flipbooks): whole sprites stacked, each shown on its own frames by keyframes built from
-   tileEffects.json (flipbookStyles.js; the name, length and delay are inline). Held, not faded, between frames. */
-.tilemap-frame {
-  animation-timing-function: step-end;
-  animation-iteration-count: infinite;
+/* In place of a board when WebGL won't start (pixi/WebglUnavailable.jsx). */
+.webgl-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  color: #c8e1e6;
 }
 
-.tilemap-block.is-ghost {
-  opacity: 0.35;
-}
-
-.tilemap-block {
-  transition: opacity 0.2s;
-}
-
-.tilemap-block.is-faded {
-  opacity: 0.3;
-}
-
-/* Two-tile wall panels (maps/wallPanels.js): dark see-through lines so they suit every wall colour. */
-.wall-panel-edge {
-  stroke: rgba(0, 0, 0, 0.5);
-  stroke-width: 1.5;
-}
-
-.wall-panel-trim {
-  stroke: rgba(0, 0, 0, 0.28);
-  stroke-width: 1;
-}
-
-.wall-window-frame {
-  fill: rgba(28, 34, 40, 0.92);
-  stroke: rgba(0, 0, 0, 0.55);
-  stroke-width: 0.8;
-}
-
-.wall-window-frame-light {
-  stroke: rgba(210, 225, 240, 0.35);
-  stroke-width: 0.8;
-}
-
-.wall-window {
-  fill: rgb(8, 16, 30);
-}
-
-/* Interior light falling on the lower glass. */
-.wall-window-glow {
-  fill: rgba(90, 150, 220, 0.16);
-}
-
-.wall-window-reflection {
-  fill: rgba(190, 225, 255, 0.13);
-}
-
-.wall-window-mullion {
-  stroke: rgba(28, 34, 40, 0.95);
-  stroke-width: 2.2;
-}
-
-.wall-window-sill {
-  stroke: rgba(225, 235, 245, 0.4);
-  stroke-width: 1.2;
-}
-
-/* Map figures (CharacterSprite.jsx): a soft shadow under the feet. */
-.char-sprite-shadow {
-  fill: rgba(0, 0, 0, 0.38);
-  filter: blur(1.5px);
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* !important: a frame's animation name is inline. Each rests on the loop's first frame. (Character sprites check
-     reduced motion in CharacterSprite.jsx: their animations are scripted.) */
-  .tilemap-frame {
-    animation: none !important;
-  }
+.webgl-unavailable p {
+  margin: 0;
 }
 
 /* An episode's map opening from black (MapFadeIn.jsx): over the whole stage, taking clicks until it starts to lift. */

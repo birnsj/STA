@@ -1,7 +1,6 @@
 import { FADED_OPACITY } from './canvasTiles.js'
 
-// A block fading in or out eases between solid and FADED_OPACITY over this long. MapCanvas (the canvas) and
-// useFigureWindows (the blocks drawn over figures) both follow it, so a wall fades as one.
+// A block fading in or out eases between solid and FADED_OPACITY over this long (pixi/mapLayers.js).
 export const FADE_MS = 200
 
 // fade: { target (the Set of keys to be see-through), changes (key -> { from, to, start } while a block fades) }.

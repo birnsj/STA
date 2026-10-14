@@ -96,7 +96,7 @@ export function scanNpc(state, memberId, npcId) {
     scenario: { ...state.scenario, taskCount: key + 1 },
     scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
     npcScans: { ...state.npcScans, [npcId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty } },
-    // Where the scanner and the NPC stood: the screen draws a ring around each (ScanPulse.jsx).
+    // Where the scanner and the NPC stood: the screen draws a ring around each (pixi/effects.js ScanView).
     lastTargetScan: {
       key,
       memberId,

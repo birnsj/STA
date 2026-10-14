@@ -9,7 +9,7 @@
 //     tick     the world clock stops dispatching (isolates React render and simulation cost)
 //     filters  challenge-object outlines are not drawn (SVG filter off; Pixi outline sprite hidden)
 //     weather  WeatherFx draws nothing
-//     animtick animated tiles stop (MapCanvas's tick does not run; Pixi MapLayers skips animate)
+//     animtick animated tiles stop (Pixi MapLayers skips animate)
 //     npcs     the exploration world is created with no NPCs
 //   Timers: world.frame (one world-clock frame, render included), sim.tickTotal (the reducer's tick), pixi.frame (each
 //   Pixi board frame callback), board.wallFade, board.figureWindows, canvas.drawBoard, canvas.drawDarkness, anim.poll,

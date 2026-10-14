@@ -6,7 +6,7 @@
 // An animation is one loop of frames, frameTime seconds each. A frame shows every light layer at its level at the
 // frame's middle (the curves below, the timings the views animated the old light overlays with); frames with the same
 // levels share one image. Each image has an emission image too: its lit parts alone, which the views use to keep lights
-// at full brightness in a dark map (IsoTiles AmbientDarkness, EditorCanvas). Rewrites tileEffects.json's animations.
+// at full brightness in a dark map (canvasTiles.js). Rewrites tileEffects.json's animations.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

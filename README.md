@@ -38,9 +38,10 @@ them the app runs silently.
 | Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`); places NPCs and objectives; edits conversations as node graphs. |
 `src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
 
-The exploration, combat and map editor boards are drawn with PixiJS (WebGL) by default; input, menus and effects stay
-in an SVG layer on top. Add `?board=svg` to the URL for the older SVG boards, which also take over if WebGL won't
-start (`src/components/maps/boardRenderer.js`). Frame-rate measurements and the tools that take them are in
+The exploration, combat and map editor boards are drawn only with PixiJS (WebGL): the map, figures and effects. A
+transparent SVG layer on top takes pointer input, sets the camera and holds UI such as the action ring and tooltips.
+If WebGL won't start, the board says so and asks for hardware acceleration
+(`src/components/maps/pixi/WebglUnavailable.jsx`). Frame-rate measurements and the tools that take them are in
 `docs/performance.md`.
 
 ## Book vs. Prototype

@@ -176,7 +176,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   }
 
   return (
-    <div className={`me-screen${animateTiles ? '' : ' is-still'}`}>
+    <div className="me-screen">
       <EditorToolbar
         map={map}
         canSave={canSaveMaps}

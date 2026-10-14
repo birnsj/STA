@@ -1,8 +1,8 @@
-// Every map view's tiles drawn into canvases (MapCanvas.jsx): floor tiles, contact shadows and light pools, then every
-// block in painter's order (x + y), drawn as IsoTiles.jsx draws them (walls with their panel faces, windows and
-// fittings, tall objects, 2x2 big objects, joined railings), every image at its own size; animated tiles (tileArt.js
-// flipbooks) on an animation layer over them, and the map's darkness. A canvas is one element for the browser to draw
-// however big the map, and a change only repaints the area it touched. Light pools are drawn steady. Presentation only.
+// Every map view's tiles drawn into canvases (the Pixi boards' map layers, pixi/mapLayers.js; the editor's tile
+// previews and palette thumbnails, drawLoneTiles): floor tiles, contact shadows and light pools, then every block in
+// painter's order (x + y) (walls with their panel faces, windows and fittings, tall objects, 2x2 big objects, joined
+// railings), every image at its own size; animated tiles (tileArt.js flipbooks) on an animation layer over them, and
+// the map's darkness. A change only repaints the area it touched. Light pools are drawn steady. Presentation only.
 import { BIG_IMAGE, getBigObjects } from '../../maps/bigObjects.js'
 import { isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
@@ -30,10 +30,9 @@ import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
 
 const IMAGE_H = TILE_IMAGE.height
 export const GHOST_OPACITY = 0.35
-// maps.css tilemap-block.is-faded.
 export const FADED_OPACITY = 0.3
 const NONE = new Set()
-// A steady stand-in for the glow pools' CSS animation (maps.css tilemap-glow): roughly its average brightness.
+// The glow pools' steady opacity.
 const GLOW_OPACITY = 0.8
 
 const keyOf = ({ x, y }) => `${x},${y}`
@@ -235,7 +234,7 @@ function listImages(map) {
 
 // ---------------------------------------------------------------- layout
 
-// A rotated tile is drawn mirrored about its centre line, except a wall with panels (IsoTiles isMirrored).
+// A rotated tile is drawn mirrored about its centre line, except a wall with panels: its rotation turns the panel run.
 const isMirrored = (map, position) => isRotated(map, position) && !getTile(map.tiles[position.y][position.x]).panels
 
 // The world rectangle the whole board covers: floor images, and walls reaching TALL_WALL_EXTRA above the top row.
@@ -442,7 +441,7 @@ function strokeLine(context, a, b, stroke, lineWidth) {
   context.stroke()
 }
 
-// IsoTiles WallTile: the wall's image, its variant (if any) or its animation, or this tile's slot of its panel art
+// A wall tile: the wall's image, its variant (if any) or its animation, or this tile's slot of its panel art
 // (tileArt.js panelArt, cut out at the tile's own image size) or of its animation's sprites.
 function drawWall(context, tile, position, panel, pass) {
   const art = panelArt(tile, panel, position)
@@ -465,7 +464,7 @@ function drawWall(context, tile, position, panel, pass) {
   if (panel) drawPanelFace(context, tile, position, panel, tile.height, book && !book.overlay && pass?.layer === 'frames' ? null : pass)
 }
 
-// IsoTiles PanelFace: this tile's half of a two-tile panel. Points are (U along the panel 0..2, height above the floor).
+// This tile's half of a two-tile panel. Points are (U along the panel 0..2, height above the floor).
 function drawPanelFace(context, tile, position, panel, height, pass) {
   const c = project(position)
   const start = panel.axis === 'x' ? { x: c.x - TILE_W / 2, y: c.y } : { x: c.x + TILE_W / 2, y: c.y }
@@ -479,7 +478,7 @@ function drawPanelFace(context, tile, position, panel, height, pass) {
   if (!tile.panelFitting && !tile.panelImages && panel.window) drawWindowHalf(context, panel.half, height, at, pass)
 }
 
-// IsoTiles WindowHalf.
+// This tile's half of a panel's window: frame, glass, interior glow, reflection, mullion and sill.
 function drawWindowHalf(context, half, height, at, pass) {
   const lo = half
   const hi = half + 1
@@ -505,7 +504,7 @@ function drawWindowHalf(context, half, height, at, pass) {
   })
 }
 
-// IsoTiles BigObjectStrip: the left, middle or right strip of a 2x2 object's big image, drawn by the tile it stands on.
+// The left, middle or right strip of a 2x2 object's big image, drawn by the tile it stands on.
 const BIG_STRIPS = { '0,1': [0, 0.25], '1,1': [0.25, 0.75], '1,0': [0.75, 1] }
 function drawBigStrip(context, tile, position, origin, mirror, pass) {
   const strip = BIG_STRIPS[`${position.x - origin.x},${position.y - origin.y}`]
@@ -524,13 +523,11 @@ function drawBigStrip(context, tile, position, origin, mirror, pass) {
   else solid(context, pass, () => drawStrip(tile.big.image))
 }
 
-// faded: a Set of 'x,y' keys drawn see-through (wallFade.js), or a Map of keys to their opacity while fading in or out
-// (MapCanvas).
+// faded: a Set of 'x,y' keys drawn see-through (wallFade.js), or a Map of keys to their opacity while fading in or out.
 const fadeLevel = (faded, key) => (faded instanceof Map ? (faded.get(key) ?? 1) : faded.has(key) ? FADED_OPACITY : 1)
 
-// IsoTiles WallBlock: a block, see-through when ghost (the editor's See-through blocks) or faded. A faded panel is drawn
-// whole by its near half (the far half draws nothing), both halves solid and then faded together, as IsoTiles
-// FadedPanel does, so the seam between them doesn't show. pass: null for the board, or the animation layer being drawn.
+// A block, see-through when ghost (the editor's See-through blocks) or faded. A faded panel is drawn whole by its near
+// half (the far half draws nothing), both halves solid and then faded together, so the seam between them doesn't show. pass: null for the board, or the animation layer being drawn.
 function drawBlock(context, layout, position, { ghost, pass, faded }) {
   const at = keyOf(position)
   const panel = layout.panels.get(at)
@@ -644,7 +641,33 @@ export function drawTileAt(context, layout, position) {
   context.restore()
 }
 
-// IsoTiles FloorLighting: soft contact shadows along floor edges that meet a block, then light pools round glowing tiles.
+// Tiles drawn on their own, as the board draws them, animated ones on their loop's first frame (the editor's brush
+// and Move previews, and its palette): a canvas of them at `resolution` pixels per world unit, and the world rectangle
+// it covers. Resolves once the map's images have loaded (a missing image is skipped, as on the board).
+export async function drawLoneTiles(layout, positions, resolution) {
+  const { map } = layout
+  await Promise.all(imagesFor(map).map(loadImage))
+  const area = positions.reduce((box, position) => union(box, isBlock(map.tiles[position.y][position.x]) ? drawnArea(layout, position) : tileImageBox(position)), null)
+  const sorted = [...positions].sort((a, b) => a.x + a.y - (b.x + b.y))
+  const canvasFor = (draw) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.ceil(area.width * resolution))
+    canvas.height = Math.max(1, Math.ceil(area.height * resolution))
+    const context = canvas.getContext('2d')
+    context.setTransform(resolution, 0, 0, resolution, -area.x * resolution, -area.y * resolution)
+    draw(context)
+    return canvas
+  }
+  const canvas = canvasFor((context) => sorted.forEach((position) => drawTileAt(context, layout, position)))
+  // Apart, as the board's animation layer is: that pass cuts out what is under it.
+  const frames = canvasFor((context) => sorted.forEach((position) => isBlock(map.tiles[position.y][position.x]) && drawBlockAt(context, layout, position, 1, { layer: 'frames', time: null })))
+  const context = canvas.getContext('2d')
+  context.setTransform(1, 0, 0, 1, 0, 0)
+  context.drawImage(frames, 0, 0)
+  return { canvas, area }
+}
+
+// Floor lighting: soft contact shadows along floor edges that meet a block, then light pools round glowing tiles.
 function hexToRgba(colour, alpha) {
   const hex = colour.replace('#', '')
   const full = hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex

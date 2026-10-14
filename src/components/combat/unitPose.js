@@ -2,11 +2,11 @@ import { defeatAnimation, getSpriteAnimation } from '../../rules/appearance.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { SHOT_ACTIONS } from './battleHelpers.js'
 
-// Which CharacterSprite animation a combatant plays (characterSprites.json): its strike when the last action was its
+// Which sprite animation a combatant plays (characterSprites.json): its strike when the last action was its
 // attack, the fall when it is Defeated (already lying there if it was down before the board appeared), getting up
 // (the fall backwards) when First Aid ends Defeated, hands up once it has surrendered (already up if it had before the
 // board appeared), running (every combat Move and Sprint; designer decision 2026-10-12), cover, or idle.
-// Pure and driven by timestamps (ms), so the SVG board (useUnitAnimation) and the Pixi board share it. Presentation only.
+// Pure and driven by timestamps (ms): the Pixi board (pixi/unitView.js) calls it every frame. Presentation only.
 //
 // A track is { down, fall, settled, fallHeldUntil, surrendered, handsSettled, seenStrike, strike, gettingUp,
 // oneShotUntil, playKey }: fallHeldUntil, when a fall caused by a shot starts (it waits for the shot to land);
@@ -90,7 +90,7 @@ export function poseWakeAt(track) {
   return times.length ? Math.min(...times) : null
 }
 
-// The CharacterSprite props for a track: { animation, playKey, settled, reverse }.
+// The figure's animation for a track: { animation, playKey, settled, reverse }.
 export function shownPose(track, { inCover = false, isWalking = false } = {}) {
   if (track.down && track.fallHeldUntil !== null) return { animation: inCover ? 'cover' : 'idle', playKey: 0, settled: false, reverse: false }
   if (track.down) return { animation: track.fall, playKey: track.playKey, settled: track.settled, reverse: false }

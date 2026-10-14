@@ -23,13 +23,12 @@ import {
 import { fadeLevelAt, fadeLevels, retarget, settle } from '../fadeLevels.js'
 import { perfEnd, perfOff, perfStart } from '../../../dev/perfProbe.js'
 
-// A board's map in Pixi (pixiStage.js), drawn exactly as MapCanvas draws it (canvasTiles.js does the drawing): the floor and
-// its lighting, and the darkness, as canvases cut into chunks a GPU texture can hold; each block a sprite of its own,
-// sorted by depth among the figures (so no occlusion holes are needed). Blocks that look alike share a texture
+// A board's map in Pixi (pixiStage.js), drawn by canvasTiles.js: the floor and its lighting, and the darkness, as
+// canvases cut into chunks a GPU texture can hold; each block a sprite of its own, sorted by depth among the figures. Blocks that look alike share a texture
 // (canvasTiles.js blockLookKey), animated ones one per frame. Faded blocks ease their opacity on fadeLevels.js's clock.
 // Presentation only.
 
-// As MapCanvas: the floor at up to twice world size within the pixel budget; the darkness coarser.
+// The floor at up to twice world size within the pixel budget; the darkness coarser.
 const PIXEL_BUDGET = 12_000_000
 const MAX_SCALE = 2
 const DARK_PIXEL_BUDGET = 4_000_000
@@ -107,9 +106,9 @@ class ChunkedLayer {
 }
 
 // The canvas a block (or a faded panel's two halves together) is drawn on: the board's drawing, with the animation
-// layer's frame at `time` over it (drawn apart, as MapCanvas's frames canvas is, since that pass cuts out what is under
-// it). area: the world rect it covers. opacity: each block drawn see-through (the editor's See-through blocks), in the
-// drawing as MapCanvas does, since the lights' additive glow builds up differently on a see-through drawing.
+// layer's frame at `time` over it (drawn apart, since that pass cuts out what is under it). area: the world rect it
+// covers. opacity: each block drawn see-through (the editor's See-through blocks), in the drawing rather than on the
+// sprite, since the lights' additive glow builds up differently on a see-through drawing.
 function drawBlocks(layout, positions, area, time, animated, opacity = 1) {
   const width = Math.max(1, Math.ceil(area.width * BLOCK_RES))
   const height = Math.max(1, Math.ceil(area.height * BLOCK_RES))
@@ -133,7 +132,7 @@ function drawBlocks(layout, positions, area, time, animated, opacity = 1) {
 
 // The map's layers: floor (under the ground items), blocks (into the depth-sorted container, beside the figures) and
 // darkness (over everything). Build with build() once its images have loaded.
-// Options as MapCanvas's props: playing (animated tiles run; else each holds its loop's first frame), ghost (every
+// Options: playing (animated tiles run; else each holds its loop's first frame), ghost (every
 // block see-through, the editor's See-through blocks), lighting (shadows, light pools and darkness drawn).
 export class MapLayers {
   constructor({ floorLayer, depthLayer, darkLayer }, layout, { playing = true, ghost = false, lighting = true } = {}) {

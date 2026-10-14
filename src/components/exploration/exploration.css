@@ -6,56 +6,12 @@
   right: 8px;
 }
 
-/* Positions change every frame, so the combat units' walking transition would only add lag. */
-.explore-unit {
-  transition: none;
-}
-
-.explore-unit.is-selected .iso-unit-ring {
-  stroke: var(--yellow);
-  stroke-width: 2.5;
-  fill: rgba(246, 185, 40, 0.15);
-}
-
-.explore-unit.is-selected .iso-unit-body {
-  stroke: var(--yellow);
-}
-
-/* Right-drag selection box (ExplorationBoard). */
+/* Right-drag selection box (PixiExplorationBoard). */
 .explore-select-box {
   fill: rgba(246, 185, 40, 0.12);
   stroke: var(--yellow);
   stroke-width: 1.5;
   stroke-dasharray: 5 3;
-}
-
-.explore-unit.is-lead .iso-unit-facing {
-  fill: var(--yellow);
-}
-
-/* An NPC's name over their head, in their ring's colour (combat.css: red hostile, purple otherwise). */
-.explore-npc-tag {
-  fill: #b07ee8;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  paint-order: stroke;
-  stroke: #03060e;
-  stroke-width: 3px;
-}
-
-.iso-unit.is-enemy .explore-npc-tag {
-  fill: var(--red);
-}
-
-.explore-unit-lead {
-  fill: var(--yellow);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  paint-order: stroke;
-  stroke: #03060e;
-  stroke-width: 3px;
 }
 
 .explore-card-wrap {
@@ -1593,112 +1549,8 @@
   fill: #9aa3b5;
 }
 
-/* An NPC the party can't see, drawn only in the debug view. */
-.explore-unit.is-unperceived {
-  opacity: 0.35;
-}
-
 .explore-debug-line {
   margin: 0 0 4px;
-}
-
-/* Challenge objects on the map: amber while untouched, teal once changed; bright and clickable when in reach. */
-.challenge-marker {
-  --challenge: #f6b928;
-  pointer-events: none;
-  opacity: 0.75;
-}
-
-.challenge-marker.is-changed {
-  --challenge: #4fd6c4;
-}
-
-.challenge-marker.is-in-reach {
-  pointer-events: auto;
-  cursor: pointer;
-  opacity: 1;
-}
-
-.explore-unit.is-clickable {
-  cursor: pointer;
-}
-
-/* A challenge object's outline (ExplorationBoard ObjectOutlineFilters draws it): a faint edge while out of reach, a
-   pulsing glow once a party member can act on it, steady while hovered. */
-.object-highlight {
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-.object-highlight.is-in-reach {
-  cursor: pointer;
-  opacity: 1;
-  animation: object-highlight-pulse 1.6s ease-in-out infinite;
-}
-
-.object-highlight.is-in-reach .tilemap-tile {
-  pointer-events: auto;
-}
-
-.object-highlight.is-in-reach:hover {
-  animation: none;
-}
-
-@keyframes object-highlight-pulse {
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .object-highlight.is-in-reach {
-    animation: none;
-  }
-}
-
-.challenge-marker path {
-  fill: var(--challenge);
-  stroke: #03060e;
-  stroke-width: 1.5;
-}
-
-.challenge-marker text {
-  fill: var(--challenge);
-  font-size: 10px;
-  font-weight: 700;
-  paint-order: stroke;
-  stroke: #03060e;
-  stroke-width: 3px;
-}
-
-.challenge-marker .challenge-marker-state {
-  font-size: 9px;
-  font-weight: 600;
-}
-
-/* Click-to-move marker: a ground ring that grows and fades quickly. */
-.explore-click-pulse {
-  pointer-events: none;
-}
-
-.explore-click-pulse circle {
-  fill: rgba(255, 210, 63, 0.25);
-  stroke: var(--yellow);
-  stroke-width: 4;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: explore-click-pulse 380ms ease-out forwards;
-}
-
-@keyframes explore-click-pulse {
-  from {
-    opacity: 1;
-    transform: scale(0.25);
-  }
-  to {
-    opacity: 0;
-    transform: scale(1.2);
-  }
 }
 
 /* Why the last conversation couldn't be opened. */
@@ -2260,8 +2112,6 @@
   color: var(--text-muted);
   font-size: 10px;
 }
-
-/* ScanPulse colours live in combat.css (loaded globally) so combat and exploration share them. */
 
 /* The Roll button and the dice above an object's ring: drawn in the map's world pixels, so they scale with the ring. */
 .unit-ring-slot {

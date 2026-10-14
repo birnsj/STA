@@ -5,9 +5,8 @@ import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../b
 import { dashedEllipse, drawnCanvas, makeLabel, placeLabel, textureOf } from '../../maps/pixi/pixiDraw.js'
 import { perfOff } from '../../../dev/perfProbe.js'
 
-// Challenge objects' outlines and markers, the last-known markers and the click rings on the Pixi board, drawn as the
-// SVG board draws them (ExplorationBoard ObjectHighlight / ChallengeMarker / ClickPulse, LastKnownMarker; colours from
-// exploration.css and combat.css). Presentation only.
+// Challenge objects' outlines and markers, the last-known markers and the click rings on the Pixi boards.
+// Presentation only.
 
 const RES = 2
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -15,7 +14,7 @@ const hex = (colour) => parseInt(colour.slice(1), 16)
 
 const blank = (width, height) => Object.assign(document.createElement('canvas'), { width, height })
 
-// ExplorationBoard ObjectOutlineFilters, done once on a canvas: the art's silhouette grown by 1 (1.6 with the glow)
+// A challenge object's outline, drawn once on a canvas: the art's silhouette grown by 1 (1.6 with the glow)
 // less the art itself, in the state's colour; the glow adds the ring blurred (3) outside the art, twice over.
 function outlineCanvas(layout, tiles, area, colour, glow) {
   const art = drawnCanvas(area, RES, (context) => {
@@ -79,7 +78,7 @@ export class HighlightView {
       this.sprite.scale.set(1 / RES)
     }
     this.sprite.zIndex = object.depth
-    // exploration.css object-highlight: faint out of reach; in reach it pulses (1 -> 0.5 -> 1 over 1.6 s), steady
+    // Faint out of reach; in reach it pulses (1 -> 0.5 -> 1 over 1.6 s), steady
     // while hovered.
     if (!object.inReach) this.sprite.alpha = 0.6
     else if (object.hovered || reducedMotion()) this.sprite.alpha = 1
@@ -92,7 +91,7 @@ export class HighlightView {
   }
 }
 
-// ExplorationBoard ChallengeMarker: a diamond over the object's art with its state and name above.
+// A challenge object's marker: a diamond over the object's art with its state and name above.
 // object: { position, artTop, name, stateLabel, changed, inReach, depth }.
 export class MarkerView {
   constructor() {
@@ -127,7 +126,7 @@ export class MarkerView {
   }
 }
 
-// LastKnownMarker: where the away team last saw an NPC. marker: { position, label }.
+// Where the away team last saw an NPC. marker: { position, label }.
 export class LastKnownView {
   constructor() {
     this.container = new Container()

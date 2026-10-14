@@ -28,8 +28,8 @@ export const MOVE_TILE_MS = 140
 // How long Auto Combat shows a party member's chosen button before the action runs.
 export const AI_CHOICE_MS = 900
 export const AUTO_END_TURN_MS = 1200
-// A fleeing enemy's beam-out and the away team's beam-in as a mission starts (match the unit-beam-out, unit-beam-in and
-// fx-transporter animations in combat.css).
+// A fleeing enemy's beam-out and the away team's beam-in as a mission starts (match the figures' beam animations,
+// maps/pixi/figures.js, and the transporter column, maps/pixi/effects.js).
 export const BEAM_OUT_MS = 1600
 export const BEAM_IN_MS = 1600
 // The same beat the AI's rolls get, so the dice can be read before the result lands.
@@ -57,7 +57,7 @@ export const SHOT_ACTIONS = ['resolve', 'counterattack', 'ambush']
 export const SHOT_FIRE_MS = 220
 const PULSE_TRAVEL_MS = 280
 export const SHOT_SEQUENCE_MS = 1600
-// A combat Scan's rings around the scanner and the target (ScanPulse.jsx CHARACTER_SCAN_RADIUS).
+// A combat Scan's rings around the scanner and the target (scanSweep.js CHARACTER_SCAN_RADIUS).
 export const SCAN_SEQUENCE_MS = Math.ceil(scanSweepSeconds(CHARACTER_SCAN_RADIUS) * 1000)
 export { CHARACTER_SCAN_RADIUS }
 // Designer request (2026-10-12): every enemy ranged shot is a red pulse with the disruptor sound.

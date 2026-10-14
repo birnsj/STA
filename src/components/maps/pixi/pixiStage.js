@@ -3,8 +3,8 @@ import { MapLayers } from './mapLayers.js'
 import { PERF, perfEnd, perfStart } from '../../../dev/perfProbe.js'
 
 // What every Pixi board shares (exploration, combat, the map editor): one WebGL canvas behind the board's SVG overlay,
-// its camera copied from the overlay's viewBox each frame, and the map's layers. Bottom up, as MapCanvas stacks them:
-// the floor, the ground items, the blocks sorted by depth among the figures, then the darkness. Presentation only.
+// its camera copied from the overlay's viewBox each frame, and the map's layers. Bottom up: the floor, the ground items, the blocks sorted by depth among the figures, the darkness, then the effects (lit, so
+// above the darkness). Presentation only.
 
 export const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -47,7 +47,8 @@ export async function startPixiStage(host, isCancelled) {
   const depthLayer = new Container()
   depthLayer.sortableChildren = true
   const darkLayer = new Container()
-  world.addChild(floorLayer, groundLayer, depthLayer, darkLayer)
+  const fxLayer = new Container()
+  world.addChild(floorLayer, groundLayer, depthLayer, darkLayer, fxLayer)
   app.stage.addChild(world)
 
   let map = null
@@ -78,7 +79,7 @@ export async function startPixiStage(host, isCancelled) {
 
   return {
     app,
-    layers: { world, floorLayer, groundLayer, depthLayer, darkLayer },
+    layers: { world, floorLayer, groundLayer, depthLayer, darkLayer, fxLayer },
     get map() {
       return map
     },
@@ -87,7 +88,7 @@ export async function startPixiStage(host, isCancelled) {
       syncResolution()
       return syncCamera(svg)
     },
-    // The map's layers for layout: rebuilt when the map's size or the options change (MapCanvas's `setup`), else
+    // The map's layers for layout: rebuilt when the map's size or the options change, else
     // repainted where the layout changed. options: MapLayers's { playing, ghost, lighting }.
     syncMap(layout, options, now) {
       const key = [layout.map.width, layout.map.height, options.playing, options.ghost, options.lighting].join('|')
@@ -102,13 +103,24 @@ export async function startPixiStage(host, isCancelled) {
       return map
     },
     onFrame(fn) {
+      // Pixi's ticker stops for good when a callback throws (the board would stay blank), so a bad frame is logged
+      // once and the next frame still runs.
+      let reported = false
+      const guarded = (ticker) => {
+        try {
+          fn(ticker)
+        } catch (error) {
+          if (!reported) console.error('Pixi board frame failed.', error)
+          reported = true
+        }
+      }
       const timed = PERF
         ? (ticker) => {
             const started = perfStart()
-            fn(ticker)
+            guarded(ticker)
             perfEnd('pixi.frame', started)
           }
-        : fn
+        : guarded
       frames.push(timed)
       app.ticker.add(timed, null, UPDATE_PRIORITY.HIGH)
     },

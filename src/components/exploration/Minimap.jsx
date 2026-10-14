@@ -37,7 +37,7 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
 // as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
 // objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. scanPulse: a party
-// Scan's sweeps while they play ({ key, rings: [{ origin, radius }] }, ScanPulse.jsx), drawn as rings on the readout.
+// Scan's sweeps while they play ({ key, rings: [{ origin, radius }] }), drawn as rings on the readout.
 // doors: the map's door objects ({ id, name, stateLabel, closed, cells }), such as the Deck 10 Brig's sealed bulkheads:
 // yellow over their doorway, solid while closed and outlined once open. Display only.
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.

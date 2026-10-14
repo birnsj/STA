@@ -72,6 +72,6 @@ Map rotation (tiles turned with the editor's right click) is described in `src/m
 | Window panels and long wall fittings | `src/maps/wallPanels.js` |
 | 2x2 big objects | `src/maps/bigObjects.js` |
 | Joined railings | `src/maps/railJoins.js` |
-| Drawing | Maps: `src/components/maps/MapCanvas.jsx` and `canvasTiles.js` (editor, exploration and combat alike); figures in front of walls: `occlusion.js` and `useFigureWindows.jsx`; single SVG tiles (brush, palette, blocks over figures): `IsoTiles.jsx` (flipbooks: `flipbookStyles.js`) |
+| Drawing | Maps: `src/components/maps/canvasTiles.js`, shown by the Pixi boards (`pixi/mapLayers.js`; editor, exploration and combat alike), with blocks sorted among the figures by depth; single tiles (the editor's brush and Move previews, `pixi/editorMarkers.js`; its palette, `TileThumbnail.jsx`): `canvasTiles.js` `drawLoneTiles` |
 | Animation frames | `scripts/makeTileFrames.mjs` (`--only=klingon` bakes just those tiles and keeps everything else as it is) |
 | Art generation | `scripts/makeTilesV2.mjs` (Starship & Station), `scripts/makeTilesBridge.mjs` (Bridge (TOS)), `scripts/makeTilesKlingon.mjs` (Klingon Ship & Station), `scripts/makeTilesV2World.mjs` (everything else); each writes to the file's group folder (`scripts/v2/engine.mjs` `outFile`). The original placeholder art and its generator are kept in the git-ignored `backups/`. |

@@ -13,27 +13,27 @@ import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
 import { RINGS, SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
+import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
 import useStableSet from '../maps/useStableSet.js'
 import useWallFade from '../maps/useWallFade.js'
-import Battlefield, { ActionEffects } from './Battlefield.jsx'
+import { actionEffectItems } from './actionEffects.js'
 import { BAR_Y, LABEL_Y, mouseOnly, POINTS_Y, useMoveAnimation, VIEW, worldBounds } from './battlefieldShared.js'
 import { justFled, shotOf } from './battleHelpers.js'
+import useActionSounds from './useActionSounds.js'
 import { startBattleScene } from './pixi/battleScene.js'
-import TransporterBeam from './TransporterBeam.jsx'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 
-// The combat board drawn with PixiJS (WebGL), with the same props, look and controls as Battlefield (the SVG board,
-// still used with ?board=svg and wherever WebGL won't start). The map, the floor highlights and the combatants are
-// drawn by the Pixi scene (pixi/battleScene.js) from a description built here each render; the camera, the action
-// effects, transporter beams, the line of fire and the action ring stay in an SVG laid over it, whose viewBox the
+// The combat board, drawn with PixiJS (WebGL). The map, the floor highlights, the combatants, the action effects
+// (actionEffects.js), transporter beams and the line of fire are drawn by the Pixi scene (pixi/battleScene.js) from a
+// description built here each render; the camera and the action ring stay in an SVG laid over it, whose viewBox the
 // scene follows. What the pointer is over is worked out by boardHitTest.js. Presentation and input only.
 
 const tileCentre = (position) => project(position)
 const FIGURE_SCALE = getSpriteMetrics().displayScale ?? 1
 const { yellow: YELLOW, red: RED, purple: PURPLE, blue: BLUE } = SIDE_COLOURS
 const GREY = 0x6b7486
-// combat.css: the ring by side; yellow and wider for the combatant whose turn it is; grey once a turn is used up.
+// The ring by side; yellow and wider for the combatant whose turn it is; grey once a turn is used up.
 const ringOf = (sideKey, active, turnDone) => {
   const { fill, stroke } = RINGS[sideKey]
   if (active) return { fill, stroke: { color: YELLOW, width: 3 } }
@@ -142,7 +142,7 @@ export default function PixiBattlefield(props) {
       turnStatus: shownTurn && (shownTurn.state === 'done' ? { state: 'done' } : { state: shownTurn.state, turn: shownTurn.turn, movement: shownTurn.movement }),
       target: target && !down,
     })
-    // As Battlefield's Unit takes the pointer: not a bystander, nor one beaming in, out or away.
+    // Not a bystander, nor one beaming in, out or away.
     if (isBystander || beam) return
     const token = !hasCharacterSprite(portrait?.spriteSet)
     const clickable = !down && !combatant.surrendered && !combatant.fled
@@ -196,6 +196,17 @@ export default function PixiBattlefield(props) {
     })
   }
   const destinationKey = overlay.path ? tileKey(overlay.path[overlay.path.length - 1]) : null
+  useActionSounds(state, speed)
+  const effects = actionEffectItems(state, { positionOf: shownPosition, msPerTile, speed, hiddenIds })
+  if (overlay.shot) {
+    const { from, to, available } = overlay.shot
+    const [a, b] = [tileCentre(from), tileCentre(to)]
+    effects.push({ id: 'aim', kind: 'aim', from: { x: a.x, y: a.y - 30 }, to: { x: b.x, y: b.y - 30 }, available: Boolean(available) })
+  }
+  for (const unit of units.filter((unit) => unit.side === 'player')) {
+    if (beamIn === 'beaming') effects.push({ id: `beam-${unit.id}`, kind: 'transporter', position: tileCentre(unit.position), direction: 'in', speed })
+    if (beamOut) effects.push({ id: `beam-away-${unit.id}`, kind: 'transporter', position: tileCentre(unit.position), direction: 'away', speed })
+  }
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
@@ -213,6 +224,7 @@ export default function PixiBattlefield(props) {
       snapMarks,
       lastKnown: lastKnownMarks ?? [],
       objects: objectMarks ?? [],
+      effects,
       revealed,
     }
     targetsRef.current = targets
@@ -235,7 +247,7 @@ export default function PixiBattlefield(props) {
     return startBattleScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
   })
 
-  // ---------------------------------------------------------------- input (as Battlefield's units, objects and floor)
+  // ---------------------------------------------------------------- input (units, objects and floor)
 
   // Click events don't reliably say whether they came from a finger, so the board remembers the last pointer pressed.
   const pointerTypeRef = useRef('mouse')
@@ -316,10 +328,7 @@ export default function PixiBattlefield(props) {
     onTileHover(null)
   }
 
-  if (failed) return <Battlefield {...props} />
-  const shot = overlay.shot
-  const shotFrom = shot && tileCentre(shot.from)
-  const shotTo = shot && tileCentre(shot.to)
+  if (failed) return <WebglUnavailable />
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
@@ -335,14 +344,6 @@ export default function PixiBattlefield(props) {
         onMouseLeave={handleMouseLeave}
       >
         {title && <title>{title}</title>}
-        <ActionEffects state={state} positionOf={shownPosition} msPerTile={msPerTile} speed={speed} hiddenIds={hiddenIds} />
-        {beamIn === 'beaming' &&
-          units.filter((unit) => unit.side === 'player').map((unit) => <TransporterBeam key={`beam-${unit.id}`} position={tileCentre(unit.position)} direction="in" />)}
-        {beamOut &&
-          units.filter((unit) => unit.side === 'player').map((unit) => <TransporterBeam key={`beam-away-${unit.id}`} position={tileCentre(unit.position)} direction="away" />)}
-        {shot && (
-          <line className={`iso-shot${shot.available ? '' : ' is-blocked'}`} x1={shotFrom.x} y1={shotFrom.y - 30} x2={shotTo.x} y2={shotTo.y - 30} />
-        )}
         {ring && (ring.position || state.combatants[ring.unitId]) && (
           <UnitActionRing
             position={ring.position ?? shownPosition(state.combatants[ring.unitId])}

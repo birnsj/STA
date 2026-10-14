@@ -8,7 +8,6 @@ import { figureShapes, hitTest, labelWidth } from '../../maps/boardHitTest.js'
 import { project, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
-import TransporterBeam from '../combat/TransporterBeam.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from '../maps/canvasTiles.js'
@@ -36,17 +35,14 @@ import {
   VIEW,
   worldBounds,
 } from './boardGeometry.js'
-import ExplorationBoard from './ExplorationBoard.jsx'
 import { startBoardScene } from './pixi/boardScene.js'
 import { SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
-import ScanPulse from './ScanPulse.jsx'
-
-// The exploration board drawn with PixiJS (WebGL), with the same props, look and controls as ExplorationBoard (the
-// SVG board, still used with ?board=svg and wherever WebGL won't start). The map, figures and challenge objects are
-// drawn by the Pixi scene (pixi/boardScene.js) from a description built here each render; the camera, pointer input,
-// radial menus, selection box, scan sweeps, transporter beams and debug views stay in an SVG laid over it, whose
-// viewBox the scene follows. Clicks are matched to figures and objects by boardHitTest.js. Presentation and input only.
+import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
+// The exploration board, drawn with PixiJS (WebGL). The map, figures, challenge objects, transporter beams and scan
+// sweeps are drawn by the Pixi scene (pixi/boardScene.js) from a description built here each render; the camera,
+// pointer input, radial menus, selection box and debug views stay in an SVG laid over it, whose viewBox the scene
+// follows. Clicks are matched to figures and objects by boardHitTest.js. Presentation and input only.
 
 const clockNow = () => performance.now()
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
@@ -192,6 +188,14 @@ export default function PixiExplorationBoard(props) {
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
     .filter(({ entry }) => entry.state === KNOWLEDGE.KNOWN)
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debug ? npc.name : entry.identified ? null : 'Life sign' }))
+  const effects = []
+  for (const member of members) {
+    if (beamIn === 'beaming' || member.arriving) effects.push({ id: `beam-${member.id}`, kind: 'transporter', position: project(member.position), direction: 'in' })
+    if (member.beaming) effects.push({ id: `beam-out-${member.id}`, kind: 'transporter', position: project(member.position), direction: 'away' })
+  }
+  scanPulse?.rings.forEach((ring, index) => {
+    effects.push({ id: `scan-${scanPulse.key}-${index}`, kind: 'scan', origin: ring.origin, radius: ring.radius, onDone: index === 0 ? scanPulse.onDone : undefined })
+  })
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
@@ -199,7 +203,7 @@ export default function PixiExplorationBoard(props) {
   const targetsRef = useRef(targets)
   const membersRef = useRef(state)
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, revealed }
+    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, revealed }
     targetsRef.current = targets
     membersRef.current = state
   })
@@ -219,7 +223,7 @@ export default function PixiExplorationBoard(props) {
     return startBoardScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
   })
 
-  // ---------------------------------------------------------------- input (as ExplorationBoard)
+  // ---------------------------------------------------------------- input
 
   const toBoard = (clientX, clientY) => {
     const matrix = svgRef.current?.getScreenCTM()
@@ -311,7 +315,7 @@ export default function PixiExplorationBoard(props) {
     window.addEventListener('pointercancel', end)
   }
 
-  // A press on a figure or object, as the SVG board's handlers on them: true when it is used there (the board doesn't
+  // A press on a figure or object: true when it is used there (the board doesn't
   // see it), false when it goes on to the board.
   const pressTarget = (target, event) => {
     const mouse = event.pointerType === 'mouse'
@@ -349,8 +353,8 @@ export default function PixiExplorationBoard(props) {
     onMove(point, true)
     addPulse(point)
   }
-  // Pointer cursor over what can be clicked (combat.css .iso-unit, exploration.css is-clickable / is-in-reach); the
-  // object under it holds its outline steady.
+  // Pointer cursor over what can be clicked (a figure standing, an object in reach); the object under it holds its
+  // outline steady.
   const handlePointerMove = (event) => {
     const target = targetAt(event)
     hoverRef.current = target?.kind === 'object' ? target.id : null
@@ -366,7 +370,7 @@ export default function PixiExplorationBoard(props) {
         ? challenges.find((view) => view.id === menu.objectId)?.position
         : null
 
-  if (failed) return <ExplorationBoard {...props} />
+  if (failed) return <WebglUnavailable />
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
@@ -379,19 +383,6 @@ export default function PixiExplorationBoard(props) {
         onContextMenu={preventMenu}
         onClick={handleClick}
       >
-        {getMembers(state)
-          .filter((member) => beamIn === 'beaming' || member.arriving)
-          .map((member) => (
-            <TransporterBeam key={`beam-${member.id}`} position={project(member.position)} direction="in" />
-          ))}
-        {getMembers(state)
-          .filter((member) => member.beaming)
-          .map((member) => (
-            <TransporterBeam key={`beam-out-${member.id}`} position={project(member.position)} direction="away" />
-          ))}
-        {scanPulse?.rings.map((ring, index) => (
-          <ScanPulse key={`scan-${scanPulse.key}-${index}`} origin={ring.origin} radius={ring.radius} onDone={index === 0 ? scanPulse.onDone : undefined} />
-        ))}
         {debug && <PerceptionDebugOverlay party={state} world={world} knowledge={knowledge} />}
         {debug && <NpcDebugOverlay world={world} party={state} />}
         {debug && <DebugOverlay state={state} />}

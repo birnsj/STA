@@ -7,19 +7,21 @@ Deck 10 Brig map, the 4-member party. Tools: `tools/perfRun.mjs`, `tools/perfSce
 **Note:** the probe's hooks in the game code (timers, Profiler wrappers, `?off=` flags) were lost in an accidental
 `git checkout` on 2026-10-13 and re-added on 2026-10-14, now covering the Pixi boards too (`pixi.frame`, and `filters`
 and `animtick` act on the Pixi map). The list of timers and switches is at the top of `src/dev/perfProbe.js`;
-`spritesync` is gone (CharacterSprite no longer re-times its animation). The tables below "The finding" were captured
+`spritesync` is gone (the SVG figures it re-timed no longer exist). The tables below "The finding" were captured
 before the checkout, with the SVG boards.
 
 ## PixiJS boards (Oct 2026)
 
-The exploration, combat and map editor boards are drawn with PixiJS (WebGL) by default; `?board=svg` in the URL brings
-back the SVG boards, and each falls back to its SVG board if WebGL won't start. Same look: side-by-side screenshots
-match (exploration: the Deck 10 Brig and two generated maps; combat: the first turn, a hovered move, Auto Combat; the
-editor: default, see-through and lighting off, a paint stroke).
+The exploration, combat and map editor boards are drawn only with PixiJS (WebGL). The SVG boards, `?board=svg` and
+`--board svg` were removed on 2026-10-14 (designer decision), so the Pixi / SVG comparisons below can't be re-run;
+they were measured while both boards existed, when side-by-side screenshots matched (exploration: the Deck 10 Brig and
+two generated maps; combat: the first turn, a hovered move, Auto Combat; the editor: default, see-through and lighting
+off, a paint stroke).
 
 ### Exploration (pilot)
 
-Measured with `node tools/perfRun.mjs <scenario> --runs 2 [--board svg] [--base http://127.0.0.1:4173/]`, mean of 2:
+Measured with `node tools/perfRun.mjs <scenario> --runs 2 [--base http://127.0.0.1:4173/]` (then with `--board svg`
+for the SVG column), mean of 2:
 
 | Scenario | Build | fps Pixi / SVG | p95 frame Pixi / SVG | main thread busy Pixi / SVG |
 | --- | --- | --- | --- | --- |
@@ -30,7 +32,8 @@ Measured with `node tools/perfRun.mjs <scenario> --runs 2 [--board svg] [--base 
 
 Busy % is the main thread only; Pixi moves the drawing to the GPU, which these numbers don't include. The remaining
 main-thread time is mostly the React screen (HUD, panels) re-rendering with the world clock, not the board.
-`explore-object` still finds objects through the SVG board's `g.object-highlight`, so it runs with `--board svg` only.
+The `explore-object` scenario (standing next to a glowing challenge object) found the objects through the SVG board's
+elements, so it was removed with the SVG boards; the Pixi board has no DOM elements to find them by.
 
 ### Combat and the map editor
 

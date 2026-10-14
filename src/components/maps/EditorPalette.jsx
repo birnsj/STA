@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
-import { TilePreview } from './IsoTiles.jsx'
+import TileThumbnail from './TileThumbnail.jsx'
 
 // The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
 // and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'npcs' | 'area' | 'erase'.
@@ -98,7 +98,7 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
                 <div key={tile.id} className="me-tile">
                   <ToolButton selected={tool === `tile:${tile.id}`} onClick={() => onTool(`tile:${tile.id}`)}>
                     <span className="me-thumb-wrap">
-                      <TilePreview tile={tile} className="me-thumb-preview" />
+                      <TileThumbnail tile={tile} className="me-thumb-preview" />
                       {tile.big && (
                         <span className="me-thumb-badge" title="Four in a 2x2 square are drawn as one big object">
                           2x2

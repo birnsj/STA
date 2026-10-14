@@ -212,7 +212,8 @@
   display: block;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  object-fit: contain;
+  object-position: center bottom;
 }
 
 .me-thumb-badge {
@@ -422,21 +423,9 @@
   shape-rendering: crispEdges;
 }
 
-/* Tile animations off: the palette previews and the brush hold their first frame (the board's canvas layers are
-   held by MapCanvas). */
-.me-screen.is-still .me-board *,
-.me-screen.is-still .me-palette * {
-  animation: none !important;
-}
-
 .me-cells {
   fill: transparent;
   cursor: crosshair;
-}
-
-.me-brush {
-  opacity: 0.75;
-  pointer-events: none;
 }
 
 .me-hover {
@@ -448,31 +437,9 @@
 
 .me-overlay { pointer-events: none; }
 
-.me-marker polygon { stroke: #ffffff; stroke-width: 1; opacity: 0.9; }
-.me-marker.is-player polygon { fill: #3fb6e8; }
-.me-marker.is-enemy polygon { fill: #e5483a; }
-.me-marker.is-npc polygon { fill: #b07ee8; }
-.me-marker.is-objective polygon { fill: #e0a800; }
-.me-marker.is-object polygon { fill: #1fa59a; }
-.me-marker.is-selected polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; }
-/* Facing arrow (player starts, NPCs, enemy spawns): solid white with a dark outline so it reads on any marker colour
-   and floor. g.me-facing out-ranks the marker polygon colours above. */
-.me-facing line { stroke: #ffffff; stroke-width: 2.5; stroke-linecap: round; filter: drop-shadow(0 0 1px #03060e) drop-shadow(0 0 1px #03060e); }
-.me-marker g.me-facing polygon { fill: #ffffff; stroke: #03060e; stroke-width: 1.2; stroke-linejoin: round; opacity: 1; animation: none; }
 /* Erase Marker: what a click on the hovered tile would remove. */
 .me-hover.is-erase { fill: rgba(255, 179, 71, 0.18); stroke: #ffb347; stroke-width: 3; }
 .me-hover.is-move-source { fill: rgba(102, 204, 255, 0.15); stroke: #66ccff; stroke-width: 3; stroke-dasharray: 6 4; }
-.me-marker.is-doomed polygon { stroke: #ffb347; stroke-width: 3; opacity: 1; animation: me-doomed 0.8s ease-in-out infinite alternate; }
-.me-area-label.is-doomed { fill: #ffb347; text-decoration: line-through; animation: me-doomed 0.8s ease-in-out infinite alternate; }
-@keyframes me-doomed {
-  from { opacity: 1; }
-  to { opacity: 0.45; }
-}
-.me-marker text {
-  fill: #ffffff;
-  font-size: 10px;
-  font-weight: bold;
-}
 
 .me-dialog-backdrop {
   position: absolute;
@@ -517,10 +484,4 @@
   justify-content: flex-end;
   gap: 6px;
   margin-top: 8px;
-}
-
-.me-area-label {
-  fill: rgba(200, 225, 230, 0.6);
-  font-size: 10px;
-  letter-spacing: 0.12em;
 }

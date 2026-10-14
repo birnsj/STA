@@ -4,8 +4,8 @@ import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { BIG_IMAGE } from '../../maps/bigObjects.js'
 import { getSpriteMetrics } from '../../rules/appearance.js'
 
-// What the exploration boards (ExplorationBoard, SVG; PixiExplorationBoard) share: the view, input timings, and where
-// challenge objects' highlights and markers go. Presentation only.
+// The exploration board's (PixiExplorationBoard) view, input timings, and where challenge objects' highlights and
+// markers go. Presentation only.
 
 export const VIEW = { width: 1024, height: 576 }
 const HUD_MARGIN = { x: 200, top: 150, bottom: 130 }
@@ -15,7 +15,7 @@ export const HOLD_INTERVAL_MS = 90
 export const HOLD_MIN_CHANGE = 0.2
 // A press released this quickly, without steering, is a click: it gets the ground ring. Holds don't.
 export const CLICK_MAX_MS = 250
-// How long the ring stays (its CSS animation, explore-click-pulse, runs 380ms).
+// How long the ring stays.
 export const CLICK_PULSE_MS = 400
 // A right-button press must move this far (screen pixels) before it draws a selection box.
 export const BOX_MIN_DRAG = 6
@@ -51,7 +51,7 @@ export function highlightTiles(tiles, bigGroups) {
   return [...keyed.values()].sort((a, b) => a.x + a.y - (b.x + b.y))
 }
 
-// The world rect the highlighted art (and its glow) is drawn in, for occlusion.
+// The world rect the highlighted art (and its glow) is drawn in.
 export const HIGHLIGHT_GLOW = 6
 // Each tile's art box (a big object's whole image).
 export function artBoxes(map, bigGroups, tiles) {
@@ -86,7 +86,7 @@ export function artTopY(map, bigGroups, tiles, art) {
   )
 }
 
-// The outline colours by object state (exploration.css .challenge-marker uses the same).
+// The outline and marker colours by object state.
 export const OUTLINE_COLOURS = { unresolved: '#f6b928', changed: '#4fd6c4' }
 
 // Where the marker's parts sit above the top of the object's art (y up from it): the diamond just over the art, then

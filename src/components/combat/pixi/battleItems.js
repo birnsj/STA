@@ -2,8 +2,8 @@ import { Container, Graphics } from 'pixi.js'
 import { diamond, project } from '../../../maps/iso.js'
 import { makeLabel, placeLabel } from '../../maps/pixi/pixiDraw.js'
 
-// The combat board's ground items on the Pixi board, drawn as Battlefield draws them (FloorGrid's highlighted tiles,
-// MovePathLine, ObjectMarker, the snap marks; colours from combat.css). Presentation only.
+// The combat board's ground items on the Pixi board: the highlighted tiles, the planned move, the challenge objects'
+// marks and the snap marks. Presentation only.
 
 const YELLOW = 0xf6b928
 
@@ -35,8 +35,8 @@ function dashedPolyline(graphics, points, dash, gap, offset, stroke) {
   graphics.stroke(stroke)
 }
 
-// FloorGrid's highlighted tiles: in reach, on the planned path, the destination; a tile in reach under the mouse is
-// brighter (combat.css .iso-tile.is-reachable:hover). tiles: { reachableKeys, pathKeys, destinationKey }.
+// The highlighted tiles: in reach, on the planned path, the destination; a tile in reach under the mouse is
+// brighter. tiles: { reachableKeys, pathKeys, destinationKey }.
 export class TilesView {
   constructor() {
     this.graphics = new Graphics()
@@ -81,8 +81,7 @@ export class TilesView {
   }
 }
 
-// MovePathLine: the planned move, tile centre to tile centre, dashes marching along it (move-path-march: -12 over
-// 0.8 s), and a marker on the destination. path: [positions] or null.
+// The planned move, tile centre to tile centre, dashes marching along it (12 units every 0.8 s), and a marker on the destination. path: [positions] or null.
 const MARCH_MS = 800
 export class MovePathView {
   constructor() {

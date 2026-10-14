@@ -14,8 +14,6 @@ export const flag = (name, fallback) => {
 const BASE = flag('base', 'http://127.0.0.1:5173/')
 // Dev-only ablations: probe flags (src/dev/perfProbe.js) plus the runner-side 'scrollpulse'.
 export const off = flag('off', '')
-// --board svg measures the SVG exploration board (ExplorationScreen ?board=svg) instead of the Pixi one.
-const board = flag('board', '')
 
 const clickScript = (text) =>
   `(()=>{const x=[...document.querySelectorAll('button')].find(x=>x.textContent.trim().startsWith(${JSON.stringify(text)})&&!x.disabled); if(x) x.click(); return !!x})()`
@@ -34,7 +32,7 @@ const PROBE_SCRIPT = `(() => {${readFileSync(new URL('../src/dev/perfProbe.js', 
   .replace(/^export /gm, '')}})()`
 
 async function openPage(b) {
-  await b.send('Page.navigate', { url: `${BASE}?perf=1${off ? `&off=${off}` : ''}${board ? `&board=${board}` : ''}` })
+  await b.send('Page.navigate', { url: `${BASE}?perf=1${off ? `&off=${off}` : ''}` })
   await sleep(2500)
   await b.evaluate(`window.__perf ? 0 : ${PROBE_SCRIPT}`)
   // Runner-side ablation (no app code): stops the pulsing scrollbar colour animated on <html> (base.css).
@@ -50,26 +48,6 @@ async function enterExploration(b) {
   for (const name of PARTY) await click(b, name, { wait: 150 })
   await click(b, 'Start Exploration', { wait: 1500 })
   await click(b, 'Skip Intro', { wait: 6000, required: false })
-}
-
-// Walks the party to the challenge object nearest the screen centre by clicking its art, then waits for the walk. Needs
-// a party member within reach, so the object glows (the in-reach outline filter plus its CSS pulse). Throws if none does:
-// a scenario that silently measured no glow would be misleading.
-async function enterReachOfObject(b) {
-  await enterExploration(b)
-  const target = await b.evaluate(`(()=>{
-    const items = [...document.querySelectorAll('g.object-highlight')].map((g) => { const r = g.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })
-      .filter((p) => p.x > 150 && p.x < 1130 && p.y > 120 && p.y < 560)
-    items.sort((a, b) => Math.hypot(a.x - 640, a.y - 360) - Math.hypot(b.x - 640, b.y - 360))
-    return items[0] ?? null
-  })()`)
-  if (!target) throw new Error('No challenge object on screen to walk to')
-  await b.mouse('mousePressed', target.x, target.y)
-  await sleep(120)
-  await b.mouse('mouseReleased', target.x, target.y)
-  await sleep(12000)
-  const inReach = await b.evaluate(`document.querySelectorAll('g.object-highlight.is-in-reach').length`)
-  if (!inReach) throw new Error('The party did not come within reach of an object')
 }
 
 export const viewBoxOf = (b) => b.evaluate(`document.querySelector('svg.exploration-board')?.getAttribute('viewBox') ?? null`)
@@ -141,8 +119,6 @@ export const SCENARIOS = {
   'explore-idle': { setup: enterExploration, drive: idle },
   // 2. The lead walks around, the camera follows, followers path behind.
   'explore-move': { setup: enterExploration, drive: walkAround },
-  // Extra: standing next to a challenge object, so its in-reach glow and pulse are on screen (hazard-readiness budget).
-  'explore-object': { setup: enterReachOfObject, drive: idle },
   // 4. Combat idle: the player's turn, nobody acts.
   'combat-idle': { setup: enterCombat, drive: idle },
   // 5. Combat with attacks and moves: Auto Combat.

@@ -9,26 +9,37 @@ const DISPLAY_FONT = ['Bahnschrift SemiCondensed', 'Bahnschrift', 'Arial Narrow'
 const TEXT_RESOLUTION = 4
 const OUTLINE = '#03060e'
 
-// A label as the SVG board draws one (centred, `paint-order: stroke` outline 3px wide unless outline is false; a
-// colour for an outline other than the board's near-black). Place it with placeLabel.
-export function makeLabel(text, { size, weight = '700', fill, letterSpacing = 0, outline = true }) {
+// A board label: centred, with an outline outlineWidth wide drawn under the fill unless outline is false (a colour
+// for an outline other than the board's near-black). Place it with placeLabel.
+export function makeLabel(text, { size, weight = '700', fill, letterSpacing = 0, outline = true, outlineWidth = 3 }) {
   const style = new TextStyle({
     fontFamily: DISPLAY_FONT,
     fontSize: size,
     fontWeight: weight,
     fill,
     letterSpacing,
-    stroke: outline !== false ? { color: outline === true ? OUTLINE : outline, width: 3, join: 'round' } : undefined,
+    stroke: outline !== false ? { color: outline === true ? OUTLINE : outline, width: outlineWidth, join: 'round' } : undefined,
   })
   const label = new Text({ text, style, resolution: TEXT_RESOLUTION })
   label.anchor.set(0.5, 0)
-  label.baselineOffset = CanvasTextMetrics.measureText(text || ' ', style).fontProperties.ascent + (outline !== false ? 1.5 : 0)
+  label.baselineOffset = CanvasTextMetrics.measureText(text || ' ', style).fontProperties.ascent + (outline !== false ? outlineWidth / 2 : 0)
   return label
 }
 
 // Puts a label's text baseline at (x, y), as SVG text's x and y.
 export function placeLabel(label, x, y) {
   label.position.set(x, y - label.baselineOffset)
+}
+
+// A dashed straight line (SVG stroke-dasharray `dash gap`), as path segments; stroke it after.
+export function dashedLine(graphics, from, to, dash, gap) {
+  const length = Math.hypot(to.x - from.x, to.y - from.y)
+  if (!length) return
+  const at = (d) => ({ x: from.x + ((to.x - from.x) * d) / length, y: from.y + ((to.y - from.y) * d) / length })
+  for (let along = 0; along < length; along += dash + gap) {
+    const [a, b] = [at(along), at(Math.min(length, along + dash))]
+    graphics.moveTo(a.x, a.y).lineTo(b.x, b.y)
+  }
 }
 
 // A dashed ellipse outline (SVG stroke-dasharray), drawn as short arcs.

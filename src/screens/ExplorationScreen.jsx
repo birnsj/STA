@@ -14,8 +14,7 @@ import useTransporter from '../components/exploration/useTransporter.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
 import { loadConversation } from '../conversation/conversationFiles.js'
-import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
-import PixiExplorationBoard from '../components/exploration/PixiExplorationBoard.jsx'
+import Board from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import { memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
@@ -24,7 +23,6 @@ import useExplorationFootsteps from '../components/exploration/useExplorationFoo
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
 import Minimap from '../components/exploration/Minimap.jsx'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
-import { SVG_BOARDS } from '../components/maps/boardRenderer.js'
 import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
@@ -51,7 +49,6 @@ import WorldCombat from './WorldCombat.jsx'
 import PerfProfiler from '../dev/PerfProfiler.jsx'
 import { withPerf } from '../dev/perfReducer.js'
 
-const Board = SVG_BOARDS ? ExplorationBoard : PixiExplorationBoard
 const reducer = withPerf(explorationReducer)
 
 // An open book, for the Captain's Log button in the minimap's corner.

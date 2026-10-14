@@ -1,5 +1,4 @@
-// When a figure's sprite animations play: shared by CharacterSprite (SVG, element.animate) and the Pixi board (a frame
-// picked every tick), so both keep the same clocks. Presentation only.
+// When a figure's sprite animations play on the Pixi boards (a frame picked every tick). Presentation only.
 
 // The last frame a non-looping animation shows (a loop slides on to the next frame's edge and starts again).
 export const lastColumn = ({ start, frames, play }) => (play === 'loop' ? start + frames : start + frames - 1)

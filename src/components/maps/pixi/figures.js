@@ -5,10 +5,9 @@ import { frameColumn, restColumn, startTiming, steadyGait } from '../spriteTimin
 import { uniformImageUrl } from '../../useUniformImage.js'
 import { cssFilterMatrix, drawnCanvas, makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 
-// The away team and NPCs on the Pixi board, drawn as the SVG board draws them (ExplorationBoard Explorer / NpcToken,
-// CharacterSprite, FacingArrow; colours from combat.css and exploration.css): the ground ring, the sprite sheet's
-// frame for the animation playing (spriteTiming.js keeps the SVG board's clocks), its shadow, the facing arrow and the
-// name tags; a portrait on a stand for a character without a sprite set. Presentation only.
+// The away team and NPCs on the Pixi boards: the ground ring, the sprite sheet's frame for the animation playing
+// (spriteTiming.js keeps its clock), its shadow, the facing arrow and the name tags; a portrait on a stand for a
+// character without a sprite set. Presentation only.
 
 const METRICS = getSpriteMetrics()
 const DISPLAY_SCALE = METRICS.displayScale ?? 1
@@ -16,7 +15,7 @@ const YELLOW = 0xf6b928
 const RED = 0xe2463d
 const PURPLE = 0xb07ee8
 const BLUE = 0x3d7bff
-// combat.css / exploration.css .iso-unit-ring by side.
+// The ground ring by side.
 export const RINGS = {
   player: { fill: { color: 0x2c66d8, alpha: 0.15 }, stroke: { color: BLUE, width: 2 } },
   selected: { fill: { color: YELLOW, alpha: 0.15 }, stroke: { color: YELLOW, width: 2.5 } },
@@ -24,10 +23,10 @@ export const RINGS = {
   neutral: { fill: { color: PURPLE, alpha: 0.15 }, stroke: { color: PURPLE, width: 2 } },
 }
 export const SIDE_COLOURS = { blue: BLUE, yellow: YELLOW, red: RED, purple: PURPLE }
-// combat.css .iso-unit-ring.is-active: pulsing 1 → 0.55 → 1 over 1.4 s, eased in and out.
+// The active combatant's ring: pulsing 1 → 0.55 → 1 over 1.4 s, eased in and out.
 const PULSE_MS = 1400
 const pulseAlpha = (elapsed) => 1 - 0.45 * (0.5 - 0.5 * Math.cos(((elapsed % PULSE_MS) / PULSE_MS) * Math.PI * 2))
-// combat.css unit-beam-in: opacity and brightness through the beam's 1.6 s (eased out within each step).
+// Beaming in: opacity and brightness through the beam's 1.6 s (eased out within each step).
 const BEAM_MS = 1600
 const BEAM_OPACITY = [
   [0, 0],
@@ -42,7 +41,7 @@ const BEAM_BRIGHTNESS = [
   [0.6, 1.6, 0.6],
   [1, 1, 1],
 ]
-// combat.css unit-beam-out (fleeing): over 1.6 s / speed, eased in within each step; brightness, sepia, saturate, hue.
+// Beaming out (fleeing): over 1.6 s / speed, eased in within each step; brightness, sepia, saturate, hue.
 const BEAM_OUT_OPACITY = [
   [0, 1],
   [0.25, 0.95],
@@ -121,7 +120,7 @@ export class SheetStore {
   }
 }
 
-// maps.css .char-sprite-shadow: a soft dark ellipse under the feet, at SHADOW_RES pixels per unit.
+// A soft dark ellipse under the feet, at SHADOW_RES pixels per unit.
 const SHADOW_RES = 4
 const shadowCanvas = () =>
   drawnCanvas({ x: -16, y: -10, width: 32, height: 20 }, SHADOW_RES, (context) => {
@@ -132,7 +131,7 @@ const shadowCanvas = () =>
     context.fill()
   })
 
-// A portrait on a stand (ExplorationBoard ExplorerFigure without a sprite set): the picture cut to the frame,
+// A portrait on a stand (a character without a sprite set): the picture cut to the frame,
 // xMidYMin slice, with rounded corners.
 const PORTRAIT = { x: -15, y: -50, width: 30, height: 40, radius: 4 }
 function portraitCanvas(image) {
@@ -166,7 +165,7 @@ function loadPortrait(src, colour) {
   return portraits.get(key)
 }
 
-// FacingArrow: a triangle on the ground ring pointing along the facing, in the tiles' projection.
+// The facing arrow: a triangle on the ground ring pointing along the facing, in the tiles' projection.
 function drawArrow(graphics, facing, colour) {
   const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
   const dir = { x: (facing.x - facing.y) / length, y: (facing.x + facing.y) / length }
@@ -250,7 +249,7 @@ export class FigureView {
       const { animation, playKey, settled, reverse } = figure.pose
       return { animation: getSpriteAnimation(animation), timing: { playKey, settled, reverse, speed: figure.speed ?? 1 } }
     }
-    if (figure.down) return { animation: defeatAnimation(figure.condition, figure.seed), timing: { settled: true } }
+    if (figure.down) return { animation: getSpriteAnimation(defeatAnimation(figure.condition, figure.seed)), timing: { settled: true } }
     this.gait = steadyGait(this.gait, figure.gait, now)
     const gait = this.gait.steady
     if (gait !== 'idle') {
@@ -263,7 +262,7 @@ export class FigureView {
     return { animation: getSpriteAnimation(gait), timing: { phase: figure.phase } }
   }
 
-  // useIdleFidget: once the idle sheet has loaded, a fidget at random every gapSeconds apart, never the same twice.
+  // Once the idle sheet has loaded, a fidget at random every gapSeconds apart, never the same twice.
   updateFidget(figure, now) {
     const set = getSpriteSetById(figure.spriteSet)
     if (!this.sheets.loaded(set, 'idle', figure.colour)) return
@@ -287,7 +286,7 @@ export class FigureView {
     const base = this.sheets.sheet(set, 'base', figure.colour)
     // The rest of the sheets once the base one is in and the map has faded in (MapFadeIn waits for every sheet asked
     // for by then), so the figure's first sneak, fall or fidget doesn't wait for one. All at once with preload
-    // (combat, as CharacterSprite's preload), which MapFadeIn then waits for.
+    // (combat), which MapFadeIn then waits for.
     if (figure.preload || ((base.texture || base.failed) && revealed)) for (const sheetId of ['combat', 'fall', 'sneak', 'surrender', 'idle']) this.sheets.sheet(set, sheetId, figure.colour)
     const { animation, timing: wanted } = this.wantedAnimation(figure, now)
     const timing = { seed: figure.seed, phase: null, playKey: 0, settled: false, reverse: false, speed: 1, ...wanted }

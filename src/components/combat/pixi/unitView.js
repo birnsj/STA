@@ -5,10 +5,10 @@ import { reducedMotion } from '../../maps/pixi/pixiStage.js'
 import { advancePose, initialPose, poseInput, settlePose, shownPose } from '../unitPose.js'
 import { LABEL_Y, POINTS_Y } from '../battlefieldShared.js'
 
-// A combatant on the Pixi combat board, drawn as Battlefield's Unit: the shared figure (figures.js FigureView: ring,
+// A combatant on the Pixi combat board: the shared figure (figures.js FigureView: ring,
 // sprite or portrait token, facing arrow, beams) with combat's pieces: the selected ring, the cover shield, the
 // Surrendered / Retreating label, the guard badge, the Stress bar and Injuries, the action points or the done icon,
-// and the target brackets (colours from combat.css). Its pose (strike, fall, getting up, hands up) follows unitPose.js
+// and the target brackets. Its pose (strike, fall, getting up, hands up) follows unitPose.js
 // from the timestamps of each frame. Presentation only.
 
 const YELLOW = 0xf6b928
@@ -130,8 +130,7 @@ export class UnitView {
     this.updateCover(unit.cover, now)
   }
 
-  // Where the figure stands now: gliding to a new tile in a straight line over msPerTile (the .iso-unit transform
-  // transition), as the board steps it along its path a tile at a time.
+  // Where the figure stands now: gliding to a new tile in a straight line over msPerTile, as the board steps it along its path a tile at a time.
   walkedCentre(unit, now) {
     const to = unit.centre
     const walk = this.walk
@@ -146,7 +145,7 @@ export class UnitView {
     return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }
   }
 
-  // combat.css cover-pop: the shield grows in from a fifth of its size over 0.35 s, eased out.
+  // The shield grows in from a fifth of its size over 0.35 s, eased out.
   updateCover(shown, now) {
     if (!shown) {
       this.cover?.destroy({ children: true })

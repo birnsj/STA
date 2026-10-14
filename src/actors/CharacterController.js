@@ -38,8 +38,8 @@ export class CharacterController {
     return actor.facing ?? { x: Math.cos(actor.heading), y: Math.sin(actor.heading) }
   }
 
-  // How the figure is drawn (components/maps/CharacterSprite.jsx): its gait in exploration, and whether it lies down.
-  // Combat's strikes and falls come from the last combat action (components/combat/useUnitAnimation.js).
+  // How the figure is drawn (components/maps/pixi/figures.js): its gait in exploration, and whether it lies down.
+  // Combat's strikes and falls come from the last combat action (components/combat/unitPose.js).
   animationState(actor) {
     return { walking: Boolean(actor.moving), running: Boolean(actor.running), sneaking: Boolean(actor.sneaking), down: !this.isUp(actor) }
   }
