@@ -15,7 +15,7 @@ alwaysApply: true
 ## React: everything else
 - All game state: reducers, world clock, combat state, character data.
 - HUD, sidebars, menus, dialogs, Settings, Captain's Log screens.
-- The board components (`PixiExplorationBoard`, `PixiBattlefield`, the editor board): props, pointer input, click matching via `src/components/maps/boardHitTest.js` (not Pixi events).
+- The board components (`PixiExplorationBoard`, `PixiBattlefield`, the editor board): props, pointer input, click matching via `src/maps/boardHitTest.js` (not Pixi events).
 - The SVG overlay above the Pixi canvas: it sets the camera (Pixi follows its viewBox) and draws `ActionEffects`, `ScanPulse`, `TransporterBeam` and the `UnitActionRing` menus.
 
 ## Constraints
