@@ -1,0 +1,24 @@
+---
+description: What PixiJS draws and what React owns in the exploration, combat and map editor boards
+alwaysApply: true
+---
+
+# Pixi vs React
+
+## Pixi: draws the board, nothing else
+- Map tiles, walls, wall fade, darkness, animated tiles: `src/components/maps/pixi/mapLayers.js`, `pixiStage.js`.
+- Character and NPC figures: `src/components/maps/pixi/figures.js`.
+- Challenge-object outlines and markers, last-known markers, click pulses: `src/components/exploration/pixi/boardItems.js`.
+- Per-board scenes: `exploration/pixi/boardScene.js`, `combat/pixi/battleScene.js`, `maps/pixi/mapScene.js`.
+- Pixi code reads the current board each frame (`stage.onFrame`) and never owns or changes game state.
+
+## React: everything else
+- All game state: reducers, world clock, combat state, character data.
+- HUD, sidebars, menus, dialogs, Settings, Captain's Log screens.
+- The board components (`PixiExplorationBoard`, `PixiBattlefield`, the editor board): props, pointer input, click matching via `src/components/maps/boardHitTest.js` (not Pixi events).
+- The SVG overlay above the Pixi canvas: it sets the camera (Pixi follows its viewBox) and draws `ActionEffects`, `ScanPulse`, `TransporterBeam` and the `UnitActionRing` menus.
+
+## Constraints
+- The SVG boards (`ExplorationBoard`, `Battlefield`, the editor's SVG board) must keep working: `?board=svg` and the automatic fallback when WebGL won't start (`usePixiScene`) use them. Anything new drawn on the board needs a Pixi version and an SVG version that look the same, or goes in the shared SVG overlay.
+- Game rules and calculations go in the rules layer, never in Pixi scenes or board components.
+- Choosing how a new visual is split between Pixi and the overlay is an implementation detail; changing what the player sees is the designer's call.
