@@ -65,6 +65,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
             />
           </label>
+          <label className="settings-toggle">
+            <span className="settings-toggle-text">
+              <span className="settings-slider-label">Captain&rsquo;s Log Intro</span>
+              <span className="settings-option-description">Before a mission, the Captain&rsquo;s Log opening plays. Off goes straight to the map.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={displaySettings.missionIntro}
+              onChange={(event) => onChangeDisplay({ ...displaySettings, missionIntro: event.target.checked })}
+            />
+          </label>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
           <h2 id="settings-audio" className="settings-heading">

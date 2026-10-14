@@ -564,6 +564,7 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   const [team, setTeam] = useState([])
   const [state, dispatch] = useReducer(explorationReducer, null)
   const [phase, setPhase] = useState('setup')
+  const playIntro = useDisplaySettings().missionIntro
 
   if (phase === 'setup' || !state) {
     return (
@@ -575,7 +576,7 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
         onStart={(members, map) => {
           setTeam(members)
           dispatch({ type: 'reset', map, characters: members, seed: Math.floor(Math.random() * MAX_SEED) })
-          setPhase('intro')
+          setPhase(playIntro ? 'intro' : 'explore')
         }}
       />
     )
@@ -595,8 +596,9 @@ export function ExplorationPlaytest({ map, characters, savedCharacters = [], ene
   const [state, dispatch] = useReducer(explorationReducer, null, () =>
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
-  // UI state: whether the Captain's Log intro is still showing.
-  const [intro, setIntro] = useState(true)
+  // UI state: whether the Captain's Log intro is still showing (never, with it off in Settings).
+  const playIntro = useDisplaySettings().missionIntro
+  const [intro, setIntro] = useState(playIntro)
   if (intro) return <MissionIntro map={state.party.map} onBegin={() => setIntro(false)} />
   return (
     <MapFadeIn>

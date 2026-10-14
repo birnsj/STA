@@ -13,5 +13,7 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ helpHints: false }).helpHints, false)
     assert.equal(normalizeDisplaySettings({ helpHints: 'no' }).helpHints, true)
     assert.equal(normalizeDisplaySettings({ helpHints: false }).guideHighlight, true)
+    assert.equal(normalizeDisplaySettings({}).missionIntro, true)
+    assert.equal(normalizeDisplaySettings({ missionIntro: false }).missionIntro, false)
   })
 })
