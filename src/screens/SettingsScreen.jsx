@@ -29,54 +29,56 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               )
             })}
           </div>
-          <label className="settings-toggle">
-            <span className="settings-toggle-text">
-              <span className="settings-slider-label">Guide Highlight</span>
-              <span className="settings-option-description">In character creation, a box moves to the next section to fill in.</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={displaySettings.guideHighlight}
-              onChange={(event) => onChangeDisplay({ ...displaySettings, guideHighlight: event.target.checked })}
-            />
-          </label>
-          <label className="settings-toggle">
-            <span className="settings-toggle-text">
-              <span className="settings-slider-label">Help Hints</span>
-              <span className="settings-option-description">In combat and exploration, a box at the top says what to do next.</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={displaySettings.helpHints}
-              onChange={(event) => onChangeDisplay({ ...displaySettings, helpHints: event.target.checked })}
-            />
-          </label>
-          <label className="settings-toggle">
-            <span className="settings-toggle-text">
-              <span className="settings-slider-label">Fade Walls One at a Time</span>
-              <span className="settings-option-description">On the maps, only the wall blocks hiding a character fade, instead of the room's whole front walls.</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={displaySettings.wallFade === 'single'}
-              onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
-            />
-          </label>
-          <label className="settings-toggle">
-            <span className="settings-toggle-text">
-              <span className="settings-slider-label">Captain&rsquo;s Log Intro</span>
-              <span className="settings-option-description">Before a mission, the Captain&rsquo;s Log opening plays. Off goes straight to the map.</span>
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={displaySettings.missionIntro}
-              onChange={(event) => onChangeDisplay({ ...displaySettings, missionIntro: event.target.checked })}
-            />
-          </label>
+          <div className="settings-toggles">
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Guide Highlight</span>
+                <span className="settings-option-description">In character creation, a box moves to the next section to fill in.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.guideHighlight}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, guideHighlight: event.target.checked })}
+              />
+            </label>
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Help Hints</span>
+                <span className="settings-option-description">In combat and exploration, a box at the top says what to do next.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.helpHints}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, helpHints: event.target.checked })}
+              />
+            </label>
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Fade Walls One at a Time</span>
+                <span className="settings-option-description">On the maps, only the wall blocks hiding a character fade, instead of the room's whole front walls.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.wallFade === 'single'}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
+              />
+            </label>
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Captain&rsquo;s Log Intro</span>
+                <span className="settings-option-description">Before a mission, the Captain&rsquo;s Log opening plays. Off goes straight to the map.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.missionIntro}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, missionIntro: event.target.checked })}
+              />
+            </label>
+          </div>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
           <h2 id="settings-audio" className="settings-heading">

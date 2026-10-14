@@ -2,8 +2,11 @@
 
 /* ---------- Settings (menu stage, 1024x576 coordinates) ---------- */
 
+/* Wide rather than tall so every option fits on the stage; the scroll is only a fallback for short stages. */
 .settings-panel {
-  width: 440px;
+  width: 760px;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
   align-items: stretch;
 }
 
@@ -21,9 +24,15 @@
 }
 
 .settings-options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.settings-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 32px;
 }
 
 .settings-option {
