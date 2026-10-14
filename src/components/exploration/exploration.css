@@ -2450,3 +2450,43 @@
   color: #ff8a6a;
   font-weight: 600;
 }
+
+.explore-transporter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.explore-transporter-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 8px 3px 3px;
+  border: 1px solid #3f6f78;
+  border-radius: 3px;
+  background: rgba(16, 41, 95, 0.3);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explore-transporter-entry:hover {
+  border-color: #7fd0dc;
+}
+
+.explore-transporter-entry.is-selected {
+  border-color: #9fe6f0;
+  background: rgba(60, 140, 170, 0.45);
+}
+
+.explore-transporter-note {
+  margin-left: auto;
+  color: rgba(200, 225, 230, 0.6);
+  font-size: 11px;
+}

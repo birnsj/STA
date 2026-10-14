@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { playBeamOutSound } from '../../audio/uiSounds.js'
 import { BEAM_OUT_MS } from '../combat/battleHelpers.js'
 import { isMissionAccomplished, isMissionFailed } from '../../exploration/missionObjectives.js'
@@ -90,13 +91,16 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
 }
 
 // The world runs in real time: one step per animation frame while running.
+// flushSync: rendered and committed inside this frame's callback. Left to React's scheduler, the commit landed after the
+// frame was painted, so each frame showed the previous frame's step; with uneven frame times (a missed vsync) the
+// characters then moved in uneven jumps against the camera, which is updated inside the frame.
 export function useWorldClock(dispatch, running) {
   useEffect(() => {
     if (!running) return
     let frame
     let last = performance.now()
     const step = (now) => {
-      dispatch({ type: 'tick', seconds: (now - last) / 1000 })
+      flushSync(() => dispatch({ type: 'tick', seconds: (now - last) / 1000 }))
       last = now
       frame = requestAnimationFrame(step)
     }

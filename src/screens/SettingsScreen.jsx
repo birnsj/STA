@@ -53,6 +53,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               onChange={(event) => onChangeDisplay({ ...displaySettings, helpHints: event.target.checked })}
             />
           </label>
+          <label className="settings-toggle">
+            <span className="settings-toggle-text">
+              <span className="settings-slider-label">Fade Walls One at a Time</span>
+              <span className="settings-option-description">On the maps, only the wall blocks hiding a character fade, instead of the room's whole front walls.</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={displaySettings.wallFade === 'single'}
+              onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
+            />
+          </label>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
           <h2 id="settings-audio" className="settings-heading">

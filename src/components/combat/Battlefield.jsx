@@ -1,9 +1,8 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { controllerFor } from '../../actors/controllers.js'
 import { tileKey } from '../../combat/battleMap.js'
 import { getFacing } from '../../combat/combatState.js'
 import { diamond, isBlock, project, pts as points, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
-import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import useWallFade from '../maps/useWallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
@@ -26,40 +25,13 @@ import useCamera from './useCamera.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import TransporterBeam from './TransporterBeam.jsx'
 import ScanPulse from '../exploration/ScanPulse.jsx'
-import { playBeamOutSound, playDeathSound, playFootstep, playKnockoutSound, playRequestSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
+import { playBeamOutSound, playDeathSound, playKnockoutSound, playRequestSound, playScanSound, playWeaponSound } from '../../audio/uiSounds.js'
 import { BEAM_OUT_MS, CHARACTER_SCAN_RADIUS, justFled, SHOT_FIRE_MS, shotOf } from './battleHelpers.js'
+import { BAR_Y, LABEL_Y, mouseOnly, POINTS_Y, useMoveAnimation, VIEW, worldBounds } from './battlefieldShared.js'
 
 // Isometric projection of the logical grid, shared with every map view (src/maps/iso.js), drawn with the shared tile PNGs.
-// The camera (useCamera) picks which 1024 x 576 window of the world is shown. The grid itself stays hidden.
-const VIEW = { width: 1024, height: 576 }
-// Extra world space around the map so its edges can be scrolled out from under the HUD panels.
-const HUD_MARGIN = { x: 200, top: 150, bottom: 110 }
-
-const worldBounds = (map) => ({
-  minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
-  maxX: (map.width * TILE_W) / 2 + HUD_MARGIN.x,
-  minY: -TILE_H / 2 - TALL_WALL_EXTRA - HUD_MARGIN.top,
-  maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
-})
+// The grid itself stays hidden.
 const tileCentre = (position) => project(position)
-
-// Presentation only: walks the last moved unit along its path one tile at a time. Combat state has already moved it.
-function useMoveAnimation(lastMove, msPerTile) {
-  const key = lastMove?.key ?? null
-  const [step, setStep] = useState({ key, index: Infinity })
-  if (step.key !== key) setStep({ key, index: 0 })
-  const animating = Boolean(lastMove) && step.key === key && step.index < lastMove.path.length - 1
-  useEffect(() => {
-    if (!animating) return undefined
-    playFootstep(step.index)
-    const timer = setTimeout(() => setStep((current) => ({ ...current, index: current.index + 1 })), msPerTile)
-    return () => clearTimeout(timer)
-  }, [animating, step.index, msPerTile])
-  if (!animating) return null
-  const here = lastMove.path[step.index]
-  const next = lastMove.path[step.index + 1]
-  return { id: lastMove.combatantId, position: here, facing: { x: Math.sign(next.x - here.x), y: Math.sign(next.y - here.y) } }
-}
 
 // Two tile-key sets (either of which may be absent) holding the same keys.
 const sameKeys = (a, b) => a === b || (a?.size === b?.size && [...(a ?? [])].every((key) => b.has(key)))
@@ -140,10 +112,6 @@ const FloorGrid = memo(
 // turnStatus: { state, turn, movement } for a party member during the party's turn. Actions left (count and pips) and
 // movement tiles left (plus +N Sprint tiles while Sprint is unused) show above them; once the turn is used up they get a grey ring and a check icon.
 // A shield on the portrait marks a unit in cover; it appears once a walk into cover has finished.
-// Hover callbacks fire for a mouse only: a tap on a touch screen also sends hover events, which would fight the tap.
-const mouseOnly = (callback) => (event) => {
-  if (event.pointerType === 'mouse') callback()
-}
 
 // The portrait on a stand, for a character with no full-body sprite set (characterSprites.json).
 function UnitToken({ image, shownImage, clipId, name }) {
@@ -164,12 +132,6 @@ function UnitToken({ image, shownImage, clipId, name }) {
     </>
   )
 }
-
-// Above a standing figure's head (the sprites reach about 63px over their feet; designer request, 2026-10-12): its
-// Stress bar, the turn's action points above that, and a Surrendered / Retreating label on top.
-const BAR_Y = -76
-const POINTS_Y = -88
-const LABEL_Y = -102
 
 // isBystander: an NPC in the world that is not in the fight; drawn where it stands, never interactive.
 // lastAction / speed: state.lastAction and the Auto Combat speed, for the figure's strike, fall and getting up.
@@ -328,7 +290,7 @@ function wideOf(from, to) {
 // Keyed by the action, so each new action replays its animation once. A shot (battleHelpers shotOf) plays when the
 // roll is resolved: the weapon fires SHOT_FIRE_MS into the attacker's strike, and the hit label, the impact and the
 // knockout or death sound wait until it lands. All divided by the Auto Combat speed.
-function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
+export function ActionEffects({ state, positionOf, msPerTile, speed, hiddenIds }) {
   const action = state.lastAction
   const shot = shotOf(state, action)
   // Speed is read from a ref so changing it mid-shot doesn't fire the sound a second time.

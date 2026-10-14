@@ -170,7 +170,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   if (playTeam) {
     return (
       <Suspense fallback={null}>
-        <ExplorationPlaytest map={map} characters={playTeam} enemiesActive={enemiesActive} onExit={() => setPlayTeam(null)} />
+        <ExplorationPlaytest map={map} characters={playTeam} savedCharacters={savedCharacters} enemiesActive={enemiesActive} onExit={() => setPlayTeam(null)} />
       </Suspense>
     )
   }

@@ -2,120 +2,63 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { directionFor, getSpriteAnimation, getSpriteMetrics, getSpriteSetById, spriteMaskFile, spriteSheetColumns, spriteSheetFile } from '../../rules/appearance.js'
 import useIdleFidget from './useIdleFidget.js'
 import useRecolouredSheet from './useRecolouredSheet.js'
+import { gaitDelay, lastColumn, loopOffset, oneShotKey, restColumn, startOf } from './spriteTiming.js'
 
 const METRICS = getSpriteMetrics()
 const frameSize = (sheet) => ({ width: sheet.frame.width * sheet.resolution, height: sheet.frame.height * sheet.resolution })
-const keyframeName = (name) => `char-sprite-${name}`
-// The last frame a non-looping animation shows (a loop slides on to the next frame's edge and starts again).
-const lastColumn = ({ start, frames, play }) => (play === 'loop' ? start + frames : start + frames - 1)
 
-// One keyframe animation per animation in characterSprites.json, sliding its sheet a frame at a time along the row
-// (the steps are set where it is used), so the figures animate without re-rendering. Added to the page once.
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style')
-  style.dataset.characterSprites = ''
-  style.textContent = Object.values(METRICS.sheets)
-    .flatMap((sheet) =>
-      Object.entries(sheet.animations).map(([name, animation]) => {
-        const width = frameSize(sheet).width
-        return `@keyframes ${keyframeName(name)} { from { transform: translateX(${-animation.start * width}px); } to { transform: translateX(${-lastColumn(animation) * width}px); } }`
-      }),
-    )
-    .join('\n')
-  document.head.appendChild(style)
-}
-
-// A stable 0..1 from a figure's id, mixed so ids that differ by one letter still land far apart.
-function hashOf(seed) {
-  let h = 0
-  for (const character of String(seed)) h = (Math.imul(h, 31) + character.charCodeAt(0)) | 0
-  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b)
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35)
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296
-}
-// Where in its loops a figure starts, so neighbours don't breathe or step in time.
-const phaseOf = (seed) => hashOf(seed)
-
-// The maps move a figure's element about as it walks (re-sorted among the walls, into another occlusion window), and a
-// CSS animation starts over whenever its element is put back in the page. So each animation is timed from a fixed
-// point instead: a loop from the page clock (offset by the figure's phase), a one-shot from when it first played.
-// 'seed|name|playKey|reverse' -> performance.now() when that one-shot began.
-const oneShotStarts = new Map()
-const ONE_SHOTS_KEPT = 200
-function startOf(key, now) {
-  if (!oneShotStarts.has(key)) {
-    if (oneShotStarts.size >= ONE_SHOTS_KEPT) oneShotStarts.delete(oneShotStarts.keys().next().value)
-    oneShotStarts.set(key, now)
-  }
-  return oneShotStarts.get(key)
-}
-
-// The walking loops share one stride (each starts with the same foot forward), so a figure switching between them
-// carries on from the same point in its step instead of jumping to another foot: seed -> { name, seconds, offset }, the
-// gait it last walked and where in the stride (0..1) that loop stood at time 0.
-const GAITS = new Set(['walk', 'run', 'sneakWalk'])
-const gaitClocks = new Map()
-const wrap = (value) => value - Math.floor(value)
-function loopOffset(animation, seed, phase, nowSeconds) {
-  const fallback = phase ?? phaseOf(seed)
-  if (!GAITS.has(animation.name)) return fallback
-  const last = gaitClocks.get(seed)
-  const offset = !last ? fallback : last.name === animation.name ? last.offset : wrap(nowSeconds / last.seconds + last.offset - nowSeconds / animation.seconds)
-  gaitClocks.set(seed, { name: animation.name, seconds: animation.seconds, offset })
-  return offset
-}
-
-// The movement simulation's walking and running can flick for a moment (speed hovering at the walk/run line, a
-// follower easing into its slot, a pause while sidestepping), which would swap the loop every few frames. So a new gait
-// is only shown once it has held for GAIT_SETTLE_MS; setting off from standing still shows at once, and stopping shows
-// after STOP_SETTLE_MS (just long enough to ride out a one-frame pause, so the figure stops when the character does).
-const GAIT_SETTLE_MS = 250
-const STOP_SETTLE_MS = 100
-const STANDING = new Set(['idle', 'sneakIdle'])
+// A new gait is only shown once it has held a moment (spriteTiming.js gaitDelay), so a flicker between walking and
+// running doesn't swap the loop every few frames.
 function useSteadyGait(gait) {
   const [steady, setSteady] = useState(gait)
-  const immediate = STANDING.has(steady) && !STANDING.has(gait)
+  const immediate = gaitDelay(steady, gait) === 0 && gait !== steady
   useEffect(() => {
     if (gait === steady) return undefined
-    const delay = immediate ? 0 : STANDING.has(gait) ? STOP_SETTLE_MS : GAIT_SETTLE_MS
-    const timer = setTimeout(() => setSteady(gait), delay)
+    const timer = setTimeout(() => setSteady(gait), gaitDelay(steady, gait))
     return () => clearTimeout(timer)
-  }, [gait, steady, immediate])
+  }, [gait, steady])
   return immediate ? gait : steady
 }
 
-// The image's inline style. Its transform is the frame shown without animation (reduced motion): a loop's first, a
-// once's middle, a hold's last (or first, played backwards). now: performance.now() when the image was put on the page.
-function animationStyle(animation, { seed, phase, settled, reverse, speed, playKey, now }) {
+// The image's inline style and its animation. The style's transform is the frame shown without animation (reduced
+// motion): a loop's first, a once's middle, a hold's last (or first, played backwards). The plan is element.animate's
+// keyframes and options, and how far into it (ms) the animation stands at now, or null for none.
+// now: performance.now() when the image was put on the page.
+function animationPlan(animation, { seed, phase, settled, reverse, speed, playKey, now }) {
   const width = frameSize(animation.sheet).width
   const { start, frames, seconds, play } = animation
-  const rest = play === 'loop' ? start : play === 'once' ? start + Math.floor(frames / 2) : reverse ? start : start + frames - 1
+  const rest = restColumn(animation, reverse)
   const style = { transform: `translateX(${-rest * width}px)` }
+  const keyframes = [{ transform: `translateX(${-start * width}px)` }, { transform: `translateX(${-lastColumn(animation) * width}px)` }]
   if (play === 'loop') {
-    const delay = -((now / 1000 + loopOffset(animation, seed, phase, now / 1000) * seconds) % seconds)
-    style.animation = `${keyframeName(animation.name)} ${seconds}s steps(${frames}) ${delay}s infinite`
-  } else if (!settled) {
-    const delay = -(now - startOf(`${seed}|${animation.name}|${playKey}|${reverse}`, now)) / 1000
-    style.animation = `${keyframeName(animation.name)} ${seconds / speed}s steps(${frames}, jump-none) ${delay}s 1 ${reverse ? 'reverse' : 'normal'} both`
+    const elapsed = ((now / 1000 + loopOffset(animation, seed, phase, now / 1000) * seconds) % seconds) * 1000
+    return { style, plan: { keyframes, options: { duration: seconds * 1000, iterations: Infinity, easing: `steps(${frames})` }, elapsed } }
   }
-  return style
+  if (settled) return { style, plan: null }
+  const elapsed = now - startOf(oneShotKey(seed, animation.name, playKey, reverse), now)
+  const options = { duration: (seconds / speed) * 1000, iterations: 1, easing: `steps(${frames}, jump-none)`, direction: reverse ? 'reverse' : 'normal', fill: 'both' }
+  return { style, plan: { keyframes, options, elapsed } }
 }
 
-// The sheet image, its animation timed when it is put on the page (so re-renders leave it running undisturbed).
-// The board re-sorts its figures by depth as they pass one another, which moves this element in the page, and a moved
-// element's CSS animation starts over from the delay it was given when it first appeared. Done every frame (followers
-// jostling in formation), the figure froze on that first frame. So after each render the animation's clock is set back
-// to the time since it appeared, before the frame is painted.
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+// The sheet image, its animation started when it is put on the page (so re-renders leave it running undisturbed).
+// The board re-sorts its figures by depth as they pass one another, which moves this element in the page. A CSS
+// animation starts over whenever its element is moved; a script animation (element.animate) keeps its place on the
+// page clock, so the figure walks on without being re-timed after every render.
 function SheetImage({ animation, timing, ...image }) {
   const ref = useRef(null)
-  const [{ style, shownAt }] = useState(() => {
+  const [{ style, plan, shownAt }] = useState(() => {
     const now = performance.now()
-    return { style: animationStyle(animation, { ...timing, now }), shownAt: now }
+    return { ...animationPlan(animation, { ...timing, now }), shownAt: now }
   })
   useLayoutEffect(() => {
-    const running = ref.current?.getAnimations?.()[0]
-    if (running) running.currentTime = performance.now() - shownAt
-  })
+    const element = ref.current
+    if (!plan || !element?.animate || reducedMotion()) return undefined
+    const running = element.animate(plan.keyframes, plan.options)
+    running.currentTime = plan.elapsed + performance.now() - shownAt
+    return () => running.cancel()
+  }, [plan, shownAt])
   return <image ref={ref} className="char-sprite-sheet" {...image} style={style} />
 }
 

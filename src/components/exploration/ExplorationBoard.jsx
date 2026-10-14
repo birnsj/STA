@@ -1,20 +1,17 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { controllerFor } from '../../actors/controllers.js'
-import { dispositionName, getNpcs, isDown, isHostile, stateName } from '../../exploration/awareness.js'
-import { getFormation, slotPoint } from '../../exploration/formations.js'
-import { getFollowTargets, getMembers, isSelected } from '../../exploration/partyControl.js'
-import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE, VISION_RANGE } from '../../exploration/partyKnowledge.js'
+import { getNpcs, isHostile } from '../../exploration/awareness.js'
+import { getMembers, isSelected } from '../../exploration/partyControl.js'
+import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import LastKnownMarker from '../combat/LastKnownMarker.jsx'
 import TransporterBeam from '../combat/TransporterBeam.jsx'
 import ScanPulse from './ScanPulse.jsx'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
-import { isBlock, project, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
-import { getTile, imageSize } from '../../maps/mapFormat.js'
+import { isBlock, project, unproject } from '../../maps/iso.js'
 import { LoneTile, WallBlock } from '../maps/IsoTiles.jsx'
-import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import useWallFade from '../maps/useWallFade.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
-import { BIG_IMAGE, fadeWholeBigObjects } from '../../maps/bigObjects.js'
+import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from '../maps/canvasTiles.js'
 import { around, labelHalfWidth } from '../maps/occlusion.js'
@@ -24,40 +21,36 @@ import useStableSet from '../maps/useStableSet.js'
 import { useUniformImage } from '../useUniformImage.js'
 import CharacterSprite from '../maps/CharacterSprite.jsx'
 import FacingArrow from '../maps/FacingArrow.jsx'
-import { defeatAnimation, getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
+import { defeatAnimation, hasCharacterSprite } from '../../rules/appearance.js'
+import {
+  artTopY,
+  BOX_MIN_DRAG,
+  CLICK_MAX_MS,
+  CLICK_PULSE_MS,
+  FIGURE_SCALE,
+  figureInBox,
+  highlightBox,
+  highlightTiles,
+  HOLD_INTERVAL_MS,
+  HOLD_MIN_CHANGE,
+  MARKER_DIAMOND,
+  MARKER_HEIGHT,
+  MARKER_NAME,
+  MARKER_STATE,
+  NPC_TAG_DOWN_Y,
+  NPC_TAG_Y,
+  OUTLINE_COLOURS,
+  STRIDE_SPREAD,
+  VIEW,
+  worldBounds,
+} from './boardGeometry.js'
+import { DebugOverlay, NpcDebugOverlay, PerceptionDebugOverlay } from './BoardDebugOverlays.jsx'
 
 // The exploration view: the same isometric tiles and camera as combat (WASD / arrows or right-drag pan, wheel zooms),
 // with characters at continuous positions. Left click orders a move; holding the left button keeps steering the
 // lead character toward the pointer. The map is drawn into canvases (MapCanvas); the figures are SVG over it, each
 // group with the blocks in front of it drawn over it again (occlusion.js). Presentation and input only; positions come
 // from partyControl.js.
-const VIEW = { width: 1024, height: 576 }
-const HUD_MARGIN = { x: 200, top: 150, bottom: 130 }
-// While the left button is held the destination follows the pointer, re-sent at most this often...
-const HOLD_INTERVAL_MS = 90
-// ...and only when the point under the pointer moved this far (in tiles).
-const HOLD_MIN_CHANGE = 0.2
-// A press released this quickly, without steering, is a click: it gets the ground ring. Holds don't.
-const CLICK_MAX_MS = 250
-// How long the ring stays (its CSS animation, explore-click-pulse, runs 380ms).
-const CLICK_PULSE_MS = 400
-// A right-button press must move this far (screen pixels) before it draws a selection box.
-const BOX_MIN_DRAG = 6
-// Figures are drawn this much larger than their frames (characterSprites.json displayScale), so their windows are too.
-const FIGURE_SCALE = getSpriteMetrics().displayScale ?? 1
-// The party's starting points are spread evenly over half a stride, not a whole one: half a stride apart, a walk looks
-// the same with the legs swapped.
-const STRIDE_SPREAD = 0.5
-// A character is in the box when any of their figure (feet at the point, about 50 high, 20 wide) is.
-const figureInBox = (feet, a, b) =>
-  feet.x + 10 >= Math.min(a.x, b.x) && feet.x - 10 <= Math.max(a.x, b.x) && feet.y >= Math.min(a.y, b.y) && feet.y - 50 <= Math.max(a.y, b.y)
-
-const worldBounds = (map) => ({
-  minX: -(map.height * TILE_W) / 2 - HUD_MARGIN.x,
-  maxX: (map.width * TILE_W) / 2 + HUD_MARGIN.x,
-  minY: -TILE_H / 2 - TALL_WALL_EXTRA - HUD_MARGIN.top,
-  maxY: ((map.width + map.height - 1) * TILE_H) / 2 + HUD_MARGIN.bottom,
-})
 
 // Read only from pointer handlers, never while rendering.
 const clockNow = () => performance.now()
@@ -134,10 +127,6 @@ function ExplorerFigure({ image, uniform = null, spriteSet = null, walking = fal
   )
 }
 
-// The NPC's name tag: over the head where the party's LEAD tag goes, or just above a body lying down.
-const NPC_TAG_Y = -58
-const NPC_TAG_DOWN_Y = -22
-
 // An NPC on the map. Not clickable: a click on it is a move order to that spot.
 // unperceived: shown only because the debug view is on (the party can't see it now).
 function NpcToken({ npc, unperceived = false, onPress = null }) {
@@ -170,166 +159,13 @@ function NpcToken({ npc, unperceived = false, onPress = null }) {
   )
 }
 
-const svgPoints = (list) => list.map((point) => project(point)).map(({ x, y }) => `${x},${y}`).join(' ')
-
-// Developer view: each character's route and destination, and each follower's formation slot (dashed ring where the
-// formation would put them, solid dot where walls let them stand).
-function DebugOverlay({ state }) {
-  const formation = getFormation(state.formationId)
-  const followTargets = getFollowTargets(state)
-  return (
-    <g className="explore-debug" pointerEvents="none">
-      {getMembers(state).map((member) => {
-        const here = project(member.position)
-        const items = []
-        if (member.path.length) {
-          items.push(<polyline key="route" className="explore-debug-route" points={svgPoints([member.position, ...member.path])} />)
-        }
-        if (member.order?.type === 'point') {
-          const end = project(member.order.target)
-          items.push(<ellipse key="target" className="explore-debug-target" cx={end.x} cy={end.y} rx="10" ry="5" />)
-        }
-        if (member.order?.type === 'follow') {
-          const leader = state.members[member.order.leaderId]
-          const ideal = project(slotPoint(formation, member.order.slot, leader.position, leader.heading, state.spacing))
-          const actual = project(followTargets[member.id])
-          items.push(
-            <ellipse key="ideal" className="explore-debug-slot-ideal" cx={ideal.x} cy={ideal.y} rx="9" ry="4.5" />,
-            <circle key="slot" className="explore-debug-slot" cx={actual.x} cy={actual.y} r="3.5" />,
-            <text key="slotLabel" className="explore-debug-label" x={actual.x} y={actual.y - 6} textAnchor="middle">
-              {member.order.slot + 1}
-            </text>,
-          )
-        }
-        items.push(
-          <text key="name" className="explore-debug-label" x={here.x} y={here.y + 22} textAnchor="middle">
-            {member.character.name} ({member.position.x.toFixed(2)}, {member.position.y.toFixed(2)})
-          </text>,
-        )
-        return <g key={member.id}>{items}</g>
-      })}
-    </g>
-  )
-}
-
-const arc = (centre, radius, from, to, steps = 18) =>
-  Array.from({ length: steps + 1 }, (_, i) => {
-    const angle = from + ((to - from) * i) / steps
-    return { x: centre.x + Math.cos(angle) * radius, y: centre.y + Math.sin(angle) * radius }
-  })
-const stateClass = (state) => `is-${state.toLowerCase().replace('_', '-')}`
-
-// Developer view of NPC awareness: vision cone (outer edge = vision range; inner arcs = normal and close range),
-// hearing range, a line to each party member the NPC sees right now, the place it is investigating, the last place it
-// saw each character it has lost, recent noises, and a label with its disposition, awareness, target and alert group.
-function NpcDebugOverlay({ world, party }) {
-  return (
-    <g className="explore-debug npc-debug" pointerEvents="none">
-      {world.noises.map((noise, i) => (
-        <polygon key={`noise${i}`} className="npc-debug-noise" points={svgPoints(arc(noise.position, noise.radius, 0, Math.PI * 2, 36))} />
-      ))}
-      {getNpcs(world).filter((npc) => !isDown(npc)).map((npc) => {
-        const p = npc.perception
-        const half = (p.fieldOfView * Math.PI) / 360
-        const from = npc.heading - half
-        const to = npc.heading + half
-        const here = project(npc.position)
-        const name = (id) => party.members[id]?.character.name ?? id
-        const focus = npc.focusId ? npc.awareness[npc.focusId] : null
-        return (
-          <g key={npc.id} className={stateClass(npc.state)}>
-            <polygon className="npc-debug-cone" points={svgPoints([npc.position, ...arc(npc.position, p.visionRange, from, to)])} />
-            <polyline className="npc-debug-range" points={svgPoints(arc(npc.position, p.normalRange, from, to))} />
-            <polyline className="npc-debug-range" points={svgPoints(arc(npc.position, p.closeRange, from, to))} />
-            <polygon className="npc-debug-hearing" points={svgPoints(arc(npc.position, p.hearingRange, 0, Math.PI * 2, 36))} />
-            {npc.visibleIds.map((id) => (
-              <polyline key={`sees${id}`} className={`npc-debug-sight ${stateClass(npc.awareness[id].state)}`} points={svgPoints([npc.position, party.members[id].position])} />
-            ))}
-            {Object.entries(npc.awareness).map(([id, record]) => {
-              if (record.state === 'UNAWARE' || npc.visibleIds.includes(id) || !record.lastKnownPosition) return null
-              const spot = project(record.lastKnownPosition)
-              return (
-                <g key={`last${id}`}>
-                  <ellipse className="npc-debug-last-known" cx={spot.x} cy={spot.y} rx="12" ry="6" />
-                  <text className="explore-debug-label" x={spot.x} y={spot.y + 16} textAnchor="middle">
-                    {npc.name}: last saw {name(id)}
-                  </text>
-                </g>
-              )
-            })}
-            {npc.investigation && (
-              <g>
-                <polyline className="npc-debug-investigate-line" points={svgPoints([npc.position, npc.investigation.position])} />
-                <text className="npc-debug-investigate" x={project(npc.investigation.position).x} y={project(npc.investigation.position).y + 4} textAnchor="middle">
-                  ?
-                </text>
-              </g>
-            )}
-            <text className="explore-debug-label npc-debug-label" x={here.x} y={here.y - 96} textAnchor="middle">
-              <tspan x={here.x}>{npc.name}</tspan>
-              <tspan x={here.x} dy="11">Disposition: {dispositionName(npc.disposition)}</tspan>
-              <tspan x={here.x} dy="11">Awareness: {stateName(npc.state)}</tspan>
-              <tspan x={here.x} dy="11">Target: {npc.focusId ? `${name(npc.focusId)} (${Math.round(focus.confidence * 100)}%)` : '-'}</tspan>
-              <tspan x={here.x} dy="11">Alert Group: {npc.alertGroupId ?? '-'}</tspan>
-            </text>
-          </g>
-        )
-      })}
-    </g>
-  )
-}
-
 const challengeClasses = (base, view, inReach) => [base, view.changed ? 'is-changed' : 'is-unresolved', inReach ? 'is-in-reach' : ''].filter(Boolean).join(' ')
 const challengeTitle = (view, inReach) => `${view.name}: ${view.stateLabel}${inReach ? ' (click to interact)' : ''}`
-
-// The tiles a challenge object's art is drawn on, in painter's order: its own and its covers, and the whole footprint of
-// a big object (bigObjects.js), which draws its image in strips from three of its four tiles.
-function highlightTiles(tiles, bigGroups) {
-  const keyed = new Map()
-  for (const tile of tiles) {
-    const origin = bigGroups.get(`${tile.x},${tile.y}`)
-    const footprint = origin ? [origin, { x: origin.x + 1, y: origin.y }, { x: origin.x, y: origin.y + 1 }, { x: origin.x + 1, y: origin.y + 1 }] : [tile]
-    for (const point of footprint) keyed.set(`${point.x},${point.y}`, point)
-  }
-  return [...keyed.values()].sort((a, b) => a.x + a.y - (b.x + b.y))
-}
-
-// The world rect the highlighted art (and its glow) is drawn in, for occlusion.
-const HIGHLIGHT_GLOW = 6
-function highlightBox(map, bigGroups, tiles) {
-  const boxes = tiles.map((tile) => {
-    const origin = bigGroups.get(`${tile.x},${tile.y}`)
-    if (origin) {
-      const centre = project({ x: origin.x + 0.5, y: origin.y + 0.5 })
-      return { x: centre.x - BIG_IMAGE.width / 2, y: centre.y + TILE_H - BIG_IMAGE.height, width: BIG_IMAGE.width, height: BIG_IMAGE.height }
-    }
-    return tileImageBox(tile, imageSize(getTile(map.tiles[tile.y][tile.x])))
-  })
-  const left = Math.min(...boxes.map((box) => box.x)) - HIGHLIGHT_GLOW
-  const top = Math.min(...boxes.map((box) => box.y)) - HIGHLIGHT_GLOW
-  const right = Math.max(...boxes.map((box) => box.x + box.width)) + HIGHLIGHT_GLOW
-  const bottom = Math.max(...boxes.map((box) => box.y + box.height)) + HIGHLIGHT_GLOW
-  return { x: left, y: top, width: right - left, height: bottom - top }
-}
-
-// The world y of the top of the object's art: each tile's top face peak (tiles.json height above its floor diamond's
-// top corner), so the marker isn't pushed up by the empty space above the art in a tile image. A big object without a
-// height falls back to its image's top edge.
-function artTopY(map, bigGroups, tiles, art) {
-  return Math.min(
-    ...tiles.map((tile) => {
-      const { height } = getTile(map.tiles[tile.y][tile.x])
-      if (bigGroups.has(`${tile.x},${tile.y}`) && !height) return art.y + HIGHLIGHT_GLOW
-      return project(tile).y - TILE_H / 2 - (height ?? 0)
-    }),
-  )
-}
 
 // The outline filters: the art's silhouette grown by a pixel or two, less the art itself, so only a ring round it is
 // drawn and the map's own art (faded or not) shows through. The glow variant adds a soft halo outside the ring. One
 // pair per state colour (exploration.css .challenge-marker uses the same colours): a filter's flood colour can't come
 // from the element it is applied to.
-const OUTLINE_COLOURS = { unresolved: '#f6b928', changed: '#4fd6c4' }
 function ObjectOutlineFilters({ prefix }) {
   return (
     <defs>
@@ -381,13 +217,6 @@ function ObjectHighlight({ view, tiles, layout, filterPrefix, inReach, onPress }
   )
 }
 
-// Where the marker's parts sit above the top of the object's art (y up from it): the diamond just over the art, then
-// the state, then the name on top.
-const MARKER_DIAMOND = 4
-const MARKER_STATE = 28
-const MARKER_NAME = 39
-const MARKER_HEIGHT = MARKER_NAME + 12
-
 // A challenge object on the map: its name, current state and a diamond stacked above its art (ObjectHighlight).
 // artTop: the art's top, in world units above the object's tile centre. In reach = a party member can act on it now;
 // clicking it then opens the interaction (a click elsewhere on the map stays a move order).
@@ -404,36 +233,6 @@ function ChallengeMarker({ view, artTop, inReach, onPress }) {
       <text className="challenge-marker-state" x="0" y={-artTop - MARKER_STATE} textAnchor="middle">
         {view.stateLabel}
       </text>
-    </g>
-  )
-}
-
-// Developer view of the away team's perception: each member's vision radius, a ray to every NPC they see themselves,
-// and under each NPC what the party knows of it (Visible with its observers, Known, or Unknown).
-function PerceptionDebugOverlay({ party, world, knowledge }) {
-  const name = (id) => party.members[id]?.character.name ?? id
-  return (
-    <g className="explore-debug perception-debug" pointerEvents="none">
-      {getMembers(party)
-        .filter((member) => knowledge.sightings[member.id])
-        .map((member) => (
-          <g key={member.id}>
-            <polygon className="perception-debug-radius" points={svgPoints(arc(member.position, VISION_RANGE, 0, Math.PI * 2, 48))} />
-            {knowledge.sightings[member.id].map((npcId) => (
-              <polyline key={npcId} className="perception-debug-ray" points={svgPoints([member.position, world.npcs[npcId].position])} />
-            ))}
-          </g>
-        ))}
-      {getNpcs(world).map((npc) => {
-        const entry = getEntityKnowledge(knowledge, npc.id)
-        const here = project(npc.position)
-        return (
-          <text key={npc.id} className={`explore-debug-label perception-debug-label is-${entry.state.toLowerCase()}`} x={here.x} y={here.y + 18} textAnchor="middle">
-            Party: {entry.state}
-            {entry.observerIds.length ? ` (${entry.observerIds.map(name).join(', ')})` : ''}
-          </text>
-        )
-      })}
     </g>
   )
 }
@@ -461,7 +260,7 @@ function ClickPulse({ point }) {
 // { objectId, buttons } over that challenge object (UnitActionRing), or null; NPC and object menus also carry the
 // ring's party band and button hover (party, onButtonHover); an object menu may carry slotRef (the slot above its ring).
 // beamIn: the away team beaming in as the mission starts ('waiting' | 'beaming' | 'done', useBeamIn). Members beaming
-// out (member.beaming) fade away in a transporter beam.
+// out (member.beaming) fade away in a transporter beam; members beamed in later (member.arriving) appear in one.
 // scanPulse: a party Scan's sweeps to play ({ key, rings: [{ origin, radius }], onDone }, ScanPulse) or null.
 // onCameraPan(): the player panned the camera while it followed the lead (the screen turns following off).
 export default function ExplorationBoard({ state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null }) {
@@ -655,9 +454,9 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
           stridePhase={(index * STRIDE_SPREAD) / members.length}
           selected={isSelected(state, member.id)}
           lead={member.id === state.leaderId}
-          beamIn={beamIn === 'done' ? null : beamIn}
+          beamIn={beamIn === 'done' ? (member.arriving ? 'beaming' : null) : beamIn}
           beamingOut={Boolean(member.beaming)}
-          onPress={member.beaming ? undefined : pressMember(member.id)}
+          onPress={member.beaming || member.arriving ? undefined : pressMember(member.id)}
         />
       ),
     })),
@@ -709,7 +508,11 @@ export default function ExplorationBoard({ state, world, knowledge, challenges =
       <MapCanvas layout={layout} faded={faded} holes={holes} ground={ground}>
         {windows}
       </MapCanvas>
-      {beamIn === 'beaming' && getMembers(state).map((member) => <TransporterBeam key={`beam-${member.id}`} position={project(member.position)} direction="in" />)}
+      {getMembers(state)
+        .filter((member) => beamIn === 'beaming' || member.arriving)
+        .map((member) => (
+          <TransporterBeam key={`beam-${member.id}`} position={project(member.position)} direction="in" />
+        ))}
       {getMembers(state)
         .filter((member) => member.beaming)
         .map((member) => (

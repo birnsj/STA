@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { diamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
 import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
@@ -6,14 +6,18 @@ import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import useCamera from '../combat/useCamera.js'
+import { SVG_BOARDS } from './boardRenderer.js'
 import { boardLayout } from './canvasTiles.js'
 import { LoneTile } from './IsoTiles.jsx'
 import MapCanvas from './MapCanvas.jsx'
+import { startMapScene } from './pixi/mapScene.js'
+import usePixiScene from './pixi/usePixiScene.js'
 
-// The map editor's board: the map drawn as exploration and combat draw it (MapCanvas) under one clickable
-// floor-level outline of the whole map; the tile under the pointer is worked out from where its floor would be (blocks
-// never take clicks). The markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through
-// blocks shows what is behind blocks.
+// The map editor's board: the map drawn as exploration and combat draw it (with PixiJS behind the SVG, pixi/mapScene.js;
+// or MapCanvas inside it with ?board=svg or where WebGL won't start) under one clickable floor-level outline of the
+// whole map; the tile under the pointer is worked out from where its floor would be (blocks never take clicks). The
+// markers, labels, brush and hover outline are SVG on top. Nothing fades here; See-through blocks shows what is behind
+// blocks.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
 
@@ -123,6 +127,12 @@ export default function EditorBoard({
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const hoverRef = useRef(null)
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current))
+  const sceneRef = useRef(null)
+  useLayoutEffect(() => {
+    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, svg: dragHandlers.ref.current }
+  })
+  const { hostRef, failed } = usePixiScene(SVG_BOARDS ? null : (host, isCancelled) => startMapScene(host, () => sceneRef.current, isCancelled))
+  const pixi = !SVG_BOARDS && !failed
   const [hover, setHoverState] = useState(null)
   // Only a move onto another tile counts, so the board re-renders once per tile crossed rather than per pointer move.
   const setHover = (position) => {
@@ -161,83 +171,86 @@ export default function EditorBoard({
   )
 
   return (
-    <svg
-      className="me-board"
-      viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
-      {...dragHandlers}
-      onPointerLeave={() => setHover(null)}
-    >
-      <MapCanvas layout={layout} ghost={ghostBlocks} lighting={lighting} animate={animate} />
-      <polygon
-        className="me-cells"
-        points={outline}
-        onPointerDown={(event) => {
-          const position = event.button === 0 ? tileAt(event, map) : null
-          if (!position) return
-          painting.current = true
-          setHover(position)
-          onPaint(position, { first: true })
-        }}
-        onPointerMove={(event) => {
-          const position = tileAt(event, map)
-          const moved = position?.x !== hover?.x || position?.y !== hover?.y
-          setHover(position)
-          if (position && moved && painting.current) onPaint(position, { first: false })
-        }}
+    <>
+      {pixi && <div className="pixi-board-host" ref={hostRef} />}
+      <svg
+        className="me-board"
+        viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
+        {...dragHandlers}
         onPointerLeave={() => setHover(null)}
-      />
-      <g className="me-overlay">
-        {map.areas.map((area) => {
-          const p = project(area.position)
-          return (
-            <text
-              key={`${area.position.x},${area.position.y}`}
-              className={`me-area-label${doomed(area.position) ? ' is-doomed' : ''}`}
-              x={p.x}
-              y={p.y + 4}
-              textAnchor="middle"
-            >
-              {area.name.toUpperCase()}
-            </text>
-          )
-        })}
-        {challengeDefinitionsFor(map).map((definition) => (
-          <Marker
-            key={`c${definition.id}`}
-            position={{ x: definition.position[0], y: definition.position[1] }}
-            kind="object"
-            label="C"
-            title={`${definition.name} (${definition.id})`}
-            selected={definition.id === selectedObjectId}
-          />
-        ))}
-        {map.markers.playerStarts.map((start, index) => (
-          <Marker key={`p${start.x},${start.y}`} position={start} kind="player" label={`P${index + 1}`} doomed={doomed(start)} selected={isSelected('playerStarts', start)} facing={npcAt(map, start) ? null : snapFacing(spawnFacing(map, start))} />
-        ))}
-        {map.markers.enemySpawns.map((spawn, index) => (
-          <Marker key={`e${spawn.x},${spawn.y}`} position={spawn} kind="enemy" label={`E${index + 1}`} doomed={doomed(spawn)} selected={isSelected('enemySpawns', spawn)} facing={npcAt(map, spawn) ? null : snapFacing(spawnFacing(map, spawn))} />
-        ))}
-        {(map.npcs ?? []).map((npc) => (
-          <Marker
-            key={`n${npc.id}`}
-            position={npc.position}
-            kind={isHostile(npc) ? 'enemy' : 'npc'}
-            label={npc.conversationId ? 'N…' : 'N'}
-            title={`${npc.name || npc.characterId || npc.id}${npc.conversationId ? ` (conversation ${npc.conversationId})` : ''}`}
-            doomed={doomed(npc.position)}
-            selected={npc.id === selectedNpcId}
-            facing={npc.facing ?? 0}
-          />
-        ))}
-        {(map.objectives ?? []).map((objective, index) => {
-          const position = objectivePosition(map, objective)
-          return position && <Marker key={`o${index}`} position={position} kind="objective" label={`O${index + 1}`} title={`Objective: ${objective.title || objective.id}`} />
-        })}
-        {moveFrom && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
-        {moveFrom && hover && !moveFrom.markers && <MovePreview map={map} from={moveFrom} to={hover} />}
-        {hover && brush && hover.x < map.width && hover.y < map.height && <BrushPreview map={map} position={hover} tileId={brush} rotated={rotated} />}
-        {hover && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
-      </g>
-    </svg>
+      >
+        {!pixi && <MapCanvas layout={layout} ghost={ghostBlocks} lighting={lighting} animate={animate} />}
+        <polygon
+          className="me-cells"
+          points={outline}
+          onPointerDown={(event) => {
+            const position = event.button === 0 ? tileAt(event, map) : null
+            if (!position) return
+            painting.current = true
+            setHover(position)
+            onPaint(position, { first: true })
+          }}
+          onPointerMove={(event) => {
+            const position = tileAt(event, map)
+            const moved = position?.x !== hover?.x || position?.y !== hover?.y
+            setHover(position)
+            if (position && moved && painting.current) onPaint(position, { first: false })
+          }}
+          onPointerLeave={() => setHover(null)}
+        />
+        <g className="me-overlay">
+          {map.areas.map((area) => {
+            const p = project(area.position)
+            return (
+              <text
+                key={`${area.position.x},${area.position.y}`}
+                className={`me-area-label${doomed(area.position) ? ' is-doomed' : ''}`}
+                x={p.x}
+                y={p.y + 4}
+                textAnchor="middle"
+              >
+                {area.name.toUpperCase()}
+              </text>
+            )
+          })}
+          {challengeDefinitionsFor(map).map((definition) => (
+            <Marker
+              key={`c${definition.id}`}
+              position={{ x: definition.position[0], y: definition.position[1] }}
+              kind="object"
+              label="C"
+              title={`${definition.name} (${definition.id})`}
+              selected={definition.id === selectedObjectId}
+            />
+          ))}
+          {map.markers.playerStarts.map((start, index) => (
+            <Marker key={`p${start.x},${start.y}`} position={start} kind="player" label={`P${index + 1}`} doomed={doomed(start)} selected={isSelected('playerStarts', start)} facing={npcAt(map, start) ? null : snapFacing(spawnFacing(map, start))} />
+          ))}
+          {map.markers.enemySpawns.map((spawn, index) => (
+            <Marker key={`e${spawn.x},${spawn.y}`} position={spawn} kind="enemy" label={`E${index + 1}`} doomed={doomed(spawn)} selected={isSelected('enemySpawns', spawn)} facing={npcAt(map, spawn) ? null : snapFacing(spawnFacing(map, spawn))} />
+          ))}
+          {(map.npcs ?? []).map((npc) => (
+            <Marker
+              key={`n${npc.id}`}
+              position={npc.position}
+              kind={isHostile(npc) ? 'enemy' : 'npc'}
+              label={npc.conversationId ? 'N…' : 'N'}
+              title={`${npc.name || npc.characterId || npc.id}${npc.conversationId ? ` (conversation ${npc.conversationId})` : ''}`}
+              doomed={doomed(npc.position)}
+              selected={npc.id === selectedNpcId}
+              facing={npc.facing ?? 0}
+            />
+          ))}
+          {(map.objectives ?? []).map((objective, index) => {
+            const position = objectivePosition(map, objective)
+            return position && <Marker key={`o${index}`} position={position} kind="objective" label={`O${index + 1}`} title={`Objective: ${objective.title || objective.id}`} />
+          })}
+          {moveFrom && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
+          {moveFrom && hover && !moveFrom.markers && <MovePreview map={map} from={moveFrom} to={hover} />}
+          {hover && brush && hover.x < map.width && hover.y < map.height && <BrushPreview map={map} position={hover} tileId={brush} rotated={rotated} />}
+          {hover && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
+        </g>
+      </svg>
+    </>
   )
 }

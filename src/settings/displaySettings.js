@@ -6,7 +6,10 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // fit: show exactly the design size, letterboxed. fixed: always use fixedScale (1 = one design pixel per screen pixel).
 // guideHighlight: the box in character creation that moves to the next section to fill in (src/effects/GuideHighlight.jsx).
 // helpHints: the hint box at the top of combat and exploration (what to click next).
-export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true }
+// wallFade: how walls in front of a character fade on the maps: 'room' (the room's front walls and whole wall sections)
+// or 'single' (one block at a time, only those hiding a character).
+export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, wallFade: 'room' }
+const WALL_FADE_MODES = ['room', 'single']
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
 export const SCALE_MODE_OPTIONS = [
@@ -18,7 +21,8 @@ export const SCALE_MODE_OPTIONS = [
 export function normalizeDisplaySettings(saved) {
   const scaleMode = SCALE_MODE_OPTIONS.some((option) => option.id === saved?.scaleMode) ? saved.scaleMode : DEFAULT_DISPLAY_SETTINGS.scaleMode
   const flag = (key) => (typeof saved?.[key] === 'boolean' ? saved[key] : DEFAULT_DISPLAY_SETTINGS[key])
-  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints') }
+  const wallFade = WALL_FADE_MODES.includes(saved?.wallFade) ? saved.wallFade : DEFAULT_DISPLAY_SETTINGS.wallFade
+  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), wallFade }
 }
 
 // Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide

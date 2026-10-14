@@ -31,7 +31,7 @@ export default function MissionEndDialogs({ state, ending }) {
       {beamOutMember && (
         <ConfirmDialog
           title={`Beam out ${beamOutMember.character.name}?`}
-          message={`${beamOutMember.character.name} leaves the mission and can't come back. Once everyone has beamed out, the mission ends.`}
+          message={`${beamOutMember.character.name} leaves the mission (the Transporter can bring them back). Once everyone has beamed out, the mission ends.`}
           confirmLabel="Beam Out"
           onConfirm={() => {
             ending.cancelBeamOut()

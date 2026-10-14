@@ -150,6 +150,13 @@ function draw(src, colour, backdrop) {
   return cache.get(key)
 }
 
+// useUniformImage for a caller outside React (the Pixi board): resolves to the picture's URL as shown.
+export function uniformImageUrl(src, colour, backdrop = null) {
+  if (!src || !(colour || getPortraitLayers(src))) return Promise.resolve(src)
+  const entry = draw(src, colour, backdrop)
+  return entry.promise ? entry.promise.then(() => cache.get(`${src}|${colour}|${backdrop}`).url) : Promise.resolve(entry.url)
+}
+
 // The portrait `src` as shown: its layers stacked if it has any, over `backdrop` (an image path, from
 // getCharacterBackdrop) and wearing `colour` (from getUniformColour). Null while it is being drawn, so callers keep
 // what they showed before rather than flashing the wrong picture. A picture with neither layers nor a colour is

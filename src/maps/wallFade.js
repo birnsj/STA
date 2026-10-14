@@ -189,12 +189,20 @@ export const NO_WALL_FADE = { map: null, keys: new Set(), spaces: {} }
 
 // The fading blocks to draw see-through now, and the memory for next time. figures: [{ id, position }] (tile
 // positions, fractional while moving). bigGroups: getBigObjects(map) when big objects are drawn, so their tiles are
-// tested against the whole object.
-export function wallFadeStep(map, figures, bigGroups = null, memory = NO_WALL_FADE) {
+// tested against the whole object. mode: 'room' (room cutaway and wall sections) or 'single' (Settings: each block
+// fades on its own while it hides a figure, as before the 2026-10-09 cutaway; the stickiness margin still applies).
+export function wallFadeStep(map, figures, bigGroups = null, memory = NO_WALL_FADE, mode = 'room') {
   const previous = memory.map === map ? memory : NO_WALL_FADE
   const keys = new Set()
   const spaces = {}
   if (!figures.length) return { map, keys, spaces }
+  if (mode === 'single') {
+    for (const { key, shape } of fadingBlocks(map, bigGroups)) {
+      const margin = previous.keys.has(key) ? tuning.releaseMargin : 0
+      if (figures.some(({ position }) => hides(shape, position, margin))) keys.add(key)
+    }
+    return { map, keys, spaces }
+  }
   const { spaceAt, spaces: spaceList, sectionOf, frontGroupOf } = analyseWalls(map)
   // The front walls of the rooms the figures are in: only their distance from a side decides those.
   const ownFront = new Set()

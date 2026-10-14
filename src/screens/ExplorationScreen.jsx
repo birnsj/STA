@@ -9,9 +9,13 @@ import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
+import TransporterDialog from '../components/exploration/TransporterDialog.jsx'
+import useTransporter from '../components/exploration/useTransporter.js'
+import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
 import { loadConversation } from '../conversation/conversationFiles.js'
 import ExplorationBoard from '../components/exploration/ExplorationBoard.jsx'
+import PixiExplorationBoard from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
 import { memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
@@ -20,6 +24,7 @@ import useExplorationFootsteps from '../components/exploration/useExplorationFoo
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
 import Minimap from '../components/exploration/Minimap.jsx'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
+import { SVG_BOARDS } from '../components/maps/boardRenderer.js'
 import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
@@ -44,10 +49,23 @@ import { playRequestSound, playScanSound } from '../audio/uiSounds.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WorldCombat from './WorldCombat.jsx'
 
+const Board = SVG_BOARDS ? ExplorationBoard : PixiExplorationBoard
+
 // An open book, for the Captain's Log button in the minimap's corner.
 const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
 
-function Exploration({ state, dispatch, onExit, exitLabel }) {
+// Who the transporter can beam down: those who beamed out of this mission, then the saved characters never on it.
+function transporterCandidates(party, savedCharacters) {
+  const departed = (party.departedIds ?? []).filter((id) => !party.memberIds.includes(id)).map((id) => ({ character: party.members[id].character, departed: true }))
+  const saved = savedCharacters
+    .map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character)
+    .filter((character) => character && !party.members[character.id])
+    .map((character) => ({ character, departed: false }))
+  return [...departed, ...saved]
+}
+
+// savedCharacters: the saved characters the transporter can beam down.
+function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const { party, world } = state
   const [followCamera, setFollowCamera] = useState(true)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
@@ -150,6 +168,13 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
   const ending = useMissionEnding({ state, dispatch, inCombat, talking })
   const { beaming, outro } = ending
   useWorldClock(dispatch, !ending.paused)
+  // UI state: the transporter's picker is open (the last fight's id when opened; a fight since closes it).
+  const beamIn = useTransporter(dispatch)
+  const [transporterFor, setTransporterFor] = useState(null)
+  const fightId = state.lastCombat?.id ?? 0
+  const transporterOpen = transporterFor === fightId && !inCombat
+  const canBeamIn = beamPhase === 'done' && !beaming && !ending.paused
+  const openTransporter = useCallback(() => setTransporterFor(fightId), [fightId, setTransporterFor])
 
   // UI state: the party member whose radial menu is open (right-click on them), or null.
   const [menuMemberId, setMenuMemberId] = useState(null)
@@ -397,7 +422,7 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
   }
   return (
     <div className="combat-screen exploration-screen">
-      <ExplorationBoard
+      <Board
         state={party}
         world={world}
         knowledge={state.partyKnowledge}
@@ -506,9 +531,20 @@ function Exploration({ state, dispatch, onExit, exitLabel }) {
           onFollowCamera={setFollowCamera}
           debugOpen={debugOpen}
           onDebug={setDebugOpen}
+          onTransporter={canBeamIn ? openTransporter : null}
           onExitMission={beaming ? null : ending.askExitMission}
         />
       </div>
+      {transporterOpen && canBeamIn && (
+        <TransporterDialog
+          candidates={transporterCandidates(party, savedCharacters)}
+          onBeamIn={(characters) => {
+            setTransporterFor(null)
+            beamIn(characters)
+          }}
+          onCancel={() => setTransporterFor(null)}
+        />
+      )}
       {debugOpen && (
         <div className="explore-debug-column">
           <DebugPanel state={party} mode={state.mode} lastCombat={state.lastCombat} onSpacing={(spacing) => dispatch({ type: 'setSpacing', spacing })} onClose={() => setDebugOpen(false)} />
@@ -548,14 +584,14 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   if (phase === 'intro') return <MissionIntro map={state.party.map} onBegin={() => setPhase('explore')} />
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} onExit={onExit} exitLabel="Return to Menu" />
+      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} exitLabel="Return to Menu" />
     </MapFadeIn>
   )
 }
 
 // The map editor's Play: a ready-made away team (RuntimeCharacters) on the open map, straight into exploration with no
 // setup screen. onExit returns to the editor.
-export function ExplorationPlaytest({ map, characters, enemiesActive, onExit }) {
+export function ExplorationPlaytest({ map, characters, savedCharacters = [], enemiesActive, onExit }) {
   const [state, dispatch] = useReducer(explorationReducer, null, () =>
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
@@ -564,7 +600,7 @@ export function ExplorationPlaytest({ map, characters, enemiesActive, onExit }) 
   if (intro) return <MissionIntro map={state.party.map} onBegin={() => setIntro(false)} />
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} onExit={onExit} exitLabel="Return to Editor" />
+      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} exitLabel="Return to Editor" />
     </MapFadeIn>
   )
 }

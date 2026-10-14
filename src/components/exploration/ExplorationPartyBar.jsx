@@ -221,11 +221,14 @@ const CAMERA_ICON = 'M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3.5 3.5 0 1 0 0 7a3.5 3.5 
 const DEBUG_ICON = 'M9 6a3 3 0 0 1 6 0M8 9h8v6a4 4 0 0 1-8 0zM12 9v10M8 12H4M20 12h-4M8 16l-3 2M16 16l3 2M8 9L5 7M16 9l3-2'
 // A door with an arrow leaving through it.
 const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
+// A transporter beam: a column with sparkles, over a pad.
+const TRANSPORTER_ICON = 'M8 4h8v13H8zM5 20h14M12 7v1M10.5 10v1M13.5 12v1M12 14.5v1'
 
 // followCamera / onFollowCamera(on): the view follows the lead character or stays put. debugOpen / onDebug(open): the
-// debug panels (party, awareness, scenario state and the task log). onExitMission(): Exit Mission (the screen confirms,
-// then beams the away team out); null while it can't be used.
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onExitMission }) {
+// debug panels (party, awareness, scenario state and the task log). onTransporter(): opens the transporter's picker;
+// null while it can't be used. onExitMission(): Exit Mission (the screen confirms, then beams the away team out); null
+// while it can't be used.
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onTransporter, onExitMission }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
@@ -253,6 +256,18 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d={DEBUG_ICON} />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="explore-panel-icon-button"
+          aria-label="Transporter"
+          title="Transporter: beam characters down to the mission, beside the lead character."
+          disabled={!onTransporter}
+          onClick={onTransporter ?? undefined}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={TRANSPORTER_ICON} />
           </svg>
         </button>
         <button

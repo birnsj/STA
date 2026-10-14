@@ -263,6 +263,19 @@ function reduceExploration(state, action) {
         return addLogEntry(logged, { kind: 'beam', text: `${name} beamed out.`, story: { event: 'beamOut', name } })
       }, next)
     }
+    // { characters }: they beam in beside the lead (partyControl.js startBeamIn, then finishBeamIn once the beam has
+    // played); each is written in the Captain's Log. Not during a fight.
+    case 'startBeamIn': {
+      if (state.mode === MODE.COMBAT) return state
+      const avoid = getNpcs(state.world).map((npc) => npc.position)
+      const party = partyReducer(state.party, { type: 'startBeamIn', characters: action.characters, avoid })
+      if (party === state.party) return state
+      const ids = party.memberIds.filter((id) => !state.party.memberIds.includes(id))
+      return ids.reduce((logged, id) => addLogEntry(logged, { kind: 'beam', text: `${party.members[id].character.name} beamed in.` }), { ...state, party })
+    }
+    // A fight may have started meanwhile: they are on the mission either way.
+    case 'finishBeamIn':
+      return { ...state, party: partyReducer(state.party, action) }
     // Puts every NPC back on its post, unaware (developer tool).
     case 'resetNpcs':
       return state.mode === MODE.COMBAT ? state : { ...state, world: createNpcWorld(state.party.map), partyKnowledge: createPartyKnowledge(), lastCombat: null }

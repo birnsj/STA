@@ -652,6 +652,21 @@ export function setEffectsVolume(nextLevel) {
   level = Math.min(Math.max(nextLevel, 0), 1)
 }
 
+// For a board drawn without an element under the pointer (the Pixi combat board): the hover blip and press beep a
+// data-ui-sound (or, press only, data-ui-press) element gets from the listeners below.
+export function playBoardHover() {
+  const now = performance.now()
+  if (level === 0 || context?.state !== 'running') return
+  if (now - lastPressAt < HOVER_QUIET_AFTER_PRESS_MS || now - lastHoverAt < MIN_HOVER_GAP_MS) return
+  lastHoverAt = now
+  playHoverBlip(context)
+}
+
+export function playBoardPress() {
+  lastPressAt = performance.now()
+  if (level > 0) withRunningContext(playPressBeep)
+}
+
 // Delegated listeners for the whole app, so components don't each need sound code.
 // Hover plays once per element entered; press plays on pointer down (or Enter/Space) so it feels immediate.
 export function installUiSounds(root = document) {

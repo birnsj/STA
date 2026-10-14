@@ -29,7 +29,7 @@ import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
 
 const IMAGE_H = TILE_IMAGE.height
-const GHOST_OPACITY = 0.35
+export const GHOST_OPACITY = 0.35
 // maps.css tilemap-block.is-faded.
 export const FADED_OPACITY = 0.3
 const NONE = new Set()
@@ -593,6 +593,54 @@ function drawBlockAt(context, layout, position, opacity, pass) {
   if (tile.wall) drawWall(context, tile, position, panel, pass)
   else if (book) animated(context, pass, book, animationOffset(position), (key) => drawImage(context, key, ...boxArgs))
   else solid(context, pass, () => drawImage(context, href, ...boxArgs))
+  context.restore()
+}
+
+// ---------------------------------------------------------------- one block at a time (the Pixi board)
+
+export { drawBlockAt, isMirrored }
+
+// The world rectangle one block tile's drawing covers (drawBlockAt), whatever else shares its panel.
+export const blockDrawnArea = (layout, position) => drawnArea(layout, position)
+
+// Everything drawBlockAt reads for a block, apart from where it stands: two blocks with the same key draw the same
+// pixels about their tile centres, so they can share one texture. Its animation's timing is left out (a frame is
+// picked by sprite index).
+export function blockLookKey(layout, position) {
+  const { map, panels, bigGroups } = layout
+  const id = map.tiles[position.y][position.x]
+  const tile = getTile(id)
+  const at = keyOf(position)
+  const origin = bigGroups.get(at)
+  if (origin) return `big|${id}|${position.x - origin.x},${position.y - origin.y}|${isRotated(map, origin)}`
+  const panel = panels.get(at) ?? null
+  const art = tile.wall ? panelArt(tile, panel, position) : null
+  const variant = tile.wall && !art && !panel?.window ? wallVariant(tile, position) : null
+  return [
+    id,
+    tileImage(map, position),
+    joinedImage(map, position) ?? '',
+    isMirrored(map, position),
+    panel ? `${panel.axis}${panel.half}${panel.window ? 'w' : ''}` : '',
+    art ? `${art.href}@${art.offset.x},${art.offset.y}/${art.size.width}x${art.size.height}` : '',
+    variant?.href ?? '',
+  ].join('|')
+}
+
+// A floor tile as the board draws it (mirrored when rotated), or a block as drawBlockAt draws it on the board.
+export function drawTileAt(context, layout, position) {
+  const { map } = layout
+  if (isBlock(map.tiles[position.y][position.x])) {
+    drawBlockAt(context, layout, position, 1, null)
+    return
+  }
+  const box = tileImageBox(position)
+  context.save()
+  if (isMirrored(map, position)) {
+    context.translate(2 * project(position).x, 0)
+    context.scale(-1, 1)
+  }
+  drawImage(context, tileImage(map, position), box.x, box.y, box.width, box.height)
   context.restore()
 }
 

@@ -10,7 +10,7 @@ import { headingTo } from '../actors/CharacterController.js'
 import { controllerFor, isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/partyControl.json'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
-import { distance, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
+import { distance, isClear, isClearLine, nearestWalkableTile, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
 const MOVE = data.movement
 // How readily a character gives way when two get too close: someone standing still never does, and a lead character
@@ -21,6 +21,28 @@ const GIVE_WAY = { none: 0, point: 0.35, follow: 1 }
 const giveWay = (member) => (member.parkedFor ? GIVE_WAY.none : GIVE_WAY[member.order?.type ?? 'none'])
 const MAX_TICK_SECONDS = 0.05
 
+// A member standing still at position, looking along heading (radians).
+function newMember(character, position, heading) {
+  return {
+    id: character.id,
+    character,
+    controllerId: 'player',
+    position,
+    heading,
+    turning: false,
+    facing: { x: Math.cos(heading), y: Math.sin(heading) },
+    moving: false,
+    running: false,
+    sneaking: false,
+    order: null,
+    path: [],
+    replanIn: 0,
+    stall: { seconds: 0, best: Infinity },
+    parkedFor: null,
+    blocked: { seconds: 0 },
+  }
+}
+
 // characters: RuntimeCharacters in party order; each starts on the map's player start with the same index.
 export function createPartyState(map, characters) {
   const starts = map.markers.playerStarts
@@ -30,24 +52,7 @@ export function createPartyState(map, characters) {
     const { x, y, facing } = starts[index]
     const position = { x, y }
     const heading = facing == null ? headingTo(position, centre) : (facing * Math.PI) / 180
-    return {
-      id: character.id,
-      character,
-      controllerId: 'player',
-      position,
-      heading,
-      turning: false,
-      facing: { x: Math.cos(heading), y: Math.sin(heading) },
-      moving: false,
-      running: false,
-      sneaking: false,
-      order: null,
-      path: [],
-      replanIn: 0,
-      stall: { seconds: 0, best: Infinity },
-      parkedFor: null,
-      blocked: { seconds: 0 },
-    }
+    return newMember(character, position, heading)
   })
   const memberIds = members.map((member) => member.id)
   return {
@@ -66,8 +71,9 @@ export function createPartyState(map, characters) {
 export const getMembers = (state) => state.memberIds.map((id) => state.members[id])
 export const isSelected = (state, id) => state.selectedIds.includes(id)
 
-// A Defeated character stays where they fell: they can't be selected, lead or follow. Nor can anyone beaming out.
-export const canAct = (member) => isUp(member) && !member.beaming
+// A Defeated character stays where they fell: they can't be selected, lead or follow. Nor can anyone beaming out, or
+// still beaming in.
+export const canAct = (member) => isUp(member) && !member.beaming && !member.arriving
 
 // After a fight: anyone Defeated drops out of the selection and the lead. If no one selected can act, the whole team
 // that can is selected. With everyone down the lead stays put (the camera follows it) and nothing is selected.
@@ -306,6 +312,51 @@ export function beamOut(state, ids) {
   return withAbleSelection({ ...halted, memberIds, leaderId, departedIds: [...(state.departedIds ?? []), ...leaving] })
 }
 
+// Distances from the lead character tried in turn for someone beaming in, and how many spots around each ring.
+const ARRIVAL_RINGS = [1.2, 1.8, 2.5, 3.2]
+const ARRIVAL_SPOTS = 12
+
+// A clear spot beside the lead (behind them first) in plain sight of them and away from everyone in taken; failing
+// that, the walkable tile nearest the lead.
+function arrivalPoint(map, leader, taken) {
+  for (const ring of ARRIVAL_RINGS) {
+    for (let i = 0; i < ARRIVAL_SPOTS; i++) {
+      const angle = leader.heading + Math.PI + (i * 2 * Math.PI) / ARRIVAL_SPOTS
+      const point = { x: leader.position.x + Math.cos(angle) * ring, y: leader.position.y + Math.sin(angle) * ring }
+      if (isClear(map, point) && isClearLine(map, leader.position, point) && taken.every((other) => distance(other, point) >= RADIUS * 3)) return point
+    }
+  }
+  return nearestWalkableTile(map, leader.position)
+}
+
+// The transporter (designer request, 2026-10-13): characters beam in beside the lead and stand still in the beam,
+// unselectable, until finishBeamIn. characters: RuntimeCharacters not on the away team. Someone who beamed out earlier
+// comes back as they left (their condition included). avoid: other points to keep clear of (the NPCs).
+export function startBeamIn(state, characters, avoid = []) {
+  const leader = state.members[state.leaderId]
+  const arriving = characters.filter((character) => character && !state.memberIds.includes(character.id))
+  if (!leader || !arriving.length) return state
+  const taken = [...avoid, ...getMembers(state).map((member) => member.position)]
+  const members = { ...state.members }
+  arriving.forEach((character) => {
+    const position = arrivalPoint(state.map, leader, taken)
+    taken.push(position)
+    const previous = members[character.id]
+    members[character.id] = { ...previous, ...newMember(previous?.character ?? character, position, leader.heading), arriving: true }
+  })
+  const ids = arriving.map((character) => character.id)
+  return { ...state, members, memberIds: [...state.memberIds, ...ids], departedIds: (state.departedIds ?? []).filter((id) => !ids.includes(id)) }
+}
+
+// The beam-in has played: they can be selected and given orders.
+export function finishBeamIn(state, ids) {
+  const members = { ...state.members }
+  ids.filter((id) => members[id]?.arriving).forEach((id) => {
+    members[id] = { ...members[id], arriving: false }
+  })
+  return { ...state, members }
+}
+
 // Personal space is soft (characters may brush past each other), but bodies never overlap: any two closer than two
 // radii are moved apart at once, by whoever gives way, without being pushed into a wall.
 function resolveOverlaps(map, members, ids) {
@@ -394,6 +445,10 @@ export function partyReducer(state, action) {
       return cancelBeamOut(state, action.ids)
     case 'beamOut':
       return beamOut(state, action.ids)
+    case 'startBeamIn':
+      return startBeamIn(state, action.characters, action.avoid)
+    case 'finishBeamIn':
+      return finishBeamIn(state, action.ids)
     default:
       return state
   }

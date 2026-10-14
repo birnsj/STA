@@ -124,6 +124,15 @@ describe('walls that fade together (Prototype: room cutaway, sections, stickines
     assert.equal(east.has('9,10'), false, 'the south side is out of range')
   })
 
+  it("'single' mode (Settings) fades only the blocks hiding the figure, not the room's sides", () => {
+    const figure = [{ id: 'a', position: { x: 11, y: 9 } }]
+    const single = wallFadeStep(yard, figure, null, undefined, 'single').keys
+    const room = wallFadeStep(yard, figure).keys
+    assert.ok(single.size > 0 && single.size < room.size)
+    for (const key of single) assert.ok(room.has(key), `${key} also fades in room mode`)
+    assert.equal(single.has('12,1') || single.has('1,10'), false, 'the far ends of the sides stay solid')
+  })
+
   it('in the doorway a figure keeps the room it came from', () => {
     const inside = wallFadeStep(yard, [{ id: 'a', position: { x: 6, y: 9 } }])
     const doorway = wallFadeStep(yard, [{ id: 'a', position: { x: 6, y: 10 } }], null, inside)

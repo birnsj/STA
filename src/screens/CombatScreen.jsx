@@ -24,7 +24,9 @@ import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
 import useBeamIn from '../components/combat/useBeamIn.js'
-import Battlefield from '../components/combat/Battlefield.jsx'
+import SvgBattlefield from '../components/combat/Battlefield.jsx'
+import PixiBattlefield from '../components/combat/PixiBattlefield.jsx'
+import { SVG_BOARDS } from '../components/maps/boardRenderer.js'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
 import { EndTurnButton, SelectedCharacterPanel, TargetPanel, TaskPanel } from '../components/combat/CombatSidebar.jsx'
@@ -61,6 +63,8 @@ import {
   SELF_RING_CLOSE_MS,
   turnBanner,
 } from '../components/combat/battleHelpers.js'
+
+const Battlefield = SVG_BOARDS ? SvgBattlefield : PixiBattlefield
 
 // Combat started in the exploration world (ExplorationScreen) also passes: onContinue (the result offers only Return to
 // Exploration), bystanders (NPCs outside the fight, drawn where they stand), snapMarks (debug: world position -> cell),

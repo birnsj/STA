@@ -68,6 +68,29 @@ img {
   50% { --scrollbar-pulse: #6a9cff; }
 }
 
+/* The pulsing inherited property restyles every element under :root on every frame, and the exploration and combat
+   screens hold ~1000 elements (most of them the board's SVG), so on those screens it cost a third of the main thread
+   (docs/performance.md). Pinning it on the screens stops the per-frame restyle underneath; the few panels there that
+   scroll animate it on themselves instead (restyling only their own contents). The editor's board has no scrollbars,
+   so it is pinned too. The pinned value must match the property's initial-value above. A new scrollable panel inside a
+   game screen needs adding to the second list, or its scrollbar stays still. */
+.combat-screen,
+.me-board {
+  --scrollbar-pulse: #2c66d8;
+}
+
+.combat-help-body,
+.task-body,
+.debug-panel,
+.mission-intro-log.is-story,
+.sheet-body,
+.explore-debug-column,
+.world-combat-debug-panel,
+.challenge-panel,
+.challenge-panel.is-docked .challenge-body {
+  animation: scrollbar-pulse 2.4s ease-in-out infinite;
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-pulse);
   border: 2px solid #040a18;

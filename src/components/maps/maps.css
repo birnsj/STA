@@ -19,6 +19,18 @@
   height: 100%;
 }
 
+/* A Pixi board's WebGL canvas (pixi/pixiStage.js), under the board's SVG overlay. */
+.pixi-board-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pixi-board-host > canvas {
+  display: block;
+}
+
 /* Animated tiles (tileArt.js flipbooks): whole sprites stacked, each shown on its own frames by keyframes built from
    tileEffects.json (flipbookStyles.js; the name, length and delay are inline). Held, not faded, between frames. */
 .tilemap-frame {
@@ -91,9 +103,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* !important: a frame's animation name is inline. Each rests on the loop's first frame. */
-  .tilemap-frame,
-  .char-sprite-sheet {
+  /* !important: a frame's animation name is inline. Each rests on the loop's first frame. (Character sprites check
+     reduced motion in CharacterSprite.jsx: their animations are scripted.) */
+  .tilemap-frame {
     animation: none !important;
   }
 }

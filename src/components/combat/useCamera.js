@@ -170,7 +170,9 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       } else if (targetRef.current) {
         const target = clamp(centredOn(targetRef.current, size), limits, size)
         const close = Math.abs(target.x - current.x) < 0.5 && Math.abs(target.y - current.y) < 0.5
-        const glide = returningRef.current ? RETURN_GLIDE : GLIDE
+        // GLIDE is the share of the way covered per 60 Hz frame; scaled by the real frame time so the camera moves at the
+        // same speed whatever the refresh rate and however uneven the frames (a fixed share per frame juddered).
+        const glide = 1 - (1 - (returningRef.current ? RETURN_GLIDE : GLIDE)) ** (seconds * 60)
         next = close ? target : { x: current.x + (target.x - current.x) * glide, y: current.y + (target.y - current.y) * glide }
         if (close) {
           targetRef.current = null
