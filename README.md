@@ -9,7 +9,7 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, 575 tests (tests/*.test.js)
+npm test           # node --test, 1085 tests (tests/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run app        # build, then open it in Electron
@@ -37,6 +37,11 @@ them the app runs silently.
 | Exploration | `src/exploration/`, `src/conversation/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll, conversations with NPCs, mission flags and objectives; hands off to combat and back (`combatLink.js`). |
 | Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`); places NPCs and objectives; edits conversations as node graphs. |
 `src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
+
+The exploration, combat and map editor boards are drawn with PixiJS (WebGL) by default; input, menus and effects stay
+in an SVG layer on top. Add `?board=svg` to the URL for the older SVG boards, which also take over if WebGL won't
+start (`src/components/maps/boardRenderer.js`). Frame-rate measurements and the tools that take them are in
+`docs/performance.md`.
 
 ## Book vs. Prototype
 
@@ -76,6 +81,6 @@ tests/               node --test suites; tests/support/ has fixtures
 tools/               dev-server stores and the JSON loader for tests
 scripts/             tile, episode-card, mock portrait-layer, portrait-backdrop and map character-sprite art generators (Node, write PNGs into public/art)
 electron/            desktop wrapper
-docs/                design-tracker.md, prototype-rules.md, tiles.md
+docs/                design-tracker.md, prototype-rules.md, performance.md, tiles.md and others
 reference/           the rulebook PDFs (not committed)
 ```

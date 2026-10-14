@@ -67,7 +67,7 @@
       "difficulty": 0,
       "focuses": ["Persuasion", "Negotiation", "Diplomacy", "Inspiration", "Leadership", "Rhetoric"],
       "tags": ["social", "persuade"],
-      "note": "Book (Core p.279-280): a request the other side resists is an opposed task; the asker rolls attribute + department first, and the successes set the resister's Difficulty. Designer decision (Oct 2026): Persuade is Presence + Command (the book's own example pairing), asking an enemy to surrender."
+      "note": "Book (Core p.279-280): a request the other side resists is an opposed task; the asker rolls attribute + department first, and the successes set the resister's Difficulty. The book deliberately gives no fixed attribute + department for social actions (p.280 sidebar: the scene decides); Presence + Command appears in its Deception example (p.281, Kirk's Corbomite bluff), not as a Persuade rule. Designer decision (Oct 2026): Persuade is Presence + Command (a Prototype pick), asking an enemy to surrender."
     },
     "intimidate": {
       "attribute": "control",
@@ -75,7 +75,7 @@
       "difficulty": 0,
       "focuses": ["Intimidation", "Interrogation", "Hand Phasers", "Hand-to-Hand Combat", "Small Unit Tactics"],
       "tags": ["social", "intimidate"],
-      "note": "Book (Core p.282): Intimidation is an opposed task; success imposes a fear trait. Designer decision (Oct 2026): Intimidate is Control + Security, asking an enemy to surrender; a success also leaves it Intimidated (+1 Difficulty to its later resist rolls this fight)."
+      "note": "Book (Core p.282): Intimidation is an opposed task; success imposes a fear trait. Designer decision (Oct 2026): Intimidate is Control + Security (a Prototype pick; the book sets no pairing, p.280), asking an enemy to surrender; a success also leaves it Intimidated (+1 Difficulty to its later resist rolls this fight)."
     },
     "resistRequest": {
       "attribute": "control",
