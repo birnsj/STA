@@ -16,4 +16,10 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({}).missionIntro, true)
     assert.equal(normalizeDisplaySettings({ missionIntro: false }).missionIntro, false)
   })
+
+  it('older saves without the outro setting get it on; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({ missionIntro: false }).missionOutro, true)
+    assert.equal(normalizeDisplaySettings({ missionOutro: false }).missionOutro, false)
+    assert.equal(normalizeDisplaySettings({ missionOutro: 'no' }).missionOutro, true)
+  })
 })

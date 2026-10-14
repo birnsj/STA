@@ -138,42 +138,168 @@
   z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
+  /* One size for everyone (designer request): what doesn't fit, such as the unfolded Values, scrolls inside. */
+  height: 195px;
+  overflow-y: auto;
+  scrollbar-width: thin;
   box-sizing: border-box;
-  padding: 7px 9px;
+  padding: 4px 8px;
   border: 1px solid var(--panel-border);
   border-radius: 4px;
   background: rgba(6, 12, 28, 0.96);
 }
 
+.explore-card-info > * {
+  flex-shrink: 0;
+}
+
+.explore-card-info .explore-card-detail {
+  line-height: 1.15;
+}
+
 .explore-card-detail.is-rank {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: #cfe0ff;
 }
 
-.explore-card-stats {
+.explore-card-info-header {
   display: flex;
+  align-items: center;
   gap: 6px;
+}
+
+.explore-card-info-header .party-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.explore-card-protection {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-size: 10px;
   font-weight: 700;
   color: var(--yellow);
+  cursor: help;
+}
+
+.explore-card-protection svg {
+  width: 11px;
+  height: 11px;
+  fill: rgba(61, 123, 255, 0.35);
+  stroke: var(--yellow);
+  stroke-width: 2;
+}
+
+/* Small uppercase yellow headings, as in the creator's summary (.summary-section-heading). */
+.explore-card-heading {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+/* Attributes and Departments side by side, each a list of bars like the creator's summary (.summary-snapshot-score). */
+.explore-card-score-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.explore-card-score-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.explore-card-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explore-card-scores li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+  font-size: 7.5px;
+  line-height: 8.5px;
+  text-transform: uppercase;
+  color: #d6e1f5;
+  background: var(--blue-deep, #0b1a3a);
+  border-left: 2px solid var(--blue, #3d7bff);
+  border-radius: 2px;
+}
+
+.explore-card-scores strong {
+  font-size: 8px;
+  color: var(--yellow);
+}
+
+.explore-card-list {
+  font-size: 8px;
+  line-height: 1.1;
+  color: #d6e1f5;
+}
+
+.explore-card-list .has-info {
+  text-decoration: underline dotted rgba(159, 180, 220, 0.6);
+  cursor: help;
+}
+
+/* Like Make Lead on the card: a small outlined button, filled while the Values are showing. */
+.explore-card-values-toggle {
+  flex-shrink: 0;
+  padding: 0 4px;
+  border: 1px solid var(--yellow);
+  border-radius: 3px;
+  background: #03060e;
+  font: inherit;
+  font-size: 7.5px;
+  font-weight: 700;
+  line-height: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  cursor: pointer;
+}
+
+.explore-card-values-toggle:hover,
+.explore-card-values-toggle.is-open {
+  background: var(--yellow);
+  color: #03060e;
 }
 
 .explore-card-values {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
   margin: 0;
-  padding: 3px 0 0;
-  border-top: 1px solid var(--panel-border);
+  padding: 0;
   list-style: none;
 }
 
 .explore-card-values li {
-  font-size: 9px;
+  padding-left: 6px;
+  border-left: 2px solid var(--blue);
+  font-size: 9.5px;
   font-style: italic;
   line-height: 1.25;
-  color: #b9c8e6;
+  color: #d6e1f5;
 }
 
 .explore-make-lead {

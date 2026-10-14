@@ -72,7 +72,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
-  const showHints = useDisplaySettings().helpHints
+  const { helpHints: showHints, missionOutro: playOutro } = useDisplaySettings()
   // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
   // picked on its ring (null: the panel lists them) and the member picked on the ring's party band (null: the selection
   // decides). The party can still move while it's open (designer decision: never pause the players); walking out of
@@ -167,6 +167,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // Mission Accomplished, Exit Mission, Beam Out and the outro (useMissionEnding.js); the world stops at the end.
   const ending = useMissionEnding({ state, dispatch, inCombat, talking })
   const { beaming, outro } = ending
+  // With the outro off in Settings, beaming everyone out leaves the mission as the outro's exit button would.
+  useEffect(() => {
+    if (outro && !playOutro) onExit()
+  }, [outro, playOutro, onExit])
   useWorldClock(dispatch, !ending.paused)
   // UI state: the transporter's picker is open (the last fight's id when opened; a fight since closes it).
   const beamIn = useTransporter(dispatch)
@@ -214,9 +218,14 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // UI state: the scan whose sweep has finished playing, so a fight and back doesn't replay it.
   const [sweptScanKey, setSweptScanKey] = useState(null)
   // Area scan: one ring out to the tricorder radius. NPC scan: a ring around the scanner and one around the NPC.
+  // Only the newer of the two plays (both keys count tasks): sweptScanKey holds one key, so playing the older one
+  // after the newer would mark the newer unplayed again and the two would take turns for ever.
+  const areaScanIsNewer = lastScan != null && (lastTargetScan == null || lastScanKey > lastTargetScanKey)
   const scanPulse =
-    lastScan?.origin && sweptScanKey !== lastScanKey
-      ? { key: lastScanKey, rings: [{ origin: lastScan.origin, radius: lastScan.radius }], onDone: () => setSweptScanKey(lastScanKey) }
+    areaScanIsNewer
+      ? lastScan.origin && sweptScanKey !== lastScanKey
+        ? { key: lastScanKey, rings: [{ origin: lastScan.origin, radius: lastScan.radius }], onDone: () => setSweptScanKey(lastScanKey) }
+        : null
       : lastTargetScan && sweptScanKey !== lastTargetScanKey
         ? {
             key: lastTargetScanKey,
@@ -418,6 +427,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
   if (outro) {
+    if (!playOutro) return null
     return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} exitLabel={exitLabel} onDone={onExit} />
   }
   return (

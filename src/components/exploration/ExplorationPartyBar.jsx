@@ -10,14 +10,6 @@ import ConditionIcons from '../combat/ConditionIcons.jsx'
 import ConditionTrack from '../combat/ConditionTrack.jsx'
 import PartyTaskTag from '../task/PartyTaskTag.jsx'
 
-const short = (name) => name.slice(0, 3).toUpperCase()
-
-// The highest score (the first in data order on a tie).
-function topScore(ids, values, nameOf) {
-  const id = ids.reduce((best, next) => ((values[next] ?? 0) > (values[best] ?? 0) ? next : best), ids[0])
-  return { label: short(nameOf(id)), name: nameOf(id), value: values[id] ?? 0 }
-}
-
 // The weapons they will fight with: their own, or the world encounter's standard issue if they bring none (Unarmed
 // Strike, always available, is left out unless it is all they have).
 function carriedWeaponText(character) {
@@ -29,8 +21,6 @@ function carriedWeaponText(character) {
 // Everything on the card that depends only on the character, not on their condition: worked out once per character
 // rather than on every frame of movement.
 const cardFacts = (character) => ({
-  attribute: topScore(ATTRIBUTE_IDS, character.attributes, getAttributeName),
-  department: topScore(DISCIPLINE_IDS, character.disciplines, getDisciplineName),
   protection: getProtection(character, { injuryType: 'stun' }).value,
   rankRole: [character.rank?.name, character.role?.name ?? character.assignment?.name].filter(Boolean).join(' · '),
   weapon: carriedWeaponText(character),
@@ -52,27 +42,114 @@ function CardDetails({ character, condition }) {
 // The Starfleet delta on the card's info button.
 const INSIGNIA_PATH = 'M12 2C15 8 17 15 18.5 22C15.8 19.2 14 18.2 12 18.2C10 18.2 8.2 19.2 5.5 22C7 15 9 8 12 2Z'
 
-// The rest, in a panel above the card that its info button opens and closes.
+// A shield, for Protection.
+const SHIELD_PATH = 'M12 2L20 5V11C20 16.2 16.6 20.2 12 22C7.4 20.2 4 16.2 4 11V5Z'
+const PROTECTION_TIP = 'reduces the severity of each Injury suffered, to a minimum of 1 (shown against Stun, out of cover).'
+
+// One column of scores, laid out like the creator's summary (CharacterStepSummaryModal): name left, score right.
+function ScoreColumn({ title, ids, values, nameOf }) {
+  return (
+    <div className="explore-card-score-column">
+      <span className="explore-card-heading">{title}</span>
+      <ul className="explore-card-scores">
+        {ids.map((id) => (
+          <li key={id}>
+            <span>{nameOf(id)}</span>
+            <strong>{values[id] ?? 0}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// Headed runs of names in one block ([{ label, items }], empty ones left out); each name's rules text (if any) shows
+// on hover.
+function NameList({ groups }) {
+  const shown = groups.filter((group) => group.items.length)
+  if (!shown.length) return null
+  return (
+    <span className="explore-card-list">
+      {shown.map(({ label, items }) => (
+        <span key={label} className="explore-card-list-group">
+          <span className="explore-card-heading">{label}</span>{' '}
+          {items.map((item, index) => (
+            <span key={`${item.name}-${index}`} title={item.description || undefined} className={item.description ? 'has-info' : undefined}>
+              {item.name}
+              {index < items.length - 1 ? ', ' : ''}
+            </span>
+          ))}{' '}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+// The rest, in a panel above the card that its info button opens and closes: a fixed size, so everything that
+// matters in play fits in it. The Values button swaps the stats for the Values (and back).
 function CardInfoPanel({ character, condition }) {
-  const { attribute, department, protection, rankRole } = useMemo(() => cardFacts(character), [character])
+  const { protection, rankRole } = useMemo(() => cardFacts(character), [character])
+  // UI state: whether the Values show in place of the stats.
+  const [valuesOpen, setValuesOpen] = useState(false)
+  const talents = character.talents.map((talent) => ({ name: talent.choice ? `${talent.name} (${talent.choice.name})` : talent.name, description: talent.description }))
+  const abilities = [
+    character.speciesAbility && { name: character.speciesAbility.name, description: character.speciesAbility.description },
+    character.role?.benefit?.description && { name: (character.role.benefit.name ?? character.role.name).replace(/ Role Benefit$/, ''), description: character.role.benefit.description },
+  ].filter(Boolean)
   return (
     <div className="explore-card-info" role="dialog" aria-label={`${character.name}: details`}>
-      <span className="party-name">{character.name}</span>
-      {rankRole && <span className="explore-card-detail is-rank">{rankRole}</span>}
-      <span className="explore-card-stats">
-        <span title={`Highest attribute: ${attribute.name}`}>{attribute.label} {attribute.value}</span>
-        <span title={`Highest department: ${department.name}`}>{department.label} {department.value}</span>
-        <span title="Protection">PROT {protection}</span>
+      <span className="explore-card-info-header">
+        <span className="party-name">{character.name}</span>
+        <span className="explore-card-protection" title={`Protection ${protection}: ${PROTECTION_TIP}`} aria-label={`Protection ${protection}`}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={SHIELD_PATH} />
+          </svg>
+          {protection}
+        </span>
+        {character.values.length > 0 && (
+          <button
+            type="button"
+            className={`explore-card-values-toggle${valuesOpen ? ' is-open' : ''}`}
+            aria-pressed={valuesOpen}
+            title={valuesOpen ? 'Back to the stats.' : `Show ${character.name}'s Values.`}
+            onClick={() => setValuesOpen(!valuesOpen)}
+          >
+            {valuesOpen ? 'Stats' : 'Values'}
+          </button>
+        )}
       </span>
-      <span className="explore-card-detail">
-        Fatigue: {condition.fatigued ? 'yes' : 'no'} · Injuries: {condition.injuries.length || 'none'}
-      </span>
-      {character.values.length > 0 && (
-        <ul className="explore-card-values" aria-label="Values">
-          {character.values.map((value) => (
-            <li key={value}>{value}</li>
-          ))}
-        </ul>
+      {rankRole && (
+        <span className="explore-card-detail is-rank" title={rankRole}>
+          {rankRole}
+        </span>
+      )}
+      {valuesOpen ? (
+        <>
+          <span className="explore-card-heading">Values</span>
+          <ul className="explore-card-values" aria-label="Values">
+            {character.values.map((value) => (
+              <li key={value}>{value}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <>
+          <span className="explore-card-detail">
+            Fatigue: {condition.fatigued ? 'yes' : 'no'} · Injuries: {condition.injuries.length || 'none'}
+          </span>
+          <div className="explore-card-score-columns">
+            <ScoreColumn title="Attributes" ids={ATTRIBUTE_IDS} values={character.attributes} nameOf={getAttributeName} />
+            <ScoreColumn title="Departments" ids={DISCIPLINE_IDS} values={character.disciplines} nameOf={getDisciplineName} />
+          </div>
+          <NameList groups={[{ label: 'Focuses', items: character.focuses.map((name) => ({ name })) }]} />
+          <NameList groups={[{ label: 'Talents', items: talents }]} />
+          <NameList
+            groups={[
+              { label: 'Abilities', items: abilities },
+              { label: 'Traits', items: character.traits.filter((trait) => trait.name).map((trait) => ({ name: trait.name })) },
+            ]}
+          />
+        </>
       )}
     </div>
   )

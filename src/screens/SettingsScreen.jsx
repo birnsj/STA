@@ -78,6 +78,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
                 onChange={(event) => onChangeDisplay({ ...displaySettings, missionIntro: event.target.checked })}
               />
             </label>
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Captain&rsquo;s Log Outro</span>
+                <span className="settings-option-description">Once the away team beams out, the Captain&rsquo;s Log mission report plays. Off leaves the mission at once.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.missionOutro}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, missionOutro: event.target.checked })}
+              />
+            </label>
           </div>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">
