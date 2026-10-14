@@ -28,8 +28,12 @@
 .explore-card {
   width: 178px;
   height: var(--explore-card-height);
-  padding: 6px 10px 6px 6px;
+  padding: 5px 9px 5px 5px;
   overflow: hidden;
+}
+
+.explore-card.is-active {
+  padding-left: 3px;
 }
 
 .explore-card .party-info {
@@ -145,10 +149,10 @@
   overflow-y: auto;
   scrollbar-width: thin;
   box-sizing: border-box;
-  padding: 4px 8px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.96);
+  padding: 3px 7px 1px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
 }
 
 .explore-card-info > * {
@@ -187,7 +191,7 @@
   font-size: 10px;
   font-weight: 700;
   color: var(--yellow);
-  cursor: help;
+  cursor: var(--cursor-help);
 }
 
 .explore-card-protection svg {
@@ -258,7 +262,7 @@
 
 .explore-card-list .has-info {
   text-decoration: underline dotted rgba(159, 180, 220, 0.6);
-  cursor: help;
+  cursor: var(--cursor-help);
 }
 
 /* Like Make Lead on the card: a small outlined button, filled while the Values are showing. */
@@ -275,7 +279,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--yellow);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .explore-card-values-toggle:hover,
@@ -370,7 +374,7 @@
   inset: 0;
   z-index: 60;
   overflow: hidden;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   background: #000;
   user-select: none;
 }
@@ -540,16 +544,17 @@
 }
 
 .mission-intro-skip {
-  padding: 4px 10px;
-  border: 1px solid rgba(242, 239, 230, 0.3);
-  border-radius: 3px;
+  padding: 3px 9px;
+  border: var(--ui-border) solid rgba(242, 239, 230, 0.3);
+  border-radius: var(--ui-radius);
+  font-weight: 700;
   background: transparent;
   font-family: var(--display-font);
   font-size: 11px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: rgba(242, 239, 230, 0.7);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .mission-intro-skip:hover {
@@ -559,6 +564,12 @@
 
 .mission-intro-begin {
   animation: mission-intro-fade 1s ease-out both;
+}
+
+.mission-intro-begin.is-advance:not(:disabled) {
+  animation:
+    mission-intro-fade 1s ease-out both,
+    summary-close-pulse 1.8s ease-in-out 1s infinite;
 }
 
 /* The fade to black into the game; it takes the clicks meanwhile. */
@@ -581,7 +592,8 @@
   .mission-intro-card,
   .mission-intro-title,
   .mission-intro-hint,
-  .mission-intro-begin {
+  .mission-intro-begin,
+  .mission-intro-begin.is-advance:not(:disabled) {
     animation: none;
   }
 
@@ -711,7 +723,7 @@
 .character-sheet.is-compact .sheet-score {
   flex-direction: column;
   align-items: center;
-  padding: 1px 2px;
+  padding: 2px 3px 2px 0;
 }
 
 .character-sheet.is-compact .sheet-score-name {
@@ -773,8 +785,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--panel-border);
+  padding: 8px 10px 7px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
   background: linear-gradient(to right, rgba(16, 41, 95, 0.9), rgba(6, 12, 28, 0.6));
 }
 
@@ -814,9 +826,9 @@
 
 .sheet-close {
   align-self: flex-start;
-  padding: 0 6px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 0 5px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: transparent;
   font-size: 16px;
   line-height: 1.2;
@@ -840,9 +852,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3px 10px;
-  padding: 5px 7px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 4px 6px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
   background: rgba(16, 41, 95, 0.35);
   font-size: 11px;
 }
@@ -853,15 +865,17 @@
   color: var(--label);
 }
 
+/* The creator's section heading (.ui-heading, ui.css), at the sheet's size. */
 .sheet-heading {
   margin: 0 0 4px;
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 1px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
   font-family: var(--display-font);
   font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--label);
+  color: var(--yellow);
 }
 
 .sheet-scores {
@@ -870,14 +884,15 @@
   gap: 4px;
 }
 
+/* The creator's score bar (.ui-row, ui.css); the padding gives back what the borders change, so the size holds. */
 .sheet-score {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 3px 6px;
-  border: 1px solid rgba(29, 74, 168, 0.6);
+  padding: 4px 7px 4px 3px;
+  border-left: 4px solid var(--blue);
   border-radius: 3px;
-  background: rgba(6, 12, 28, 0.6);
+  background: var(--blue-deep);
 }
 
 .sheet-score-name {
@@ -900,12 +915,16 @@
   list-style: none;
 }
 
+/* The creator's chip (.chip, creator/talents.css). */
 .sheet-chips li {
   padding: 1px 7px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid #1f4f8c;
   border-radius: 10px;
-  background: rgba(16, 41, 95, 0.5);
+  background: #040a18;
+  color: #6fb2ff;
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .sheet-values,
@@ -969,11 +988,6 @@
   width: 100%;
 }
 
-.explore-action-stack .combat-button[aria-pressed='true'] {
-  border-color: var(--yellow);
-  color: var(--yellow);
-}
-
 .explore-minimap-column {
   position: absolute;
   top: 8px;
@@ -993,9 +1007,9 @@
 .explore-minimap {
   position: relative;
   overflow: hidden;
-  padding: 6px;
-  border: 1px solid rgba(110, 200, 255, 0.55);
-  border-radius: 4px;
+  padding: 5px;
+  border: var(--ui-border) solid rgba(110, 200, 255, 0.55);
+  border-radius: var(--ui-radius);
   background: rgba(4, 14, 32, 0.92);
   box-shadow:
     0 0 8px rgba(80, 180, 255, 0.25),
@@ -1135,11 +1149,11 @@
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.88);
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   color: rgba(225, 240, 245, 0.85);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   pointer-events: auto;
 }
 
@@ -1274,11 +1288,11 @@
   width: 22px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: rgba(10, 22, 48, 0.9);
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   color: #9fb4dc;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   pointer-events: auto;
 }
 
@@ -1330,10 +1344,10 @@
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(10, 22, 48, 0.9);
-  cursor: pointer;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
+  cursor: var(--cursor-pointer);
 }
 
 .explore-formation-button:hover {
@@ -1377,7 +1391,7 @@
 
 /* Away-team screen: roster and character sheet side by side, the team and the buttons on one line underneath. */
 .explore-setup-panel {
-  width: 860px;
+  width: 880px;
 }
 
 .explore-setup-panel .combat-setup-body {
@@ -1395,7 +1409,7 @@
   gap: 12px;
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid var(--panel-border);
+  border-top: var(--ui-border) solid var(--panel-border);
 }
 
 .explore-setup-footer .combat-setup-party {
@@ -1822,7 +1836,7 @@
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .objectives-show-all:hover,
@@ -1882,10 +1896,49 @@
 /* The whole bonus dice picker in the box under the NPC's line, packed into the ~42px the fixed-size box has left: the dice
    buttons, then the payment buttons (once a die is bought), on the left; Base, Purchased and Rolling, then the Cost, at
    the right; the cost rules on one line across the bottom. */
+/* The Roll button sits in the box's bottom-right corner (designer request, 2026-10-14), laid over the free end of the
+   picker's last line so the fixed-size box doesn't grow; that line keeps its text clear of it. */
+.conversation-check-row {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.conversation-check-row.has-picker .bonus-dice {
+  flex: 1;
+  min-width: 0;
+}
+
+.conversation-check-row.has-picker .bonus-dice-note {
+  padding-right: 80px;
+}
+
+.conversation-check-row.has-picker .conversation-roll-button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.conversation-roll-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.d20-icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
 .conversation-check-slot .bonus-dice {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 1px 16px;
+  gap: 1px 10px;
   align-items: center;
   margin: 0;
   padding: 0;
@@ -1897,8 +1950,14 @@
 
 .conversation-check-slot .bonus-dice-row {
   grid-column: 1;
+  gap: 4px;
   min-height: 14px;
   margin: 0;
+}
+
+.conversation-check-slot .bonus-dice-row > span:first-child {
+  min-width: 0;
+  margin-right: 2px;
 }
 
 .conversation-check-slot .bonus-dice .combat-button {
@@ -1909,21 +1968,28 @@
   line-height: 1;
 }
 
+/* Base, Purchased, Rolling and Cost on one line beside the dice buttons; once a die is bought (the payment row shows
+   under the dice buttons) the Cost moves to a second line, beside the payment row, as it is longer then. */
 .conversation-check-slot .bonus-dice-summary {
   grid-column: 2;
-  grid-row: 1 / span 2;
-  grid-template-columns: repeat(3, auto auto);
+  grid-row: 1;
+  grid-template-columns: repeat(4, auto auto);
   justify-content: start;
-  gap: 1px 6px;
+  gap: 1px 4px;
   margin: 0;
 }
 
-.conversation-check-slot .bonus-dice-summary dd:last-of-type {
+.conversation-check-slot .bonus-dice:has(.bonus-dice-summary ~ .bonus-dice-row) .bonus-dice-summary {
+  grid-row: 1 / span 2;
+  grid-template-columns: repeat(3, auto auto);
+}
+
+.conversation-check-slot .bonus-dice:has(.bonus-dice-summary ~ .bonus-dice-row) .bonus-dice-summary dd:last-of-type {
   grid-column: span 5;
 }
 
 .conversation-check-slot .bonus-dice-summary dd:not(:last-of-type) {
-  margin-right: 6px;
+  margin-right: 5px;
 }
 
 .conversation-check-slot .bonus-dice-note {
@@ -1958,9 +2024,9 @@
 
 /* The NPC's line framed and set like the options under it (12px; the text bold), in a darker shade. */
 .conversation-line {
-  padding: 6px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  padding: 5px 9px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
   background: rgba(3, 6, 14, 0.6);
   font-size: 12px;
   line-height: 1.35;
@@ -2056,13 +2122,13 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 6px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  padding: 5px 9px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
   background: rgba(16, 41, 95, 0.4);
   color: var(--text);
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .challenge-approach:hover:not(:disabled) {
@@ -2071,7 +2137,7 @@
 
 .challenge-approach:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 .challenge-approach-detail {
@@ -2084,9 +2150,9 @@
 }
 
 .challenge-math {
-  padding: 8px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  padding: 7px 9px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
   background: rgba(3, 6, 14, 0.6);
 }
 
@@ -2138,9 +2204,9 @@
 }
 
 .challenge-result {
-  padding: 8px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
+  padding: 7px 9px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
 }
 
 .challenge-result.is-success {
@@ -2190,43 +2256,6 @@
   align-items: center;
   gap: 2px;
   min-width: 78px;
-  animation: challenge-die-roll 0.5s ease-out both;
-}
-
-.challenge-die:nth-child(2) {
-  animation-delay: 0.12s;
-}
-
-.challenge-die:nth-child(3) {
-  animation-delay: 0.24s;
-}
-
-.challenge-die-face {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 2px solid #5a6a8a;
-  border-radius: 8px;
-  background: #0b1430;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.challenge-die.is-success .challenge-die-face {
-  border-color: #4fd6c4;
-  color: #4fd6c4;
-}
-
-.challenge-die.is-critical .challenge-die-face {
-  border-color: var(--yellow);
-  color: var(--yellow);
-  box-shadow: 0 0 10px rgba(246, 185, 40, 0.6);
-}
-
-.challenge-die.is-complication .challenge-die-face {
-  border-color: #ff9a3c;
-  color: #ff9a3c;
 }
 
 .challenge-die-tag {
@@ -2289,14 +2318,6 @@
   gap: 1px;
 }
 
-.ring-roll .challenge-die-face {
-  width: 18px;
-  height: 18px;
-  border-width: 1px;
-  border-radius: 4px;
-  font-size: 10px;
-}
-
 .ring-roll .challenge-die-tag,
 .ring-roll .challenge-die-owner {
   font-size: 5px;
@@ -2318,17 +2339,6 @@
   color: #8a93a8;
 }
 
-@keyframes challenge-die-roll {
-  from {
-    opacity: 0;
-    transform: rotate(-200deg) scale(0.4);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 /* The latest scan's report (ScanReport.jsx), under the hint until closed. */
 .explore-scan-report {
   position: absolute;
@@ -2337,10 +2347,10 @@
   right: 180px;
   margin: 0 auto;
   width: 320px;
-  padding: 8px 12px 10px;
-  border: 1px solid var(--panel-border);
+  padding: 7px 11px 9px;
+  border: var(--ui-border) solid var(--panel-border);
   border-left: 4px solid #7cc4ff;
-  border-radius: 4px;
+  border-radius: var(--ui-radius);
   background: rgba(6, 12, 28, 0.94);
   font-size: 12px;
   color: var(--text);
@@ -2369,7 +2379,7 @@
   font-size: 16px;
   line-height: 1;
   color: var(--text-muted);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .explore-scan-report-close:hover {
@@ -2442,14 +2452,14 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 3px 8px 3px 3px;
-  border: 1px solid #3f6f78;
-  border-radius: 3px;
+  padding: 2px 7px 2px 2px;
+  border: var(--ui-border) solid #3f6f78;
+  border-radius: var(--ui-radius);
   background: rgba(16, 41, 95, 0.3);
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .explore-transporter-entry:hover {

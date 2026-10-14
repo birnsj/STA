@@ -70,7 +70,7 @@
 
 .score-increase-toggle:disabled {
   opacity: 0.35;
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 .limit-adjuster {
@@ -140,7 +140,7 @@
   border: 1px solid var(--blue);
   border-radius: 4px;
   color: var(--text-muted);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .name-randomizer-button:hover,

@@ -4,8 +4,7 @@ import MinimapTiles from './MinimapTiles.jsx'
 
 function Marker({ position, kind, label }) {
   return (
-    <g className={`me-minimap-marker is-${kind}`} transform={`translate(${position.x} ${position.y})`}>
-      <title>{label}</title>
+    <g className={`me-minimap-marker is-${kind}`} transform={`translate(${position.x} ${position.y})`} data-tip={label}>
       <circle r="0.75" />
     </g>
   )
@@ -30,8 +29,7 @@ export default function EditorMinimap({ map }) {
           const position = objectivePosition(map, objective)
           return (
             position && (
-              <g key={`o${index}`} className="me-minimap-marker is-objective" transform={`translate(${position.x} ${position.y})`}>
-                <title>{`Objective: ${objective.title || objective.id}`}</title>
+              <g key={`o${index}`} className="me-minimap-marker is-objective" transform={`translate(${position.x} ${position.y})`} data-tip={`Objective: ${objective.title || objective.id}`}>
                 <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
               </g>
             )

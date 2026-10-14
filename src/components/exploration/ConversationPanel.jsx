@@ -6,6 +6,7 @@ import { availableOptions, checkCandidates, checkSpec, currentCheck, previewChec
 import { cardFor } from '../../maps/episodeCards.js'
 import { checkDicePurchase } from '../../rules/missionResources.js'
 import BonusDicePicker from '../BonusDicePicker.jsx'
+import D20Icon from '../D20Icon.jsx'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import { TaskDevDetails } from '../task/TaskMath.jsx'
 import { CharacterMath, RESULT_FADE_MS, RESULT_HOLD_MS, RolledDice, TaskResultView } from './ChallengePanel.jsx'
@@ -24,9 +25,9 @@ function answererId(state, recommendation, pickedPerformerId, defaultPerformerId
 }
 
 // A Task Check waiting on the player: the math for whoever answers (answererId), bonus dice, and the roll.
-// rollSlot: the element above the conversation box, where the Roll button goes; bonusSlot: the element in the box, under
-// the NPC's line, where the bonus dice picker goes (each here until it exists).
-function CheckView({ state, node, recommendation, defaultPerformerId, pickedPerformerId, rollSlot, bonusSlot, dispatch, dev }) {
+// checkSlot: the element in the box, under the NPC's line, where the bonus dice picker and, in its bottom-right corner,
+// the Roll button go (designer request, 2026-10-14); here until it exists.
+function CheckView({ state, node, recommendation, defaultPerformerId, pickedPerformerId, checkSlot, dispatch, dev }) {
   const [dicePurchase, setDicePurchase] = useState({ bonusDice: 0, momentum: 0 })
   const performer = state.party.members[answererId(state, recommendation, pickedPerformerId, defaultPerformerId)] ?? null
   const prepared = performer ? previewCheck(state, node, performer.id) : null
@@ -36,15 +37,21 @@ function CheckView({ state, node, recommendation, defaultPerformerId, pickedPerf
   const rollButton = (
     <button
       type="button"
-      className="combat-button is-primary"
+      className="combat-button is-primary conversation-roll-button"
       disabled={!performer || !prepared?.possible || !purchaseCheck.valid}
       onClick={() => dispatch({ type: 'conversationRoll', performerId: performer.id, purchase })}
     >
+      <D20Icon />
       Roll {purchaseCheck.dice}d20
     </button>
   )
   const bonusDice = performer && <BonusDicePicker resources={state.resources} value={purchase} onChange={setDicePurchase} />
-  const inSlot = (element, slot) => (slot ? createPortal(element, slot) : element)
+  const checkRow = (
+    <div className={`conversation-check-row${bonusDice ? ' has-picker' : ''}`}>
+      {bonusDice}
+      {rollButton}
+    </div>
+  )
   return (
     <>
       <h4>
@@ -68,8 +75,7 @@ function CheckView({ state, node, recommendation, defaultPerformerId, pickedPerf
           )}
         </>
       )}
-      {inSlot(rollButton, rollSlot)}
-      {inSlot(bonusDice, bonusSlot)}
+      {checkSlot ? createPortal(checkRow, checkSlot) : checkRow}
     </>
   )
 }
@@ -144,16 +150,15 @@ export default function ConversationPanel({ state, dispatch, defaultPerformerId,
 
   const leave = () => dispatch({ type: 'conversationLeave' })
   const canContinue = !conversation.ended && node?.type === 'npc' && !conversation.choiceId
-  const [rollSlot, setRollSlot] = useState(null)
-  const [bonusSlot, setBonusSlot] = useState(null)
+  const [checkSlot, setCheckSlot] = useState(null)
 
-  // The box holds the conversation and keeps one size (its text scrolls); while a check waits, the bonus dice picker goes
-  // in it under the NPC's line, and the Roll button, then the dice rolled, show centred just above it. A check's stats,
+  // The box holds the conversation and keeps one size (its text scrolls); while a check waits, the bonus dice picker and
+  // the Roll button go in it under the NPC's line, and the dice rolled then show centred just above it. A check's stats,
   // then its result, go in the stats and log area an object uses.
   return (
     <>
       <div className="conversation-dock" onPointerDown={(event) => event.stopPropagation()}>
-        <div className="conversation-roll" ref={setRollSlot}>
+        <div className="conversation-roll">
           {lastCheck && <RecentRoll key={lastCheck.key} lastCheck={lastCheck} state={state} />}
         </div>
         <div className="combat-panel challenge-panel conversation-panel">
@@ -176,7 +181,7 @@ export default function ConversationPanel({ state, dispatch, defaultPerformerId,
             </div>
           )}
 
-          {check && <div className="conversation-check-slot" ref={setBonusSlot} />}
+          {check && <div className="conversation-check-slot" ref={setCheckSlot} />}
 
           {conversation.choiceId && (
             <div className="conversation-options">
@@ -208,7 +213,7 @@ export default function ConversationPanel({ state, dispatch, defaultPerformerId,
         <div className="combat-panel challenge-panel is-docked" onPointerDown={(event) => event.stopPropagation()}>
           <div className="challenge-body">
             {check ? (
-              <CheckView key={check.id} state={state} node={check} recommendation={recommendation} defaultPerformerId={defaultPerformerId} pickedPerformerId={pickedPerformerId} rollSlot={rollSlot} bonusSlot={bonusSlot} dispatch={dispatch} dev={dev} />
+              <CheckView key={check.id} state={state} node={check} recommendation={recommendation} defaultPerformerId={defaultPerformerId} pickedPerformerId={pickedPerformerId} checkSlot={checkSlot} dispatch={dispatch} dev={dev} />
             ) : (
               <>
                 <h4>

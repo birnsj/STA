@@ -1,0 +1,26 @@
+/* Every mouse cursor in the prototype, as PNG art (public/art/cursors/, placeholders from scripts/makeCursors.mjs;
+ * designer decision, 2026-10-14). Stylesheets and the boards use these variables instead of the browser's cursors.
+ * Each is the image, its hotspot (the pixel that clicks: an arrow's tip, a reticle's centre), then the browser's own
+ * cursor if the image can't be used. Keep art at 32x32: browsers drop bigger cursors near the window edge. */
+:root {
+  --cursor-default: url('/art/cursors/default.png') 2 2, default;
+  --cursor-pointer: url('/art/cursors/pointer.png') 2 2, pointer;
+  --cursor-help: url('/art/cursors/help.png') 2 2, help;
+  --cursor-not-allowed: url('/art/cursors/not-allowed.png') 2 2, not-allowed;
+  --cursor-text: url('/art/cursors/text.png') 16 16, text;
+  --cursor-crosshair: url('/art/cursors/crosshair.png') 16 16, crosshair;
+  --cursor-grab: url('/art/cursors/grab.png') 16 16, grab;
+  /* The game boards: what a click on the thing under the pointer would do. */
+  --cursor-attack: url('/art/cursors/attack.png') 3 5, crosshair;
+  --cursor-move: url('/art/cursors/move.png') 16 25, pointer;
+  --cursor-talk: url('/art/cursors/talk.png') 2 2, pointer;
+  --cursor-use: url('/art/cursors/use.png') 2 2, pointer;
+}
+
+/* The boards set data-cursor on their overlay as the pointer moves (rather than an inline style, whose url() would
+ * resolve against the page instead of this stylesheet). */
+[data-cursor='pointer'] { cursor: var(--cursor-pointer); }
+[data-cursor='attack'] { cursor: var(--cursor-attack); }
+[data-cursor='move'] { cursor: var(--cursor-move); }
+[data-cursor='talk'] { cursor: var(--cursor-talk); }
+[data-cursor='use'] { cursor: var(--cursor-use); }

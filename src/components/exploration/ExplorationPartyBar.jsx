@@ -109,7 +109,7 @@ function CardInfoPanel({ character, condition }) {
         {character.values.length > 0 && (
           <button
             type="button"
-            className={`explore-card-values-toggle${valuesOpen ? ' is-open' : ''}`}
+            className={`explore-card-values-toggle is-chip${valuesOpen ? ' is-open' : ''}`}
             aria-pressed={valuesOpen}
             title={valuesOpen ? 'Back to the stats.' : `Show ${character.name}'s Values.`}
             onClick={() => setValuesOpen(!valuesOpen)}
@@ -208,7 +208,7 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
               <PartyTaskTag recommendation={recommendation} memberId={member.id} />
               {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
               {several && selected && !lead && (
-                <button type="button" className="explore-make-lead" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(member.id)}>
+                <button type="button" className="explore-make-lead is-chip" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(member.id)}>
                   Make Lead
                 </button>
               )}

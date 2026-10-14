@@ -1,0 +1,88 @@
+/* The d20 (D20.jsx): frames from one sprite sheet, sized to --d20-size. Every die is the sheet's blue, its number
+   gold (designer reference, 2026-10-14); a landed die
+   shows its verdict by the colour of its glowing outline (designer request, 2026-10-14). */
+.d20 {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--d20-size);
+  height: var(--d20-size);
+  background-image: var(--d20-image);
+  background-repeat: no-repeat;
+  background-size: calc(var(--d20-size) * var(--d20-columns)) var(--d20-size);
+  background-position: calc(var(--d20-size) * var(--d20-landed) * -1) 0;
+}
+
+/* Hidden through its delay, then the tumble frames once. */
+.d20.is-rolling {
+  animation:
+    d20-appear 0s linear var(--d20-delay) both,
+    d20-tumble var(--d20-tumble) steps(var(--d20-frames)) var(--d20-delay) both;
+}
+
+@keyframes d20-appear {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes d20-tumble {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: calc(var(--d20-size) * var(--d20-frames) * -1) 0;
+  }
+}
+
+/* Landed: an outline in the verdict's colour, following the die's shape, that flares up as it stops then glows. */
+.d20.is-landed {
+  filter: drop-shadow(0 0 1px var(--d20-glow)) drop-shadow(0 0 1px var(--d20-glow)) drop-shadow(0 0 4px var(--d20-glow));
+  animation: d20-glow-in 0.45s ease-out;
+}
+
+@keyframes d20-glow-in {
+  from {
+    filter: drop-shadow(0 0 2px var(--d20-glow)) drop-shadow(0 0 2px var(--d20-glow)) drop-shadow(0 0 12px var(--d20-glow));
+  }
+}
+
+.d20-value {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: max(9px, calc(var(--d20-size) * 0.3));
+  font-weight: 700;
+  line-height: 1;
+  color: #f0c060;
+  text-shadow:
+    0 0 2px #0a1240,
+    0 0 2px #0a1240,
+    0 1px 1px #0a1240;
+  pointer-events: none;
+}
+
+.d20.is-success {
+  --d20-glow: #4fd6c4;
+}
+
+.d20.is-critical {
+  --d20-glow: var(--yellow);
+}
+
+.d20.is-failure {
+  --d20-glow: var(--red);
+}
+
+.d20.is-complication {
+  --d20-glow: #ff9a3c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d20.is-rolling,
+  .d20.is-landed {
+    animation: none;
+  }
+}

@@ -240,7 +240,7 @@
   border: none;
   color: var(--text-muted);
   text-decoration: underline;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .review-fields {

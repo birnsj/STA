@@ -30,7 +30,7 @@
 
 .option-card:disabled {
   opacity: 0.45;
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 .option-card:disabled:hover {
@@ -148,7 +148,7 @@
 .point-button:disabled,
 .bonus-toggle:disabled {
   opacity: 0.3;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 .bonus-toggle,

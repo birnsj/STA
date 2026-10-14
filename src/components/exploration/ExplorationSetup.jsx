@@ -29,7 +29,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
 
   return (
     <div className="combat-setup">
-      <div className="combat-panel combat-setup-panel explore-setup-panel">
+      <div className="combat-panel lcars-frame combat-setup-panel explore-setup-panel">
         <h2 className="combat-setup-title">Exploration: {map ? episodeTitle(map) : 'Loading...'}</h2>
         <p className="combat-setup-text">Choose the away team: up to {maxPartySize} characters (one per player start on the map).</p>
         <div className="combat-setup-map">
@@ -46,7 +46,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
                 <li key={entry.id}>
                   <button
                     type="button"
-                    className={`combat-setup-entry${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
+                    className={`combat-setup-entry ui-row${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
                     aria-pressed={position >= 0}
                     title={entry.error ?? undefined}
                     onClick={() => toggle(entry)}
@@ -73,7 +73,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
               Away Team {party.length} / {maxPartySize}
             </span>
             {party.map((member) => (
-              <button key={member.id} type="button" className="combat-setup-member" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
+              <button key={member.id} type="button" className="combat-setup-member ui-row" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
                 <CombatPortrait character={member} className="combat-setup-member-portrait" />
                 <span>{member.name}</span>
               </button>
@@ -83,7 +83,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
             <button type="button" className="combat-button" onClick={onBack}>
               Back
             </button>
-            <button type="button" className="combat-button is-primary" disabled={!map || !party.length || party.length > maxPartySize} onClick={() => onStart(party, map)}>
+            <button type="button" className="combat-button is-primary is-advance" disabled={!map || !party.length || party.length > maxPartySize} onClick={() => onStart(party, map)}>
               Start Exploration
             </button>
           </div>

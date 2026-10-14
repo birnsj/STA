@@ -125,7 +125,7 @@
   background: rgba(4, 10, 24, 0.75);
   border: 1px solid #1f4f8c;
   border-radius: 2px;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .main-menu-dev:hover,
@@ -143,7 +143,7 @@
 .main-menu-button:disabled:hover {
   color: #5d6370;
   border-color: #2a2f3a;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 /* ---------- Ambient starfield ---------- */

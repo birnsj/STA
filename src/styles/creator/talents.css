@@ -62,7 +62,7 @@
 
 .choice.talent-row:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 .choice.talent-row.is-invalid {
@@ -125,7 +125,7 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .chip:hover:not(:disabled) {
@@ -140,7 +140,7 @@
 
 .chip:disabled {
   opacity: 0.4;
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 .focus-group-chips {

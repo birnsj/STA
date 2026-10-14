@@ -49,6 +49,11 @@ const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
 const { yellow: YELLOW, red: RED, purple: PURPLE, blue: BLUE } = SIDE_COLOURS
 
 const gaitOf = ({ walking, running, sneaking }) => (sneaking ? (walking ? 'sneakWalk' : 'sneakIdle') : running ? 'run' : walking ? 'walk' : 'idle')
+const boardCursor = (target) => {
+  if (!target || target.down) return ''
+  if (target.kind === 'npc') return target.hostile ? 'attack' : 'talk'
+  return target.kind === 'object' ? 'use' : 'pointer'
+}
 
 export default function PixiExplorationBoard(props) {
   const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
@@ -162,7 +167,7 @@ export default function PixiExplorationBoard(props) {
     })
     if (onOpenNpcMenu && visible) {
       const token = !hasCharacterSprite(npc.character?.portrait.spriteSet)
-      targets.push({ kind: 'npc', id: npc.id, depth, shapes: figureShapes(centre, { scale: FIGURE_SCALE, token: token && !animation.down, label: npc.name, labelY: tagY }) })
+      targets.push({ kind: 'npc', id: npc.id, hostile: isHostile(npc), depth, shapes: figureShapes(centre, { scale: FIGURE_SCALE, token: token && !animation.down, label: npc.name, labelY: tagY }) })
     }
   }
   const highlights = []
@@ -359,7 +364,7 @@ export default function PixiExplorationBoard(props) {
     const target = targetAt(event)
     hoverRef.current = target?.kind === 'object' ? target.id : null
     const svg = svgRef.current
-    if (svg) svg.style.cursor = target && !target.down ? 'pointer' : ''
+    if (svg) svg.dataset.cursor = boardCursor(target)
   }
 
   const menuPosition = menu?.memberId

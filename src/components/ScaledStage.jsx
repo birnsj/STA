@@ -1,12 +1,14 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_DISPLAY_SETTINGS, DESIGN_RESOLUTION, getStageLayout } from '../settings/displaySettings.js'
 import { StageSizeContext } from './stageSize.js'
+import TitleTips from './TitleTips.jsx'
 
 const getViewport = () => ({ width: window.innerWidth, height: window.innerHeight })
 
 // Each view is authored at a fixed size (character creation: the design resolution); scaled per the display settings.
 export default function ScaledStage({ width = DESIGN_RESOLUTION.width, height = DESIGN_RESOLUTION.height, settings = DEFAULT_DISPLAY_SETTINGS, children }) {
   const [layout, setLayout] = useState(() => getStageLayout(settings, { width, height }, getViewport()))
+  const stageRef = useRef(null)
 
   useLayoutEffect(() => {
     const handleResize = () => setLayout(getStageLayout(settings, { width, height }, getViewport()))
@@ -19,8 +21,9 @@ export default function ScaledStage({ width = DESIGN_RESOLUTION.width, height = 
   return (
     <div className="stage-viewport">
       <div className="stage-slot" style={{ width: layout.width * scale, height: layout.height * scale }}>
-        <div className="stage" style={{ width: layout.width, height: layout.height, transform: `scale(${scale})` }}>
+        <div ref={stageRef} className="stage" style={{ width: layout.width, height: layout.height, transform: `scale(${scale})` }}>
           <StageSizeContext.Provider value={{ width: layout.width, height: layout.height }}>{children}</StageSizeContext.Provider>
+          <TitleTips stageRef={stageRef} />
         </div>
       </div>
       <div className="rotate-notice" role="alert">

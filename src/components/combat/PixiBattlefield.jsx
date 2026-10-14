@@ -41,6 +41,14 @@ const ringOf = (sideKey, active, turnDone) => {
   return { fill, stroke }
 }
 const SIDE = { player: BLUE, enemy: RED, neutral: PURPLE }
+// The cursor (styles/cursors.css) for what's under the pointer (designer decision, 2026-10-14): the attack reticle
+// over a standing enemy, the pointer over a party member or an object in reach, move over a tile the active
+// character can reach; otherwise the stage's arrow.
+const boardCursor = (target, reachable) => {
+  if (target?.kind === 'unit') return target.down ? '' : target.side === 'enemy' ? 'attack' : 'pointer'
+  if (target) return target.clickable ? 'pointer' : ''
+  return reachable ? 'move' : ''
+}
 
 export default function PixiBattlefield(props) {
   const {
@@ -80,10 +88,12 @@ export default function PixiBattlefield(props) {
   const beamingId = justFled(state)?.id
   const units = Object.values(state.combatants).filter((unit) => (!unit.fled || unit.id === beamingId) && !hiddenIds?.includes(unit.id))
   const firing = shotOf(state, state.lastAction)
-  // Only the combatant whose turn it is cuts walls away.
+  // The combatant whose turn it is cuts walls away, and so does every standing enemy, so no wall hides one (designer
+  // request, 2026-10-14). Other party members don't.
+  const cutsWalls = (unit) => unit.id === activeId || (unit.side === 'enemy' && !controllerFor(unit).animationState(unit).down)
   const hidden = useWallFade(
     map,
-    units.filter((unit) => unit.id === activeId).map((unit) => ({ id: unit.id, position: shownPosition(unit) })),
+    units.filter(cutsWalls).map((unit) => ({ id: unit.id, position: shownPosition(unit) })),
     bigGroups,
   )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
@@ -146,7 +156,7 @@ export default function PixiBattlefield(props) {
     if (isBystander || beam) return
     const token = !hasCharacterSprite(portrait?.spriteSet)
     const clickable = !down && !combatant.surrendered && !combatant.fled
-    const unitTarget = { kind: 'unit', id: combatant.id, depth, down, clickable, sound: !down && !combatant.fled }
+    const unitTarget = { kind: 'unit', id: combatant.id, side: combatant.side, depth, down, clickable, sound: !down && !combatant.fled }
     const shapes = figureShapes(centre, { scale: FIGURE_SCALE, token: token && !down })
     if (down && token) shapes[1] = { type: 'rect', x: centre.x - 16, y: centre.y - 12, width: 32, height: 14 }
     if (statusLabel) shapes.push({ type: 'rect', x: centre.x - labelWidth(statusLabel, 10) / 2, y: centre.y + LABEL_Y - 10, width: labelWidth(statusLabel, 10), height: 12 })
@@ -318,7 +328,7 @@ export default function PixiBattlefield(props) {
       handlersRef.current.onTileHover(tile)
     }
     const svg = svgRef.current
-    if (svg) svg.style.cursor = (target && (target.kind === 'unit' ? !target.down : target.clickable)) || reachable ? 'pointer' : ''
+    if (svg) svg.dataset.cursor = boardCursor(target, reachable)
   }
   const handleMouseLeave = () => {
     setHoveredUnit(null)
@@ -342,8 +352,9 @@ export default function PixiBattlefield(props) {
         onClick={handleClick}
         onContextMenu={preventMenu}
         onMouseLeave={handleMouseLeave}
+        data-tip={title ?? undefined}
+        data-tip-at="pointer"
       >
-        {title && <title>{title}</title>}
         {ring && (ring.position || state.combatants[ring.unitId]) && (
           <UnitActionRing
             position={ring.position ?? shownPosition(state.combatants[ring.unitId])}

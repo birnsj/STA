@@ -11,6 +11,9 @@
   --text-muted: #8fb3ff;
   --label: #f1c75b;
   --display-font: 'Bahnschrift SemiCondensed', 'Bahnschrift', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  /* The character creator's frame and button style, which every screen follows (styles/ui.css). */
+  --ui-border: 2px;
+  --ui-radius: 6px;
 
   font-family: var(--display-font);
   line-height: 1.35;
@@ -27,7 +30,7 @@
 body {
   margin: 0;
   overflow: hidden;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 /* Art is part of the interface: no drag, no selection, and no iPad/iPhone press-and-hold menu (Save Image, Copy...). */
@@ -121,27 +124,27 @@ img {
 
 input,
 textarea {
-  cursor: text;
+  cursor: var(--cursor-text);
   user-select: text;
 }
 
 input[type='range'] {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
   user-select: none;
 }
 
 button {
   font: inherit;
   color: inherit;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 button:disabled {
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 label:has(> input:is([type='checkbox'], [type='radio'])) {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 h1,

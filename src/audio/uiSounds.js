@@ -633,6 +633,77 @@ export function playMomentumLossSound(momentum) {
   withRunningContext((audio) => playMomentumLoss(audio, momentum))
 }
 
+// Dice tumbling on a table: hard little clacks (a click of bright noise with a short high "tock" under it), close
+// together at first and spreading out as the dice slow, then a last settling clack. seconds: how long they tumble.
+const DICE_GAIN = 0.1
+// Dice of one roll start a little apart (staggered); one rattle covers them all.
+const DICE_RATTLE_GAP_MS = 400
+let lastRattleAt = -Infinity
+function playDiceRattle(audio, seconds) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const clack = (at, gain) => {
+    playNoiseBurst(audio, { start: at, length: 0.025, gain: DICE_GAIN * gain, filterType: 'bandpass', frequency: 2800 + Math.random() * 2400, q: 2.5 })
+    const filter = audio.createBiquadFilter()
+    filter.type = 'highpass'
+    filter.frequency.value = 900
+    filter.connect(audio.destination)
+    playTone(audio, filter, { at, from: 1900 + Math.random() * 1500, length: 0.03, gain: DICE_GAIN * 0.35 * gain, wave: 'triangle', attack: 0.002 })
+  }
+  let at = 0
+  let gap = 0.035
+  while (at < seconds) {
+    clack(start + at, 0.55 + Math.random() * 0.45)
+    at += gap * (0.6 + Math.random() * 0.8)
+    gap *= 1.22
+  }
+  clack(start + seconds, 0.8)
+}
+
+// A die starts tumbling (components/dice/D20.jsx). seconds: its tumble.
+export function playDiceRollSound(seconds) {
+  const now = performance.now()
+  if (level === 0 || now - lastRattleAt < DICE_RATTLE_GAP_MS) return
+  lastRattleAt = now
+  withRunningContext((audio) => playDiceRattle(audio, seconds))
+}
+
+// A roll's result, once its dice have landed. Success: a bright rising major arpeggio of bell-like tones that rings
+// on as a chord. Failure: a low two-note fall on a muted, slightly buzzy tone.
+const ROLL_RESULT_GAIN = 0.06
+function playRollResult(audio, success) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const filter = audio.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = success ? 5000 : 1100
+  filter.connect(audio.destination)
+  if (success) {
+    for (const [frequency, offset] of [
+      [784, 0],
+      [988, 0.07],
+      [1175, 0.14],
+      [1568, 0.21],
+    ]) {
+      const length = 0.7 - offset
+      playTone(audio, filter, { at: start + offset, from: frequency, length, gain: ROLL_RESULT_GAIN, attack: 0.006 })
+      playTone(audio, filter, { at: start + offset, from: frequency * 2.01, length: length * 0.5, gain: ROLL_RESULT_GAIN * 0.2, attack: 0.006 })
+    }
+    return
+  }
+  for (const [from, to, offset, length] of [
+    [330, 311, 0, 0.2],
+    [247, 220, 0.18, 0.5],
+  ]) {
+    playTone(audio, filter, { at: start + offset, from, to, length, gain: ROLL_RESULT_GAIN * 1.3, wave: 'sawtooth', attack: 0.01 })
+    playTone(audio, filter, { at: start + offset, from: from / 2, to: to / 2, length, gain: ROLL_RESULT_GAIN, attack: 0.01 })
+  }
+}
+
+// A roll succeeded or failed (object challenges, conversation Task Checks, combat), as its result is shown.
+export function playRollResultSound(success) {
+  if (level === 0) return
+  withRunningContext((audio) => playRollResult(audio, success))
+}
+
 // One footstep: a soft, low noise scuff. Alternate feet are pitched slightly differently so a walk doesn't sound mechanical.
 // loudness scales the step (0..1), e.g. softer while sneaking.
 export function playFootstep(stepIndex = 0, loudness = 1) {

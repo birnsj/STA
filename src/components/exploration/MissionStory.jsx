@@ -97,7 +97,7 @@ export function MissionIntro({ map, onBegin }) {
       leaving={leaving}
       bottom={
         done ? (
-          <button type="button" className="combat-button is-primary mission-intro-begin" onClick={begin} autoFocus>
+          <button type="button" className="combat-button is-primary is-advance mission-intro-begin" onClick={begin} autoFocus>
             Begin Mission
           </button>
         ) : (

@@ -66,7 +66,7 @@
   background: #040a18;
   border: 2px solid #1f4f8c;
   border-radius: 6px;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .import-carousel-arrow:hover:not(:disabled),
@@ -77,7 +77,7 @@
 
 .import-carousel-arrow:disabled {
   opacity: 0.3;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 .import-card {
@@ -222,7 +222,7 @@
 
 .menu-notice .nav-button:disabled {
   opacity: 0.4;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 /* Shown over the 1920x1080 creator, so roughly twice the menu-stage sizes. */

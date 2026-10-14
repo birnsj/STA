@@ -215,7 +215,7 @@
   border: 2px solid var(--panel-border);
   border-radius: 6px;
   color: var(--text-muted);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .species-gender-option:hover,
@@ -271,7 +271,7 @@
 /* ---------- Section help tooltips ---------- */
 
 .help-tip {
-  cursor: help;
+  cursor: var(--cursor-help);
   outline: none;
 }
 
@@ -362,6 +362,39 @@
   color: var(--text-muted);
 }
 
+/* Plain tooltips (TitleTips.jsx) keep their line breaks; one without a title gets the title strip's top room. */
+.info-tip-text {
+  white-space: pre-line;
+}
+
+.info-tip.is-untitled {
+  padding-top: 8px;
+}
+
+/* The same box on the game's smaller stages (1024 wide, the creator's 1920), sized to fit its text. */
+.info-tip.is-compact {
+  width: max-content;
+  max-width: 180px;
+  gap: 2px;
+  padding: 0 7px 5px;
+  border-width: var(--ui-border);
+  border-left-width: 6px;
+  border-radius: 3px 7px 7px 3px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.7), 0 0 6px rgba(44, 102, 216, 0.35);
+  font-size: 10px;
+}
+
+.info-tip.is-compact.is-untitled {
+  padding-top: 5px;
+}
+
+.info-tip.is-compact .help-tip-title {
+  margin: 0 -7px 2px;
+  padding: 2px 7px;
+  border-bottom-width: var(--ui-border);
+  font-size: 11px;
+}
+
 .panel-heading-context {
   text-transform: none;
   color: var(--text-muted);
@@ -417,7 +450,7 @@
   border: 2px solid var(--panel-border);
   border-radius: 6px;
   color: var(--text-muted);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .parent-primary:hover,

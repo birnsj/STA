@@ -16,20 +16,24 @@
   background: radial-gradient(ellipse at 45% 50%, #142446 0%, #070d1d 60%, #03060e 100%);
 }
 
+/* Panels and buttons follow the character creator (.panel, .nav-button; styles/ui.css), at the game's own sizes. */
 .combat-panel {
-  background: rgba(6, 12, 28, 0.9);
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  padding: 6px 8px;
+  background: var(--panel);
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  padding: 5px 7px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .combat-panel-title {
   margin: 0 0 4px;
+  padding-bottom: 2px;
   font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--yellow);
+  border-bottom: var(--ui-border) solid var(--panel-border);
 }
 
 .combat-panel-empty {
@@ -68,6 +72,17 @@
 }
 
 /* Battlefield */
+/* Switched on (aria-pressed): the creator's selected look (.step-nav-item.is-active). */
+.combat-button[aria-pressed='true'] {
+  border-color: var(--yellow);
+  background: var(--yellow);
+  color: #111;
+}
+
+.combat-button[aria-pressed='true']:hover:not(:disabled) {
+  background: #ffd76a;
+}
+
 .battlefield {
   position: absolute;
   inset: 0;
@@ -89,7 +104,7 @@
 }
 
 .unit-ring-button {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .unit-ring-button circle {
@@ -140,7 +155,7 @@
 }
 
 .unit-ring-button.is-disabled {
-  cursor: default;
+  cursor: var(--cursor-default);
   opacity: 0.4;
 }
 
@@ -240,9 +255,10 @@
 .unit-ring-info {
   padding: 5px 7px;
   background: rgba(6, 12, 28, 0.94);
-  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border: var(--ui-border) solid var(--panel-border);
   border-left: 4px solid var(--yellow);
-  border-radius: 3px;
+  border-radius: var(--ui-radius);
   font-size: 10px;
   color: var(--text);
 }
@@ -284,7 +300,7 @@
 /* NPC and object rings in exploration: the away team in a band outside the buttons. Teal marks who is best at the
    button last hovered (as on the party cards); yellow, who is picked to do the next action. */
 .unit-ring-party-slice {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .unit-ring-party-band {
@@ -353,6 +369,59 @@
 .unit-ring-party-slice.is-unavailable image,
 .unit-ring-party-slice.is-unavailable .unit-ring-party-initial {
   opacity: 0.35;
+}
+
+/* An object ring's last arc, over the picked member: Roll (a d20), or a routine action's tick. */
+.unit-ring-roll {
+  cursor: var(--cursor-pointer);
+}
+
+.unit-ring-roll-band {
+  fill: rgba(6, 12, 28, 0.94);
+  stroke: var(--yellow);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.unit-ring-roll path:not(.unit-ring-roll-band) {
+  fill: none;
+  stroke: var(--yellow);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.unit-ring-roll:not(.is-disabled):hover .unit-ring-roll-band {
+  fill: #10295f;
+}
+
+.unit-ring-roll.is-disabled {
+  cursor: var(--cursor-default);
+  opacity: 0.45;
+}
+
+/* The object ring's next choice pulses, in order: an approach, then who does it, then Roll. */
+.unit-ring-button.is-pulsing circle,
+.unit-ring-party-slice.is-pulsing .unit-ring-party-band,
+.unit-ring-roll.is-pulsing .unit-ring-roll-band {
+  animation: unit-ring-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes unit-ring-pulse {
+  50% {
+    stroke: var(--yellow);
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 4px rgba(255, 204, 51, 0.85));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unit-ring-button.is-pulsing circle,
+  .unit-ring-party-slice.is-pulsing .unit-ring-party-band,
+  .unit-ring-roll.is-pulsing .unit-ring-roll-band {
+    animation: none;
+    stroke: var(--yellow);
+  }
 }
 
 .unit-ring foreignObject {
@@ -482,7 +551,6 @@
 
 .combat-button.is-danger {
   border-color: var(--red);
-  background: rgba(255, 90, 80, 0.15);
   color: #ff9a92;
 }
 
@@ -567,11 +635,12 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 7px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: rgba(6, 12, 28, 0.9);
+  padding: 2px 6px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -618,7 +687,7 @@
     border-color: #bfe2ff;
   }
   100% {
-    background: rgba(6, 12, 28, 0.9);
+    background: var(--panel);
     box-shadow: 0 0 0 rgba(71, 168, 255, 0);
   }
 }
@@ -651,9 +720,9 @@
 /* Buy d20s (BonusDicePicker) */
 .bonus-dice {
   margin: 6px 0;
-  padding: 6px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 5px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
   background: rgba(6, 12, 28, 0.6);
   font-size: 11px;
 }
@@ -695,11 +764,12 @@
 }
 
 .resource-cancel {
-  padding: 2px 6px;
-  border: 1px solid #3d9bff;
-  border-radius: 3px;
-  background: rgba(61, 155, 255, 0.15);
+  padding: 1px 5px;
+  border: var(--ui-border) solid #3d9bff;
+  border-radius: var(--ui-radius);
+  background: none;
   font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -734,7 +804,8 @@
 .turn-strip-portrait {
   width: 34px;
   height: 40px;
-  border: 2px solid #3d7bff;
+  border: var(--ui-border) solid #3d7bff;
+  border-radius: var(--ui-radius);
 }
 
 .turn-strip-item.is-enemy .turn-strip-portrait {
@@ -764,10 +835,10 @@
   margin: 0 auto;
   width: fit-content;
   max-width: 590px;
-  padding: 5px 12px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.9);
+  padding: 4px 11px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   font-size: 13px;
   text-align: center;
   color: var(--text-muted);
@@ -789,11 +860,13 @@
 .combat-ambush {
   display: block;
   margin: 5px auto 0;
-  padding: 2px 10px;
-  border: 1px solid var(--yellow);
-  border-radius: 3px;
+  padding: 1px 9px;
+  border: var(--ui-border) solid var(--yellow);
+  border-radius: var(--ui-radius);
   background: none;
   font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
   color: var(--yellow);
 }
 
@@ -801,7 +874,7 @@
   border-color: var(--panel-border);
   color: var(--text-muted);
   background: none;
-  cursor: default;
+  cursor: var(--cursor-default);
 }
 
 .combat-ambush:not(:disabled):hover,
@@ -837,6 +910,7 @@
 .combat-help-heading {
   margin: 0 0 2px;
   font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--label);
@@ -1026,22 +1100,30 @@
 
 .injury-button {
   flex: 1;
-  padding: 2px 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 1px 0;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: none;
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.injury-button:hover:not(:disabled):not(.is-selected) {
+  background: var(--blue-deep);
 }
 
 .injury-button.is-stun.is-selected {
   border-color: #47a8ff;
-  background: rgba(71, 168, 255, 0.2);
+  background: #47a8ff;
+  color: #111;
 }
 
 .injury-button.is-deadly.is-selected {
   border-color: var(--red);
-  background: rgba(226, 70, 61, 0.25);
+  background: var(--red);
+  color: #fff;
 }
 
 .assist-allies {
@@ -1052,18 +1134,24 @@
 }
 
 .assist-ally {
-  padding: 3px 6px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 2px 5px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: none;
   font-size: 11px;
+  font-weight: 700;
   text-align: left;
+  color: var(--text-muted);
+}
+
+.assist-ally:hover:not(:disabled):not(.is-selected) {
+  background: var(--blue-deep);
 }
 
 .assist-ally.is-selected {
   border-color: var(--yellow);
-  background: rgba(246, 185, 40, 0.15);
-  color: var(--yellow);
+  background: var(--yellow);
+  color: #111;
 }
 
 .task-assist {
@@ -1117,17 +1205,21 @@
   align-items: center;
   gap: 7px;
   width: 166px;
-  padding: 5px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.9);
+  padding: 4px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   text-align: left;
   /* Holds the turn badge and the task tag laid over the card. */
   position: relative;
 }
 
+/* The creator's selected state, scaled down: a yellow left edge rather than a full fill, so the portrait and Stress
+   stay readable; the padding gives back what the wider edge takes, so nothing inside the card moves. */
 .party-card.is-active {
   border-color: var(--yellow);
+  border-left-width: 4px;
+  padding-left: 2px;
 }
 
 /* The combat card is the exploration card's size whatever it shows (designer request, 2026-10-12); the AI box beside
@@ -1201,7 +1293,7 @@
   border-radius: 3px;
   background: #03060e;
   pointer-events: auto;
-  cursor: help;
+  cursor: var(--cursor-help);
 }
 
 .condition-icon svg {
@@ -1311,7 +1403,7 @@
 
 .party-card.is-ready {
   border-color: #3ccf7a;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .party-card.is-ready:hover {
@@ -1455,15 +1547,16 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 0;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.9);
+  padding: 6px 0;
+  border: var(--ui-border) solid var(--yellow);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--yellow);
 }
 
 .task-end-turn .actions-icon {
@@ -1472,8 +1565,7 @@
 }
 
 .task-end-turn:hover:not(:disabled) {
-  background: rgba(44, 102, 216, 0.25);
-  color: var(--text);
+  background: var(--blue-deep);
 }
 
 .task-end-turn:disabled {
@@ -1615,7 +1707,7 @@
 }
 
 .party-weapon.is-switchable {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .party-weapon.is-switchable:hover,
@@ -1631,10 +1723,10 @@
 /* Roll panel */
 .roll-panel {
   width: 420px;
-  padding: 6px 10px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.92);
+  padding: 5px 9px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
 }
 
 .roll-panel.is-hit {
@@ -1675,38 +1767,6 @@
   gap: 3px;
 }
 
-.roll-die {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 5px;
-  font-size: 17px;
-  font-weight: bold;
-}
-
-.roll-die.is-success {
-  background: rgba(60, 207, 122, 0.2);
-  border: 2px solid #3ccf7a;
-}
-
-.roll-die.is-fail {
-  background: rgba(226, 70, 61, 0.15);
-  border: 2px solid #8a4040;
-}
-
-.roll-die.is-twenty {
-  border-color: var(--red);
-  box-shadow: 0 0 8px var(--red);
-}
-
-.roll-die.is-critical {
-  background: rgba(246, 185, 40, 0.22);
-  border: 2px solid var(--yellow);
-  box-shadow: 0 0 8px rgba(246, 185, 40, 0.7);
-}
-
 .roll-die-score {
   font-size: 9.5px;
   color: var(--text-muted);
@@ -1722,18 +1782,13 @@
   font-weight: 700;
 }
 
-.roll-die.is-rolling {
-  background: rgba(120, 160, 255, 0.12);
-  border: 2px solid var(--panel-border);
-  color: var(--text-muted);
-}
-
 .roll-reroll {
-  padding: 1px 5px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 0 4px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: none;
   font-size: 9.5px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1816,10 +1871,12 @@
 }
 
 .debug-close {
-  padding: 1px 6px;
-  border: 1px solid var(--panel-border);
+  padding: 0 5px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: none;
   font-size: 10px;
+  font-weight: 700;
 }
 
 .debug-grid {
@@ -1838,7 +1895,7 @@
 }
 
 .character-inspector summary {
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .character-inspector-row {
@@ -1943,17 +2000,19 @@
 }
 
 .auto-speed {
-  padding: 2px 4px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  padding: 1px 3px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: none;
   color: var(--text-muted);
   font-size: 11px;
+  font-weight: 700;
 }
 
 .auto-speed.is-selected {
   border-color: var(--yellow);
-  color: var(--yellow);
+  background: var(--yellow);
+  color: #111;
 }
 
 .auto-ai {
@@ -1976,10 +2035,10 @@
      every name in full. */
   width: 60px;
   min-width: 0;
-  padding: 1px 2px;
+  padding: 0 1px;
   text-overflow: ellipsis;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
+  border: var(--ui-border) solid var(--blue);
+  border-radius: var(--ui-radius);
   background: #0b1424;
   color: var(--text);
   font: inherit;
@@ -1997,10 +2056,10 @@
 
 .combat-setup-seed input {
   width: 110px;
-  padding: 3px 6px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: rgba(6, 12, 28, 0.9);
+  padding: 2px 5px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   color: var(--text);
   font: inherit;
 }
@@ -2019,9 +2078,9 @@
 .combat-modal {
   min-width: 340px;
   padding: 18px 24px;
-  border: 2px solid var(--yellow);
-  border-radius: 6px;
-  background: rgba(6, 12, 28, 0.97);
+  border: var(--ui-border) solid var(--yellow);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   text-align: center;
 }
 
@@ -2030,7 +2089,9 @@
 }
 
 .combat-modal-title {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
   font-size: 34px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -2059,14 +2120,18 @@
   justify-content: center;
 }
 
+/* 20px wider than before the LCARS frame (.lcars-frame, ui.css), so the contents keep their width inside it. */
 .combat-setup-panel {
-  width: 640px;
+  width: 660px;
   padding: 14px 18px;
 }
 
 .combat-setup-title {
   margin: 0;
+  padding-bottom: 2px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
   font-size: 22px;
+  font-weight: 700;
   color: var(--yellow);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2117,17 +2182,26 @@
   display: block;
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: rgba(16, 41, 95, 0.4);
+  border: none;
   font-size: 13px;
+  font-weight: 700;
   text-align: left;
   box-sizing: border-box;
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
+}
+
+.combat-setup-entry:hover {
+  border-left-color: var(--yellow);
 }
 
 .combat-setup-entry.is-selected {
-  border-color: var(--yellow);
+  border-left-color: var(--yellow);
+  background: var(--yellow);
+  color: #111;
+}
+
+.combat-setup-entry.is-selected .combat-setup-slot {
+  background: #111;
   color: var(--yellow);
 }
 
@@ -2159,7 +2233,7 @@
   min-height: 40px;
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid var(--panel-border);
+  border-top: var(--ui-border) solid var(--panel-border);
 }
 
 .combat-setup-party-label {
@@ -2175,16 +2249,15 @@
   gap: 5px;
   max-width: 128px;
   padding: 3px 6px 3px 3px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: rgba(16, 41, 95, 0.4);
+  border: none;
   font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .combat-setup-member:hover {
-  border-color: var(--red);
+  border-left-color: var(--red);
 }
 
 .combat-setup-member-portrait {
@@ -2193,7 +2266,9 @@
 }
 
 .combat-setup-entry.is-file {
-  border-style: dashed;
+  border: var(--ui-border) dashed var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: none;
   color: var(--text-muted);
 }
 
@@ -2259,18 +2334,20 @@
   background: radial-gradient(ellipse at 50% 45%, #142446 0%, #070d1d 60%, #03060e 100%);
 }
 
+/* 22px wider than before the LCARS frame (.lcars-frame, ui.css), so the contents keep their width inside it. */
 .episode-select-panel {
-  width: 620px;
+  width: 642px;
   padding: 20px 24px;
-  border: 1px solid var(--panel-border);
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.92);
+  background: var(--panel);
 }
 
 .episode-select-title {
   margin: 0 0 4px;
+  padding-bottom: 2px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
   color: var(--yellow);
   font-size: 22px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -2292,8 +2369,12 @@
   opacity: 0.6;
 }
 
+/* The creator's selected choice (.choice.is-selected, .option-card.is-selected): yellow border, faint yellow wash and
+   a ring drawn as a shadow so the tile never changes size. */
 .episode-select-modes .episode-select-option.is-selected {
   border-color: var(--yellow);
+  background: rgba(246, 185, 40, 0.08);
+  box-shadow: 0 0 0 1px var(--yellow), 0 0 10px rgba(246, 185, 40, 0.5);
   opacity: 1;
 }
 
@@ -2342,7 +2423,7 @@
   aspect-ratio: 16 / 9;
   margin-bottom: 2px;
   border: 1px solid var(--panel-border);
-  border-radius: 2px;
+  border-radius: 3px;
   background: linear-gradient(160deg, #10203f, #050a16);
   overflow: hidden;
 }
@@ -2359,20 +2440,21 @@
   flex-direction: column;
   gap: 6px;
   padding: 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: var(--blue-deep);
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
   color: var(--text);
   text-align: left;
 }
 
 .episode-select-option:hover {
-  border-color: var(--yellow);
+  border-color: var(--text-muted);
 }
 
 .episode-select-label {
   color: var(--yellow);
   font-size: 18px;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2383,12 +2465,9 @@
 }
 
 .episode-select-back {
-  padding: 6px 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 3px;
-  background: var(--blue-deep);
-  color: var(--text);
-  text-transform: uppercase;
+  min-width: 0;
+  padding: 6px 18px;
+  font-size: 16px;
 }
 
 /* Task math (components/task/TaskMath.jsx): one visual language for every rolled task, in exploration and combat. */
@@ -2596,7 +2675,7 @@
 
 .tm-dev summary {
   color: var(--text-muted);
-  cursor: pointer;
+  cursor: var(--cursor-pointer);
 }
 
 .tm-dev table {
@@ -2667,8 +2746,7 @@
   font-weight: 700;
 }
 
-.challenge-approach-best,
-.challenge-die.is-failure .challenge-die-face {
+.challenge-approach-best {
   color: var(--text-muted);
 }
 

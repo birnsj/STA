@@ -83,6 +83,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // above that ring where the panel puts its Roll button and dice (null: they stay in the panel).
   const [panelActionId, setPanelActionId] = useState(null)
   const [rollSlot, setRollSlot] = useState(null)
+  // UI state: the open panel's Roll for the object's ring (ChallengePanel onRollChange), or null.
+  const [objectRoll, setObjectRoll] = useState(null)
   const setInteractionId = useCallback(
     (objectId, actionId = null, performerId = null) => setInteraction(objectId ? { objectId, actionId, performerId } : null),
     [],
@@ -393,6 +395,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       },
     })),
   }
+  // An object's ring is chosen in order (designer decision, 2026-10-14): an approach, then who does it (only members
+  // within reach, shown once the approach is chosen, picked even when there's only one), then Roll on the outermost arc
+  // over them. The next choice pulses.
+  const objectAction = openId ? panelActionId : null
   const objectButtons =
     menuObject &&
     objectMenuButtons(
@@ -400,15 +406,24 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       menuObject,
       (actionId) => {
         setMenuObjectId(null)
-        setInteractionId(menuObject, actionId, pickedId)
+        setRingPick(null)
+        setInteractionId(menuObject, actionId)
       },
-      openId ? panelActionId : null,
-    )
+      objectAction,
+    ).map((button) => ({ ...button, pulse: !objectAction && button.enabled }))
+  const objectBand = objectAction && objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, objectAction, pickedId, pickRingMember) : null
+  const objectSlices = objectBand?.slices.filter((slice) => slice.available) ?? []
+  const objectPicked = objectSlices.some((slice) => slice.picked)
   const objectMenu = menuObject && {
     objectId: menuObject,
     buttons: objectButtons,
     // Once every approach is spent (the panel is still showing the last roll) only the dice stay above the object.
-    party: objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, hoveredRingButton, pickedId, pickRingMember) : null,
+    party: objectBand && {
+      ...objectBand,
+      slices: objectSlices,
+      pulse: !objectPicked,
+      roll: objectPicked && objectRoll ? { ...objectRoll, pulse: objectRoll.enabled } : null,
+    },
     onButtonHover: hoverRingButton,
     slotRef: openId ? setRollSlot : undefined,
   }
@@ -525,6 +540,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           initialActionId={interaction.actionId}
           pickedPerformerId={pickedId ?? interaction.performerId}
           rollSlot={rollSlot}
+          onRollChange={setObjectRoll}
           onActionChange={setPanelActionId}
           dispatch={dispatch}
           onClose={() => setInteraction(null)}

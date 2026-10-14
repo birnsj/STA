@@ -4,7 +4,7 @@
 
 .env-tab:disabled {
   opacity: 0.45;
-  cursor: not-allowed;
+  cursor: var(--cursor-not-allowed);
 }
 
 /* Sections waiting on an earlier one (see getLockedSections); `inert` blocks their input. */

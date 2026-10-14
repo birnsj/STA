@@ -41,7 +41,7 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
 
   return (
     <div className="episode-select">
-      <div className="episode-select-panel" inert={Boolean(deleting)}>
+      <div className="episode-select-panel lcars-frame" inert={Boolean(deleting)}>
         <h2 className="episode-select-title">Load Episode</h2>
         <p className="episode-select-text">Choose a prototype, then an episode.</p>
         <div className="episode-select-modes">
@@ -87,7 +87,7 @@ export default function EpisodeSelectScreen({ mode, onModeChange, onOpen, onBack
         </ul>
         {problem && <p className="episode-select-text">{problem}</p>}
         {episodes && !episodes.length && <p className="episode-select-text">No episodes yet. Make a map in Dev Edit.</p>}
-        <button type="button" className="episode-select-back" onClick={onBack}>
+        <button type="button" className="nav-button episode-select-back" onClick={onBack}>
           Back
         </button>
       </div>

@@ -1,0 +1,52 @@
+/* Pieces of the character creator's style that the game's screens reuse (designer decision, 2026-10-14: the creator
+   is the style for buttons, framing and borders everywhere). Tokens are in base.css. */
+
+/* The creator's frame (.frame-body): a thick blue border with a yellow top. Full-screen menu-type screens only, never
+   over a map. */
+.lcars-frame {
+  border: 12px solid var(--blue);
+  border-top-color: var(--yellow);
+  border-radius: 40px;
+}
+
+/* A section heading: uppercase yellow over a rule (.summary-section-heading). */
+.ui-heading {
+  padding-bottom: 2px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  border-bottom: var(--ui-border) solid var(--panel-border);
+}
+
+/* A list row: a deep-blue bar with a coloured left edge (.summary-snapshot-score). */
+.ui-row {
+  background: var(--blue-deep);
+  border-left: 4px solid var(--blue);
+  border-radius: 3px;
+}
+
+/* A button that moves the player on pulses, as the creator's Next does. */
+.is-advance:not(:disabled) {
+  animation: summary-close-pulse 1.8s ease-in-out infinite;
+}
+
+/* A small outlined button that could pass for a label (Values, Make Lead, the reroll chips): a light, slow glow so it
+   reads as something to press (designer request, 2026-10-14). Stops while pressed open or hovered. */
+.is-chip:not(:disabled, .is-open, :hover) {
+  animation: ui-chip-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes ui-chip-pulse {
+  50% {
+    box-shadow: 0 0 6px 1px color-mix(in srgb, currentColor 45%, transparent);
+    filter: brightness(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-advance:not(:disabled),
+  .is-chip:not(:disabled, .is-open, :hover) {
+    animation: none;
+  }
+}

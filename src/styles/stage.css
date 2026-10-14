@@ -68,6 +68,6 @@
   left: 0;
   transform-origin: top left;
   /* Game UI: no text-selection cursor or highlighting except where the player types (the input rules above). */
-  cursor: default;
+  cursor: var(--cursor-default);
   user-select: none;
 }

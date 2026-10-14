@@ -47,7 +47,7 @@ export function EndTurnButton({ enabled, autoEndMs, onEnd }) {
   return (
     <button
       type="button"
-      className="task-end-turn"
+      className="task-end-turn is-advance"
       disabled={!enabled}
       title="End this turn now, giving up any action left. The turn ends by itself once the Major and Minor actions are used."
       onClick={onEnd}

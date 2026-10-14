@@ -26,7 +26,7 @@ export default function CombatResultModal({ outcome, onRestart, onChangeCharacte
               Exit Mission
             </button>
           ) : onContinue ? (
-            <button type="button" className="combat-button is-primary" onClick={onContinue}>
+            <button type="button" className="combat-button is-primary is-advance" onClick={onContinue}>
               Return to Exploration
             </button>
           ) : (

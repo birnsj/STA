@@ -25,4 +25,7 @@ export const ACTION_ICONS = {
   extraMinor: 'M12 5v14M5 12h14M17 4l3 3-3 3',
   secondMajor: 'M7 4v16M13 4v16M16 12h6M19 9v6',
   beamOut: 'M12 21V8M8 12l4-4 4 4M6 3h12M7 17h0.01M17 17h0.01M5 13h0.01M19 13h0.01',
+  // A d20 seen face on (as D20Icon), and a tick: an object ring's Roll arc, and its routine (no roll) version.
+  roll: 'M12 2L21 7V17L12 22L3 17V7ZM12 7L17 15H7ZM3 7H21M3 7L7 15M21 7L17 15M3 17L7 15M21 17L17 15M12 22L7 15M12 22L17 15',
+  check: 'M5 12.5l4.5 4.5L19 7',
 }

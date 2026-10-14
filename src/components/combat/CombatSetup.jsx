@@ -92,7 +92,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
 
   return (
     <div className="combat-setup">
-      <div className="combat-panel combat-setup-panel">
+      <div className="combat-panel lcars-frame combat-setup-panel">
         <h2 className="combat-setup-title">Load Episode: {map ? episodeTitle(map) : 'Combat Test'}</h2>
         <p className="combat-setup-text">
           Choose up to {maxPartySize} characters for your party (one per player start on the map). Combat uses the values saved in each character's JSON.
@@ -117,7 +117,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
                 <li key={entry.id}>
                   <button
                     type="button"
-                    className={`combat-setup-entry${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
+                    className={`combat-setup-entry ui-row${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
                     aria-pressed={position >= 0}
                     onClick={() => toggle(entry)}
                   >
@@ -128,7 +128,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
               )
             })}
             <li>
-              <label className="combat-setup-entry is-file">
+              <label className="combat-setup-entry ui-row is-file">
                 Load character JSON...
                 <input type="file" accept=".json,application/json" onChange={loadFile} hidden />
               </label>
@@ -157,7 +157,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
             Party {party.length} / {maxPartySize}
           </span>
           {party.map((member) => (
-            <button key={member.id} type="button" className="combat-setup-member" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
+            <button key={member.id} type="button" className="combat-setup-member ui-row" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
               <CombatPortrait character={member} className="combat-setup-member-portrait" />
               <span>{member.name}</span>
             </button>
@@ -172,7 +172,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
             <input type="text" inputMode="numeric" value={seedText} placeholder="Random" onChange={(event) => setSeedText(event.target.value)} />
             {seed === undefined && <span className="task-warning">Use a whole number</span>}
           </label>
-          <button type="button" className="combat-button is-primary" disabled={!party.length || seed === undefined || !map || party.length > maxPartySize} onClick={() => onStart(party, seed, map)}>
+          <button type="button" className="combat-button is-primary is-advance" disabled={!party.length || seed === undefined || !map || party.length > maxPartySize} onClick={() => onStart(party, seed, map)}>
             Start Combat
           </button>
         </div>

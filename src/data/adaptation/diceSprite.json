@@ -1,0 +1,14 @@
+{
+  "notes": [
+    "Prototype presentation only (no book rule, no game-rule effect): the d20 drawn for every die roll in the game (combat, object challenges and their ring rolls, conversation checks). Designer request (2026-10-14): an actual 20-sided die animated from a sprite sheet, the same everywhere.",
+    "One row of square frames frameSize wide: tumbleFrames frames of the die tumbling (played once, in order), then landedFrame, the die at rest with a face squarely to the viewer and a corner up. The rolled number is printed on that face, centred at faceCentre (fractions of the frame) and sized to faceRadius (the face's incircle, a fraction of the frame).",
+    "Every die is the sheet's sparkly deep-blue resin with a gold number (designer reference image, 2026-10-14); once landed it shows its verdict with a glowing outline: success, critical, failure and complication each have their colour (components/dice/dice.css).",
+    "The sheet is a generated placeholder (scripts/makeDiceSprites.mjs, which never overwrites the PNG without --force); replace it with real art of the same grid to swap it."
+  ],
+  "image": "/art/sprites/dice/d20.png",
+  "frameSize": 96,
+  "tumbleFrames": 16,
+  "landedFrame": 16,
+  "faceCentre": [0.5, 0.5],
+  "faceRadius": 0.14
+}

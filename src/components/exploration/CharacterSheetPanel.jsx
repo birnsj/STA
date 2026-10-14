@@ -21,7 +21,7 @@ function ScoreGrid({ ids, values, nameOf, short }) {
 function Section({ title, children }) {
   return (
     <section className="sheet-section">
-      <h4 className="sheet-heading">{title}</h4>
+      <h4 className="sheet-heading ui-heading">{title}</h4>
       {children}
     </section>
   )

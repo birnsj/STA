@@ -23,8 +23,7 @@ const cellsPath = (cells) => cells.map(({ x, y }) => `M${x - 0.5} ${y - 0.5}h1v1
 
 function Marker({ position, className, title, shape }) {
   return (
-    <g className={`minimap-marker ${className}`} transform={`translate(${position.x} ${position.y})`}>
-      <title>{title}</title>
+    <g className={`minimap-marker ${className}`} transform={`translate(${position.x} ${position.y})`} data-tip={title}>
       {shape === 'cross' ? <path className="minimap-down" d={CROSS} /> : <circle r="0.75" />}
     </g>
   )
@@ -86,9 +85,7 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
             <MinimapTiles tiles={map.tiles} />
           </g>
           {doors.map((door) => (
-            <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)}>
-              <title>{`${door.name}: ${door.stateLabel}`}</title>
-            </path>
+            <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)} data-tip={`${door.name}: ${door.stateLabel}`} />
           ))}
           {(map.areas ?? []).map((area, index) => (
             <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={labelCentres[index].x} y={labelCentres[index].y} textAnchor="middle" dominantBaseline="central">
@@ -96,16 +93,19 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
             </text>
           ))}
           {objectives.map((objective) => (
-            <g key={objective.id} className="minimap-marker is-objective" transform={`translate(${objective.position.x} ${objective.position.y})`}>
-              <title>{`Objective: ${objective.title || objective.id}`}</title>
+            <g
+              key={objective.id}
+              className="minimap-marker is-objective"
+              transform={`translate(${objective.position.x} ${objective.position.y})`}
+              data-tip={`Objective: ${objective.title || objective.id}`}
+            >
               <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
             </g>
           ))}
           {npcs.map(({ npc, name, state, position, kind }) => {
             if (kind === 'lastSeen') {
               return (
-                <g key={npc.id} className="minimap-marker is-enemy is-last-seen" transform={`translate(${position.x} ${position.y})`}>
-                  <title>{`${name}: last seen here`}</title>
+                <g key={npc.id} className="minimap-marker is-enemy is-last-seen" transform={`translate(${position.x} ${position.y})`} data-tip={`${name}: last seen here`}>
                   <circle r="0.75" />
                   <text y="0.4" textAnchor="middle">?</text>
                 </g>

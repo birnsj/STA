@@ -4,7 +4,7 @@ export default function HowToPlay({ onClose }) {
   return (
     <div className="combat-modal-backdrop">
       <div className="combat-modal combat-help" role="dialog" aria-modal="true" aria-labelledby="combat-help-title">
-        <h2 id="combat-help-title" className="combat-help-title">
+        <h2 id="combat-help-title" className="combat-help-title ui-heading">
           {help.title}
         </h2>
         <div className="combat-help-body">

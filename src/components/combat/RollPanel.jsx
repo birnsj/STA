@@ -1,35 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { playRollResultSound } from '../../audio/uiSounds.js'
 import { ADAPTATION_MOMENTUM_SPENDS, canAimReroll, canAssistReroll } from '../../combat/combatState.js'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { evaluateStaDie } from '../../rules/taskResolver.js'
+import D20, { ROLL_MS } from '../dice/D20.jsx'
 import { criticalText, dieVerdict, formulaText, successesText } from '../task/taskText.js'
 
-// Presentation only: a freshly rolled die flicks through random numbers before stopping on the value the rules already
-// rolled (seeded, in combatState). Divided by the Auto Combat speed so it stops before the result is shown.
-const ROLL_MS = 550
-const FACE_MS = 35
-
-// Mounted again (new key) for every new roll or reroll, so each one rolls once. task: the STA 2E task the die is rolled
-// against (its target number, critical range and complication range).
+// Mounted again (new key) for every new roll or reroll, so each one rolls once (the value is already rolled, seeded,
+// in combatState). task: the STA 2E task the die is rolled against (its target number, critical range and
+// complication range).
 function Die({ value, task, speed = 1 }) {
-  const [face, setFace] = useState(((value * 7) % 20) + 1)
-  const [rolling, setRolling] = useState(true)
+  return <D20 value={value} verdict={dieVerdict(evaluateStaDie(task, value)).kind} size={32} speed={speed} />
+}
+
+// Plays the roll's success or failure sound once its dice have landed; mounted once per resolved roll (keyed).
+function RollResultSound({ passed, delayMs }) {
   useEffect(() => {
-    const tick = setInterval(() => setFace(Math.floor(Math.random() * 20) + 1), FACE_MS)
-    const land = setTimeout(() => {
-      clearInterval(tick)
-      setRolling(false)
-    }, ROLL_MS / speed)
-    return () => {
-      clearInterval(tick)
-      clearTimeout(land)
-    }
-  }, [speed])
-  if (rolling) return <span className="roll-die is-rolling">{face}</span>
-  const die = evaluateStaDie(task, value)
-  const look = die.critical ? ' is-critical' : die.successes ? ' is-success' : ' is-fail'
-  return <span className={`roll-die${look}${die.complication ? ' is-twenty' : ''}`}>{value}</span>
+    const timer = setTimeout(() => playRollResultSound(passed), delayMs)
+    return () => clearTimeout(timer)
+  }, [passed, delayMs])
+  return null
 }
 
 // Under each die: what it scored (Success / Critical / Failure / Complication, and how many successes).
@@ -88,6 +79,8 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
 
   return (
     <section className={`roll-panel${pending ? ' is-pending' : roll.passed ? ' is-hit' : ' is-miss'}`} aria-live="polite">
+      {/* Persuade and Intimidate already end their own sound with a passed / failed tag (useActionSounds). */}
+      {!pending && !social && <RollResultSound key={rollId} passed={Boolean(roll.passed)} delayMs={ROLL_MS / speed} />}
       <p className="roll-heading">
         {ambush && 'Ambush: '}
         {taskRoll ? (
@@ -140,17 +133,17 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
             <Die key={dieKey(index)} value={value} task={task} speed={speed} />
             {!pending && <DieScore value={value} task={task} />}
             {aimRerollOpen(index) && (
-              <button type="button" className="roll-reroll" onClick={() => onReroll(index, 'aim')}>
+              <button type="button" className="roll-reroll is-chip" onClick={() => onReroll(index, 'aim')}>
                 Aim reroll
               </button>
             )}
             {assistRerollOpen(index) && (
-              <button type="button" className="roll-reroll" onClick={() => onReroll(index, 'assist')}>
+              <button type="button" className="roll-reroll is-chip" onClick={() => onReroll(index, 'assist')}>
                 Student of War reroll
               </button>
             )}
             {canMomentumReroll && (
-              <button type="button" className="roll-reroll is-momentum" onClick={() => onReroll(index, 'momentum')}>
+              <button type="button" className="roll-reroll is-chip is-momentum" onClick={() => onReroll(index, 'momentum')}>
                 Momentum reroll
               </button>
             )}

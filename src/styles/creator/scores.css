@@ -20,7 +20,7 @@
 
 .choice.is-static,
 .choice.is-static:hover {
-  cursor: default;
+  cursor: var(--cursor-default);
   border-color: var(--blue-deep);
 }
 

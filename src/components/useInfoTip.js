@@ -2,7 +2,7 @@ import { createElement, useEffect, useRef, useState } from 'react'
 import InfoTipBubble from './InfoTipBubble.jsx'
 
 // Long enough that sweeping the pointer across the screen doesn't flash boxes; clicking shows one at once.
-const SHOW_DELAY_MS = 800
+export const SHOW_DELAY_MS = 800
 
 // One info box per list: spread `bind(content)` onto each item and render `element` once.
 export function useInfoTip() {
