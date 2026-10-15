@@ -515,27 +515,6 @@ export function Battle({
       <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
-      {hint && (showHints || ambusher) && (
-        <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintTextShown ? '' : ' is-controls-only'}${hintFaded && !ambusher ? ' is-faded-out' : ''}`} aria-live="polite">
-          {hintTextShown && hint}
-          {ambusher && (
-            <button
-              type="button"
-              className={`combat-ambush${mode === 'ambush' ? ' is-selected' : ''}`}
-              disabled={!ambushTargets.length}
-              title={
-                ambushTargets.length
-                  ? `Optional, until anyone attacks: ${ambusher.character.name} rolls Control + Security at Difficulty 1 against a Klingon they have a shot at. Success: an automatic hit (an Injury) on that Klingon. Failure: you are spotted; a new round starts and the Klingons act first for the rest of the fight.`
-                  : `${ambusher.character.name} has no shot at any Klingon yet (out of range or no line of fire). Move ${ambusher.character.name} closer without attacking to set up an ambush; any attack, by either side, ends the chance.`
-              }
-              onClick={startAmbush}
-            >
-              Ambush: {ambusher.character.name}, TN {previewAmbush(state, null).task.targetNumber}
-              {!ambushTargets.length && ' (no shot yet: move closer)'}
-            </button>
-          )}
-        </p>
-      )}
       <div className="combat-top-right">
         <button
           type="button"
@@ -584,6 +563,27 @@ export function Battle({
         />
       </div>
       <div className="combat-bottom-left">
+        {hint && (showHints || ambusher) && (
+          <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintTextShown ? '' : ' is-controls-only'}${hintFaded && !ambusher ? ' is-faded-out' : ''}`} aria-live="polite">
+            {hintTextShown && hint}
+            {ambusher && (
+              <button
+                type="button"
+                className={`combat-ambush${mode === 'ambush' ? ' is-selected' : ''}`}
+                disabled={!ambushTargets.length}
+                title={
+                  ambushTargets.length
+                    ? `Optional, until anyone attacks: ${ambusher.character.name} rolls Control + Security at Difficulty 1 against a Klingon they have a shot at. Success: an automatic hit (an Injury) on that Klingon. Failure: you are spotted; a new round starts and the Klingons act first for the rest of the fight.`
+                    : `${ambusher.character.name} has no shot at any Klingon yet (out of range or no line of fire). Move ${ambusher.character.name} closer without attacking to set up an ambush; any attack, by either side, ends the chance.`
+                }
+                onClick={startAmbush}
+              >
+                Ambush: {ambusher.character.name}, TN {previewAmbush(state, null).task.targetNumber}
+                {!ambushTargets.length && ' (no shot yet: move closer)'}
+              </button>
+            )}
+          </p>
+        )}
         <RollPanel
           state={state}
           speed={auto === 'off' ? 1 : speed}

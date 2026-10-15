@@ -5,12 +5,13 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // fill: use the whole window; the stage extends along whichever axis the window has spare room (default).
 // fit: show exactly the design size, letterboxed. fixed: always use fixedScale (1 = one design pixel per screen pixel).
 // guideHighlight: the box in character creation that moves to the next section to fill in (src/effects/GuideHighlight.jsx).
-// helpHints: the hint box at the top of combat and exploration (what to click next).
+// helpHints: the hint box above the party cards in combat and exploration (what to click next).
+// objectivePulse: on the exploration map, the tag over an object an active objective is on pulses.
 // wallFade: how walls in front of a character fade on the maps: 'room' (the room's front walls and whole wall sections)
 // or 'single' (one block at a time, only those hiding a character).
 // missionIntro: the Captain's Log intro before a mission's map (MissionStory.jsx MissionIntro); off goes straight in.
 // missionOutro: the Captain's Log outro once the away team has beamed out (MissionOutro); off leaves the mission at once.
-export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, wallFade: 'room', missionIntro: true, missionOutro: true }
+export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, objectivePulse: true, wallFade: 'room', missionIntro: true, missionOutro: true }
 const WALL_FADE_MODES = ['room', 'single']
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
@@ -24,7 +25,7 @@ export function normalizeDisplaySettings(saved) {
   const scaleMode = SCALE_MODE_OPTIONS.some((option) => option.id === saved?.scaleMode) ? saved.scaleMode : DEFAULT_DISPLAY_SETTINGS.scaleMode
   const flag = (key) => (typeof saved?.[key] === 'boolean' ? saved[key] : DEFAULT_DISPLAY_SETTINGS[key])
   const wallFade = WALL_FADE_MODES.includes(saved?.wallFade) ? saved.wallFade : DEFAULT_DISPLAY_SETTINGS.wallFade
-  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), wallFade, missionIntro: flag('missionIntro'), missionOutro: flag('missionOutro') }
+  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), objectivePulse: flag('objectivePulse'), wallFade, missionIntro: flag('missionIntro'), missionOutro: flag('missionOutro') }
 }
 
 // Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide

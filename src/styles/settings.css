@@ -16,8 +16,8 @@
 }
 
 .settings-heading {
-  margin-bottom: 8px;
-  font-size: 15px;
+  margin-bottom: 6px;
+  font-size: 13px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -39,7 +39,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 14px;
+  padding: 7px 12px;
   text-align: left;
   background: #040a18;
   border: 1px solid #1f4f8c;
@@ -58,7 +58,7 @@
 }
 
 .settings-option-label {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   color: #6fb2ff;
@@ -69,7 +69,7 @@
 }
 
 .settings-option-description {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
@@ -78,7 +78,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 7px;
   cursor: var(--cursor-pointer);
 }
 
@@ -137,14 +137,14 @@
 }
 
 .settings-slider-label {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   color: #6fb2ff;
 }
 
 .settings-slider-value {
-  font-size: 15px;
+  font-size: 13px;
   text-align: right;
   color: var(--yellow);
 }

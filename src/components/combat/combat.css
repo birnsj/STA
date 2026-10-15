@@ -1195,6 +1195,17 @@
   pointer-events: auto;
 }
 
+/* The hint sits in the column above the roll panel, or just above the party cards' row when no roll is shown. */
+.combat-bottom-left .combat-hint {
+  position: static;
+  align-self: center;
+  margin: 0;
+}
+
+.combat-bottom-left .is-faded-out {
+  pointer-events: none;
+}
+
 .party-bar {
   display: flex;
   gap: 6px;

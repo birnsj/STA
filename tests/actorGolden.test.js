@@ -16,7 +16,7 @@ import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
   exploreRoom: 'f746cb8e2b6405d6',
-  exploreBrig: '855947dac0739d70',
+  exploreBrig: '586492362cd8278e',
   autoCombat: 'af3a57e92df36fdf',
   handOff: 'c10e2716c442dae5',
 }

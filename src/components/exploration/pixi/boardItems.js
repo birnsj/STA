@@ -91,21 +91,31 @@ export class HighlightView {
   }
 }
 
-// A challenge object's marker: a diamond over the object's art with its state and name above.
-// object: { position, artTop, name, stateLabel, changed, inReach, depth }.
+const PANEL = 0x060c1c
+const FRAME_PAD_X = 6
+const FRAME_PAD_Y = 2
+
+// A challenge object's marker: a diamond over the object's art with its state and name above, framed. On an active
+// objective's object (objective) a glow round the frame pulses (0.15 -> 0.9 -> 0.15 over 1.6 s; steady with
+// reduced motion). object: { position, artTop, name, stateLabel, changed, objective, inReach, depth }.
 export class MarkerView {
   constructor() {
     this.container = new Container()
     this.look = null
+    this.glow = null
   }
 
-  update(object) {
+  update(object, now) {
     const centre = project(object.position)
     this.container.position.set(centre.x, centre.y)
     this.container.zIndex = object.depth
     this.container.alpha = object.inReach ? 1 : 0.75
-    const look = `${object.name}|${object.stateLabel}|${object.changed}|${object.artTop}`
-    if (this.look === look) return
+    const look = `${object.name}|${object.stateLabel}|${object.changed}|${object.objective}|${object.artTop}`
+    if (this.look !== look) this.draw(object, look)
+    if (this.glow) this.glow.alpha = reducedMotion() ? 0.6 : 0.525 - 0.375 * Math.cos(((now % 1600) / 1600) * Math.PI * 2)
+  }
+
+  draw(object, look) {
     this.look = look
     this.container.removeChildren().forEach((child) => child.destroy())
     const colour = hex(OUTLINE_COLOURS[object.changed ? 'changed' : 'unresolved'])
@@ -114,11 +124,26 @@ export class MarkerView {
       .poly([0, diamond - 20, 9, diamond - 10, 0, diamond, -9, diamond - 10])
       .fill({ color: colour })
       .stroke({ color: 0x03060e, width: 1.5 })
-    const name = makeLabel(object.name, { size: 10, fill: colour })
+    const name = makeLabel(object.name, { size: 10, fill: colour, outline: false })
     placeLabel(name, 0, -object.artTop - MARKER_NAME)
-    const state = makeLabel(object.stateLabel, { size: 9, weight: '600', fill: colour })
+    const state = makeLabel(object.stateLabel, { size: 9, weight: '600', fill: colour, outline: false })
     placeLabel(state, 0, -object.artTop - MARKER_STATE)
-    this.container.addChild(shape, name, state)
+    // The HUD panels' frame (base.css --panel, rounded, bordered) in the marker's colour.
+    const width = Math.max(name.width, state.width) + FRAME_PAD_X * 2
+    const top = name.y - FRAME_PAD_Y
+    const height = state.y + state.height + FRAME_PAD_Y - top
+    const frame = new Graphics()
+      .roundRect(-width / 2, top, width, height, 4)
+      .fill({ color: PANEL })
+      .stroke({ color: colour, width: 1.5 })
+    this.glow = object.objective
+      ? new Graphics()
+          .roundRect(-width / 2 - 2.5, top - 2.5, width + 5, height + 5, 6)
+          .stroke({ color: colour, width: 2.5 })
+          .roundRect(-width / 2 - 5, top - 5, width + 10, height + 10, 8)
+          .stroke({ color: colour, width: 2, alpha: 0.4 })
+      : null
+    this.container.addChild(...(this.glow ? [this.glow] : []), shape, frame, name, state)
   }
 
   destroy() {

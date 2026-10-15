@@ -45,7 +45,7 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
             <label className="settings-toggle">
               <span className="settings-toggle-text">
                 <span className="settings-slider-label">Help Hints</span>
-                <span className="settings-option-description">In combat and exploration, a box at the top says what to do next.</span>
+                <span className="settings-option-description">In combat and exploration, a box above the party cards says what to do next.</span>
               </span>
               <input
                 type="checkbox"
@@ -64,6 +64,19 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
                 role="switch"
                 checked={displaySettings.wallFade === 'single'}
                 onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
+              />
+            </label>
+            {/* The toggles fill two columns row by row, so this one sits under Help Hints. */}
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Pulse Objective Tag</span>
+                <span className="settings-option-description">On the map, the tag over the object your current objective is on pulses.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.objectivePulse}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, objectivePulse: event.target.checked })}
               />
             </label>
             <label className="settings-toggle">

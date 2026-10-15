@@ -72,7 +72,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
-  const { helpHints: showHints, missionOutro: playOutro } = useDisplaySettings()
+  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro } = useDisplaySettings()
   // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
   // picked on its ring (null: the panel lists them) and the member picked on the ring's party band (null: the selection
   // decides). The party can still move while it's open (designer decision: never pause the players); walking out of
@@ -156,6 +156,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const knownObjectives = (party.map.objectives ?? [])
     .map((objective) => ({ ...objective, position: objectivePosition(party.map, objective), status: objectiveStatus(state.scenario.flags, objective.id) }))
     .filter(({ status }) => status)
+  // The objects the active objectives are on: their tags pulse on the map (Settings > Pulse Objective Tag).
+  const objectiveObjectIds = new Set(knownObjectives.filter((objective) => objective.status === 'active' && objective.objectId).map((objective) => objective.objectId))
   // UI state: the Objectives panel's Show all, which adds the objectives not started yet (greyed).
   const [showAllObjectives, setShowAllObjectives] = useState(false)
   const objectives = (party.map.objectives ?? [])
@@ -452,7 +454,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           state={party}
           world={world}
           knowledge={state.partyKnowledge}
-          challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles() }))}
+          challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles(), objective: pulseObjectives && objectiveObjectIds.has(view.id) }))}
           reachableIds={reachableIds}
           onInteract={openObjectMenu}
           debug={debugOpen}
@@ -478,13 +480,15 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           <ObjectivesPanel objectives={objectives} showAll={hasPendingObjectives ? showAllObjectives : undefined} onShowAll={() => setShowAllObjectives(!showAllObjectives)} />
         )}
       </div>
-      {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
-      {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
-      {!panelOpen && talkError && (
-        <div className="challenge-prompts">
-          <span className="task-warning">{talkError}</span>
-        </div>
-      )}
+      <div className="explore-messages">
+        {!panelOpen && talkError && (
+          <div className="challenge-prompts">
+            <span className="task-warning">{talkError}</span>
+          </div>
+        )}
+        {/* Settings > Help Hints off hides it, except while the debug noise tool waits for a click. */}
+        {(showHints || noiseTool) && <p className={`combat-hint is-player-turn${hintFaded ? ' is-faded-out' : ''}`}>{hint}</p>}
+      </div>
       {talking && (
         <ConversationPanel
           key={`${state.conversation.npcId}:${state.conversation.definition.id}`}

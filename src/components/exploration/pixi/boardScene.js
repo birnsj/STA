@@ -34,7 +34,7 @@ export async function startBoardScene(host, read, onReady, isCancelled) {
     map.update(board.faded, now, view)
     reconcile(figures, board.figures, depthLayer, () => new FigureView(sheets), (figure, item) => figure.update(item, now, board.revealed))
     reconcile(highlights, map.ready ? board.highlights : [], depthLayer, () => new HighlightView(), (highlight, item) => highlight.update(board.layout, item, now))
-    reconcile(markers, board.markers, depthLayer, () => new MarkerView(), (marker, item) => marker.update(item))
+    reconcile(markers, board.markers, depthLayer, () => new MarkerView(), (marker, item) => marker.update(item, now))
     reconcile(lastKnown, board.lastKnown, groundLayer, () => new LastKnownView(), (marker, item) => marker.update(item))
     reconcile(pulses, board.pulses, groundLayer, () => new PulseView(), (pulse, item) => pulse.update(item, now))
     reconcile(effects, board.effects, fxLayer, () => new EffectView(), (effect, item) => effect.update(item, now))

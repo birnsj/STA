@@ -1,9 +1,33 @@
 /* Exploration prototype: reuses the combat screen's panels, party cards and isometric units. */
 
-.exploration-screen .combat-hint {
-  top: 40px;
+/* On-screen messages (the hint, a talk error), centred just above the party cards (bottom 8px + card height), clear
+   of the badges on their top edge. */
+.explore-messages {
+  position: absolute;
   left: 8px;
   right: 8px;
+  bottom: calc(8px + var(--explore-card-height, 75px) + 18px);
+  z-index: 26;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.explore-messages > :not(.is-faded-out) {
+  pointer-events: auto;
+}
+
+.explore-messages .combat-hint,
+.explore-messages .challenge-prompts {
+  position: static;
+  margin: 0;
+  transform: none;
+}
+
+.explore-messages .combat-hint {
+  width: fit-content;
 }
 
 /* Right-drag selection box (PixiExplorationBoard). */
@@ -1401,6 +1425,25 @@
 .explore-setup-list {
   max-height: none;
   height: 100%;
+}
+
+/* Each character still free to pick pulses inside its own button (no outer glow, which ran the rows together).
+   Stops on hover, where the yellow edge takes over. */
+.explore-setup-list .combat-setup-entry:not(.is-selected, .is-unavailable, :hover) {
+  animation: explore-setup-pulse 2s ease-in-out infinite;
+}
+
+@keyframes explore-setup-pulse {
+  50% {
+    background: color-mix(in srgb, var(--blue-deep) 65%, var(--blue));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 70%, white);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-setup-list .combat-setup-entry {
+    animation: none;
+  }
 }
 
 .explore-setup-footer {

@@ -179,11 +179,11 @@ export default function PixiExplorationBoard(props) {
     const area = highlightBox(map, bigGroups, tiles)
     const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
     highlights.push({ id: view.id, tiles, area, depth: nearest + 0.35, changed: Boolean(view.changed), inReach })
-    markers.push({ id: view.id, position: view.position, artTop, name: view.name, stateLabel: view.stateLabel, changed: Boolean(view.changed), inReach, depth: nearest + 0.4 })
+    markers.push({ id: view.id, position: view.position, artTop, name: view.name, stateLabel: view.stateLabel, changed: Boolean(view.changed), objective: Boolean(view.objective), inReach, depth: nearest + 0.4 })
     if (inReach) {
       const centre = project(view.position)
-      const half = Math.max(9, labelWidth(view.name, 10) / 2, labelWidth(view.stateLabel, 9) / 2)
-      const top = centre.y - artTop - MARKER_NAME - 10
+      const half = Math.max(9, labelWidth(view.name, 10) / 2, labelWidth(view.stateLabel, 9) / 2) + 6
+      const top = centre.y - artTop - MARKER_NAME - 12
       const marker = { type: 'rect', x: centre.x - half, y: top, width: half * 2, height: centre.y - artTop - MARKER_DIAMOND - top }
       const art = artBoxes(map, bigGroups, tiles).map((box) => ({ type: 'rect', ...box }))
       targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: art }, { kind: 'object', id: view.id, depth: nearest + 0.4, shapes: [marker] })

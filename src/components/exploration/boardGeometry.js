@@ -92,6 +92,6 @@ export const OUTLINE_COLOURS = { unresolved: '#f6b928', changed: '#4fd6c4' }
 // Where the marker's parts sit above the top of the object's art (y up from it): the diamond just over the art, then
 // the state, then the name on top.
 export const MARKER_DIAMOND = 4
-export const MARKER_STATE = 28
-export const MARKER_NAME = 39
+export const MARKER_STATE = 31
+export const MARKER_NAME = 42
 export const MARKER_HEIGHT = MARKER_NAME + 12
