@@ -75,6 +75,8 @@ export default function PixiBattlefield(props) {
     onRightClick,
     objectMarks = null,
     onObjectClick = () => {},
+    destructibleMarks = [],
+    onDestructibleClick = () => {},
     beamIn = 'done',
     beamOut = false,
   } = props
@@ -205,6 +207,19 @@ export default function PixiBattlefield(props) {
       shapes: [{ type: 'diamond', cx: centre.x, cy: centre.y - 21, rx: 9.75, ry: 9.75 }],
     })
   }
+  // Destructible objects open their Fire ring on the player's turn; drawn behind any figure on the same tile.
+  for (const mark of destructibleMarks) {
+    const centre = tileCentre(mark.position)
+    targets.push({
+      kind: 'destructible',
+      id: mark.id,
+      depth: mark.position.x + mark.position.y + 0.35,
+      clickable: true,
+      sound: true,
+      title: mark.name,
+      shapes: [{ type: 'rect', x: centre.x - 26, y: centre.y - 64, width: 52, height: 78 }],
+    })
+  }
   const destinationKey = overlay.path ? tileKey(overlay.path[overlay.path.length - 1]) : null
   useActionSounds(state, speed)
   const effects = actionEffectItems(state, { positionOf: shownPosition, msPerTile, speed, hiddenIds })
@@ -238,7 +253,7 @@ export default function PixiBattlefield(props) {
       revealed,
     }
     targetsRef.current = targets
-    handlersRef.current = { onTileClick, onTileHover, onUnitClick, onUnitHover, onObjectClick, map, reachableKeys: overlay.reachableKeys }
+    handlersRef.current = { onTileClick, onTileHover, onUnitClick, onUnitHover, onObjectClick, onDestructibleClick, map, reachableKeys: overlay.reachableKeys }
   })
   const onMapReady = useContext(MapReadyContext)
   const onMapReadyRef = useRef(onMapReady)
@@ -308,6 +323,7 @@ export default function PixiBattlefield(props) {
     if (target) {
       if (!target.clickable) return
       if (target.kind === 'unit') handlersRef.current.onUnitClick(target.id)
+      else if (target.kind === 'destructible') handlersRef.current.onDestructibleClick(target.id)
       else handlersRef.current.onObjectClick(target.id)
       return
     }

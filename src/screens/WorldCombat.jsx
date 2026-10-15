@@ -2,7 +2,9 @@ import { useCallback, useState } from 'react'
 import { controllerFor } from '../actors/controllers.js'
 import { CombatLinkPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { dispositionName, getNpcs, isHostile, stateName } from '../exploration/awareness.js'
-import { getChallengeViews } from '../exploration/challengeObjects.js'
+import { challengeFor, getChallengeViews } from '../exploration/challengeObjects.js'
+import { activeHazards } from '../world/environment.js'
+import { hazardChallengeId } from '../world/EnvironmentalHazard.js'
 import { getCombatDiagnostics, getCombatObjects, previewCombatObject, recommendCombatObject } from '../exploration/combatLink.js'
 import { foughtNpcIds, mustSurviveIds } from '../exploration/missionObjectives.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
@@ -45,13 +47,27 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
     list: objectList,
     preview: (objectId, actionId) => previewCombatObject(state, objectId, actionId),
     recommend: (objectId, actionId, memberIds) => recommendCombatObject(state, objectId, actionId, memberIds),
-    marks: getChallengeViews(state.scenario).map((view) => ({
-      id: view.id,
-      name: view.name,
-      position: view.position,
-      stateLabel: view.stateLabel,
-      inReach: objectList.some((entry) => entry.definition.id === view.id),
-    })),
+    marks: [
+      ...getChallengeViews(state.scenario).map((view) => ({
+        id: view.id,
+        name: view.name,
+        position: view.position,
+        stateLabel: view.stateLabel,
+        inReach: objectList.some((entry) => entry.definition.id === view.id),
+      })),
+      // Each hazard's Neutralize task, marked on its anchor tile (world/EnvironmentalHazard.js).
+      ...activeHazards(state.environment)
+        .filter((region) => region.neutralizable !== false)
+        .map((region) => challengeFor(state, hazardChallengeId(region.id)))
+        .filter(Boolean)
+        .map((object) => ({
+          id: object.id,
+          name: object.definition.name,
+          position: object.position(),
+          stateLabel: 'Hazard',
+          inReach: objectList.some((entry) => entry.definition.id === object.id),
+        })),
+    ],
   }
   return (
     <Battle

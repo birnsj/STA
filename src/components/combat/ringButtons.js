@@ -20,6 +20,8 @@ import {
   scanReport,
   visibleCondition,
 } from '../../combat/combatState.js'
+import { combatActionFor } from '../../combat/actions/registry.js'
+import { previewObjectAttack } from '../../combat/combatEnvironment.js'
 import { getSprintTiles } from '../../combat/movementSystem.js'
 import { getInjuryMode } from '../../combat/weaponSystem.js'
 import { prepareAssist } from '../../rules/taskPreparation.js'
@@ -352,5 +354,37 @@ export default function createRingButtons({
       onClick: () => openTask('interact', `${objectId}:${action.id}`),
     }))
   }
-  return { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons }
+  // A destructible object's ring (combat/actions/AttackObjectAction.js): Fire with the weapon in hand, the attack's cost.
+  const destructibleRingButtons = (objectId) => {
+    const record = state.environment.destructibles[objectId]
+    const blocked = combatActionFor('attackObject').unavailableReason(state, active, { objectId, weaponId: weapon.id })
+    const shot = previewObjectAttack(state, active.id, objectId, weapon.id)
+    const blast = record.explosion ? ` It explodes at 0 Structure (radius ${record.explosion.radius}), catching everyone near it.` : ''
+    const title = blocked ? `Fire: ${blocked}` : `Fire at the ${record.name} (${weapon.name}, Difficulty ${shot.task.difficulty}): ${shot.damage} Structure on a hit.${blast}`
+    return [
+      {
+        id: 'fire',
+        label: 'Fire',
+        icon: 'attack',
+        enabled: !blocked,
+        title,
+        onClick: () => {
+          dispatch({ type: 'attackObject', objectId, weaponId: weapon.id, purchase })
+          closeRing()
+        },
+      },
+    ]
+  }
+  const destructibleRingInfo = (objectId) => {
+    const record = state.environment.destructibles[objectId]
+    return {
+      title: record.name,
+      rows: [
+        ['Structure', `${record.structure} / ${record.maxStructure}`],
+        ['Resistance', String(record.resistance)],
+      ],
+      tips: [],
+    }
+  }
+  return { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo }
 }

@@ -5,7 +5,7 @@ import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { figureShapes, hitTest, labelWidth } from '../../maps/boardHitTest.js'
-import { project, unproject } from '../../maps/iso.js'
+import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
@@ -52,11 +52,12 @@ const gaitOf = ({ walking, running, sneaking }) => (sneaking ? (walking ? 'sneak
 const boardCursor = (target) => {
   if (!target || target.down) return ''
   if (target.kind === 'npc') return target.hostile ? 'attack' : 'talk'
+  if (target.kind === 'destructible') return 'attack'
   return target.kind === 'object' ? 'use' : 'pointer'
 }
 
 export default function PixiExplorationBoard(props) {
-  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
+  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan)
@@ -188,6 +189,16 @@ export default function PixiExplorationBoard(props) {
       const art = artBoxes(map, bigGroups, tiles).map((box) => ({ type: 'rect', ...box }))
       targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: art }, { kind: 'object', id: view.id, depth: nearest + 0.4, shapes: [marker] })
     }
+  }
+  // Destructible objects open their Fire ring; a hazard in reach opens its Neutralize ring from its anchor tile only, so
+  // clicking the rest of a fire still walks the party (out of it).
+  for (const view of destructibles) {
+    const centre = project(view.position)
+    targets.push({ kind: 'destructible', id: view.id, depth: atDepth(view.position, 0.35), shapes: [{ type: 'rect', x: centre.x - 26, y: centre.y - 64, width: 52, height: 78 }] })
+  }
+  for (const view of hazards) {
+    const centre = project(view.position)
+    targets.push({ kind: 'object', id: view.id, depth: atDepth(view.position, -0.4), shapes: [{ type: 'diamond', cx: centre.x, cy: centre.y, rx: TILE_W / 2, ry: TILE_H / 2 }] })
   }
   const lastKnown = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
@@ -337,7 +348,8 @@ export default function PixiExplorationBoard(props) {
       return true
     }
     if (event.button !== 0) return false
-    onInteract(target.id)
+    if (target.kind === 'destructible') onDestructible(target.id)
+    else onInteract(target.id)
     return true
   }
 
@@ -367,7 +379,9 @@ export default function PixiExplorationBoard(props) {
     if (svg) svg.dataset.cursor = boardCursor(target)
   }
 
-  const menuPosition = menu?.memberId
+  const menuPosition = menu?.position
+    ? menu.position
+    : menu?.memberId
     ? state.members[menu.memberId]?.position
     : menu?.npcId
       ? world.npcs[menu.npcId]?.position

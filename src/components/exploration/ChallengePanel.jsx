@@ -6,7 +6,7 @@ import { getMembers } from '../../exploration/partyControl.js'
 import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { isDefeated } from '../../rules/personalCondition.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
-import { objectFor } from '../../world/objects.js'
+import { challengeFor } from '../../exploration/challengeObjects.js'
 import { criticalText, dieVerdict, formulaText } from '../task/taskText.js'
 import D20, { ROLL_MS } from '../dice/D20.jsx'
 import {
@@ -182,7 +182,12 @@ export default function ChallengePanel({
   const [resultKey, setResultKey] = useState(null)
 
   const { scenario } = state
-  const challenge = objectFor(scenario, objectId)
+  // A hazard's Neutralize task (world/EnvironmentalHazard.js) is gone once it succeeds: the panel keeps the one it
+  // opened with to show the result.
+  const found = challengeFor(state, objectId)
+  const [opened, setOpened] = useState(found)
+  if (found && found !== opened) setOpened(found)
+  const challenge = found ?? opened
   const { definition } = challenge
   const object = challenge.runtime(scenario)
   const stateInfo = definition.states[object.state] ?? {}
@@ -192,8 +197,8 @@ export default function ChallengePanel({
 
   const recommendation = useMemo(() => {
     if (showingResult) return null
-    const considered = objectFor(state.scenario, objectId)
-    return recommendationFor(state, considered, considered.action(actionId))
+    const considered = challengeFor(state, objectId)
+    return considered ? recommendationFor(state, considered, considered.action(actionId)) : null
   }, [state, objectId, actionId, showingResult])
   const bestInRange = (recommendation?.bestIds ?? []).find((id) => inRangeIds.includes(id))
   const performer = state.party.members[inRangeIds.includes(pickedPerformerId) ? pickedPerformerId : (bestInRange ?? inRangeIds[0])] ?? null

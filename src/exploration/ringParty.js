@@ -6,7 +6,8 @@ import partyActionData from '../data/adaptation/exploration/partyActions.json'
 import { isDefeated } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
-import { objectFor } from '../world/objects.js'
+import { challengeFor } from './challengeObjects.js'
+import { previewObjectShot } from './explorationEnvironment.js'
 import { getMembers } from './partyControl.js'
 import { canScanNpc } from './partyScan.js'
 import { canAskNpc, SOCIAL_KINDS } from './partySocial.js'
@@ -29,7 +30,7 @@ const NPC_BUTTON_TASKS = {
   attack: partyTask('attack'),
 }
 
-// target: { objectId } or { npcId }; buttonId: the ring button being considered (null: none yet).
+// target: { objectId }, { npcId } or { destructibleId }; buttonId: the ring button being considered (null: none yet).
 // Returns { hasTask, allTied, bestIds, members: [{ id, available, reason, targetNumber, difficulty, chance, possible, best }] }.
 // available: whether they could be the one to do it now; reason: why not.
 export function ringPartyView(state, target, buttonId) {
@@ -37,8 +38,13 @@ export function ringPartyView(state, target, buttonId) {
   const blocked = Object.fromEntries(members.map((member) => [member.id, isDefeated(member.condition) ? 'Out of action.' : null]))
   let recommendation = null
 
-  if (target.objectId && buttonId) {
-    const challenge = objectFor(state.scenario, target.objectId)
+  if (target.destructibleId && buttonId === 'fire') {
+    // Fire on a destructible object (explorationEnvironment.js): each member's best shot, ranked on its attack task.
+    const shots = Object.fromEntries(members.map((member) => [member.id, previewObjectShot(state, member.id, target.destructibleId)]))
+    for (const member of members) blocked[member.id] ??= shots[member.id].available ? null : shots[member.id].reason
+    recommendation = recommendPerformers(members.filter((member) => !blocked[member.id]).map((member) => ({ id: member.id, prepared: shots[member.id].prepared })))
+  } else if (target.objectId && buttonId) {
+    const challenge = challengeFor(state, target.objectId)
     const inRangeIds = new Set(challenge.membersInRange(state.party).map((member) => member.id))
     for (const member of members) blocked[member.id] ??= inRangeIds.has(member.id) ? null : 'Not close enough.'
     recommendation = challenge.recommend(state, buttonId, members.filter((member) => !blocked[member.id]).map((member) => member.id))
@@ -71,6 +77,14 @@ export function ringPartyView(state, target, buttonId) {
       }
     }),
   }
+}
+
+// Who fires on a destructible object from its ring: the member picked on the band when their shot is possible, else
+// the best by stats, else null (nobody has a shot).
+export function destructibleShooter(state, objectId, pickedId = null) {
+  const view = ringPartyView(state, { destructibleId: objectId }, 'fire')
+  if (pickedId && view.members.some((entry) => entry.id === pickedId && entry.available)) return pickedId
+  return view.bestIds[0] ?? view.members.find((entry) => entry.available)?.id ?? null
 }
 
 // Who does an NPC ring button that has no performer of its own (Talk's checks, Attack's opening): the member picked on

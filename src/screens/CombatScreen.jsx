@@ -17,6 +17,7 @@ import {
   rollAwaitsPlayer,
 } from '../combat/combatState.js'
 import { buildCombatView } from '../combat/combatView.js'
+import { standingObjects } from '../combat/combatEnvironment.js'
 import { DEFAULT_ENCOUNTER_ID, getEncounter } from '../combat/encounters.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
 import { getCombatantWeapon } from '../combat/weaponSystem.js'
@@ -384,13 +385,16 @@ export function Battle({
     setAttackChoice(null)
   }
 
-  const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons } = createRingButtons({
+  const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo } = createRingButtons({
     state, dispatch, active, weapon, mode, ringInfo, attackMode, attackBlock, targetAttack, ringAttackRoll, preview, purchase, purchaseCheck,
     availability, unavailableReasons, extraMinorReason, secondMajorReason, directReason, isCommander, firstAidOptions, objectList,
     canSwitchTo, closeRing, openTask, selectAction, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
   })
 
   const ringObject = ringId?.startsWith('object:') ? objects?.marks?.find((mark) => `object:${mark.id}` === ringId && mark.inReach) : null
+  // Destructible objects still standing that may be shot (combat/combatEnvironment.js); the ring goes when it's destroyed.
+  const destructibleMarks = standingObjects(state).map((record) => ({ id: record.id, name: record.name, position: record.position }))
+  const ringDestructible = ringId?.startsWith('destructible:') ? destructibleMarks.find((mark) => `destructible:${mark.id}` === ringId) : null
   const ringUnit = ringId ? state.combatants[ringId] : null
   const ringShown = isPlayerTurn && ringUnit && isActive(ringUnit) && !state.pending && (!turnUsedUp || (extraBuyable && ringUnit.id === active.id))
   let ring = null
@@ -404,6 +408,8 @@ export function Battle({
     ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
   } else if (ringObject && isPlayerTurn && !state.pending) {
     ring = { position: ringObject.position, buttons: objectRingButtons(ringObject.id), info: null }
+  } else if (ringDestructible && isPlayerTurn && !state.pending) {
+    ring = { position: ringDestructible.position, buttons: destructibleRingButtons(ringDestructible.id), info: destructibleRingInfo(ringDestructible.id) }
   } else if (auto !== 'off' && !state.outcome) {
     ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
   }
@@ -499,6 +505,11 @@ export function Battle({
             if (!isPlayerTurn) return
             setRingId(ringId === `object:${objectId}` ? null : `object:${objectId}`)
             setRingInfo(false)
+          }}
+          destructibleMarks={destructibleMarks}
+          onDestructibleClick={(objectId) => {
+            if (!isPlayerTurn) return
+            setRingId(ringId === `destructible:${objectId}` ? null : `destructible:${objectId}`)
           }}
         />
       </PerfProfiler>

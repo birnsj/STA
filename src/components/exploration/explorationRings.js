@@ -3,14 +3,15 @@
 import { controllerFor } from '../../actors/controllers.js'
 import { SCAN_TRAIT } from '../../combat/combatScan.js'
 import { dispositionName, isDown, STATE, stateName } from '../../exploration/awareness.js'
-import { getAvailableActions, getDefinition, objectsInReach } from '../../exploration/challengeObjects.js'
+import { challengeFor, getAvailableActions, getDefinition, objectsInReach } from '../../exploration/challengeObjects.js'
+import { previewObjectShot } from '../../exploration/explorationEnvironment.js'
 import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
 import { canAskNpc } from '../../exploration/partySocial.js'
-import { npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
+import { destructibleShooter, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
 import { getEquippedItems } from '../../rules/equipment.js'
 import { getFaction } from '../../rules/factions.js'
 import { conditionSummary, getProtection, isDefeated, normalizeCondition } from '../../rules/personalCondition.js'
-import { objectFor } from '../../world/objects.js'
+import { DESTRUCTIBLE_TYPES, HAZARD_TYPES } from '../../world/environment.js'
 
 const NOT_BUILT = 'Not built yet.'
 
@@ -56,7 +57,9 @@ export function memberMenuButtons(state, member, actions) {
 // A challenge object's radial menu (left click on it while in reach): one button per approach it offers now. open(actionId)
 // opens the interaction panel on that approach; activeId: the approach the open panel is on (lit).
 export function objectMenuButtons(state, objectId, open, activeId = null) {
-  return objectFor(state.scenario, objectId)
+  const challenge = challengeFor(state, objectId)
+  if (!challenge) return []
+  return challenge
     .listedActions(state)
     .map(({ action, available, reason }) => ({
       id: action.id,
@@ -67,6 +70,34 @@ export function objectMenuButtons(state, objectId, open, activeId = null) {
       title: available ? `${action.label}: ${action.description}` : reason,
       onClick: () => open(action.id),
     }))
+}
+
+// A destructible object's radial menu (left click on it; designer request 2026-10-12): Fire, by the member picked on the
+// band or else the best shot. fire(memberId) opens fire.
+export function destructibleMenuButtons(state, objectId, fire, pickedId = null) {
+  const record = state.environment.destructibles[objectId]
+  const shooterId = destructibleShooter(state, objectId, pickedId)
+  const preview = shooterId ? previewObjectShot(state, shooterId, objectId) : previewObjectShot(state, pickedId ?? state.party.selectedIds[0] ?? state.party.leaderId, objectId)
+  const name = shooterId ? state.party.members[shooterId].character.name : null
+  const blast = record.explosion ? ` It explodes at 0 Structure (radius ${record.explosion.radius}): everyone near it is caught.` : ''
+  const title = shooterId
+    ? `${name} fires at the ${record.name} (${preview.weapon.name}, Difficulty ${preview.prepared.difficulty}): ${preview.damage} Structure on a hit.${blast}`
+    : `Fire: ${preview.reason ?? 'nobody has a shot.'}`
+  return [{ id: 'fire', label: 'Fire', icon: 'attack', enabled: Boolean(shooterId), title, onClick: () => fire(shooterId) }]
+}
+
+// The card beside a destructible's ring: what it is and how close it is to giving way.
+export function destructibleInfo(state, objectId) {
+  const record = state.environment.destructibles[objectId]
+  const info = DESTRUCTIBLE_TYPES[record.type]
+  const rows = [
+    ['Structure', `${record.structure} / ${record.maxStructure}`],
+    ['Resistance', String(record.resistance)],
+    ['State', record.state.charAt(0).toUpperCase() + record.state.slice(1)],
+  ]
+  const tips = [info.description]
+  if (record.explosion) tips.push(`Explodes at 0 Structure: radius ${record.explosion.radius}, Severity ${record.explosion.severity}${record.explosion.hazard ? `, leaving ${HAZARD_TYPES[record.explosion.hazard]?.name.toLowerCase() ?? record.explosion.hazard}` : ''}.`)
+  return { title: record.name, rows, tips }
 }
 
 // The character who would scan this NPC: the one picked on the ring's party band when they can, else the selected
@@ -142,7 +173,7 @@ export function npcMenuButtons(state, npc, inTalkRange, infoOpen, actions, picke
 
 // The ring's party band (exploration/ringParty.js): each member's TN for the button last hovered, a star on the best,
 // and the member picked to do the next action (clicking a slice picks or unpicks them).
-// target: { objectId } or { npcId }; buttons: the ring's buttons; hoveredId: the button last hovered (null: none yet).
+// target: { objectId }, { npcId } or { destructibleId }; buttons: the ring's buttons; hoveredId: the button last hovered (null: none yet).
 export function ringPartyBand(state, target, buttons, hoveredId, pickedId, onPick) {
   const button = buttons.find((candidate) => candidate.id === hoveredId) ?? null
   const view = ringPartyView(state, target, button?.id ?? null)

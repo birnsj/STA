@@ -2,8 +2,9 @@ import { getMaxStress, injuryTypeName, STRESS_COMPLICATION } from '../../rules/p
 
 // Book p.292 Avoid Injury: a party member hit by an attack takes Stress equal to the severity instead of the Injury, or
 // accepts the Injury and is Defeated. Book p.277: without room for all of it, the track fills and a complication follows.
-// incoming: combat state's { targetId, attackerId, injury, option }.
-export default function InjuryChoice({ incoming, target, attacker, onAvoid, onAccept }) {
+// incoming: combat state's { targetId, attackerId, injury, option }. cause (optional): what hit them when no attacker did
+// (a blast or hazard: 'caught in the EPS Conduit explosion').
+export default function InjuryChoice({ incoming, target, attacker, cause = null, onAvoid, onAccept }) {
   const { injury, option } = incoming
   const max = getMaxStress(target.character).value
   const stress = target.condition.stress
@@ -14,8 +15,8 @@ export default function InjuryChoice({ incoming, target, attacker, onAvoid, onAc
           Injury incoming
         </h2>
         <p className="injury-choice-who">
-          {attacker ? `${attacker.character.name} hits ${target.character.name}` : `${target.character.name} is hit`}
-          {injury.source?.weaponName && ` with ${injury.source.weaponName}`}
+          {attacker ? `${attacker.character.name} hits ${target.character.name}` : cause ? `${target.character.name} is ${cause}` : `${target.character.name} is hit`}
+          {!cause && injury.source?.weaponName && ` with ${injury.source.weaponName}`}
         </p>
         <p className="injury-choice-severity">
           {injuryTypeName(injury.type)} &middot; Severity {injury.severity}

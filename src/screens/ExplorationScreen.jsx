@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { samePosition } from '../combat/battleMap.js'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
@@ -17,7 +18,7 @@ import { loadConversation } from '../conversation/conversationFiles.js'
 import Board from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
-import { memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
+import { destructibleInfo, destructibleMenuButtons, memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
@@ -29,13 +30,18 @@ import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { dispositionName, isHostile } from '../exploration/awareness.js'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
-import { getChallengeViews, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
+import { challengeFor, getChallengeViews, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
 import { MODE } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
 import { failedNpcNames, isMissionAccomplished, isMissionFailed } from '../exploration/missionObjectives.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
+import { activeHazards, isStanding } from '../world/environment.js'
+import { hazardChallengeId, isHazardChallengeId } from '../world/EnvironmentalHazard.js'
+import { currentInjuryPrompt } from '../exploration/explorationEnvironment.js'
+import InjuryChoice from '../components/combat/InjuryChoice.jsx'
+import { normalizeCondition } from '../rules/personalCondition.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
 import { weatherFor } from '../maps/mapWeather.js'
@@ -124,11 +130,23 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       const info = object.definition.states[doorState] ?? {}
       return { id: object.id, name: object.definition.name, stateLabel: info.label ?? doorState, closed: Boolean(info.tile), cells: object.tiles() }
     })
-  const inReachIds = objectsInReach(state, party.memberIds).map((definition) => definition.id)
+  // Hazards with a Neutralize task (world/EnvironmentalHazard.js), each on its own ring like a challenge object.
+  const hazardChallenges = activeHazards(state.environment)
+    .filter((region) => region.neutralizable !== false)
+    .map((region) => challengeFor(state, hazardChallengeId(region.id)))
+    .filter(Boolean)
+  const hazardInReachIds = hazardChallenges.filter((object) => object.membersInRange(party).length > 0).map((object) => object.id)
+  const inReachIds = [...objectsInReach(state, party.memberIds).map((definition) => definition.id), ...hazardInReachIds]
   // An object whose approaches are all still locked can be clicked too, to see what it would take.
-  const reachableIds = inReachIds.filter((id) => objectFor(state.scenario, id).listedActions(state).length > 0)
+  const reachableIds = inReachIds.filter((id) => challengeFor(state, id).listedActions(state).length > 0)
   const talking = Boolean(state.conversation)
-  const openId = !talking && interactionId && inReachIds.includes(interactionId) ? interactionId : null
+  // A hazard put out by the roll is gone at once; its panel stays to show the result.
+  const neutralizedShowing = isHazardChallengeId(interactionId) && state.lastTask?.objectId === interactionId && !challengeFor(state, interactionId)
+  const openId = !talking && interactionId && (inReachIds.includes(interactionId) || neutralizedShowing) ? interactionId : null
+  // Destructible objects the party can fire on (world/environment.js), each with a Fire ring.
+  const destructibleViews = Object.values(state.environment?.destructibles ?? {})
+    .filter((record) => isStanding(record) && record.attackable)
+    .map((record) => ({ id: record.id, name: record.name, position: record.position }))
   // An object's panel or a conversation is open: other rings and the action buttons stay closed meanwhile.
   const panelOpen = Boolean(openId) || talking
   const talkable = talking ? [] : npcsInTalkRange(state, party.memberIds)
@@ -191,6 +209,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [menuNpcId, setMenuNpcId] = useState(null)
   // UI state: the challenge object whose radial menu is open (left click on it while in reach), or null.
   const [menuObjectId, setMenuObjectId] = useState(null)
+  // UI state: the destructible object whose Fire ring is open (left click on it), or null.
+  const [menuDestructibleId, setMenuDestructibleId] = useState(null)
   const [npcInfoOpen, setNpcInfoOpen] = useState(false)
   const [confirmAttackId, setConfirmAttackId] = useState(null)
   // UI state, for the open NPC or object ring (ringKey): the button last hovered and the member picked on its party band.
@@ -249,16 +269,25 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setMenuMemberId(id)
     setMenuNpcId(null)
     setMenuObjectId(null)
+    setMenuDestructibleId(null)
   }
   const openNpcMenu = (id) => {
     setMenuNpcId(id)
     setMenuMemberId(null)
     setMenuObjectId(null)
+    setMenuDestructibleId(null)
   }
   const openObjectMenu = (id) => {
     setMenuObjectId((current) => (current === id ? null : id))
     setMenuMemberId(null)
     setMenuNpcId(null)
+    setMenuDestructibleId(null)
+  }
+  const openDestructibleMenu = (id) => {
+    setMenuDestructibleId((current) => (current === id ? null : id))
+    setMenuMemberId(null)
+    setMenuNpcId(null)
+    setMenuObjectId(null)
   }
   // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
   // request cancels it.
@@ -284,6 +313,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setMenuMemberId(null)
       setMenuNpcId(null)
       setMenuObjectId(null)
+      setMenuDestructibleId(null)
       setPendingTalk(null)
       setLogOpen(false)
       if (talking) dispatch({ type: 'conversationLeave' })
@@ -298,6 +328,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setMenuMemberId(null)
       setMenuNpcId(null)
       setMenuObjectId(null)
+      setMenuDestructibleId(null)
       setPendingTalk(null)
     }
     if (beamPhase !== 'done') return
@@ -322,7 +353,15 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const menuNpc = menuNpcId && !inCombat && !panelOpen && (debugOpen || isVisibleToParty(state.partyKnowledge, menuNpcId)) ? world.npcs[menuNpcId] : null
   // The object's ring stays up while its interaction panel is open, with the Roll button and the dice above it.
   const menuObject = openId ?? (menuObjectId && !inCombat && !panelOpen && reachableIds.includes(menuObjectId) ? menuObjectId : null)
-  const ringKey = menuNpc ? `npc:${menuNpc.id}` : menuObject ? `object:${menuObject}` : null
+  // Where an open hazard ring sits; kept for one put out while its panel still shows the result.
+  const menuHazard = isHazardChallengeId(menuObject) ? challengeFor(state, menuObject) : null
+  const [hazardAnchor, setHazardAnchor] = useState(null)
+  if (menuHazard && (hazardAnchor?.id !== menuHazard.id || !samePosition(hazardAnchor.position, menuHazard.position()))) {
+    setHazardAnchor({ id: menuHazard.id, position: menuHazard.position() })
+  }
+  // The Fire ring goes once the object is destroyed.
+  const menuDestructible = menuDestructibleId && !inCombat && !panelOpen ? (destructibleViews.find((view) => view.id === menuDestructibleId) ?? null) : null
+  const ringKey = menuNpc ? `npc:${menuNpc.id}` : menuObject ? `object:${menuObject}` : menuDestructible ? `destructible:${menuDestructible.id}` : null
   const hoveredRingButton = ringHover?.key === ringKey ? ringHover.buttonId : null
   const pickedId = ringPick?.key === ringKey ? ringPick.memberId : null
   const hoverRingButton = (buttonId) => setRingHover({ key: ringKey, buttonId })
@@ -377,6 +416,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     onButtonHover: hoverRingButton,
   }
   const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
+  // A blast or hazard hit a party member: Avoid Injury, one queued prompt at a time (explorationEnvironment.js).
+  const injuryPrompt = inCombat ? null : currentInjuryPrompt(state)
   const menuMember = menuMemberId && !inCombat && party.memberIds.includes(menuMemberId) && !party.members[menuMemberId].beaming ? party.members[menuMemberId] : null
   const memberMenu = menuMember && {
     memberId: menuMember.id,
@@ -416,8 +457,21 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const objectBand = objectAction && objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, objectAction, pickedId, pickRingMember) : null
   const objectSlices = objectBand?.slices.filter((slice) => slice.available) ?? []
   const objectPicked = objectSlices.some((slice) => slice.picked)
+  // A destructible's Fire ring: the band shows who has the best shot at once (Fire is its only button), and the ring
+  // stays up after a shot so the player can fire again.
+  const destructibleButtons =
+    menuDestructible && destructibleMenuButtons(state, menuDestructible.id, (memberId) => dispatch({ type: 'fireOnObject', memberId, objectId: menuDestructible.id }), pickedId)
+  const destructibleMenu = menuDestructible && {
+    position: menuDestructible.position,
+    buttons: destructibleButtons,
+    info: destructibleInfo(state, menuDestructible.id),
+    party: ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, 'fire', pickedId, pickRingMember),
+    onButtonHover: hoverRingButton,
+  }
   const objectMenu = menuObject && {
     objectId: menuObject,
+    // A hazard's ring opens on its anchor tile (the board only knows the challenge objects' positions).
+    ...(isHazardChallengeId(menuObject) && hazardAnchor?.id === menuObject ? { position: hazardAnchor.position } : {}),
     buttons: objectButtons,
     // Once every approach is spent (the panel is still showing the last roll) only the dice stay above the object.
     party: objectBand && {
@@ -457,6 +511,9 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles(), objective: pulseObjectives && objectiveObjectIds.has(view.id) }))}
           reachableIds={reachableIds}
           onInteract={openObjectMenu}
+          hazards={hazardChallenges.filter((object) => hazardInReachIds.includes(object.id)).map((object) => ({ id: object.id, position: object.position() }))}
+          destructibles={destructibleViews}
+          onDestructible={openDestructibleMenu}
           debug={debugOpen}
           followCamera={followCamera}
           onCameraPan={stopFollowing}
@@ -465,7 +522,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onSelectBox={selectBox}
           onOpenMenu={openMenu}
           onOpenNpcMenu={openNpcMenu}
-          menu={memberMenu || npcMenu || objectMenu}
+          menu={memberMenu || npcMenu || objectMenu || destructibleMenu}
           beamIn={beamPhase}
           scanPulse={scanPulse}
         />
@@ -510,6 +567,16 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
             attackNpc(confirmAttackNpc, confirmAttackerId)
           }}
           onCancel={() => setConfirmAttackId(null)}
+        />
+      )}
+      {injuryPrompt && (
+        <InjuryChoice
+          incoming={injuryPrompt}
+          target={{ ...injuryPrompt.member, condition: normalizeCondition(injuryPrompt.member.condition) }}
+          attacker={null}
+          cause={injuryPrompt.text}
+          onAvoid={() => dispatch({ type: 'answerInjuryPrompt', avoid: true })}
+          onAccept={() => dispatch({ type: 'answerInjuryPrompt', avoid: false })}
         />
       )}
       {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}

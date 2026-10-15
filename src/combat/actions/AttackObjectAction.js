@@ -22,6 +22,8 @@ export class AttackObjectAction extends CombatAction {
   }
 
   unavailableReason(state, actor, { objectId, weaponId }) {
+    const economy = super.unavailableReason(state, actor)
+    if (economy) return economy
     const preview = previewObjectAttack(state, actor.id, objectId, weaponId)
     return preview.available ? null : (preview.reason ?? 'No shot.')
   }
