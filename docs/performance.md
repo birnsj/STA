@@ -151,3 +151,17 @@ after it, the region grown to 17 tiles on screen:
 
 Hazards add no React commits: the layer reads `environment.hazards` by reference each frame and rebuilds its sprites
 only when that object changes.
+
+### Milestone 4: hazards authored in the editor (dev server, 2026-10-14)
+
+On Deck 10 Brig, thick smoke painted over the starting room (split in two by an erased column) and dense plasma fire
+in the corridor east of it: 48 tiles of two types, one floor and one air. 5 s in the editor, then 8 s of play-test of
+the saved copy:
+
+| Window | fps | p95 | Pixi frame | `pixi.hazards` per frame | Hazard sprites | `hazard.round` | GC / min |
+|---|---|---|---|---|---|---|---|
+| Editor | 178 | 5.7 ms | 2.60 ms (baseline 2.40) | 0.018 ms (max 0.2) | 48 | - | 12 |
+| Play-test | 173 | 5.7 ms | 0.58 ms | 0.021 ms (max 2.0) | 54 | 0.9 ms mean, 1.6 ms max | 142 |
+
+All inside the thresholds (p95 unchanged, `pixi.hazards` far under 0.5 ms, `hazard.round` under 2 ms, GC under the
+baseline).
