@@ -24,6 +24,14 @@ Implementation note: how the code is organised. No rules change here; the rules 
 
 Object types (door, relay, panel, console, casualty) are data, not subclasses. No code checks `type`.
 
+- **`DestructibleObject`** extends `WorldObject` (`src/world/DestructibleObject.js`): `damageFrom(severity)`, `hit(...)`, `stateTile()` and `view()`. Its record lives in `state.environment.destructibles`, not in `scenario.objects`; `destructibleFor(environment, id)` returns the instance. The eight types are data in `destructibles.json`. The force field's linked tiles and the support's debris are data hooks (`linkedTiles`, `debris`), not subclasses.
+- **`EnvironmentalHazard`** extends `WorldObject` (`src/world/EnvironmentalHazard.js`): a hazard region's `view()`, `effectAt(tile)` and `challengeDefinition()`. Its position is the region's anchor, the tile nearest its centre, which is where its ring opens and its combat marker sits. Hazards are never challenge objects in the scenario.
+- **`HazardChallenge`** extends `ChallengeObject`: a hazard's Neutralize task. It inherits the whole roll, recommendation and effects pipeline, so nothing was pulled out into a separate function; it only fixes its runtime record (no states, no locks), changes no map tiles, and counts as in reach from any of the hazard's tiles. `challengeFor(state, id)` resolves an id `hazard:{regionId}` to one, built on demand, one per region record. Its success runs the `neutralizeHazard` effect.
+
+## The environment record
+
+`state.environment = { seed, round, sequence, destructibles, hazards, explosions }` is plain data, created from the map's `destructibles` and `hazards` (`createEnvironment`) and handed to a fight and back (`exploration/WorldEncounter.js`). `withEnvironment(state, environment)` (`src/world/environmentState.js`) is the one place a new record is stored; it retiles the party map and any open fight's map together (`applyEnvironmentTiles`). The exploration hazard clock is `state.hazardClock` on the exploration state, not on the record, so it stops by itself while a fight runs.
+
 ## Which object
 
 `objectFor(scenario, id)` in `src/world/objects.js` returns the instance. It keeps one per definition outside React state, so an object the map places elsewhere gets a new one. `applyScenarioTiles` and `withMap` live there too. A world map is only rebuilt when a tile actually changes, because movement caches are keyed by the map.
@@ -46,3 +54,7 @@ The functions in `challengeObjects.js` (`attemptChallenge`, `getAvailableActions
 ## Safety net
 
 `tests/objectGolden.test.js` fingerprints every authored action on the Deck 10 Brig and on a test map named Vault of the Ancients (successes, failures, complications, assists, bought dice, locks, routine actions and refusals), object tasks in combat, and a conversation changing an object's state. It also checks that a refused attempt returns the same state. Print new values with `GOLDEN_PRINT=1` only when a behaviour change is intended.
+
+`tests/destructibles.test.js`, `explosions.test.js`, `hazards.test.js` and `deck10Environment.test.js` cover the environment: damage and states, blasts and chains, hazard rounds across the hand-off to combat and back, Neutralize in both modes, and the five Deck 10 objects (in view, cutting nothing off).
+
+Merging the destructibles work (2026-10-14) silently dropped five keys from `useEditorTools`' return value (`selectedNpcId`, `selectedObjectId`, `selectedMarker`, `movingNpc`, `toggleNpcMove`), which broke the editor's NPC Move button; they are restored. Check that every `tools.*` the editor screens read is still returned after a merge there.

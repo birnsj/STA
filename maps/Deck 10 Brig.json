@@ -272,6 +272,48 @@
       21
     ]
   },
+  "destructibles": [
+    {
+      "id": "epsConduit1",
+      "type": "epsConduit",
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "id": "plasmaJunction1",
+      "type": "plasmaJunction",
+      "position": [
+        13,
+        3
+      ]
+    },
+    {
+      "id": "gasCylinder1",
+      "type": "gasCylinder",
+      "position": [
+        13,
+        11
+      ]
+    },
+    {
+      "id": "chemicalContainer1",
+      "type": "chemicalContainer",
+      "position": [
+        25,
+        11
+      ]
+    },
+    {
+      "id": "powerJunction1",
+      "type": "powerJunction",
+      "position": [
+        2,
+        17
+      ]
+    }
+  ],
   "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
   "stardate": 4523.3
 }

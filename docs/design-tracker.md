@@ -249,6 +249,22 @@ Open design decisions for the designer. Each entry separates what the book says 
 - Outline colours: success teal `#4fd6c4` everywhere (combat's green die colour is gone; the "Success: 1" text under combat dice keeps its green), critical yellow, failure red, complication orange `#ff9a3c`. The outline flares for 0.45s as the die stops (not with reduced motion).
 - Sizes kept: 32px in combat, 42px in challenge results and conversation checks, 18px above an object's ring. Challenge dice start 120ms apart so they land one by one.
 
+### Destructible objects, environmental hazards and animated effects (implemented 2026-10-14; decisions awaiting the designer)
+
+**Decided (plan, 2026-10-14):** reuse the 2026-10-12 rules, with Durability as Structure. Blasts hit both sides and chain. Hazard rounds run every 6 seconds in exploration and at the start of each round in combat. Thick smoke and gas block sight; thin smoke and gas give cover. The AI on both sides shoots objects. Avoid Injury prompts queue. Hazards stay plain data, with a `neutralizeHazard` effect and Neutralize on the hazard's ring through the usual challenge roll. All drawing is Pixi; no new SVG. The rules are in `prototype-rules.md` section 7, the code layout in `world-objects.md`, the measurements in `performance.md`.
+
+**Built:** eight object types and eight hazard types (placeholder numbers and generated placeholder art), the editor's Destructible Objects and Hazards sections, Fire and Neutralize rings in exploration and combat, explosion flipbooks, the animated hazard layer, and five objects on Deck 10 Brig: an EPS conduit (8,1), a plasma junction (13,3), a gas cylinder (13,11), a chemical container (25,11) and a power junction (2,17). The Deck 10 spots were re-checked on the current map: each is open floor against a wall with nothing tall in front, and none cuts off a route.
+
+**Awaiting the designer:**
+- **R2. Hazard duration** is a new rule: an optional number of hazard rounds, applied alongside the chance to dissipate.
+- **R3. Coolant leak movement** (placeholder, built): a coolant tile costs double movement in combat and halves walking speed in exploration.
+- **R4. Force field "up" tile** (placeholder, built): a solid, see-through `forceFieldActive` tile with generated placeholder art (`public/art/sprites/environment/detention/forceFieldActive.png`), held up by a standing generator.
+- **R5. Structural support debris** (placeholder, built): the existing `debris` tile on up to 3 open tiles within 1, never on anyone, blocking movement for the rest of the mission.
+- **R6. Known limits:** in combat a blast hits only the fighters, not world NPCs outside the fight; a notable NPC's once-a-scene Threat avoid lasts the whole mission outside combat; outside combat the Fatigue attribute is picked automatically.
+- **R7. Golden fingerprints:** placing the five Deck 10 objects changes the four Deck 10 fingerprints in `objectGolden.test.js` (`brigClosed`, `brigCleared`, `brigLockout`, `conversation`). Masking the five object tiles back to floor reproduces the old values exactly, so only the tiles changed, not the behaviour. Regenerated with the designer's sign-off (2026-10-14).
+
+**Implementer picks, open for review:** the hazard ring and its combat marker sit on the region's anchor (the tile nearest its centre); Neutralize's label comes from `hazards.json` (Extinguish, Vent the Smoke, Cut the Power, and so on); explosions are capped at 8 at a time on screen.
+
 ## Decided
 
 ### Core Rulebook is the rules authority (decided 2026-10-08)

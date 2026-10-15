@@ -20,12 +20,12 @@ import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  brigClosed: 'fb15c142d0968f66',
-  brigCleared: '3fd34bc5fc6468b5',
-  brigLockout: 'fb15c142d0968f66',
+  brigClosed: '045d53f51363de07',
+  brigCleared: 'f02b8365ffa894b2',
+  brigLockout: '045d53f51363de07',
   vault: '49dbff9fe7ace5a2',
   combat: 'dc25d1817baf3a41',
-  conversation: 'c12f786b514a5950',
+  conversation: '0819cd293edce73e',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)

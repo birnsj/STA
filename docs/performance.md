@@ -188,3 +188,26 @@ returns. `hazard.round` in play-test: 1.7 ms mean over two rounds (2.8 ms, then 
 engine); later rounds take 0.05 ms mean and 0.8 ms at most while spreading. The thick smoke over the starting room hid
 the party from the guard in the fight run (the sight rule at work), so the fight run puts the smoke east of the
 corridor instead.
+
+### Milestone 7: the full pass with the five Deck 10 objects (production preview, 2026-10-14)
+
+`node tools/perfRun.mjs all --runs 3 --tag m7` against a `VITE_PERF_PROBE=1` production preview of the finished work,
+and the same command (`--tag basetoday`) the same evening against a preview built from `b9ae50f`, the commit before
+any of this work. The machine was not in its Milestone 0 state (exploration p95 11 ms in both builds), so the same-day
+build is the control. Medians of three runs:
+
+| Scenario | fps (control) | Main thread busy (control) | Pixi frame (control) | GC / min (control) |
+|---|---|---|---|---|
+| explore-idle | 163.7 (164.5) | 46.5% (49.7%) | 0.90 ms (0.95) | 152 (156) |
+| explore-move | 150.9 (155.1) | 59.2% (63.8%) | 1.44 ms (1.50) | 140 (140) |
+| combat-idle | 176.3 (178.1) | 44.1% (46.1%) | 1.07 ms (1.13) | 76 (76) |
+| combat-auto | 169.3 (167.6) | 50.5% (53.9%) | 1.35 ms (1.44) | 100 (92) |
+| editor-idle | 171.8 (172.5) | 83.5% (83.3%) | 3.22 ms (3.16) | 40 (36) |
+| editor-sweep | 171.9 (172.7) | 87.7% (86.5%) | 3.14 ms (3.04) | 60 (60) |
+
+p95 is the same in both builds in every scenario. Every threshold holds against the control: fps within 3%
+(explore-move is the closest, -2.7%), main thread busy no more than 1.2 points over, GC within 25% (combat-auto +9%).
+The editor's style recalculation (about 47% of the main thread) is the same in the control, so it predates this work.
+Every scenario plays Deck 10 Brig (its episode is "Shadows on Deck Twelve"), so the M7 rows include the five standing
+objects and the control rows don't. Not measured: the heap after hazards expire (the plan's cleanup check); the browser's heap figure
+swung by more than 20 MB between windows of the same page, too noisy for a 5% test.
