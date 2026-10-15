@@ -10,7 +10,7 @@ import { spawnFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { chooseOption, continueConversation, leaveConversation, rollCheck, startConversation } from '../conversation/conversationRuntime.js'
 import { createNpc, createWorld, emitNoise, getNpcs, tickWorld } from './awareness.js'
-import { applyScenarioTiles, attemptChallenge, createScenario, INTERACT_RANGE, withMap } from './challengeObjects.js'
+import { applyScenarioTiles, attemptChallenge, challengeFor, createScenario, INTERACT_RANGE, withMap } from './challengeObjects.js'
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
@@ -18,7 +18,8 @@ import { scanArea, scanNpc } from './partyScan.js'
 import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
-import { objectFor } from '../world/objects.js'
+import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
+import { answerInjuryPrompt, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -80,12 +81,20 @@ const CONVERSATION_HOOKS = { refreshMap: withMap, startCombat }
 export function createExplorationState(map, characters, seed = 0, { enemiesActive = true } = {}) {
   // Challenge objects and scenario flags (challengeObjects.js); the world map shows each object's current tile.
   const scenario = createScenario(map)
-  const worldMap = applyScenarioTiles(map, scenario)
+  // Destructible objects and hazards (world/environment.js): each object's tile is on the world map too.
+  const environment = createEnvironment(map, seed >>> 0)
+  const worldMap = applyEnvironmentTiles(applyScenarioTiles(map, scenario), environment)
   return {
     mode: MODE.EXPLORATION,
     party: createPartyState(worldMap, characters),
     world: createNpcWorld(worldMap),
     scenario,
+    environment,
+    // World seconds since the last hazard round (explorationEnvironment.js tickHazards); it stands still in a fight, so
+    // exploration resumes the count where it stopped.
+    hazardClock: 0,
+    // Avoid Injury prompts a blast or hazard round left for party members, answered one at a time.
+    injuryPrompts: [],
     // The last challenge attempt, for the interaction panel (attemptChallenge).
     lastTask: null,
     // The conversation open now (conversation/conversationRuntime.js), or null.
@@ -141,7 +150,8 @@ const listText = (label, names) => (names.length ? ` ${label}: ${names.join(', '
 function logObjectTask(previous, next) {
   const task = next.lastTask
   if (!task || task === previous.lastTask || task.routine) return next
-  const object = objectFor(next.scenario, task.objectId)
+  // A hazard's Neutralize task is looked up from before the roll: a success has put the hazard out.
+  const object = challengeFor(previous, task.objectId) ?? challengeFor(next, task.objectId)
   const objectName = object?.definition.name ?? task.objectId
   const action = object?.action(task.actionId)?.label ?? task.actionId
   const performer = memberName(next, task.performerId)
@@ -205,8 +215,8 @@ function reduceExploration(state, action) {
       if (state.mode === MODE.COMBAT) return state
       const party = partyReducer(state.party, action)
       // The clock still runs (challenge-object locks expire on it); only the NPCs stand still.
-      if (state.enemiesActive === false) return endConversationOutOfRange(perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } }))
-      const next = requestCombat(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }))
+      if (state.enemiesActive === false) return endConversationOutOfRange(tickHazards(perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } }), action.seconds))
+      const next = requestCombat(tickHazards(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }), action.seconds))
       // A fight breaking out ends any conversation.
       return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : endConversationOutOfRange(next)
     }
@@ -218,6 +228,15 @@ function reduceExploration(state, action) {
     // A challenge-object action: { objectId, actionId, performerId, assistantId, assistIndex } (challengeObjects.js).
     case 'challenge':
       return state.mode === MODE.COMBAT ? state : attemptChallenge(state, action)
+    // { memberId, objectId, purchase }: that character fires on a destructible object (explorationEnvironment.js).
+    case 'fireOnObject':
+      return fireOnObject(state, action)
+    // { avoid }: the answer to the first queued Avoid Injury prompt from a blast or hazard.
+    case 'answerInjuryPrompt':
+      return answerInjuryPrompt(state, action.avoid)
+    // { hazardId, performerId, purchase, assistantId }: the hazard's Neutralize task (world/EnvironmentalHazard.js).
+    case 'neutralizeHazard':
+      return state.mode === MODE.COMBAT ? state : neutralizeHazardTask(state, action)
     // { memberId }: that character scans for life signs (partyScan.js).
     case 'scan':
       return state.mode === MODE.COMBAT ? state : scanArea(state, action.memberId)

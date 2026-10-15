@@ -245,7 +245,9 @@ function tick(state, rawSeconds) {
   let changed = false
   let members = {}
   steered.forEach(({ member, velocity, direction, run }, i) => {
-    const step = { x: (velocity.x + pushes[i].x) * seconds, y: (velocity.y + pushes[i].y) * seconds }
+    // PROTOTYPE (placeholder, flagged): a slowing hazard (the coolant leak; world/environment.js slowKeys) halves walking speed.
+    const pace = state.map.slowKeys?.[`${Math.round(member.position.x)},${Math.round(member.position.y)}`] ? 0.5 : 1
+    const step = { x: (velocity.x * pace + pushes[i].x) * seconds, y: (velocity.y * pace + pushes[i].y) * seconds }
     const stepping = Math.hypot(step.x, step.y) > 1e-4
     let next = member
     if (stepping) {

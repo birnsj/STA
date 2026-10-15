@@ -3,20 +3,29 @@ import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
 import {
   areaAt,
+  destructibleAt,
+  duplicateDestructible,
+  eraseHazardTile,
   eraseMarkers,
   hasMarkers,
+  hazardRegionAt,
+  moveDestructible,
   moveMarkers,
   npcAt,
   paintBrush,
+  paintHazardTile,
+  placeDestructible,
   placeNpc,
   selectionAt,
   setAreaLabel,
   swapTilesWithObjects,
   toggleMarker,
   turnFacing,
+  updateDestructible,
   updateNpc,
 } from '../../maps/mapEdits.js'
 import { getTile, isRotated } from '../../maps/mapFormat.js'
+import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 
 // The character a newly placed NPC starts as (changed in its inspector).
 const FIRST_CHARACTER_ID = listAuthoredCharacters()[0]?.id ?? null
@@ -50,11 +59,22 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   // The challenge object shown in its inspector (an id), and whether the next board click moves it.
   const [selectedObjectId, setSelectedObjectId] = useState(null)
   const [placingObject, setPlacingObject] = useState(false)
+  // Destructible objects and hazard regions (tools 'destructible:{type}', 'hazard:{type}', 'hazardErase'): the one in its
+  // inspector, whether the next click moves the destructible, and the intensity the hazard brush paints.
+  const [selectedDestructibleId, setSelectedDestructibleId] = useState(null)
+  const [movingDestructible, setMovingDestructible] = useState(false)
+  const [linkingDestructible, setLinkingDestructible] = useState(false)
+  const [selectedHazardId, setSelectedHazardId] = useState(null)
+  const [hazardIntensity, setHazardIntensity] = useState(2)
 
   // A different map clears everything selected or half-done on the old one.
   const [seenBoardKey, setSeenBoardKey] = useState(boardKey)
   if (seenBoardKey !== boardKey) {
     setSeenBoardKey(boardKey)
+    setSelectedDestructibleId(null)
+    setMovingDestructible(false)
+    setLinkingDestructible(false)
+    setSelectedHazardId(null)
     setSelectedNpcId(null)
     setSelectedMarker(null)
     setPlacingObjective(null)
@@ -75,6 +95,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   }, [map, selectedMarker])
   const objectDefinitions = useMemo(() => challengeDefinitionsFor(map), [map])
   const selectedObject = objectDefinitions.find((definition) => definition.id === selectedObjectId) ?? null
+  const selectedDestructible = (map.destructibles ?? []).find((object) => object.id === selectedDestructibleId) ?? null
+  const selectedHazard = (map.hazards ?? []).find((region) => region.id === selectedHazardId) ?? null
+  // Tiles a destructible can't take: where challenge objects stand.
+  const objectTiles = useMemo(() => objectDefinitions.map(({ position: [x, y] }) => ({ x, y })), [objectDefinitions])
+  const duplicateSelected = () => {
+    if (!selectedDestructible) return
+    const copy = duplicateDestructible(map, selectedDestructible.id, objectTiles)
+    if (!copy) return setStatus('No free floor tile near it for the copy.')
+    edit(copy.map)
+    setSelectedDestructibleId(copy.object.id)
+    setStatus(`Duplicated ${selectedDestructible.id} as ${copy.object.id} at (${copy.object.position.x}, ${copy.object.position.y}).`)
+  }
 
   // Escape puts the brush down (no tool selected, Place Tiles off), unless a popup is open (its own Escape cancels it)
   // or a text box has focus. R rotates the tile brush.
@@ -82,11 +114,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     if (suspended) return undefined
     const onKey = (event) => {
       if (event.target.closest?.('input, textarea, select')) return
+      if ((event.key === 'd' || event.key === 'D') && (event.ctrlKey || event.metaKey)) {
+        if (!selectedDestructible) return
+        event.preventDefault()
+        return duplicateSelected()
+      }
       if ((event.key === 'r' || event.key === 'R') && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (placing && tool?.startsWith('tile:')) setRotated((value) => !value)
         return
       }
       if (event.key !== 'Escape') return
+      if (linkingDestructible) return setLinkingDestructible(false)
+      if (movingDestructible) return setMovingDestructible(false)
       if (placingObject) return setPlacingObject(false)
       if (placingObjective !== null) {
         if (placingFromEditor) onObjectivePlaced(placingObjective)
@@ -102,7 +141,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [suspended, placing, tool, placingObjective, placingFromEditor, placingObject, onObjectivePlaced])
+  })
 
   // The NPC tool: click an NPC to select it, an empty floor tile to place a new one (or, while moving, to move the
   // selected one there).
@@ -131,11 +170,62 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedNpcId(npc?.id ?? null)
     setSelectedMarker(markerKind ? { kind: markerKind, x: position.x, y: position.y } : null)
     setSelectedObjectId(object?.id ?? null)
+    setSelectedDestructibleId(destructibleAt(map, position)?.id ?? null)
+    setSelectedHazardId(hazardRegionAt(map, position)?.id ?? null)
     setPlacingObject(false)
     setMovingNpc(false)
+    setMovingDestructible(false)
+    setLinkingDestructible(false)
+  }
+
+  // The destructible tools: click a destructible to select it, a free floor tile to place one of the held type.
+  const onDestructibleTool = (position, type) => {
+    const existing = destructibleAt(map, position)
+    if (existing) return setSelectedDestructibleId(existing.id)
+    const placed = placeDestructible(map, position, type, objectTiles)
+    if (!placed) return setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
+    edit(placed.map)
+    setSelectedDestructibleId(placed.object.id)
+    setSelectedHazardId(null)
+    setStatus(`Placed ${DESTRUCTIBLE_TYPES[type].name} (${placed.object.id}). Ctrl+D duplicates it.`)
   }
 
   const onPaint = (position, { first }) => {
+    // Picking linked tiles: each click adds or removes one (a force-field generator's field).
+    if (linkingDestructible && selectedDestructible) {
+      if (!first) return
+      const linked = selectedDestructible.linkedTiles ?? []
+      const has = linked.some((tile) => tile.x === position.x && tile.y === position.y)
+      const linkedTiles = has ? linked.filter((tile) => tile.x !== position.x || tile.y !== position.y) : [...linked, position]
+      edit(updateDestructible(map, selectedDestructible.id, { linkedTiles: linkedTiles.length ? linkedTiles : null }))
+      setStatus(`${has ? 'Unlinked' : 'Linked'} (${position.x}, ${position.y}) ${has ? 'from' : 'to'} ${selectedDestructible.id}.`)
+      return
+    }
+    if (movingDestructible && selectedDestructible) {
+      if (!first) return
+      const moved = moveDestructible(map, selectedDestructible.id, position, objectTiles)
+      if (moved === map) setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
+      edit(moved)
+      setMovingDestructible(false)
+      return
+    }
+    if (tool?.startsWith('destructible:')) {
+      if (first) onDestructibleTool(position, tool.slice('destructible:'.length))
+      return
+    }
+    // The hazard brushes paint (or erase) every tile dragged over.
+    if (tool?.startsWith('hazard:')) {
+      const painted = paintHazardTile(map, position, tool.slice('hazard:'.length), hazardIntensity)
+      if (painted !== map) edit(painted)
+      setSelectedHazardId(hazardRegionAt(painted, position)?.id ?? null)
+      setSelectedDestructibleId(null)
+      return
+    }
+    if (tool === 'hazardErase') {
+      const erased = eraseHazardTile(map, position)
+      if (erased !== map) edit(erased)
+      return
+    }
     if (placingObject && selectedObject) {
       if (!first) return
       edit({ ...map, objectPlacements: { ...(map.objectPlacements ?? {}), [selectedObject.id]: position } })
@@ -152,7 +242,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       return
     }
     if (moving) {
-      if (first) setMoveFrom({ ...position, markers: hasMarkers(map, position) })
+      if (first) setMoveFrom({ ...position, markers: hasMarkers(map, position), destructible: destructibleAt(map, position)?.id ?? null })
       return
     }
     if (!tool || tool.startsWith('tile:')) {
@@ -181,6 +271,14 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     if (!moving || !moveFrom) return
     setMoveFrom(null)
     if (!position || (position.x === moveFrom.x && position.y === moveFrom.y)) return
+    // A destructible object goes before markers and tiles: the Move tool carries it alone.
+    if (moveFrom.destructible) {
+      const moved = moveDestructible(map, moveFrom.destructible, position, objectTiles)
+      if (moved === map) return setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
+      edit(moved)
+      setStatus(`Moved ${moveFrom.destructible} to (${position.x}, ${position.y}).`)
+      return
+    }
     if (moveFrom.markers) {
       const moved = moveMarkers(map, moveFrom, position)
       if (moved.error) return setStatus(moved.error)
@@ -233,16 +331,28 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       setPlacingFromEditor(true)
     },
     objectDefinitions,
-    selection: { npc: selectedNpc, object: selectedObject, marker: markerInspected },
-    selectedNpcId,
-    selectedObjectId,
-    // What the board highlights for the start / spawn inspector (null once it has moved or been deleted).
-    selectedMarker: markerInspected && selectedMarker,
-    movingNpc,
-    toggleNpcMove: () => {
-      setTool('npcs')
-      setMovingNpc((value) => !value)
+    selection: { npc: selectedNpc, object: selectedObject, marker: markerInspected, destructible: selectedDestructible, hazard: selectedHazard },
+    selectedDestructibleId: selectedDestructible?.id ?? null,
+    selectedHazardId: selectedHazard?.id ?? null,
+    movingDestructible,
+    toggleDestructibleMove: () => {
+      setLinkingDestructible(false)
+      setMovingDestructible((value) => !value)
     },
+    linkingDestructible,
+    toggleDestructibleLink: () => {
+      setMovingDestructible(false)
+      setLinkingDestructible((value) => !value)
+    },
+    duplicateDestructible: duplicateSelected,
+    clearDestructible: () => {
+      setSelectedDestructibleId(null)
+      setMovingDestructible(false)
+      setLinkingDestructible(false)
+    },
+    clearHazard: () => setSelectedHazardId(null),
+    hazardIntensity,
+    setHazardIntensity,
     clearNpc: () => {
       setSelectedNpcId(null)
       setMovingNpc(false)

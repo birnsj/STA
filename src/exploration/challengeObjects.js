@@ -10,6 +10,7 @@
 import { isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
 import { combatCostOf } from '../world/ChallengeObject.js'
+import { hazardChallengeFor } from '../world/EnvironmentalHazard.js'
 import { playableActions, repairDefinitions } from '../world/objectDefinitions.js'
 import { applyScenarioTiles as retile, objectFor, objectForDefinition, objectsOf, withMap as withRetiledMap } from '../world/objects.js'
 import { objectiveFlag } from './missionFlags.js'
@@ -82,17 +83,21 @@ export const objectsInReach = (state, memberIds) =>
     .filter((object) => memberIds.some((id) => isUp(state.party.members[id]) && object.inReach(state.party.members[id].position)))
     .map((object) => object.definition)
 
+// The challenge behind an id: an authored object in the scenario, or a hazard's Neutralize task ('hazard:{id}',
+// world/EnvironmentalHazard.js), or null.
+export const challengeFor = (state, objectId) => objectFor(state.scenario, objectId) ?? hazardChallengeFor(state.environment, objectId)
+
 // The actions the object offers now: [{ action, available, reason }]. Actions whose requirements aren't met are not offered.
-export const getAvailableActions = (state, objectId) => objectFor(state.scenario, objectId)?.availableActions(state) ?? []
+export const getAvailableActions = (state, objectId) => challengeFor(state, objectId)?.availableActions(state) ?? []
 
 export { combatCostOf }
 
 // The character math before the roll (ChallengeObject preview).
-export const previewChallenge = (state, request) => objectFor(state.scenario, request.objectId)?.preview(state, request) ?? null
+export const previewChallenge = (state, request) => challengeFor(state, request.objectId)?.preview(state, request) ?? null
 
 // A player's attempt: { objectId, actionId, performerId, assistantId, assistIndex, purchase, combatAssist, combatLines }
 // (ChallengeObject attempt). The state is unchanged (the same object) when the attempt isn't allowed.
 export function attemptChallenge(state, request) {
-  const object = objectFor(state.scenario, request.objectId)
+  const object = challengeFor(state, request.objectId)
   return object ? object.attempt(state, request) : state
 }

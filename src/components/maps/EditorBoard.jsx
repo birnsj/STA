@@ -4,6 +4,7 @@ import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
+import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from './canvasTiles.js'
 import { startMapScene } from './pixi/mapScene.js'
@@ -37,6 +38,29 @@ function tilePreview(map, hover, brush, rotated, moveFrom) {
   return { layout: boardLayout(paintBrush(map, hover, brush, rotated)), positions: brushPositions(map, hover, brush, rotated), key: `brush:${brush}:${rotated}@${hover.x},${hover.y}` }
 }
 
+const SELECTED = 0xffb347
+const LINKED = 0x5fe8ff
+
+// What the Pixi scene outlines for the selection (pixi/editorMarkers.js EditorOutlineView): the selected destructible's
+// tile with the square its explosion reaches and its linked tiles, or the selected hazard region's tiles.
+function selectionOutlines(map, environment, destructibleId, hazardId) {
+  const outlines = []
+  const record = destructibleId && environment.destructibles[destructibleId]
+  if (record) {
+    outlines.push({ id: `d:${record.id}`, tiles: [record.position], square: record.explosion ? { position: record.position, radius: record.explosion.radius } : null, colour: SELECTED })
+    if (record.linkedTiles.length) outlines.push({ id: `l:${record.id}`, tiles: record.linkedTiles, square: null, colour: LINKED, fillAlpha: 0.15 })
+  }
+  const region = hazardId && (map.hazards ?? []).find((entry) => entry.id === hazardId)
+  if (region) {
+    const tiles = Object.keys(region.tiles).map((key) => {
+      const [x, y] = key.split(',').map(Number)
+      return { x, y }
+    })
+    outlines.push({ id: `h:${region.id}`, tiles, square: null, colour: SELECTED, fillAlpha: 0.1 })
+  }
+  return outlines
+}
+
 // onPaint(position, { first }): a left press on a tile (first) or dragging onto another tile while held.
 // onPaintEnd(position or null): the left button released after a press on the map, over that tile (null: off the map).
 // onHover(position or null): the tile under the pointer. brush: the tile id being painted, or null (no tile tool).
@@ -58,13 +82,18 @@ export default function EditorBoard({
   selectedNpcId = null,
   selectedMarker = null,
   selectedObjectId = null,
+  selectedDestructibleId = null,
+  selectedHazardId = null,
   moveFrom = null,
   onPaint,
   onPaintEnd,
   onHover,
   onRightClick,
 }) {
-  const layout = useMemo(() => boardLayout(map), [map])
+  // Destructible objects show in the state they start the mission in, force fields up, as play will draw them.
+  const environment = useMemo(() => createEnvironment(map), [map])
+  const layout = useMemo(() => boardLayout(applyEnvironmentTiles(map, environment)), [map, environment])
+  const outlines = useMemo(() => selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId), [map, environment, selectedDestructibleId, selectedHazardId])
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const hoverRef = useRef(null)
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current))
@@ -141,7 +170,7 @@ export default function EditorBoard({
   ]
   const preview = useMemo(() => tilePreview(map, hover, brush, rotated, moveFrom), [map, hover, brush, rotated, moveFrom])
   useLayoutEffect(() => {
-    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, labels, markers, preview, svg: dragHandlers.ref.current }
+    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, labels, markers, outlines, preview, svg: dragHandlers.ref.current }
   })
 
   if (failed) return <WebglUnavailable />

@@ -27,12 +27,19 @@
 // left before every objective was complete (blank: a default line); outroFailed: shown instead when the mission failed
 // (an NPC who must survive was killed; blank: a default line); stardate: the episode's starting stardate
 // (a number, or null for missionLog.json's default). All are left out on disk when empty.
+// destructibles: [{ id, type (destructibles.json), position, name?, structure?, resistance? }] — objects that can be shot
+// and blow up (world/environment.js); name / structure / resistance override the type's when set.
+// hazards: [{ id, type (hazards.json), tiles: { 'x,y': intensity 1-3 }, severity?, spreadChance?, dissipateChance?,
+// neutralizeDifficulty? }] — hazard regions present when the mission starts (the optional fields override the type's);
+// on disk tiles is [[x, y, intensity]]. Both are left out on disk when empty.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
 // map's middle);
 // on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
 import catalogue from '../data/adaptation/maps/tiles.json'
+import destructibleData from '../data/adaptation/world/destructibles.json'
+import hazardData from '../data/adaptation/world/hazards.json'
 
 export const MAP_SCHEMA_VERSION = 1
 export const TILES = catalogue.tiles
@@ -111,6 +118,8 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     objectives: [],
     objects: null,
     objectPlacements: {},
+    destructibles: [],
+    hazards: [],
     briefing: '',
     outro: '',
     outroAbandoned: '',
@@ -156,6 +165,76 @@ const parseObjective = (raw, inside) => {
     completeWhen: conditionList(raw.completeWhen),
   }
 }
+
+const DESTRUCTIBLE_OVERRIDES = ['structure', 'resistance']
+const DESTRUCTIBLE_STATES = ['intact', 'damaged', 'destroyed']
+// The explosion fields a placed object may override (destructibles.json explosion), by kind of value.
+const EXPLOSION_NUMBERS = ['radius', 'severity', 'hazardRadius', 'hazardIntensity', 'hazardDuration']
+const EXPLOSION_TEXTS = ['kind', 'injuryType', 'hazard']
+function explosionOverrides(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const explosion = {}
+  EXPLOSION_NUMBERS.forEach((field) => {
+    if (Number.isFinite(raw[field])) explosion[field] = raw[field]
+  })
+  EXPLOSION_TEXTS.forEach((field) => {
+    if (typeof raw[field] === 'string') explosion[field] = raw[field]
+  })
+  if (typeof raw.hazardSpread === 'boolean') explosion.hazardSpread = raw.hazardSpread
+  return Object.keys(explosion).length ? explosion : null
+}
+function parseDestructible(raw, inside) {
+  const object = { id: String(raw.id), type: String(raw.type ?? ''), position: toPosition(raw.position ?? [0, 0]) }
+  if (typeof raw.name === 'string' && raw.name.trim()) object.name = raw.name.trim()
+  DESTRUCTIBLE_OVERRIDES.forEach((field) => {
+    if (Number.isFinite(raw[field])) object[field] = raw[field]
+  })
+  if (DESTRUCTIBLE_STATES.includes(raw.initialState) && raw.initialState !== 'intact') object.initialState = raw.initialState
+  if (raw.attackable === false) object.attackable = false
+  const explosion = explosionOverrides(raw.explosion)
+  if (explosion) object.explosion = explosion
+  const linked = (Array.isArray(raw.linkedTiles) ? raw.linkedTiles : []).filter((tile) => Array.isArray(tile)).map(toPosition).filter(inside)
+  if (linked.length) object.linkedTiles = linked
+  return object
+}
+const serializeDestructible = (object) => ({
+  id: object.id,
+  type: object.type,
+  position: fromPosition(object.position),
+  ...(object.name ? { name: object.name } : {}),
+  ...Object.fromEntries(DESTRUCTIBLE_OVERRIDES.filter((field) => Number.isFinite(object[field])).map((field) => [field, object[field]])),
+  ...(object.initialState && object.initialState !== 'intact' ? { initialState: object.initialState } : {}),
+  ...(object.attackable === false ? { attackable: false } : {}),
+  ...(explosionOverrides(object.explosion) ? { explosion: explosionOverrides(object.explosion) } : {}),
+  ...(object.linkedTiles?.length ? { linkedTiles: object.linkedTiles.map(fromPosition) } : {}),
+})
+const clampIntensity = (value) => Math.min(3, Math.max(1, Math.round(Number(value) || 1)))
+// A hazard region's overrides of its type's values (hazards.json); any left out use the type's.
+export const HAZARD_OVERRIDES = ['severity', 'spreadChance', 'dissipateChance', 'neutralizeDifficulty']
+// duration: hazard rounds the region lasts (left out: until it dissipates). The switches are kept only when false
+// (spread: never spreads; active: placed but not acting yet; neutralizable: no Neutralize task).
+const HAZARD_SWITCHES = ['spread', 'active', 'neutralizable']
+const hazardOverrides = (source) => ({
+  ...Object.fromEntries([...HAZARD_OVERRIDES, 'duration'].filter((field) => Number.isFinite(source[field])).map((field) => [field, source[field]])),
+  ...Object.fromEntries(HAZARD_SWITCHES.filter((field) => source[field] === false).map((field) => [field, false])),
+})
+function parseHazard(raw, inside) {
+  const tiles = {}
+  ;(Array.isArray(raw.tiles) ? raw.tiles : []).forEach(([x, y, intensity]) => {
+    if (Number.isInteger(x) && Number.isInteger(y) && inside({ x, y })) tiles[`${x},${y}`] = clampIntensity(intensity)
+  })
+  return { id: String(raw.id), type: String(raw.type ?? ''), tiles, ...hazardOverrides(raw) }
+}
+const serializeHazard = (hazard) => ({
+  id: hazard.id,
+  type: hazard.type,
+  tiles: Object.entries(hazard.tiles).map(([key, intensity]) => [...key.split(',').map(Number), intensity]),
+  ...hazardOverrides(hazard),
+})
+const hazardInside = (hazard, inside) => ({
+  ...hazard,
+  tiles: Object.fromEntries(Object.entries(hazard.tiles).filter(([key]) => inside(toPosition(key.split(',').map(Number))))),
+})
 const serializeObjective = (objective) => ({
   id: objective.id,
   title: objective.title,
@@ -202,6 +281,11 @@ export function parseMapFile(file, id) {
         .filter(([, position]) => inside(position)),
     ),
     objects: Array.isArray(file.objects) ? structuredClone(file.objects.filter((object) => object?.id != null)) : null,
+    destructibles: (file.destructibles ?? []).filter((raw) => raw?.id != null).map((raw) => parseDestructible(raw, inside)).filter((object) => inside(object.position)),
+    hazards: (file.hazards ?? [])
+      .filter((raw) => raw?.id != null)
+      .map((raw) => parseHazard(raw, inside))
+      .filter((hazard) => Object.keys(hazard.tiles).length),
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     outro: typeof file.outro === 'string' ? file.outro : '',
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
@@ -233,6 +317,8 @@ export function serializeMap(map) {
     ...(Object.keys(map.objectPlacements ?? {}).length
       ? { objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements).map(([objectId, position]) => [objectId, fromPosition(position)])) }
       : {}),
+    ...(map.destructibles?.length ? { destructibles: map.destructibles.map(serializeDestructible) } : {}),
+    ...(map.hazards?.length ? { hazards: map.hazards.map(serializeHazard) } : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
@@ -257,6 +343,10 @@ export function resizeMap(map, width, height) {
     npcs: (map.npcs ?? []).filter((npc) => inside(npc.position)),
     objectives: (map.objectives ?? []).map((objective) => (objective.position && !inside(objective.position) ? { ...objective, position: null } : objective)),
     objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements ?? {}).filter(([, position]) => inside(position))),
+    destructibles: (map.destructibles ?? [])
+      .filter((object) => inside(object.position))
+      .map((object) => (object.linkedTiles ? { ...object, linkedTiles: object.linkedTiles.filter(inside) } : object)),
+    hazards: (map.hazards ?? []).map((hazard) => hazardInside(hazard, inside)).filter((hazard) => Object.keys(hazard.tiles).length),
   }
 }
 
@@ -275,6 +365,13 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode' } = {}) 
     const label = npc.name || npc.id
     if (tileAt(npc.position).solid) warnings.push(`NPC ${label} stands on a solid tile.`)
     if (!npc.characterId) warnings.push(`NPC ${label} has no character.`)
+  })
+  ;(map.destructibles ?? []).forEach((object) => {
+    if (!destructibleData.types[object.type]) warnings.push(`Destructible ${object.id} has an unknown type (${object.type}); it is left out of play.`)
+    else if (tileAt(object.position).solid) warnings.push(`Destructible ${object.id} is on a solid tile.`)
+  })
+  ;(map.hazards ?? []).forEach((hazard) => {
+    if (!hazardData.types[hazard.type]) warnings.push(`Hazard ${hazard.id} has an unknown type (${hazard.type}); it is left out of play.`)
   })
   const roles = new Set(map.tiles.flat().map((id) => getTile(id).role))
   if (roles.has('hazard') && !roles.has('hazardControl')) warnings.push('Hazard tiles but no hazard control, so the hazard can never be set off.')

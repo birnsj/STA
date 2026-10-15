@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
+import { getTile, PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
+import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
+import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
-// and Fade checkboxes that edit the catalogue), then the marker tools. tool: 'tile:{id}' | 'playerStarts' | 'enemySpawns' | 'npcs' | 'area' | 'erase'.
+// and Fade checkboxes that edit the catalogue), the destructible objects and hazards (destructibles.json, hazards.json),
+// then the marker tools. tool: 'tile:{id}' | 'destructible:{type}' | 'hazard:{type}' | 'hazardErase' | 'playerStarts' |
+// 'enemySpawns' | 'npcs' | 'area' | 'erase'.
 const MARKER_TOOLS = [
   { id: 'playerStarts', label: 'Player Start', swatch: 'player' },
   { id: 'enemySpawns', label: 'Enemy Spawn', swatch: 'enemy' },
@@ -15,11 +19,12 @@ const MARKER_TOOLS = [
 
 const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const GROUPED = new Set(PALETTE_GROUPS.flatMap((group) => group.tiles))
-// Unknown ids in a group are skipped; tiles in no group still show, under Other.
+// Unknown ids in a group are skipped; tiles in no group still show, under Other. A destructible object's tiles are its
+// states, placed with the Destructible Objects tools rather than painted.
 const GROUPS = [
   ...PALETTE_GROUPS.map((group) => ({ ...group, tiles: group.tiles.map((id) => BY_ID.get(id)).filter(Boolean) })),
-  { id: 'other', label: 'Other', tiles: TILES.filter((tile) => !GROUPED.has(tile.id)) },
-].filter((group) => group.tiles.length)
+  { id: 'other', label: 'Other', tiles: TILES.filter((tile) => !GROUPED.has(tile.id) && tile.role !== 'destructible') },
+]
 
 function ToolButton({ selected, onClick, children }) {
   return (
@@ -56,9 +61,88 @@ function FlagBox({ tile, box, onStatus }) {
   )
 }
 
+const INTENSITIES = [
+  { value: 1, label: 'Thin' },
+  { value: 2, label: 'Thick' },
+  { value: 3, label: 'Dense' },
+]
+
+// A collapsible section of the tool list, drawn like a tile category.
+function ToolGroup({ id, label, count, open, onToggle, children }) {
+  const isOpen = open.has(id)
+  return (
+    <div className="me-group">
+      <button type="button" className="me-group-tag" aria-expanded={isOpen} onClick={() => onToggle(id)}>
+        <span className="me-group-arrow" aria-hidden="true">
+          {isOpen ? '▾' : '▸'}
+        </span>
+        <span className="me-group-label">{label}</span>
+        <span className="me-group-count">{count}</span>
+      </button>
+      {isOpen && children}
+    </div>
+  )
+}
+
+// Destructible objects place with a click (no Place Tiles needed); hazards paint with a drag at the chosen intensity.
+function EnvironmentTools({ tool, onTool, open, onToggle, hazardIntensity, onHazardIntensity }) {
+  const destructibles = Object.entries(DESTRUCTIBLE_TYPES)
+  const hazards = Object.entries(HAZARD_TYPES)
+  return (
+    <>
+      <p className="me-heading">Environment</p>
+      <ToolGroup id="env:destructibles" label="Destructible Objects" count={destructibles.length} open={open} onToggle={onToggle}>
+        {destructibles.map(([type, info]) => (
+          <ToolButton key={type} selected={tool === `destructible:${type}`} onClick={() => onTool(`destructible:${type}`)}>
+            <span className="me-thumb-wrap">
+              <TileThumbnail tile={getTile(destructibleTileId(type))} className="me-thumb-preview" />
+            </span>
+            <span title={info.description}>{info.name}</span>
+          </ToolButton>
+        ))}
+      </ToolGroup>
+      <ToolGroup id="env:hazards" label="Hazards" count={hazards.length} open={open} onToggle={onToggle}>
+        {hazards.map(([type, info]) => (
+          <ToolButton key={type} selected={tool === `hazard:${type}`} onClick={() => onTool(`hazard:${type}`)}>
+            <span
+              className="me-swatch is-hazard"
+              style={{ backgroundColor: info.colour, backgroundImage: `url(${hazardStrip(type)})`, backgroundSize: `${HAZARD_FRAMES * 100}% 100%` }}
+              aria-hidden="true"
+            />
+            <span>{info.name}</span>
+          </ToolButton>
+        ))}
+        <ToolButton selected={tool === 'hazardErase'} onClick={() => onTool('hazardErase')}>
+          <span className="me-swatch is-erase" aria-hidden="true" />
+          <span>Erase Hazard</span>
+        </ToolButton>
+        <div className="me-intensity" role="group" aria-label="Hazard intensity">
+          {INTENSITIES.map((entry) => (
+            <button key={entry.value} type="button" className={`me-button${hazardIntensity === entry.value ? ' is-selected' : ''}`} aria-pressed={hazardIntensity === entry.value} onClick={() => onHazardIntensity(entry.value)}>
+              {entry.label}
+            </button>
+          ))}
+        </div>
+        <p className="me-text">Smoke and Toxic Gas block sight from Thick up; Thin gives cover.</p>
+      </ToolGroup>
+    </>
+  )
+}
+
 // The tile list only chooses which tile the brush holds; the toolbar's Place Tiles turns painting on.
-export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks, animateTiles, onAnimateTiles, showLighting, onShowLighting, onStatus }) {
-  // UI state: which categories are open. All start closed (designer request, Oct 2026).
+export default function EditorPalette({
+  tool,
+  onTool,
+  ghostBlocks,
+  onGhostBlocks,
+  animateTiles,
+  onAnimateTiles,
+  showLighting,
+  onShowLighting,
+  onStatus,
+  hazardIntensity = 2,
+  onHazardIntensity = () => {},
+}) {
   const [open, setOpen] = useState(() => new Set())
   const toggle = (id) =>
     setOpen((current) => {
@@ -117,6 +201,7 @@ export default function EditorPalette({ tool, onTool, ghostBlocks, onGhostBlocks
           </div>
         )
       })}
+      <EnvironmentTools tool={tool} onTool={onTool} open={open} onToggle={toggle} hazardIntensity={hazardIntensity} onHazardIntensity={onHazardIntensity} />
       <p className="me-heading">Markers</p>
       {MARKER_TOOLS.map((marker) => (
         <ToolButton key={marker.id} selected={tool === marker.id} onClick={() => onTool(marker.id)}>

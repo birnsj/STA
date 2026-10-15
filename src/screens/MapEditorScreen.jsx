@@ -225,6 +225,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           showLighting={showLighting}
           onShowLighting={setShowLighting}
           onStatus={setStatus}
+          hazardIntensity={tools.hazardIntensity}
+          onHazardIntensity={tools.setHazardIntensity}
         />
         <div className="me-board-area">
           <EditorBoard
@@ -239,6 +241,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             selectedNpcId={tools.selectedNpcId}
             selectedMarker={tools.selectedMarker}
             selectedObjectId={tools.selectedObjectId}
+            selectedDestructibleId={tools.selectedDestructibleId}
+            selectedHazardId={tools.selectedHazardId}
             moveFrom={tools.moveFrom}
             onPaint={tools.onPaint}
             onPaintEnd={tools.onPaintEnd}
@@ -285,6 +289,13 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             objectPlacing={tools.placingObject}
             onToggleObjectPlace={tools.toggleObjectPlace}
             onMarkerCleared={tools.clearMarker}
+            destructibleMoving={tools.movingDestructible}
+            onToggleDestructibleMove={tools.toggleDestructibleMove}
+            destructibleLinking={tools.linkingDestructible}
+            onToggleDestructibleLink={tools.toggleDestructibleLink}
+            onDuplicateDestructible={tools.duplicateDestructible}
+            onDestructibleCleared={tools.clearDestructible}
+            onHazardCleared={tools.clearHazard}
           />
         </EditorSidePanel>
       </div>

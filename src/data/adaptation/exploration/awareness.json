@@ -70,7 +70,7 @@
   ],
   "defaultAlertMethod": "shout",
   "debugNoise": { "radius": 6, "intensity": 1 },
-  "combatNoise": { "attack": { "radius": 8, "intensity": 1 } },
+  "combatNoise": { "attack": { "radius": 8, "intensity": 1 }, "explosion": { "radius": 14, "intensity": 1 } },
   "footsteps": {
     "walk": { "radius": 3, "rate": 0.35 },
     "run": { "radius": 6, "rate": 0.8 },

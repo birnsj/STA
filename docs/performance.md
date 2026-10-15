@@ -102,3 +102,24 @@ Headroom after the fix at 60 Hz: about 70% of the main thread when walking. Stay
 - Keep an active-hazard list and simulate it at a low fixed rate or on rounds; explosions are time-bounded; batch chain
   explosions into one map update per tick.
 - Never animate an inherited CSS property on `:root` or a screen root. Re-measure with the runner after adding a layer.
+
+## Baseline before destructibles and hazards (2026-10-14)
+
+`node tools/perfRun.mjs all --runs 3 --tag base` against the production preview build (`tmp-check/perf-base`), before any
+destructible or hazard was drawn. Main thread mean frame and Pixi frame are the medians of three runs; every scenario
+holds the display's refresh rate (about 178 fps, p95 5.7 ms).
+
+| Scenario | Frame mean | Pixi frame | Main thread busy | GC / min |
+|---|---|---|---|---|
+| explore-idle | 5.68 ms | 0.57 ms | 39% | 156 |
+| explore-move | 5.61 ms | 1.12 ms | 53% | 144 |
+| combat-idle | 5.56 ms | 0.86 ms | 35% | 76 |
+| combat-auto | 5.65 ms | 1.06 ms | 50% | 90 |
+| editor-idle | 5.61 ms | 2.40 ms | 61% | 56 |
+| editor-sweep | 5.62 ms | 2.52 ms | 70% | 56 |
+
+One combat-auto run (run 3) fell to about 1 fps with 1-second frames and is left out: the browser was throttling a
+background window, not drawing slowly. Explore-idle run 2 sampled no probe timers and is left out too.
+
+Probe additions for this work (`src/dev/perfProbe.js`): timers `hazard.round`, `pixi.hazards`, `fx.explosion`; counters
+`hazard.active`, `hazard.tiles`, `hazard.sprites`; ablation flag `off=hazards`.

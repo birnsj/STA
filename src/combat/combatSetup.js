@@ -14,6 +14,7 @@ import { DEFAULT_ENCOUNTER_ID, getEncounter } from './encounters.js'
 import { buildInitiativeOrder } from './initiativeSystem.js'
 import { freshTurn } from './turnActions.js'
 import { getCharacterWeapons, withStandardIssue } from './weaponSystem.js'
+import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
 
 // condition / facing: carried in from the world when combat starts where everyone already stands. condition: the
 // character's personal condition (rules/personalCondition.js: Stress, Injuries, Defeated); the same object shape the
@@ -83,6 +84,8 @@ const freshCombatantStats = () => ({ attacks: 0, attacksHit: 0, injuriesInflicte
 // resources: the mission's { momentum, threat } (rules/missionResources.js); a standalone fight starts a fresh pair.
 // nominatedLeaders: { player, enemy } leader ids set by a scenario or party (rules/authority.js); null = none.
 // sceneTraits: the scene's traits ([{ name, potency }]); combat in the world keeps them in step with the scenario.
+// environment: the destructible objects and hazards (world/environment.js); by default the map file's own, as the mission
+// starts. Combat in the world hands in the world's, and takes it back when the fight ends.
 export function createCombat({
   encounterId = DEFAULT_ENCOUNTER_ID,
   map: mapFile,
@@ -93,6 +96,7 @@ export function createCombat({
   resources = createMissionResources(),
   nominatedLeaders = null,
   sceneTraits = [],
+  environment = createEnvironment(mapFile, seed >>> 0),
 }) {
   const encounter = getEncounter(encounterId)
   const combatSeed = seed >>> 0
@@ -108,7 +112,7 @@ export function createCombat({
   const enemyCombatants = (placements?.enemies ?? createEnemyCharacters(encounter, mapFile)).map((placement) =>
     createCombatant(placement.character, { ...placement, side: 'enemy', controller: 'ai' }),
   )
-  const map = toBattleMap(mapFile)
+  const map = applyEnvironmentTiles(toBattleMap(mapFile), environment)
   const nearestOpponent = (combatant) => nearestTo(combatant.position, [...playerCombatants, ...enemyCombatants].filter((other) => other.side !== combatant.side))
   const all = [...playerCombatants, ...enemyCombatants].map((combatant) => ({
     ...combatant,
@@ -126,6 +130,7 @@ export function createCombat({
     seed: combatSeed,
     rolls: 0,
     map,
+    environment,
     combatants: Object.fromEntries(all.map((combatant) => [combatant.id, combatant])),
     order,
     round: 1,
@@ -151,6 +156,8 @@ export function createCombat({
     startedThisRound: [first.id],
     // An Injury waiting for the player's Avoid Injury decision: { targetId, attackerId, injury, option } (see injuryStep).
     incomingInjury: null,
+    // Further Avoid Injury prompts waiting their turn (a blast or hazard hitting several party members; combatInjuries.js).
+    injuryQueue: [],
     // A party member who just became Fatigued and must choose the attribute to shut down: { combatantId }.
     pendingFatigue: null,
     // A party defender who won an opposed attack and may Counterattack: { defenderId, attackerId, weaponId, injuryModes,

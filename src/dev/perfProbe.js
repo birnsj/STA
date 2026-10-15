@@ -11,9 +11,12 @@
 //     weather  WeatherFx draws nothing
 //     animtick animated tiles stop (Pixi MapLayers skips animate)
 //     npcs     the exploration world is created with no NPCs
+//     hazards  hazard rounds are skipped and the Pixi hazard layer draws nothing
 //   Timers: world.frame (one world-clock frame, render included), sim.tickTotal (the reducer's tick), pixi.frame (each
 //   Pixi board frame callback), board.wallFade, board.figureWindows, canvas.drawBoard, canvas.drawDarkness, anim.poll,
-//   anim.redraw. Profilers: exploration.board, combat.board (PerfProfiler.jsx).
+//   anim.redraw, hazard.round (one hazard round), pixi.hazards (the hazard layer's frame), fx.explosion (building an
+//   explosion's view). Counters: hazard.active (active regions per round), hazard.tiles (hazard tiles per round),
+//   hazard.sprites (hazard sprites shown per frame). Profilers: exploration.board, combat.board (PerfProfiler.jsx).
 //   (tools/perfRun.mjs also takes `scrollpulse`, handled in the runner: it stops the scrollbar-colour animation on <html>.)
 // Flags exist to attribute cost only; they are never read when the probe is off.
 

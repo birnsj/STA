@@ -300,6 +300,17 @@
 }
 
 .me-swatch.is-player { background: #3fb6e8; }
+/* A hazard's swatch: the first frame of its flipbook (environmentArt.js) over its colour. */
+.me-swatch.is-hazard {
+  width: 28px;
+  height: 28px;
+  clip-path: none;
+  border-radius: 4px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-blend-mode: normal;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
 .me-swatch.is-enemy { background: #e5483a; }
 .me-swatch.is-npc { background: #b07ee8; }
 
@@ -442,6 +453,14 @@
 
 /* Erase Marker: what a click on the hovered tile would remove. */
 .me-hover.is-erase { fill: rgba(255, 179, 71, 0.18); stroke: #ffb347; stroke-width: 3; }
+/* Destructible objects and hazard regions (EditorBoard). */
+.me-hover.is-selected { fill: rgba(255, 179, 71, 0.15); stroke: #ffb347; stroke-width: 3; }
+.me-blast { fill: rgba(255, 90, 40, 0.06); stroke: #ff6a3a; stroke-width: 2; stroke-dasharray: 8 5; }
+.me-hazard polygon { stroke: none; }
+.me-hazard.is-selected polygon { stroke: #ffb347; stroke-width: 1.5; }
+.me-intensity { display: flex; gap: 4px; margin: 4px 0; }
+.me-intensity .me-button { flex: 1; }
+.me-intensity .me-button.is-selected { outline: 2px solid #ffb347; }
 .me-hover.is-move-source { fill: rgba(102, 204, 255, 0.15); stroke: #66ccff; stroke-width: 3; stroke-dasharray: 6 4; }
 
 .me-dialog-backdrop {

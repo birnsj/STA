@@ -31,7 +31,11 @@ import { tileDistance } from '../combat/rangeSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import { wouldDieAtSceneEnd } from '../rules/personalCondition.js'
 import { deriveSeed } from '../rules/seededRandom.js'
-import { objectFor, objectsOf } from '../world/objects.js'
+import { activeHazards, applyEnvironmentTiles } from '../world/environment.js'
+import { withEnvironment } from '../world/environmentState.js'
+import { hazardChallengeId } from '../world/EnvironmentalHazard.js'
+import { objectsOf } from '../world/objects.js'
+import { challengeFor } from './challengeObjects.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
 import { defeatedFlag } from './missionObjectives.js'
 import { getMembers, withAbleSelection } from './partyControl.js'
@@ -295,7 +299,9 @@ export function getCombatObjects(state) {
   const actor = getActiveCombatant(combat)
   if (!actor || actor.side !== 'player' || combat.pending || awaitingDecision(combat) || combat.outcome) return []
   const position = gridToWorld(actor.position)
-  return objectsOf(state.scenario)
+  // A hazard's Neutralize task (world/EnvironmentalHazard.js) is offered like any object's.
+  const hazards = activeHazards(state.environment).map((region) => challengeFor(state, hazardChallengeId(region.id))).filter(Boolean)
+  return [...objectsOf(state.scenario), ...hazards]
     .filter((object) => object.inReach(position))
     .map((object) => ({
       definition: object.definition,
@@ -311,7 +317,7 @@ export function getCombatObjects(state) {
 // Who would assist this object task in combat, prepared for challengeObjects (an Assist set up for the performer uses
 // the object's authored approach at assistIndex; the commander on a Direct uses Control + Command).
 export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0) {
-  const action = objectFor(state.scenario, objectId)?.action(actionId)
+  const action = challengeFor(state, objectId)?.action(actionId)
   if (!action || action.routine) return null
   const actor = getActiveCombatant(state.combat)
   const approach = action.assist?.[assistIndex] ?? null
@@ -322,7 +328,7 @@ export function getCombatObjectAssist(state, objectId, actionId, assistIndex = 0
 // Difficulty lines combat adds to an object's task: a bought second major action's +1 on a major-cost task, and an enemy
 // within Reach of the performer on any task (Book p.286). Routine actions have no task.
 export function getCombatObjectLines(state, objectId, actionId) {
-  const object = objectFor(state.scenario, objectId)
+  const object = challengeFor(state, objectId)
   const action = object?.action(actionId)
   if (!action || action.routine) return []
   const actor = getActiveCombatant(state.combat)
@@ -333,7 +339,7 @@ export function getCombatObjectLines(state, objectId, actionId) {
 // The object task's math for whoever acts, exactly as interactInCombat will attempt it: the fighters' current condition
 // (Fatigue gained in the fight), combat's assist and its Difficulty lines.
 export function previewCombatObject(state, objectId, actionId) {
-  return objectFor(state.scenario, objectId).preview(withFightersInWorld(state), {
+  return challengeFor(state, objectId).preview(withFightersInWorld(state), {
     actionId,
     performerId: getActiveCombatant(state.combat).id,
     combatAssist: getCombatObjectAssist(state, objectId, actionId),
@@ -343,7 +349,7 @@ export function previewCombatObject(state, objectId, actionId) {
 
 // Who of memberIds is best at the task, each with their current condition but without the actor's assist or bought
 // extra action, so members are compared on their own merits (the best-choice highlight).
-export const recommendCombatObject = (state, objectId, actionId, memberIds) => objectFor(state.scenario, objectId).recommend(withFightersInWorld(state), actionId, memberIds)
+export const recommendCombatObject = (state, objectId, actionId, memberIds) => challengeFor(state, objectId).recommend(withFightersInWorld(state), actionId, memberIds)
 
 const taskLines = (task, prepared) => [
   `${task.attribute.name} ${task.attribute.value} + ${task.department.name} ${task.department.value} = TN ${task.targetNumber}`,
@@ -443,6 +449,8 @@ export class WorldEncounter extends CombatEncounter {
       placements: { players, enemies },
       resources: state.resources,
       sceneTraits: state.scenario?.traits ?? [],
+      // The same destructible objects and hazards as in exploration (world/environment.js), wrecked ones included.
+      ...(state.environment ? { environment: state.environment } : {}),
     })
     const targetName = party.members[triggerTargetId]?.character.name ?? 'the away team'
     const lines = [
@@ -489,7 +497,7 @@ export class WorldEncounter extends CombatEncounter {
   interact(state, action) {
     const { combat } = state
     const actor = getActiveCombatant(combat)
-    const object = objectFor(state.scenario, action.objectId)
+    const object = challengeFor(state, action.objectId)
     const objectAction = object?.action(action.actionId)
     if (!objectAction || actor.side !== 'player' || !state.party.members[actor.id]) return state
     const { definition } = object
@@ -533,8 +541,12 @@ export class WorldEncounter extends CombatEncounter {
       lines,
     })
     if (nextCombat === combat) return state
-    // A changed tile (a door opening) changes movement and line of fire at once; traits change every later task.
-    if (after.party.map !== state.party.map) nextCombat = { ...nextCombat, map: toBattleMap(after.party.map) }
+    // A changed tile (a door opening) changes movement and line of fire at once; traits change every later task. A
+    // neutralized hazard changes the environment too (smoke stops hiding tiles).
+    if (after.party.map !== state.party.map || after.environment !== state.environment) {
+      const map = toBattleMap(after.party.map)
+      nextCombat = { ...nextCombat, map: after.environment ? applyEnvironmentTiles(map, after.environment) : map, ...(after.environment ? { environment: after.environment } : {}) }
+    }
     nextCombat = { ...nextCombat, sceneTraits: after.scenario.traits }
     // The world, scenario and Party Knowledge as the object left them; party positions stay owned by the fight.
     let next = { ...after, party: { ...after.party, members: state.party.members }, combat: nextCombat, resources: nextCombat.resources }
@@ -565,11 +577,27 @@ export class WorldEncounter extends CombatEncounter {
     if (search && combat === before) combat = combatReducer(before, { type: 'endTurn', decision: 'End turn', reason: 'Could not search; ending turn.' })
     if (combat === before) return state
     let next = { ...state, combat, resources: combat.resources }
+    // A shot object, an explosion or a hazard round changed the environment: the world map follows at once, so the
+    // fight's outcome carries over to exploration.
+    if (combat.environment && combat.environment !== before.environment) next = withEnvironment(next, combat.environment)
 
     // An attack reveals the attacker to its target and makes a noise others may hear.
     const joins = []
     const searchPoints = {}
     const latest = combat.lastAction?.key !== before.lastAction?.key ? combat.lastAction : null
+    // A shot at an object is heard like any shot, and each explosion it set off much further.
+    if (latest?.type === 'attackObject') {
+      const attacker = combat.combatants[latest.actorId]
+      const sounds = [{ kind: 'attack', position: attacker.position }, ...combat.environment.explosions.filter((explosion) => latest.explosions?.includes(explosion.id)).map((explosion) => ({ kind: 'explosion', position: explosion.position }))]
+      sounds.forEach((sound) => {
+        const noisy = emitCombatNoise(next, sound.kind, sound.position, attacker.id)
+        next = noisy.state
+        noisy.heard.filter((id) => joinsCombat(next.world.npcs[id]) && !joins.some((join) => join.npcId === id)).forEach((id) => {
+          joins.push({ npcId: id, reason: 'heard' })
+          searchPoints[id] = { ...sound.position }
+        })
+      })
+    }
     if (latest?.type === 'attack') {
       const attacker = combat.combatants[latest.actorId]
       if (attacker.side === 'player') next = { ...next, combat: reveal(next.combat, latest.targetId, attacker, 'attacked') }

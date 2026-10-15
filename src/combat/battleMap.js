@@ -2,8 +2,15 @@
 // The map comes from a shared map file (src/maps/mapFormat.js); what each tile does comes from the shared tile catalogue.
 import { getTile, WALL_TILE } from '../maps/mapFormat.js'
 
-// Combat only needs the grid of a parsed map file.
-export const toBattleMap = (mapFile) => ({ width: mapFile.width, height: mapFile.height, tiles: mapFile.tiles, rotated: mapFile.rotated, ambient: mapFile.ambient })
+// Combat only needs the grid of a parsed map file, plus the tiles hazards mark (world/environment.js applyEnvironmentTiles).
+export const toBattleMap = (mapFile) => ({
+  width: mapFile.width,
+  height: mapFile.height,
+  tiles: mapFile.tiles,
+  rotated: mapFile.rotated,
+  ambient: mapFile.ambient,
+  ...(mapFile.sightBlockers ? { sightBlockers: mapFile.sightBlockers, coverKeys: mapFile.coverKeys, slowKeys: mapFile.slowKeys, environmentKey: mapFile.environmentKey } : {}),
+})
 
 export const tileKey = ({ x, y }) => `${x},${y}`
 export const samePosition = (a, b) => a.x === b.x && a.y === b.y
@@ -12,9 +19,12 @@ export const toPosition = ([x, y]) => ({ x, y })
 export const isInside = (map, { x, y }) => x >= 0 && y >= 0 && x < map.width && y < map.height
 export const tileAt = (map, position) => (isInside(map, position) ? map.tiles[position.y][position.x] : WALL_TILE)
 
-// Solid tiles (walls, crates, machinery...) block movement; only tiles that block sight block line of fire.
+// Solid tiles (walls, crates, machinery...) block movement; only tiles that block sight block line of fire, as does
+// thick smoke or gas (map.sightBlockers).
 export const blocksMovement = (map, position) => getTile(tileAt(map, position)).solid
-export const blocksLineOfFire = (map, position) => getTile(tileAt(map, position)).blocksSight
+export const blocksLineOfFire = (map, position) => getTile(tileAt(map, position)).blocksSight || Boolean(map.sightBlockers?.[`${position.x},${position.y}`])
+// A slowing hazard (the coolant leak; map.slowKeys) makes a tile cost two steps of movement.
+export const isSlowTile = (map, position) => Boolean(map.slowKeys?.[`${position.x},${position.y}`])
 export const givesCover = (map, position) => getTile(tileAt(map, position)).cover
 
 export const NEIGHBOUR_OFFSETS = [

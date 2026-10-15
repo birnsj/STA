@@ -54,10 +54,40 @@ const severityText = (injury) => {
 // The avoid-or-suffer outcome for an incoming Injury: { targetId, attackerId, injury, option }. avoid: the decision
 // (ignored when the rules don't allow avoiding). Returns { state, lines, avoided }.
 export function resolveInjury(state, incoming, avoid) {
+  const resolved = resolveOneInjury(state, incoming, avoid)
+  if (incoming !== state.incomingInjury) return resolved
+  const next = nextQueuedInjury({ ...resolved.state, incomingInjury: null })
+  return { ...resolved, state: next.state, lines: [...resolved.lines, ...next.lines] }
+}
+
+// Designer decision (Oct 2026): an explosion or hazard can hit several party members at once, so their Avoid Injury
+// prompts wait in state.injuryQueue and come up one at a time. A queued Injury's option is worked out again when its
+// turn comes (an earlier answer may have changed it); one that can no longer be avoided is suffered at once.
+function nextQueuedInjury(state) {
+  let next = state
+  const lines = []
+  while (next.injuryQueue?.length && !next.incomingInjury) {
+    const [queued, ...rest] = next.injuryQueue
+    next = { ...next, injuryQueue: rest }
+    const target = next.combatants[queued.targetId]
+    if (!target) continue
+    const incoming = { ...queued, option: avoidOptionFor(next, target, queued.injury) }
+    if (incoming.option.possible) {
+      next = { ...next, incomingInjury: incoming }
+      continue
+    }
+    const resolved = resolveOneInjury(next, incoming, false)
+    next = resolved.state
+    lines.push(...(incoming.option.reason ? [`Cannot Avoid Injury: ${incoming.option.reason}`] : []), ...resolved.lines)
+  }
+  return { state: next, lines }
+}
+
+function resolveOneInjury(state, incoming, avoid) {
   const { targetId, injury, option } = incoming
   const target = state.combatants[targetId]
   const name = target.character.name
-  let next = { ...state, incomingInjury: null }
+  let next = { ...state }
   if (avoid && option.possible) {
     const avoided = avoidInjury(target.character, target.condition, injury, option.kind)
     next = updateCombatant(next, targetId, { condition: avoided.condition })
@@ -144,7 +174,8 @@ export function inflictInjury(state, attackerId, targetId, injury) {
   }
   if (controllerFor(target).answersPrompts(target)) {
     const offer = option.overflow ? `take ${option.taken} Stress, filling the track, plus a complication` : `take ${option.cost} Stress`
-    return { state: { ...state, incomingInjury: incoming }, lines: [...lines, `${target.character.name} may Avoid Injury: ${offer} (${statusText(target)}).`] }
+    const waiting = state.incomingInjury ? { ...state, injuryQueue: [...(state.injuryQueue ?? []), incoming] } : { ...state, incomingInjury: incoming }
+    return { state: waiting, lines: [...lines, `${target.character.name} may Avoid Injury: ${offer} (${statusText(target)}).`] }
   }
   const avoid = chooseAvoidInjury({ state, target, injury, option })
   const resolved = resolveInjury(state, incoming, avoid)

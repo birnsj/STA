@@ -4,6 +4,7 @@ import { AimAction } from './AimAction.js'
 import { AmbushAction } from './AmbushAction.js'
 import { AssistAction } from './AssistAction.js'
 import { AttackAction, RerollAction, ResolveAttackAction } from './AttackAction.js'
+import { AttackObjectAction } from './AttackObjectAction.js'
 import { CancelThreatAction } from './CancelThreatAction.js'
 import { CounterattackDecisionAction, FatigueDecisionAction, InjuryDecisionAction } from './DecisionActions.js'
 import { BuyExtraMinorAction, BuySecondMajorAction } from './ExtraActionPurchase.js'
@@ -35,6 +36,7 @@ const ACTIONS = [
   new AttackAction(),
   new RerollAction(),
   new ResolveAttackAction(),
+  new AttackObjectAction(),
   new InjuryDecisionAction(),
   new FatigueDecisionAction(),
   new CounterattackDecisionAction(),

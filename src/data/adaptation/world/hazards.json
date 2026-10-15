@@ -1,0 +1,186 @@
+{
+  "notes": [
+    "Environmental hazards (designer request, 2026-10-12). Book (Core p.327): a lingering hazard covers an area and inflicts an Injury on anyone in it at the start of each round they remain; its severity starts at 1 (Hazard Severity table). An Injury from a hazard is Avoided like any other (Book p.291: Stress for a main or supporting character, Threat for a notable NPC, never for a minor NPC).",
+    "PROTOTYPE RULES (designer decisions, 2026-10-12): a hazard covers tiles, not zones. In combat it acts at the start of each round; in exploration one hazard round passes every roundSeconds of world time. Each character on a hazard tile suffers one Injury per round (the most severe hazard they stand in). Smoke and Toxic Gas tiles at thickIntensity or more block line of sight and line of fire; thinner ones give cover.",
+    "PLACEHOLDER NUMBERS (designer: use placeholders, tune later): severity, spreadChance and dissipateChance (percent per tile per round), damagesObjects (Structure a destructible next to the tile loses each round, ignoring Resistance) and every neutralize task.",
+    "Spreading: each tile at intensity 2 or more may spread to each open orthogonal neighbour (not a solid tile) at one less intensity. Dissipating: each tile may lose 1 intensity; at 0 it is gone.",
+    "neutralize: the Challenge action that puts the whole hazard out, offered on the hazard's ring through the usual challenge roll (world/EnvironmentalHazard.js); hazards are never challenge objects in the scenario (docs/performance.md). Any authored challenge outcome can also put one out with the neutralizeHazard effect.",
+    "layer (implementation detail): floor hazards are drawn under the figures, air hazards (smoke, toxic gas, steam) over them, depth-sorted so walls in front still hide them.",
+    "movement (PROTOTYPE, placeholder, designer request 2026-10-14 to approve): slow: a tile costs double movement in combat and halves walking speed in exploration.",
+    "A region on the map may set duration (hazard rounds it lasts; empty: until it dissipates), spread (false: never spreads), active (false: placed but not yet acting) and neutralizable (false: no Neutralize task)."
+  ],
+  "roundSeconds": 6,
+  "maxIntensity": 3,
+  "thickIntensity": 2,
+  "types": {
+    "fire": {
+      "name": "Fire",
+      "injuryType": "deadly",
+      "severity": 2,
+      "spreadChance": 30,
+      "dissipateChance": 20,
+      "blocksSight": false,
+      "damagesObjects": 1,
+      "colour": "#ff8a2a",
+      "neutralize": {
+        "label": "Extinguish",
+        "attribute": "control",
+        "department": "engineering",
+        "difficulty": 1,
+        "focuses": [
+          "Emergency Repairs",
+          "Damage Control"
+        ]
+      },
+      "layer": "floor"
+    },
+    "plasmaFire": {
+      "name": "Plasma Fire",
+      "injuryType": "deadly",
+      "severity": 3,
+      "spreadChance": 25,
+      "dissipateChance": 15,
+      "blocksSight": false,
+      "damagesObjects": 2,
+      "colour": "#4fb7ff",
+      "neutralize": {
+        "label": "Flood with Suppressant",
+        "attribute": "control",
+        "department": "engineering",
+        "difficulty": 2,
+        "focuses": [
+          "Electro-Plasma Systems",
+          "Damage Control"
+        ]
+      },
+      "layer": "floor"
+    },
+    "electricity": {
+      "name": "Electricity",
+      "injuryType": "stun",
+      "severity": 2,
+      "spreadChance": 0,
+      "dissipateChance": 25,
+      "blocksSight": false,
+      "damagesObjects": 0,
+      "colour": "#b7a8ff",
+      "neutralize": {
+        "label": "Cut the Power",
+        "attribute": "reason",
+        "department": "engineering",
+        "difficulty": 2,
+        "focuses": [
+          "Power Management",
+          "Electro-Plasma Systems"
+        ]
+      },
+      "layer": "floor"
+    },
+    "smoke": {
+      "name": "Smoke",
+      "injuryType": "stun",
+      "severity": 1,
+      "spreadChance": 35,
+      "dissipateChance": 30,
+      "blocksSight": true,
+      "damagesObjects": 0,
+      "colour": "#8a8a8a",
+      "neutralize": {
+        "label": "Vent the Smoke",
+        "attribute": "reason",
+        "department": "engineering",
+        "difficulty": 1,
+        "focuses": [
+          "Life Support",
+          "Environmental Systems"
+        ]
+      },
+      "layer": "air"
+    },
+    "toxicGas": {
+      "name": "Toxic Gas",
+      "injuryType": "stun",
+      "severity": 2,
+      "spreadChance": 30,
+      "dissipateChance": 20,
+      "blocksSight": true,
+      "damagesObjects": 0,
+      "colour": "#9bd14a",
+      "neutralize": {
+        "label": "Seal and Vent",
+        "attribute": "reason",
+        "department": "science",
+        "difficulty": 2,
+        "focuses": [
+          "Chemistry",
+          "Life Support"
+        ]
+      },
+      "layer": "air"
+    },
+    "radiation": {
+      "name": "Radiation",
+      "injuryType": "deadly",
+      "severity": 1,
+      "spreadChance": 10,
+      "dissipateChance": 5,
+      "blocksSight": false,
+      "damagesObjects": 0,
+      "colour": "#d9ff3a",
+      "neutralize": {
+        "label": "Contain the Leak",
+        "attribute": "reason",
+        "department": "science",
+        "difficulty": 3,
+        "focuses": [
+          "Physics",
+          "Sensor Operations"
+        ]
+      },
+      "layer": "floor"
+    },
+    "steam": {
+      "name": "Steam",
+      "injuryType": "stun",
+      "severity": 1,
+      "spreadChance": 30,
+      "dissipateChance": 35,
+      "blocksSight": false,
+      "damagesObjects": 0,
+      "colour": "#e6f2ff",
+      "neutralize": {
+        "label": "Shut the Valve",
+        "attribute": "control",
+        "department": "engineering",
+        "difficulty": 1,
+        "focuses": [
+          "Repairs and Maintenance",
+          "Emergency Repairs"
+        ]
+      },
+      "layer": "air"
+    },
+    "coolantLeak": {
+      "name": "Coolant Leak",
+      "injuryType": "deadly",
+      "severity": 1,
+      "spreadChance": 20,
+      "dissipateChance": 15,
+      "blocksSight": false,
+      "damagesObjects": 0,
+      "colour": "#5ff2d8",
+      "neutralize": {
+        "label": "Seal the Leak",
+        "attribute": "control",
+        "department": "engineering",
+        "difficulty": 2,
+        "focuses": [
+          "Repairs and Maintenance",
+          "Damage Control"
+        ]
+      },
+      "layer": "floor",
+      "movement": "slow"
+    }
+  }
+}

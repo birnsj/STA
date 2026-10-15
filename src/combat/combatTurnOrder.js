@@ -1,7 +1,9 @@
 // Turns and rounds: starting a combatant's turn, ending a group's turns, handing the turn between party members,
 // moving on to the next combatant or round, settling a Direct, and noticing the fight is over.
 import { endOfTurnCondition, injuryTypeName } from '../rules/personalCondition.js'
+import { needsHazardRounds } from '../world/environment.js'
 import { addLog, turnHeader, updateCombatant } from './combatLog.js'
+import { combatHazardRound } from './combatEnvironment.js'
 import { awaitingDecision, getTurnGroupRange, isActive } from './combatSelectors.js'
 import { freshTurn } from './turnActions.js'
 
@@ -84,8 +86,20 @@ export function advanceTurn(previous) {
     aiReason: null,
     result: state.result && { ...state.result, closed: true },
   }
-  if (newRound) next = addLog(next, [`ROUND ${round}`], 'round')
-  const id = next.order[turnIndex]
+  if (newRound) {
+    next = addLog(next, [`ROUND ${round}`], 'round')
+    // Book (Core p.327): a lingering hazard inflicts its Injury at the start of each round.
+    if (needsHazardRounds(next.environment)) {
+      const hazards = combatHazardRound(next)
+      next = hazards.lines.length ? withOutcome(addLog(hazards.state, hazards.lines, 'info')) : hazards.state
+      if (next.outcome) return next
+      // Whoever was next may have been Defeated by it: the turn goes to the next one still standing.
+      for (let i = 0; i < next.order.length && !isActive(next.combatants[next.order[next.turnIndex]]); i++) {
+        next = { ...next, turnIndex: (next.turnIndex + 1) % next.order.length }
+      }
+    }
+  }
+  const id = next.order[next.turnIndex]
   return startTurnOf(addLog(next, turnHeader(next.combatants[id]), 'turn'), id)
 }
 

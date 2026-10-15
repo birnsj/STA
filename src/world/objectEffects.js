@@ -6,6 +6,8 @@ import { emitNoise, getNpcs } from '../exploration/awareness.js'
 import { applyFlagChange } from '../exploration/missionFlags.js'
 import { addLogEntry } from '../exploration/missionLog.js'
 import { addKnowledgeFact, revealEntity } from '../exploration/partyKnowledge.js'
+import { neutralizeHazard } from './environment.js'
+import { withEnvironment } from './environmentState.js'
 
 const traitKey = (name) => name.toLowerCase()
 const withTraits = (state, traits) => ({ ...state, scenario: { ...state.scenario, traits } })
@@ -83,6 +85,14 @@ const EFFECTS = {
     return state
   },
   addLogEntry: (state, object, action, effect) => addLogEntry(state, { kind: 'authored', text: effect.text }),
+
+  // Environmental hazards (world/environment.js). { hazardId, mode: 'remove' | 'reduce' | 'stopSpread' | 'disableSource',
+  // amount }: the hazard's own Neutralize task (world/EnvironmentalHazard.js, object id 'hazard:{id}') leaves hazardId out.
+  neutralizeHazard: (state, object, action, effect) => {
+    const hazardId = effect.hazardId ?? (object.id.startsWith('hazard:') ? object.id.slice('hazard:'.length) : null)
+    if (!state.environment?.hazards?.[hazardId]) return state
+    return withEnvironment(state, neutralizeHazard(state.environment, hazardId, effect.mode ?? 'remove', effect.amount ?? 1))
+  },
 }
 
 export function applyObjectEffect(state, object, action, effect, ctx) {

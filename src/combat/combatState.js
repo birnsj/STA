@@ -104,7 +104,7 @@ export function combatReducer(state, action) {
   const settled = settleDirected(reduceAction(state, action))
   const next = settled === state ? state : withRetreats(settled)
   // Any attack, by either side, spots the party and ends the ambush chance.
-  if (next !== state && next.ambush === null && action.type === 'attack') return { ...next, ambush: { passed: true } }
+  if (next !== state && next.ambush === null && (action.type === 'attack' || action.type === 'attackObject')) return { ...next, ambush: { passed: true } }
   return next
 }
 

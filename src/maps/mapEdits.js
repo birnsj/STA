@@ -1,6 +1,6 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
 import { nextFacing, spawnFacing } from './facing.js'
-import { getTile, isRotated } from './mapFormat.js'
+import { getTile, HAZARD_OVERRIDES, isRotated } from './mapFormat.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
@@ -20,11 +20,13 @@ export function paintTile(map, { x, y }, tileId, rotated = false) {
   if (map.tiles[y][x] === tileId && isRotated(map, { x, y }) === rotated) return map
   const tiles = map.tiles.map((row, rowY) => (rowY === y ? row.map((id, colX) => (colX === x ? tileId : id)) : row))
   const rotation = map.tiles.map((row, rowY) => row.map((_, colX) => (rowY === y && colX === x ? rotated : isRotated(map, { x: colX, y: rowY }))))
-  // Markers can't stand inside solid tiles.
-  const markers = getTile(tileId).solid
-    ? { playerStarts: without(map.markers.playerStarts, { x, y }), enemySpawns: without(map.markers.enemySpawns, { x, y }) }
-    : map.markers
-  return { ...map, tiles, rotated: rotation, markers }
+  // Markers, destructible objects and hazards can't be inside solid tiles.
+  if (!getTile(tileId).solid) return { ...map, tiles, rotated: rotation }
+  const markers = { playerStarts: without(map.markers.playerStarts, { x, y }), enemySpawns: without(map.markers.enemySpawns, { x, y }) }
+  const cleared = { ...map, tiles, rotated: rotation, markers }
+  if (destructibleAt(map, { x, y })) cleared.destructibles = map.destructibles.filter((object) => !same(object.position, { x, y }))
+  if (hazardRegionAt(map, { x, y })) cleared.hazards = withoutHazardTile(map.hazards, { x, y })
+  return cleared
 }
 
 // One brush press: every tile brushPositions covers.
@@ -162,3 +164,184 @@ export function setAreaLabel(map, position, name) {
   const trimmed = name.trim()
   return { ...map, areas: trimmed ? [...areas, { name: trimmed, position }] : areas }
 }
+
+// ---------- Destructible objects (mapFormat.js destructibles) ----------
+
+export const destructibleAt = (map, position) => (map.destructibles ?? []).find((object) => same(object.position, position)) ?? null
+
+// The first unused id of the form {prefix}{n}.
+function freeId(prefix, used) {
+  let index = 1
+  while (used.has(`${prefix}${index}`)) index += 1
+  return `${prefix}${index}`
+}
+
+// A destructible stands on a floor tile that has no other destructible (blocked: tiles a challenge object takes).
+const destructibleFits = (map, position, blocked = []) =>
+  !getTile(map.tiles[position.y][position.x]).solid && !destructibleAt(map, position) && !blocked.some((other) => same(other, position))
+
+// Returns { map, object } or null when the tile can't take it.
+export function placeDestructible(map, position, type, blocked = []) {
+  if (!destructibleFits(map, position, blocked)) return null
+  const list = map.destructibles ?? []
+  const object = { id: freeId(type, new Set(list.map((entry) => entry.id))), type, position }
+  return { map: { ...map, destructibles: [...list, object] }, object }
+}
+
+// The same map when the tile can't take it.
+export function moveDestructible(map, id, position, blocked = []) {
+  const object = (map.destructibles ?? []).find((entry) => entry.id === id)
+  if (!object || same(object.position, position) || !destructibleFits(map, position, blocked)) return map
+  return { ...map, destructibles: map.destructibles.map((entry) => (entry.id === id ? { ...entry, position } : entry)) }
+}
+
+// changes: name, structure, resistance (null removes an override).
+export function updateDestructible(map, id, changes) {
+  return {
+    ...map,
+    destructibles: (map.destructibles ?? []).map((entry) => {
+      if (entry.id !== id) return entry
+      const next = { ...entry, ...changes }
+      Object.keys(changes).forEach((field) => {
+        if (next[field] === null || next[field] === '') delete next[field]
+      })
+      return next
+    }),
+  }
+}
+
+export const removeDestructible = (map, id) => ({ ...map, destructibles: (map.destructibles ?? []).filter((entry) => entry.id !== id) })
+
+// A copy (new id, same type and overrides) on the nearest tile that can take it, nearest ring first, then row by row.
+// Returns { map, object } or null when nothing within 4 tiles is free.
+export function duplicateDestructible(map, id, blocked = []) {
+  const source = (map.destructibles ?? []).find((entry) => entry.id === id)
+  if (!source) return null
+  for (let ring = 1; ring <= 4; ring++) {
+    for (let dy = -ring; dy <= ring; dy++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue
+        const position = { x: source.position.x + dx, y: source.position.y + dy }
+        if (position.x < 0 || position.y < 0 || position.x >= map.width || position.y >= map.height) continue
+        if (!destructibleFits(map, position, blocked)) continue
+        const object = { ...source, id: freeId(source.type, new Set(map.destructibles.map((entry) => entry.id))), position }
+        return { map: { ...map, destructibles: [...map.destructibles, object] }, object }
+      }
+    }
+  }
+  return null
+}
+
+// ---------- Hazard regions (mapFormat.js hazards) ----------
+// A region is the connected (side by side) tiles of one hazard type: painting next to a region of the same type joins
+// it (merging regions it now links), and erasing a tile that splits a region leaves one region per piece. A tile holds
+// one hazard, so painting another type over it takes it out of its old region.
+
+const keyOf = ({ x, y }) => `${x},${y}`
+const SIDES = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+]
+
+export const hazardRegionAt = (map, position) => (map.hazards ?? []).find((region) => region.tiles[keyOf(position)]) ?? null
+
+// The connected pieces of a tile set ({ key: intensity }), largest first and then in key order, so the result is stable.
+function piecesOf(tiles) {
+  const left = new Set(Object.keys(tiles))
+  const pieces = []
+  ;[...left].sort().forEach((start) => {
+    if (!left.has(start)) return
+    const piece = {}
+    const queue = [start]
+    left.delete(start)
+    while (queue.length) {
+      const key = queue.shift()
+      piece[key] = tiles[key]
+      const [x, y] = key.split(',').map(Number)
+      SIDES.forEach(([dx, dy]) => {
+        const next = `${x + dx},${y + dy}`
+        if (left.has(next)) {
+          left.delete(next)
+          queue.push(next)
+        }
+      })
+    }
+    pieces.push(piece)
+  })
+  return pieces.sort((a, b) => Object.keys(b).length - Object.keys(a).length)
+}
+
+// The regions with a region's tiles split into its connected pieces: the largest keeps the id (and overrides).
+function splitRegions(regions, regionId) {
+  const used = new Set(regions.map((region) => region.id))
+  return regions.flatMap((region) => {
+    if (region.id !== regionId) return [region]
+    return piecesOf(region.tiles).map((tiles, index) => {
+      if (index === 0) return { ...region, tiles }
+      const id = freeId(region.type, used)
+      used.add(id)
+      return { ...region, id, tiles }
+    })
+  })
+}
+
+// Takes one tile out of whichever region holds it (splitting that region if needed).
+function withoutHazardTile(regions, position) {
+  const key = keyOf(position)
+  const holder = regions.find((region) => region.tiles[key])
+  if (!holder) return regions
+  const { [key]: _removed, ...tiles } = holder.tiles
+  const next = regions.map((region) => (region === holder ? { ...region, tiles } : region))
+  return splitRegions(next, holder.id).filter((region) => Object.keys(region.tiles).length)
+}
+
+// Paints one tile of a hazard type at an intensity (1-3). Solid tiles take no hazard (the same map comes back).
+export function paintHazardTile(map, position, type, intensity = 2) {
+  if (getTile(map.tiles[position.y][position.x]).solid) return map
+  const key = keyOf(position)
+  const current = hazardRegionAt(map, position)
+  if (current?.type === type && current.tiles[key] === intensity) return map
+  let regions = current && current.type !== type ? withoutHazardTile(map.hazards, position) : [...(map.hazards ?? [])]
+  const touching = regions.filter(
+    (region) => region.type === type && (region.tiles[key] || SIDES.some(([dx, dy]) => region.tiles[`${position.x + dx},${position.y + dy}`])),
+  )
+  if (!touching.length) {
+    const id = freeId(type, new Set(regions.map((region) => region.id)))
+    return { ...map, hazards: [...regions, { id, type, tiles: { [key]: intensity } }] }
+  }
+  const [keep, ...merged] = touching
+  const tiles = Object.assign({}, ...merged.map((region) => region.tiles), keep.tiles, { [key]: intensity })
+  regions = regions.filter((region) => !merged.includes(region)).map((region) => (region === keep ? { ...region, tiles } : region))
+  return { ...map, hazards: regions }
+}
+
+export function eraseHazardTile(map, position) {
+  if (!hazardRegionAt(map, position)) return map
+  return { ...map, hazards: withoutHazardTile(map.hazards, position) }
+}
+
+// changes: any of HAZARD_OVERRIDES and duration (null: back to the type's / no limit), the switches spread, active and
+// neutralizable (only false is stored), intensity (sets every tile of the region).
+export function updateHazard(map, id, { intensity, ...overrides } = {}) {
+  return {
+    ...map,
+    hazards: (map.hazards ?? []).map((region) => {
+      if (region.id !== id) return region
+      const next = { ...region }
+      ;[...HAZARD_OVERRIDES, 'duration'].filter((field) => field in overrides).forEach((field) => {
+        if (Number.isFinite(overrides[field])) next[field] = overrides[field]
+        else delete next[field]
+      })
+      ;['spread', 'active', 'neutralizable'].filter((field) => field in overrides).forEach((field) => {
+        if (overrides[field] === false) next[field] = false
+        else delete next[field]
+      })
+      if (Number.isFinite(intensity)) next.tiles = Object.fromEntries(Object.keys(region.tiles).map((key) => [key, intensity]))
+      return next
+    }),
+  }
+}
+
+export const removeHazard = (map, id) => ({ ...map, hazards: (map.hazards ?? []).filter((region) => region.id !== id) })

@@ -1,7 +1,7 @@
 // Designer spec: movement = floor(Fitness / 2) + 1 tiles on a square grid; diagonal steps cost 1 (no penalty);
 // obstacles block; nobody moves through an enemy's tile. Implementation detail: a diagonal step may not cut a wall
 // or cover corner, and allies can be passed through but not stopped on.
-import { blocksMovement, NEIGHBOUR_OFFSETS, samePosition, tileKey } from './battleMap.js'
+import { blocksMovement, isSlowTile, NEIGHBOUR_OFFSETS, samePosition, tileKey } from './battleMap.js'
 
 // Book (Core pp.288–289): Move goes up to one zone (within Medium range), Sprint two zones (within Long range); no
 // attribute sets the distance.
@@ -22,6 +22,7 @@ function canStep(map, from, offset, blockedKeys) {
 // Breadth-first search (deterministic neighbour order). blockedKeys: tiles that cannot be entered (enemies);
 // occupiedKeys: tiles that can be passed but not ended on (allies). Returns Map(key -> { position, steps, previousKey }).
 export function getReachableTiles(map, start, maxSteps, { blockedKeys = new Set(), occupiedKeys = new Set() } = {}) {
+  if (map.slowKeys && Object.keys(map.slowKeys).length) return reachableWithSlowTiles(map, start, maxSteps, blockedKeys, occupiedKeys)
   const visited = new Map([[tileKey(start), { position: start, steps: 0, previousKey: null }]])
   const queue = [start]
   while (queue.length) {
@@ -33,6 +34,28 @@ export function getReachableTiles(map, start, maxSteps, { blockedKeys = new Set(
       if (!next || visited.has(tileKey(next))) continue
       visited.set(tileKey(next), { position: next, steps: steps + 1, previousKey: tileKey(current) })
       queue.push(next)
+    }
+  }
+  for (const key of occupiedKeys) if (key !== tileKey(start)) visited.delete(key)
+  return visited
+}
+
+// PROTOTYPE (placeholder, flagged): entering a slowing hazard's tile (map.slowKeys, the coolant leak) costs 2 steps.
+// The same search by cheapest total, in buckets of equal cost, keeping the deterministic neighbour order.
+function reachableWithSlowTiles(map, start, maxSteps, blockedKeys, occupiedKeys) {
+  const visited = new Map([[tileKey(start), { position: start, steps: 0, previousKey: null }]])
+  const buckets = [[start]]
+  for (let cost = 0; cost < buckets.length; cost++) {
+    for (const current of buckets[cost] ?? []) {
+      if (visited.get(tileKey(current)).steps !== cost) continue
+      for (const offset of NEIGHBOUR_OFFSETS) {
+        const next = canStep(map, current, offset, blockedKeys)
+        if (!next) continue
+        const steps = cost + (isSlowTile(map, next) ? 2 : 1)
+        if (steps > maxSteps || (visited.get(tileKey(next))?.steps ?? Infinity) <= steps) continue
+        visited.set(tileKey(next), { position: next, steps, previousKey: tileKey(current) })
+        ;(buckets[steps] ??= []).push(next)
+      }
     }
   }
   for (const key of occupiedKeys) if (key !== tileKey(start)) visited.delete(key)

@@ -1,7 +1,9 @@
 import { assignNpcAppearances } from '../../character/npcAppearance.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../../maps/facing.js'
-import { removeNpc, setFacing, toggleMarker, updateNpc } from '../../maps/mapEdits.js'
+import { removeDestructible, removeHazard, removeNpc, setFacing, toggleMarker, updateDestructible, updateHazard, updateNpc } from '../../maps/mapEdits.js'
+import DestructibleInspector from './DestructibleInspector.jsx'
+import HazardInspector from './HazardInspector.jsx'
 import MarkerInspector from './MarkerInspector.jsx'
 import NpcInspector from './NpcInspector.jsx'
 import ObjectInspector from './ObjectInspector.jsx'
@@ -14,8 +16,8 @@ function appearanceFor(map, npcId) {
   return appearances[npcs.findIndex((npc) => npc.id === npcId)] ?? null
 }
 
-// The map editor's side-panel inspectors for what is selected on the board: an NPC, a challenge object, and a player
-// start or enemy spawn (an NPC standing on a start or spawn opens both). map and edit(map): the map being edited.
+// The map editor's side-panel inspectors for what is selected on the board: a destructible object, a hazard region, an
+// NPC, a challenge object, and a player start or enemy spawn (an NPC standing on a start or spawn opens both). map and edit(map): the map being edited.
 // selection: { npc, object, marker } (each null when nothing of that kind is selected). Each inspector's own state comes
 // from the tools hook (useEditorTools): npcMoving / objectPlacing, with a toggle for each, and onNpcCleared / onMarkerCleared
 // for when deleting closes the inspector.
@@ -32,10 +34,42 @@ export default function EditorInspectors({
   objectPlacing,
   onToggleObjectPlace,
   onMarkerCleared,
+  destructibleMoving = false,
+  onToggleDestructibleMove,
+  destructibleLinking = false,
+  onToggleDestructibleLink,
+  onDuplicateDestructible,
+  onDestructibleCleared,
+  onHazardCleared,
 }) {
-  const { npc, object, marker } = selection
+  const { npc, object, marker, destructible, hazard } = selection
   return (
     <>
+      {destructible && (
+        <DestructibleInspector
+          object={destructible}
+          moving={destructibleMoving}
+          linking={destructibleLinking}
+          onChange={(changes) => edit(updateDestructible(map, destructible.id, changes))}
+          onMove={onToggleDestructibleMove}
+          onLink={onToggleDestructibleLink}
+          onDuplicate={onDuplicateDestructible}
+          onDelete={() => {
+            edit(removeDestructible(map, destructible.id))
+            onDestructibleCleared()
+          }}
+        />
+      )}
+      {hazard && (
+        <HazardInspector
+          region={hazard}
+          onChange={(changes) => edit(updateHazard(map, hazard.id, changes))}
+          onDelete={() => {
+            edit(removeHazard(map, hazard.id))
+            onHazardCleared()
+          }}
+        />
+      )}
       {npc && (
         <NpcInspector
           npc={npc}

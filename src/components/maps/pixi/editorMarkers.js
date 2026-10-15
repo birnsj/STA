@@ -78,6 +78,45 @@ export class EditorMarkerView {
   }
 }
 
+// The selected destructible's or hazard region's footprint, outlined on the floor. item: { id, tiles [{ x, y }], square
+// ({ position, radius }: the square an explosion reaches, walls aside) or null, colour, fillAlpha }.
+export class EditorOutlineView {
+  constructor() {
+    this.graphics = new Graphics()
+    this.container = this.graphics
+    this.drawn = null
+  }
+
+  update(item) {
+    const key = JSON.stringify(item)
+    if (key === this.drawn) return
+    this.drawn = key
+    const { tiles, square, colour, fillAlpha = 0 } = item
+    this.graphics.clear()
+    if (square) {
+      const { x, y } = square.position
+      const r = square.radius + 0.5
+      const corners = [
+        [x - r, y - r],
+        [x + r, y - r],
+        [x + r, y + r],
+        [x - r, y + r],
+      ].flatMap(([cx, cy]) => {
+        const p = project({ x: cx, y: cy })
+        return [p.x, p.y]
+      })
+      this.graphics.poly(corners, true).fill({ color: colour, alpha: 0.08 }).stroke({ color: colour, width: 1.5, alpha: 0.8 })
+    }
+    tiles.forEach((tile) => {
+      this.graphics.poly(diamond(tile).flat(), true).fill({ color: colour, alpha: fillAlpha }).stroke({ color: colour, width: 2, alpha: 0.95 })
+    })
+  }
+
+  destroy() {
+    this.graphics.destroy()
+  }
+}
+
 // The brush or the Move tool's swap, drawn see-through over everything as the tiles would look placed: preview:
 // { layout (the map as it would be), positions, key } or null. Drawn from canvasTiles.js drawLoneTiles, so the tiles
 // look exactly as the board draws them; a new key or map redraws it.

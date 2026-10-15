@@ -1,0 +1,153 @@
+{
+  "notes": [
+    "Destructible objects (designer request, 2026-10-12). Placed by the map editor (map file destructibles: [{ id, type, position, name?, structure?, resistance?, initialState?, attackable?, explosion?, linkedTiles? }]; the optional fields override the type's); each type here is data, not a subclass (docs/world-objects.md).",
+    "Book: the STA 2e Core Rulebook gives no rules for damaging a person-scale object. PROTOTYPE RULE (designer decision, 2026-10-12): an object has a Structure track and Resistance; each hit does the attack's severity less Resistance (minimum 1) to Structure; at half Structure (rounded down) it is damaged, at 0 destroyed.",
+    "PLACEHOLDER NUMBERS (designer: use placeholders, tune later): structure, resistance and every explosion and hazard value below.",
+    "explosion: what happens as it is destroyed. radius (tiles, Chebyshev) and severity / injuryType of the Injury it inflicts on everyone in line of fire of the object within the radius, whatever their side (Book p.327: an immediate hazard with the Area effect); null: no blast. hazard / hazardRadius: the lingering hazard it leaves (hazards.json), kept apart from the blast radius.",
+    "damagedHazard: a lingering hazard (radius 1, intensity 1) it starts leaking once damaged, or null.",
+    "tile ids: ds{Type} intact, ds{Type}Damaged, ds{Type}Destroyed (tiles.json). The object's tile replaces the map tile under it while the map is played (like a challenge object's state tile).",
+    "attackDifficulty (PLACEHOLDER, PROTOTYPE RULE): shooting an object is the weapon's own attack task (Attribute + Department, focus) at this Difficulty plus the range modifier, instead of the attack's base Difficulty. An object never defends or takes cover.",
+    "explosion.kind (implementation detail): which one-shot animation plays (explosionKinds); hazardIntensity / hazardDuration (hazard rounds, null: until it dissipates) / hazardSpread: the lingering hazard's starting intensity, life and whether it spreads (designer request, 2026-10-14).",
+    "PROTOTYPE (placeholders, designer request 2026-10-14): a Force-Field Generator holds its linkedTiles (picked in the editor) as forceFieldTiles.up while it stands, and drops them to forceFieldTiles.down once destroyed. A Structural Support that falls leaves debris (count tiles of the debris tile, within radius, never on anyone), which blocks movement for the rest of the mission."
+  ],
+  "attackDifficulty": 1,
+  "types": {
+    "epsConduit": {
+      "name": "EPS Conduit",
+      "description": "An exposed run of electro-plasma conduit. A breach sprays superheated plasma.",
+      "structure": 4,
+      "resistance": 1,
+      "explosion": {
+        "kind": "plasma",
+        "radius": 2,
+        "severity": 3,
+        "injuryType": "deadly",
+        "hazard": "plasmaFire",
+        "hazardRadius": 1
+      },
+      "damagedHazard": "steam"
+    },
+    "plasmaJunction": {
+      "name": "Plasma Junction",
+      "description": "A plasma distribution node. Unstable once breached.",
+      "structure": 3,
+      "resistance": 1,
+      "explosion": {
+        "kind": "plasma",
+        "radius": 2,
+        "severity": 4,
+        "injuryType": "deadly",
+        "hazard": "plasmaFire",
+        "hazardRadius": 1
+      },
+      "damagedHazard": "radiation"
+    },
+    "gasCylinder": {
+      "name": "Gas Cylinder",
+      "description": "A pressurised cylinder of compressed gas.",
+      "structure": 2,
+      "resistance": 0,
+      "explosion": {
+        "kind": "conventional",
+        "radius": 3,
+        "severity": 3,
+        "injuryType": "deadly",
+        "hazard": "fire",
+        "hazardRadius": 1
+      },
+      "damagedHazard": null
+    },
+    "chemicalContainer": {
+      "name": "Chemical Container",
+      "description": "A sealed drum of industrial chemicals.",
+      "structure": 3,
+      "resistance": 0,
+      "explosion": {
+        "kind": "chemical",
+        "radius": 1,
+        "severity": 2,
+        "injuryType": "stun",
+        "hazard": "toxicGas",
+        "hazardRadius": 2
+      },
+      "damagedHazard": "toxicGas"
+    },
+    "powerJunction": {
+      "name": "Power Junction",
+      "description": "A junction box feeding local systems.",
+      "structure": 3,
+      "resistance": 1,
+      "explosion": {
+        "kind": "electrical",
+        "radius": 1,
+        "severity": 2,
+        "injuryType": "stun",
+        "hazard": "electricity",
+        "hazardRadius": 1
+      },
+      "damagedHazard": "electricity"
+    },
+    "forceFieldGenerator": {
+      "name": "Force-Field Generator",
+      "description": "A field emitter. Overloads violently.",
+      "structure": 4,
+      "resistance": 2,
+      "explosion": {
+        "kind": "electrical",
+        "radius": 2,
+        "severity": 2,
+        "injuryType": "stun",
+        "hazard": "electricity",
+        "hazardRadius": 1
+      },
+      "damagedHazard": null
+    },
+    "structuralSupport": {
+      "name": "Structural Support",
+      "description": "A load-bearing frame member. Brought down, it fills the area with debris and dust.",
+      "structure": 6,
+      "resistance": 2,
+      "explosion": {
+        "kind": "debris",
+        "radius": 1,
+        "severity": 3,
+        "injuryType": "stun",
+        "hazard": "smoke",
+        "hazardRadius": 2
+      },
+      "damagedHazard": null,
+      "debris": {
+        "tile": "debris",
+        "radius": 1,
+        "count": 3
+      }
+    },
+    "atmosphericProcessor": {
+      "name": "Atmospheric Processor",
+      "description": "Life-support processing unit, full of coolant.",
+      "structure": 5,
+      "resistance": 1,
+      "explosion": {
+        "kind": "gas",
+        "radius": 1,
+        "severity": 2,
+        "injuryType": "stun",
+        "hazard": "coolantLeak",
+        "hazardRadius": 2
+      },
+      "damagedHazard": "coolantLeak"
+    }
+  },
+  "explosionKinds": [
+    "plasma",
+    "conventional",
+    "electrical",
+    "gas",
+    "chemical",
+    "debris"
+  ],
+  "forceFieldTiles": {
+    "up": "forceFieldActive",
+    "down": "forceField"
+  }
+}

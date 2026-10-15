@@ -131,7 +131,8 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
-  return { ...applyWallVariants(layout, random), mapType: generator.id, biome: biome.id }
+  // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
+  return { ...applyWallVariants(layout, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
 }
 
 // A complete, playable map: a layout plus a location name no existing map file uses, an episode name and a card.

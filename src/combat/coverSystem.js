@@ -3,7 +3,8 @@
 // is a terrain effect, granted to anyone within Reach of a cover feature, with no action. Prototype: being on one of the
 // 4 tiles sharing a side with a cover object puts a unit in cover automatically (on spawn and at the end of every move);
 // moving elsewhere loses it. Designer decision (Oct 2026): a diagonal (corner) tile gives no cover.
-import { givesCover, isInside } from './battleMap.js'
+// Thin smoke or gas (map.coverKeys, world/environment.js) covers a unit standing in it.
+import { givesCover, isInside, tileKey } from './battleMap.js'
 
 const SIDE_OFFSETS = [
   [0, -1],
@@ -13,6 +14,7 @@ const SIDE_OFFSETS = [
 ]
 
 export const canTakeCover = (map, position) =>
+  Boolean(map.coverKeys?.[tileKey(position)]) ||
   SIDE_OFFSETS.some(([dx, dy]) => {
     const tile = { x: position.x + dx, y: position.y + dy }
     return isInside(map, tile) && givesCover(map, tile)
