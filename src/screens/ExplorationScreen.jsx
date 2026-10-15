@@ -513,6 +513,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onInteract={openObjectMenu}
           hazards={hazardChallenges.filter((object) => hazardInReachIds.includes(object.id)).map((object) => ({ id: object.id, position: object.position() }))}
           destructibles={destructibleViews}
+          environment={state.environment}
           onDestructible={openDestructibleMenu}
           debug={debugOpen}
           followCamera={followCamera}

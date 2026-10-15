@@ -123,3 +123,19 @@ background window, not drawing slowly. Explore-idle run 2 sampled no probe timer
 
 Probe additions for this work (`src/dev/perfProbe.js`): timers `hazard.round`, `pixi.hazards`, `fx.explosion`; counters
 `hazard.active`, `hazard.tiles`, `hazard.sprites`; ablation flag `off=hazards`.
+
+### Milestone 2: a single explosion (dev server, 2026-10-14)
+
+An EPS Conduit placed by the editor at (8,20) on Deck 10 Brig, play-tested, shot twice by the party; the second shot
+destroys it and the blast catches a party member (the Avoid Injury prompt opens). A 3 s window around the second shot
+against a 3 s idle window just before it, same page:
+
+| Window | fps | p95 | Worst frame | Pixi frame | `fx.explosion` per frame |
+|---|---|---|---|---|---|
+| Idle | 174 | 5.7 ms | 78 ms | 0.46 ms | 0.000 ms |
+| Blast | 152-166 | 5.7 ms | 94 ms | 0.51-0.54 ms | 0.007 ms (max 0.3 ms) |
+
+The one long frame is the shot itself (the roll, the retiled map, the prompt opening), not the explosion: the click
+handler, the Pixi frame and the world frame all stay under 5 ms. Before the strips were loaded ahead of time, the first
+blast's frame reached 178 ms while the image loaded and decoded; boards now start loading the strip of every standing
+object that can explode (`explosionItems`), and `stripFrames` decodes it off the main thread.

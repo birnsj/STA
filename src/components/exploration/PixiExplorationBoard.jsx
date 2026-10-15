@@ -36,6 +36,7 @@ import {
   worldBounds,
 } from './boardGeometry.js'
 import { startBoardScene } from './pixi/boardScene.js'
+import { explosionItems } from '../maps/pixi/explosionView.js'
 import { SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
 import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
@@ -57,7 +58,7 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
-  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
+  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan)
@@ -212,6 +213,7 @@ export default function PixiExplorationBoard(props) {
   scanPulse?.rings.forEach((ring, index) => {
     effects.push({ id: `scan-${scanPulse.key}-${index}`, kind: 'scan', origin: ring.origin, radius: ring.radius, onDone: index === 0 ? scanPulse.onDone : undefined })
   })
+  const explosions = explosionItems(environment)
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
@@ -219,7 +221,7 @@ export default function PixiExplorationBoard(props) {
   const targetsRef = useRef(targets)
   const membersRef = useRef(state)
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, revealed }
+    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, explosions, revealed }
     targetsRef.current = targets
     membersRef.current = state
   })

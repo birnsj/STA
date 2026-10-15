@@ -21,6 +21,7 @@ import { BAR_Y, LABEL_Y, mouseOnly, POINTS_Y, useMoveAnimation, VIEW, worldBound
 import { justFled, shotOf } from './battleHelpers.js'
 import useActionSounds from './useActionSounds.js'
 import { startBattleScene } from './pixi/battleScene.js'
+import { explosionItems } from '../maps/pixi/explosionView.js'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 
@@ -250,6 +251,7 @@ export default function PixiBattlefield(props) {
       lastKnown: lastKnownMarks ?? [],
       objects: objectMarks ?? [],
       effects,
+      explosions: explosionItems(state.environment),
       revealed,
     }
     targetsRef.current = targets

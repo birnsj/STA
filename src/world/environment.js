@@ -190,6 +190,7 @@ function lineBetween(from, to) {
 // A blast reaches a tile unless a wall (a tile that blocks sight) or another standing destructible is in the way.
 // Smoke and gas don't stop it.
 export function blastReaches(map, environment, from, to) {
+  if (to.x < 0 || to.y < 0 || to.x >= map.width || to.y >= map.height) return false
   return lineBetween(from, to).every((point) => {
     if (getTile(tileAt(map, point)).blocksSight) return false
     const record = destructibleAt(environment, point)

@@ -62,6 +62,29 @@ describe('explosions', () => {
     assert.equal(result.environment.destructibles.b.state, 'destroyed')
   })
 
+  it('a blast at the map edge is clipped to the map: nothing outside it is caught or covered', () => {
+    const { environment, map } = setup([{ id: 'g', type: 'gasCylinder', position: { x: 0, y: 0 } }])
+    const result = damageObject(environment, map, 'g', 10, [
+      { id: 'inside', position: { x: 1, y: 1 } },
+      { id: 'offMap', position: { x: -1, y: 0 } },
+    ])
+    assert.deepEqual(result.hits.map((hit) => hit.targetId), ['inside'])
+    const tiles = Object.keys(Object.values(result.environment.hazards)[0].tiles).map((key) => key.split(',').map(Number))
+    assert.ok(tiles.every(([x, y]) => x >= 0 && y >= 0 && x < map.width && y < map.height))
+  })
+
+  it('two objects in each other\'s blast detonate once each, and a destroyed object takes no more damage', () => {
+    const { environment, map } = setup([
+      { id: 'a', type: 'gasCylinder', position: { x: 5, y: 6 } },
+      { id: 'b', type: 'gasCylinder', position: { x: 6, y: 6 } },
+    ])
+    const first = damageObject(environment, map, 'a', 10)
+    assert.deepEqual(first.explosions.map((explosion) => explosion.objectId), ['a', 'b'])
+    const again = damageObject(first.environment, first.map, 'b', 10)
+    assert.deepEqual(again.explosions, [])
+    assert.equal(again.environment, first.environment)
+  })
+
   it('chain reactions go nearest first, then by id', () => {
     const { environment, map } = setup([
       { id: 'start', type: 'gasCylinder', position: { x: 6, y: 6 } },
