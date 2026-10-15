@@ -221,7 +221,7 @@ export default function PixiExplorationBoard(props) {
   const targetsRef = useRef(targets)
   const membersRef = useRef(state)
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, explosions, revealed }
+    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, explosions, environment, revealed }
     targetsRef.current = targets
     membersRef.current = state
   })

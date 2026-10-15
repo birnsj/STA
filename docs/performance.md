@@ -139,3 +139,15 @@ The one long frame is the shot itself (the roll, the retiled map, the prompt ope
 handler, the Pixi frame and the world frame all stay under 5 ms. Before the strips were loaded ahead of time, the first
 blast's frame reached 178 ms while the image loaded and decoded; boards now start loading the strip of every standing
 object that can explode (`explosionItems`), and `stripFrames` decodes it off the main thread.
+
+### Milestone 3: plasma fire on the floor (dev server, 2026-10-14)
+
+The same conduit's blast leaves plasma fire (`HazardLayer`, `src/components/maps/pixi/hazardLayer.js`); 7 s window
+after it, the region grown to 17 tiles on screen:
+
+| fps | p95 | Pixi frame | `pixi.hazards` per frame | Hazard sprites per frame | Board commits / s | GC / min |
+|---|---|---|---|---|---|---|
+| 180 | 5.7 ms | 0.51 ms | 0.01 ms (max 0.2 ms) | 17 | 180 (unchanged: the world clock) | 145 (baseline 156) |
+
+Hazards add no React commits: the layer reads `environment.hazards` by reference each frame and rebuilds its sprites
+only when that object changes.

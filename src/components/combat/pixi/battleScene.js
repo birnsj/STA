@@ -2,6 +2,7 @@ import { Container } from 'pixi.js'
 import { perfEnd, perfStart } from '../../../dev/perfProbe.js'
 import { EffectView } from '../../maps/pixi/effects.js'
 import { ExplosionView } from '../../maps/pixi/explosionView.js'
+import { HazardLayer } from '../../maps/pixi/hazardLayer.js'
 import { SheetStore } from '../../maps/pixi/figures.js'
 import { reconcile, reducedMotion, startPixiStage } from '../../maps/pixi/pixiStage.js'
 import { LastKnownView } from '../../exploration/pixi/boardItems.js'
@@ -14,7 +15,7 @@ import { UnitView } from './unitView.js'
 // blocks; the effects on top. Presentation only.
 
 // Starts the scene in host. read() returns the latest board description: { layout, faded, units, tiles, hoverKey,
-// path, snapMarks, lastKnown, objects, effects, explosions, revealed, svg }; the parts that haven't changed are the same objects as before. onReady(): the map is drawn and the figures have asked for their
+// path, snapMarks, lastKnown, objects, effects, explosions, environment (hazards), revealed, svg }; the parts that haven't changed are the same objects as before. onReady(): the map is drawn and the figures have asked for their
 // sprite sheets (MapFadeIn waits for those). Resolves to { destroy }, or null if destroyed (isCancelled) before it
 // started; rejects if WebGL can't start.
 export async function startBattleScene(host, read, onReady, isCancelled) {
@@ -33,6 +34,7 @@ export async function startBattleScene(host, read, onReady, isCancelled) {
   const objects = new Map()
   const effects = new Map()
   const explosions = new Map()
+  const hazards = new HazardLayer(stage.layers)
   const options = { playing: !reducedMotion() }
   let readyFor = null
 
@@ -43,6 +45,7 @@ export async function startBattleScene(host, read, onReady, isCancelled) {
     const view = stage.frame(board.svg)
     const map = stage.syncMap(board.layout, options, now)
     map.update(board.faded, now, view)
+    hazards.update(board.environment, now, view, options.playing)
     tilesView.update(board.tiles, board.hoverKey)
     pathView.update(board.path, now, options.playing)
     snapView.update(board.snapMarks)
@@ -62,7 +65,7 @@ export async function startBattleScene(host, read, onReady, isCancelled) {
   return {
     destroy() {
       for (const views of [units, lastKnown, objects, effects, explosions]) for (const view of views.values()) view.destroy()
-      for (const item of [tilesView, pathView, snapView]) item.destroy()
+      for (const item of [tilesView, pathView, snapView, hazards]) item.destroy()
       sheets.destroy()
       stage.destroy()
     },

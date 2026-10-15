@@ -663,17 +663,21 @@ export class WorldEncounter extends CombatEncounter {
       flags: Object.keys(defeatedFlags).length ? { ...state.scenario.flags, ...defeatedFlags } : state.scenario.flags,
       objects: Object.fromEntries(Object.entries(state.scenario.objects).map(([id, object]) => [id, object.combatLocks ? { ...object, combatLocks: {} } : object])),
     }
-    return {
-      ...state,
-      mode: MODE.EXPLORATION,
-      party: withAbleSelection({ ...party, members }),
-      world: { ...world, npcs, npcIds },
-      scenario,
-      combat: null,
-      link: null,
-      lastCombat,
-      resources: combat.resources,
-    }
+    // The fight's objects and hazards carry on in the world from where the last round left them.
+    return withEnvironment(
+      {
+        ...state,
+        mode: MODE.EXPLORATION,
+        party: withAbleSelection({ ...party, members }),
+        world: { ...world, npcs, npcIds },
+        scenario,
+        combat: null,
+        link: null,
+        lastCombat,
+        resources: combat.resources,
+      },
+      combat.environment,
+    )
   }
 }
 

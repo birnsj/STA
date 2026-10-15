@@ -252,6 +252,7 @@ export default function PixiBattlefield(props) {
       objects: objectMarks ?? [],
       effects,
       explosions: explosionItems(state.environment),
+      environment: state.environment,
       revealed,
     }
     targetsRef.current = targets

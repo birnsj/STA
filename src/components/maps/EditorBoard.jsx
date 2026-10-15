@@ -94,6 +94,11 @@ export default function EditorBoard({
   const environment = useMemo(() => createEnvironment(map), [map])
   const layout = useMemo(() => boardLayout(applyEnvironmentTiles(map, environment)), [map, environment])
   const outlines = useMemo(() => selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId), [map, environment, selectedDestructibleId, selectedHazardId])
+  // Every painted hazard shows while authoring, including one that only starts when something sets it off.
+  const shownEnvironment = useMemo(
+    () => ({ ...environment, hazards: Object.fromEntries(Object.entries(environment.hazards).map(([id, region]) => [id, { ...region, active: true }])) }),
+    [environment],
+  )
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const hoverRef = useRef(null)
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current))
@@ -170,7 +175,7 @@ export default function EditorBoard({
   ]
   const preview = useMemo(() => tilePreview(map, hover, brush, rotated, moveFrom), [map, hover, brush, rotated, moveFrom])
   useLayoutEffect(() => {
-    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, labels, markers, outlines, preview, svg: dragHandlers.ref.current }
+    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, environment: shownEnvironment, labels, markers, outlines, preview, svg: dragHandlers.ref.current }
   })
 
   if (failed) return <WebglUnavailable />

@@ -52,6 +52,24 @@ describe('hazard rounds', () => {
     assert.equal(after.structure, environment.destructibles.c.structure - HAZARD_TYPES.fire.damagesObjects)
   })
 
+  it('a hazard with a duration goes out after that many rounds; one without lasts until it dissipates', () => {
+    const map = room({ hazards: [fire('timed', { '5,5': 2 }, { duration: 2, spreadChance: 0, dissipateChance: 0 }), fire('lasting', { '9,5': 2 }, { spreadChance: 0, dissipateChance: 0 })] })
+    const first = hazardRound(createEnvironment(map), map).environment
+    assert.equal(first.hazards.timed.roundsLeft, 1)
+    const second = hazardRound(first, map).environment
+    assert.equal(second.hazards.timed, undefined, 'out after its 2 rounds')
+    assert.deepEqual(second.hazards.lasting.tiles, { '9,5': 2 })
+    assert.equal(second.hazards.lasting.roundsLeft, null)
+  })
+
+  it('an inactive hazard does nothing until something sets it going', () => {
+    const map = room({ hazards: [fire('f', { '4,4': 2 }, { active: false, spreadChance: 100, dissipateChance: 0 })] })
+    const environment = createEnvironment(map)
+    const result = hazardRound(environment, map, [{ id: 'in', position: { x: 4, y: 4 } }])
+    assert.equal(result.hits.length, 0)
+    assert.deepEqual(result.environment.hazards.f.tiles, { '4,4': 2 })
+  })
+
   it('a damaged object keeps leaking until the leak is neutralized', () => {
     const map = room({ destructibles: [{ id: 'c', type: 'chemicalContainer', position: { x: 6, y: 5 } }] })
     const environment = createEnvironment(map)
@@ -113,6 +131,33 @@ describe('hazards in exploration', () => {
     state = explorationReducer(state, { type: 'tick', seconds: 1.5 })
     assert.deepEqual(state.injuryPrompts.map((prompt) => prompt.targetId), ['alpha'])
     assert.equal(state.environment.round, 1)
+  })
+})
+
+describe('hazards across the hand-off', () => {
+  it('a fight starts from the world\'s hazards, its rounds go on burning them, and exploration resumes with the result', () => {
+    const map = room({ hazards: [fire('f', { '9,9': 2 }, { duration: 5, spreadChance: 0, dissipateChance: 0 })] })
+    map.markers.playerStarts = [{ x: 4, y: 6 }, { x: 4, y: 8 }]
+    map.markers.enemySpawns = [{ x: 7, y: 6 }]
+    let state = createExplorationState(map, team(), 3)
+    state = explorationReducer(state, { type: 'tick', seconds: HAZARD_ROUND_SECONDS / 2 })
+    const clockBefore = state.hazardClock
+    const [npcId] = Object.keys(state.world.npcs)
+    const fighting = explorationReducer(state, { type: 'attackNpc', npcId, targetId: 'alpha' })
+    assert.equal(fighting.combat.environment, state.environment, 'the fight starts from the very same environment')
+
+    let combat = fighting.combat
+    for (let i = 0; i < 12 && combat.round < 3; i += 1) combat = combatReducer(combat, { type: 'endTurn' })
+    assert.equal(combat.round, 3)
+    assert.equal(combat.environment.round, 2, 'two new rounds, two hazard rounds')
+    assert.equal(combat.environment.hazards.f.roundsLeft, 3)
+
+    const ended = explorationReducer({ ...fighting, combat }, { type: 'endCombat' })
+    assert.equal(ended.environment.hazards.f.roundsLeft, 3, 'exploration carries on from the fight\'s result')
+    assert.equal(ended.environment.round, 2)
+    assert.equal(ended.hazardClock, clockBefore, 'the world clock waited while the fight ran')
+    const resumed = explorationReducer(ended, { type: 'tick', seconds: HAZARD_ROUND_SECONDS / 2 + 0.1 })
+    assert.equal(resumed.environment.round, 3, 'and the next world round comes when the rest of the interval has passed')
   })
 })
 
