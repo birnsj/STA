@@ -106,8 +106,8 @@ export const hazardSeverity = (region) => hazardValue(region, 'severity')
 export const neutralizeDifficulty = (region) => region.neutralizeDifficulty ?? HAZARD_TYPES[region.type].neutralize.difficulty
 export const blocksSightAt = (region, intensity) => Boolean(HAZARD_TYPES[region.type].blocksSight) && intensity >= THICK_INTENSITY
 
-// The worst active hazard on a tile: { region, type, intensity, severity, injuryType, name }, or null. A hazard of
-// severity 0 (smoke) hurts nobody but still counts here for sight.
+// The worst active hazard on a tile: { region, type, intensity, severity, injuryType, name }, or null. A region set to
+// severity 0 hurts nobody but still counts here for sight.
 export function hazardAt(environment, position) {
   const key = tileKey(position)
   let worst = null

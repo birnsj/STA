@@ -18,6 +18,7 @@ import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
 import { retreatStep } from './combatRetreat.js'
 import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
+import { objectShotStep } from './objectAI.js'
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
 import { randomStep } from './randomAI.js'
@@ -45,6 +46,9 @@ export function normalStep(state, self, ai) {
   // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
   const support = supportStep(state, self)
   if (support) return support
+  // Either side shoots a destructible object when its blast beats their own best attack (objectAI.js).
+  const objectShot = objectShotStep(state, self)
+  if (objectShot) return objectShot
   if (PLANNER_PROFILES[ai]) return plannerStep(state, self, ai)
   return nextAIStep(state)
 }

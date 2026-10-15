@@ -15,8 +15,11 @@ import {
   DESTRUCTIBLE_TYPES,
   destructibleStateFor,
   destructibleTileId,
+  EXPLOSION_KINDS,
+  FORCE_FIELD_TILES,
   HAZARD_TYPES,
 } from '../src/world/environment.js'
+import { getReachableTiles } from '../src/combat/movementSystem.js'
 
 export const testMap = ({ destructibles = [], hazards = [], width = 12, height = 9 } = {}) => ({
   ...createBlankMap({ name: 'Test', width, height }),
@@ -102,6 +105,44 @@ describe('environment', () => {
     assert.ok(hasLineOfFire(shown, { x: 2, y: 5 }, { x: 8, y: 5 }), 'thin smoke does not block')
     assert.ok(canTakeCover(shown, { x: 5, y: 5 }))
     assert.ok(!canTakeCover(shown, { x: 3, y: 3 }))
+  })
+
+  it('every type explodes with a known kind; the gases and smoke hang in the air', () => {
+    for (const [type, { explosion }] of Object.entries(DESTRUCTIBLE_TYPES)) assert.ok(EXPLOSION_KINDS.includes(explosion.kind), `${type} kind ${explosion.kind}`)
+    for (const type of ['smoke', 'toxicGas', 'steam']) assert.equal(HAZARD_TYPES[type].layer, 'air', type)
+    assert.deepEqual(Object.keys(HAZARD_TYPES).filter((type) => HAZARD_TYPES[type].blocksSight).sort(), ['smoke', 'toxicGas'])
+  })
+
+  it('a force-field generator holds its linked tiles up while it stands and drops them once destroyed', () => {
+    const fielded = testMap({ destructibles: [{ id: 'ff', type: 'forceFieldGenerator', position: { x: 2, y: 2 }, linkedTiles: [{ x: 6, y: 4 }, { x: 6, y: 5 }] }] })
+    const environment = createEnvironment(fielded)
+    const shown = applyEnvironmentTiles(fielded, environment)
+    assert.equal(shown.tiles[4][6], FORCE_FIELD_TILES.up)
+    assert.ok(blocksMovement(shown, { x: 6, y: 4 }))
+    assert.ok(hasLineOfFire(toBattleMap(shown), { x: 4, y: 4 }, { x: 8, y: 4 }), 'the field is see-through')
+    const result = damageObject(environment, shown, 'ff', 20)
+    assert.equal(result.map.tiles[4][6], FORCE_FIELD_TILES.down)
+    assert.ok(!blocksMovement(result.map, { x: 6, y: 5 }))
+  })
+
+  it('a fallen structural support leaves debris that blocks movement, never on anyone', () => {
+    const support = testMap({ destructibles: [{ id: 's', type: 'structuralSupport', position: { x: 5, y: 4 } }] })
+    const environment = createEnvironment(support)
+    const actor = { id: 'p', position: { x: 4, y: 4 } }
+    const result = damageObject(environment, applyEnvironmentTiles(support, environment), 's', 20, [actor])
+    const { debris } = result.environment.destructibles.s
+    assert.equal(debris.length, DESTRUCTIBLE_TYPES.structuralSupport.debris.count)
+    assert.ok(debris.every((tile) => Math.max(Math.abs(tile.x - 5), Math.abs(tile.y - 4)) <= DESTRUCTIBLE_TYPES.structuralSupport.debris.radius))
+    assert.ok(debris.every((tile) => tile.x !== 4 || tile.y !== 4), 'not on the actor')
+    assert.ok(debris.every((tile) => result.map.tiles[tile.y][tile.x] === 'debris' && blocksMovement(result.map, tile)))
+  })
+
+  it('a coolant leak costs two steps of movement to enter', () => {
+    const leaky = testMap({ hazards: [{ id: 'c', type: 'coolantLeak', tiles: { '5,4': 2 } }] })
+    const shown = toBattleMap(applyEnvironmentTiles(leaky, createEnvironment(leaky)))
+    const reach = getReachableTiles(shown, { x: 4, y: 4 }, 2)
+    assert.equal(reach.get('5,4').steps, 2)
+    assert.notEqual(reach.get('6,4').previousKey, '5,4', 'the tile beyond is reached around the leak, not through it')
   })
 })
 

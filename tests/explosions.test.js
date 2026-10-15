@@ -4,7 +4,8 @@
 // out of a blast.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { combatReducer, createCombat } from '../src/combat/combatState.js'
+import { chooseAIStep } from '../src/combat/autoCombat.js'
+import { combatReducer, createCombat, getActiveCombatant } from '../src/combat/combatState.js'
 import { damageObjectInCombat } from '../src/combat/combatEnvironment.js'
 import { objectShotOptions } from '../src/combat/objectAI.js'
 import { currentInjuryPrompt, previewObjectShot } from '../src/exploration/explorationEnvironment.js'
@@ -174,5 +175,16 @@ describe('explosions in combat', () => {
     const options = objectShotOptions(clear, shooter)
     assert.ok(options.length > 0, 'a blast that catches only the party is worth a shot')
     assert.equal(options[0].action.objectId, 'g')
+  })
+
+  it('either side\'s AI fires on the object when the blast beats its own best attack', () => {
+    const party = fight([{ id: 'g', type: 'gasCylinder', position: { x: 11, y: 6 } }], [{ x: 3, y: 6 }], [{ x: 10, y: 6 }, { x: 12, y: 6 }, { x: 11, y: 5 }], 'player')
+    const enemy = fight([{ id: 'g', type: 'gasCylinder', position: { x: 4, y: 6 } }], [{ x: 3, y: 6 }, { x: 5, y: 6 }, { x: 4, y: 5 }], [{ x: 12, y: 6 }], 'enemy')
+    for (const state of [party, enemy]) {
+      const step = chooseAIStep(state, { partyAmbush: false })
+      assert.equal(step.type, 'attackObject', `${getActiveCombatant(state).side} shoots the cylinder`)
+      assert.equal(step.objectId, 'g')
+      assert.notEqual(combatReducer(state, step), state, 'the shot is a legal step')
+    }
   })
 })

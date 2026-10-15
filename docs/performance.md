@@ -165,3 +165,26 @@ the saved copy:
 
 All inside the thresholds (p95 unchanged, `pixi.hazards` far under 0.5 ms, `hazard.round` under 2 ms, GC under the
 baseline).
+
+### Milestone 6: four hazard types at once, and a fight among them (dev server, 2026-10-14)
+
+On Deck 10 Brig, painted in the editor: thick smoke, thin toxic gas, dense plasma fire and a thick coolant leak, about
+60 tiles (68 in play after spreading), two floor types and two air types. Three windows each (5 s editor, 8 s play-test
+and Auto Combat). The machine ran at a p95 of 11.1 ms that day with or without hazards, so each window is set against
+a control run of the same script with nothing painted, rather than the Milestone 0 table:
+
+| Window | fps | p95 | Pixi frame | `pixi.hazards` per frame | Hazard sprites | GC / min |
+|---|---|---|---|---|---|---|
+| Editor, control | 147-168 | 11.1 ms | 3.2-4.2 ms | 0.003 ms | 0 | 24-48 |
+| Editor, hazards | 153-166 | 11.1 ms | 3.5-3.8 ms | 0.03 ms (one window: max 67 ms, below) | 34 | 12-24 |
+| Play-test, control | 159-163 | 11.1 ms | 0.66-0.88 ms | 0.003 ms | 0 | 97-112 |
+| Play-test, hazards | 139-152 | 11.1 ms | 0.70-1.06 ms | 0.023-0.028 ms | 38-41 | 112-135 |
+| Auto Combat, hazards | 156-161 | 11.1 ms | 1.27-1.40 ms | 0.022 ms (max 0.2) | 34 | 30-60 |
+
+p95 is unchanged against the control and `pixi.hazards` stays near 0.03 ms. The one 67 ms `pixi.hazards` frame
+happened once, in the third editor window, and never again in any other window or run; it is logged here in case it
+returns. `hazard.round` in play-test: 1.7 ms mean over two rounds (2.8 ms, then 0.6 ms). Headless on the same map
+(`tickHazards`, 58 to 68 tiles), only the first round is that slow (about 2.3 ms, the code not yet compiled by the
+engine); later rounds take 0.05 ms mean and 0.8 ms at most while spreading. The thick smoke over the starting room hid
+the party from the guard in the fight run (the sight rule at work), so the fight run puts the smoke east of the
+corridor instead.
