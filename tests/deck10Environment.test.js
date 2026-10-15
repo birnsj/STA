@@ -14,15 +14,31 @@ const start = () => createExplorationState(brig(), [makeCharacter({ id: 'alpha',
 const near = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) <= 1
 
 describe('Deck 10 Brig environment', () => {
-  it('places five intact destructible objects and no hazards', () => {
+  it('places fifteen intact destructible objects and no hazards', () => {
     const map = brig()
-    assert.equal(map.destructibles.length, 5)
+    assert.equal(map.destructibles.length, 15)
     assert.deepEqual(map.hazards, [])
     assert.equal('hazards' in brigFile, false)
     const { environment } = start()
     assert.deepEqual(
       Object.values(environment.destructibles).map((record) => [record.type, record.state]).sort(),
-      [['chemicalContainer', 'intact'], ['epsConduit', 'intact'], ['gasCylinder', 'intact'], ['plasmaJunction', 'intact'], ['powerJunction', 'intact']],
+      [
+        ['atmosphericProcessor', 'intact'],
+        ['atmosphericProcessor', 'intact'],
+        ['chemicalContainer', 'intact'],
+        ['chemicalContainer', 'intact'],
+        ['chemicalContainer', 'intact'],
+        ['epsConduit', 'intact'],
+        ['epsConduit', 'intact'],
+        ['gasCylinder', 'intact'],
+        ['gasCylinder', 'intact'],
+        ['gasCylinder', 'intact'],
+        ['plasmaJunction', 'intact'],
+        ['plasmaJunction', 'intact'],
+        ['powerJunction', 'intact'],
+        ['powerJunction', 'intact'],
+        ['structuralSupport', 'intact'],
+      ],
     )
     assert.deepEqual(environment.hazards, {})
   })

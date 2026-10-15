@@ -187,4 +187,23 @@ describe('explosions in combat', () => {
       assert.notEqual(combatReducer(state, step), state, 'the shot is a legal step')
     }
   })
+
+  it('with no line of fire from where it stands, the AI walks to a tile that has one, outside the blast', () => {
+    const map = { ...createBlankMap({ name: 'Blast Fight', width: 16, height: 12 }), destructibles: [{ id: 'g', type: 'gasCylinder', position: { x: 4, y: 6 } }] }
+    ;[5, 6, 7].forEach((y) => {
+      map.tiles[y][10] = 'bulkhead'
+    })
+    map.markers.playerStarts = [{ x: 3, y: 6 }, { x: 5, y: 6 }, { x: 4, y: 5 }]
+    map.markers.enemySpawns = [{ x: 12, y: 6 }]
+    const players = map.markers.playerStarts.map((_, index) => makeCharacter({ id: `p${index + 1}`, name: `Player ${index + 1}` }))
+    const state = createCombat({ map, players, seed: 3, initiativeOptions: { firstSide: 'enemy' } })
+    assert.deepEqual(objectShotOptions(state, getActiveCombatant(state)), [], 'control: no shot from the spawn')
+    const step = chooseAIStep(state)
+    assert.equal(step.type, 'move')
+    assert.ok(Math.max(Math.abs(step.destination.x - 4), Math.abs(step.destination.y - 6)) > GAS.radius, 'not inside the blast')
+    const moved = combatReducer(state, step)
+    const shot = chooseAIStep(moved)
+    assert.equal(shot.type, 'attackObject', 'then it fires')
+    assert.equal(shot.objectId, 'g')
+  })
 })

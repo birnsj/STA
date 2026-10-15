@@ -312,6 +312,86 @@
         2,
         17
       ]
+    },
+    {
+      "id": "chemicalContainer2",
+      "type": "chemicalContainer",
+      "position": [
+        28,
+        5
+      ]
+    },
+    {
+      "id": "epsConduit2",
+      "type": "epsConduit",
+      "position": [
+        35,
+        4
+      ]
+    },
+    {
+      "id": "plasmaJunction2",
+      "type": "plasmaJunction",
+      "position": [
+        36,
+        11
+      ]
+    },
+    {
+      "id": "structuralSupport1",
+      "type": "structuralSupport",
+      "position": [
+        30,
+        13
+      ]
+    },
+    {
+      "id": "atmosphericProcessor1",
+      "type": "atmosphericProcessor",
+      "position": [
+        29,
+        22
+      ]
+    },
+    {
+      "id": "gasCylinder2",
+      "type": "gasCylinder",
+      "position": [
+        35,
+        19
+      ]
+    },
+    {
+      "id": "powerJunction2",
+      "type": "powerJunction",
+      "position": [
+        21,
+        19
+      ]
+    },
+    {
+      "id": "atmosphericProcessor2",
+      "type": "atmosphericProcessor",
+      "position": [
+        17,
+        24
+      ]
+    },
+    {
+      "id": "chemicalContainer3",
+      "type": "chemicalContainer",
+      "position": [
+        18,
+        7
+      ]
+    },
+    {
+      "id": "gasCylinder3",
+      "type": "gasCylinder",
+      "position": [
+        5,
+        9
+      ]
     }
   ],
   "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
