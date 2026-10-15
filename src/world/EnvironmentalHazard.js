@@ -84,7 +84,7 @@ export class EnvironmentalHazard extends WorldObject {
             onFailure: [{ type: 'message', text: `The ${this.info.name.toLowerCase()} keeps going.` }],
           },
         ]
-    return { id: hazardChallengeId(this.region.id), name: this.info.name, type: 'hazard', position: this.position(), state: 'active', states: { active: { label: 'Active' } }, actions }
+    return { id: hazardChallengeId(this.region.id), name: this.info.name, type: 'hazard', position: this.definition.position, state: 'active', states: { active: { label: 'Active' } }, actions }
   }
 }
 

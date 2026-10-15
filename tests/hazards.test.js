@@ -3,7 +3,7 @@
 // clock and the combat round hook.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { combatReducer, createCombat } from '../src/combat/combatState.js'
+import { combatReducer, createCombat, getActiveCombatant } from '../src/combat/combatState.js'
 import { attemptChallenge, challengeFor } from '../src/exploration/challengeObjects.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
@@ -98,6 +98,7 @@ describe('hazards in exploration', () => {
       assert.equal(objectFor(state.scenario, hazardChallengeId('f')), null, 'never a challenge object in the scenario')
       const object = challengeFor(state, hazardChallengeId('f'))
       assert.ok(object, 'its Neutralize task is built on demand')
+      assert.deepEqual(object.position(), { x: 5, y: 6 }, 'its marker sits on the anchor tile')
       assert.deepEqual(object.currentTiles(state.scenario), [], 'it never changes the map tiles')
       const after = explorationReducer(state, { type: 'neutralizeHazard', hazardId: 'f', performerId: 'alpha' })
       assert.notEqual(after, state)
@@ -158,6 +159,32 @@ describe('hazards across the hand-off', () => {
     assert.equal(ended.hazardClock, clockBefore, 'the world clock waited while the fight ran')
     const resumed = explorationReducer(ended, { type: 'tick', seconds: HAZARD_ROUND_SECONDS / 2 + 0.1 })
     assert.equal(resumed.environment.round, 3, 'and the next world round comes when the rest of the interval has passed')
+  })
+})
+
+describe('neutralizing across modes', () => {
+  it('a hazard put out in a fight (the same Neutralize task) is gone in the fight, its map and the world afterwards', () => {
+    let neutralized = null
+    for (let seed = 1; seed < 40 && !neutralized; seed += 1) {
+      const map = room({ hazards: [fire('f', { '5,6': 2, '5,7': 2 }, { spreadChance: 0, dissipateChance: 0 })] })
+      map.markers.playerStarts = [{ x: 4, y: 6 }, { x: 4, y: 8 }]
+      map.markers.enemySpawns = [{ x: 12, y: 6 }]
+      let state = createExplorationState(map, team(), seed)
+      const [npcId] = Object.keys(state.world.npcs)
+      state = explorationReducer(state, { type: 'attackNpc', npcId, targetId: 'alpha' })
+      for (let i = 0; i < 6 && getActiveCombatant(state.combat).side !== 'player'; i += 1) state = explorationReducer(state, { type: 'combat', action: { type: 'endTurn' } })
+      const actor = getActiveCombatant(state.combat)
+      assert.equal(actor.side, 'player')
+      const after = explorationReducer(state, { type: 'combat', action: { type: 'interact', objectId: hazardChallengeId('f'), actionId: 'neutralize' } })
+      assert.notEqual(after, state, `${actor.id} can reach the fire and has the Major action`)
+      assert.equal(after.combat.environment, after.environment, 'the fight and the world share one environment record')
+      if (after.lastTask.success) neutralized = after
+    }
+    assert.ok(neutralized, 'some seed succeeds')
+    assert.equal(neutralized.combat.environment.hazards.f, undefined)
+    const ended = explorationReducer(neutralized, { type: 'endCombat' })
+    assert.equal(ended.environment.hazards.f, undefined, 'still out after the fight')
+    assert.equal(challengeFor(ended, hazardChallengeId('f')), null)
   })
 })
 

@@ -332,6 +332,15 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     },
     objectDefinitions,
     selection: { npc: selectedNpc, object: selectedObject, marker: markerInspected, destructible: selectedDestructible, hazard: selectedHazard },
+    selectedNpcId,
+    selectedObjectId,
+    // What the board highlights for the start / spawn inspector (null once it has moved or been deleted).
+    selectedMarker: markerInspected && selectedMarker,
+    movingNpc,
+    toggleNpcMove: () => {
+      setTool('npcs')
+      setMovingNpc((value) => !value)
+    },
     selectedDestructibleId: selectedDestructible?.id ?? null,
     selectedHazardId: selectedHazard?.id ?? null,
     movingDestructible,
