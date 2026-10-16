@@ -491,6 +491,24 @@
   overflow: hidden;
 }
 
+/* On the party cards the bar takes the card's whole width (designer request, 2026-10-15: longer Stress bars), clear of
+   the exploration card's info button in its bottom-right corner. */
+.party-info .condition-track {
+  width: 100%;
+}
+
+.explore-card .party-info .condition-track {
+  padding-right: 16px;
+}
+
+.party-info .stress-meter {
+  flex: 1 1 auto;
+}
+
+.party-info .stress-bar {
+  flex: 1 1 auto;
+}
+
 .stress-fill {
   position: absolute;
   inset: 0 auto 0 0;
@@ -749,6 +767,10 @@
   font-size: 10px;
 }
 
+.bonus-dice-threat {
+  margin: 2px 0 0;
+}
+
 .bonus-dice-threat.is-on {
   color: var(--red);
   font-weight: 700;
@@ -761,6 +783,56 @@
 .resource-indicator.is-threat.is-on .resource-light {
   background: var(--red);
   box-shadow: 0 0 6px var(--red);
+}
+
+/* A change to Threat (ResourceIndicators): shown beside the chip, held, then faded out; out of the row's layout. */
+.resource-indicator.is-threat {
+  position: relative;
+}
+
+.resource-threat-change {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  margin-top: -7px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--red);
+  text-shadow: 0 1px 2px #000;
+  animation: threat-change 4s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes threat-change {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  8%,
+  75% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes threat-change-fade {
+  0%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resource-threat-change {
+    animation-name: threat-change-fade;
+  }
 }
 
 .resource-cancel {
@@ -1763,6 +1835,11 @@
   margin: 1px 0 4px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.roll-threat-spent {
+  font-weight: 700;
+  color: var(--red);
 }
 
 .roll-dice {

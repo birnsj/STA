@@ -81,10 +81,19 @@ export function startTiming(animation, timing, now) {
 
 // The sheet column an animation shows at `now` (ms), from startTiming's result: the same frame element.animate shows
 // for a loop (steps(frames)) and a one-shot (steps(frames, jump-none), held at either end).
-export function frameColumn(animation, started, { reverse = false, speed = 1 } = {}, now) {
-  const { start, frames, seconds, play } = animation
-  if (play === 'loop') return start + Math.min(frames - 1, Math.floor(wrap(now / 1000 / seconds + started.offset) * frames))
-  if (started.settled) return restColumn(animation, reverse)
+// 0..1 through a one-shot (or 1 when already settled / held). Loops return 0.
+export function playbackProgress(animation, started, { reverse = false, speed = 1 } = {}, now) {
+  const { seconds, play } = animation
+  if (play === 'loop') return 0
+  if (started.settled) return reverse ? 0 : 1
   const progress = Math.min(1, Math.max(0, (now - started.startedAt) / ((seconds / speed) * 1000)))
-  return start + Math.min(frames - 1, Math.floor((reverse ? 1 - progress : progress) * frames))
+  return reverse ? 1 - progress : progress
+}
+
+export function frameColumn(animation, started, { reverse = false, speed = 1 } = {}, now) {
+  const { start, frames, play } = animation
+  if (play === 'loop') return start + Math.min(frames - 1, Math.floor(wrap(now / 1000 / animation.seconds + started.offset) * frames))
+  if (started.settled) return restColumn(animation, reverse)
+  const progress = playbackProgress(animation, started, { reverse, speed }, now)
+  return start + Math.min(frames - 1, Math.floor(progress * frames))
 }

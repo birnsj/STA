@@ -21,7 +21,7 @@ import { BAR_Y, LABEL_Y, mouseOnly, POINTS_Y, useMoveAnimation, VIEW, worldBound
 import { justFled, shotOf } from './battleHelpers.js'
 import useActionSounds from './useActionSounds.js'
 import { startBattleScene } from './pixi/battleScene.js'
-import { explosionItems } from '../maps/pixi/explosionView.js'
+import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionView.js'
 import UnitActionRing from './UnitActionRing.jsx'
 import useCamera from './useCamera.js'
 
@@ -76,6 +76,7 @@ export default function PixiBattlefield(props) {
     onRightClick,
     objectMarks = null,
     onObjectClick = () => {},
+    onStaggerDone = null,
     destructibleMarks = [],
     onDestructibleClick = () => {},
     beamIn = 'done',
@@ -146,6 +147,7 @@ export default function PixiBattlefield(props) {
       preload: !isBystander,
       poseOptions,
       isWalking,
+      onStaggerDone: combatant.blastReact && onStaggerDone ? () => onStaggerDone(combatant.id) : null,
       selected: selected && !active,
       cover,
       statusLabel,
@@ -236,6 +238,18 @@ export default function PixiBattlefield(props) {
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
+  const explosions = explosionItems(state.environment)
+  const heardExplosionsRef = useRef(new Set())
+  const explosionsSeededRef = useRef(false)
+  const explosionKey = (state.environment?.explosions ?? []).map((blast) => blast.id).join('|')
+  useEffect(() => {
+    if (!explosionsSeededRef.current) {
+      explosionsSeededRef.current = true
+      playNewExplosionSounds(explosions, heardExplosionsRef.current, { seedOnly: true })
+      return
+    }
+    playNewExplosionSounds(explosions, heardExplosionsRef.current)
+  }, [explosionKey, explosions])
   const boardRef = useRef(null)
   const targetsRef = useRef(targets)
   const hoverKeyRef = useRef(null)
@@ -251,7 +265,7 @@ export default function PixiBattlefield(props) {
       lastKnown: lastKnownMarks ?? [],
       objects: objectMarks ?? [],
       effects,
-      explosions: explosionItems(state.environment),
+      explosions,
       environment: state.environment,
       revealed,
     }

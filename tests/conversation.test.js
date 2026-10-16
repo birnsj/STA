@@ -6,7 +6,7 @@ import { describe, it } from 'node:test'
 import engineerFile from '../conversations/engineerSealedSection.json'
 import brigFile from '../maps/Deck 10 Brig.json'
 import { checkAhead, createConversation, createNode, getNode, parseConversation, removeNode, serializeConversation, validateConversation, withLink } from '../src/conversation/conversationFormat.js'
-import { availableOptions, currentCheck, recommendCheck } from '../src/conversation/conversationRuntime.js'
+import { availableOptions, currentCheck, previewCheckAssist, recommendCheck } from '../src/conversation/conversationRuntime.js'
 import { getNpcs } from '../src/exploration/awareness.js'
 import { getAvailableActions } from '../src/exploration/challengeObjects.js'
 import { MODE } from '../src/exploration/combatLink.js'
@@ -191,6 +191,20 @@ describe('a conversation in exploration', () => {
     assert.equal(rolled.conversation.nodeId, check.result.success ? 'faultFoundLine' : 'faultMissedLine')
     assert.equal(Boolean(rolled.scenario.flags.faultDiagnosed), check.result.success)
     assert.deepEqual(explorationReducer(start, { type: 'conversationRoll', performerId: 'beta', purchase: { bonusDice: 1, momentum: 0 } }).conversation.lastCheck.result, check.result)
+  })
+
+  it('one assistant rolls the check\'s own attribute + department; nobody assists themselves or from outside the party', () => {
+    const start = choose(talk(createExplorationState(roomWithEngineer(), team(), 7)), 'investigate')
+    const rolled = explorationReducer(start, { type: 'conversationRoll', performerId: 'alpha', assistantId: 'beta' })
+    const check = rolled.conversation.lastCheck
+    assert.equal(check.assistantId, 'beta')
+    assert.equal(check.result.dice.length, 2)
+    assert.ok(check.result.assist)
+    assert.equal(check.assist.task.targetNumber, previewCheckAssist(start, currentCheck(start), 'beta').task.targetNumber)
+    assert.equal(check.assist.task.attribute.id ?? check.assist.task.attribute.name, check.prepared.task.attribute.id ?? check.prepared.task.attribute.name)
+    assert.equal(explorationReducer(start, { type: 'conversationRoll', performerId: 'alpha', assistantId: 'alpha' }), start)
+    assert.equal(explorationReducer(start, { type: 'conversationRoll', performerId: 'alpha', assistantId: 'nobody' }), start)
+    assert.equal(explorationReducer(start, { type: 'conversationRoll', performerId: 'alpha' }).conversation.lastCheck.assistantId, null)
   })
 
   it('Difficulty 0 always succeeds; a check that ends the conversation keeps the panel on its result', () => {

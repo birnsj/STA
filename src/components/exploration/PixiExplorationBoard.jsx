@@ -7,7 +7,10 @@ import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { figureShapes, hitTest, labelWidth } from '../../maps/boardHitTest.js'
 import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
+import { playWeaponSound } from '../../audio/uiSounds.js'
+import { getWeapon } from '../../combat/weaponSystem.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
+import { SHOT_FIRE_MS, weaponShotLook } from '../combat/battleHelpers.js'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from '../maps/canvasTiles.js'
@@ -36,7 +39,7 @@ import {
   worldBounds,
 } from './boardGeometry.js'
 import { startBoardScene } from './pixi/boardScene.js'
-import { explosionItems } from '../maps/pixi/explosionView.js'
+import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionView.js'
 import { SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
 import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
@@ -58,7 +61,7 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
-  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, menu = null, beamIn = 'done', scanPulse = null } = props
+  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, onStaggerDone = null, menu = null, beamIn = 'done', scanPulse = null, lastObjectShot = null } = props
   const { map } = state
   const leader = state.members[state.leaderId]
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan)
@@ -121,6 +124,8 @@ export default function PixiExplorationBoard(props) {
       gait: gaitOf(animation),
       down: animation.down,
       condition: member.condition,
+      blastReact: member.blastReact ?? null,
+      onStaggerDone: member.blastReact && onStaggerDone ? () => onStaggerDone(member.id) : null,
       spriteSet: portrait.spriteSet,
       colour: portrait.uniform ?? null,
       image: portrait.image,
@@ -130,6 +135,8 @@ export default function PixiExplorationBoard(props) {
       bodyColour: selected ? YELLOW : BLUE,
       label: lead ? { text: 'LEAD', y: -58, size: 9, weight: '700', colour: YELLOW, letterSpacing: 0.72 } : null,
       beam,
+      // Fall / getup sheets are large; ask early so blast stagger can play getUp.
+      preload: true,
       faded: false,
     })
     if (!member.beaming && !member.arriving) {
@@ -156,6 +163,8 @@ export default function PixiExplorationBoard(props) {
       gait: animation.walking ? 'walk' : 'idle',
       down: animation.down,
       condition: npc.condition,
+      blastReact: npc.blastReact ?? null,
+      onStaggerDone: npc.blastReact && onStaggerDone ? () => onStaggerDone(npc.id) : null,
       spriteSet: npc.character?.portrait.spriteSet ?? null,
       colour: npc.character?.portrait.uniform ?? null,
       image: npc.character?.portrait.image ?? null,
@@ -165,6 +174,7 @@ export default function PixiExplorationBoard(props) {
       bodyColour: colour,
       label: { text: npc.name, y: tagY, size: 9, weight: '700', colour, letterSpacing: 0.36 },
       beam: null,
+      preload: true,
       faded: !visible,
     })
     if (onOpenNpcMenu && visible) {
@@ -213,7 +223,52 @@ export default function PixiExplorationBoard(props) {
   scanPulse?.rings.forEach((ring, index) => {
     effects.push({ id: `scan-${scanPulse.key}-${index}`, kind: 'scan', origin: ring.origin, radius: ring.radius, onDone: index === 0 ? scanPulse.onDone : undefined })
   })
+  // Phaser / disruptor fire at a destructible (explorationEnvironment lastObjectShot).
+  if (lastObjectShot) {
+    const shooter = state.members[lastObjectShot.memberId]
+    const record = environment?.destructibles?.[lastObjectShot.objectId]
+    const weapon = getWeapon(lastObjectShot.weaponId)
+    const look = weapon ? weaponShotLook('player', weapon, { missed: !lastObjectShot.passed }) : null
+    if (shooter && record && look?.colour) {
+      const from = project(shooter.position)
+      const to = project(record.position)
+      const raised = (point) => ({ x: point.x, y: point.y - 30 })
+      const dx = to.x - from.x
+      const dy = to.y - from.y
+      const length = Math.hypot(dx, dy) || 1
+      const end = lastObjectShot.passed ? to : { x: to.x + (dx / length) * 40 - (dy / length) * 18, y: to.y + (dy / length) * 40 + (dx / length) * 18 }
+      effects.push({
+        id: `object-shot-${lastObjectShot.key}`,
+        kind: look.pulse ? 'pulseShot' : 'beamShot',
+        from: raised(from),
+        end: raised(end),
+        hit: lastObjectShot.passed ? raised(to) : null,
+        colour: look.colour,
+        delayMs: SHOT_FIRE_MS,
+        speed: 1,
+      })
+    }
+  }
   const explosions = explosionItems(environment)
+  const heardExplosionsRef = useRef(new Set())
+  const explosionsSeededRef = useRef(false)
+  const explosionKey = (environment?.explosions ?? []).map((blast) => blast.id).join('|')
+  useEffect(() => {
+    if (!explosionsSeededRef.current) {
+      explosionsSeededRef.current = true
+      playNewExplosionSounds(explosions, heardExplosionsRef.current, { seedOnly: true })
+      return
+    }
+    playNewExplosionSounds(explosions, heardExplosionsRef.current)
+  }, [explosionKey, explosions])
+  const objectShotKey = lastObjectShot?.key
+  const objectWeapon = lastObjectShot ? getWeapon(lastObjectShot.weaponId) : null
+  const objectShotSound = objectWeapon ? weaponShotLook('player', objectWeapon, { missed: !lastObjectShot.passed }) : null
+  useEffect(() => {
+    if (!objectShotKey || !objectShotSound?.sound) return
+    const timer = setTimeout(() => playWeaponSound(objectShotSound.sound, 1, objectShotSound.injuryMode), SHOT_FIRE_MS)
+    return () => clearTimeout(timer)
+  }, [objectShotKey, objectShotSound?.sound, objectShotSound?.injuryMode])
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)

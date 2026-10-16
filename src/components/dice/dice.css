@@ -64,6 +64,11 @@
   pointer-events: none;
 }
 
+/* Not rolled yet (D20Blank): dimmed, waiting for the roll. */
+.d20.is-blank {
+  opacity: 0.55;
+}
+
 .d20.is-success {
   --d20-glow: #4fd6c4;
 }
@@ -85,4 +90,246 @@
   .d20.is-landed {
     animation: none;
   }
+}
+
+/* The roll window (RollWindow.jsx; designer reference, 2026-10-15): the conversation's old dice box, kept at that size
+   (260 game px wide, 42px dice) and made the one roll screen, centred over the game. Headings and rows follow the
+   creator (ui.css .ui-heading, .ui-row). Over the conversation box and panels, under the mission intro. */
+.roll-window-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.roll-window {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  /* One size before and after the roll, whatever is chosen (designer request, 2026-10-15: the window shouldn't grow);
+     the buttons sit at the bottom. */
+  box-sizing: border-box;
+  width: 260px;
+  height: 224px;
+  padding: 6px 10px 8px;
+  border: 1px solid #7cc4ff;
+  border-radius: 4px;
+  background: rgba(6, 12, 28, 0.96);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  font-size: 10px;
+}
+
+/* What is rolled, with the whole task math as its hover tip. */
+.roll-window-title {
+  margin: 0;
+  padding-bottom: 2px;
+  border-bottom: var(--ui-border) solid var(--panel-border);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--yellow);
+  cursor: help;
+}
+
+.roll-window-info {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 7px;
+  line-height: 9px;
+  text-transform: none;
+  vertical-align: 1px;
+}
+
+/* Up to six dice (five for the leader, one assist) on one row; long captions wrap under their die. */
+.roll-window .roll-window-dice,
+.roll-window .challenge-dice {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.roll-window .challenge-die {
+  display: flex;
+  flex: 0 1 78px;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+.roll-window .challenge-die-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.roll-window .challenge-die-owner {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+
+.roll-window-outcome {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.roll-window-outcome.is-success {
+  color: #4fd6c4;
+}
+
+.roll-window-outcome.is-failure {
+  color: #8a93a8;
+}
+
+/* One choice per row: a deep-blue bar with a coloured left edge, as the creator's list rows. */
+.roll-window-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  padding: 1px 4px;
+  background: var(--blue-deep);
+  border-left: 3px solid var(--blue);
+  border-radius: 3px;
+}
+
+.roll-window-row + .roll-window-row {
+  margin-top: 2px;
+}
+
+.roll-window-label {
+  width: 58px;
+  flex: none;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.roll-window-row .combat-button {
+  height: 14px;
+  min-height: 0;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.roll-window-count {
+  min-width: 10px;
+  text-align: center;
+}
+
+.roll-window-note {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+/* One line each, so choosing dice never changes the window's size. */
+.roll-window-need,
+.roll-window-cost {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.roll-window-need {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.roll-window-cost {
+  margin: 2px 0 0;
+  padding-left: 9px;
+  color: var(--text-muted);
+}
+
+.roll-window-cost.is-threat,
+.roll-window-summary .is-threat {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.roll-window-select {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+}
+
+.roll-window-summary {
+  margin: 0;
+  text-align: center;
+  color: var(--text);
+  cursor: help;
+}
+
+.roll-window > * {
+  flex-shrink: 0;
+}
+
+/* Authored messages give way first if a roll has more to say than the window holds (full text in the tip). */
+.roll-window > .roll-window-message {
+  flex-shrink: 1;
+  min-height: 1.2em;
+}
+
+.roll-window-message {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  margin: 0;
+  font-style: italic;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.roll-window-warning {
+  margin: 0;
+  text-align: center;
+  color: var(--red);
+}
+
+.roll-window-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.roll-window-roll {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 80px;
 }

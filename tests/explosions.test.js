@@ -1,6 +1,6 @@
 // Explosions and shots at destructible objects (world/environment.js damageObject, combat/combatEnvironment.js,
 // combat/objectAI.js, exploration/explorationEnvironment.js): blast radius against hazard radius, walls, every side
-// caught, one hit per character per chain, chain order, the queued Avoid Injury prompts and the AI keeping its own side
+// caught, one hit per character per chain, chain order, auto Stress Avoid from blasts, and the AI keeping its own side
 // out of a blast.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
@@ -114,10 +114,12 @@ describe('firing on an object in exploration', () => {
     map.markers.enemySpawns = []
     return createExplorationState(map, team(), seed)
   }
-  // The first seed whose shot destroys the cylinder.
+  // The first seed whose shot destroys the cylinder (beam first, then applyPendingObjectHit).
   function blown() {
     for (let seed = 1; seed < 100; seed += 1) {
-      const after = explorationReducer(explore(seed), { type: 'fireOnObject', memberId: 'alpha', objectId: 'g' })
+      const fired = explorationReducer(explore(seed), { type: 'fireOnObject', memberId: 'alpha', objectId: 'g' })
+      if (!fired.pendingObjectHit) continue
+      const after = explorationReducer(fired, { type: 'applyPendingObjectHit' })
       if (after.environment.destructibles.g.state === 'destroyed') return after
     }
     throw new Error('no seed destroyed the cylinder')
@@ -137,33 +139,36 @@ describe('firing on an object in exploration', () => {
     assert.equal(preview.weapon.id, 'phaserType2')
   })
 
-  it('queues an Avoid Injury prompt for each party member the blast catches, answered one at a time', () => {
+  it('auto-spends Stress for each party member the blast catches (no Avoid Injury prompt)', () => {
     const state = blown()
     assert.equal(state.environment.explosions.length, 1)
-    assert.deepEqual(state.injuryPrompts.map((prompt) => prompt.targetId), ['alpha', 'beta'])
-    assert.equal(currentInjuryPrompt(state).option.possible, true)
-    const first = explorationReducer(state, { type: 'answerInjuryPrompt', avoid: true })
-    assert.equal(currentInjuryPrompt(first).targetId, 'beta')
-    assert.ok(first.party.members.alpha.condition.stress > 0)
-    const second = explorationReducer(first, { type: 'answerInjuryPrompt', avoid: false })
-    assert.equal(currentInjuryPrompt(second), null)
-    assert.equal(second.party.members.beta.condition.defeated, true)
-    assert.equal(second.party.map.tiles[7][6], 'dsGasCylinderDestroyed', 'the world map shows the wreck')
+    assert.deepEqual(state.injuryPrompts ?? [], [])
+    assert.equal(currentInjuryPrompt(state), null)
+    assert.ok(state.party.members.alpha.condition.stress > 0)
+    assert.ok(state.party.members.beta.condition.stress > 0)
+    assert.equal(state.party.members.alpha.condition.defeated, false)
+    assert.equal(state.party.members.beta.condition.defeated, false)
+    assert.ok(state.party.members.alpha.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
+    assert.ok(state.party.members.beta.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
+    // They get up on the tile they were thrown to, not back where they stood.
+    assert.deepEqual(state.party.members.alpha.position, state.party.members.alpha.blastReact.land)
+    assert.deepEqual(state.party.members.beta.position, state.party.members.beta.blastReact.land)
+    assert.notDeepEqual(state.party.members.alpha.blastReact.from, state.party.members.alpha.blastReact.land)
+    assert.equal(state.party.map.tiles[7][6], 'dsGasCylinderDestroyed', 'the world map shows the wreck')
   })
 })
 
 describe('explosions in combat', () => {
-  it('queues one Avoid Injury prompt per party member caught', () => {
+  it('auto-spends Stress for each party member caught (no Avoid Injury prompt)', () => {
     const state = fight([{ id: 'g', type: 'gasCylinder', position: { x: 6, y: 6 } }], [{ x: 5, y: 6 }, { x: 7, y: 6 }], [{ x: 14, y: 2 }])
     const { state: after } = damageObjectInCombat(state, 'g', 10)
-    assert.equal(after.incomingInjury?.targetId, 'p1')
-    assert.deepEqual(after.injuryQueue.map((entry) => entry.targetId), ['p2'])
-    const first = combatReducer(after, { type: 'injuryDecision', avoid: true })
-    assert.equal(first.incomingInjury?.targetId, 'p2', 'the next prompt comes up')
-    assert.equal(first.injuryQueue.length, 0)
-    const second = combatReducer(first, { type: 'injuryDecision', avoid: true })
-    assert.equal(second.incomingInjury, null)
-    assert.ok(second.combatants.p1.condition.stress > 0 && second.combatants.p2.condition.stress > 0)
+    assert.equal(after.incomingInjury, null)
+    assert.deepEqual(after.injuryQueue ?? [], [])
+    assert.ok(after.combatants.p1.condition.stress > 0 && after.combatants.p2.condition.stress > 0)
+    assert.equal(after.combatants.p1.condition.defeated, false)
+    assert.equal(after.combatants.p2.condition.defeated, false)
+    assert.ok(after.combatants.p1.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
+    assert.ok(after.combatants.p2.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
   })
 
   it('the AI never fires on an object whose blast would catch its own side', () => {

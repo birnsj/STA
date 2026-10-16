@@ -127,7 +127,7 @@ Probe additions for this work (`src/dev/perfProbe.js`): timers `hazard.round`, `
 ### Milestone 2: a single explosion (dev server, 2026-10-14)
 
 An EPS Conduit placed by the editor at (8,20) on Deck 10 Brig, play-tested, shot twice by the party; the second shot
-destroys it and the blast catches a party member (the Avoid Injury prompt opens). A 3 s window around the second shot
+destroys it and the blast catches a party member (Stress is taken automatically). A 3 s window around the second shot
 against a 3 s idle window just before it, same page:
 
 | Window | fps | p95 | Worst frame | Pixi frame | `fx.explosion` per frame |

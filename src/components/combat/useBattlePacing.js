@@ -44,6 +44,9 @@ export default function useBattlePacing({
     // An Injury on a party member waits for the player's Avoid Injury choice, a new Fatigue for the attribute choice, a
     // won opposed attack for the Counterattack choice (outside Auto Combat).
     if (awaitingDecision(state) && auto === 'off') return undefined
+    // Object-shot boom is landed by Battle's pendingObjectHit timer; don't aiStep until it has (stepAI would apply it
+    // headlessly, but on screen that would race the laser).
+    if (state.pendingObjectHit) return undefined
     const effect = pacingEffect(state)
     const fresh = effect !== null && effect.key !== effectWaitedRef.current
     const delay = fresh ? Math.max(aiDelay(state), effect.waitMs) : aiDelay(state)
@@ -55,12 +58,12 @@ export default function useBattlePacing({
   }, [state, aiControlled, dispatch, helpOpen, openingDone, beamingIn, auto, speed, hasPlan, partyAI, enemyAI])
 
   // With both actions used the turn passes on by itself (to the next Ready member, else to the enemies), after a pause so
-  // the result can be read; never waiting for End Turn.
+  // the result can be read; never waiting for End Turn. Hold while an object-shot boom is still pending (laser first).
   useEffect(() => {
-    if (!turnUsedUp || helpOpen || holdingForExtra) return undefined
+    if (!turnUsedUp || helpOpen || holdingForExtra || state.pendingObjectHit) return undefined
     const timer = setTimeout(() => dispatch({ type: 'endTurn' }), autoEndMs)
     return () => clearTimeout(timer)
-  }, [turnUsedUp, helpOpen, holdingForExtra, autoEndMs, dispatch])
+  }, [turnUsedUp, helpOpen, holdingForExtra, autoEndMs, dispatch, state.pendingObjectHit])
 
   // A rolled player attack resolves on its own after a beat to read the dice, unless it would miss and a reroll is open.
   useEffect(() => {

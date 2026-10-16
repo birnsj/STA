@@ -311,36 +311,39 @@ function hazardJobs() {
 }
 
 // ---------- explosions ----------
-// The frame is side x side with the blast's tile centre at (side / 2, side * 0.7) (ExplosionFx.jsx).
+// The frame is side x side; the fireball fills most of it so scaling the sprite to the blast radius looks right
+// (ExplosionView / explosionDisplayPx). Anchor sits near the lower third (ExplosionView anchor 0.5, 0.6).
 function explosion(side) {
   const cx = side / 2
-  const cy = side * 0.7
-  const R = side * 0.36
+  const cy = side * 0.58
+  // Peak radius nearly to the frame edge so the on-board draw matches the damage footprint.
+  const R = side * 0.48
   return (x, y, f) => {
     const t = f + 0.5 / FRAMES
-    const grow = 0.25 + 0.75 * Math.sqrt(t)
+    const grow = 0.35 + 0.65 * Math.sqrt(t)
     const r = R * grow
-    const centreY = cy - r * 0.55 - t * side * 0.08
+    const centreY = cy - r * 0.2 - t * side * 0.04
     const angle = Math.atan2(y - centreY, x - cx)
     const edge = r * (0.85 + (noise(Math.cos(angle) * 3 + 10, Math.sin(angle) * 3 + t * 4, 21) - 0.5) * 0.5)
-    const d = Math.hypot(x - cx, (y - centreY) * 1.1) / edge
+    const d = Math.hypot(x - cx, (y - centreY) * 1.05) / edge
     let ball = NONE
     if (d < 1) {
-      const heat = clamp01((1 - d) * 1.6 - t * 1.1 + (noise(x / 6, y / 6 + t * 5, 23) - 0.5) * 0.5)
+      const heat = clamp01((1 - d) * 1.6 - t * 1.05 + (noise(x / 6, y / 6 + t * 5, 23) - 0.5) * 0.5)
       const colour = heat > 0.66 ? mix(hex('#ffd060'), hex('#fffbe0'), (heat - 0.66) / 0.34) : heat > 0.3 ? mix(hex('#e04a10'), hex('#ffd060'), (heat - 0.3) / 0.36) : mix(hex('#3a3430'), hex('#e04a10'), heat / 0.3)
-      ball = [...colour, (1 - smoothstep(0.8, 1, d)) * (1 - smoothstep(0.7, 1, t))]
+      ball = [...colour, (1 - smoothstep(0.75, 1, d)) * (1 - smoothstep(0.65, 1, t))]
     }
     // The shock ring on the floor, early on.
-    const ring = Math.abs(Math.hypot(x - cx, (y - cy) * 2) - side * 0.45 * Math.sqrt(t)) < side * 0.025 && t < 0.5 ? [1, 0.85, 0.6, 0.6 * (1 - t * 2)] : NONE
+    const ring = Math.abs(Math.hypot(x - cx, (y - cy) * 2) - side * 0.42 * Math.sqrt(t)) < side * 0.03 && t < 0.55 ? [1, 0.85, 0.6, 0.65 * (1 - t * 1.8)] : NONE
     return over(ball, ring)
   }
 }
 
 function explosionJobs() {
+  // Frame sizes keep the whole strip a power-of-two wide (8×256=2048, 8×512=4096) so WebGL uploads stay reliable.
   return [
-    ['small', 128],
-    ['large', 192],
-  ].map(([size, side]) => ({ file: path.join(PUBLIC, 'art/sprites/effects', `explosion-${size}.png`), draw: () => strip(side, side, 2, explosion(side)) }))
+    ['small', 128, 2],
+    ['large', 256, 2],
+  ].map(([size, side, res]) => ({ file: path.join(PUBLIC, 'art/sprites/effects', `explosion-${size}.png`), draw: () => strip(side, side, res, explosion(side)) }))
 }
 
 const jobs = [...(wanted('destructibles') ? destructibleJobs() : []), ...(wanted('hazards') ? hazardJobs() : []), ...(wanted('explosions') ? explosionJobs() : [])]

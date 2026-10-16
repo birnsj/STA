@@ -18,11 +18,25 @@ import {
   npcCategoryName,
   takeHit,
 } from '../rules/personalCondition.js'
+import { tileKey } from './battleMap.js'
+import { blastFaceOrigin, blastThrow, isExplosionInjury } from '../rules/appearance.js'
 import { updateCombatant, withStats } from './combatLog.js'
 import { getTurnOf, knowsAbout, statusText } from './combatSelectors.js'
 import { talentSeverityLines } from './combatTalents.js'
 import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
 import { getCombatantWeapon } from './weaponSystem.js'
+
+// After the fall / getUp stagger has finished (presentation). Walk interpolation keys off blastReact, so it must go.
+// Face the explosive that threw them.
+export function clearBlastReact(state, id) {
+  const combatant = state.combatants[id]
+  if (!combatant?.blastReact) return state
+  const injury = combatant.blastReact.injury
+  return updateCombatant(state, id, {
+    blastReact: null,
+    ...(injury ? { facing: blastFaceOrigin(injury, id) } : {}),
+  })
+}
 
 // The Injury a successful hit with this weapon would inflict on this target: the weapon's severity, plus the attacker's
 // talents (combatTalents.js) and severity bought with Momentum (hook), less the target's Protection (minimum 1).
@@ -83,6 +97,25 @@ function nextQueuedInjury(state) {
   return { state: next, lines }
 }
 
+// Tiles other standing combatants occupy (blast landing must not stack onto them).
+function occupiedCombatKeys(state, exceptId) {
+  return new Set(
+    Object.values(state.combatants)
+      .filter((other) => other.id !== exceptId && !other.fled && !other.condition?.defeated)
+      .map((other) => tileKey(other.position)),
+  )
+}
+
+// Move a combatant to the tile a blast throws them to (get up / lie where they land). Facing looks at the explosive.
+function thrownCombatant(state, combatant, injury) {
+  const throw_ = blastThrow(state.map, injury, combatant.id, occupiedCombatKeys(state, combatant.id))
+  if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, combatant.id) }
+  const react = { injury, from: throw_.from, land: throw_.land }
+  const facing = { ...throw_.look }
+  if (throw_.land.x === throw_.from.x && throw_.land.y === throw_.from.y) return { blastReact: react, facing }
+  return { position: { ...throw_.land }, facing, blastReact: react }
+}
+
 function resolveOneInjury(state, incoming, avoid) {
   const { targetId, injury, option } = incoming
   const target = state.combatants[targetId]
@@ -90,7 +123,11 @@ function resolveOneInjury(state, incoming, avoid) {
   let next = { ...state }
   if (avoid && option.possible) {
     const avoided = avoidInjury(target.character, target.condition, injury, option.kind)
-    next = updateCombatant(next, targetId, { condition: avoided.condition })
+    // Blast Stress Avoid: stagger fall + get-up on the landing tile (unitPose / FigureView).
+    next = updateCombatant(next, targetId, {
+      condition: avoided.condition,
+      ...(isExplosionInjury(injury) ? thrownCombatant(next, target, injury) : {}),
+    })
     if (option.kind === 'threat') {
       next = {
         ...next,
@@ -124,7 +161,8 @@ function resolveOneInjury(state, incoming, avoid) {
     return { state: next, lines, avoided: true }
   }
   const condition = takeHit(target.character, target.condition, injury)
-  next = updateCombatant(next, targetId, { condition, inCover: false, guard: null })
+  const thrown = isExplosionInjury(injury) ? thrownCombatant(next, target, injury) : { blastReact: null }
+  next = updateCombatant(next, targetId, { condition, inCover: false, guard: null, ...thrown })
   const minor = !condition.injuries.includes(injury)
   next = withStats(next, (stats) => {
     stats.byCombatant[targetId].injuriesSuffered += 1
@@ -161,8 +199,9 @@ export const injuryDefeats = (state, target, injury) => !avoidOptionFor(state, t
 
 // A hit lands: the target either decides (party members: the player, through state.incomingInjury and the
 // injuryDecision action) or the decision is made now (no choice possible, or an AI-controlled character through
-// combat/injuryPolicy.js). Returns { state, lines }.
-export function inflictInjury(state, attackerId, targetId, injury) {
+// combat/injuryPolicy.js). Options: { autoAvoid: true } — designer 2026-10-15: blasts and hazards spend Stress (or Threat)
+// when Avoid Injury is possible, with no prompt; weapon hits still ask. Returns { state, lines }.
+export function inflictInjury(state, attackerId, targetId, injury, { autoAvoid = false } = {}) {
   const target = state.combatants[targetId]
   const option = avoidOptionFor(state, target, injury)
   const incoming = { targetId, attackerId, injury, option }
@@ -170,6 +209,10 @@ export function inflictInjury(state, attackerId, targetId, injury) {
   if (!option.possible) {
     if (option.reason) lines.push(`Cannot Avoid Injury: ${option.reason}`)
     const resolved = resolveInjury(state, incoming, false)
+    return { state: resolved.state, lines: [...lines, ...resolved.lines] }
+  }
+  if (autoAvoid) {
+    const resolved = resolveInjury(state, incoming, true)
     return { state: resolved.state, lines: [...lines, ...resolved.lines] }
   }
   if (controllerFor(target).answersPrompts(target)) {

@@ -1,13 +1,13 @@
 // Destructible objects and hazards in a fight (world/environment.js). state.environment is the fight's copy of the
 // world's environment (WorldEncounter.js hands it in and takes it back); state.map shows each object's tile and what smoke
-// hides. Blasts and hazards hurt through the normal Injury rules (combatInjuries.js inflictInjury): party members get an
-// Avoid Injury prompt each (queued), everyone else decides through injuryPolicy.js.
+// hides. Blasts and hazards hurt through combatInjuries.js inflictInjury with autoAvoid: when Avoid Injury is possible,
+// Stress (or Threat) is spent immediately — no prompt (designer 2026-10-15). Weapon hits still ask as usual.
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { getAttackTaskSpec, getCombatantWeapon, getRangeModifier } from './weaponSystem.js'
 import { canTakeCover } from './coverSystem.js'
 import { getAttackTask } from './combatAttacks.js'
 import { inflictInjury } from './combatInjuries.js'
-import { updateCombatant } from './combatLog.js'
+import { addLog, updateCombatant } from './combatLog.js'
 import { canAfford, isActive } from './combatSelectors.js'
 import { countHazards } from '../dev/hazardPerf.js'
 import { perfEnd, perfOff, perfStart } from '../dev/perfProbe.js'
@@ -42,7 +42,7 @@ export function applyEnvironmentHits(state, hits) {
     if (!target || !isActive(target)) return
     const injury = injuryFromHit(target.character, hit, `${state.seed}-${state.log.length}-env${index}-${target.id}`)
     lines.push(`${target.character.name} is ${hitText(hit)}.`)
-    const result = inflictInjury(next, null, target.id, injury)
+    const result = inflictInjury(next, null, target.id, injury, { autoAvoid: true })
     next = result.state
     lines.push(...result.lines)
   })
@@ -54,6 +54,20 @@ function applyResult(state, result) {
   const placed = refreshCover({ ...state, environment: result.environment, map: result.map }, state.map)
   const applied = applyEnvironmentHits(placed, result.hits)
   return { state: applied.state, lines: [...result.lines, ...applied.lines] }
+}
+
+// Apply a deferred object shot after the beam has played (AttackObjectAction sets pendingObjectHit).
+export function applyPendingObjectHit(state) {
+  const pending = state.pendingObjectHit
+  if (!pending) return state
+  const before = state.environment?.explosions ?? []
+  const hit = damageObjectInCombat({ ...state, pendingObjectHit: null }, pending.objectId, pending.damage)
+  let next = hit.lines.length ? addLog(hit.state, hit.lines) : hit.state
+  const explosions = (next.environment?.explosions ?? []).filter((blast) => !before.includes(blast)).map((blast) => blast.id)
+  if (next.lastAction?.type === 'attackObject' && next.lastAction.key === pending.key) {
+    next = { ...next, lastAction: { ...next.lastAction, explosions, awaiting: Boolean(next.incomingInjury) } }
+  }
+  return next
 }
 
 // Structure damage to an object (a shot, a hazard), with any explosions it sets off. Returns { state, lines }.

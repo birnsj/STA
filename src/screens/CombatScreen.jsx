@@ -374,6 +374,14 @@ export function Battle({
     return () => window.removeEventListener('keydown', onKey)
   }, [mode])
 
+  // Object shot: laser first, then Structure / explosion after the beam lands.
+  const pendingObjectHit = state.pendingObjectHit
+  useEffect(() => {
+    if (!pendingObjectHit) return undefined
+    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs / speed)
+    return () => clearTimeout(timer)
+  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, speed, dispatch])
+
   const cycleWeapon = () => {
     const index = active.weaponIds.indexOf(weapon.id)
     setWeaponIds({ ...weaponIds, [active.id]: active.weaponIds[(index + 1) % active.weaponIds.length] })
@@ -511,6 +519,7 @@ export function Battle({
             if (!isPlayerTurn) return
             setRingId(ringId === `destructible:${objectId}` ? null : `destructible:${objectId}`)
           }}
+          onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
         />
       </PerfProfiler>
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />

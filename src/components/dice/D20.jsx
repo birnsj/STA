@@ -26,7 +26,17 @@ export default function D20({ value, verdict, size = 32, speed = 1, delay = 0 })
     return () => clearTimeout(timer)
   }, [landed, delay, speed])
 
-  const style = {
+  const style = dieStyle(size, speed, delay)
+  if (!landed) return <span className="d20 is-rolling" style={style} role="img" aria-label="Rolling" />
+  return (
+    <span className={`d20 is-landed is-${verdict}`} style={style} role="img" aria-label={`Rolled ${value}`}>
+      <DieFaceText text={value} />
+    </span>
+  )
+}
+
+function dieStyle(size, speed = 1, delay = 0) {
+  return {
     '--d20-image': `url(${sprite.image})`,
     '--d20-size': `${size}px`,
     '--d20-columns': sprite.landedFrame + 1,
@@ -35,13 +45,22 @@ export default function D20({ value, verdict, size = 32, speed = 1, delay = 0 })
     '--d20-tumble': `${ROLL_MS / speed}ms`,
     '--d20-delay': `${delay}ms`,
   }
-  if (!landed) return <span className="d20 is-rolling" style={style} role="img" aria-label="Rolling" />
+}
+
+function DieFaceText({ text }) {
   const [x, y] = sprite.faceCentre
   return (
-    <span className={`d20 is-landed is-${verdict}`} style={style} role="img" aria-label={`Rolled ${value}`}>
-      <span className="d20-value" style={{ left: `${x * 100}%`, top: `${y * 100}%` }}>
-        {value}
-      </span>
+    <span className="d20-value" style={{ left: `${x * 100}%`, top: `${y * 100}%` }}>
+      {text}
+    </span>
+  )
+}
+
+// A die not rolled yet (the roll window before the roll): the landed face with no number, no sound and no glow.
+export function D20Blank({ size = 32 }) {
+  return (
+    <span className="d20 is-blank" style={dieStyle(size)} role="img" aria-label="Not rolled yet">
+      <DieFaceText text="?" />
     </span>
   )
 }

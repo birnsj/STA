@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { playRollResultSound } from '../../audio/uiSounds.js'
 import { getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { getMembers } from '../../exploration/partyControl.js'
 import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { isDefeated } from '../../rules/personalCondition.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
 import { challengeFor } from '../../exploration/challengeObjects.js'
-import { criticalText, dieVerdict, formulaText } from '../task/taskText.js'
-import D20, { ROLL_MS } from '../dice/D20.jsx'
+import { criticalText, formulaText } from '../task/taskText.js'
+import RolledDice from '../dice/RolledDice.jsx'
+import { PreRollWindow, ResultWindow } from '../dice/RollWindow.jsx'
 import {
   TaskBlockers,
   TaskDevDetails,
@@ -63,39 +62,18 @@ export function CharacterMath({ performer, prepared, assist, assistant, action }
   )
 }
 
-// Each die after the first starts its tumble a little later, so they land one by one.
-const DIE_STAGGER_MS = 120
-
-function Die({ die, index, size, label = null }) {
-  const verdict = dieVerdict(die)
-  return (
-    <div className={`challenge-die is-${verdict.kind}`}>
-      <D20 value={die.value} verdict={verdict.kind} size={size} delay={index * DIE_STAGGER_MS} />
-      <span className="challenge-die-tag">{verdict.text}</span>
-      {label && <span className="challenge-die-owner">{label}</span>}
-    </div>
-  )
-}
-
-// Each die rolled and what it scored, the assistant's last. dieSize: px (smaller above an object's ring). The success or
-// failure sound plays as the last die lands.
-export function RolledDice({ result, performer, assistant, dieSize = 42 }) {
-  const dieCount = result.dice.length + (result.assist ? 1 : 0)
-  const { success } = result
-  useEffect(() => {
-    const timer = setTimeout(() => playRollResultSound(success), (dieCount - 1) * DIE_STAGGER_MS + ROLL_MS)
-    return () => clearTimeout(timer)
-  }, [success, dieCount])
-  return (
-    <div className="challenge-dice">
-      {result.dice.map((die, index) => (
-        <Die key={`d${index}`} die={die} index={index} size={dieSize} label={firstName(performer)} />
-      ))}
-      {result.assist && (
-        <Die die={result.assist} index={result.dice.length} size={dieSize} label={`${firstName(assistant)} (TN ${result.assist.targetNumber})`} />
-      )}
-    </div>
-  )
+// Who may assist the approach (its authored assist approaches): every other member within reach, each with the
+// approach that gives them the highest target number.
+function assistOptionsFor(state, challenge, actionId, performerId, inRangeIds) {
+  const approaches = challenge.action(actionId)?.assist ?? []
+  if (!approaches.length) return []
+  return inRangeIds
+    .filter((id) => id !== performerId)
+    .map((id) => {
+      const choices = approaches.map((_, assistIndex) => ({ assistIndex, assist: challenge.preview(state, { actionId, performerId, assistantId: id, assistIndex }).assist }))
+      const best = choices.reduce((top, choice) => (choice.assist.task.targetNumber > top.assist.task.targetNumber ? choice : top))
+      return { id, member: state.party.members[id], ...best }
+    })
 }
 
 // What happened: the task as rolled, each die and what it scored, the count against the Difficulty, Momentum and
@@ -155,14 +133,16 @@ export function TaskResultView({ lastTask, performer, assistant, showDice = true
   )
 }
 
-// The stats and log of one challenge-object approach: the math before the roll, then the result. The object's ring
-// picks the approach and its party band who attempts it (pickedPerformerId; else the best within reach); there is no
-// assist and no bought dice. UI state only; the attempt itself is the 'challenge' action.
+// The stats of one challenge-object approach. The object's ring picks the approach and its party band who attempts it
+// (pickedPerformerId; else the best within reach). A roll happens in the roll window (designer request, 2026-10-15):
+// the ring's Roll opens it, the assist and bought dice are chosen there, and it shows the result until Continue, which
+// closes the panel too. A routine action happens at once and its result shows here. UI state only; the attempt itself
+// is the 'challenge' action.
 // onRecommend(recommendation | null): who is best at the approach, for the party cards to highlight.
 // dev: show the raw task details (debug). initialActionId: the approach picked on the object's ring. onClose: the
 // panel is done, from Close or by itself once a result has been shown.
-// rollSlot: the element of the slot above the object's ring, where the dice go; with it the attempt is the ring's Roll
-// arc (onRollChange), without it the Attempt button stays in the panel. onActionChange(actionId | null): the approach
+// rollSlot: the slot above the object's ring; with it the attempt is the ring's Roll arc (onRollChange), without it
+// the Attempt button stays in the panel. onActionChange(actionId | null): the approach
 // shown changed. onRollChange({ icon, label, title, enabled, onClick } | null): the ring's Roll arc, once a member
 // within reach is picked.
 export default function ChallengePanel({
@@ -180,6 +160,8 @@ export default function ChallengePanel({
 }) {
   const [actionId] = useState(initialActionId)
   const [resultKey, setResultKey] = useState(null)
+  // UI state: the roll window is open before the roll.
+  const [rolling, setRolling] = useState(false)
 
   const { scenario } = state
   // A hazard's Neutralize task (world/EnvironmentalHazard.js) is gone once it succeeds: the panel keeps the one it
@@ -194,6 +176,7 @@ export default function ChallengePanel({
   const inRangeIds = challenge.membersInRange(state.party).map((member) => member.id)
   const action = challenge.action(actionId)
   const showingResult = resultKey !== null && state.lastTask?.key === resultKey
+  const rolledResult = showingResult && Boolean(state.lastTask.result)
 
   const recommendation = useMemo(() => {
     if (showingResult) return null
@@ -220,11 +203,12 @@ export default function ChallengePanel({
   useEffect(() => {
     onCloseRef.current = onClose
   })
+  // A rolled result waits in the roll window for Continue instead.
   useEffect(() => {
-    if (!showingResult || hovered) return undefined
+    if (!showingResult || rolledResult || hovered) return undefined
     const timer = setTimeout(() => setFading(true), RESULT_HOLD_MS)
     return () => clearTimeout(timer)
-  }, [showingResult, hovered])
+  }, [showingResult, rolledResult, hovered])
   useEffect(() => {
     if (!fading) return undefined
     const timer = setTimeout(() => onCloseRef.current(), RESULT_FADE_MS)
@@ -236,9 +220,14 @@ export default function ChallengePanel({
   }
   const fadeClass = fading ? ' is-fading' : ''
 
-  const attempt = () => {
+  const roll = ({ assistantId, assistIndex, purchase }) => {
+    setRolling(false)
     setResultKey(scenario.taskCount)
-    dispatch({ type: 'challenge', objectId, actionId, performerId: performer.id, assistantId: null, assistIndex: 0, purchase: { bonusDice: 0, momentum: 0 } })
+    dispatch({ type: 'challenge', objectId, actionId, performerId: performer.id, assistantId, assistIndex, purchase })
+  }
+  const attempt = () => {
+    if (action.routine) roll({ assistantId: null, assistIndex: 0, purchase: { bonusDice: 0, momentum: 0 } })
+    else setRolling(true)
   }
   const attemptRef = useRef(attempt)
   useEffect(() => {
@@ -247,7 +236,7 @@ export default function ChallengePanel({
 
   const impossible = Boolean(preview?.prepared && !preview.prepared.possible)
   const attemptButton = action && (
-    <button type="button" className="combat-button is-small is-primary" disabled={showingResult || !performer || impossible} onClick={attempt}>
+    <button type="button" className="combat-button is-small is-primary" disabled={showingResult || rolling || !performer || impossible} onClick={attempt}>
       {action.routine ? action.label : `Attempt (roll ${TASK_DICE}d20)`}
     </button>
   )
@@ -255,7 +244,7 @@ export default function ChallengePanel({
   // The ring's Roll arc: only once someone within reach is picked on its party band.
   const routine = Boolean(action?.routine)
   const ringReady = Boolean(action) && inRangeIds.includes(pickedPerformerId)
-  const rollEnabled = ringReady && !showingResult && !impossible
+  const rollEnabled = ringReady && !showingResult && !rolling && !impossible
   const performerName = performer?.character.name
   const rollTitle = !ringReady
     ? null
@@ -269,34 +258,41 @@ export default function ChallengePanel({
     onRollChange(ringReady ? { icon: routine ? 'check' : 'roll', label: routine ? actionName : null, title: rollTitle, enabled: rollEnabled, onClick: () => attemptRef.current() } : null)
   }, [ringReady, routine, actionName, rollTitle, rollEnabled, onRollChange])
   useEffect(() => () => onRollChange(null), [onRollChange])
-  const lastRoll = showingResult ? state.lastTask : null
-  const ringRoll =
-    rollSlot &&
-    createPortal(
-      <div className={`ring-roll${fadeClass}`} onPointerDown={(event) => event.stopPropagation()}>
-        {lastRoll?.result && (
-          <div className="ring-roll-dice">
-            <RolledDice
-              result={lastRoll.result}
-              performer={state.party.members[lastRoll.performerId]}
-              assistant={lastRoll.assistantId ? state.party.members[lastRoll.assistantId] : null}
-              dieSize={18}
-            />
-            <p className={`ring-roll-outcome ${lastRoll.result.success ? 'is-success' : 'is-failure'}`}>{lastRoll.result.success ? 'Success' : 'Failure'}</p>
-          </div>
-        )}
-      </div>,
-      rollSlot,
+  const lastTask = state.lastTask
+  const rollWindow = rolledResult ? (
+    <ResultWindow
+      key={lastTask.key}
+      title={action?.label ?? definition.name}
+      lastTask={lastTask}
+      performer={state.party.members[lastTask.performerId]}
+      assistant={lastTask.assistantId ? state.party.members[lastTask.assistantId] : null}
+      onContinue={onClose}
+    />
+  ) : (
+    rolling &&
+    performer &&
+    preview?.prepared && (
+      <PreRollWindow
+        title={action.label}
+        performer={performer}
+        prepared={preview.prepared}
+        assistOptions={assistOptionsFor(state, challenge, actionId, performer.id, inRangeIds)}
+        resources={state.resources}
+        onRoll={roll}
+        onCancel={() => setRolling(false)}
+      />
     )
+  )
 
   return (
+    <>
+    {rollWindow}
     <div
       className={`combat-panel challenge-panel is-docked${fadeClass}`}
       onPointerDown={(event) => event.stopPropagation()}
       onPointerEnter={holdOpen}
       onPointerLeave={() => setHovered(false)}
     >
-      {ringRoll}
       <div className="challenge-body">
         <h3>{definition.name}</h3>
         <p className="challenge-state">
@@ -312,7 +308,7 @@ export default function ChallengePanel({
               lastTask={state.lastTask}
               performer={state.party.members[state.lastTask.performerId]}
               assistant={state.lastTask.assistantId ? state.party.members[state.lastTask.assistantId] : null}
-              showDice={!rollSlot}
+              showDice={false}
             />
             {dev && state.lastTask.prepared && (
               <TaskDevDetails
@@ -368,5 +364,6 @@ export default function ChallengePanel({
         </button>
       </div>
     </div>
+    </>
   )
 }

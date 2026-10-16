@@ -103,6 +103,18 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
                 onChange={(event) => onChangeDisplay({ ...displaySettings, missionOutro: event.target.checked })}
               />
             </label>
+            <label className="settings-toggle">
+              <span className="settings-toggle-text">
+                <span className="settings-slider-label">Tooltips</span>
+                <span className="settings-option-description">Resting the pointer on a button, icon or value shows a box explaining it.</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={displaySettings.tooltips}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, tooltips: event.target.checked })}
+              />
+            </label>
           </div>
         </section>
         <section className="settings-section" aria-labelledby="settings-audio">

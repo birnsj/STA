@@ -5,7 +5,7 @@
     "PLACEHOLDER NUMBERS (designer: use placeholders, tune later): severity, spreadChance and dissipateChance (percent per tile per round), damagesObjects (Structure a destructible next to the tile loses each round, ignoring Resistance) and every neutralize task.",
     "Spreading: each tile at intensity 2 or more may spread to each open orthogonal neighbour (not a solid tile) at one less intensity. Dissipating: each tile may lose 1 intensity; at 0 it is gone.",
     "neutralize: the Challenge action that puts the whole hazard out, offered on the hazard's ring through the usual challenge roll (world/EnvironmentalHazard.js); hazards are never challenge objects in the scenario (docs/performance.md). Any authored challenge outcome can also put one out with the neutralizeHazard effect.",
-    "layer (implementation detail): floor hazards are drawn under the figures, air hazards (smoke, toxic gas, steam) over them, depth-sorted so walls in front still hide them.",
+    "layer (implementation detail): floor and air hazards both sort in the depth layer among the blocks and figures (floor just above the block on its tile, air above that), so a wall or crate in front hides them and fire in front of a crate sits on top of it.",
     "movement (PROTOTYPE, placeholder, designer request 2026-10-14 to approve): slow: a tile costs double movement in combat and halves walking speed in exploration.",
     "A region on the map may set duration (hazard rounds it lasts; empty: until it dissipates), spread (false: never spreads), active (false: placed but not yet acting) and neutralizable (false: no Neutralize task)."
   ],

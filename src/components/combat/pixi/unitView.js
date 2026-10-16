@@ -2,6 +2,7 @@ import { Container, Graphics, GraphicsPath } from 'pixi.js'
 import { FigureView } from '../../maps/pixi/figures.js'
 import { dashedEllipse, makeLabel, placeLabel } from '../../maps/pixi/pixiDraw.js'
 import { reducedMotion } from '../../maps/pixi/pixiStage.js'
+import { explosionKnockback, explosionKnockbackFromReact, getSpriteAnimation, getSpriteSetById, getUpAnimation } from '../../../rules/appearance.js'
 import { advancePose, initialPose, poseInput, settlePose, shownPose } from '../unitPose.js'
 import { LABEL_Y, POINTS_Y } from '../battlefieldShared.js'
 
@@ -109,30 +110,98 @@ export class UnitView {
   }
 
   // unit is a new object only when the board re-renders, so the pose's input and the badges are looked at then; the
-  // clocks (pose, walk, cover pop) run every frame.
+  // clocks (pose, walk, cover pop) run every frame. Always set shown.pose before FigureView.update — without it,
+  // FigureView runs exploration blast stagger and fights this track.
   update(unit, now, revealed) {
     const changed = unit !== this.unit
     if (changed) {
       this.unit = unit
-      this.shown = { ...unit }
       const input = poseInput(unit.combatant, unit.poseOptions)
-      this.track = this.track ? advancePose(this.track, input, now) : initialPose(input)
+      const before = this.track
+      this.track = advancePose(this.track ?? initialPose(input), input, now)
+      if (this.track.staggerFall && this.track.staggerFall !== before?.staggerFall) {
+        this.track = { ...this.track, oneShotUntil: null }
+        this.armSheet = 'fall'
+        this.armWaitFrom = now
+      }
       this.updateBadges(unit)
       this.selected.visible = unit.selected
     }
-    const track = settlePose(this.track, now)
-    if (changed || track !== this.track || !this.shown.pose) {
-      this.track = track
-      this.shown.pose = shownPose(track, { inCover: unit.combatant.inCover, isWalking: unit.isWalking })
+    const { combatant } = unit
+    const beforeSettle = this.track
+    let track = settlePose(this.track, now)
+    // Always arm getUp when it starts so the one-shot waits on the getup sheet and restarts from frame 0.
+    if (track.gettingUp && track.gettingUp !== beforeSettle?.gettingUp) {
+      track = { ...track, oneShotUntil: null }
+      this.armSheet = 'getup'
+      this.armWaitFrom = now
     }
-    this.shown.centre = this.walkedCentre(unit, now)
+    // Sheet never arrived: fall → still try getUp; getUp → stand so walk resumes.
+    if (this.armSheet && this.armWaitFrom != null && now - this.armWaitFrom > 8000) {
+      if (this.armSheet === 'fall') {
+        track = { ...track, staggerFall: null, staggerDown: null, gettingUp: getUpAnimation(), oneShotUntil: null }
+        this.armSheet = 'getup'
+        this.armWaitFrom = now
+      } else {
+        track = { ...track, gettingUp: null, staggerDown: null, staggerFall: null, oneShotUntil: null }
+        this.armSheet = null
+        this.armWaitFrom = null
+        unit.onStaggerDone?.()
+      }
+    }
+    // Finished getUp (not interrupted by a new blast stagger).
+    if (beforeSettle?.gettingUp && !track.gettingUp && !track.staggerFall && !track.staggerDown) {
+      this.armWaitFrom = null
+      unit.onStaggerDone?.()
+    }
+    this.track = track
+    this.shown = {
+      ...unit,
+      centre: this.walkedCentre(unit, now),
+      blastReact: combatant.blastReact,
+      knockback: combatant.blastReact
+        ? explosionKnockbackFromReact(combatant.blastReact, combatant.id)
+        : combatant.condition?.defeated
+          ? explosionKnockback(combatant.condition, combatant.id)
+          : null,
+      pose: shownPose(track, { inCover: combatant.inCover, isWalking: unit.isWalking }),
+    }
     this.figure.update(this.shown, now, revealed)
+    this.armWaitingClock(unit, now)
+    // Arming bumps playKey — refresh the pose so the one-shot restarts from frame 0.
+    if (this.track !== track) {
+      this.shown.pose = shownPose(this.track, { inCover: combatant.inCover, isWalking: unit.isWalking })
+      this.figure.update(this.shown, now, revealed)
+    }
     this.updateCover(unit.cover, now)
   }
 
+  // Start a paused fall / getUp one-shot once its sheet can draw.
+  armWaitingClock(unit, now) {
+    if (!this.armSheet || !this.track) return
+    const set = getSpriteSetById(unit.combatant.character?.portrait?.spriteSet)
+    if (!set) return
+    const colour = this.shown.colour
+    // Keep asking — preload alone is not enough if the board mounted mid-blast.
+    this.figure.sheets.sheet(set, this.armSheet, colour)
+    if (!this.figure.sheets.loaded(set, this.armSheet, colour)) return
+    const anim = this.armSheet === 'fall' ? this.track.staggerFall : this.track.gettingUp
+    if (!anim) return
+    const ms = (getSpriteAnimation(anim).seconds * 1000) / (unit.speed || 1)
+    this.track = { ...this.track, oneShotUntil: now + ms, playKey: this.track.playKey + 1 }
+    this.armWaitFrom = null
+    this.armSheet = null
+  }
+
   // Where the figure stands now: gliding to a new tile in a straight line over msPerTile, as the board steps it along its path a tile at a time.
+  // A blast throw already plays its own slide (figures.js); snap only while that anim is running so walk works again after.
   walkedCentre(unit, now) {
     const to = unit.centre
+    const blasting = Boolean(this.track?.staggerFall || this.track?.staggerDown || this.track?.gettingUp)
+    if (blasting) {
+      this.walk = { from: to, to, startedAt: now, ms: 0 }
+      return to
+    }
     const walk = this.walk
     if (!walk) this.walk = { from: to, to, startedAt: now, ms: 0 }
     else if (walk.to.x !== to.x || walk.to.y !== to.y) this.walk = { from: this.centreAt(now), to, startedAt: now, ms: unit.msPerTile }

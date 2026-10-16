@@ -265,6 +265,47 @@ export function playWeaponSound(soundId, speed = 1, injuryMode = null) {
   withRunningContext((audio) => play(audio, PHASER_SECONDS / speed, injuryMode))
 }
 
+// A destructible object's blast (world/environment.js explosions). Kind only changes the sound for now; the flipbook is
+// still small/large by radius (designer request 2026-10-15). Radius 0–6 scales loudness and length a little.
+const EXPLOSION_GAIN = 0.2
+const EXPLOSION_KINDS = {
+  plasma: { crackle: 0.55, thump: 90, crackleHz: 3200, length: 0.38 },
+  conventional: { crackle: 0.7, thump: 70, crackleHz: 1800, length: 0.42 },
+  electrical: { crackle: 0.45, thump: 110, crackleHz: 4000, length: 0.32 },
+  gas: { crackle: 0.35, thump: 85, crackleHz: 1400, length: 0.48 },
+  chemical: { crackle: 0.5, thump: 75, crackleHz: 2200, length: 0.4 },
+  debris: { crackle: 0.65, thump: 55, crackleHz: 900, length: 0.5 },
+}
+
+function playExplosion(audio, kind, radius) {
+  const mode = EXPLOSION_KINDS[kind] ?? EXPLOSION_KINDS.conventional
+  const scale = 0.75 + 0.08 * Math.min(6, Math.max(0, radius ?? 1))
+  const length = mode.length * scale
+  const start = audio.currentTime + LOOKAHEAD_S
+  const peak = EXPLOSION_GAIN * scale * level
+
+  const thump = audio.createOscillator()
+  const thumpGain = audio.createGain()
+  thump.type = 'sine'
+  thump.frequency.setValueAtTime(mode.thump, start)
+  thump.frequency.exponentialRampToValueAtTime(28, start + length * 0.7)
+  thumpGain.gain.setValueAtTime(0, start)
+  thumpGain.gain.linearRampToValueAtTime(peak, start + 0.008)
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, start + length)
+  thump.connect(thumpGain).connect(audio.destination)
+  thump.start(start)
+  thump.stop(start + length + 0.02)
+
+  playNoiseBurst(audio, { start, length: length * 0.55, gain: EXPLOSION_GAIN * mode.crackle * scale, filterType: 'bandpass', frequency: mode.crackleHz, q: 0.7 })
+  playNoiseBurst(audio, { start: start + 0.02, length: length * 0.35, gain: EXPLOSION_GAIN * 0.35 * scale, filterType: 'lowpass', frequency: 400 })
+}
+
+// kind: destructibles.json explosionKinds; radius: blast tiles (Chebyshev).
+export function playExplosionSound(kind, radius = 1) {
+  if (level === 0) return
+  withRunningContext((audio) => playExplosion(audio, kind, radius))
+}
+
 // A death: a voice-like "aagh" falling away (a wavering sawtooth through two vowel formants), then the body hitting the
 // floor (a thump plus a mid-range slap of noise). The formants and slap keep it audible on laptop speakers, which drop
 // most of a low thump.

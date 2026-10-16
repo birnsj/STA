@@ -1,27 +1,28 @@
-import { Container, Sprite } from 'pixi.js'
+import { Sprite } from 'pixi.js'
 import { perfCount, perfEnd, perfOff, perfStart } from '../../../dev/perfProbe.js'
 import { project } from '../../../maps/iso.js'
 import { activeHazards, HAZARD_TYPES, parseKey } from '../../../world/environment.js'
 import { HAZARD_FRAME, HAZARD_FRAMES, hazardStrip } from '../environmentArt.js'
 import { stripFrames } from './effectTextures.js'
 
-// Every active hazard tile (world/environment.js) as a looping flipbook sprite, for any Pixi board. Floor hazards lie
-// in the ground layer under the figures and blocks; air hazards (hazards.json layer 'air': smoke, gas, steam) sort in
-// the depth layer just in front of their tile, so a wall in front still hides them. Sprites are built only when
-// environment.hazards changes (a hazard round, a blast, a neutralize, an editor edit) and go back to a free list when
-// their tile goes; each frame only swaps a texture when its frame index changes and hides what is off screen.
-// Presentation only.
+// Every active hazard tile (world/environment.js) as a looping flipbook sprite, for any Pixi board. Both floor hazards
+// (fire, plasma, …) and air hazards (smoke, gas, steam) sort in the depth layer among the blocks and figures: a crate
+// or wall in front of a fire tile covers it, and fire in front of a crate sits on top of it (designer report 2026-10-15:
+// floor fire under the whole depth layer was buried by crates in front and looked sunk). Air stays a little in front of
+// floor on the same tile so smoke still reads over flames. Sprites are built only when environment.hazards changes (a
+// hazard round, a blast, a neutralize, an editor edit) and go back to a free list when their tile goes; each frame only
+// swaps a texture when its frame index changes and hides what is off screen. Presentation only.
 
 // Each tile is shifted by whole frames so neighbours don't flicker in lockstep.
 const shiftOf = (position) => (position.x * 7 + position.y * 13) % HAZARD_FRAMES
 const loopMs = (type) => (HAZARD_TYPES[type]?.loopSeconds ?? 1) * 1000
 // Stronger hazards are more opaque; air hazards stay see-through enough to read the figures inside.
 const alphaOf = (air, intensity) => (air ? 0.35 + 0.15 * intensity : 0.4 + 0.2 * intensity)
+// Depth among blocks (x+y) and figures (x+y+0.5): floor fire just above the block on its tile, air above that.
+const depthOf = (position, air) => position.x + position.y + (air ? 0.6 : 0.2)
 
 export class HazardLayer {
-  constructor({ groundLayer, depthLayer }) {
-    this.floor = new Container()
-    groundLayer.addChild(this.floor)
+  constructor({ depthLayer }) {
     this.depthLayer = depthLayer
     this.entries = new Map()
     this.free = []
@@ -85,7 +86,7 @@ export class HazardLayer {
         entry.y = centre.y
         entry.sprite.position.set(centre.x, centre.y)
         entry.sprite.alpha = alphaOf(air, region.tiles[key])
-        if (air) entry.sprite.zIndex = position.x + position.y + 0.6
+        entry.sprite.zIndex = depthOf(position, air)
       }
     }
     for (const [id, entry] of this.entries) {
@@ -99,7 +100,7 @@ export class HazardLayer {
     const sprite = this.free.pop() ?? new Sprite()
     sprite.anchor.set(0.5, 0.75)
     sprite.renderable = false
-    ;(air ? this.depthLayer : this.floor).addChild(sprite)
+    this.depthLayer.addChild(sprite)
     return { sprite, air, type: null, frame: -1, shift: 0, x: 0, y: 0 }
   }
 
@@ -114,6 +115,5 @@ export class HazardLayer {
     for (const sprite of this.free) sprite.destroy()
     this.entries.clear()
     this.free = []
-    this.floor.destroy()
   }
 }

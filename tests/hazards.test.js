@@ -125,12 +125,13 @@ describe('hazards in exploration', () => {
     assert.equal(stopped.environment.hazards.f.spread, false)
   })
 
-  it('a hazard round passes every HAZARD_ROUND_SECONDS of world time; the member standing in it is asked', () => {
+  it('a hazard round passes every HAZARD_ROUND_SECONDS of world time; the member standing in it takes Stress', () => {
     let state = explore(room({ hazards: [fire('f', { '4,6': 2 }, { spreadChance: 0, dissipateChance: 0 })] }))
     state = explorationReducer(state, { type: 'tick', seconds: HAZARD_ROUND_SECONDS - 1 })
     assert.equal(state.injuryPrompts.length, 0)
     state = explorationReducer(state, { type: 'tick', seconds: 1.5 })
-    assert.deepEqual(state.injuryPrompts.map((prompt) => prompt.targetId), ['alpha'])
+    assert.deepEqual(state.injuryPrompts ?? [], [])
+    assert.ok(state.party.members.alpha.condition.stress > 0)
     assert.equal(state.environment.round, 1)
   })
 })
@@ -198,7 +199,8 @@ describe('hazards in combat', () => {
     for (let i = 0; i < 6 && state.round === 1; i += 1) state = combatReducer(state, { type: 'endTurn' })
     assert.equal(state.round, 2)
     assert.equal(state.environment.round, 1)
-    assert.equal(state.incomingInjury?.targetId, 'alpha', 'Alpha is asked to Avoid the fire')
+    assert.equal(state.incomingInjury, null, 'no Avoid Injury prompt for hazard hits')
+    assert.ok(state.combatants.alpha.condition.stress > 0, 'Alpha auto-takes Stress from the fire')
     assert.ok(state.log.some((entry) => entry.lines.some((line) => line.includes('in the fire'))))
   })
 })

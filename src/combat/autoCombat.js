@@ -142,6 +142,8 @@ function counterattackStep(state) {
 // the AI plays the party.
 export function stepAI(state, options = {}) {
   if (!state || state.outcome) return state
+  // Beam first: the UI timer applies this after impactMs; headless Auto Combat has no timer, so land the hit here.
+  if (state.pendingObjectHit) return combatReducer(state, { type: 'applyPendingObjectHit' })
   if (state.incomingInjury) return options.partyAuto ? combatReducer(state, injuryDecisionStep(state)) : state
   if (state.pendingFatigue) return options.partyAuto ? combatReducer(state, fatigueChoiceStep(state)) : state
   if (state.pendingCounterattack) return options.partyAuto ? combatReducer(state, counterattackStep(state)) : state

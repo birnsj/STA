@@ -4,6 +4,9 @@ import portraitData from '../data/adaptation/portraits.json'
 import npcPortraitData from '../data/adaptation/npcPortraits.json'
 import backdropData from '../data/adaptation/portraitBackdrops.json'
 import spriteData from '../data/adaptation/characterSprites.json'
+import { isInside, tileAt, tileKey } from '../combat/battleMap.js'
+import { project } from '../maps/iso.js'
+import { getTile } from '../maps/mapFormat.js'
 import { getOwnSpeciesIds, getSpeciesById, isMixedHeritage, isNewSpecies } from './species.js'
 import { getDivisionColour } from './uniform.js'
 
@@ -76,6 +79,9 @@ export const getSpriteMetrics = () => spriteData
 export const getIdleFidgets = () => spriteData.idleFidgets
 export const getSpriteSetById = (setId) => spriteData.sets.find((set) => set.id === setId) ?? null
 export const hasCharacterSprite = (setId) => Boolean(getSpriteSetById(setId))
+// After a blast fall, how long they stay on the ground before getUp (characterSprites.json).
+export const blastDownHoldMs = () => Math.round((spriteData.blastDownHoldSeconds ?? 0.75) * 1000)
+export const getUpAnimation = () => spriteData.getUp ?? 'getUp'
 export function getSpriteSet(portraitId) {
   if (!portraitId) return null
   const portrait = getPortraitById(portraitId) ?? getNpcPortraitById(portraitId)
@@ -107,13 +113,151 @@ function hashOf(seed) {
   return h >>> 0
 }
 
-// How a Defeated character falls (presentation only): Stun (or a Minor NPC left Unconscious) crumples; Deadly picks
-// one of deadlyFalls by seed, so a figure always falls the same way for the same hit. The Injury that defeated it is
-// defeatedBy (Minor NPCs) or the latest Injury.
+// The Injury (or Minor NPC defeatedBy) that put this character down, if any.
+function defeatingInjury(condition) {
+  if (condition?.defeatedBy) return condition.defeatedBy
+  return condition?.injuries?.at(-1) ?? null
+}
+
+// Whether this Injury came from a destructible's blast (world/environment.js injuryFromHit weapon id `explosion:…`).
+export const isExplosionInjury = (injury) => Boolean(injury?.source?.weaponId?.startsWith('explosion:'))
+
+// Which explosionFalls clip this blast uses when Defeated (presentation only). Seeded so the same figure + hit match.
+export function blastReactionAnimation(injury, seed = '') {
+  const falls = spriteData.explosionFalls
+  return falls[hashOf(`${seed}:blastAnim:${injury?.source?.weaponId ?? ''}:${injury?.severity ?? ''}`) % falls.length]
+}
+
+// Stress-Avoid blast stagger (fall → hold → getUp): always the back fall so the getUp sheet starts on the same pose.
+export function blastStaggerAnimation() {
+  return spriteData.blastStaggerFall ?? 'fallBlastBack'
+}
+
+// How a Defeated character falls (presentation only): an explosion (stun or deadly) picks one of explosionFalls;
+// otherwise Stun (or a Minor NPC left Unconscious) crumples, and Deadly picks one of deadlyFalls. Seeded so the same
+// figure always falls the same way for the same hit.
 export function defeatAnimation(condition, seed = '') {
-  const injury = condition?.defeatedBy ?? condition?.injuries?.at(-1)
+  const injury = defeatingInjury(condition)
+  if (isExplosionInjury(injury)) return blastReactionAnimation(injury, seed)
   if (condition?.unconscious || injury?.type !== 'deadly') return spriteData.stunFall
   return spriteData.deadlyFalls[hashOf(`${seed}:${condition.injuries?.length ?? 0}`) % spriteData.deadlyFalls.length]
+}
+
+// Eight map-axis steps (same order as WORLD_DIRECTIONS below).
+const KNOCKBACK_STEPS = [
+  { x: 1, y: 1 },
+  { x: 1, y: 0 },
+  { x: 1, y: -1 },
+  { x: 0, y: -1 },
+  { x: -1, y: -1 },
+  { x: -1, y: 0 },
+  { x: -1, y: 1 },
+  { x: 0, y: 1 },
+]
+
+// How far a blast throws the figure (tiles, 1–3): severity after Protection plus the blast radius.
+export function explosionKnockbackTiles(injury) {
+  if (!isExplosionInjury(injury)) return 0
+  const severity = injury.severity ?? 1
+  const radius = injury.source?.blastRadius ?? 1
+  return Math.min(3, Math.max(1, Math.round((severity + radius) / 2)))
+}
+
+// Snap a free map vector to the nearest of the eight knockback steps.
+function snapKnockbackStep(dx, dy, seed, injury) {
+  if (!dx && !dy) {
+    return KNOCKBACK_STEPS[hashOf(`${seed}:blastDir:${injury?.source?.weaponId ?? ''}`) % KNOCKBACK_STEPS.length]
+  }
+  const angle = Math.atan2(dy, dx)
+  let best = KNOCKBACK_STEPS[0]
+  let bestDiff = Infinity
+  for (const step of KNOCKBACK_STEPS) {
+    let diff = Math.abs(Math.atan2(step.y, step.x) - angle)
+    if (diff > Math.PI) diff = Math.PI * 2 - diff
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = step
+    }
+  }
+  return best
+}
+
+// Outward throw direction from the blast: from blastOrigin toward where they stood (source.at), snapped to one of
+// eight map steps. Standing on the blast (or missing positions) falls back to a seeded direction.
+export function blastKnockbackFacing(injury, seed = '') {
+  const origin = injury?.source?.blastOrigin
+  const at = injury?.source?.at
+  if (origin && at) return snapKnockbackStep(at.x - origin.x, at.y - origin.y, seed, injury)
+  return snapKnockbackStep(0, 0, seed, injury)
+}
+
+// Look back at the explosive after getting up (opposite of the throw).
+export function blastFaceOrigin(injury, seed = '') {
+  const origin = injury?.source?.blastOrigin
+  const at = injury?.source?.at
+  if (origin && at) return snapKnockbackStep(origin.x - at.x, origin.y - at.y, seed, injury)
+  const away = blastKnockbackFacing(injury, seed)
+  return { x: -away.x, y: -away.y }
+}
+
+// Where a blast throws them to: step outward along facing up to `tiles`, stopping before a solid, the map edge, or a
+// tile in occupiedKeys (another character). Never lands on an occupied square.
+export function blastLandingCell(map, from, facing, tiles, occupiedKeys = null) {
+  if (!map || !from || !facing || tiles < 1) return from ? { ...from } : from
+  let cell = { x: from.x, y: from.y }
+  for (let i = 0; i < tiles; i += 1) {
+    const next = { x: cell.x + facing.x, y: cell.y + facing.y }
+    if (!isInside(map, next) || getTile(tileAt(map, next)).solid) break
+    if (occupiedKeys?.has(tileKey(next))) break
+    cell = next
+  }
+  return cell
+}
+
+// Landing cell + throw facing for an explosion Injury, or null. Used to move the actor so they get up where they land.
+// occupiedKeys: tileKey set of squares that already have someone (the thrown actor's own from tile is not blocked).
+export function blastThrow(map, injury, seed = '', occupiedKeys = null) {
+  if (!isExplosionInjury(injury) || !injury.source?.at) return null
+  const facing = blastKnockbackFacing(injury, seed)
+  const tiles = explosionKnockbackTiles(injury)
+  const from = injury.source.at
+  const land = blastLandingCell(map, from, facing, tiles, occupiedKeys)
+  const steps = Math.max(Math.abs(land.x - from.x), Math.abs(land.y - from.y))
+  return { facing, tiles: steps || tiles, from, land, look: blastFaceOrigin(injury, seed) }
+}
+
+// Presentation knockback vector for a throw of `tiles` along `facing`. landsHome: position is already the landing cell.
+function knockbackVector(facing, tiles) {
+  if (!tiles) return null
+  const step = project(facing)
+  const origin = project({ x: 0, y: 0 })
+  return { x: (step.x - origin.x) * tiles, y: (step.y - origin.y) * tiles, facing, tiles, landsHome: true }
+}
+
+// From a blastReact { injury, from, land } (or injury alone): slide distance is how far they actually moved.
+export function explosionKnockbackFromReact(blastReact, seed = '') {
+  if (!blastReact?.injury) return null
+  const { injury, from, land } = blastReact
+  const facing = blastKnockbackFacing(injury, seed)
+  if (from && land) {
+    const tiles = Math.max(Math.abs(land.x - from.x), Math.abs(land.y - from.y))
+    return knockbackVector(facing, tiles)
+  }
+  return explosionKnockbackFromInjury(injury, seed)
+}
+
+// Presentation knockback for a blast Injury (Defeated or Stress Avoid stagger): world-space slide and facing. Null if
+// this isn't an explosion. Prefer explosionKnockbackFromReact when from/land are known.
+export function explosionKnockbackFromInjury(injury, seed = '', map = null) {
+  const throw_ = map ? blastThrow(map, injury, seed) : null
+  const facing = throw_?.facing ?? blastKnockbackFacing(injury, seed)
+  const tiles = throw_?.tiles ?? explosionKnockbackTiles(injury)
+  return knockbackVector(facing, tiles)
+}
+
+// Presentation knockback when Defeated by an explosion (from the defeating Injury on condition).
+export function explosionKnockback(condition, seed = '', map = null) {
+  return explosionKnockbackFromInjury(defeatingInjury(condition), seed, map)
 }
 
 // The eight directions in world terms (x and y are the map's axes; screen down is +x +y), a quarter turn apart.

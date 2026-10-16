@@ -231,7 +231,8 @@ export const sufferInjury = (condition, injury) => withDying({ ...condition, inj
 export const defeatOutright = (condition, injury) => ({
   ...condition,
   defeated: true,
-  defeatedBy: { type: injury.type, source: injury.source },
+  // severity: kept so explosion knockback distance still works for Minor NPCs (no injuries list).
+  defeatedBy: { type: injury.type, source: injury.source, severity: injury.severity },
   ...(injury.type === 'deadly' ? { dead: true } : { unconscious: true }),
 })
 export const isDead = (condition) => Boolean(condition?.dead)

@@ -485,6 +485,41 @@ function fallPose(animation, e) {
       turns: [rollMatrix(deg(88) * e), yawMatrix(deg(150) * e)],
     }
   }
+  // Blast throws: tip straight onto the floor (board slide covers distance). Limbs ease with e (not buckle) so the
+  // body never lofts mid-fall.
+  if (animation === 'fallBlastBack') {
+    return {
+      thigh: [deg(10 + 20 * e), deg(8 + 16 * e)],
+      knee: [deg(20 + 40 * e), deg(16 + 30 * e)],
+      arm: [deg(20 + 150 * e), deg(30 + 140 * e)],
+      elbow: [deg(10 + 20 * e), deg(15 + 25 * e)],
+      breathe: 0,
+      lean: 0,
+      turns: [pitchMatrix(-deg(90) * e), yawMatrix(deg(18) * e)],
+    }
+  }
+  if (animation === 'fallBlastSpin') {
+    return {
+      thigh: [deg(30) * e, -deg(20) * e],
+      knee: [deg(50) * e, deg(20) * e],
+      arm: [deg(20 + 100 * e), deg(20 - 60 * e)],
+      elbow: [deg(30), deg(50)],
+      breathe: 0,
+      lean: 0,
+      turns: [rollMatrix(deg(90) * e), yawMatrix(deg(180) * e)],
+    }
+  }
+  if (animation === 'fallBlastFlat') {
+    return {
+      thigh: [deg(5 + 15 * e), deg(5 + 15 * e)],
+      knee: [deg(10 + 20 * e), deg(10 + 20 * e)],
+      arm: [deg(40 + 100 * e), deg(50 + 90 * e)],
+      elbow: [deg(5), deg(5)],
+      breathe: 0,
+      lean: 0,
+      turns: [pitchMatrix(deg(90) * e), rollMatrix(deg(12) * e)],
+    }
+  }
   // fallCrumple: the knees go, the body slumps forward, then rolls onto its side.
   const kneel = Math.min(1, e / 0.55)
   const roll = Math.max(0, (e - 0.45) / 0.55)
@@ -577,8 +612,29 @@ function surrenderPose(frame, frames) {
   }
 }
 
+// Getting up from prone (after a blast stagger or First Aid): frame 0 matches the end of fallBlastBack (flat on
+// the back), then sit up, then stand into idle. e is 0 down .. 1 up.
+function getUpPose(frame, frames) {
+  const e = smooth(frame / (frames - 1))
+  const sit = Math.min(1, e / 0.45)
+  const stand = Math.max(0, (e - 0.35) / 0.65)
+  return {
+    // Match fallBlastBack's final limbs, then ease to idle.
+    thigh: [mix(30, 2, stand), mix(24, -2, stand)],
+    knee: [mix(60, 3, stand), mix(46, 3, stand)],
+    arm: [mix(170, 3, e), mix(170, 3, e)],
+    elbow: [mix(30, IDLE_ELBOW, e), mix(40, IDLE_ELBOW, e)],
+    breathe: 0,
+    lean: 0,
+    // Flat on back (-90°) → sit (~-25°) → upright. Yaw matches the fall's final tip, then unwinds.
+    turns: [pitchMatrix(-deg(90) * (1 - sit) - deg(25) * (1 - stand) * sit), yawMatrix(deg(18) * (1 - sit))],
+    head: [pitchMatrix(deg(8) * (1 - e))],
+  }
+}
+
 function poseFor(animation, frame, frames) {
   if (animation === 'surrender') return surrenderPose(frame, frames)
+  if (animation === 'getUp') return getUpPose(frame, frames)
   if (animation.startsWith('idle') && animation !== 'idle') return fidgetPose(animation, frame, frames)
   if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
   if (animation === 'attack') return attackPose(keyAt(frame, frames))
@@ -640,7 +696,7 @@ function makeSheet(set, sheetId) {
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender] [--force]
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup] [--force]
 const args = process.argv.slice(2)
 const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
 const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)

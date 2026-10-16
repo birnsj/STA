@@ -23,7 +23,7 @@ export default function ScaledStage({ width = DESIGN_RESOLUTION.width, height = 
       <div className="stage-slot" style={{ width: layout.width * scale, height: layout.height * scale }}>
         <div ref={stageRef} className="stage" style={{ width: layout.width, height: layout.height, transform: `scale(${scale})` }}>
           <StageSizeContext.Provider value={{ width: layout.width, height: layout.height }}>{children}</StageSizeContext.Provider>
-          <TitleTips stageRef={stageRef} />
+          <TitleTips stageRef={stageRef} enabled={settings.tooltips} />
         </div>
       </div>
       <div className="rotate-notice" role="alert">

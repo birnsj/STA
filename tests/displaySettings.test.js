@@ -22,4 +22,10 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ missionOutro: false }).missionOutro, false)
     assert.equal(normalizeDisplaySettings({ missionOutro: 'no' }).missionOutro, true)
   })
+
+  it('older saves without the Tooltips setting get them on; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({ helpHints: false }).tooltips, true)
+    assert.equal(normalizeDisplaySettings({ tooltips: false }).tooltips, false)
+    assert.equal(normalizeDisplaySettings({ tooltips: 'no' }).tooltips, true)
+  })
 })

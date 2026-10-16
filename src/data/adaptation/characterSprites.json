@@ -4,7 +4,7 @@
     "A portrait in portraits.json uses the set of its species and gender (or its own optional spriteSet); portraitSets names the set for portraits that are not in portraits.json (the Klingon warriors). A character whose portrait resolves to no set keeps the portrait token.",
     "Each set has one PNG per entry in sheets: the set's sheet path with the sheet's suffix before .png (base: none; e.g. human-male-combat.png). In a sheet, a row per drawn direction (directions, in order) and the sheet's animations side by side (first column and frame count). The other three directions are the mirror image of drawnFor's direction. frame is the design size of one frame (the PNG is drawn at resolution times that) and anchor the point in a frame where the feet stand. The fall sheet's frame is wide and low-resolution because a body lying on the floor reaches far from its feet.",
     "Animation play: loop repeats (idle, walk, run, cover); once plays and the figure goes back to its loop (attack, melee); hold plays and stays on its last frame (the falls). Run is used in exploration when a character runs (partyControl.json), and in combat for every Move and Sprint (designer decision, 2026-10-12); sneakIdle and sneakWalk (a crouch) while a character sneaks (sneak.json).",
-    "Combat (components/combat/unitPose.js): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). First Aid that ends Defeated plays the fall backwards (getting up). Downed characters in exploration lie in the same pose.",
+    "Combat (components/combat/unitPose.js): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). Defeated by an explosion (stun or deadly) uses one of explosionFalls and a slide away from the blast (appearance.js explosionKnockback; direction from blast origin to where they stood). A blast that is Avoided with Stress (designer 2026-10-15: automatic, no prompt) plays blastStaggerFall (fallBlastBack, so it matches getUp), holds on the ground (blastDownHoldSeconds), then getUp (getup sheet). First Aid that ends Defeated also plays getUp. Downed characters in exploration lie in the same pose.",
     "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
     "Idle fidgets (designer request, 2026-10-11; implementer picks for review): the idle sheet's one-off animations (look around, shift weight, turn in place, check the phaser, scratch the head; at the designer's request turn in place replaced a stretch, and check the phaser replaced checking a PADD). In exploration a figure standing still (not walking, running or sneaking) plays one picked at random, never the same twice running, every gapSeconds [min, max] apart, then goes back to its idle loop. Each starts and ends on the idle pose.",
@@ -46,7 +46,10 @@
         "fallCrumple": { "start": 0, "frames": 12, "seconds": 0.9, "play": "hold" },
         "fallBack": { "start": 12, "frames": 12, "seconds": 0.7, "play": "hold" },
         "fallForward": { "start": 24, "frames": 12, "seconds": 0.8, "play": "hold" },
-        "fallSpin": { "start": 36, "frames": 12, "seconds": 0.8, "play": "hold" }
+        "fallSpin": { "start": 36, "frames": 12, "seconds": 0.8, "play": "hold" },
+        "fallBlastBack": { "start": 48, "frames": 12, "seconds": 0.85, "play": "hold" },
+        "fallBlastSpin": { "start": 60, "frames": 12, "seconds": 0.9, "play": "hold" },
+        "fallBlastFlat": { "start": 72, "frames": 12, "seconds": 0.8, "play": "hold" }
       }
     },
     "sneak": {
@@ -80,6 +83,15 @@
       "animations": {
         "surrender": { "start": 0, "frames": 12, "seconds": 0.8, "play": "hold" }
       }
+    },
+    "getup": {
+      "suffix": "-getup",
+      "frame": { "width": 112, "height": 96 },
+      "anchor": { "x": 56, "y": 64 },
+      "resolution": 3,
+      "animations": {
+        "getUp": { "start": 0, "frames": 12, "seconds": 0.9, "play": "once" }
+      }
     }
   },
   "idleFidgets": {
@@ -88,6 +100,10 @@
   },
   "deadlyFalls": ["fallBack", "fallForward", "fallSpin"],
   "stunFall": "fallCrumple",
+  "explosionFalls": ["fallBlastBack", "fallBlastSpin", "fallBlastFlat"],
+  "blastStaggerFall": "fallBlastBack",
+  "getUp": "getUp",
+  "blastDownHoldSeconds": 0.75,
   "sets": [
     { "id": "human-male", "species": "human", "gender": "male", "sheet": "/art/sprites/characters/human-male.png", "uniformMask": "/art/sprites/characters/human-male-uniform.png", "uniformDivision": "command" },
     { "id": "human-female", "species": "human", "gender": "female", "sheet": "/art/sprites/characters/human-female.png", "uniformMask": "/art/sprites/characters/human-female-uniform.png", "uniformDivision": "command" },

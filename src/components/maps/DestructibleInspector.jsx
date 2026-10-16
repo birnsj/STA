@@ -40,7 +40,8 @@ const INJURY_OPTIONS = [
   { value: 'deadly', label: 'Deadly' },
   { value: 'stun', label: 'Stun' },
 ]
-const HAZARD_OPTIONS = Object.entries(HAZARD_TYPES).map(([value, info]) => ({ value, label: info.name }))
+// "None" forces no leftover hazard even when the type leaves one; blank in OverrideSelect keeps the type's value.
+const HAZARD_OPTIONS = [{ value: 'none', label: 'None' }, ...Object.entries(HAZARD_TYPES).map(([value, info]) => ({ value, label: info.name }))]
 const capitalised = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 // The map editor's panel for a destructible object (mapFormat.js destructibles): its type, id and name, Structure

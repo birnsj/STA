@@ -11,7 +11,8 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // or 'single' (one block at a time, only those hiding a character).
 // missionIntro: the Captain's Log intro before a mission's map (MissionStory.jsx MissionIntro); off goes straight in.
 // missionOutro: the Captain's Log outro once the away team has beamed out (MissionOutro); off leaves the mission at once.
-export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, objectivePulse: true, wallFade: 'room', missionIntro: true, missionOutro: true }
+// tooltips: the hover boxes drawn from title / data-tip attributes (components/TitleTips.jsx).
+export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, objectivePulse: true, wallFade: 'room', missionIntro: true, missionOutro: true, tooltips: true }
 const WALL_FADE_MODES = ['room', 'single']
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
@@ -25,7 +26,7 @@ export function normalizeDisplaySettings(saved) {
   const scaleMode = SCALE_MODE_OPTIONS.some((option) => option.id === saved?.scaleMode) ? saved.scaleMode : DEFAULT_DISPLAY_SETTINGS.scaleMode
   const flag = (key) => (typeof saved?.[key] === 'boolean' ? saved[key] : DEFAULT_DISPLAY_SETTINGS[key])
   const wallFade = WALL_FADE_MODES.includes(saved?.wallFade) ? saved.wallFade : DEFAULT_DISPLAY_SETTINGS.wallFade
-  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), objectivePulse: flag('objectivePulse'), wallFade, missionIntro: flag('missionIntro'), missionOutro: flag('missionOutro') }
+  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), objectivePulse: flag('objectivePulse'), wallFade, missionIntro: flag('missionIntro'), missionOutro: flag('missionOutro'), tooltips: flag('tooltips') }
 }
 
 // Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide

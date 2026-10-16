@@ -1,19 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import InfoTipBubble from './InfoTipBubble.jsx'
 import { titleTipContent } from './titleTipContent.js'
-import { SHOW_DELAY_MS } from './useInfoTip.js'
 
 const TIPPED = '[title], [data-tip]'
 const REMOVED_CHECK_MS = 250
+// Longer than the creator's info boxes (useInfoTip.js) so passing over the game's buttons doesn't flash boxes
+// (designer request, 2026-10-15).
+const SHOW_DELAY_MS = 1500
 
 // Every plain tooltip in a stage drawn as the creator's info box (designer decision, 2026-10-14): any element with a
-// title attribute, or a data-tip attribute (SVG, whose <title> children can't be taken over). Hover only, after the
-// creator's delay; a click hides it, since in the game a click does something. While hovered an element's title is
+// title attribute, or a data-tip attribute (SVG, whose <title> children can't be taken over). Hover only, after
+// SHOW_DELAY_MS; a click hides it, since in the game a click does something. While hovered an element's title is
 // taken off (so the browser's own box never shows) and put back on leaving, so React's view of it stays true.
 // data-tip-at="pointer": a big element whose tip depends on where the pointer is (the battlefield) gets its box at
-// the pointer rather than under the element.
-export default function TitleTips({ stageRef }) {
+// the pointer rather than under the element. enabled: false (the Tooltips setting off) shows no box, but titles are
+// still taken off while hovered so the browser's own box doesn't appear instead.
+export default function TitleTips({ stageRef, enabled = true }) {
   const [active, setActive] = useState(null)
+  const enabledRef = useRef(enabled)
+  useEffect(() => {
+    enabledRef.current = enabled
+  }, [enabled])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -45,7 +52,7 @@ export default function TitleTips({ stageRef }) {
       return previous
     }
     const showNow = () => {
-      const content = titleTipContent(hovered?.text)
+      const content = enabledRef.current ? titleTipContent(hovered?.text) : null
       if (!content) return setActive(null)
       const at = hovered.element.getAttribute('data-tip-at') === 'pointer' && pointer ? { ...pointer } : null
       setActive({ content, anchor: hovered.element, point: at })
@@ -143,5 +150,5 @@ export default function TitleTips({ stageRef }) {
     }
   }, [stageRef])
 
-  return active ? <InfoTipBubble content={active.content} anchor={active.anchor} point={active.point} /> : null
+  return active && enabled ? <InfoTipBubble content={active.content} anchor={active.anchor} point={active.point} /> : null
 }

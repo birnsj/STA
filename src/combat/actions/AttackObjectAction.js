@@ -1,3 +1,4 @@
+import { objectShotImpactMs } from '../../components/combat/battleHelpers.js'
 import { checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum } from '../../rules/missionResources.js'
 import { evaluateStaDie, resolveStaTask, rollDice } from '../../rules/taskResolver.js'
 import { damageObjectInCombat, previewObjectAttack } from '../combatEnvironment.js'
@@ -73,14 +74,25 @@ export class AttackObjectAction extends CombatAction {
       playerSide ? momentumLine(evaluation.momentumGenerated, saving, resources) : `Momentum generated: ${evaluation.momentumGenerated}${npcThreat ? ` (NPC: added to Threat, now ${resources.threat})` : ''}`,
       ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
     ]
-    let explosions = []
+    // Beam first: Structure / explosion apply after objectShotImpactMs (applyPendingObjectHit).
     if (evaluation.success) {
-      const hit = damageObjectInCombat(next, record.id, preview.damage)
-      next = hit.state
-      lines.push(...hit.lines)
-      explosions = next.environment.explosions.filter((explosion) => !state.environment.explosions.includes(explosion)).map((explosion) => explosion.id)
+      next = {
+        ...next,
+        pendingObjectHit: {
+          objectId: record.id,
+          damage: preview.damage,
+          impactMs: objectShotImpactMs(weapon, actor.side),
+          key: next.log.length,
+        },
+      }
     }
-    next = markAction(next, 'attackObject', actor.id, { objectId: record.id, weaponId: weapon.id, passed: evaluation.success, explosions, awaiting: Boolean(next.incomingInjury) })
+    next = markAction(next, 'attackObject', actor.id, {
+      objectId: record.id,
+      weaponId: weapon.id,
+      passed: evaluation.success,
+      explosions: [],
+      awaiting: false,
+    })
     return withOutcome(addLog(next, lines))
   }
 }

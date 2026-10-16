@@ -3,9 +3,10 @@ import { playRollResultSound } from '../../audio/uiSounds.js'
 import { ADAPTATION_MOMENTUM_SPENDS, canAimReroll, canAssistReroll } from '../../combat/combatState.js'
 import { injuryTypeName, minorDefeatText } from '../../rules/personalCondition.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
-import { evaluateStaDie } from '../../rules/taskResolver.js'
+import { bonusDiceCost } from '../../rules/missionResources.js'
+import { evaluateStaDie, TASK_DICE } from '../../rules/taskResolver.js'
 import D20, { ROLL_MS } from '../dice/D20.jsx'
-import { criticalText, dieVerdict, formulaText, successesText } from '../task/taskText.js'
+import { criticalText, dieVerdict, formulaText, successesText, THREAT_EXPLAINED } from '../task/taskText.js'
 
 // Mounted again (new key) for every new roll or reroll, so each one rolls once (the value is already rolled, seeded,
 // in combatState). task: the STA 2E task the die is rolled against (its target number, critical range and
@@ -71,6 +72,8 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
   const minorOutcome = injury?.decided === 'suffered' && target && minorDefeatText(target.condition)
   const injuryOutcome = injury && (minorOutcome ? `${minorOutcome} (Minor NPC: no Injury)` : { pending: 'Avoid Injury?', avoided: 'Injury avoided', suffered: 'Defeated' }[injury.decided])
   const { social } = roll
+  // An enemy's bought d20s (a pool is always TASK_DICE plus those), paid in Threat (Book p.265).
+  const enemyBought = !ambush && attacker.side !== 'player' ? values.length - TASK_DICE : 0
   const resultText = ambush
     ? roll.passed ? 'Ambushed: automatic hit' : 'Spotted: Klingons act first'
     : social
@@ -100,6 +103,12 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
         {social ? ' · your successes set the Difficulty' : ` · Difficulty ${task.difficulty}`}
         {!social && task.difficulty > 0 ? ` (need ${successesText(task.difficulty)})` : ''}
         {task.autoFail && ` · ${task.attribute.name} shut down by Fatigue: automatic failure`}
+        {enemyBought > 0 && (
+          <span className="roll-threat-spent" title={THREAT_EXPLAINED}>
+            {' '}
+            &middot; spent {bonusDiceCost(enemyBought)} Threat on +{enemyBought}d20
+          </span>
+        )}
         {roll.rerolls
           .filter((reroll) => reroll.source === 'focus')
           .map((reroll) => (
@@ -175,7 +184,7 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
                 {roll.momentumSaved > 0 && ` (${roll.momentumSaved} saved)`}
                 {roll.momentumUnsaved > 0 && ` (${roll.momentumUnsaved} over the pool max)`}
                 {roll.complications > 0 && ` · ${roll.complications} ${roll.complications === 1 ? 'complication' : 'complications'}`}
-                {roll.threatAdded > 0 && ` · +${roll.threatAdded} Threat`}
+                {roll.threatAdded > 0 && ` · +${roll.threatAdded} Threat for the enemy`}
               </span>
               {injury && (
                 <span className={`roll-result-sub roll-injury is-${injury.type}`}>

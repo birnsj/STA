@@ -47,9 +47,16 @@ export class CharacterController {
   // ---------- combat ----------
 
   // The world actor as a combatant placement on its snapped cell (combat/combatSetup.js createCombatant). Its personal
-  // condition (Stress, Injuries, Defeated) is the same object in the world and in the fight.
+  // condition (Stress, Injuries, Defeated) is the same object in the world and in the fight. blastReact / facing from a
+  // blast throw carry in so the fall → getUp stagger can finish on the combat board.
   toCombatant(actor, cell) {
-    return { character: actor.character, position: cell, facing: headingToFacing(actor.heading), condition: normalizeCondition(actor.condition) }
+    return {
+      character: actor.character,
+      position: cell,
+      facing: actor.facing ?? headingToFacing(actor.heading),
+      condition: normalizeCondition(actor.condition),
+      ...(actor.blastReact ? { blastReact: actor.blastReact } : {}),
+    }
   }
 
   // The world actor after the fight: it stands where the combatant ended, facing the same way, with its condition.

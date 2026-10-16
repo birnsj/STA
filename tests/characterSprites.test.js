@@ -7,6 +7,8 @@ import characterData from '../src/data/adaptation/characters.json' with { type: 
 import {
   defeatAnimation,
   directionFor,
+  blastLandingCell,
+  explosionKnockback,
   getSpriteAnimation,
   getSpriteSet,
   getSpriteSetById,
@@ -87,13 +89,22 @@ describe('sprite sheets and animations (Prototype)', () => {
   })
 
   it('the fall variants are drawn on the fall sheet', () => {
-    for (const name of [...spriteData.deadlyFalls, spriteData.stunFall]) assert.equal(getSpriteAnimation(name).sheetId, 'fall')
+    for (const name of [...spriteData.deadlyFalls, spriteData.stunFall, ...spriteData.explosionFalls]) {
+      assert.equal(getSpriteAnimation(name).sheetId, 'fall')
+    }
+  })
+
+  it('getUp is on its own getup sheet', () => {
+    assert.equal(getSpriteAnimation(spriteData.getUp).sheetId, 'getup')
+    assert.equal(getSpriteAnimation('getUp').play, 'once')
   })
 })
 
 describe('how a Defeated character falls (Prototype presentation)', () => {
   const stun = { type: 'stun', severity: 1 }
   const deadly = { type: 'deadly', severity: 1 }
+  const blast = { type: 'deadly', severity: 3, id: 'b1', source: { weaponId: 'explosion:gasCylinder1', blastRadius: 3 } }
+  const blastStun = { type: 'stun', severity: 2, id: 'b2', source: { weaponId: 'explosion:gasCylinder1', blastRadius: 2 } }
 
   it('a Stun Injury crumples', () => {
     assert.equal(defeatAnimation({ defeated: true, injuries: [stun] }, 'a'), 'fallCrumple')
@@ -115,6 +126,65 @@ describe('how a Defeated character falls (Prototype presentation)', () => {
     const condition = { defeated: true, injuries: [deadly] }
     const seen = new Set(Array.from({ length: 40 }, (_, index) => defeatAnimation(condition, `npc-${index}`)))
     assert.deepEqual([...seen].sort(), [...spriteData.deadlyFalls].sort())
+  })
+
+  it('an explosion Defeat (stun or deadly) uses one of the blast falls, the same way every time for the same figure', () => {
+    const deadlyFall = defeatAnimation({ defeated: true, injuries: [blast] }, 'crew-1')
+    const stunFall = defeatAnimation({ defeated: true, injuries: [blastStun] }, 'crew-2')
+    assert.ok(spriteData.explosionFalls.includes(deadlyFall))
+    assert.ok(spriteData.explosionFalls.includes(stunFall))
+    assert.equal(defeatAnimation({ defeated: true, injuries: [blast] }, 'crew-1'), deadlyFall)
+    const kb = explosionKnockback({ defeated: true, injuries: [blast] }, 'crew-1')
+    assert.ok(kb.tiles >= 1 && kb.tiles <= 3)
+    assert.ok(kb.facing)
+    assert.equal(explosionKnockback({ defeated: true, injuries: [blast] }, 'crew-1').tiles, kb.tiles)
+  })
+
+  it('a stronger blast throws farther', () => {
+    const soft = { type: 'stun', severity: 1, source: { weaponId: 'explosion:a', blastRadius: 1 } }
+    const hard = { type: 'deadly', severity: 4, source: { weaponId: 'explosion:a', blastRadius: 3 } }
+    assert.ok(
+      explosionKnockback({ defeated: true, injuries: [hard] }, 'x').tiles >
+        explosionKnockback({ defeated: true, injuries: [soft] }, 'x').tiles,
+    )
+  })
+
+  it('throws the figure outward from the blast, not toward it', () => {
+    const east = {
+      type: 'stun',
+      severity: 2,
+      source: { weaponId: 'explosion:g', blastRadius: 2, blastOrigin: { x: 5, y: 5 }, at: { x: 7, y: 5 } },
+    }
+    const kb = explosionKnockback({ defeated: true, injuries: [east] }, 'crew')
+    assert.equal(kb.facing.x, 1)
+    assert.equal(kb.facing.y, 0)
+    const west = {
+      type: 'stun',
+      severity: 2,
+      source: { weaponId: 'explosion:g', blastRadius: 2, blastOrigin: { x: 5, y: 5 }, at: { x: 3, y: 4 } },
+    }
+    const away = explosionKnockback({ defeated: true, injuries: [west] }, 'crew')
+    assert.ok(away.facing.x < 0)
+  })
+
+  it('blast landing stops before a wall and is outward from the origin', () => {
+    const map = {
+      width: 10,
+      height: 10,
+      tiles: Array.from({ length: 10 }, () => Array.from({ length: 10 }, (_, x) => (x === 8 ? 'plainBulkhead' : 'floor'))),
+    }
+    // Floor at 7, wall at 8: from (5,5) facing +x, 3 tiles → land on 7.
+    assert.deepEqual(blastLandingCell(map, { x: 5, y: 5 }, { x: 1, y: 0 }, 3), { x: 7, y: 5 })
+  })
+
+  it('blast landing stops before a tile another character occupies', () => {
+    const map = {
+      width: 10,
+      height: 10,
+      tiles: Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => 'floor')),
+    }
+    const occupied = new Set(['7,5'])
+    assert.deepEqual(blastLandingCell(map, { x: 5, y: 5 }, { x: 1, y: 0 }, 3, occupied), { x: 6, y: 5 })
   })
 })
 

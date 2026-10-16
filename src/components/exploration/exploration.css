@@ -158,6 +158,31 @@
   filter: drop-shadow(0 0 2px var(--yellow));
 }
 
+/* The closed insignia pulses so it reads as a button (designer request, 2026-10-15). */
+.explore-card-info-toggle:not(.is-open) svg {
+  animation: insignia-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes insignia-pulse {
+  0%,
+  100% {
+    color: #b8962e;
+    filter: drop-shadow(0 0 0 rgba(246, 185, 40, 0));
+    transform: scale(1);
+  }
+  50% {
+    color: var(--yellow);
+    filter: drop-shadow(0 0 4px var(--yellow));
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-card-info-toggle:not(.is-open) svg {
+    animation: none;
+  }
+}
+
 /* Above the card, clear of the badges on its top edge. */
 .explore-card-info {
   position: absolute;
@@ -1775,9 +1800,7 @@
 }
 
 /* A shown result fading out before the panel closes itself (RESULT_FADE_MS in ChallengePanel.jsx). */
-.challenge-panel.is-fading,
-.ring-roll.is-fading,
-.conversation-roll-dice.is-fading {
+.challenge-panel.is-fading {
   opacity: 0;
   transition: opacity 0.6s ease;
 }
@@ -1896,7 +1919,7 @@
 /* A conversation (ConversationPanel.jsx) uses the interaction panel's frame. */
 /* The conversation box (designer mockup, 2026-10-11): the usual RPG dialogue spot, centred low on the screen just above
    the party cards (8px from the bottom, 75px tall, with their tags on top). It keeps one size and scrolls its text;
-   a check's Roll button, then its dice, sit just above it. On a narrow stage it narrows to stay clear of the stats
+   a check is rolled in the roll window (dice.css). On a narrow stage it narrows to stay clear of the stats
    and log area (247px wide, 8px from the right) on both sides, so it stays centred. */
 /* Centred in the space left of the right-hand column (the stats/log panel: 247 px wide, 8 px from the edge). */
 .conversation-dock {
@@ -1916,153 +1939,10 @@
   max-height: none;
 }
 
-.conversation-roll {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  pointer-events: none;
-}
-
-.conversation-roll:empty {
-  display: none;
-}
-
-.conversation-roll > * {
-  pointer-events: auto;
-}
-
-/* The whole bonus dice picker in the box under the NPC's line, packed into the ~42px the fixed-size box has left: the dice
-   buttons, then the payment buttons (once a die is bought), on the left; Base, Purchased and Rolling, then the Cost, at
-   the right; the cost rules on one line across the bottom. */
-/* The Roll button sits in the box's bottom-right corner (designer request, 2026-10-14), laid over the free end of the
-   picker's last line so the fixed-size box doesn't grow; that line keeps its text clear of it. */
-.conversation-check-row {
-  position: relative;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.conversation-check-row.has-picker .bonus-dice {
-  flex: 1;
-  min-width: 0;
-}
-
-.conversation-check-row.has-picker .bonus-dice-note {
-  padding-right: 80px;
-}
-
-.conversation-check-row.has-picker .conversation-roll-button {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-}
-
-.conversation-roll-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-  padding: 0 6px;
-  font-size: 10px;
-  line-height: 1;
-}
-
 .d20-icon {
   width: 13px;
   height: 13px;
   flex: none;
-}
-
-.conversation-check-slot .bonus-dice {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1px 10px;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 10px;
-  line-height: 1.2;
-}
-
-.conversation-check-slot .bonus-dice-row {
-  grid-column: 1;
-  gap: 4px;
-  min-height: 14px;
-  margin: 0;
-}
-
-.conversation-check-slot .bonus-dice-row > span:first-child {
-  min-width: 0;
-  margin-right: 2px;
-}
-
-.conversation-check-slot .bonus-dice .combat-button {
-  height: 14px;
-  min-height: 0;
-  padding: 0 5px;
-  font-size: 10px;
-  line-height: 1;
-}
-
-/* Base, Purchased, Rolling and Cost on one line beside the dice buttons; once a die is bought (the payment row shows
-   under the dice buttons) the Cost moves to a second line, beside the payment row, as it is longer then. */
-.conversation-check-slot .bonus-dice-summary {
-  grid-column: 2;
-  grid-row: 1;
-  grid-template-columns: repeat(4, auto auto);
-  justify-content: start;
-  gap: 1px 4px;
-  margin: 0;
-}
-
-.conversation-check-slot .bonus-dice:has(.bonus-dice-summary ~ .bonus-dice-row) .bonus-dice-summary {
-  grid-row: 1 / span 2;
-  grid-template-columns: repeat(3, auto auto);
-}
-
-.conversation-check-slot .bonus-dice:has(.bonus-dice-summary ~ .bonus-dice-row) .bonus-dice-summary dd:last-of-type {
-  grid-column: span 5;
-}
-
-.conversation-check-slot .bonus-dice-summary dd:not(:last-of-type) {
-  margin-right: 5px;
-}
-
-.conversation-check-slot .bonus-dice-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 9px;
-}
-
-.conversation-check-slot .task-warning {
-  grid-column: 1 / -1;
-  margin: 0;
-}
-
-.conversation-roll-dice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid #7cc4ff;
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.92);
-}
-
-.conversation-roll-dice .challenge-dice {
-  margin: 0;
-}
-
-.conversation-roll-dice .ring-roll-outcome {
-  font-size: 13px;
 }
 
 /* The NPC's line framed and set like the options under it (12px; the text bold), in a darker shade. */
@@ -2318,68 +2198,6 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-}
-
-/* The Roll button, with the dice of the last roll in their own box above it (the button stays put). */
-.ring-roll {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  pointer-events: auto;
-}
-
-.ring-roll-dice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 4px 6px;
-  border: 1px solid #7cc4ff;
-  border-radius: 4px;
-  background: rgba(6, 12, 28, 0.92);
-}
-
-.ring-roll:empty {
-  display: none;
-}
-
-.ring-roll .combat-button {
-  min-height: 0;
-  padding: 2px 7px;
-  font-size: 7px;
-}
-
-.ring-roll .challenge-dice {
-  flex-wrap: nowrap;
-  gap: 4px;
-  margin: 0;
-}
-
-.ring-roll .challenge-die {
-  min-width: 26px;
-  gap: 1px;
-}
-
-.ring-roll .challenge-die-tag,
-.ring-roll .challenge-die-owner {
-  font-size: 5px;
-}
-
-.ring-roll-outcome {
-  margin: 0;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.ring-roll-outcome.is-success {
-  color: #4fd6c4;
-}
-
-.ring-roll-outcome.is-failure {
-  color: #8a93a8;
 }
 
 /* The latest scan's report (ScanReport.jsx), under the hint until closed. */

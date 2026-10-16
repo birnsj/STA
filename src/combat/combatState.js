@@ -31,6 +31,8 @@
 //   combatLog.js        shared state helpers and the log's wording
 import { INTERACT } from './actions/InteractAction.js'
 import { combatActionFor } from './actions/registry.js'
+import { applyPendingObjectHit } from './combatEnvironment.js'
+import { clearBlastReact } from './combatInjuries.js'
 import { getActiveCombatant } from './combatSelectors.js'
 import { withRetreats } from './combatRetreat.js'
 import { createCombat } from './combatSetup.js'
@@ -109,11 +111,17 @@ export function combatReducer(state, action) {
 }
 
 function reduceAction(state, action) {
+  // Presentation: blast fall / getUp finished — allowed even while an Injury prompt is open.
+  if (action.type === 'clearBlastReact') return clearBlastReact(state, action.id)
+  // Beam has played: apply deferred object Structure / explosion.
+  if (action.type === 'applyPendingObjectHit') return applyPendingObjectHit(state)
   const actor = getActiveCombatant(state)
   // An incoming Injury waits for its Avoid Injury decision, and a new Fatigue for its attribute, before anything else.
   if (state.incomingInjury && action.type !== 'injuryDecision') return state
   if (state.pendingFatigue && action.type !== 'chooseFatigueAttribute') return state
   if (state.pendingCounterattack && action.type !== 'counterattackDecision') return state
+  // Wait for the object-shot beam before the next action (explosion lands after the laser).
+  if (state.pendingObjectHit) return state
 
   const registered = combatActionFor(action.type)
   return registered ? registered.reduce(state, actor, action) : state

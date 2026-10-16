@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { playMomentumLossSound, playMomentumSound } from '../../audio/uiSounds.js'
+import { THREAT_EXPLAINED } from '../task/taskText.js'
 
 // The mission's group Momentum (0-6) and Threat pools (rules/missionResources.js), shown in exploration and combat alike.
 // When Momentum goes up, the newly lit pips pop, the bar flashes and a chime plays; when it goes down, a short falling
@@ -19,6 +20,12 @@ export default function ResourceIndicators({ momentum, threat, canCancelThreat =
     else if (next.seen < next.from) playMomentumLossSound(next.seen)
   }, [next.key, next.seen, next.from])
   const gaining = next.seen > next.from
+  // Each change to Threat gets a short call-out beside it (designer request, 2026-10-15: show when it's added and when
+  // the enemy spends it). It fades by itself (CSS); the pool it opened with gets none. Only enemies lower Threat, unless
+  // the off-by-default Cancel Threat adaptation (actions.json) is switched on.
+  const [threatChange, setThreatChange] = useState({ seen: threat, from: threat, key: 0 })
+  if (threat !== threatChange.seen) setThreatChange({ seen: threat, from: threatChange.seen, key: threatChange.key + 1 })
+  const threatShift = threatChange.key ? threatChange.seen - threatChange.from : 0
   return (
     <div className="resource-indicators">
       <span
@@ -40,9 +47,14 @@ export default function ResourceIndicators({ momentum, threat, canCancelThreat =
           {momentum}/{MAX_MOMENTUM}
         </strong>
       </span>
-      <span className={`resource-indicator is-threat${threat ? ' is-on' : ''}`} title="Threat: the mission's pool for the opposition (grows from Deadly attacks, NPC Momentum and dice bought with Threat)">
+      <span className={`resource-indicator is-threat${threat ? ' is-on' : ''}`} title={THREAT_EXPLAINED}>
         <span className="resource-light" aria-hidden="true" />
         Threat <strong>{threat}</strong>
+        {threatShift !== 0 && (
+          <span key={threatChange.key} className="resource-threat-change" role="status">
+            {threatShift > 0 ? `+${threatShift} Threat for the enemy` : `Enemy spent ${-threatShift} Threat`}
+          </span>
+        )}
       </span>
       {canCancelThreat && (
         <button type="button" className="resource-cancel" onClick={onCancelThreat} title="Spend 1 Momentum to remove 1 Threat">

@@ -308,15 +308,27 @@ export function damageObject(environment, map, objectId, amount, actors = []) {
     lines.push(`${record.name} explodes!`)
     const reaches = (position) => tileDistance(position, record.position) <= blast.radius && blastReaches(current, next, record.position, position)
     actors.filter((actor) => reaches(actor.position)).forEach((actor) => {
-      addHit(hits, { targetId: actor.id, severity: blast.severity, injuryType: blast.injuryType, sourceId: id, sourceName: record.name, kind: 'explosion' })
+      addHit(hits, {
+        targetId: actor.id,
+        severity: blast.severity,
+        injuryType: blast.injuryType,
+        sourceId: id,
+        sourceName: record.name,
+        kind: 'explosion',
+        radius: blast.radius,
+        // Where the blast was and where they stood: appearance.js throws them outward from the origin.
+        blastOrigin: { ...record.position },
+        at: { ...actor.position },
+      })
     })
     // Chain reactions resolve nearest first, then by id, so the order never depends on how the map listed them.
     destructibleList(next)
       .filter((other) => other.id !== id && isStanding(other) && reaches(other.position))
       .sort((a, b) => tileDistance(a.position, record.position) - tileDistance(b.position, record.position) || a.id.localeCompare(b.id))
       .forEach((other) => queue.push({ id: other.id, amount: objectDamage(other, blast.severity) }))
+    // Editor override "none" clears a type's leftover hazard; spawnHazard already no-ops unknown types.
     next = spawnHazard(next, current, {
-      type: blast.hazard,
+      type: blast.hazard === 'none' ? null : blast.hazard,
       position: record.position,
       radius: blast.hazardRadius,
       centreIntensity: blast.hazardIntensity ?? MAX_INTENSITY,
@@ -335,7 +347,20 @@ export function damageObject(environment, map, objectId, amount, actors = []) {
 export function injuryFromHit(character, hit, id) {
   const name = hit.kind === 'explosion' ? `${hit.sourceName} explosion` : hit.sourceName
   const protection = getProtection(character, { injuryType: hit.injuryType })
-  return buildInjury({ id, type: hit.injuryType, weapon: { id: `${hit.kind}:${hit.sourceId}`, name, severity: hit.severity }, attacker: null, protection })
+  const injury = buildInjury({ id, type: hit.injuryType, weapon: { id: `${hit.kind}:${hit.sourceId}`, name, severity: hit.severity }, attacker: null, protection })
+  // blastRadius / blastOrigin / at: presentation knockback (appearance.js) — distance and throw-away-from-blast.
+  if (hit.kind === 'explosion' && hit.radius != null) {
+    return {
+      ...injury,
+      source: {
+        ...injury.source,
+        blastRadius: hit.radius,
+        ...(hit.blastOrigin ? { blastOrigin: hit.blastOrigin } : {}),
+        ...(hit.at ? { at: hit.at } : {}),
+      },
+    }
+  }
+  return injury
 }
 
 export const hitText = (hit) => (hit.kind === 'explosion' ? `caught in the ${hit.sourceName} explosion` : `in the ${hit.sourceName.toLowerCase()}`)

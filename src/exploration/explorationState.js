@@ -19,7 +19,7 @@ import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
 import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
-import { answerInjuryPrompt, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
+import { answerInjuryPrompt, applyPendingObjectHit, clearBlastReact, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -231,9 +231,15 @@ function reduceExploration(state, action) {
     // { memberId, objectId, purchase }: that character fires on a destructible object (explorationEnvironment.js).
     case 'fireOnObject':
       return fireOnObject(state, action)
+    // After the object-shot beam: Structure damage, explosion, blast stagger (and fight if needed).
+    case 'applyPendingObjectHit':
+      return applyPendingObjectHit(state)
     // { avoid }: the answer to the first queued Avoid Injury prompt from a blast or hazard.
     case 'answerInjuryPrompt':
       return answerInjuryPrompt(state, action.avoid)
+    // { id }: blast fall / getUp finished — drop the presentation marker so walk and facing return to normal.
+    case 'clearBlastReact':
+      return clearBlastReact(state, action.id)
     // { hazardId, performerId, purchase, assistantId }: the hazard's Neutralize task (world/EnvironmentalHazard.js).
     case 'neutralizeHazard':
       return state.mode === MODE.COMBAT ? state : neutralizeHazardTask(state, action)

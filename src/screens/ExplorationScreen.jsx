@@ -233,6 +233,13 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   useEffect(() => {
     if (lastTargetScanKey != null) playScanSound()
   }, [lastTargetScanKey])
+  // Object shot: laser first, then Structure / explosion after the beam lands.
+  const pendingObjectHit = state.pendingObjectHit
+  useEffect(() => {
+    if (!pendingObjectHit || inCombat) return undefined
+    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs)
+    return () => clearTimeout(timer)
+  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, inCombat, dispatch])
   const lastSocialKey = state.lastSocial?.key
   const lastSocialKind = state.lastSocial?.kind
   const lastSocialPassed = state.lastSocial?.passed
@@ -514,6 +521,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           hazards={hazardChallenges.filter((object) => hazardInReachIds.includes(object.id)).map((object) => ({ id: object.id, position: object.position() }))}
           destructibles={destructibleViews}
           environment={state.environment}
+          lastObjectShot={state.lastObjectShot ?? null}
           onDestructible={openDestructibleMenu}
           debug={debugOpen}
           followCamera={followCamera}
@@ -523,6 +531,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onSelectBox={selectBox}
           onOpenMenu={openMenu}
           onOpenNpcMenu={openNpcMenu}
+          onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
           menu={memberMenu || npcMenu || objectMenu || destructibleMenu}
           beamIn={beamPhase}
           scanPulse={scanPulse}

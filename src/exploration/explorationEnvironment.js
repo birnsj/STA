@@ -1,13 +1,18 @@
-// Destructible objects and hazards outside combat (world/environment.js). Designer decisions (2026-10-12): a party member
-// can fire on a destructible object from its ring; a hazard round passes every HAZARD_ROUND_SECONDS of world time; each
-// party member a blast or hazard hits gets an Avoid Injury prompt, queued one after another (state.injuryPrompts);
-// NPCs decide at once (combat/injuryPolicy.js). An explosion is loud (awareness.json combatNoise.explosion), and a
-// hostile NPC close by that knows something is wrong starts a fight afterwards.
+// Destructible objects and hazards outside combat (world/environment.js). Designer decisions (2026-10-12, 2026-10-15): a
+// party member can fire on a destructible object from its ring; a hazard round passes every HAZARD_ROUND_SECONDS of world
+// time; blasts and hazards auto-spend Stress (or Threat) when Avoid Injury is possible — no prompt. NPCs who cannot Avoid
+// (or choose not to via injuryPolicy) are settled at once. An explosion is loud (awareness.json combatNoise.explosion),
+// and a hostile NPC close by that knows something is wrong starts a fight afterwards.
 import { isDown, isUp } from '../actors/controllers.js'
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import { toBattleMap } from '../combat/battleMap.js'
 import { armedForWorldCombat } from '../combat/encounters.js'
 import { chooseAvoidInjury, chooseFatigueAttribute } from '../combat/injuryPolicy.js'
+import { tileKey } from '../combat/battleMap.js'
+import { blastFaceOrigin, blastThrow, isExplosionInjury } from '../rules/appearance.js'
+
+// Match combat battleHelpers objectShotImpactMs: laser on screen before boom; pulse waits to land.
+const objectHitDelayMs = (weapon) => (weapon.shotStyle === 'pulse' ? 500 : 670)
 import { getRangeBand, hasLineOfFire, tileDistance } from '../combat/rangeSystem.js'
 import { getAttackTaskSpec, getCharacterWeapons, getRangeModifier } from '../combat/weaponSystem.js'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
@@ -45,6 +50,46 @@ function withCondition(state, id, condition) {
   return { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [id]: { ...state.world.npcs[id], condition } } } }
 }
 
+function withActor(state, id, patch) {
+  if (state.party.members[id]) return { ...state, party: { ...state.party, members: { ...state.party.members, [id]: { ...state.party.members[id], ...patch } } } }
+  if (state.world.npcs[id]) return { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [id]: { ...state.world.npcs[id], ...patch } } } }
+  return state
+}
+
+// Tiles other standing characters occupy (blast landing must not stack onto them).
+function occupiedBlastKeys(state, exceptId) {
+  const keys = new Set()
+  for (const member of getMembers(state.party)) {
+    if (member.id === exceptId || isDown(member)) continue
+    keys.add(tileKey(worldToGrid(member.position)))
+  }
+  for (const npc of getNpcs(state.world)) {
+    if (npc.id === exceptId || isDown(npc) || npc.fled) continue
+    keys.add(tileKey(worldToGrid(npc.position)))
+  }
+  return keys
+}
+
+// Move them to where the blast throws them so they get up on that tile (stops at walls and occupied tiles). Facing
+// looks back at the explosive; the slide still uses the outward throw. Clears walk orders.
+function thrownByBlast(state, id, injury) {
+  const throw_ = blastThrow(state.party.map, injury, id, occupiedBlastKeys(state, id))
+  if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, id) }
+  const react = { injury, from: throw_.from, land: throw_.land }
+  const facing = { ...throw_.look }
+  if (throw_.land.x === throw_.from.x && throw_.land.y === throw_.from.y) return { blastReact: react, facing }
+  return {
+    blastReact: react,
+    position: gridToWorld(throw_.land),
+    facing,
+    path: [],
+    moving: false,
+    running: false,
+    order: null,
+    pace: null,
+  }
+}
+
 const avoidOption = (state, actor, injury) =>
   getAvoidOption(actor.character, normalizeCondition(actor.condition), injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene ?? [] })
 
@@ -60,6 +105,8 @@ function settleInjury(state, id, injury, avoid) {
   if (avoid && option.possible) {
     const avoided = avoidInjury(actor.character, condition, injury, option.kind)
     let next = withCondition(state, id, avoided.condition)
+    // Blast: stagger fall + get-up, and stand on the tile they land on (not slide back to the old one).
+    if (isExplosionInjury(injury)) next = withActor(next, id, thrownByBlast(next, id, injury))
     const lines = []
     if (option.kind === 'threat') {
       next = { ...next, resources: { ...next.resources, threat: next.resources.threat - option.cost }, avoidedThisScene: [...(next.avoidedThisScene ?? []), actor.character.id] }
@@ -81,11 +128,14 @@ function settleInjury(state, id, injury, avoid) {
     ...(option.reason && avoid ? [`Cannot Avoid Injury: ${option.reason}`] : []),
     minor ? `${name} is Defeated (${injuryTypeName(injury.type)}).` : `${name} suffers a ${injuryText(injury)} and is Defeated${hit.dying ? ' (Dying)' : ''}.`,
   ]
-  return { state: withCondition(state, id, hit), lines }
+  // Defeated: fall comes from condition; blasts still throw them to the landing tile (blastReact keeps from/land for the slide).
+  const downed = isExplosionInjury(injury) ? thrownByBlast(state, id, injury) : { blastReact: null }
+  return { state: withActor(withCondition(state, id, hit), id, downed), lines }
 }
 
-// The blast and hazard hits of an environment result: party members are asked (queued prompts), NPCs decide now.
-// Returns { state, lines }.
+// The blast and hazard hits of an environment result. Designer decision (2026-10-15): blasts and hazards always spend
+// Stress (or Threat for notables) when Avoid Injury is possible — no prompt, so play is not interrupted. NPCs and anyone
+// who cannot Avoid are settled the usual way. Weapon Avoid Injury in combat is unchanged. Returns { state, lines }.
 function applyHits(state, hits) {
   let next = state
   const lines = []
@@ -95,11 +145,8 @@ function applyHits(state, hits) {
     const injury = injuryFromHit(actor.character, hit, `${state.seed}-env${next.environment.sequence}-${next.environment.round}-${index}-${actor.id}`)
     lines.push(`${nameOf(actor)} is ${hitText(hit)} (${injuryTypeName(injury.type)}, Severity ${injury.severity}).`)
     const option = avoidOption(next, actor, injury)
-    if (next.party.members[actor.id] && option.possible) {
-      next = { ...next, injuryPrompts: [...(next.injuryPrompts ?? []), { targetId: actor.id, injury, text: hitText(hit) }] }
-      return
-    }
-    const settled = settleInjury(next, actor.id, injury, chooseAvoidInjury({ option }))
+    const avoid = next.party.members[actor.id] ? option.possible : chooseAvoidInjury({ option })
+    const settled = settleInjury(next, actor.id, injury, avoid)
     next = settled.state
     lines.push(...settled.lines)
   })
@@ -120,6 +167,17 @@ export function answerInjuryPrompt(state, avoid) {
   if (!prompt) return state
   const settled = settleInjury({ ...state, injuryPrompts: rest }, prompt.targetId, prompt.injury, avoid)
   return settled.lines.reduce((next, text) => addLogEntry(next, { kind: 'environment', text }), settled.state)
+}
+
+// After the fall / getUp stagger has finished playing (presentation). Clears the marker and faces the explosive.
+export function clearBlastReact(state, id) {
+  const actor = actorOf(state, id)
+  if (!actor?.blastReact) return state
+  const injury = actor.blastReact.injury
+  return withActor(state, id, {
+    blastReact: null,
+    ...(injury ? { facing: blastFaceOrigin(injury, id) } : {}),
+  })
 }
 
 const logLines = (state, lines) => lines.reduce((next, text) => addLogEntry(next, { kind: 'environment', text }), state)
@@ -191,11 +249,11 @@ function fightStarter(state, cell) {
   )
 }
 
-// { memberId, objectId, purchase }: the member fires on the object. One roll (partyTaskRoll.js); a success does the
-// weapon's severity less Resistance to its Structure. The shot is heard like gunfire; any explosion is louder. Then a
-// hostile NPC nearby that noticed starts a fight.
+// { memberId, objectId, purchase }: the member fires on the object. One roll (partyTaskRoll.js). The beam plays first;
+// damage / explosion wait for applyPendingObjectHit (after objectShotImpactMs) so the laser is seen before the boom.
 export function fireOnObject(state, { memberId, objectId, purchase }) {
   if (state.mode === MODE.COMBAT) return state
+  if (state.pendingObjectHit) return state
   const preview = previewObjectShot(state, memberId, objectId)
   if (!preview.available) return state
   const member = state.party.members[memberId]
@@ -205,10 +263,52 @@ export function fireOnObject(state, { memberId, objectId, purchase }) {
   const { result } = roll
   let next = noise(roll.state, 'attack', worldToGrid(member.position), memberId)
   next = logLines(next, [`${member.character.name} fires at the ${record.name} (${preview.weapon.name}): ${result.success ? 'hit' : 'miss'} (${result.successes} vs Difficulty ${preview.prepared.difficulty}).`])
-  if (result.success) next = applyResult(next, damageObject(next.environment, next.party.map, objectId, preview.damage, explorationActors(next)), memberId)
-  next = { ...next, lastObjectShot: { key: next.scenario.taskCount, memberId, objectId, weaponId: preview.weapon.id, passed: result.success } }
+  const objectShot = { key: next.scenario.taskCount, memberId, objectId, weaponId: preview.weapon.id, passed: result.success }
+  next = { ...next, lastObjectShot: objectShot }
+  if (!result.success) return next
+  return {
+    ...next,
+    pendingObjectHit: {
+      objectId,
+      damage: preview.damage,
+      memberId,
+      weaponId: preview.weapon.id,
+      impactMs: objectHitDelayMs(preview.weapon),
+      key: objectShot.key,
+    },
+  }
+}
+
+// Apply a successful object shot after the beam has played: Structure damage, explosion, blast stagger, then fight if needed.
+export function applyPendingObjectHit(state) {
+  const pending = state.pendingObjectHit
+  if (!pending || state.mode === MODE.COMBAT) return state
+  let next = { ...state, pendingObjectHit: null }
+  const beforeExplosions = next.environment?.explosions ?? []
+  next = applyResult(next, damageObject(next.environment, next.party.map, pending.objectId, pending.damage, explorationActors(next)), pending.memberId)
+  const record = next.environment.destructibles[pending.objectId]
   const starter = fightStarter(next, record.position)
-  return starter ? startCombat(next, { triggerNpcId: starter.id, triggerTargetId: memberId, source: 'OBJECT_ATTACK', position: gridToWorld(record.position) }) : next
+  if (!starter) return next
+  const fighting = startCombat(next, { triggerNpcId: starter.id, triggerTargetId: pending.memberId, source: 'OBJECT_ATTACK', position: gridToWorld(record.position) })
+  if (!fighting.combat) return fighting
+  const explosions = (fighting.environment?.explosions ?? next.environment?.explosions ?? [])
+    .filter((blast) => !beforeExplosions.includes(blast))
+    .map((blast) => blast.id)
+  return {
+    ...fighting,
+    combat: {
+      ...fighting.combat,
+      lastAction: {
+        key: fighting.combat.log.length,
+        type: 'attackObject',
+        actorId: pending.memberId,
+        objectId: pending.objectId,
+        weaponId: pending.weaponId,
+        passed: true,
+        explosions,
+      },
+    },
+  }
 }
 
 // ---------- neutralizing a hazard ----------

@@ -15,7 +15,7 @@ const ACTION_LABELS = { flee: 'Beams Out', move: 'Move', sprint: 'Sprint', aim: 
 const TASK_LABELS = { guard: ['Guard', 'Guard failed'], firstAid: ['First Aid', 'First Aid failed'], interact: ['Task', 'Task failed'] }
 
 function actionLabel(action) {
-  if (action.type === 'attack') return getWeapon(action.weaponId).name
+  if (action.type === 'attack' || action.type === 'attackObject') return getWeapon(action.weaponId)?.name ?? 'Fire'
   if (action.type === 'reroll') return { aim: 'Aim Reroll', assist: 'Student of War Reroll' }[action.source] ?? 'Momentum Reroll'
   if (action.type === 'move' && action.inCover) return 'Move to Cover'
   if (action.type === 'sprint' && action.inCover) return 'Sprint to Cover'
@@ -53,24 +53,28 @@ export function actionEffectItems(state, { positionOf, msPerTile, speed, hiddenI
   const target = action.targetId ? state.combatants[action.targetId] : null
   const shot = shotOf(state, action)
   const key = action.key
-  const from = project(positionOf(actor))
-  const to = target && project(positionOf(target))
+  const from = actor && project(positionOf(actor))
+  const to = target
+    ? project(positionOf(target))
+    : shot?.targetPosition
+      ? project(shot.targetPosition)
+      : null
   const delayMs = SHOT_FIRE_MS / speed
   const items = []
-  if (shot && to && shot.colour) {
+  if (shot && from && to && shot.colour) {
     const end = shot.missed ? wideOf(from, to) : to
     const kind = shot.pulse ? 'pulseShot' : 'beamShot'
     items.push({ id: `shot-${key}`, kind, from: raised(from), end: raised(end), hit: shot.missed ? null : raised(to), colour: shot.colour, delayMs, speed })
   }
-  if (shot && to && !shot.colour && !shot.missed) items.push({ id: `strike-${key}`, kind: 'strike', at: raised(to), delayMs, speed })
+  if (shot && from && to && !shot.colour && !shot.missed) items.push({ id: `strike-${key}`, kind: 'strike', at: raised(to), delayMs, speed })
   if (action.type === 'scan') {
     if (actor) items.push({ id: `scan-a-${key}`, kind: 'scan', origin: positionOf(actor), radius: CHARACTER_SCAN_RADIUS, speed })
     if (target) items.push({ id: `scan-t-${key}`, kind: 'scan', origin: positionOf(target), radius: CHARACTER_SCAN_RADIUS, speed })
   }
-  if (action.type === 'flee') items.push({ id: `flee-${key}`, kind: 'transporter', position: from, direction: 'out', speed })
+  if (action.type === 'flee' && from) items.push({ id: `flee-${key}`, kind: 'transporter', position: from, direction: 'out', speed })
   const label = actionLabel(action)
-  if (label) items.push({ id: `label-${key}`, kind: 'label', centre: from, msPerTile, text: label, style: 'action', delayMs: 0, speed })
-  if (['resolve', 'injury', 'counterattack'].includes(action.type) && target) {
+  if (label && from) items.push({ id: `label-${key}`, kind: 'label', centre: from, msPerTile, text: label, style: 'action', delayMs: 0, speed })
+  if (['resolve', 'injury', 'counterattack'].includes(action.type) && target && to) {
     const style = action.type === 'resolve' && !action.passed ? 'miss' : 'hit'
     items.push({ id: `result-${key}`, kind: 'label', centre: to, msPerTile, text: resultLabel(action, target), style, delayMs: shot ? shot.impactMs / speed : 0, speed })
   }

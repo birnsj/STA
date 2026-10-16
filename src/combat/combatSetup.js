@@ -22,7 +22,7 @@ import { applyEnvironmentTiles, createEnvironment } from '../world/environment.j
 // guard: null, or { byId, round } while a Guard is up on this combatant (until the start of its next turn).
 // id: the actor's id (a world NPC's id when combat starts in the world; otherwise the character's own id). The character
 // keeps its own id: one character, whichever actor or combatant uses it.
-function createCombatant(character, { id = character.id, side, controller, position, condition = null, facing = null }) {
+function createCombatant(character, { id = character.id, side, controller, position, condition = null, facing = null, blastReact = null }) {
   const weapons = getCharacterWeapons(character)
   return {
     id,
@@ -37,6 +37,8 @@ function createCombatant(character, { id = character.id, side, controller, posit
     guard: null,
     facing,
     weaponIds: weapons.map((weapon) => weapon.id),
+    // Stress-Avoid blast stagger still playing when the fight starts (exploration → combat hand-off).
+    ...(blastReact ? { blastReact } : {}),
   }
 }
 

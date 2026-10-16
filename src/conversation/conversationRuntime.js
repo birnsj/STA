@@ -4,7 +4,7 @@
 //
 // state.conversation = { definition, npcId, nodeId (the node shown: NPC Dialogue, Player Choice or Task Check),
 //   choiceId (the Player Choice offered now, or null), line: { speaker, text } | null (the NPC's latest line),
-//   lastCheck: { key, nodeId, label, performerId, prepared, result, messages, bonusDice, momentumSpentOnDice,
+//   lastCheck: { key, nodeId, label, performerId, assistantId, prepared, assist, result, messages, bonusDice, momentumSpentOnDice,
 //     threatAddedForDice, momentumSaved, momentumLost } (the same fields as a challenge's lastTask) | null,
 //   ended (true when a check's outcome ended it: the panel shows the result until closed) } | null.
 // Condition and Action nodes run straight through. Reaching an End node, a missing link or a 'startCombat' action
@@ -14,7 +14,7 @@ import { getMembers } from '../exploration/partyControl.js'
 import { checkCondition } from '../exploration/missionFlags.js'
 import { checkDifficultyChange, checksSkipped } from '../exploration/partySocial.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
-import { prepareTask } from '../rules/taskPreparation.js'
+import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { getActionType } from './conversationActions.js'
 import { getNode } from './conversationFormat.js'
@@ -140,13 +140,27 @@ export function previewCheck(state, node, performerId) {
 // Who is best placed to answer a check (rules/taskRecommendation.js): a highlight, never a restriction.
 export const recommendCheck = (state, node) => recommendPerformers(checkCandidates(state).map((member) => ({ id: member.id, prepared: previewCheck(state, node, member.id) })))
 
-// Rolls the waiting check for performerId: purchase (optional) { bonusDice, momentum } buys bonus d20s like any task.
-// Applies the complication consequences if any complication remains, then follows Success or Failure.
-export function rollCheck(state, { performerId, purchase = { bonusDice: 0, momentum: 0 } }, hooks = NO_HOOKS) {
+// Who may assist performerId: any other member able to act (one assistant, free: Book Core p.255 allows one at no cost).
+export const assistCandidates = (state, performerId) => checkCandidates(state).filter((member) => member.id !== performerId)
+
+// An assistant's own target number and focus. Book: an assistant need not use the leader's attribute and department
+// (Core p.256). Prototype (designer decision, 2026-10-15): checks have no authored assist approach, so the assistant
+// rolls the check's own attribute + department.
+export function previewCheckAssist(state, node, assistantId) {
+  const member = state.party.members[assistantId]
+  return { ...prepareAssist(member.character, checkSpec(node), member.condition), approach: { label: node.label || 'Task Check' } }
+}
+
+// Rolls the waiting check for performerId: purchase (optional) { bonusDice, momentum } buys bonus d20s like any task;
+// assistantId (optional) adds that member's assist die. Applies the complication consequences if any complication
+// remains, then follows Success or Failure.
+export function rollCheck(state, { performerId, assistantId = null, purchase = { bonusDice: 0, momentum: 0 } }, hooks = NO_HOOKS) {
   const node = currentCheck(state)
   if (!node || !checkCandidates(state).some((member) => member.id === performerId)) return state
+  if (assistantId && !assistCandidates(state, performerId).some((member) => member.id === assistantId)) return state
   const prepared = previewCheck(state, node, performerId)
-  const roll = rollPartyTask(state, { prepared, purchase })
+  const assist = assistantId ? previewCheckAssist(state, node, assistantId) : null
+  const roll = rollPartyTask(state, { prepared, assist, purchase })
   if (!roll) return state
   const { result } = roll
   const key = state.scenario.taskCount
@@ -158,7 +172,9 @@ export function rollCheck(state, { performerId, purchase = { bonusDice: 0, momen
     nodeId: node.id,
     label: node.label,
     performerId,
+    assistantId: assist ? assistantId : null,
     prepared,
+    assist,
     result,
     messages: [],
     bonusDice: roll.purchase.bonusDice,
