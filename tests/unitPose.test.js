@@ -72,3 +72,22 @@ test('a blast Stress Avoid falls, holds on the ground, then plays getUp', () => 
   const armed = { ...afterHold, oneShotUntil: 50_000 + getUpMs }
   assert.equal(shownPose(settlePose(armed, armed.oneShotUntil)).animation, 'idle')
 })
+
+test('a Defeated blast victim falls and stays down — no automatic getUp', () => {
+  const injury = {
+    id: 'blast-down',
+    type: 'deadly',
+    severity: 3,
+    source: { weaponId: 'explosion:g', blastRadius: 2 },
+  }
+  const downed = {
+    ...standing,
+    condition: { ...standing.condition, defeated: true, injuries: [injury] },
+    blastReact: { injury, from: { x: 1, y: 1 }, land: { x: 2, y: 1 } },
+  }
+  const track = advancePose(initialPose(poseInput(standing)), poseInput(downed), 0)
+  assert.equal(track.down, true)
+  assert.equal(track.staggerFall, null)
+  assert.equal(track.gettingUp, null)
+  assert.ok(String(shownPose(track).animation).startsWith('fall'))
+})

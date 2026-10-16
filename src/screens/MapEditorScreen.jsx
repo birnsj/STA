@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { getPlaytestParty } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
@@ -28,15 +29,18 @@ const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 const PLAY_TEAM_SIZE = 4
-// Play's away team: up to PLAY_TEAM_SIZE saved characters picked at random (no more than the map has player starts),
-// as RuntimeCharacters. Characters whose saved JSON doesn't load are skipped.
-function randomTeam(savedCharacters, starts) {
+// Play's away team: the authored redshirt ensigns (characters.json playtestParty) first; if none load, up to
+// PLAY_TEAM_SIZE saved characters at random. Never more members than the map has player starts.
+function playAwayTeam(savedCharacters, starts) {
+  const size = Math.min(PLAY_TEAM_SIZE, starts)
+  const authored = getPlaytestParty(size)
+  if (authored.length) return authored
   const roster = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
   for (let i = roster.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[roster[i], roster[j]] = [roster[j], roster[i]]
   }
-  return roster.slice(0, Math.min(PLAY_TEAM_SIZE, starts))
+  return roster.slice(0, size)
 }
 
 // A Generate Map size slider, in percent of the generators' own sizes.
@@ -102,8 +106,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const onPlay = () => {
     const starts = map.markers.playerStarts.length
     if (!starts) return setStatus('Play needs at least one player start on the map.')
-    const team = randomTeam(savedCharacters, starts)
-    if (!team.length) return setStatus('Play needs a saved character. Create one first.')
+    const team = playAwayTeam(savedCharacters, starts)
+    if (!team.length) return setStatus('Play needs the authored redshirt party or a saved character.')
     setPlayTeam(team)
   }
 
@@ -271,6 +275,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           placingObjective={tools.placingObjective}
           canSave={canSaveMaps}
           onGenerateMap={() => doc.onGenerate()}
+          generateHazards={doc.generateHazards}
+          onGenerateHazards={doc.setGenerateHazards}
           onOpenObjective={(index) => setObjectiveEditor({ index })}
           onOpenConversations={() => setConversationEditor({ id: null })}
           onOpenObjects={() => setObjectEditor({ id: tools.selectedObjectId ?? null })}

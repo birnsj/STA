@@ -8,7 +8,8 @@
     "Not yet authored for the Klingon Warriors (no source-backed build exists in the project): focuses (the Minor NPC stat block has none), talents (Klingon species talents, Core p.151, are not transcribed: talents.json excludes non-creator species), rank, assignment and role, lifepath (environment, upbringing, education, career events), and personal names. The Bat'leth is left out (no Escalation rules) and Warrior's Spirit is not implemented.",
     "identity.portrait.image is used because Klingon portraits are not in portraits.json. Warriors 3 and 4 share portrait art with Warriors 1 and 2. In play (designer request, Oct 2026) each Klingon NPC is shown with a Klingon portrait from npcPortraits.json instead, male or female, chosen per NPC in the map editor or given one on Auto (character/npcAppearance.js); the authored gender, pronouns and portrait here are the fallback only.",
     "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.108), the Klingon Veteran (p.355) and Moq'var, Son of Koloth (p.356). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented.",
-    "Station Engineer (Book: STA 2e Core p.352, Starfleet Officer, Minor NPC): stat block Control 10, Daring 10, Fitness 8, Insight 8, Presence 9, Reason 9 before species ('add 3 points to attributes based on species'); every department 1; traits Species, Starfleet Officer; Unarmed Strike, Phaser Type-1. GM note: add 1 point to two different departments to make a type. Implementer picks for the NPC and conversation test encounter (Oct 2026), open for review: Human (Core p.98: +1 to three attributes) taking Control, Insight and Reason; the engineer type takes +1 Engineering and +1 Science; name Lt. Mara Okafor; her own painted portrait (public/art/portraits/npc/stationEngineer.png, Oct 2026, shown as drawn, no uniform recolour), with portrait id human-female-3 kept for her map sprite set. No values, focuses or talents (the Minor NPC stat block has none); Intensive Training (p.351) is not implemented."
+    "Station Engineer (Book: STA 2e Core p.352, Starfleet Officer, Minor NPC): stat block Control 10, Daring 10, Fitness 8, Insight 8, Presence 9, Reason 9 before species ('add 3 points to attributes based on species'); every department 1; traits Species, Starfleet Officer; Unarmed Strike, Phaser Type-1. GM note: add 1 point to two different departments to make a type. Implementer picks for the NPC and conversation test encounter (Oct 2026), open for review: Human (Core p.98: +1 to three attributes) taking Control, Insight and Reason; the engineer type takes +1 Engineering and +1 Science; name Lt. Mara Okafor; her own painted portrait (public/art/portraits/npc/stationEngineer.png, Oct 2026, shown as drawn, no uniform recolour), with portrait id human-female-3 kept for her map sprite set. No values, focuses or talents (the Minor NPC stat block has none); Intensive Training (p.351) is not implemented.",
+    "Redshirt Ensigns (Prototype playtest party, designer 2026-10-15): four human male Starfleet ensigns marked playtestParty for the map editor's Play away team. Same Starfleet Officer Minor NPC base (Core p.352), Human bonuses into Daring, Fitness and Presence, security type (+1 Security, +1 Conn). Operations-division red shirts (uniforms.json). Disposable away-team fillers, not book individuals."
   ],
   "characters": [
     {
@@ -650,6 +651,502 @@
         "department": {
           "id": "engineering",
           "name": "Engineering"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "redshirtMallory",
+      "playtestParty": true,
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Prototype redshirt playtest party member (editor Play)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Mallory",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-1",
+            "name": "Ensign Mallory"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "standardTricorder"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 11,
+          "fitness": 9,
+          "insight": 8,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "redshirtOneil",
+      "playtestParty": true,
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Prototype redshirt playtest party member (editor Play)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign O'Neil",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-2",
+            "name": "Ensign O'Neil"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "standardTricorder"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 11,
+          "fitness": 9,
+          "insight": 8,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "redshirtBlake",
+      "playtestParty": true,
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Prototype redshirt playtest party member (editor Play)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Blake",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-3",
+            "name": "Ensign Blake"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "standardTricorder"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 11,
+          "fitness": 9,
+          "insight": 8,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "redshirtHarper",
+      "playtestParty": true,
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Prototype redshirt playtest party member (editor Play)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Harper",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-4",
+            "name": "Ensign Harper"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "standardTricorder"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 11,
+          "fitness": 9,
+          "insight": 8,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
         },
         "assignment": null,
         "role": null

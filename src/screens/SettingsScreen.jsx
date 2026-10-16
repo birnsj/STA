@@ -45,7 +45,7 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
             <label className="settings-toggle">
               <span className="settings-toggle-text">
                 <span className="settings-slider-label">Help Hints</span>
-                <span className="settings-option-description">In combat and exploration, a box above the party cards says what to do next.</span>
+                <span className="settings-option-description">In combat and exploration, a box above the party cards says what to do next. Also opens How to Play on the first fight after Load Episode.</span>
               </span>
               <input
                 type="checkbox"

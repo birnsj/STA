@@ -31,8 +31,19 @@ import { generateSurfaceSite } from './generators/surfaceSite.js'
 import { generateWilderness } from './generators/wilderness.js'
 import { withLayoutScale } from './generators/shared.js'
 import { applyWallVariants } from './generators/wallVariants.js'
+import hazardData from '../data/adaptation/world/hazards.json'
 import { pickCard } from './episodeCards.js'
-import { DEFAULT_BIOME, mapFileId } from './mapFormat.js'
+import { DEFAULT_BIOME, getTile, mapFileId } from './mapFormat.js'
+
+const HAZARD_TYPES = Object.keys(hazardData.types)
+const ORTHO = [
+  { x: 1, y: 0 },
+  { x: -1, y: 0 },
+  { x: 0, y: 1 },
+  { x: 0, y: -1 },
+]
+const pick = (list, random) => list[Math.floor(random() * list.length)]
+const keyOf = ({ x, y }) => `${x},${y}`
 
 const locationList = (categoryId) => locationNames.categories.find((category) => category.id === categoryId)?.names ?? []
 
@@ -133,6 +144,66 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
   // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
   return { ...applyWallVariants(layout, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
+}
+
+// Open floor tiles a generated hazard may cover (not solid, not a player start or enemy spawn).
+function hazardSeedTiles(map) {
+  const reserved = new Set()
+  for (const marker of [...(map.markers?.playerStarts ?? []), ...(map.markers?.enemySpawns ?? [])]) {
+    reserved.add(keyOf(marker))
+  }
+  const open = []
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (getTile(map.tiles[y][x]).solid || reserved.has(keyOf({ x, y }))) continue
+      open.push({ x, y })
+    }
+  }
+  return open
+}
+
+// Grow a compact blob of open tiles around seed (orthogonal steps only), skipping taken tiles.
+function hazardBlob(map, seed, size, taken, random) {
+  const tiles = {}
+  const queue = [seed]
+  const seen = new Set([keyOf(seed)])
+  while (queue.length && Object.keys(tiles).length < size) {
+    const index = Math.floor(random() * queue.length)
+    const [cell] = queue.splice(index, 1)
+    const key = keyOf(cell)
+    if (taken.has(key) || getTile(map.tiles[cell.y][cell.x]).solid) continue
+    tiles[key] = 1 + Math.floor(random() * 3)
+    for (const step of ORTHO) {
+      const next = { x: cell.x + step.x, y: cell.y + step.y }
+      if (next.x < 0 || next.y < 0 || next.x >= map.width || next.y >= map.height) continue
+      const nextKey = keyOf(next)
+      if (seen.has(nextKey) || taken.has(nextKey) || getTile(map.tiles[next.y][next.x]).solid) continue
+      seen.add(nextKey)
+      queue.push(next)
+    }
+  }
+  return tiles
+}
+
+// Scatter a few hazard regions onto an open layout (editor Generate Map option). Leaves player starts and enemy
+// spawns clear. Density scales with floor area; types are picked from hazards.json.
+export function withGeneratedHazards(map, random = Math.random) {
+  const open = hazardSeedTiles(map)
+  if (!open.length || !HAZARD_TYPES.length) return { ...map, hazards: [] }
+  const regionCount = Math.min(8, Math.max(2, Math.round(open.length / 90)))
+  const taken = new Set()
+  const hazards = []
+  for (let i = 0; i < regionCount; i++) {
+    const candidates = open.filter((cell) => !taken.has(keyOf(cell)))
+    if (!candidates.length) break
+    const seed = pick(candidates, random)
+    const size = 3 + Math.floor(random() * 6)
+    const tiles = hazardBlob(map, seed, size, taken, random)
+    if (!Object.keys(tiles).length) continue
+    for (const key of Object.keys(tiles)) taken.add(key)
+    hazards.push({ id: `genHazard${i + 1}`, type: pick(HAZARD_TYPES, random), tiles })
+  }
+  return { ...map, hazards }
 }
 
 // A complete, playable map: a layout plus a location name no existing map file uses, an episode name and a card.

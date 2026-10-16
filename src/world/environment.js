@@ -1,12 +1,14 @@
 // Destructible objects and environmental hazards (docs/world-objects.md). Pure rules on plain data, shared by
 // exploration and combat; the appliers (exploration/explorationEnvironment.js, combat/combatEnvironment.js) turn the hits
 // these return into Injuries.
-// environment = { seed, round, sequence, destructibles: { [id]: record }, hazards: { [regionId]: region }, explosions }
+// environment = { seed, round, sequence, destructibles: { [id]: record }, hazards: { [regionId]: region }, scars,
+//   explosions }
 //   record: { id, type, name, position, structure, maxStructure, resistance, state: intact | damaged | destroyed,
 //   attackable, explosion (the type's, with the map's overrides), linkedTiles, debris, leakSealed }
 //   region: { id, type, tiles: { 'x,y': intensity 1-3 }, source: 'map' | 'explosion:{id}' | 'leak:{id}', active, spread,
 //   neutralizable, roundsLeft (null: until it dissipates), and the map's overrides of its type: severity?, spreadChance?,
 //   dissipateChance?, neutralizeDifficulty? }
+//   scars: { 'x,y': tileId } permanent walkable floor scars (e.g. scorched) left by fire / plasma this mission
 //   explosions: the latest blasts, newest last, for the explosion effect: { id, objectId, type, kind, position, radius }
 // Book: no person-scale object rules (Core p.327 has immediate Area hazards and lingering hazards, p.291 Avoid Injury).
 // Prototype (designer decision, 2026-10-12): an object has a Structure track and Resistance; damage = severity -
@@ -23,6 +25,8 @@ import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 export const DESTRUCTIBLE_TYPES = destructibleData.types
 export const HAZARD_TYPES = hazardData.types
 export const HAZARD_ROUND_SECONDS = hazardData.roundSeconds
+// Prototype (designer 2026-10-15): base hazard rounds an affliction lasts after leaving a damaging tile (Fitness shortens).
+export const BASE_AFFLICTION_ROUNDS = hazardData.baseAfflictionRounds ?? 3
 export const MAX_INTENSITY = hazardData.maxIntensity
 export const THICK_INTENSITY = hazardData.thickIntensity
 export const DESTRUCTIBLE_STATES = ['intact', 'damaged', 'destroyed']
@@ -87,7 +91,8 @@ export function createEnvironment(map, seed = 0) {
   const hazards = Object.fromEntries(
     (map.hazards ?? []).filter((hazard) => HAZARD_TYPES[hazard.type] && Object.keys(hazard.tiles).length).map((hazard) => [hazard.id, createHazardRegion(hazard)]),
   )
-  return { seed, round: 0, sequence: 0, destructibles, hazards, explosions: [] }
+  const environment = { seed, round: 0, sequence: 0, destructibles, hazards, scars: {}, explosions: [] }
+  return recordAllHazardScars(resolveExclusiveOccupancy(environment), map)
 }
 
 export const destructibleList = (environment) => Object.values(environment?.destructibles ?? {})
@@ -123,13 +128,21 @@ export function hazardAt(environment, position) {
   return worst
 }
 
-// The tile changes the environment makes: each destructible's tile for its state, a force-field generator's linked
-// field (up while it stands, down once destroyed) and a fallen structure's debris.
+// The tile changes the environment makes: hazard scars (scorched floors), each destructible's tile for its state, a
+// force-field generator's linked field (up while it stands, down once destroyed) and a fallen structure's debris.
 function environmentTileChanges(map, environment) {
   const changes = []
   const put = (position, tile) => {
     if (isInside(map, position) && map.tiles[position.y][position.x] !== tile) changes.push({ ...position, tile })
   }
+  Object.entries(environment.scars ?? {}).forEach(([key, tile]) => {
+    const position = parseKey(key)
+    if (!isInside(map, position)) return
+    if (destructibleAt(environment, position)) return
+    const current = getTile(tileAt(map, position))
+    if (current.solid || current.wall) return
+    put(position, tile)
+  })
   destructibleList(environment).forEach((record) => {
     put(record.position, destructibleTileId(record.type, record.state))
     record.linkedTiles.forEach((tile) => put(tile, isStanding(record) ? FORCE_FIELD_TILES.up : FORCE_FIELD_TILES.down))
@@ -206,23 +219,87 @@ const withoutRegion = (environment, regionId) => {
   return { ...environment, hazards }
 }
 
-// A new hazard region around a point: centreIntensity on the point, edgeIntensity on every open tile within radius the
-// blast reaches. duration: hazard rounds it lasts (null: until it dissipates); spread: whether it may spread. Returns the
-// environment unchanged when there is no hazard type.
+// Soft edge past the nominal radius; rim tiles between RIM_INNER and this may be dropped for an organic footprint.
+const SPAWN_SOFT = 0.35
+const SPAWN_RIM_INNER = 0.6
+const SPAWN_RIM_KEEP = 0.62
+
+// Prototype (designer 2026-10-15): only one hazard type occupies a tile. Higher severity wins; equal severity keeps the
+// existing occupant. Returns the environment with conflicting keys removed from losers.
+export function resolveExclusiveOccupancy(environment) {
+  const owners = new Map()
+  activeHazards(environment).forEach((region) => {
+    const severity = hazardSeverity(region)
+    Object.keys(region.tiles).forEach((key) => {
+      const previous = owners.get(key)
+      if (!previous || severity > previous.severity || (severity === previous.severity && region.id < previous.regionId)) {
+        owners.set(key, { regionId: region.id, severity })
+      }
+    })
+  })
+  let next = environment
+  activeHazards(environment).forEach((region) => {
+    const tiles = { ...region.tiles }
+    let changed = false
+    Object.keys(region.tiles).forEach((key) => {
+      if (owners.get(key)?.regionId === region.id) return
+      delete tiles[key]
+      changed = true
+    })
+    if (!changed) return
+    next = Object.keys(tiles).length ? withRegion(next, { ...region, tiles }) : withoutRegion(next, region.id)
+  })
+  return next
+}
+
+// Record permanent floor scars for types with scarTile (fire / plasmaFire → scorched). Skips walls and object tiles.
+function recordHazardScars(environment, map, region) {
+  const scarTile = HAZARD_TYPES[region.type]?.scarTile
+  if (!scarTile || !region.active) return environment
+  const scars = { ...(environment.scars ?? {}) }
+  let changed = false
+  Object.keys(region.tiles).forEach((key) => {
+    if (scars[key]) return
+    const position = parseKey(key)
+    if (!isOpen(map, position) || destructibleAt(environment, position)) return
+    const current = getTile(tileAt(map, position))
+    if (current.wall) return
+    scars[key] = scarTile
+    changed = true
+  })
+  return changed ? { ...environment, scars } : environment
+}
+
+function recordAllHazardScars(environment, map) {
+  return activeHazards(environment).reduce((next, region) => recordHazardScars(next, map, region), environment)
+}
+
+// A new hazard region around a point: Euclidean circle (plus soft rim jitter), centreIntensity on the point, edgeIntensity
+// on other open tiles the blast reaches. duration: hazard rounds it lasts (null: until it dissipates); spread: whether it
+// may spread. Returns the environment unchanged when there is no hazard type.
 export function spawnHazard(environment, map, { type, position, radius = 0, centreIntensity = MAX_INTENSITY, edgeIntensity = THICK_INTENSITY, duration = null, spread = true, source, id }) {
   if (!type || !HAZARD_TYPES[type]) return environment
+  const random = seededRandomInt(deriveSeed(environment.seed, 9001 + environment.sequence + position.x * 31 + position.y * 17))
+  const extent = Math.ceil(radius + SPAWN_SOFT)
   const tiles = {}
-  for (let dy = -radius; dy <= radius; dy++) {
-    for (let dx = -radius; dx <= radius; dx++) {
-      const tile = { x: position.x + dx, y: position.y + dy }
+  for (let dy = -extent; dy <= extent; dy++) {
+    for (let dx = -extent; dx <= extent; dx++) {
+      const dist = Math.hypot(dx, dy)
+      if (dist > radius + SPAWN_SOFT) continue
       const centre = dx === 0 && dy === 0
+      if (!centre && dist >= radius - SPAWN_RIM_INNER && random() > SPAWN_RIM_KEEP) continue
+      const tile = { x: position.x + dx, y: position.y + dy }
       if (!isOpen(map, tile) || (!centre && !blastReaches(map, environment, position, tile))) continue
       tiles[tileKey(tile)] = centre ? centreIntensity : Math.min(edgeIntensity, centreIntensity)
     }
   }
   if (!Object.keys(tiles).length) return environment
   const sequence = environment.sequence + 1
-  return withRegion({ ...environment, sequence }, { id: id ?? `h${sequence}`, type, tiles, source, active: true, spread, neutralizable: true, roundsLeft: duration })
+  const regionId = id ?? `h${sequence}`
+  let next = withRegion({ ...environment, sequence }, { id: regionId, type, tiles, source, active: true, spread, neutralizable: true, roundsLeft: duration })
+  next = resolveExclusiveOccupancy(next)
+  const region = next.hazards[regionId]
+  return region ? recordHazardScars(next, map, region) : next
 }
 
 // A damaged object leaking its damagedHazard onto the open tiles round it (topped up each hazard round until it is
@@ -238,7 +315,10 @@ function leak(environment, map, record) {
     if (isOpen(map, tile)) tiles[tileKey(tile)] = Math.max(tiles[tileKey(tile)] ?? 0, 1)
   })
   if (!Object.keys(tiles).length) return environment
-  return withRegion(environment, { ...(existing ?? { id, type, source: id, active: true, spread: true, neutralizable: true, roundsLeft: null }), tiles })
+  let next = withRegion(environment, { ...(existing ?? { id, type, source: id, active: true, spread: true, neutralizable: true, roundsLeft: null }), tiles })
+  next = resolveExclusiveOccupancy(next)
+  const region = next.hazards[id]
+  return region ? recordHazardScars(next, map, region) : next
 }
 
 // Where a fallen structure's debris lands: the open tiles within the type's debris radius the blast reaches, never one
@@ -385,10 +465,11 @@ export function neutralizeHazard(environment, regionId, mode = 'remove', amount 
   return sealLeak(withoutRegion(environment, regionId))
 }
 
-// One spreading / dissipating step for a region; random: a seeded () => [0, 1).
+// One spreading / dissipating / migrating step for a region; random: a seeded () => [0, 1).
 function evolveRegion(region, map, random, blocked) {
   const spreadChance = region.spread === false ? 0 : hazardValue(region, 'spreadChance')
   const dissipateChance = hazardValue(region, 'dissipateChance')
+  const migrateChance = region.spread === false ? 0 : (hazardValue(region, 'migrateChance') ?? 0)
   const tiles = { ...region.tiles }
   const keys = Object.keys(region.tiles).sort()
   keys.forEach((key) => {
@@ -404,9 +485,25 @@ function evolveRegion(region, map, random, blocked) {
   })
   keys.forEach((key) => {
     if (random() * 100 >= dissipateChance) return
+    if (!tiles[key]) return
     if (tiles[key] <= 1) delete tiles[key]
     else tiles[key] -= 1
   })
+  // Migrate: move a tile's intensity onto an empty orthogonal neighbour (patch shifts while fading).
+  Object.keys(tiles)
+    .sort()
+    .forEach((key) => {
+      if (!tiles[key] || tiles[key] < THICK_INTENSITY) return
+      if (random() * 100 >= migrateChance) return
+      const origin = parseKey(key)
+      const options = ORTHOGONAL.map(([dx, dy]) => ({ x: origin.x + dx, y: origin.y + dy })).filter(
+        (tile) => isOpen(map, tile) && !blocked(tile) && !tiles[tileKey(tile)],
+      )
+      if (!options.length) return
+      const tile = options[Math.floor(random() * options.length)]
+      tiles[tileKey(tile)] = tiles[key]
+      delete tiles[key]
+    })
   const roundsLeft = region.roundsLeft == null ? null : region.roundsLeft - 1
   return { ...region, tiles: roundsLeft !== null && roundsLeft <= 0 ? {} : tiles, roundsLeft }
 }
@@ -452,6 +549,8 @@ export function hazardRound(environment, map, actors = []) {
     const evolved = evolveRegion(region, current, random, blocked)
     next = Object.keys(evolved.tiles).length ? withRegion(next, evolved) : withoutRegion(next, region.id)
   })
+  next = resolveExclusiveOccupancy(next)
+  next = recordAllHazardScars(next, current)
   destructibleList(next).forEach((record) => {
     next = leak(next, current, record)
   })

@@ -5,9 +5,12 @@ import { describe, it } from 'node:test'
 import spriteData from '../src/data/adaptation/characterSprites.json' with { type: 'json' }
 import characterData from '../src/data/adaptation/characters.json' with { type: 'json' }
 import {
+  blastFaceOrigin,
+  blastKnockbackFacing,
+  blastLandingCell,
+  blastThrow,
   defeatAnimation,
   directionFor,
-  blastLandingCell,
   explosionKnockback,
   getSpriteAnimation,
   getSpriteSet,
@@ -185,6 +188,99 @@ describe('how a Defeated character falls (Prototype presentation)', () => {
     }
     const occupied = new Set(['7,5'])
     assert.deepEqual(blastLandingCell(map, { x: 5, y: 5 }, { x: 1, y: 0 }, 3, occupied), { x: 6, y: 5 })
+  })
+})
+
+describe('blast throw direction and facing (Prototype presentation)', () => {
+  const openMap = () => ({
+    width: 12,
+    height: 12,
+    tiles: Array.from({ length: 12 }, () => Array.from({ length: 12 }, () => 'floor')),
+  })
+  const injuryAt = (at, origin = { x: 5, y: 5 }, radius = 2) => ({
+    type: 'stun',
+    severity: 2,
+    source: { weaponId: 'explosion:g', blastRadius: radius, blastOrigin: origin, at },
+  })
+
+  it('throws east, west, north and south outward from the blast', () => {
+    const map = openMap()
+    const origin = { x: 5, y: 5 }
+    const cases = [
+      [{ x: 7, y: 5 }, { x: 1, y: 0 }],
+      [{ x: 3, y: 5 }, { x: -1, y: 0 }],
+      [{ x: 5, y: 3 }, { x: 0, y: -1 }],
+      [{ x: 5, y: 7 }, { x: 0, y: 1 }],
+    ]
+    for (const [at, expected] of cases) {
+      const throw_ = blastThrow(map, injuryAt(at, origin), 'crew')
+      assert.deepEqual(throw_.facing, expected, `from ${at.x},${at.y}`)
+      assert.ok(throw_.tiles >= 1)
+      assert.equal(Math.sign(throw_.land.x - at.x) || 0, expected.x || 0)
+      assert.equal(Math.sign(throw_.land.y - at.y) || 0, expected.y || 0)
+    }
+  })
+
+  it('a diagonal stand throws on the matching diagonal', () => {
+    const throw_ = blastThrow(openMap(), injuryAt({ x: 7, y: 7 }), 'crew')
+    assert.deepEqual(throw_.facing, { x: 1, y: 1 })
+    assert.ok(throw_.land.x > 7 && throw_.land.y > 7)
+  })
+
+  it('a wall truncates the throw without reversing it', () => {
+    const map = openMap()
+    map.tiles[5][8] = 'plainBulkhead'
+    const at = { x: 6, y: 5 }
+    const throw_ = blastThrow(map, injuryAt(at), 'crew')
+    assert.deepEqual(throw_.facing, { x: 1, y: 0 })
+    assert.deepEqual(throw_.land, { x: 7, y: 5 })
+    assert.equal(throw_.tiles, 1)
+  })
+
+  it('an occupied tile stops the throw on a free tile; a fully blocked throw does not invent a slide', () => {
+    const map = openMap()
+    const at = { x: 6, y: 5 }
+    const blocked = blastThrow(map, injuryAt(at), 'crew', new Set(['7,5', '8,5', '9,5']))
+    assert.deepEqual(blocked.land, at)
+    assert.equal(blocked.tiles, 0)
+  })
+
+  it('final facing points from the landing tile toward the explosion, not from the pre-throw tile', () => {
+    const map = openMap()
+    map.tiles[5][9] = 'plainBulkhead'
+    // Stood at 7,5; throw +x is truncated to 8,5. Facing must use 8,5 → origin 5,5.
+    const injury = injuryAt({ x: 7, y: 5 })
+    const throw_ = blastThrow(map, injury, 'crew')
+    assert.deepEqual(throw_.land, { x: 8, y: 5 })
+    assert.deepEqual(throw_.look, blastFaceOrigin(injury, 'crew', throw_.land))
+    assert.deepEqual(throw_.look, { x: -1, y: 0 })
+    // Using the old tile alone would still be -x here; force a case where land ≠ at directionally vs origin:
+    // stand at 6,4 (NW of origin), land truncated differently.
+    const diagonal = injuryAt({ x: 7, y: 3 }, { x: 5, y: 5 })
+    const away = blastKnockbackFacing(diagonal, 'a')
+    assert.ok(away.x > 0 || away.y < 0)
+    const landFace = blastFaceOrigin(diagonal, 'a', { x: 8, y: 2 })
+    const fromFace = blastFaceOrigin(diagonal, 'a', { x: 7, y: 3 })
+    // Both look back toward origin; land-based is what clearBlastReact must use.
+    assert.ok(landFace.x < 0 || landFace.y > 0)
+    assert.ok(fromFace.x < 0 || fromFace.y > 0)
+  })
+
+  it('several characters around one blast each get their own outward throw', () => {
+    const map = openMap()
+    const origin = { x: 5, y: 5 }
+    const stands = [
+      { x: 7, y: 5 },
+      { x: 3, y: 5 },
+      { x: 5, y: 7 },
+    ]
+    const throws = stands.map((at, index) => blastThrow(map, injuryAt(at, origin), `p${index}`))
+    const keys = throws.map((t) => `${t.facing.x},${t.facing.y}`)
+    assert.equal(new Set(keys).size, 3, 'three different throw directions')
+    throws.forEach((t, index) => {
+      assert.notDeepEqual(t.land, stands[index])
+      assert.deepEqual(t.look, blastFaceOrigin(injuryAt(stands[index], origin), `p${index}`, t.land))
+    })
   })
 })
 

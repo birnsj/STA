@@ -10,6 +10,9 @@ import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playWeaponSound } from '../../audio/uiSounds.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
+import { worldToGrid } from '../../exploration/tacticalGrid.js'
+import { characterHazardOverlayType, hasCharacterHazardOverlay } from '../../world/characterHazardOverlay.js'
+import { hazardPanic } from '../../world/hazardPanic.js'
 import { SHOT_FIRE_MS, weaponShotLook } from '../combat/battleHelpers.js'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import useCamera from '../combat/useCamera.js'
@@ -114,6 +117,7 @@ export default function PixiExplorationBoard(props) {
     const depth = atDepth(member.position, 0.5)
     const { portrait } = member.character
     const beam = member.beaming ? 'away' : beamIn === 'done' ? (member.arriving ? 'in' : null) : beamIn === 'waiting' ? 'waiting' : 'in'
+    const hazardOverlay = characterHazardOverlayType(environment, worldToGrid(member.position), member.character, member.condition)
     figures.push({
       id: `u${member.id}`,
       centre,
@@ -126,6 +130,8 @@ export default function PixiExplorationBoard(props) {
       condition: member.condition,
       blastReact: member.blastReact ?? null,
       onStaggerDone: member.blastReact && onStaggerDone ? () => onStaggerDone(member.id) : null,
+      hazardOverlay,
+      panic: hazardPanic(member.character, hazardOverlay),
       spriteSet: portrait.spriteSet,
       colour: portrait.uniform ?? null,
       image: portrait.image,
@@ -145,14 +151,19 @@ export default function PixiExplorationBoard(props) {
     }
   })
   for (const npc of getNpcs(world)) {
+    const grid = worldToGrid(npc.position)
+    const hazardOverlay = characterHazardOverlayType(environment, grid, npc.character, npc.condition)
     const visible = isVisibleToParty(knowledge, npc.id)
-    if (!debug && !visible) continue
+    // Burning / afflicted NPCs stay on the board even when out of party sight (hazard light through cover).
+    if (!debug && !visible && !hazardOverlay) continue
     const controller = controllerFor(npc)
     const animation = controller.animationState(npc)
     const centre = project(npc.position)
     const depth = atDepth(npc.position, 0.5)
     const colour = isHostile(npc) ? RED : PURPLE
     const tagY = animation.down ? NPC_TAG_DOWN_Y : NPC_TAG_Y
+    // Hazard-only reveal shows the figure and FX without naming them (no sight knowledge).
+    const tag = visible || debug ? npc.name : null
     figures.push({
       id: `n${npc.id}`,
       centre,
@@ -165,6 +176,8 @@ export default function PixiExplorationBoard(props) {
       condition: npc.condition,
       blastReact: npc.blastReact ?? null,
       onStaggerDone: npc.blastReact && onStaggerDone ? () => onStaggerDone(npc.id) : null,
+      hazardOverlay,
+      panic: hazardPanic(npc.character, hazardOverlay),
       spriteSet: npc.character?.portrait.spriteSet ?? null,
       colour: npc.character?.portrait.uniform ?? null,
       image: npc.character?.portrait.image ?? null,
@@ -172,10 +185,10 @@ export default function PixiExplorationBoard(props) {
       ring: isHostile(npc) ? 'enemy' : 'neutral',
       arrowColour: colour,
       bodyColour: colour,
-      label: { text: npc.name, y: tagY, size: 9, weight: '700', colour, letterSpacing: 0.36 },
+      label: tag ? { text: tag, y: tagY, size: 9, weight: '700', colour, letterSpacing: 0.36 } : null,
       beam: null,
       preload: true,
-      faded: !visible,
+      faded: !visible && !hazardOverlay,
     })
     if (onOpenNpcMenu && visible) {
       const token = !hasCharacterSprite(npc.character?.portrait.spriteSet)
@@ -213,7 +226,11 @@ export default function PixiExplorationBoard(props) {
   }
   const lastKnown = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
-    .filter(({ entry }) => entry.state === KNOWLEDGE.KNOWN)
+    .filter(({ npc, entry }) => {
+      if (entry.state !== KNOWLEDGE.KNOWN) return false
+      // Already drawing their live figure (hazard reveal) — skip the ghost marker.
+      return !hasCharacterHazardOverlay(environment, worldToGrid(npc.position), npc.character, npc.condition)
+    })
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debug ? npc.name : entry.identified ? null : 'Life sign' }))
   const effects = []
   for (const member of members) {

@@ -12,6 +12,7 @@ import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
 import TransporterDialog from '../components/exploration/TransporterDialog.jsx'
 import useTransporter from '../components/exploration/useTransporter.js'
+import { getPlaytestParty } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
 import { loadConversation } from '../conversation/conversationFiles.js'
@@ -60,14 +61,38 @@ const reducer = withPerf(explorationReducer)
 // An open book, for the Captain's Log button in the minimap's corner.
 const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
 
-// Who the transporter can beam down: those who beamed out of this mission, then the saved characters never on it.
+// Who the transporter can beam down: anyone who beamed out, then authored playtest redshirts and saved characters not
+// already on the away team. Editor Play uses the redshirts (characters.json playtestParty); they are not saved
+// characters, so without this they never appeared in the picker.
 function transporterCandidates(party, savedCharacters) {
-  const departed = (party.departedIds ?? []).filter((id) => !party.memberIds.includes(id)).map((id) => ({ character: party.members[id].character, departed: true }))
-  const saved = savedCharacters
-    .map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character)
-    .filter((character) => character && !party.members[character.id])
-    .map((character) => ({ character, departed: false }))
-  return [...departed, ...saved]
+  const onMission = new Set(party.memberIds)
+  const departedIds = new Set((party.departedIds ?? []).filter((id) => !onMission.has(id)))
+  const listed = new Set(onMission)
+  const candidates = []
+
+  departedIds.forEach((id) => {
+    const character = party.members[id]?.character
+    if (!character) return
+    listed.add(id)
+    candidates.push({ character, departed: true })
+  })
+
+  getPlaytestParty().forEach((character) => {
+    if (!character || listed.has(character.id) || onMission.has(character.id)) return
+    listed.add(character.id)
+    // Prefer the mission copy (condition) when they beamed out earlier but missed departedIds somehow.
+    const prior = party.members[character.id]?.character
+    candidates.push({ character: prior ?? character, departed: departedIds.has(character.id) || Boolean(party.members[character.id]) })
+  })
+
+  savedCharacters.forEach((entry) => {
+    const character = normalizeCharacterRecord(entry.record, { id: entry.id }).character
+    if (!character || listed.has(character.id) || onMission.has(character.id) || party.members[character.id]) return
+    listed.add(character.id)
+    candidates.push({ character, departed: false })
+  })
+
+  return candidates
 }
 
 // savedCharacters: the saved characters the transporter can beam down.
@@ -593,7 +618,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
-      <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen} open={minimapOpen} onToggle={() => setMinimapOpen(!minimapOpen)}
+      <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} environment={state.environment} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen} open={minimapOpen} onToggle={() => setMinimapOpen(!minimapOpen)}
         cornerButtons={
           <button type="button" className="explore-minimap-toggle" aria-pressed={logOpen} aria-label="Captain's Log" title="Captain's Log: briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
             <svg viewBox="0 0 24 24" aria-hidden="true">

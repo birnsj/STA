@@ -5,7 +5,8 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // fill: use the whole window; the stage extends along whichever axis the window has spare room (default).
 // fit: show exactly the design size, letterboxed. fixed: always use fixedScale (1 = one design pixel per screen pixel).
 // guideHighlight: the box in character creation that moves to the next section to fill in (src/effects/GuideHighlight.jsx).
-// helpHints: the hint box above the party cards in combat and exploration (what to click next).
+// helpHints: the hint box above the party cards in combat and exploration (what to click next), and whether How to
+// Play opens by itself on the first fight after Load Episode.
 // objectivePulse: on the exploration map, the tag over an object an active objective is on pulses.
 // wallFade: how walls in front of a character fade on the maps: 'room' (the room's front walls and whole wall sections)
 // or 'single' (one block at a time, only those hiding a character).

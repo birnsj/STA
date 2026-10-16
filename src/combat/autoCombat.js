@@ -8,7 +8,6 @@ import {
   getAmbusher,
   getAmbushTargets,
   getOpponents,
-  getReachable,
   getTurnGroup,
   isTurnFinished,
   previewAmbush,
@@ -16,6 +15,7 @@ import {
 } from './combatState.js'
 import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
+import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { retreatStep } from './combatRetreat.js'
 import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
 import { objectShotStep } from './objectAI.js'
@@ -42,6 +42,9 @@ export const ENEMY_AIS = PARTY_AIS
 // One step by the chosen AI ('brain') for whoever is acting; the character's controller (actors/) picks the AI id.
 export function normalStep(state, self, ai) {
   if (self.retreating) return retreatStep(state, self)
+  // Leave damaging hazards before any other plan (suits with immunity treat those tiles as safe).
+  const escape = escapeHazardStep(state, self)
+  if (escape) return escape
   if (ai === 'random') return randomStep(state, self)
   // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
   const support = supportStep(state, self)
@@ -63,7 +66,7 @@ function ambushPosition(state, ambusher) {
   const hasShot = (position) =>
     getOpponents(state, ambusher).some((enemy) => ambusher.weaponIds.some((weaponId) => previewAttack(state, ambusher.id, enemy.id, weaponId, position).available))
   for (const kind of ['move', 'sprint']) {
-    const tiles = [...getReachable(state, ambusher, kind).values()].filter((entry) => entry.steps > 0 && hasShot(entry.position))
+    const tiles = safeReachable(state, ambusher, kind).filter((entry) => hasShot(entry.position))
     tiles.sort((a, b) => Number(canTakeCover(state.map, b.position)) - Number(canTakeCover(state.map, a.position)) || a.steps - b.steps)
     if (tiles.length) return { kind, position: tiles[0].position }
   }

@@ -245,6 +245,16 @@ function tick(state, rawSeconds) {
   let changed = false
   let members = {}
   steered.forEach(({ member, velocity, direction, run }, i) => {
+    // Blast fall / getUp: stay on the landing tile — no walk, separation shove, or leftover pace slide.
+    if (member.blastReact) {
+      const planted =
+        member.order || member.moving || member.pace || member.running
+          ? { ...member, order: null, path: [], pace: null, moving: false, running: false }
+          : member
+      if (planted !== member) changed = true
+      members[member.id] = planted
+      return
+    }
     // PROTOTYPE (placeholder, flagged): a slowing hazard (the coolant leak; world/environment.js slowKeys) halves walking speed.
     const pace = state.map.slowKeys?.[`${Math.round(member.position.x)},${Math.round(member.position.y)}`] ? 0.5 : 1
     const step = { x: (velocity.x * pace + pushes[i].x) * seconds, y: (velocity.y * pace + pushes[i].y) * seconds }
@@ -266,9 +276,18 @@ function tick(state, rawSeconds) {
     members[member.id] = next
   })
   // A Defeated character has no collision: the others walk over them.
+  // Blast stagger stays planted: still collidable so others walk around, but resolveOverlaps must not shove them.
   const resolved = resolveOverlaps(state.map, members, state.memberIds.filter((id) => canAct(members[id])))
   if (resolved !== members) {
-    members = resolved
+    const planted = { ...resolved }
+    let shoved = false
+    for (const id of state.memberIds) {
+      if (members[id]?.blastReact && planted[id]?.position !== members[id].position) {
+        planted[id] = members[id]
+        shoved = true
+      }
+    }
+    members = shoved ? planted : resolved
     changed = true
   }
   return changed ? { ...state, members: { ...state.members, ...members } } : state

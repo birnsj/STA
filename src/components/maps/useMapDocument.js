@@ -3,7 +3,7 @@ import { isDrawnCard } from '../../maps/episodeCards.js'
 import { canDrawEpisodeArt, drawEpisodeArt } from '../../maps/episodeArt.js'
 import { canSaveMaps, deleteMap, listMaps, loadMap, saveMap } from '../../maps/mapFiles.js'
 import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, mapFileId, resizeMap } from '../../maps/mapFormat.js'
-import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, sizeFor, sizeIdOf } from '../../maps/mapGenerators.js'
+import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, sizeFor, sizeIdOf, withGeneratedHazards } from '../../maps/mapGenerators.js'
 import { randomWeather, settleWeather } from '../../maps/mapWeather.js'
 
 // A new map keeps the current location and biome and starts at the location's Medium size.
@@ -26,6 +26,8 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
   // Generate Map's Room size and Building size sliders, in percent of each generator's own sizes. Not saved with the map.
   const [roomScale, setRoomScale] = useState(100)
   const [buildingScale, setBuildingScale] = useState(100)
+  // When checked, Generate Map also scatters hazard regions on the new layout (editor option; not saved with the map).
+  const [generateHazards, setGenerateHazards] = useState(false)
   // The map as last opened, saved or generated (null when the open map exists nowhere else), so switching only the
   // location, biome or size before Generate Map doesn't count as work to lose.
   const [cleanMap, setCleanMap] = useState(map)
@@ -113,6 +115,7 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
       }
     }
     let next = generateNamedMap(source, taken.map((entry) => entry.id), Math.random, { rooms: roomScale / 100, buildings: buildingScale / 100 })
+    if (generateHazards) next = withGeneratedHazards(next, Math.random)
     next = { ...next, weather: randomWeather(next) }
     // A freshly drawn picture, kept with the map until Save; if drawing fails the map keeps the catalogue card Generate picked.
     if (canDrawEpisodeArt) {
@@ -226,6 +229,8 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
     setRoomScale,
     buildingScale,
     setBuildingScale,
+    generateHazards,
+    setGenerateHazards,
     confirmDiscard,
     onNew,
     onMapType,

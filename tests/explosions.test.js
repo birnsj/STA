@@ -11,6 +11,7 @@ import { objectShotOptions } from '../src/combat/objectAI.js'
 import { currentInjuryPrompt, previewObjectShot } from '../src/exploration/explorationEnvironment.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
+import { blastFaceOrigin } from '../src/rules/appearance.js'
 import { applyEnvironmentTiles, createEnvironment, damageObject, DESTRUCTIBLE_TYPES } from '../src/world/environment.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -169,6 +170,27 @@ describe('explosions in combat', () => {
     assert.equal(after.combatants.p2.condition.defeated, false)
     assert.ok(after.combatants.p1.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
     assert.ok(after.combatants.p2.blastReact?.injury?.source?.weaponId?.startsWith('explosion:'))
+  })
+
+  it('throws each combatant outward and faces them from their landing tile toward the blast', () => {
+    const state = fight(
+      [{ id: 'g', type: 'gasCylinder', position: { x: 6, y: 6 } }],
+      [{ x: 5, y: 6 }, { x: 7, y: 6 }, { x: 6, y: 5 }],
+      [{ x: 14, y: 2 }],
+    )
+    const { state: after } = damageObjectInCombat(state, 'g', 10)
+    const reacts = ['p1', 'p2', 'p3'].map((id) => after.combatants[id].blastReact)
+    assert.ok(reacts.every((react) => react?.from && react?.land))
+    const dirs = reacts.map((react) => `${Math.sign(react.land.x - react.from.x)},${Math.sign(react.land.y - react.from.y)}`)
+    assert.ok(new Set(dirs).size >= 2, 'at least two different throw directions')
+    for (const id of ['p1', 'p2', 'p3']) {
+      const combatant = after.combatants[id]
+      const { injury, land, from } = combatant.blastReact
+      assert.deepEqual(combatant.position, land)
+      assert.deepEqual(combatant.facing, blastFaceOrigin(injury, id, land))
+      // Looking back from the landing tile, not only from where they stood.
+      assert.deepEqual(combatant.facing, blastFaceOrigin(injury, id, land ?? from))
+    }
   })
 
   it('the AI never fires on an object whose blast would catch its own side', () => {

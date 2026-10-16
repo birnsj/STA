@@ -4,7 +4,8 @@
 // overlaps. In combat the human chooses (the combat screen dispatches) unless Auto Combat plays the party.
 import { ambushStep, normalStep } from '../combat/autoCombat.js'
 import { tileKey } from '../combat/battleMap.js'
-import { canAmbush, canMove, canSprint, getBlockers, getCombatantList, getOpponents, getReachable, isActive } from '../combat/combatState.js'
+import { canAmbush, canMove, canSprint, getBlockers, getCombatantList, getOpponents, isActive } from '../combat/combatState.js'
+import { escapeHazardStep, safeReachable } from '../combat/hazardAvoidance.js'
 import { getReachableTiles } from '../combat/movementSystem.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import data from '../data/adaptation/exploration/partyControl.json'
@@ -68,6 +69,8 @@ export class PlayerController extends CharacterController {
   // tracking it without a sighting is a prototype heuristic, flagged). link.searched: last-seen places already searched.
   searchStep(combat, self, { link, partyAuto }) {
     if (!partyAuto || !combat.knowledge?.[self.id] || getOpponents(combat, self).length) return null
+    const escape = escapeHazardStep(combat, self)
+    if (escape) return escape
     const hunted = getCombatantList(combat).filter((c) => c.side === 'enemy' && isActive(c))
     const byDistance = (a, b) => tileDistance(self.position, a) - tileDistance(self.position, b)
     const lastSeen = hunted
@@ -81,7 +84,7 @@ export class PlayerController extends CharacterController {
     const remaining = (position) => toward.get(tileKey(position))?.steps ?? Infinity
     for (const kind of ['move', 'sprint']) {
       if (!(kind === 'sprint' ? canSprint(combat, self) : canMove(combat, self))) continue
-      const best = [...getReachable(combat, self, kind).values()].filter((entry) => entry.steps > 0).sort((a, b) => remaining(a.position) - remaining(b.position) || a.steps - b.steps)[0]
+      const best = safeReachable(combat, self, kind).sort((a, b) => remaining(a.position) - remaining(b.position) || a.steps - b.steps)[0]
       if (best && remaining(best.position) < remaining(self.position)) {
         return {
           type: kind,

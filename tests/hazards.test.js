@@ -8,7 +8,17 @@ import { attemptChallenge, challengeFor } from '../src/exploration/challengeObje
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { hazardChallengeId } from '../src/world/EnvironmentalHazard.js'
-import { createEnvironment, damageObject, HAZARD_ROUND_SECONDS, HAZARD_TYPES, hazardRound, neutralizeHazard } from '../src/world/environment.js'
+import { characterHazardStrip } from '../src/components/maps/environmentArt.js'
+import {
+  applyEnvironmentTiles,
+  createEnvironment,
+  damageObject,
+  HAZARD_ROUND_SECONDS,
+  HAZARD_TYPES,
+  hazardRound,
+  neutralizeHazard,
+  spawnHazard,
+} from '../src/world/environment.js'
 import { applyObjectEffect } from '../src/world/objectEffects.js'
 import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
@@ -30,30 +40,35 @@ describe('hazard rounds', () => {
   })
 
   it('spreads from thick tiles into open neighbours at one less, and dissipates', () => {
-    const map = room({ hazards: [fire('f', { '5,5': 3 }, { spreadChance: 100, dissipateChance: 0 })] })
+    const map = room({ hazards: [fire('f', { '5,5': 3 }, { spreadChance: 100, dissipateChance: 0, migrateChance: 0 })] })
     const spread = hazardRound(createEnvironment(map), map).environment.hazards.f
     const added = Object.entries(spread.tiles).filter(([key]) => key !== '5,5')
     assert.equal(added.length, 1)
     assert.equal(added[0][1], 2)
-    const thin = room({ hazards: [fire('f', { '5,5': 1 }, { spreadChance: 100, dissipateChance: 100 })] })
+    const thin = room({ hazards: [fire('f', { '5,5': 1 }, { spreadChance: 100, dissipateChance: 100, migrateChance: 0 })] })
     assert.equal(hazardRound(createEnvironment(thin), thin).environment.hazards.f, undefined, 'a region with no tiles left is gone')
   })
 
   it('never spreads through walls', () => {
-    const map = room({ hazards: [fire('f', { '1,1': 3 }, { spreadChance: 100, dissipateChance: 0 })] })
+    const map = room({ hazards: [fire('f', { '1,1': 3 }, { spreadChance: 100, dissipateChance: 0, migrateChance: 0 })] })
     const tiles = Object.keys(hazardRound(createEnvironment(map), map).environment.hazards.f.tiles)
     assert.ok(tiles.every((key) => !key.split(',').includes('0')))
   })
 
   it('damages objects beside a hazard that burns objects', () => {
-    const map = room({ hazards: [fire('f', { '5,5': 1 }, { spreadChance: 0, dissipateChance: 0 })], destructibles: [{ id: 'c', type: 'chemicalContainer', position: { x: 6, y: 5 } }] })
+    const map = room({ hazards: [fire('f', { '5,5': 1 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 })], destructibles: [{ id: 'c', type: 'chemicalContainer', position: { x: 6, y: 5 } }] })
     const environment = createEnvironment(map)
     const after = hazardRound(environment, map).environment.destructibles.c
     assert.equal(after.structure, environment.destructibles.c.structure - HAZARD_TYPES.fire.damagesObjects)
   })
 
   it('a hazard with a duration goes out after that many rounds; one without lasts until it dissipates', () => {
-    const map = room({ hazards: [fire('timed', { '5,5': 2 }, { duration: 2, spreadChance: 0, dissipateChance: 0 }), fire('lasting', { '9,5': 2 }, { spreadChance: 0, dissipateChance: 0 })] })
+    const map = room({
+      hazards: [
+        fire('timed', { '5,5': 2 }, { duration: 2, spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+        fire('lasting', { '9,5': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+      ],
+    })
     const first = hazardRound(createEnvironment(map), map).environment
     assert.equal(first.hazards.timed.roundsLeft, 1)
     const second = hazardRound(first, map).environment
@@ -63,7 +78,7 @@ describe('hazard rounds', () => {
   })
 
   it('an inactive hazard does nothing until something sets it going', () => {
-    const map = room({ hazards: [fire('f', { '4,4': 2 }, { active: false, spreadChance: 100, dissipateChance: 0 })] })
+    const map = room({ hazards: [fire('f', { '4,4': 2 }, { active: false, spreadChance: 100, dissipateChance: 0, migrateChance: 0 })] })
     const environment = createEnvironment(map)
     const result = hazardRound(environment, map, [{ id: 'in', position: { x: 4, y: 4 } }])
     assert.equal(result.hits.length, 0)
@@ -82,6 +97,60 @@ describe('hazard rounds', () => {
   })
 })
 
+describe('hazard footprints, exclusivity, scars, and overlays', () => {
+  it('spawnHazard uses a Euclidean circle, not a filled Chebyshev square', () => {
+    const map = room()
+    const environment = spawnHazard(createEnvironment(map, 42), map, {
+      type: 'fire',
+      position: { x: 8, y: 6 },
+      radius: 2,
+      spread: false,
+      source: 'test',
+    })
+    const region = Object.values(environment.hazards)[0]
+    assert.ok(region.tiles['8,6'], 'centre is included')
+    // Chebyshev corners of radius 2 lie outside the Euclidean circle (dist ≈ 2.83 > 2.35).
+    for (const key of ['6,4', '6,8', '10,4', '10,8']) {
+      assert.equal(region.tiles[key], undefined, `${key} is a Chebyshev corner, not in the circle`)
+    }
+  })
+
+  it('keeps only the higher-severity type on a shared tile', () => {
+    const map = room({ hazards: [fire('f', { '4,4': 2 }), { id: 'p', type: 'plasmaFire', tiles: { '4,4': 1 } }] })
+    const environment = createEnvironment(map)
+    assert.equal(environment.hazards.f?.tiles?.['4,4'], undefined)
+    assert.equal(environment.hazards.p.tiles['4,4'], 1)
+  })
+
+  it('migrates thick tiles onto empty neighbours', () => {
+    const map = room({ hazards: [fire('f', { '5,5': 3 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 100 })] })
+    const after = hazardRound(createEnvironment(map), map).environment.hazards.f
+    assert.equal(after.tiles['5,5'], undefined)
+    assert.equal(Object.keys(after.tiles).length, 1)
+    assert.equal(Object.values(after.tiles)[0], 3)
+  })
+
+  it('fire leaves scorched floor scars; smoke does not', () => {
+    const map = room({
+      hazards: [
+        fire('f', { '5,5': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+        { id: 's', type: 'smoke', tiles: { '7,5': 2 }, spreadChance: 0, dissipateChance: 0, migrateChance: 0 },
+      ],
+    })
+    const environment = createEnvironment(map)
+    assert.equal(environment.scars['5,5'], 'scorched')
+    assert.equal(environment.scars['7,5'], undefined)
+    const applied = applyEnvironmentTiles(map, environment)
+    assert.equal(applied.tiles[5][5], 'scorched')
+    assert.notEqual(applied.tiles[5][7], 'scorched')
+  })
+
+  it('characterHazardStrip points at the character overlay art path', () => {
+    assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png')
+    assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png')
+  })
+})
+
 const team = () => ['alpha', 'beta'].map((id) => makeCharacter({ id, name: id, attributes: { control: 12 }, disciplines: { engineering: 5 } }))
 function explore(map, seed = 1) {
   map.markers.playerStarts = [{ x: 4, y: 6 }, { x: 4, y: 8 }]
@@ -91,7 +160,7 @@ function explore(map, seed = 1) {
 
 describe('hazards in exploration', () => {
   it("a hazard's Neutralize goes through the challenge roll and puts the whole region out", () => {
-    const map = room({ hazards: [fire('f', { '5,6': 2, '5,7': 2 }, { spreadChance: 0, dissipateChance: 0 })] })
+    const map = room({ hazards: [fire('f', { '5,6': 2, '5,7': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 })] })
     let neutralized = null
     for (let seed = 1; seed < 60 && !neutralized; seed += 1) {
       const state = explore(room({ hazards: map.hazards }), seed)
@@ -126,7 +195,7 @@ describe('hazards in exploration', () => {
   })
 
   it('a hazard round passes every HAZARD_ROUND_SECONDS of world time; the member standing in it takes Stress', () => {
-    let state = explore(room({ hazards: [fire('f', { '4,6': 2 }, { spreadChance: 0, dissipateChance: 0 })] }))
+    let state = explore(room({ hazards: [fire('f', { '4,6': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 })] }))
     state = explorationReducer(state, { type: 'tick', seconds: HAZARD_ROUND_SECONDS - 1 })
     assert.equal(state.injuryPrompts.length, 0)
     state = explorationReducer(state, { type: 'tick', seconds: 1.5 })

@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "name": "Explosion Test",
+  "episodeName": "Explosion Test",
+  "card": null,
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 80,
+  "rows": [
+    "########################",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "########################"
+  ],
+  "areas": [
+    {
+      "name": "Ordnance Bay",
+      "position": [10, 2]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [2, 8, 0],
+      [3, 9, 0],
+      [4, 8, 0],
+      [3, 7, 0]
+    ],
+    "enemySpawns": [
+      [14, 5, 225],
+      [16, 6, 225],
+      [18, 5, 180],
+      [15, 11, 315],
+      [17, 12, 270],
+      [19, 11, 225]
+    ]
+  },
+  "npcs": [
+    {
+      "id": "enemy1",
+      "characterId": "klingonWarrior1",
+      "position": [14, 5],
+      "facing": 225,
+      "name": "Warrior 1",
+      "disposition": "hostile",
+      "npcRules": "supporting"
+    },
+    {
+      "id": "enemy2",
+      "characterId": "klingonWarrior2",
+      "position": [16, 6],
+      "facing": 225,
+      "name": "Warrior 2",
+      "disposition": "aggressive",
+      "npcRules": "supporting"
+    },
+    {
+      "id": "enemy3",
+      "characterId": "klingonWarrior3",
+      "position": [18, 5],
+      "facing": 180,
+      "name": "Warrior 3",
+      "disposition": "hostile",
+      "npcRules": "supporting"
+    },
+    {
+      "id": "enemy4",
+      "characterId": "klingonWarrior4",
+      "position": [15, 11],
+      "facing": 315,
+      "name": "Warrior 4",
+      "disposition": "aggressive",
+      "npcRules": "supporting"
+    },
+    {
+      "id": "enemy5",
+      "characterId": "klingonWarrior1",
+      "position": [17, 12],
+      "facing": 270,
+      "name": "Warrior 5",
+      "disposition": "hostile",
+      "npcRules": "supporting"
+    },
+    {
+      "id": "enemy6",
+      "characterId": "klingonWarrior2",
+      "position": [19, 11],
+      "facing": 225,
+      "name": "Warrior 6",
+      "disposition": "aggressive",
+      "npcRules": "supporting"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "blastSandbox",
+      "title": "Detonate and observe blast reactions",
+      "description": "Shoot explosives near the party and Klingons. Check knockback, Stress Avoid stagger, and get-up.",
+      "startsActive": true
+    }
+  ],
+  "destructibles": [
+    { "id": "gasCylinder1", "type": "gasCylinder", "position": [8, 3] },
+    { "id": "gasCylinder2", "type": "gasCylinder", "position": [10, 3] },
+    { "id": "gasCylinder3", "type": "gasCylinder", "position": [12, 3] },
+    { "id": "plasmaJunction1", "type": "plasmaJunction", "position": [14, 3] },
+    { "id": "plasmaJunction2", "type": "plasmaJunction", "position": [16, 3] },
+    { "id": "epsConduit1", "type": "epsConduit", "position": [18, 3] },
+    { "id": "epsConduit2", "type": "epsConduit", "position": [20, 3] },
+    { "id": "gasCylinder4", "type": "gasCylinder", "position": [8, 5] },
+    { "id": "chemicalContainer1", "type": "chemicalContainer", "position": [10, 5] },
+    { "id": "plasmaJunction3", "type": "plasmaJunction", "position": [12, 5] },
+    { "id": "powerJunction1", "type": "powerJunction", "position": [20, 5] },
+    { "id": "gasCylinder5", "type": "gasCylinder", "position": [8, 7] },
+    { "id": "gasCylinder6", "type": "gasCylinder", "position": [10, 7] },
+    { "id": "epsConduit3", "type": "epsConduit", "position": [12, 7] },
+    { "id": "plasmaJunction4", "type": "plasmaJunction", "position": [14, 7] },
+    { "id": "chemicalContainer2", "type": "chemicalContainer", "position": [16, 7] },
+    { "id": "structuralSupport1", "type": "structuralSupport", "position": [18, 7] },
+    { "id": "atmosphericProcessor1", "type": "atmosphericProcessor", "position": [20, 7] },
+    { "id": "powerJunction2", "type": "powerJunction", "position": [8, 11] },
+    { "id": "chemicalContainer3", "type": "chemicalContainer", "position": [10, 11] },
+    { "id": "epsConduit4", "type": "epsConduit", "position": [12, 11] },
+    { "id": "gasCylinder7", "type": "gasCylinder", "position": [14, 13] },
+    { "id": "structuralSupport2", "type": "structuralSupport", "position": [16, 13] },
+    { "id": "atmosphericProcessor2", "type": "atmosphericProcessor", "position": [18, 13] }
+  ],
+  "briefing": "Sandbox bay packed with explosives and Klingon warriors. Shoot cylinders and junctions to test blast knockback, automatic Stress Avoid, and get-up. No mission stakes.",
+  "stardate": 9999.1
+}

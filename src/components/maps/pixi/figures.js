@@ -15,9 +15,18 @@ import {
   spriteSheetFile,
 } from '../../../rules/appearance.js'
 import { loadSheet } from '../useRecolouredSheet.js'
-import { frameColumn, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
+import { CHARACTER_HAZARD_FRAME, HAZARD_FRAMES, characterHazardStrip, hazardStrip } from '../environmentArt.js'
+import { frameColumn, LOCOMOTION, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
 import { uniformImageUrl } from '../../useUniformImage.js'
+import { stripFrames } from './effectTextures.js'
 import { cssFilterMatrix, drawnCanvas, makeLabel, placeLabel, textureOf } from './pixiDraw.js'
+
+// Character hazard overlay (fire / plasma / … on the figure while on a tile or still afflicted).
+// Anchored on the torso (not the floor-fire foot point) so bulkier enemy sprites don't bury the flames.
+const HAZARD_OVERLAY_SCALE = 0.78
+const HAZARD_OVERLAY_ALPHA = 0.95
+const HAZARD_OVERLAY_Y = -30
+const hazardLoopMs = 1000
 
 // The away team and NPCs on the Pixi boards: the ground ring, the sprite sheet's frame for the animation playing
 // (spriteTiming.js keeps its clock), its shadow, the facing arrow and the name tags; a portrait on a stand for a
@@ -242,10 +251,17 @@ export class FigureView {
     this.body.addChild(this.shadow, this.sheet)
     this.token = new Container()
     this.arrow = new Graphics()
+    // Hazard FX sits on the figure container (not body) so it stays above the sheet/token and still shows when the
+    // body is hidden for portrait-token figures. Combat badges stay on `over` above it.
+    this.hazardFx = new Sprite()
+    this.hazardFx.anchor.set(0.5, 0.55)
+    this.hazardFx.visible = false
+    this.hazardFx.alpha = HAZARD_OVERLAY_ALPHA
+    this.hazardFx.blendMode = 'add'
     // A board's own pieces: `under` between the ring and the figure, `over` on top (combat's badges).
     this.under = new Container()
     this.over = new Container()
-    this.container.addChild(this.ring, this.under, this.body, this.token, this.arrow, this.over)
+    this.container.addChild(this.ring, this.under, this.body, this.token, this.hazardFx, this.arrow, this.over)
     this.pulseFrom = null
     this.label = null
     this.shown = {}
@@ -255,6 +271,8 @@ export class FigureView {
     this.nextFidgetAt = null
     this.playCount = 0
     this.beam = null
+    this.hazardType = null
+    this.hazardFrame = -1
     // Exploration has no unitPose track: when a figure first goes down on this view, play the fall once; already-down
     // on mount (hand-off from combat) stays on the last frame. Stress-Avoid blasts use staggerPlay (fall then get-up).
     this.wasDown = undefined
@@ -269,6 +287,8 @@ export class FigureView {
   blastSlide(figure, now) {
     if (!figure.knockback) return 0
     const home = figure.knockback.landsHome
+    // Planted: get-up never reuses the throw progress (that would skate them again as they stand).
+    if (figure.pose?.animation === 'getUp' || this.staggerPlay?.phase === 'up') return 0
     if (reducedMotion()) return home ? 0 : figure.down ? 1 : 0
     const asThrow = (progress01) => (home ? progress01 - 1 : progress01)
     if (figure.down && (figure.pose?.settled || this.fallPlay?.settled)) return home ? 0 : 1
@@ -277,7 +297,7 @@ export class FigureView {
       if (this.staggerPlay.startedAt == null) {
         return this.staggerPlay.phase === 'fall' && home ? -1 : 0
       }
-      if (this.staggerPlay.phase === 'down' || this.staggerPlay.phase === 'up') return 0
+      if (this.staggerPlay.phase === 'down') return 0
       const seconds = getSpriteAnimation(this.staggerPlay.animation)?.seconds ?? 0.8
       const t = Math.min(1, (now - this.staggerPlay.startedAt) / (seconds * 1000))
       return asThrow(1 - (1 - t) ** 2)
@@ -286,6 +306,8 @@ export class FigureView {
     if (figure.pose?.reverse) return 0
     if (!this.layer) return home ? (figure.down ? 0 : -1) : figure.down ? 1 : 0
     if (this.layer.timing.settled) return home ? 0 : figure.down ? 1 : 1
+    // Fall one-shot only — never key the throw off a getUp layer.
+    if (this.layer.animation?.name === 'getUp' || this.layer.animation?.sheetId === 'getup') return 0
     const progress = playbackProgress(this.layer.animation, this.layer.started, this.layer.timing, now)
     return asThrow(1 - (1 - progress) ** 2)
   }
@@ -397,8 +419,7 @@ export class FigureView {
     const { centre, depth } = figure
     this.syncFallPlay(figure, now)
     this.syncBlastStagger(figure, now)
-    // Explosion knockback only while falling / staggering (not while idle with a leftover blastReact).
-    // Keep the throw facing through getUp so the sprite row does not snap when they stand.
+    // Explosion knockback while falling / holding / getting up (not once idle with a leftover blastReact).
     const fallPose =
       figure.pose?.animation &&
       (String(figure.pose.animation).startsWith('fall') || figure.pose.animation === 'getUp') &&
@@ -407,15 +428,23 @@ export class FigureView {
       figure.knockback ??
       (figure.blastReact ? explosionKnockbackFromReact(figure.blastReact, figure.seed) : null) ??
       (figure.down ? explosionKnockback(figure.condition, figure.seed) : null)
-    // Slide only while flying / lying from the blast — not during getUp (they stand where they landed).
+    const gettingUp = figure.pose?.animation === 'getUp' || this.staggerPlay?.phase === 'up'
+    // Throw travel only while flying / lying. Keep knockback during getUp so we stay planted on the landing tile
+    // (slide forced to 0) instead of dropping the offset and skating.
     const throwing = Boolean(
-      figure.down || (this.staggerPlay && this.staggerPlay.phase !== 'up') || (fallPose && figure.pose?.animation !== 'getUp'),
+      figure.down || (this.staggerPlay && this.staggerPlay.phase !== 'up') || (fallPose && !gettingUp),
     )
-    const knockback = throwing ? reactKnock : null
+    const knockback = throwing || gettingUp ? reactKnock : null
     this._knockback = knockback
-    // Flight facing while thrown; getUp and after use figure.facing (toward the explosive).
-    this._blastFacing = throwing && reactKnock?.facing ? reactKnock.facing : null
-    const slide = knockback ? this.blastSlide({ ...figure, knockback }, now) : 0
+    // fallBlastBack / getUp: the sheet row is where the feet point. Thrown characters fall onto their back facing
+    // the explosive (figure.facing / look), while travel still uses the outward knockback vector. Using the throw-away
+    // vector here put every prone body on the wrong row.
+    const look =
+      figure.facing ??
+      (reactKnock?.facing ? { x: -reactKnock.facing.x, y: -reactKnock.facing.y } : null)
+    this._blastFacing = (throwing || gettingUp) && look ? look : null
+    // Get-up is always planted (slide 0); only the fall throws them.
+    const slide = knockback && !gettingUp ? this.blastSlide({ ...figure, knockback }, now) : 0
     this.container.position.set(centre.x + (knockback?.x ?? 0) * slide, centre.y + (knockback?.y ?? 0) * slide)
     this.container.zIndex = depth
     this.drawRing(figure.ring)
@@ -428,18 +457,53 @@ export class FigureView {
     if (hasSprite) this.updateSprite(figure, now, revealed)
     else this.drawToken(figure)
     // After the sprite layer exists, re-apply slide so the first fall frames aren't stuck at the tile.
-    if (knockback) {
+    if (knockback && !gettingUp) {
       const slid = this.blastSlide({ ...figure, knockback }, now)
       this.container.position.set(centre.x + knockback.x * slid, centre.y + knockback.y * slid)
     }
-    const showArrow = !figure.down && !(this.staggerPlay || (figure.blastReact && knockback)) && Boolean(figure.facing)
+    const showArrow = !figure.down && !(this.staggerPlay || gettingUp || (figure.blastReact && knockback)) && Boolean(figure.facing)
     this.arrow.visible = showArrow
     if (showArrow && (this.shown.facingX !== figure.facing.x || this.shown.facingY !== figure.facing.y || this.shown.arrow !== figure.arrowColour)) {
       drawArrow(this.arrow, figure.facing, figure.arrowColour)
       Object.assign(this.shown, { facingX: figure.facing.x, facingY: figure.facing.y, arrow: figure.arrowColour })
     }
     this.updateLabel(figure.label)
+    this.updateHazardOverlay(figure, now)
     this.updateBeam(figure, now)
+  }
+
+  // figure.hazardOverlay: hazard type id (fire, plasmaFire, …) while on a damaging tile or still afflicted; null/omit
+  // hides it. Prefers torso character strips; falls back to the floor strip if those are not loaded yet.
+  updateHazardOverlay(figure, now) {
+    const type = figure.hazardOverlay || null
+    if (type !== this.hazardType) {
+      this.hazardType = type
+      this.hazardFrame = -1
+    }
+    if (!type || figure.beam === 'waiting' || reducedMotion()) {
+      this.hazardFx.visible = false
+      return
+    }
+    const characterHref = characterHazardStrip(type)
+    const character = stripFrames(characterHref, HAZARD_FRAMES)
+    const href = character ? characterHref : hazardStrip(type)
+    const textures = character ?? stripFrames(href, HAZARD_FRAMES)
+    if (!textures) {
+      this.hazardFx.visible = false
+      return
+    }
+    const frame = Math.floor((now / hazardLoopMs) * HAZARD_FRAMES) % HAZARD_FRAMES
+    const frameSize = character ? CHARACTER_HAZARD_FRAME : { width: 64, height: 64 }
+    if (frame !== this.hazardFrame || this.hazardHref !== href) {
+      this.hazardFrame = frame
+      this.hazardHref = href
+      this.hazardFx.texture = textures[frame]
+      this.hazardFx.width = frameSize.width * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
+      this.hazardFx.height = frameSize.height * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
+    }
+    // Prone figures lie lower; keep the burn on the body rather than floating above.
+    this.hazardFx.position.set(0, figure.down ? HAZARD_OVERLAY_Y * 0.45 : HAZARD_OVERLAY_Y)
+    this.hazardFx.visible = true
   }
 
   // style: a RINGS name, or { fill, stroke } of its own.
@@ -482,6 +546,11 @@ export class FigureView {
     if (gait !== 'idle') {
       this.fidget = null
       this.nextFidgetAt = null
+    } else if (figure.panic) {
+      // Presentation-only hazard panic: prefer the looping panic pose over idle fidgets.
+      this.fidget = null
+      this.nextFidgetAt = null
+      return { animation: getSpriteAnimation('hazardPanic'), timing: { phase: figure.phase } }
     } else {
       this.updateFidget(figure, now)
       if (this.fidget) return { animation: getSpriteAnimation(this.fidget.name), timing: { playKey: this.fidget.playKey } }
@@ -516,6 +585,8 @@ export class FigureView {
     if (figure.preload || this.sheets.ready(base) || base.failed || revealed) {
       for (const sheetId of ['combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']) this.sheets.sheet(set, sheetId, figure.colour)
     }
+    // Panic sheet while burning / afflicted (and with combat preload so MapFadeIn can wait when already on fire).
+    if (figure.panic || figure.hazardOverlay) this.sheets.sheet(set, 'panic', figure.colour)
     const { animation, timing: wanted } = this.wantedAnimation(figure, now)
     const timing = { seed: figure.seed, phase: null, playKey: 0, settled: false, reverse: false, speed: 1, ...wanted }
     const entry = this.sheets.sheet(set, animation?.sheetId, figure.colour)
@@ -529,9 +600,25 @@ export class FigureView {
     }
     const oneShot = animation.play === 'loop' ? '' : `${timing.playKey}|${timing.settled ? 's' : ''}|${timing.reverse ? 'r' : ''}|${timing.speed}`
     const key = `${animation.name}|${oneShot}|${entry.key}`
-    // A sheet still loading keeps the last frame shown, so the figure never blinks out.
+    // A sheet still loading keeps the last frame shown, so the figure never blinks out — except locomotion:
+    // holding run/walk while standing (e.g. waiting on the panic sheet) looks like running in place.
     if (this.sheets.ready(entry) && this.layer?.key !== key) {
       this.layer = { key, animation, entry, timing, started: startTiming(animation, timing, now) }
+    } else if (
+      animation &&
+      !this.sheets.ready(entry) &&
+      this.layer &&
+      LOCOMOTION.has(this.layer.animation.name) &&
+      !LOCOMOTION.has(animation.name)
+    ) {
+      const idle = getSpriteAnimation('idle')
+      const idleEntry = this.sheets.sheet(set, idle.sheetId, figure.colour)
+      if (this.sheets.ready(idleEntry)) {
+        const idleKey = `${idle.name}|wait:${animation.name}|${idleEntry.key}`
+        if (this.layer.key !== idleKey) {
+          this.layer = { key: idleKey, animation: idle, entry: idleEntry, timing, started: startTiming(idle, timing, now) }
+        }
+      }
     }
     if (!this.layer) {
       this.sheet.visible = false
@@ -540,7 +627,7 @@ export class FigureView {
     const { animation: shownAnimation, entry: shownEntry, started, timing: shownTiming } = this.layer
     const sheet = shownAnimation.sheet
     const column = reducedMotion() ? restColumn(shownAnimation, shownTiming.reverse) : frameColumn(shownAnimation, started, shownTiming, now)
-    // Blast throw / getUp: keep the flight facing; otherwise the board's facing.
+    // Blast fall / getUp: feet toward the explosive (look); otherwise the board's facing.
     const facing = this._blastFacing ?? figure.facing
     const { row, mirror } = directionFor(facing)
     this.sheet.visible = true
@@ -561,8 +648,11 @@ export class FigureView {
     if (animation.sheetId !== 'fall' && animation.sheetId !== 'getup') return 0
     const max = 22
     if (animation.sheetId === 'getup') {
+      // Stay low while they press up from the floor; lift once the one-knee drive begins.
       const progress = playbackProgress(animation, started, timing, now)
-      return max * (1 - progress)
+      const rise = Math.max(0, (progress - 0.55) / 0.45)
+      const eased = rise * rise * (3 - 2 * rise)
+      return max * (1 - eased)
     }
     if (timing.settled || started.settled) return max
     return max * playbackProgress(animation, started, timing, now)

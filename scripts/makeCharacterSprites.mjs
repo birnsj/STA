@@ -4,7 +4,7 @@
 // (scripts/v2/engine.mjs) at 4x, so the figures stand in the same light as the world. Each figure is a handful of
 // capsules and ellipsoids, ray-cast analytically. Never overwrites an existing PNG without --force: the designer may
 // have replaced it with real art.
-// Run: node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak] [--force]
+// Run: node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup|panic] [--force]
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -613,28 +613,67 @@ function surrenderPose(frame, frames) {
 }
 
 // Getting up from prone (after a blast stagger or First Aid): frame 0 matches the end of fallBlastBack (flat on
-// the back), then sit up, then stand into idle. e is 0 down .. 1 up.
+// the back). 16 frames like the walk cycle. Reads as pushing up from a fall: plant hands → press the torso up →
+// bring one knee under → stand (arms do the early work, not a rigid tip or a squat).
 function getUpPose(frame, frames) {
-  const e = smooth(frame / (frames - 1))
-  const sit = Math.min(1, e / 0.45)
-  const stand = Math.max(0, (e - 0.35) / 0.65)
+  const t = frame / (frames - 1)
+  // Limb angles in degrees; pitch/roll/yaw tip the whole body. Key 0 must stay in lockstep with fallBlastBack's end.
+  // thigh/knee/arm [left, right]: right knee comes under; both hands press the floor until the one-knee beat.
+  const keys = [
+    { t: 0, thigh: [30, 24], knee: [60, 46], arm: [170, 170], elbow: [30, 40], pitch: -90, roll: 0, yaw: 18, lean: 0, headPitch: 8 },
+    // Hands drop to the floor beside the ribs; chin tucks; start rolling onto the left side a little.
+    { t: 0.12, thigh: [28, 40], knee: [55, 75], arm: [55, 60], elbow: [55, 55], pitch: -82, roll: 10, yaw: 14, lean: 0, headPitch: 16 },
+    // Press: elbows lock, torso lifts off the floor while hips stay down (push-up from the fall).
+    { t: 0.28, thigh: [35, 55], knee: [70, 100], arm: [25, 30], elbow: [20, 25], pitch: -55, roll: 18, yaw: 8, lean: 6, headPitch: 8 },
+    // Keep pressing; right knee slides under the hip, left hand still on the floor.
+    { t: 0.45, thigh: [50, 90], knee: [90, 135], arm: [20, 55], elbow: [35, 60], pitch: -28, roll: 22, yaw: 4, lean: 10, headPitch: 2 },
+    // On one knee, still using the front hand on the thigh / floor to finish the push.
+    { t: 0.62, thigh: [65, 98], knee: [95, 145], arm: [15, 40], elbow: [35, 75], pitch: -6, roll: 6, yaw: 1, lean: 12, headPitch: 0 },
+    // Drive up off the planted foot; hands leave the ground.
+    { t: 0.8, thigh: [30, 42], knee: [50, 75], arm: [8, 14], elbow: [24, 32], pitch: -2, roll: 1, yaw: 0, lean: 5, headPitch: 0 },
+    { t: 1, thigh: [2, -2], knee: [3, 3], arm: [3, 3], elbow: [IDLE_ELBOW, IDLE_ELBOW], pitch: 0, roll: 0, yaw: 0, lean: 0, headPitch: 0 },
+  ]
+  let i = 0
+  while (i < keys.length - 2 && t > keys[i + 1].t) i += 1
+  const a = keys[i]
+  const b = keys[i + 1]
+  const u = smooth((t - a.t) / (b.t - a.t || 1))
+  const limb = (key) => [deg(a[key][0] + (b[key][0] - a[key][0]) * u), deg(a[key][1] + (b[key][1] - a[key][1]) * u)]
+  const angle = (key) => deg(a[key] + (b[key] - a[key]) * u)
   return {
-    // Match fallBlastBack's final limbs, then ease to idle.
-    thigh: [mix(30, 2, stand), mix(24, -2, stand)],
-    knee: [mix(60, 3, stand), mix(46, 3, stand)],
-    arm: [mix(170, 3, e), mix(170, 3, e)],
-    elbow: [mix(30, IDLE_ELBOW, e), mix(40, IDLE_ELBOW, e)],
+    thigh: limb('thigh'),
+    knee: limb('knee'),
+    arm: limb('arm'),
+    elbow: limb('elbow'),
     breathe: 0,
-    lean: 0,
-    // Flat on back (-90°) → sit (~-25°) → upright. Yaw matches the fall's final tip, then unwinds.
-    turns: [pitchMatrix(-deg(90) * (1 - sit) - deg(25) * (1 - stand) * sit), yawMatrix(deg(18) * (1 - sit))],
-    head: [pitchMatrix(deg(8) * (1 - e))],
+    lean: angle('lean'),
+    turns: [pitchMatrix(angle('pitch')), rollMatrix(angle('roll')), yawMatrix(angle('yaw'))],
+    head: [pitchMatrix(angle('headPitch'))],
+  }
+}
+
+// Hazard panic (presentation): stamp in place, bat at flames, head whipping — loops while burning / afflicted.
+function panicPose(frame, frames) {
+  const phase = (frame / frames) * Math.PI * 2
+  const stamp = Math.sin(phase * 2)
+  const bat = Math.sin(phase * 2 + 0.4)
+  return {
+    thigh: [deg(8) * stamp, -deg(10) * stamp],
+    knee: [deg(12 + 28 * Math.max(0, stamp)), deg(12 + 28 * Math.max(0, -stamp))],
+    arm: [deg(40) + deg(55) * bat, deg(50) - deg(60) * bat],
+    elbow: [deg(70 + 25 * Math.abs(bat)), deg(80 + 20 * Math.abs(stamp))],
+    breathe: 0,
+    bounce: 1.2 * Math.abs(stamp),
+    lean: deg(4),
+    twist: deg(12) * Math.sin(phase),
+    head: [yawMatrix(deg(35) * Math.sin(phase * 1.5)), pitchMatrix(deg(-8))],
   }
 }
 
 function poseFor(animation, frame, frames) {
   if (animation === 'surrender') return surrenderPose(frame, frames)
   if (animation === 'getUp') return getUpPose(frame, frames)
+  if (animation === 'hazardPanic') return panicPose(frame, frames)
   if (animation.startsWith('idle') && animation !== 'idle') return fidgetPose(animation, frame, frames)
   if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
   if (animation === 'attack') return attackPose(keyAt(frame, frames))
@@ -696,7 +735,7 @@ function makeSheet(set, sheetId) {
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup] [--force]
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup|panic] [--force]
 const args = process.argv.slice(2)
 const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
 const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)

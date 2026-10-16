@@ -440,11 +440,11 @@
 }
 
 .condition-svg-stress {
-  fill: #7fb2ff;
+  fill: var(--red);
 }
 
 .condition-svg-stress.is-fatigued {
-  fill: #e08a3a;
+  fill: #c4342c;
 }
 
 .condition-svg-injury.is-stun {
@@ -512,7 +512,11 @@
 .stress-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: #7fb2ff;
+  background: var(--red);
+}
+
+.stress-fill.is-fatigued {
+  background: #c4342c;
 }
 
 .stress-value {

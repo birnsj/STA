@@ -2,7 +2,7 @@ import { Container, Graphics, GraphicsPath } from 'pixi.js'
 import { FigureView } from '../../maps/pixi/figures.js'
 import { dashedEllipse, makeLabel, placeLabel } from '../../maps/pixi/pixiDraw.js'
 import { reducedMotion } from '../../maps/pixi/pixiStage.js'
-import { explosionKnockback, explosionKnockbackFromReact, getSpriteAnimation, getSpriteSetById, getUpAnimation } from '../../../rules/appearance.js'
+import { explosionKnockback, explosionKnockbackFromReact, getSpriteAnimation, getSpriteSet, getSpriteSetById, getUpAnimation } from '../../../rules/appearance.js'
 import { advancePose, initialPose, poseInput, settlePose, shownPose } from '../unitPose.js'
 import { LABEL_Y, POINTS_Y } from '../battlefieldShared.js'
 
@@ -36,14 +36,14 @@ function guardBadge() {
   return badge
 }
 
-// ConditionTrack svg: what is left of the Stress (full when unhurt), and a mark per Injury.
+// ConditionTrack: Stress taken fills the bar (empty when unhurt), red for every character; a mark per Injury.
 function conditionTrack({ maxStress, stress, fatigued, injuries }) {
   const width = 30
   const track = new Graphics()
   if (maxStress > 0) {
     track.roundRect(-width / 2, -2.5, width, 5, 2).fill({ color: 0x0b1428 }).stroke({ color: 0xe8ecf5, width: 1 })
-    const filled = Math.max(0, 1 - stress / maxStress) * width
-    if (filled > 0) track.roundRect(-width / 2, -2.5, filled, 5, Math.min(2, filled / 2)).fill({ color: fatigued ? 0xe08a3a : 0x7fb2ff })
+    const filled = Math.min(1, Math.max(0, stress / maxStress)) * width
+    if (filled > 0) track.roundRect(-width / 2, -2.5, filled, 5, Math.min(2, filled / 2)).fill({ color: fatigued ? 0xc4342c : RED })
   }
   injuries.forEach((injury, index) => {
     track.roundRect(width / 2 + 3 + index * 7, -3.5, 6, 7, 1).fill({ color: injury.type === 'stun' ? YELLOW : injury.type === 'deadly' ? RED : 0x000000 })
@@ -164,24 +164,30 @@ export class UnitView {
         : combatant.condition?.defeated
           ? explosionKnockback(combatant.condition, combatant.id)
           : null,
-      pose: shownPose(track, { inCover: combatant.inCover, isWalking: unit.isWalking }),
+      pose: shownPose(track, { inCover: combatant.inCover, isWalking: unit.isWalking, panic: unit.panic }),
     }
     this.figure.update(this.shown, now, revealed)
     this.armWaitingClock(unit, now)
     // Arming bumps playKey — refresh the pose so the one-shot restarts from frame 0.
     if (this.track !== track) {
-      this.shown.pose = shownPose(this.track, { inCover: combatant.inCover, isWalking: unit.isWalking })
+      this.shown.pose = shownPose(this.track, { inCover: combatant.inCover, isWalking: unit.isWalking, panic: unit.panic })
       this.figure.update(this.shown, now, revealed)
     }
     this.updateCover(unit.cover, now)
   }
 
   // Start a paused fall / getUp one-shot once its sheet can draw.
+  // Resolve the set the same way FigureView does (unit.spriteSet), not only portrait.spriteSet — a missing
+  // portrait field left getUp waiting on the 8s fallback and never playing the sheet.
   armWaitingClock(unit, now) {
     if (!this.armSheet || !this.track) return
-    const set = getSpriteSetById(unit.combatant.character?.portrait?.spriteSet)
+    const portrait = unit.combatant.character?.portrait
+    const set =
+      getSpriteSetById(unit.spriteSet) ??
+      getSpriteSetById(portrait?.spriteSet) ??
+      getSpriteSet(portrait?.id)
     if (!set) return
-    const colour = this.shown.colour
+    const colour = this.shown?.colour ?? unit.colour
     // Keep asking — preload alone is not enough if the board mounted mid-blast.
     this.figure.sheets.sheet(set, this.armSheet, colour)
     if (!this.figure.sheets.loaded(set, this.armSheet, colour)) return

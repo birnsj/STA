@@ -3,7 +3,9 @@ import { getNpcs, isHostile } from '../../exploration/awareness.js'
 import { areaLabelCentres } from '../../maps/areaCentres.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
+import { worldToGrid } from '../../exploration/tacticalGrid.js'
 import { isDefeated, isDying, minorDefeatText } from '../../rules/personalCondition.js'
+import { hasCharacterHazardOverlay } from '../../world/characterHazardOverlay.js'
 import MinimapTiles from '../maps/MinimapTiles.jsx'
 import ReadoutNoise from './ReadoutNoise.jsx'
 import { scanSweepSeconds } from './scanSweep.js'
@@ -34,14 +36,15 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 
 // Exploration minimap, top down: the level in its tile art with the map's area names, each centred in its room,
 // the away team (selected members ringed) and the NPCs the away team knows about: seen ones where they are, lost ones
-// as a '?' where last seen, defeated ones where they fell. debug: every NPC, known or not. objectives: the active
-// objectives with a map position ({ id, title, position }), drawn as gold diamonds under the people. scanPulse: a party
-// Scan's sweeps while they play ({ key, rings: [{ origin, radius }] }), drawn as rings on the readout.
+// as a '?' where last seen, defeated ones where they fell. Burning / afflicted NPCs (hazard overlay) show at their live
+// position even when unseen. debug: every NPC, known or not. objectives: the active objectives with a map position
+// ({ id, title, position }), drawn as gold diamonds under the people. scanPulse: a party Scan's sweeps while they play
+// ({ key, rings: [{ origin, radius }] }), drawn as rings on the readout.
 // doors: the map's door objects ({ id, name, stateLabel, closed, cells }), such as the Deck 10 Brig's sealed bulkheads:
 // yellow over their doorway, solid while closed and outlined once open. Display only.
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
 // cornerButtons: more buttons to the left of that one, which stay in the corner too.
-export default function Minimap({ map, party, world, knowledge, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, children }) {
+export default function Minimap({ map, party, world, knowledge, environment = null, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, children }) {
   const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
@@ -51,7 +54,10 @@ export default function Minimap({ map, party, world, knowledge, objectives = [],
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id), state: downState(npc.condition) }))
     .map(({ npc, entry, state }) => {
       const name = entry.identified || debug ? npc.name : 'Unidentified'
-      if (entry.state === KNOWLEDGE.VISIBLE || (state && entry.state !== KNOWLEDGE.UNKNOWN)) return { npc, name, state, position: npc.position, kind: 'seen' }
+      const burning = hasCharacterHazardOverlay(environment, worldToGrid(npc.position), npc.character, npc.condition)
+      if (entry.state === KNOWLEDGE.VISIBLE || (state && entry.state !== KNOWLEDGE.UNKNOWN) || burning) {
+        return { npc, name, state, position: npc.position, kind: 'seen' }
+      }
       if (entry.state === KNOWLEDGE.KNOWN) return debug ? { npc, name, state, position: npc.position, kind: 'unseen' } : { npc, name, state: null, position: entry.lastKnownPosition, kind: 'lastSeen' }
       return debug ? { npc, name, state, position: npc.position, kind: 'unseen' } : null
     })

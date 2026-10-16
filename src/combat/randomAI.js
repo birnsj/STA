@@ -1,8 +1,9 @@
 // Random baseline for the Auto Combat test dropdown: any legal action, picked at random, as a floor to measure the other
 // AIs against. The pick comes from the combat's seed and log length (not Math.random), so a seeded fight still replays
 // exactly. Pending rolls are still answered, since the fight cannot continue otherwise.
-import { canAfford, canAim, canMove, canSprint, getAssistableAllies, getOpponents, getReachable } from './combatState.js'
+import { canAfford, canAim, canMove, canSprint, getAssistableAllies, getOpponents } from './combatState.js'
 import { bestShot, injuryModesFor, pendingStep } from './combatAI.js'
+import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { supportOptions } from './supportAI.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 
@@ -11,6 +12,8 @@ const SEED_SALT = 0x5bd1e995
 
 export function randomStep(state, self) {
   if (state.pending) return pendingStep(state, self)
+  const escape = escapeHazardStep(state, self)
+  if (escape) return escape
   const random = seededRandomInt(deriveSeed(state.seed ^ SEED_SALT, state.log.length * 4 + state.turn.major * 2 + state.turn.minor))
   const pick = (list) => list[Math.floor(random() * list.length)]
 
@@ -27,11 +30,11 @@ export function randomStep(state, self) {
     options.push({ type: 'aim', targetId: target.id, weaponId: shot.weapon.id, decision: 'Aim' })
   }
   if (canMove(state, self)) {
-    const tiles = [...getReachable(state, self).values()].filter((entry) => entry.steps > 0)
+    const tiles = safeReachable(state, self)
     if (tiles.length) options.push({ type: 'move', destination: pick(tiles).position, decision: 'Move' })
   }
   if (canSprint(state, self)) {
-    const tiles = [...getReachable(state, self, 'sprint').values()].filter((entry) => entry.steps > 0)
+    const tiles = safeReachable(state, self, 'sprint')
     if (tiles.length) options.push({ type: 'sprint', destination: pick(tiles).position, decision: 'Sprint' })
   }
   if (canAfford(state, self, 'assist')) {

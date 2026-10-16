@@ -21,6 +21,7 @@
 // (Book p.265, p.324). When it does so is AI tuning (thresholds below). The party profile buys nothing.
 import { tileKey } from './battleMap.js'
 import { canTakeCover } from './coverSystem.js'
+import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { getReachableTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { getCombatantWeapon } from './weaponSystem.js'
@@ -42,7 +43,6 @@ import {
   getCombatantList,
   getHitChance,
   getOpponents,
-  getReachable,
   injuryDefeats,
   injuryFor,
   isActive,
@@ -239,10 +239,10 @@ export function cancelThreatStep() {
   return null
 }
 
-// Best reachable tile to shoot one of the targets from (lower Difficulty, covered preferred, fewer steps); else close the distance.
-// kind: 'move' or 'sprint' (the same choice at Sprint range).
+// Best reachable safe tile to shoot one of the targets from (lower Difficulty, covered preferred, fewer steps); else
+// close the distance. kind: 'move' or 'sprint'. Damaging hazard tiles are never destinations.
 function moveStep(state, self, targets, kind = 'move') {
-  const reachable = [...getReachable(state, self, kind).values()].filter((entry) => entry.steps > 0)
+  const reachable = safeReachable(state, self, kind)
   const verb = kind === 'sprint' ? 'Sprint' : 'Move'
   const firing = targets
     .flatMap((target) => reachable.map((entry) => ({ target, entry, shot: bestShot(state, self, target, entry.position), covered: canTakeCover(state.map, entry.position) })))
@@ -262,7 +262,7 @@ function moveStep(state, self, targets, kind = 'move') {
   }
   const target = [...targets].sort(byDistanceFrom(self.position))[0]
   if (!target) return null
-  // No firing position this turn: step to the reachable tile with the shortest walking distance to the target.
+  // No firing position this turn: step to the reachable safe tile with the shortest walking distance to the target.
   const toward = getReachableTiles(state.map, target.position, state.map.width * state.map.height, { blockedKeys: getBlockers(state, self).blockedKeys })
   const closest = reachable
     .map((entry) => ({ entry, remaining: toward.get(tileKey(entry.position))?.steps ?? Infinity }))
@@ -277,12 +277,12 @@ function moveStep(state, self, targets, kind = 'move') {
   }
 }
 
-// Cover is automatic next to a cover object, so getting into cover means moving there. Nearest such tile that still has a
-// shot at the target no worse than the current one, or null.
+// Cover is automatic next to a cover object, so getting into cover means moving there. Nearest such safe tile that still
+// has a shot at the target no worse than the current one, or null.
 function moveIntoCoverWithShot(state, self, target, shot, why) {
   if (self.inCover || !canMove(state, self)) return null
-  const covered = [...getReachable(state, self).values()]
-    .filter((entry) => entry.steps > 0 && canTakeCover(state.map, entry.position))
+  const covered = safeReachable(state, self)
+    .filter((entry) => canTakeCover(state.map, entry.position))
     .map((entry) => ({ entry, shot: bestShot(state, self, target, entry.position) }))
     .filter((option) => option.shot && option.shot.task.difficulty <= shot.task.difficulty)
     .sort((a, b) => a.entry.steps - b.entry.steps || a.shot.task.difficulty - b.shot.task.difficulty)[0]
@@ -297,11 +297,11 @@ function moveIntoCoverWithShot(state, self, target, shot, why) {
   }
 }
 
-// After attacking with the Minor action left: Move into the nearest cover.
+// After attacking with the Minor action left: Move into the nearest safe cover.
 function coverAfterAttackStep(state, self) {
   if (self.inCover || !canMove(state, self)) return null
-  const covered = [...getReachable(state, self).values()]
-    .filter((entry) => entry.steps > 0 && canTakeCover(state.map, entry.position))
+  const covered = safeReachable(state, self)
+    .filter((entry) => canTakeCover(state.map, entry.position))
     .sort((a, b) => a.steps - b.steps)[0]
   if (!covered) return null
   return { type: 'move', destination: covered.position, decision: 'Move into cover', reason: `Attack made; ${plural(covered.steps, 'tile')} away is next to cover.` }
@@ -361,6 +361,8 @@ export function nextAIStep(state) {
   if (!actionsLeft(state.turn)) return { type: 'endTurn', decision: 'End turn', reason: 'No actions left.' }
   const cancel = cancelThreatStep(state, self)
   if (cancel) return cancel
+  const escape = escapeHazardStep(state, self)
+  if (escape) return escape
 
   const nearest = nearestTarget(state, self)
   if (!nearest) return { type: 'endTurn', decision: 'End turn', reason: 'No targets left.' }

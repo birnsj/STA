@@ -191,10 +191,11 @@ export function blastKnockbackFacing(injury, seed = '') {
   return snapKnockbackStep(0, 0, seed, injury)
 }
 
-// Look back at the explosive after getting up (opposite of the throw).
-export function blastFaceOrigin(injury, seed = '') {
+// Look back at the explosive after getting up: from the character's landing tile (or fromCell) toward the blast.
+// Do not use the pre-throw tile alone — after a truncated throw that can point the wrong way.
+export function blastFaceOrigin(injury, seed = '', fromCell = null) {
   const origin = injury?.source?.blastOrigin
-  const at = injury?.source?.at
+  const at = fromCell ?? injury?.source?.at
   if (origin && at) return snapKnockbackStep(origin.x - at.x, origin.y - at.y, seed, injury)
   const away = blastKnockbackFacing(injury, seed)
   return { x: -away.x, y: -away.y }
@@ -222,8 +223,9 @@ export function blastThrow(map, injury, seed = '', occupiedKeys = null) {
   const tiles = explosionKnockbackTiles(injury)
   const from = injury.source.at
   const land = blastLandingCell(map, from, facing, tiles, occupiedKeys)
+  // Actual steps taken (0 if a wall or body blocks the first tile) — never invent a slide past the land tile.
   const steps = Math.max(Math.abs(land.x - from.x), Math.abs(land.y - from.y))
-  return { facing, tiles: steps || tiles, from, land, look: blastFaceOrigin(injury, seed) }
+  return { facing, tiles: steps, from, land, look: blastFaceOrigin(injury, seed, land) }
 }
 
 // Presentation knockback vector for a throw of `tiles` along `facing`. landsHome: position is already the landing cell.

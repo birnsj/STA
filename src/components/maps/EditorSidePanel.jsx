@@ -10,8 +10,8 @@ import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 // The map editor's right-hand panel: the inspectors (children), then the episode, generate, Captain's Log, objective,
 // challenge object and conversation sections, the file, the tile under the pointer, warnings and controls.
 // map and edit(map): the map being edited. cardTools: { canGenerate, busy, onGenerate } for the episode card.
-// onGenerateMap(): Generate Map. onOpenObjective(index) / onOpenObjects() / onOpenStory() / onOpenConversations(): the
-// full-screen editors.
+// onGenerateMap(): Generate Map. generateHazards / onGenerateHazards: checkbox so Generate Map also scatters hazards.
+// onOpenObjective(index) / onOpenObjects() / onOpenStory() / onOpenConversations(): the full-screen editors.
 export default function EditorSidePanel({
   map,
   edit,
@@ -26,6 +26,8 @@ export default function EditorSidePanel({
   placingObjective,
   canSave,
   onGenerateMap,
+  generateHazards = false,
+  onGenerateHazards,
   onOpenObjective,
   onOpenConversations,
   onOpenObjects,
@@ -71,9 +73,17 @@ export default function EditorSidePanel({
       >
         Generate Map
       </button>
+      <label className="me-check">
+        <input
+          type="checkbox"
+          checked={generateHazards}
+          onChange={(event) => onGenerateHazards?.(event.target.checked)}
+        />
+        Generate hazards
+      </label>
       <p className="me-text">
         Uses the location, biome and size next to the name, and the Room size and Building size in the top bar (rooms never go below 4 tiles
-        across). Nothing is saved until you press Save.
+        across). When Generate hazards is checked, the new map also gets scattered hazard regions. Nothing is saved until you press Save.
       </p>
       <p className="me-heading">Captain&apos;s Log</p>
       <label className="me-field">

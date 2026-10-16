@@ -23,13 +23,14 @@
   "equipSlotsNote": "Provisional slot names, not yet an approved design: body, sidearm, scanner, communicator. null = carried in inventory, not equipped.",
   "statDisplay": {
     "note": "Display order and labels for stats. 'bands' turns a numeric value into a word on screen; the number stays the tuning value. Weapon stats (severity, range) are not kept here: combat/weapons.json owns them, linked by itemId, and the display reads them from there.",
-    "order": ["scan", "medical", "engineering", "security", "protection"],
+    "order": ["scan", "medical", "engineering", "security", "protection", "hazardImmunity"],
     "labels": {
       "scan": "Scan",
       "medical": "Medical",
       "engineering": "Engineering",
       "security": "Security",
-      "protection": "Protection"
+      "protection": "Protection",
+      "hazardImmunity": "Hazard immunity"
     },
     "bands": {}
   },
@@ -42,6 +43,42 @@
       "description": "Standard Starfleet duty uniform.",
       "tags": ["uniform"],
       "equipSlot": "body"
+    },
+    {
+      "id": "environmentSuit",
+      "name": "Environment Suit",
+      "category": "clothing",
+      "icon": "/art/items/uniform.png",
+      "description": "Sealed suit that ignores toxic gas, radiation and coolant. Prototype placeholder for equipment puzzles.",
+      "tags": ["suit", "protective"],
+      "equipSlot": "body",
+      "sourceType": "original",
+      "statsSourceType": "adaptation",
+      "stats": { "protection": 1, "hazardImmunity": ["toxicGas", "radiation", "coolantLeak"] }
+    },
+    {
+      "id": "thermalSuit",
+      "name": "Thermal Suit",
+      "category": "clothing",
+      "icon": "/art/items/uniform.png",
+      "description": "Insulated suit that ignores fire, plasma fire and steam. Prototype placeholder for equipment puzzles.",
+      "tags": ["suit", "protective"],
+      "equipSlot": "body",
+      "sourceType": "original",
+      "statsSourceType": "adaptation",
+      "stats": { "protection": 1, "hazardImmunity": ["fire", "plasmaFire", "steam"] }
+    },
+    {
+      "id": "armouredVest",
+      "name": "Armoured Vest",
+      "category": "clothing",
+      "icon": "/art/items/uniform.png",
+      "description": "Light armour. Protection stacks with other protective gear. Prototype placeholder.",
+      "tags": ["armour", "protective"],
+      "equipSlot": "body",
+      "sourceType": "original",
+      "statsSourceType": "adaptation",
+      "stats": { "protection": 1 }
     },
     {
       "id": "communicator",

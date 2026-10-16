@@ -49,7 +49,23 @@ export function reconcileEquipment(character) {
 }
 
 // Resolves the character's references; unknown IDs (e.g. an item removed from the data) are skipped.
-export const getEquippedItems = (character) => character.equipment.map((entry) => getItemById(entry.itemId)).filter(Boolean)
+export const getEquippedItems = (character) => (character.equipment ?? []).map((entry) => getItemById(entry.itemId)).filter(Boolean)
+
+// Union of stats.hazardImmunity on equipped items (Prototype: suits ignore matching lingering hazard types).
+export function hazardImmunities(character) {
+  const types = new Set()
+  getEquippedItems(character).forEach((item) => {
+    ;(item.stats?.hazardImmunity ?? []).forEach((type) => types.add(type))
+  })
+  return types
+}
+
+export const isImmuneToHazard = (character, type) => hazardImmunities(character).has(type)
+
+const formatStatValue = (statId, value, bands) => {
+  if (Array.isArray(value)) return value.join(', ')
+  return bands[statId]?.[value] ?? String(value)
+}
 
 // [{ id, label, value }] for display, in the data's order; banded stats show their word. A weapon's severity and range
 // come from the combat weapon it is (weapons.json), so what the player reads is what combat uses.
@@ -66,6 +82,6 @@ export function getItemStatLines(item) {
     ...weaponLines,
     ...order
       .filter((statId) => item.stats[statId] !== undefined)
-      .map((statId) => ({ id: statId, label: labels[statId], value: bands[statId]?.[item.stats[statId]] ?? String(item.stats[statId]) })),
+      .map((statId) => ({ id: statId, label: labels[statId], value: formatStatValue(statId, item.stats[statId], bands) })),
   ]
 }

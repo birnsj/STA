@@ -8,6 +8,8 @@ import { isBlock, project, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { getMaxStress } from '../../rules/personalCondition.js'
 import { getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
+import { characterHazardOverlayType } from '../../world/characterHazardOverlay.js'
+import { hazardPanic } from '../../world/hazardPanic.js'
 import { playBoardHover, playBoardPress } from '../../audio/uiSounds.js'
 import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
@@ -121,6 +123,7 @@ export default function PixiBattlefield(props) {
     const shownTurn = turnStatus && !down ? turnStatus : null
     const cover = Boolean(combatant.inCover && !isWalking && !down)
     const guard = Boolean(combatant.guard && !down)
+    const hazardOverlay = characterHazardOverlayType(state.environment, position, combatant.character, combatant.condition)
     figures.push({
       id: `${isBystander ? 'n' : 'u'}${combatant.id}`,
       combatant,
@@ -131,6 +134,8 @@ export default function PixiBattlefield(props) {
       facing,
       down,
       condition: combatant.condition,
+      hazardOverlay,
+      panic: hazardPanic(combatant.character, hazardOverlay),
       spriteSet: portrait?.spriteSet ?? null,
       colour: portrait?.uniform ?? null,
       imageColour: portrait?.imageUniform ?? null,

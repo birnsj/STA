@@ -131,7 +131,7 @@ export function poseWakeAt(track) {
   return times.length ? Math.min(...times) : null
 }
 
-export function shownPose(track, { inCover = false, isWalking = false } = {}) {
+export function shownPose(track, { inCover = false, isWalking = false, panic = false } = {}) {
   if (track.down && track.fallHeldUntil !== null) return { animation: inCover ? 'cover' : 'idle', playKey: 0, settled: false, reverse: false }
   if (track.down) return { animation: track.fall, playKey: track.playKey, settled: track.settled, reverse: false }
   if (track.staggerFall) return { animation: track.staggerFall, playKey: track.playKey, settled: false, reverse: false }
@@ -140,5 +140,7 @@ export function shownPose(track, { inCover = false, isWalking = false } = {}) {
   if (track.strike) return { animation: track.strike, playKey: track.playKey, settled: false, reverse: false }
   if (track.surrendered) return { animation: 'surrender', playKey: track.playKey, settled: track.handsSettled, reverse: false }
   if (isWalking) return { animation: 'run', playKey: 0, settled: false, reverse: false }
+  // Presentation-only: while burning / afflicted, low-Fitness panic overrides standing idle (not cover).
+  if (panic && !inCover) return { animation: 'hazardPanic', playKey: 0, settled: false, reverse: false }
   return { animation: inCover ? 'cover' : 'idle', playKey: 0, settled: false, reverse: false }
 }

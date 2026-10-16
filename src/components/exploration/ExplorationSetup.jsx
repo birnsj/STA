@@ -1,20 +1,17 @@
 import { useState } from 'react'
-import { normalizeCharacterRecord } from '../../character/runtimeCharacter.js'
+import { partyPickerRoster } from '../../character/partyRoster.js'
 import { episodeTitle } from '../../maps/mapFormat.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import CharacterSheetPanel from './CharacterSheetPanel.jsx'
 import useEpisodeMap from '../maps/useEpisodeMap.js'
 
-// Picks the away team from the saved characters (one per player start on the map, as in combat). Each member is
-// the RuntimeCharacter built from that character's saved JSON; exploration adds no stats of its own.
+// Picks the away team from saved characters plus authored playtest redshirts (one per player start on the map, as in
+// combat). Each member is a RuntimeCharacter; exploration adds no stats of its own.
 export default function ExplorationSetup({ savedCharacters, initialParty, mapId, onStart, onBack }) {
   const { map, problem } = useEpisodeMap(mapId)
   const maxPartySize = map?.markers.playerStarts.length ?? 0
   const [party, setParty] = useState(initialParty)
-  const roster = savedCharacters.map((entry) => {
-    const { character, error } = normalizeCharacterRecord(entry.record, { id: entry.id })
-    return { id: entry.id, label: entry.name || entry.id, character, error }
-  })
+  const roster = partyPickerRoster(savedCharacters)
   // UI state: whose sheet is shown beside the roster (the last one hovered or clicked).
   const [viewedId, setViewedId] = useState(initialParty[0]?.id ?? null)
   const viewed = roster.find((entry) => entry.id === viewedId && entry.character) ?? null
@@ -31,7 +28,9 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
     <div className="combat-setup">
       <div className="combat-panel lcars-frame combat-setup-panel explore-setup-panel">
         <h2 className="combat-setup-title">Exploration: {map ? episodeTitle(map) : 'Loading...'}</h2>
-        <p className="combat-setup-text">Choose the away team: up to {maxPartySize} characters (one per player start on the map).</p>
+        <p className="combat-setup-text">
+          Choose the away team: up to {maxPartySize} characters (one per player start on the map). Your saved characters and the playtest redshirt ensigns are listed.
+        </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}
           {problem && <span className="task-warning">{problem}</span>}
@@ -59,7 +58,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
                 </li>
               )
             })}
-            {!roster.length && <li className="combat-setup-text">No saved characters yet. Create one first.</li>}
+            {!roster.length && <li className="combat-setup-text">No characters available. Create one or check the playtest party.</li>}
           </ul>
           {viewed ? (
             <CharacterSheetPanel character={viewed.character} className="is-in-setup" compact />

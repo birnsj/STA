@@ -31,8 +31,13 @@ import {
   previewAttack,
 } from './combatState.js'
 import { bestShot, cancelThreatStep, expectedChance, injuryModesFor, pendingStep, shotSummary } from './combatAI.js'
+import { damagingHazardAt, escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { getMaxStress } from '../rules/personalCondition.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
+
+// Ending a turn on a damaging hazard is never worth it; leaving one is strongly preferred.
+const HAZARD_END_PENALTY = 1000
+const HAZARD_ESCAPE_BONUS = 500
 
 const BASE_PROFILE = {
   // A hit that Defeats a combatant is worth 1 + killBonus (it also ends everything that combatant would have done).
@@ -225,6 +230,8 @@ export function plannerStep(state, self, profileId = 'planner') {
   if (!getOpponents(state, self).length) return { type: 'endTurn', decision: 'End turn', reason: 'No targets left.' }
   const cancel = cancelThreatStep(state, self)
   if (cancel) return cancel
+  const escape = escapeHazardStep(state, self)
+  if (escape) return escape
 
   // Two-step plans pair the Major action with the Minor one (Book p.288: one of each per turn; no second attack).
   const both = state.turn.major > 0 && state.turn.minor > 0
@@ -233,12 +240,13 @@ export function plannerStep(state, self, profileId = 'planner') {
   const map = createDangerMap(state, self, valueOf)
   const startDistance = map.distance(here)
   const allies = teammates(state, self)
-  const tiles = canMove(state, self) ? [...getReachable(state, self).values()].filter((entry) => entry.steps > 0) : []
+  const tiles = canMove(state, self) ? safeReachable(state, self) : []
   const attack = canAfford(state, self, 'attack') ? bestAttack(state, self, valueOf, profile) : null
   const assist = canAfford(state, self, 'assist') ? bestAssist(state, self, valueOf, profile) : null
   const plans = []
   const add = (first, steps, offence, end = { position: here, steps: 0 }) => plans.push({ first, steps, offence, end })
   const moveTo = (entry, extra = {}) => ({ type: 'move', destination: entry.position, ...extra })
+  const inHazard = Boolean(damagingHazardAt(state.environment, here, self.character))
 
   add({ type: 'endTurn' }, ['End turn'], 0)
   if (attack) {
@@ -264,7 +272,7 @@ export function plannerStep(state, self, profileId = 'planner') {
   }
 
   // Sprint (a major action, so never with an attack), alone: Book p.288 forbids Move and Sprint in the same turn.
-  const sprintTiles = canSprint(state, self) ? [...getReachable(state, self, 'sprint').values()].filter((entry) => entry.steps > 0) : []
+  const sprintTiles = canSprint(state, self) ? safeReachable(state, self, 'sprint') : []
   const sprintTo = (entry, extra = {}) => ({ type: 'sprint', destination: entry.position, ...extra })
   for (const entry of sprintTiles) add(sprintTo(entry), [`Sprint ${plural(entry.steps, 'tile')}`], 0, entry)
 
@@ -274,6 +282,8 @@ export function plannerStep(state, self, profileId = 'planner') {
     plan.danger = danger
     plan.covered = covered
     plan.score = plan.offence - profile.dangerWeight * danger + profile.approachWeight * (startDistance - map.distance(end)) - profile.stepCost * plan.end.steps
+    if (damagingHazardAt(state.environment, end, self.character)) plan.score -= HAZARD_END_PENALTY
+    else if (inHazard) plan.score += HAZARD_ESCAPE_BONUS
     if (profile.cohesionWeight && allies.length) {
       const nearestAlly = Math.min(...allies.map((ally) => tileDistance(ally.position, end)))
       plan.score -= profile.cohesionWeight * Math.max(0, nearestAlly - COHESION_RANGE)

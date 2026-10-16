@@ -23,6 +23,7 @@ import { prepareTask } from '../rules/taskPreparation.js'
 import { damageObject, hazardRound, HAZARD_ROUND_SECONDS, hitText, injuryFromHit, isStanding, needsHazardRounds, OBJECT_ATTACK_DIFFICULTY, objectDamage } from '../world/environment.js'
 import { withEnvironment } from '../world/environmentState.js'
 import { hazardChallengeId } from '../world/EnvironmentalHazard.js'
+import { syncHazardAfflictions } from '../world/hazardAfflictions.js'
 import { emitNoise, getNpcs, isHostile, joinsCombat, STATE } from './awareness.js'
 import { attemptChallenge } from './challengeObjects.js'
 import { MODE, startCombat } from './combatLink.js'
@@ -74,7 +75,7 @@ function occupiedBlastKeys(state, exceptId) {
 // looks back at the explosive; the slide still uses the outward throw. Clears walk orders.
 function thrownByBlast(state, id, injury) {
   const throw_ = blastThrow(state.party.map, injury, id, occupiedBlastKeys(state, id))
-  if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, id) }
+  if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, id, injury.source?.at) }
   const react = { injury, from: throw_.from, land: throw_.land }
   const facing = { ...throw_.look }
   if (throw_.land.x === throw_.from.x && throw_.land.y === throw_.from.y) return { blastReact: react, facing }
@@ -173,10 +174,11 @@ export function answerInjuryPrompt(state, avoid) {
 export function clearBlastReact(state, id) {
   const actor = actorOf(state, id)
   if (!actor?.blastReact) return state
-  const injury = actor.blastReact.injury
+  const { injury, land, from } = actor.blastReact
+  const cell = land ?? from ?? (actor.position ? worldToGrid(actor.position) : null)
   return withActor(state, id, {
     blastReact: null,
-    ...(injury ? { facing: blastFaceOrigin(injury, id) } : {}),
+    ...(injury ? { facing: blastFaceOrigin(injury, id, cell) } : {}),
   })
 }
 
@@ -190,9 +192,23 @@ function noise(state, kind, cell, sourceId) {
 
 // An environment result applied to the exploration: the new environment (world map and hazard objects follow), the hits,
 // the explosions' noise and the log. Returns the state.
-function applyResult(state, result, sourceId) {
+function applyResult(state, result, sourceId, { syncAfflictions = false } = {}) {
   let next = withEnvironment(state, result.environment)
-  const applied = applyHits(next, result.hits)
+  let hits = result.hits
+  if (syncAfflictions) {
+    const subjects = explorationActors(next).map(({ id, position }) => {
+      const actor = actorOf(next, id)
+      return { id, position, character: actor?.character, condition: actor?.condition }
+    })
+    const synced = syncHazardAfflictions(subjects, hits, result.environment)
+    hits = synced.hits
+    synced.afflictionsById.forEach((afflictions, id) => {
+      const actor = actorOf(next, id)
+      if (!actor) return
+      next = withCondition(next, id, { ...normalizeCondition(actor.condition), afflictions })
+    })
+  }
+  const applied = applyHits(next, hits)
   next = applied.state
   result.explosions.forEach((explosion) => {
     next = noise(next, 'explosion', explosion.position, sourceId)
@@ -334,7 +350,7 @@ export function tickHazards(state, seconds) {
   if (perfOff('hazards')) return next
   const started = perfStart()
   countHazards(next.environment)
-  const result = applyResult(next, hazardRound(next.environment, next.party.map, explorationActors(next)), 'hazard')
+  const result = applyResult(next, hazardRound(next.environment, next.party.map, explorationActors(next)), 'hazard', { syncAfflictions: true })
   perfEnd('hazard.round', started)
   return result
 }

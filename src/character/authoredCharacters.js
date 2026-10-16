@@ -25,6 +25,16 @@ function withCreatorShape(authored) {
 // [{ id, name }] of every authored character, for pickers (the map editor's NPC tool).
 export const listAuthoredCharacters = () => characterData.characters.map((entry) => ({ id: entry.id, name: entry.character.identity?.name || entry.id }))
 
+// Authored ids marked playtestParty (the map editor's default away team: redshirt ensigns).
+export const listPlaytestPartyIds = () => characterData.characters.filter((entry) => entry.playtestParty).map((entry) => entry.id)
+
+// RuntimeCharacters for the editor Play team (up to `limit`).
+export function getPlaytestParty(limit = 4) {
+  return listPlaytestPartyIds()
+    .slice(0, Math.max(0, limit))
+    .map((id) => getAuthoredCharacter(id))
+}
+
 // The full character record for an authored character id, or null.
 export function getAuthoredRecord(characterId) {
   const entry = entriesById.get(characterId)

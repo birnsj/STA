@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { partyPickerRoster } from '../../character/partyRoster.js'
 import { normalizeCharacterRecord } from '../../character/runtimeCharacter.js'
 import { getMovementTiles } from '../../combat/movementSystem.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
@@ -31,15 +32,6 @@ function CharacterPreview({ character }) {
   )
 }
 
-// Saved characters plus any loaded from files this visit; a save that cannot be read is listed with its error.
-function buildRoster(savedCharacters, loaded) {
-  const saved = savedCharacters.map((entry) => {
-    const { character, error } = normalizeCharacterRecord(entry.record, { id: entry.id })
-    return { id: entry.id, label: entry.name || entry.id, character, error }
-  })
-  return [...saved, ...loaded.map((character) => ({ id: character.id, label: `${character.name} (file)`, character, error: null }))]
-}
-
 // Blank = random seed (null). Otherwise a whole number 0..MAX_SEED, or undefined if it is not one.
 function parseSeed(text) {
   const trimmed = text.trim()
@@ -61,7 +53,8 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
   const [previewId, setPreviewId] = useState(initialParty[0]?.id ?? null)
   const [error, setError] = useState(null)
 
-  const roster = buildRoster(savedCharacters, loaded)
+  // Saved characters, authored playtest redshirts, then any JSON files loaded this visit.
+  const roster = partyPickerRoster(savedCharacters, { loaded })
   const preview = roster.find((entry) => entry.id === previewId)?.character ?? null
   const inParty = (id) => party.some((member) => member.id === id)
   const full = party.length >= maxPartySize
@@ -95,7 +88,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
       <div className="combat-panel lcars-frame combat-setup-panel">
         <h2 className="combat-setup-title">Load Episode: {map ? episodeTitle(map) : 'Combat Test'}</h2>
         <p className="combat-setup-text">
-          Choose up to {maxPartySize} characters for your party (one per player start on the map). Combat uses the values saved in each character's JSON.
+          Choose up to {maxPartySize} characters for your party (one per player start on the map). Your saved characters and the playtest redshirt ensigns are listed; combat uses each character's values.
         </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}

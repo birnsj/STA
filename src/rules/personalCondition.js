@@ -17,14 +17,20 @@
 //   First Aid: Daring + Medicine, Difficulty 2 ends Defeated (the Injury stays); or Difficulty = severity treats one
 //   Injury (no penalty from it any more, but still an Injury).
 //
-// condition: { stress, injuries: [Injury], defeated, dying, fatigued, fatiguedAttribute, complications: [Complication] }
+// condition: { stress, injuries: [Injury], defeated, dying, fatigued, fatiguedAttribute, complications: [Complication],
+//   afflictions: [Affliction] }
 //   plus, for a Defeated Minor NPC, unconscious (Stun hit) or dead (Deadly hit).
 // Complication: { id, name, source } a lasting problem on the character (Book p.258), counted as one of their traits.
 // Injury: { id, type: 'stun' | 'deadly', severity, baseSeverity, addedSeverity, protection, treated, recovering, source }
 //   source: { weaponId, weaponName, attackerId, attackerName }; recovering: a Stun Injury on a character no longer
 //   Defeated, removed at the end of their next turn.
+// Affliction (Prototype, designer 2026-10-15): lingering hazard effect after leaving a tile —
+//   { id, hazardType, severity, injuryType, roundsLeft, sourceName }.
 import { getAttributeName, getDisciplineName } from '../character/runtimeCharacter.js'
+import hazardData from '../data/adaptation/world/hazards.json'
 import { getEquippedItems } from './equipment.js'
+
+const BASE_AFFLICTION_ROUNDS = hazardData.baseAfflictionRounds ?? 3
 
 // VIDEOGAME ADAPTATION (Unified Character Architecture, Oct 2026): every character, whoever controls them, uses the main
 // character rules (Stress, Avoid Injury, Fatigue). The book's streamlined NPC rules (Book p.291: 'minor' | 'notable' |
@@ -38,7 +44,16 @@ const CATEGORY_NAMES = { main: 'Main character', supporting: 'Supporting charact
 export const npcCategoryName = (character) => CATEGORY_NAMES[npcCategoryOf(character)]
 const hasStress = (character) => ['main', 'supporting'].includes(npcCategoryOf(character))
 
-export const createCondition = () => ({ stress: 0, injuries: [], defeated: false, dying: false, fatigued: false, fatiguedAttribute: null, complications: [] })
+export const createCondition = () => ({
+  stress: 0,
+  injuries: [],
+  defeated: false,
+  dying: false,
+  fatigued: false,
+  fatiguedAttribute: null,
+  complications: [],
+  afflictions: [],
+})
 
 const isDeadly = (injury) => injury.type === 'deadly'
 const withDying = (condition) => ({ ...condition, dying: condition.defeated && condition.injuries.some(isDeadly) })
@@ -58,10 +73,19 @@ export function normalizeCondition(condition) {
     fatigued: Boolean(condition.fatigued),
     fatiguedAttribute: condition.fatiguedAttribute ?? null,
     complications: condition.complications ?? [],
+    afflictions: condition.afflictions ?? [],
     ...(condition.defeatedBy ? { defeatedBy: condition.defeatedBy } : {}),
     ...(condition.unconscious ? { unconscious: true } : {}),
     ...(condition.dead ? { dead: true } : {}),
   })
+}
+
+// Prototype (designer 2026-10-15): how many hazard rounds an affliction lasts after leaving a tile.
+// roundsLeft = max(1, base - ceil((Fitness - 7) / 2)). With base 5: Fitness 7 → 5, 8–9 → 4, 10–11 → 3, 12+ → 2.
+// Fitness shortens duration only, not Severity; never drops to 0 once an affliction is created.
+export function afflictionRoundsFor(character) {
+  const fitness = character.attributes?.fitness ?? 7
+  return Math.max(1, BASE_AFFLICTION_ROUNDS - Math.ceil((fitness - 7) / 2))
 }
 
 export const isDefeated = (condition) => Boolean(condition?.defeated)
@@ -155,12 +179,13 @@ export function recoverStress(character, condition, amount) {
 // ---------- Protection and severity ----------
 
 // Protection against an Injury of this type: { value, lines }. Sources (authored data only): worn equipment
-// (stats.protection; Book p.244: one form of protective gear at a time, so the best counts), and structured talent /
-// species effects { type: 'protection', amount, against?, when? } (Klingon Brak'lul: +1, stacking with armour).
-// Prototype: a 'when' other than "in Cover" and a 'target' of allies (Get Down!) are not applied to others yet.
+// (stats.protection), and structured talent / species effects { type: 'protection', amount, against?, when? }
+// (Klingon Brak'lul: +1, stacking with armour).
+// Book p.244: one form of protective gear at a time. Prototype (designer 2026-10-15): equipped items' Protection
+// stacks (sum). A 'when' other than "in Cover" and a 'target' of allies (Get Down!) are not applied to others yet.
 export function getProtection(character, { injuryType, inCover = false } = {}) {
   const lines = []
-  const gear = Math.max(0, ...getEquippedItems(character).map((item) => item.stats?.protection ?? 0))
+  const gear = getEquippedItems(character).reduce((total, item) => total + Math.max(0, item.stats?.protection ?? 0), 0)
   if (gear) lines.push({ label: 'Protective gear', change: gear })
   const applies = (effect) => (!effect.against || effect.against.includes(injuryType)) && (!effect.when || (effect.when === 'in Cover' && inCover))
   const sources = [

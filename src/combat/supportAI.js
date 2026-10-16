@@ -3,7 +3,8 @@
 // bringing one back = REMOVAL_VALUE) from the same previews the buttons use, and supportStep takes the best one only when
 // it beats this character's own best attack. Party only: enemies keep their own AI. All weights are AI tuning, not rules.
 import { combatActionFor } from './actions/registry.js'
-import { canMove, getReachable } from './combatMovement.js'
+import { canMove } from './combatMovement.js'
+import { safeReachable } from './hazardAvoidance.js'
 import { canAfford, canAim, getCombatantList, getOpponents, isActive } from './combatSelectors.js'
 import { getHitChance } from './combatAttacks.js'
 import { directBlock, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
@@ -57,7 +58,7 @@ export function ownAttackValue(state, self) {
   }
   const here = valueFrom(undefined)
   if (here > 0 || !canMove(state, self) || state.turn.minor <= 0) return here
-  const tiles = [...getReachable(state, self).values()].filter((entry) => entry.steps > 0)
+  const tiles = safeReachable(state, self)
   return MOVE_DISCOUNT * Math.max(0, ...tiles.map((entry) => valueFrom(entry.position)))
 }
 
@@ -125,7 +126,7 @@ function firstAidOptions(state, self) {
 function reachDownedAllyOption(state, self) {
   if (!canMove(state, self) || state.turn.minor <= 0 || !canAfford(state, self, 'firstAid')) return null
   const downed = getCombatantList(state).filter((other) => other.side === self.side && other.id !== self.id && !isActive(other))
-  const tiles = [...getReachable(state, self).values()].filter((entry) => entry.steps > 0)
+  const tiles = safeReachable(state, self)
   let best = null
   for (const ally of downed) {
     const entry = tiles.filter((tile) => Math.max(Math.abs(tile.position.x - ally.position.x), Math.abs(tile.position.y - ally.position.y)) <= 1).sort((a, b) => a.steps - b.steps)[0]

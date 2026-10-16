@@ -11,7 +11,9 @@ import { addLog, updateCombatant } from './combatLog.js'
 import { canAfford, isActive } from './combatSelectors.js'
 import { countHazards } from '../dev/hazardPerf.js'
 import { perfEnd, perfOff, perfStart } from '../dev/perfProbe.js'
+import { normalizeCondition } from '../rules/personalCondition.js'
 import { damageObject, hazardRound, hitText, injuryFromHit, isStanding, OBJECT_ATTACK_DIFFICULTY, objectDamage } from '../world/environment.js'
+import { syncHazardAfflictions } from '../world/hazardAfflictions.js'
 
 // Who a blast or hazard can catch: every combatant still in the fight, whatever their side.
 export const blastActors = (state) =>
@@ -50,9 +52,22 @@ export function applyEnvironmentHits(state, hits) {
 }
 
 // An environment result (damageObject / hazardRound) applied to the fight. Returns { state, lines }.
-function applyResult(state, result) {
-  const placed = refreshCover({ ...state, environment: result.environment, map: result.map }, state.map)
-  const applied = applyEnvironmentHits(placed, result.hits)
+function applyResult(state, result, { syncAfflictions = false } = {}) {
+  let placed = refreshCover({ ...state, environment: result.environment, map: result.map }, state.map)
+  let hits = result.hits
+  if (syncAfflictions) {
+    const subjects = Object.values(placed.combatants)
+      .filter(isActive)
+      .map((combatant) => ({ id: combatant.id, position: combatant.position, character: combatant.character, condition: combatant.condition }))
+    const synced = syncHazardAfflictions(subjects, hits, result.environment)
+    hits = synced.hits
+    synced.afflictionsById.forEach((afflictions, id) => {
+      const combatant = placed.combatants[id]
+      if (!combatant) return
+      placed = updateCombatant(placed, id, { condition: { ...normalizeCondition(combatant.condition), afflictions } })
+    })
+  }
+  const applied = applyEnvironmentHits(placed, hits)
   return { state: applied.state, lines: [...result.lines, ...applied.lines] }
 }
 
@@ -81,7 +96,7 @@ export function combatHazardRound(state) {
   if (!state.environment || perfOff('hazards')) return { state, lines: [] }
   const started = perfStart()
   countHazards(state.environment)
-  const result = applyResult(state, hazardRound(state.environment, state.map, blastActors(state)))
+  const result = applyResult(state, hazardRound(state.environment, state.map, blastActors(state)), { syncAfflictions: true })
   perfEnd('hazard.round', started)
   return result
 }

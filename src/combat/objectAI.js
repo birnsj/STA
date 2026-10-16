@@ -5,8 +5,9 @@
 // weights are AI tuning, not rules.
 import { blastActors, previewObjectAttack, standingObjects } from './combatEnvironment.js'
 import { avoidOptionFor } from './combatInjuries.js'
-import { canMove, getReachable } from './combatMovement.js'
+import { canMove } from './combatMovement.js'
 import { canAfford, getOpponents, isActive } from './combatSelectors.js'
+import { safeReachable } from './hazardAvoidance.js'
 import { ownAttackValue } from './supportAI.js'
 import { blastReaches, damageObject, hazardAt, injuryFromHit } from '../world/environment.js'
 import { staTaskChance } from '../rules/taskResolver.js'
@@ -113,7 +114,7 @@ function moveForShotOption(state, self) {
     .map((record) => ({ record, blast: blastValue(state, self, record) }))
     .filter(({ blast }) => blast && !blast.alliesCaught && blast.value > 0)
   if (!blasts.length) return null
-  const tiles = [...getReachable(state, self).values()].filter((entry) => entry.steps > 0)
+  const tiles = safeReachable(state, self)
   let best = null
   blasts.forEach(({ record, blast }) => {
     tiles.forEach((entry) => {

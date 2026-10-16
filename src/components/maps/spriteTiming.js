@@ -40,12 +40,12 @@ export const oneShotKey = (seed, name, playKey, reverse) => `${seed}|${name}|${p
 // The walking loops share one stride (each starts with the same foot forward), so a figure switching between them
 // carries on from the same point in its step instead of jumping to another foot: seed -> { name, seconds, offset }, the
 // gait it last walked and where in the stride (0..1) that loop stood at time 0.
-const GAITS = new Set(['walk', 'run', 'sneakWalk'])
+export const LOCOMOTION = new Set(['walk', 'run', 'sneakWalk'])
 const gaitClocks = new Map()
 const wrap = (value) => value - Math.floor(value)
 export function loopOffset(animation, seed, phase, nowSeconds) {
   const fallback = phase ?? phaseOf(seed)
-  if (!GAITS.has(animation.name)) return fallback
+  if (!LOCOMOTION.has(animation.name)) return fallback
   const last = gaitClocks.get(seed)
   const offset = !last ? fallback : last.name === animation.name ? last.offset : wrap(nowSeconds / last.seconds + last.offset - nowSeconds / animation.seconds)
   gaitClocks.set(seed, { name: animation.name, seconds: animation.seconds, offset })

@@ -1,15 +1,15 @@
 import { getMaxStress, npcCategoryName } from '../../rules/personalCondition.js'
 
-// A character's Stress (no HP): the meter shows what is left, full when unhurt and draining as Stress is taken
-// (designer request, Oct 2026); the number stays the Stress taken. The rest of the condition (Injuries, Fatigued,
-// complications, Defeated / Dying) is ConditionIcons. svg: the compact version drawn over a unit on the battlefield,
-// with a mark per Injury. showCategory: say so for a Minor NPC, who has no Stress.
+// A character's Stress (no HP): the meter fills as Stress is taken (empty when unhurt, full at maximum), in red for
+// every character (designer request, 2026-10-15); the number is Stress taken / max. The rest of the condition (Injuries,
+// Fatigued, complications, Defeated / Dying) is ConditionIcons. svg: the compact version drawn over a unit on the
+// battlefield, with a mark per Injury. showCategory: say so for a Minor NPC, who has no Stress.
 export default function ConditionTrack({ character, condition, svg = false, showCategory = false }) {
   const max = getMaxStress(character).value
   const { stress, injuries } = condition
   if (svg) {
     const width = 30
-    const filled = max ? Math.max(0, 1 - stress / max) * width : 0
+    const filled = max ? Math.min(1, Math.max(0, stress / max)) * width : 0
     return (
       <g className="condition-svg">
         {max > 0 && (
@@ -39,7 +39,7 @@ export default function ConditionTrack({ character, condition, svg = false, show
         <span className="stress-meter" title={`Stress ${stress} of ${max}`}>
           <span className="stress-label">Stress</span>
           <span className="stress-bar">
-            <span className="stress-fill" style={{ width: `${Math.max(0, 100 - (stress / max) * 100)}%` }} />
+            <span className={`stress-fill${condition.fatigued ? ' is-fatigued' : ''}`} style={{ width: `${Math.min(100, Math.max(0, (stress / max) * 100))}%` }} />
           </span>
           <span className="stress-value">
             {stress}/{max}

@@ -6,6 +6,7 @@
 //   drawn with the v2 tile renderer (v2/engine.mjs, v2/kit.mjs objectScene) on a neutral deck plate.
 // - Hazards: an 8-frame looping strip per hazard type (public/art/sprites/environment/hazards/{type}.png), each frame a
 //   64 x 64 design window with the floor diamond along its bottom (components/maps/environmentArt.js HAZARD_FRAME).
+//   Character overlays: hazards/character/{type}.png — 48 x 64 torso-framed strips (same draw, shifted up).
 // - Explosions: an 8-frame strip, small (128) and large (192) design frames (public/art/sprites/effects/).
 import fs from 'node:fs'
 import path from 'node:path'
@@ -303,11 +304,46 @@ const HAZARDS = {
   },
 }
 
+// Character overlay strips (48 x 64): torso-centred FX, no floor diamond. Map floor coords so DY≈48 sits mid-body.
+const CX = 24
+const CY = 36
+function bodyFlames(x, y, t, colours, seed) {
+  return flames(x + (DX - CX), y + (DY - CY) + 4, t, colours, seed)
+}
+function bodyPuffs(x, y, t, opts) {
+  return puffs(x + (DX - CX), y + (DY - CY) + 6, t, { ...opts, rise: (opts.rise ?? 20) * 0.7 })
+}
+function bodyArcs(x, y, t, colour) {
+  return arcs(x + (DX - CX), y + (DY - CY), t, colour)
+}
+function bodyGlow(x, y, colour, strength, t, pulse = 0.25) {
+  const d = Math.hypot((x - CX) / 14, (y - CY) / 22)
+  if (d > 1) return NONE
+  const flicker = 1 - pulse + pulse * Math.sin(TAU * t + x * 0.2)
+  return [...colour, (1 - smoothstep(0.45, 1, d)) * strength * flicker]
+}
+
+const CHARACTER_HAZARDS = {
+  fire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#fff4c0'), hex('#ffa030'), hex('#c02a10')], 3), bodyGlow(x, y, hex('#ff7020'), 0.55, t)),
+  plasmaFire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#f0ffff'), hex('#60c8ff'), hex('#2040c0')], 5), bodyGlow(x, y, hex('#40a0ff'), 0.55, t)),
+  electricity: (x, y, t) => over(bodyArcs(x, y, t, hex('#b0a0ff')), bodyGlow(x, y, hex('#7060ff'), 0.35, t, 0.5)),
+  smoke: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#6e6e6e'), count: 8, rise: 22, size: 10, density: 0.85, seed: 7, drift: 2 }),
+  toxicGas: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#8cc840'), count: 8, rise: 16, size: 10, density: 0.75, seed: 9, drift: 3 }),
+  radiation: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#e8ff60'), count: 10, rise: 24, size: 1.8, density: 1, seed: 13 }), bodyGlow(x, y, hex('#c8f030'), 0.4, t, 0.5)),
+  steam: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#eef6ff'), count: 7, rise: 28, size: 8, density: 0.55, seed: 15, drift: 1.5 }),
+  coolantLeak: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#a0fff0'), count: 6, rise: 8, size: 11, density: 0.4, seed: 17, drift: 3 }), bodyGlow(x, y, hex('#30d8c0'), 0.3, t)),
+}
+
 function hazardJobs() {
-  return Object.entries(HAZARDS).map(([type, pixel]) => ({
+  const floor = Object.entries(HAZARDS).map(([type, pixel]) => ({
     file: path.join(PUBLIC, 'art/sprites/environment/hazards', `${type}.png`),
     draw: () => strip(64, 64, 4, pixel),
   }))
+  const character = Object.entries(CHARACTER_HAZARDS).map(([type, pixel]) => ({
+    file: path.join(PUBLIC, 'art/sprites/environment/hazards/character', `${type}.png`),
+    draw: () => strip(48, 64, 4, pixel),
+  }))
+  return [...floor, ...character]
 }
 
 // ---------- explosions ----------

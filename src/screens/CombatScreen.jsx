@@ -105,7 +105,8 @@ export function Battle({
   onExitMission = null,
   children = null,
 }) {
-  // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays).
+  // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays), and How to Play
+  // does not open by itself (the How to Play button still works).
   const showHints = useDisplaySettings().helpHints
   const active = getActiveCombatant(state)
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
@@ -134,7 +135,7 @@ export function Battle({
   const debugOpen = worldDebugOpen ?? ownDebugOpen
   const toggleDebug = onDebug ?? (() => setOwnDebugOpen(!ownDebugOpen))
   const [followCamera, setFollowCamera] = useState(true)
-  const [helpOpen, setHelpOpen] = useState(showHelpOnStart)
+  const [helpOpen, setHelpOpen] = useState(showHelpOnStart && showHints)
   // Bonus d20s to buy for the next attack (Buy d20s): { bonusDice, momentum paid }; reset each turn and after each attack.
   const [dicePurchase, setDicePurchase] = useState({ bonusDice: 0, momentum: 0 })
   // What the Guard / First Aid / Direct / object task is aimed at (a combatant id, "id:revive", or "objectId:actionId").
