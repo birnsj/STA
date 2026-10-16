@@ -12,6 +12,7 @@ import {
   defeatAnimation,
   directionFor,
   explosionKnockback,
+  explosionKnockbackFromReact,
   getSpriteAnimation,
   getSpriteSet,
   getSpriteSetById,
@@ -21,6 +22,7 @@ import {
   spriteSheetFile,
 } from '../src/rules/appearance.js'
 import { normalizeCharacterRecord } from '../src/character/runtimeCharacter.js'
+import { project } from '../src/maps/iso.js'
 import { decodePng } from '../scripts/png.mjs'
 
 const { directions } = spriteData
@@ -281,6 +283,28 @@ describe('blast throw direction and facing (Prototype presentation)', () => {
       assert.notDeepEqual(t.land, stands[index])
       assert.deepEqual(t.look, blastFaceOrigin(injuryAt(stands[index], origin), `p${index}`, t.land))
     })
+  })
+
+  it('snaps a continuous exploration stand to a whole tile before throwing', () => {
+    const map = openMap()
+    const throw_ = blastThrow(map, injuryAt({ x: 7.4, y: 5.2 }, { x: 5.1, y: 5.0 }), 'crew')
+    assert.deepEqual(throw_.from, { x: 7, y: 5 })
+    assert.equal(Number.isInteger(throw_.land.x) && Number.isInteger(throw_.land.y), true)
+    assert.ok(throw_.land.x > throw_.from.x)
+  })
+
+  it('knockback slide −1 starts on from and 0 lands on land in screen space', () => {
+    const map = openMap()
+    const injury = injuryAt({ x: 6, y: 5 })
+    const throw_ = blastThrow(map, injury, 'crew')
+    const kb = explosionKnockbackFromReact({ injury, from: throw_.from, land: throw_.land, facing: throw_.facing }, 'crew')
+    const land = project(throw_.land)
+    const from = project(throw_.from)
+    assert.ok(kb)
+    assert.equal(land.x + kb.x * -1, from.x)
+    assert.equal(land.y + kb.y * -1, from.y)
+    assert.equal(land.x + kb.x * 0, land.x)
+    assert.equal(land.y + kb.y * 0, land.y)
   })
 })
 

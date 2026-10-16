@@ -112,7 +112,7 @@
   "explosionFalls": ["fallBlastBack", "fallBlastSpin", "fallBlastFlat"],
   "blastStaggerFall": "fallBlastBack",
   "getUp": "getUp",
-  "blastDownHoldSeconds": 0.75,
+  "blastDownHoldSeconds": 0.35,
   "sets": [
     { "id": "human-male", "species": "human", "gender": "male", "sheet": "/art/sprites/characters/human-male.png", "uniformMask": "/art/sprites/characters/human-male-uniform.png", "uniformDivision": "command" },
     { "id": "human-female", "species": "human", "gender": "female", "sheet": "/art/sprites/characters/human-female.png", "uniformMask": "/art/sprites/characters/human-female-uniform.png", "uniformDivision": "command" },

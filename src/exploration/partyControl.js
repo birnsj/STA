@@ -80,6 +80,12 @@ export const isSelected = (state, id) => state.selectedIds.includes(id)
 // still beaming in.
 export const canAct = (member) => isUp(member) && !member.beaming && !member.arriving
 
+// Stop walk orders and leftover pace (Defeated, beaming, or mid blast stagger).
+function plantMember(member) {
+  if (!(member.order || member.moving || member.pace || member.running)) return member
+  return { ...member, order: null, path: [], pace: null, moving: false, running: false }
+}
+
 // After a fight: anyone Defeated drops out of the selection and the lead. If no one selected can act, the whole team
 // that can is selected. With everyone down the lead stays put (the camera follows it) and nothing is selected.
 export function withAbleSelection(state) {
@@ -192,7 +198,15 @@ function regroup(state) {
   if (!leaderId) return state
   const leader = state.members[leaderId]
   const followerIds = able.filter((id) => id !== leaderId)
-  return { ...state, selectedIds: able, leaderId, members: formUp(state, state.members, leaderId, followerIds, leader.heading) }
+  let members = formUp(state, state.members, leaderId, followerIds, leader.heading)
+  // Defeated / beaming keep no follow orders — they stay where they fell.
+  for (const id of state.memberIds) {
+    if (!canAct(members[id])) {
+      const planted = plantMember(members[id])
+      if (planted !== members[id]) members = { ...members, [id]: planted }
+    }
+  }
+  return { ...state, selectedIds: able, leaderId, members }
 }
 
 function changeFormation(state, formationId) {
@@ -249,19 +263,19 @@ function tick(state, rawSeconds) {
   if (!seconds || !current.some((member) => member.order || member.moving || member.pace)) return state
   const followTargets = getFollowTargets(state)
   const steered = current.map((member) => {
-    if (!member.order) return { member, velocity: { x: 0, y: 0 }, direction: null }
+    // Defeated / beaming / arriving: never steer — a leftover order must not slide a body across the floor.
+    if (!member.order || !canAct(member) || member.blastReact) {
+      return { member, velocity: { x: 0, y: 0 }, direction: null }
+    }
     return controllerFor(member).exploreTick(member, { party: state, seconds, followTarget: followTargets[member.id], others: current })
   })
   const pushes = separation(current)
   let changed = false
   let members = {}
   steered.forEach(({ member, velocity, direction, run }, i) => {
-    // Blast fall / getUp: stay on the landing tile — no walk, separation shove, or leftover pace slide.
-    if (member.blastReact) {
-      const planted =
-        member.order || member.moving || member.pace || member.running
-          ? { ...member, order: null, path: [], pace: null, moving: false, running: false }
-          : member
+    // Blast fall / getUp, or Defeated / beaming: stay planted — no walk, separation shove, or leftover pace slide.
+    if (member.blastReact || !canAct(member)) {
+      const planted = plantMember(member)
       if (planted !== member) changed = true
       members[member.id] = planted
       return

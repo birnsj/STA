@@ -28,7 +28,7 @@ import { emitNoise, getNpcs, isHostile, joinsCombat, STATE } from './awareness.j
 import { attemptChallenge } from './challengeObjects.js'
 import { MODE, startCombat } from './combatLink.js'
 import { addLogEntry } from './missionLog.js'
-import { getMembers } from './partyControl.js'
+import { getMembers, withAbleSelection } from './partyControl.js'
 import { rollPartyTask } from './partyTaskRoll.js'
 import { gridToWorld, worldToGrid } from './tacticalGrid.js'
 
@@ -76,7 +76,7 @@ function occupiedBlastKeys(state, exceptId) {
 function thrownByBlast(state, id, injury) {
   const throw_ = blastThrow(state.party.map, injury, id, occupiedBlastKeys(state, id))
   if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, id, injury.source?.at) }
-  const react = { injury, from: throw_.from, land: throw_.land }
+  const react = { injury, from: throw_.from, land: throw_.land, facing: throw_.facing }
   const facing = { ...throw_.look }
   if (throw_.land.x === throw_.from.x && throw_.land.y === throw_.from.y) return { blastReact: react, facing }
   return {
@@ -130,8 +130,13 @@ function settleInjury(state, id, injury, avoid) {
     minor ? `${name} is Defeated (${injuryTypeName(injury.type)}).` : `${name} suffers a ${injuryText(injury)} and is Defeated${hit.dying ? ' (Dying)' : ''}.`,
   ]
   // Defeated: fall comes from condition; blasts still throw them to the landing tile (blastReact keeps from/land for the slide).
-  const downed = isExplosionInjury(injury) ? thrownByBlast(state, id, injury) : { blastReact: null }
-  return { state: withActor(withCondition(state, id, hit), id, downed), lines }
+  // Always clear walk orders so a stunned/dead body does not keep sliding from a leftover move.
+  const halted = { order: null, path: [], pace: null, moving: false, running: false, blastReact: null }
+  const downed = isExplosionInjury(injury) ? { ...halted, ...thrownByBlast(state, id, injury) } : halted
+  let next = withActor(withCondition(state, id, hit), id, downed)
+  // Party member: drop them out of the selection / lead once they go down mid-exploration.
+  if (next.party?.members?.[id]) next = { ...next, party: withAbleSelection(next.party) }
+  return { state: next, lines }
 }
 
 // The blast and hazard hits of an environment result. Designer decision (2026-10-15): blasts and hazards always spend

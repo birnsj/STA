@@ -147,8 +147,8 @@ describe('hazard footprints, exclusivity, scars, and overlays', () => {
   })
 
   it('characterHazardStrip points at the character overlay art path', () => {
-    assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png?v=2')
-    assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png?v=2')
+    assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png?v=5')
+    assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png?v=5')
   })
 })
 

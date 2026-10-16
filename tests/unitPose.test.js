@@ -43,17 +43,21 @@ test('a fall from a shot waits for the shot to land, then plays from its first f
   assert.equal(shownPose(instant).animation, instant.fall)
 })
 
-test('getting up plays getUp once; surrender raises the hands; walking runs', () => {
+test('getting up always wants getUp; wall clock alone does not stand', () => {
   const down = initialPose(poseInput(downed))
   const up = advancePose(down, poseInput(standing), 0)
-  assert.deepEqual([shownPose(up).animation, shownPose(up).reverse], [getUpAnimation(), false])
-  assert.equal(shownPose(settlePose(up, poseWakeAt(up))).animation, 'idle')
+  assert.equal(up.gettingUp, getUpAnimation())
+  assert.equal(up.getUpPlaying, false)
+  // Want getUp immediately so the sheet loads; FigureView keeps the fall frame until it assigns.
+  assert.deepEqual([shownPose(up).animation, shownPose(up).standingUp], [getUpAnimation(), true])
+  // A wall-clock settle must not clear gettingUp (that popped to idle while fall was still on screen).
+  assert.equal(settlePose(up, 1e9).gettingUp, getUpAnimation())
   const hands = advancePose(initialPose(poseInput(standing)), poseInput({ ...standing, surrendered: true }), 0)
   assert.deepEqual([shownPose(hands).animation, shownPose(hands).settled], ['surrender', false])
   assert.equal(shownPose(initialPose(poseInput(standing)), { isWalking: true }).animation, 'run')
 })
 
-test('a blast Stress Avoid falls, holds on the ground, then plays getUp', () => {
+test('a blast Stress Avoid falls, holds on the ground, then requests getUp for playback', () => {
   const injury = { id: 'blast-1', type: 'stun', severity: 2, source: { weaponId: 'explosion:g', blastRadius: 2 } }
   const blasted = { ...standing, blastReact: { injury } }
   let track = advancePose(initialPose(poseInput(standing)), poseInput(blasted), 0)
@@ -65,12 +69,15 @@ test('a blast Stress Avoid falls, holds on the ground, then plays getUp', () => 
   assert.deepEqual([shownPose(afterFall).animation, shownPose(afterFall).settled], [fall, true])
   assert.equal(poseWakeAt(afterFall), fallEnd + blastDownHoldMs())
   const afterHold = settlePose(afterFall, poseWakeAt(afterFall))
-  assert.deepEqual([shownPose(afterHold).animation, shownPose(afterHold).reverse], [getUpAnimation(), false])
-  // getUp clock is armed only once the getup sheet is ready (unitView); settle leaves oneShotUntil null.
+  assert.equal(afterHold.gettingUp, getUpAnimation())
+  assert.equal(afterHold.getUpPlaying, false)
+  assert.deepEqual([shownPose(afterHold).animation, shownPose(afterHold).standingUp], [getUpAnimation(), true])
+  // Clock stays null — unitView starts/finishes getUp from displayed playback, not a wall timer.
   assert.equal(afterHold.oneShotUntil, null)
+  assert.equal(poseWakeAt(afterHold), null)
   const getUpMs = getSpriteAnimation(getUpAnimation()).seconds * 1000
-  const armed = { ...afterHold, oneShotUntil: 50_000 + getUpMs }
-  assert.equal(shownPose(settlePose(armed, armed.oneShotUntil)).animation, 'idle')
+  const armed = { ...afterHold, getUpPlaying: true, oneShotUntil: 50_000 + getUpMs }
+  assert.equal(settlePose(armed, armed.oneShotUntil).gettingUp, getUpAnimation())
 })
 
 test('a Defeated blast victim falls and stays down — no automatic getUp', () => {

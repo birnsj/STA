@@ -6,7 +6,7 @@
 //   drawn with the v2 tile renderer (v2/engine.mjs, v2/kit.mjs objectScene) on a neutral deck plate.
 // - Hazards: an 8-frame looping strip per hazard type (public/art/sprites/environment/hazards/{type}.png), each frame a
 //   64 x 64 design window with the floor diamond along its bottom (components/maps/environmentArt.js HAZARD_FRAME).
-//   Character overlays: hazards/character/{type}.png — 48 x 64 torso-framed strips (same draw, shifted up).
+//   Character overlays: hazards/character/{type}.png — 48 x 64 torso strips (body wrap, not floor diamonds).
 // - Explosions: an 8-frame strip, small (128) and large (192) design frames (public/art/sprites/effects/).
 import fs from 'node:fs'
 import path from 'node:path'
@@ -304,36 +304,56 @@ const HAZARDS = {
   },
 }
 
-// Character overlay strips (48 x 64): drawn in torso space (not remapped floor diamonds). CX/CY = mid-chest.
+// Character overlay strips (48 x 64): tall body wrap (head → hips). Must not look like a floor diamond tile.
 const CX = 24
-const CY = 34
-
-function bodyGlow(x, y, colour, strength, t, pulse = 0.25) {
-  const d = Math.hypot((x - CX) / 16, (y - CY) / 24)
-  if (d > 1) return NONE
-  const flicker = 1 - pulse + pulse * Math.sin(TAU * t + x * 0.2)
-  return [...colour, (1 - smoothstep(0.4, 1, d)) * strength * flicker]
+const CY = 28
+// Standing silhouette: shoulders wider than head/hips; almost no coverage on the floor band (y > 54).
+function bodyMask(x, y) {
+  if (y > 56) return 0
+  const taper = 1 - smoothstep(8, 2, y) * 0.35
+  const hip = 1 - smoothstep(40, 56, y) * 0.55
+  const dx = (x - CX) / (14 * taper * hip + 0.01)
+  const dy = (y - CY) / 26
+  return 1 - smoothstep(0.5, 1.02, Math.hypot(dx, dy * 0.9))
 }
 
-// Flames rising from the lower torso, not clipped to the floor diamond.
+// Rim-weighted body light: strong at the silhouette edge, weak in the chest so the uniform still reads through.
+function bodyGlow(x, y, colour, strength, t, pulse = 0.25) {
+  const mask = bodyMask(x, y)
+  if (mask <= 0) return NONE
+  const rim = Math.sin(Math.PI * clamp01(mask)) // peaks mid-mask (outline), not the filled centre
+  const flicker = 1 - pulse + pulse * Math.sin(TAU * t + x * 0.2)
+  return [...colour, rim * strength * flicker]
+}
+
+// Side ribbons + shoulder crown — hollow middle, no floor baseline, must not read as a tile diamond.
 function bodyFlames(x, y, t, [core, mid, edge], seed) {
+  const mask = bodyMask(x, y)
+  if (mask <= 0.02) return NONE
   let best = 0
-  for (let i = 0; i < 7; i++) {
-    const bx = CX - 14 + hash(i, 1, seed) * 28
-    const by = CY + 8 + hash(i, 2, seed) * 10
-    const height = 22 + hash(i, 3, seed) * 18
-    const h = height * (0.75 + 0.25 * Math.sin(TAU * (t * 2 + hash(i, 4, seed))))
-    const rise = (by - y) / h
+  for (let i = 0; i < 14; i++) {
+    const side = i % 2 === 0 ? -1 : 1
+    const rootY = 24 + hash(i, 2, seed) * 24
+    const tipY = 1 + hash(i, 3, seed) * 10
+    const h = rootY - tipY
+    if (h < 8) continue
+    const rise = (rootY - y) / h
     if (rise < 0 || rise > 1) continue
-    const sway = Math.sin(TAU * (t * 2 + rise * 0.8 + hash(i, 5, seed))) * 2.8 * rise
-    const width = (3.5 + hash(i, 6, seed) * 3) * (1 - rise) ** 0.55
-    const across = Math.abs(x - bx - sway) / Math.max(width, 0.01)
+    // Keep tongues out on the flanks / shoulders (not a centred floor-style cluster).
+    const spine = CX + side * (7 + hash(i, 1, seed) * 7)
+    const sway = Math.sin(TAU * (t * 2.6 + rise * 1.1 + hash(i, 5, seed))) * (2 + 3.5 * rise) * side
+    const width = (1.4 + hash(i, 6, seed) * 1.6) * (0.3 + 0.7 * Math.sin(Math.PI * rise))
+    const across = Math.abs(x - spine - sway) / Math.max(width, 0.01)
     if (across > 1) continue
-    best = Math.max(best, (1 - across) * (1 - rise * 0.65))
+    const flank = smoothstep(2, 8, Math.abs(x - CX))
+    best = Math.max(best, (1 - across) * (0.35 + 0.65 * Math.sin(Math.PI * rise)) * (0.35 + 0.65 * flank) * (0.45 + 0.55 * mask))
   }
+  // Thin crown over the head / shoulders only.
+  const crown = smoothstep(18, 6, y) * smoothstep(0, 10, y) * (0.15 + 0.2 * Math.sin(TAU * t * 3)) * mask
+  best = Math.max(best, crown)
   if (best <= 0) return NONE
-  const colour = best > 0.6 ? mix(mid, core, (best - 0.6) / 0.4) : mix(edge, mid, best / 0.6)
-  return [...colour, smoothstep(0, 0.3, best)]
+  const colour = best > 0.55 ? mix(mid, core, (best - 0.55) / 0.45) : mix(edge, mid, best / 0.55)
+  return [...colour, smoothstep(0, 0.2, best) * (0.55 + 0.45 * Math.sin(Math.PI * clamp01(mask)))]
 }
 
 function bodyArcs(x, y, t, colour) {

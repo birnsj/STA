@@ -75,6 +75,23 @@ describe('a Defeated party member in exploration', () => {
     const gap = Math.hypot(next.members.alpha.position.x - where.x, next.members.alpha.position.y - where.y)
     assert.ok(gap < 0.1, `alpha stopped ${gap} tiles from the fallen character`)
   })
+
+  it('stops moving when Defeated with a leftover walk order', () => {
+    const { party } = createExplorationState(testMap(), team())
+    const where = { ...party.members.beta.position }
+    let next = partyReducer(partyReducer(party, { type: 'select', id: 'beta' }), {
+      type: 'moveTo',
+      target: { x: where.x + 4, y: where.y },
+      fresh: true,
+    })
+    assert.ok(next.members.beta.order, 'control: beta has a move order')
+    next = withCondition(next, 'beta', DEFEATED)
+    for (let t = 0; t < 1; t += 0.02) next = partyReducer(next, { type: 'tick', seconds: 0.02 })
+    assert.equal(next.members.beta.order, null)
+    assert.equal(next.members.beta.moving, false)
+    assert.equal(next.members.beta.pace, null)
+    assert.deepEqual(next.members.beta.position, where)
+  })
 })
 
 describe('ending a fight started in the world', () => {

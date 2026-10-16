@@ -1,6 +1,7 @@
 // Character hazard overlay type (world/characterHazardOverlay.js): tile hazard or lingering affliction.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import { CHARACTER_HAZARD_FRAME, characterHazardOverlayLook, characterHazardStrip, hazardStrip } from '../src/components/maps/environmentArt.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { createCondition } from '../src/rules/personalCondition.js'
 import { characterHazardOverlayType, hasCharacterHazardOverlay, resolveHazardOverlayDisplay } from '../src/world/characterHazardOverlay.js'
@@ -61,5 +62,18 @@ describe('characterHazardOverlayType', () => {
     assert.deepEqual(resolveHazardOverlayDisplay(null, { holding: true, heldType: 'fire' }), { type: 'fire', held: 'fire' })
     assert.deepEqual(resolveHazardOverlayDisplay(null, { holding: false, heldType: 'fire' }), { type: null, held: null })
     assert.deepEqual(resolveHazardOverlayDisplay('plasmaFire', { holding: true, heldType: 'fire' }), { type: 'plasmaFire', held: 'plasmaFire' })
+  })
+})
+
+describe('characterHazardOverlayLook', () => {
+  it('uses the torso strip path and frame size, never the floor diamond strip', () => {
+    const look = characterHazardOverlayLook('fire')
+    assert.equal(look.href, characterHazardStrip('fire'))
+    assert.ok(look.href.includes('/hazards/character/'))
+    assert.ok(look.href.includes('?v='))
+    assert.notEqual(look.href, hazardStrip('fire'))
+    assert.ok(!look.href.includes('/hazards/fire.png'))
+    assert.deepEqual(look.frame, CHARACTER_HAZARD_FRAME)
+    assert.equal(characterHazardOverlayLook(null), null)
   })
 })

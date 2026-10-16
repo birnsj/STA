@@ -2,7 +2,8 @@ import { Container, Graphics, GraphicsPath } from 'pixi.js'
 import { FigureView } from '../../maps/pixi/figures.js'
 import { dashedEllipse, makeLabel, placeLabel } from '../../maps/pixi/pixiDraw.js'
 import { reducedMotion } from '../../maps/pixi/pixiStage.js'
-import { explosionKnockback, explosionKnockbackFromReact, getSpriteAnimation, getSpriteSet, getSpriteSetById, getUpAnimation } from '../../../rules/appearance.js'
+import { clearGetUp, getUpPlaybackComplete, markGetUpPlaying, startGetUpWait } from '../../maps/blastGetUpSync.js'
+import { explosionKnockback, explosionKnockbackFromReact, getSpriteAnimation, getSpriteSet, getSpriteSetById } from '../../../rules/appearance.js'
 import { advancePose, initialPose, poseInput, settlePose, shownPose } from '../unitPose.js'
 import { LABEL_Y, POINTS_Y } from '../battlefieldShared.js'
 
@@ -17,6 +18,8 @@ const RED = 0xe2463d
 const GREEN = 0x3ccf7a
 const GREY = 0x6b7486
 const COVER_POP_MS = 350
+// Match figures.js: wait for getup sheet retries before standing without the clip.
+const GETUP_FAIL_ESCAPE_MS = 5000
 const SHIELD = new GraphicsPath('M0 -7 L6 -4.5 V0.5 C6 4 3.5 6.2 0 7.5 C-3.5 6.2 -6 4 -6 0.5 V-4.5 Z')
 
 function coverBadge() {
@@ -107,6 +110,7 @@ export class UnitView {
     this.badges = new Container()
     this.figure.over.addChild(this.badges)
     this.look = null
+    this.getUpFailFrom = null
   }
 
   // unit is a new object only when the board re-renders, so the pose's input and the badges are looked at then; the
@@ -123,6 +127,8 @@ export class UnitView {
         this.track = { ...this.track, oneShotUntil: null }
         this.armSheet = 'fall'
         this.armWaitFrom = now
+        // Ask for getup now so it is ready when the hold ends (fall recolour is huge and can starve the queue).
+        this.prefetchGetup(unit)
       }
       this.updateBadges(unit)
       this.selected.visible = unit.selected
@@ -130,31 +136,25 @@ export class UnitView {
     const { combatant } = unit
     const beforeSettle = this.track
     let track = settlePose(this.track, now)
-    // Always arm getUp when it starts so the one-shot waits on the getup sheet and restarts from frame 0.
+    // Blast hold → getUp: want getUp immediately; FigureView keeps fall until the sheet assigns.
     if (track.gettingUp && track.gettingUp !== beforeSettle?.gettingUp) {
       track = { ...track, oneShotUntil: null }
-      this.armSheet = 'getup'
-      this.armWaitFrom = now
+      this.prefetchGetup(unit)
     }
-    // Sheet never arrived: fall → still try getUp; getUp → stand so walk resumes.
-    if (this.armSheet && this.armWaitFrom != null && now - this.armWaitFrom > 8000) {
-      if (this.armSheet === 'fall') {
-        track = { ...track, staggerFall: null, staggerDown: null, gettingUp: getUpAnimation(), oneShotUntil: null }
-        this.armSheet = 'getup'
-        this.armWaitFrom = now
-      } else {
-        track = { ...track, gettingUp: null, staggerDown: null, staggerFall: null, oneShotUntil: null }
-        this.armSheet = null
-        this.armWaitFrom = null
-        unit.onStaggerDone?.()
+    // Fall sheet missing for too long: request getUp (still never timeout-skip a healthy getup sheet).
+    if (this.armSheet === 'fall' && this.armWaitFrom != null && now - this.armWaitFrom > 3000) {
+      track = {
+        ...track,
+        staggerFall: null,
+        staggerDown: null,
+        ...startGetUpWait({ playKey: track.playKey + 1 }),
       }
-    }
-    // Finished getUp (not interrupted by a new blast stagger).
-    if (beforeSettle?.gettingUp && !track.gettingUp && !track.staggerFall && !track.staggerDown) {
+      this.armSheet = null
       this.armWaitFrom = null
-      unit.onStaggerDone?.()
+      this.prefetchGetup(unit)
     }
     this.track = track
+    this.armFallClock(unit, now)
     this.shown = {
       ...unit,
       centre: this.walkedCentre(unit, now),
@@ -164,39 +164,92 @@ export class UnitView {
         : combatant.condition?.defeated
           ? explosionKnockback(combatant.condition, combatant.id)
           : null,
-      pose: shownPose(track, { inCover: combatant.inCover, isWalking: unit.isWalking, panic: unit.panic }),
+      pose: shownPose(this.track, {
+        inCover: combatant.inCover,
+        isWalking: unit.isWalking,
+        panic: unit.panic,
+      }),
     }
     this.figure.update(this.shown, now, revealed)
-    this.armWaitingClock(unit, now)
-    // Arming bumps playKey — refresh the pose so the one-shot restarts from frame 0.
-    if (this.track !== track) {
-      this.shown.pose = shownPose(this.track, { inCover: combatant.inCover, isWalking: unit.isWalking, panic: unit.panic })
-      this.figure.update(this.shown, now, revealed)
+    this.syncGetUpFromDisplay(unit, now)
+    if (this.track.gettingUp !== track.gettingUp || this.track.getUpPlaying !== track.getUpPlaying) {
+      this.shown.pose = shownPose(this.track, {
+        inCover: combatant.inCover,
+        isWalking: unit.isWalking,
+        panic: unit.panic,
+      })
     }
     this.updateCover(unit.cover, now)
   }
 
-  // Start a paused fall / getUp one-shot once its sheet can draw.
-  // Resolve the set the same way FigureView does (unit.spriteSet), not only portrait.spriteSet — a missing
-  // portrait field left getUp waiting on the 8s fallback and never playing the sheet.
-  armWaitingClock(unit, now) {
-    if (!this.armSheet || !this.track) return
+  spriteSetFor(unit) {
     const portrait = unit.combatant.character?.portrait
-    const set =
+    return (
       getSpriteSetById(unit.spriteSet) ??
       getSpriteSetById(portrait?.spriteSet) ??
-      getSpriteSet(portrait?.id)
+      getSpriteSet(portrait?.id) ??
+      null
+    )
+  }
+
+  prefetchGetup(unit) {
+    const set = this.spriteSetFor(unit)
     if (!set) return
-    const colour = this.shown?.colour ?? unit.colour
-    // Keep asking — preload alone is not enough if the board mounted mid-blast.
-    this.figure.sheets.sheet(set, this.armSheet, colour)
-    if (!this.figure.sheets.loaded(set, this.armSheet, colour)) return
-    const anim = this.armSheet === 'fall' ? this.track.staggerFall : this.track.gettingUp
-    if (!anim) return
+    // Request getup before further fall work so recolour workers are less likely to starve the stand clip.
+    this.figure.sheets.sheet(set, 'getup', unit.colour)
+  }
+
+  // Fall one-shot clock starts only once the fall sheet can draw.
+  armFallClock(unit, now) {
+    if (this.armSheet !== 'fall' || !this.track?.staggerFall) return
+    const set = this.spriteSetFor(unit)
+    if (!set) {
+      this.armSheet = null
+      this.armWaitFrom = null
+      return
+    }
+    this.figure.sheets.sheet(set, 'fall', unit.colour)
+    if (!this.figure.sheets.loaded(set, 'fall', unit.colour)) return
+    const anim = this.track.staggerFall
     const ms = (getSpriteAnimation(anim).seconds * 1000) / (unit.speed || 1)
     this.track = { ...this.track, oneShotUntil: now + ms, playKey: this.track.playKey + 1 }
     this.armWaitFrom = null
     this.armSheet = null
+  }
+
+  // Start getUp once the texture is on the sprite; finish only after the last frame is displayed.
+  // Keep the fall frame while getup retries a failed load; stand without the clip only after GETUP_FAIL_ESCAPE_MS.
+  syncGetUpFromDisplay(unit, now) {
+    if (!this.track?.gettingUp) {
+      this.getUpFailFrom = null
+      return
+    }
+    const set = this.spriteSetFor(unit)
+    if (set) {
+      const entry = this.figure.sheets.sheet(set, 'getup', unit.colour)
+      this.getUpFailFrom ??= now
+      if (entry?.failed && now - this.getUpFailFrom >= GETUP_FAIL_ESCAPE_MS) {
+        this.track = clearGetUp(this.track)
+        this.getUpFailFrom = null
+        unit.onStaggerDone?.()
+        return
+      }
+    }
+    const shown = this.figure.displayedPlayback(now)
+    if (!this.track.getUpPlaying && shown?.name === this.track.gettingUp) {
+      this.track = markGetUpPlaying(this.track)
+      this.getUpFailFrom = null
+    }
+    if (
+      getUpPlaybackComplete(this.track, {
+        displayedName: shown?.name ?? null,
+        progress: shown?.progress ?? 0,
+      })
+    ) {
+      this.track = clearGetUp(this.track)
+      this.getUpFailFrom = null
+      unit.onStaggerDone?.()
+    }
   }
 
   // Where the figure stands now: gliding to a new tile in a straight line over msPerTile, as the board steps it along its path a tile at a time.

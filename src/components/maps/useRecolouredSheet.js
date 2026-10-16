@@ -86,16 +86,24 @@ export function loadSheet(file, mask, division, colour) {
   if (!sheetImages.has(key)) {
     const recolours = Boolean(mask && colour && colour !== getDivisionColour(division))
     const url = recolours ? draw(file, mask, colour).promise?.then(() => cache.get(key).url) ?? Promise.resolve(cache.get(key).url) : Promise.resolve(file)
-    const image = url.then(
-      (src) =>
-        new Promise((resolve) => {
-          const element = new Image()
-          element.onload = () => resolve(element)
-          element.onerror = () => resolve(null)
-          element.src = src
+    // Drop a failed load from the cache so a later retry can pick up a file that was missing (or served as SPA HTML).
+    const image = track(
+      url
+        .then(
+          (src) =>
+            new Promise((resolve) => {
+              const element = new Image()
+              element.onload = () => resolve(element)
+              element.onerror = () => resolve(null)
+              element.src = src
+            }),
+        )
+        .then((loaded) => {
+          if (!loaded) sheetImages.delete(key)
+          return loaded
         }),
     )
-    sheetImages.set(key, track(image))
+    sheetImages.set(key, image)
   }
   return sheetImages.get(key)
 }

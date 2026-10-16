@@ -2,7 +2,7 @@ import { Sprite } from 'pixi.js'
 import { perfCount, perfEnd, perfOff, perfStart } from '../../../dev/perfProbe.js'
 import { project } from '../../../maps/iso.js'
 import { activeHazards, HAZARD_TYPES, parseKey } from '../../../world/environment.js'
-import { HAZARD_FRAME, HAZARD_FRAMES, hazardStrip } from '../environmentArt.js'
+import { HAZARD_FRAME, HAZARD_FRAMES, characterHazardStrip, hazardStrip } from '../environmentArt.js'
 import { stripFrames } from './effectTextures.js'
 
 // Every active hazard tile (world/environment.js) as a looping flipbook sprite, for any Pixi board. Both floor hazards
@@ -66,7 +66,14 @@ export class HazardLayer {
     if (hazards === this.hazards) return
     this.hazards = hazards
     const seen = new Set()
+    const warmed = new Set()
     for (const region of activeHazards(environment)) {
+      // Warm floor + character torso strips together so figure overlays do not briefly show floor diamonds.
+      if (!warmed.has(region.type)) {
+        warmed.add(region.type)
+        stripFrames(hazardStrip(region.type), HAZARD_FRAMES)
+        stripFrames(characterHazardStrip(region.type), HAZARD_FRAMES)
+      }
       const air = HAZARD_TYPES[region.type]?.layer === 'air'
       for (const key in region.tiles) {
         const id = `${region.id}|${key}`

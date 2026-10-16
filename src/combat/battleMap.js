@@ -16,8 +16,16 @@ export const tileKey = ({ x, y }) => `${x},${y}`
 export const samePosition = (a, b) => a.x === b.x && a.y === b.y
 export const toPosition = ([x, y]) => ({ x, y })
 
-export const isInside = (map, { x, y }) => x >= 0 && y >= 0 && x < map.width && y < map.height
-export const tileAt = (map, position) => (isInside(map, position) ? map.tiles[position.y][position.x] : WALL_TILE)
+export const isInside = (map, { x, y }) => {
+  const cx = Math.round(x)
+  const cy = Math.round(y)
+  return cx >= 0 && cy >= 0 && cx < map.width && cy < map.height
+}
+// Integer tile lookup — exploration positions are continuous; fractional indices are not valid array rows.
+export const tileAt = (map, position) => {
+  const cell = { x: Math.round(position.x), y: Math.round(position.y) }
+  return isInside(map, cell) ? map.tiles[cell.y][cell.x] : WALL_TILE
+}
 
 // Solid tiles (walls, crates, machinery...) block movement; only tiles that block sight block line of fire, as does
 // thick smoke or gas (map.sightBlockers).

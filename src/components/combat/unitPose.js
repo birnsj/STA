@@ -1,5 +1,6 @@
-import { blastDownHoldMs, blastStaggerAnimation, defeatAnimation, getSpriteAnimation, getUpAnimation } from '../../rules/appearance.js'
+import { blastDownHoldMs, blastStaggerAnimation, defeatAnimation, getSpriteAnimation } from '../../rules/appearance.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
+import { shownGetUpPose, startGetUpWait } from '../maps/blastGetUpSync.js'
 import { SHOT_ACTIONS } from './battleHelpers.js'
 
 // Which sprite animation a combatant plays (characterSprites.json): its strike when the last action was its
@@ -8,8 +9,11 @@ import { SHOT_ACTIONS } from './battleHelpers.js'
 // hands up once it has surrendered, running (every combat Move and Sprint; designer decision 2026-10-12), cover, or idle.
 // Pure and driven by timestamps (ms): the Pixi board (pixi/unitView.js) calls it every frame. Presentation only.
 //
+// Blast getUp: track.gettingUp + getUpPlaying. Always want getUp (FigureView keeps fall until the sheet assigns).
+// The wall clock does not finish getUp — unitView clears it when the displayed layer has played the last frame.
+//
 // A track is { down, fall, settled, fallHeldUntil, surrendered, handsSettled, seenStrike, strike, gettingUp,
-// staggerFall, staggerDown, seenBlast, oneShotUntil, playKey }.
+// getUpPlaying, staggerFall, staggerDown, seenBlast, oneShotUntil, playKey }.
 
 const strikeAnimation = (action) => (getWeapon(action.weaponId)?.type === 'melee' ? 'melee' : 'attack')
 const isStrikeBy = (action, id) =>
@@ -56,6 +60,7 @@ export function initialPose(input) {
     staggerFall: null,
     staggerDown: null,
     gettingUp: null,
+    getUpPlaying: false,
     oneShotUntil: null,
     playKey: 0,
   }
@@ -66,8 +71,27 @@ export function advancePose(track, input, now) {
   let next = track
   if (down !== next.down) {
     next = down
-      ? { ...next, down, fall, settled: false, fallHeldUntil: hitDelayMs > 0 ? now : null, gettingUp: null, staggerFall: null, staggerDown: null, strike: null, playKey: next.playKey + 1 }
-      : { ...next, down, fallHeldUntil: null, gettingUp: getUpAnimation(), staggerFall: null, staggerDown: null, playKey: next.playKey + 1 }
+      ? {
+          ...next,
+          down,
+          fall,
+          settled: false,
+          fallHeldUntil: hitDelayMs > 0 ? now : null,
+          gettingUp: null,
+          getUpPlaying: false,
+          staggerFall: null,
+          staggerDown: null,
+          strike: null,
+          playKey: next.playKey + 1,
+        }
+      : {
+          ...next,
+          down,
+          fallHeldUntil: null,
+          ...startGetUpWait({ playKey: next.playKey + 1 }),
+          staggerFall: null,
+          staggerDown: null,
+        }
   }
   if (surrendered !== next.surrendered) {
     next = { ...next, surrendered, handsSettled: false, strike: null, playKey: next.playKey + 1 }
@@ -79,6 +103,7 @@ export function advancePose(track, input, now) {
       staggerFall: blastFall,
       staggerDown: null,
       gettingUp: null,
+      getUpPlaying: false,
       strike: null,
       playKey: next.playKey + 1,
     }
@@ -87,7 +112,8 @@ export function advancePose(track, input, now) {
     next = { ...next, seenStrike: strikeKey, strike: down ? null : strikeAnimation(lastAction), playKey: next.playKey + 1 }
   }
   if (next === track) return track
-  const oneShot = next.strike ?? next.gettingUp ?? next.staggerFall
+  // gettingUp is not wall-clock armed here — unitView starts playback when the getup texture is on the sprite.
+  const oneShot = next.strike ?? next.staggerFall
   return {
     ...next,
     oneShotUntil: oneShot ? now + oneShotDuration(oneShot, speed) : next.staggerDown ? now + blastDownHoldMs() / speed : null,
@@ -99,7 +125,7 @@ export function settlePose(track, now) {
   let next = track
   if (next.fallHeldUntil !== null && now >= next.fallHeldUntil) next = { ...next, fallHeldUntil: null, playKey: next.playKey + 1 }
   if (next.oneShotUntil !== null && now >= next.oneShotUntil) {
-    // Blast stagger: fall → hold on the ground → getUp.
+    // Blast stagger: fall → hold on the ground → request getUp (unitView finishes on displayed playback).
     if (next.staggerFall) {
       const lie = next.staggerFall
       return {
@@ -107,26 +133,28 @@ export function settlePose(track, now) {
         staggerFall: null,
         staggerDown: lie,
         gettingUp: null,
+        getUpPlaying: false,
         oneShotUntil: now + blastDownHoldMs(),
         playKey: next.playKey + 1,
       }
     }
     if (next.staggerDown) {
-      // Timer stays null until unitView arms it after the getup sheet can draw (same as fall).
       return {
         ...next,
         staggerDown: null,
-        gettingUp: getUpAnimation(),
-        oneShotUntil: null,
-        playKey: next.playKey + 1,
+        ...startGetUpWait({ playKey: next.playKey + 1 }),
       }
     }
-    next = { ...next, strike: null, gettingUp: null, oneShotUntil: null }
+    // Do not clear gettingUp on a wall clock — that pops to idle while the fall frame is still displayed.
+    if (next.gettingUp) return next
+    next = { ...next, strike: null, oneShotUntil: null }
   }
   return next
 }
 
 export function poseWakeAt(track) {
+  // getUp has no wake time until unitView arms playback from the displayed layer.
+  if (track.gettingUp) return track.oneShotUntil
   const times = [track.fallHeldUntil, track.oneShotUntil].filter((time) => time !== null)
   return times.length ? Math.min(...times) : null
 }
@@ -136,7 +164,17 @@ export function shownPose(track, { inCover = false, isWalking = false, panic = f
   if (track.down) return { animation: track.fall, playKey: track.playKey, settled: track.settled, reverse: false }
   if (track.staggerFall) return { animation: track.staggerFall, playKey: track.playKey, settled: false, reverse: false }
   if (track.staggerDown) return { animation: track.staggerDown, playKey: track.playKey, settled: true, reverse: false }
-  if (track.gettingUp) return { animation: track.gettingUp, playKey: track.playKey, settled: false, reverse: false }
+  if (track.gettingUp) {
+    return (
+      shownGetUpPose(track) ?? {
+        animation: track.gettingUp,
+        playKey: track.playKey,
+        settled: false,
+        reverse: false,
+        standingUp: true,
+      }
+    )
+  }
   if (track.strike) return { animation: track.strike, playKey: track.playKey, settled: false, reverse: false }
   if (track.surrendered) return { animation: 'surrender', playKey: track.playKey, settled: track.handsSettled, reverse: false }
   if (isWalking) return { animation: 'run', playKey: 0, settled: false, reverse: false }

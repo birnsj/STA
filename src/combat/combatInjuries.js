@@ -110,8 +110,8 @@ function occupiedCombatKeys(state, exceptId) {
 function thrownCombatant(state, combatant, injury) {
   const throw_ = blastThrow(state.map, injury, combatant.id, occupiedCombatKeys(state, combatant.id))
   if (!throw_) return { blastReact: { injury }, facing: blastFaceOrigin(injury, combatant.id, combatant.position) }
-  const react = { injury, from: throw_.from, land: throw_.land }
-  // Face the explosive from the landing tile (throw_.look); flight uses blastKnockbackFacing in the renderer.
+  const react = { injury, from: throw_.from, land: throw_.land, facing: throw_.facing }
+  // Face the explosive from the landing tile (throw_.look); flight uses blastReact.facing in the renderer.
   const facing = { ...throw_.look }
   if (throw_.land.x === throw_.from.x && throw_.land.y === throw_.from.y) return { blastReact: react, facing }
   return { position: { ...throw_.land }, facing, blastReact: react }

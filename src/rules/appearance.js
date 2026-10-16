@@ -201,11 +201,14 @@ export function blastFaceOrigin(injury, seed = '', fromCell = null) {
   return { x: -away.x, y: -away.y }
 }
 
+// Whole tile cell for blast math (exploration stands are continuous; map.tiles needs integer indices).
+const gridCell = (position) => (position ? { x: Math.round(position.x), y: Math.round(position.y) } : position)
+
 // Where a blast throws them to: step outward along facing up to `tiles`, stopping before a solid, the map edge, or a
 // tile in occupiedKeys (another character). Never lands on an occupied square.
 export function blastLandingCell(map, from, facing, tiles, occupiedKeys = null) {
-  if (!map || !from || !facing || tiles < 1) return from ? { ...from } : from
-  let cell = { x: from.x, y: from.y }
+  if (!map || !from || !facing || tiles < 1) return from ? gridCell(from) : from
+  let cell = gridCell(from)
   for (let i = 0; i < tiles; i += 1) {
     const next = { x: cell.x + facing.x, y: cell.y + facing.y }
     if (!isInside(map, next) || getTile(tileAt(map, next)).solid) break
@@ -219,9 +222,14 @@ export function blastLandingCell(map, from, facing, tiles, occupiedKeys = null) 
 // occupiedKeys: tileKey set of squares that already have someone (the thrown actor's own from tile is not blocked).
 export function blastThrow(map, injury, seed = '', occupiedKeys = null) {
   if (!isExplosionInjury(injury) || !injury.source?.at) return null
-  const facing = blastKnockbackFacing(injury, seed)
+  // Snap continuous exploration stands to the tile they occupy before stepping — otherwise land/from drift off the
+  // ring marker and tileAt breaks on fractional row indices.
+  const from = gridCell(injury.source.at)
+  const facing = blastKnockbackFacing(
+    { ...injury, source: { ...injury.source, at: from, blastOrigin: gridCell(injury.source.blastOrigin) ?? injury.source.blastOrigin } },
+    seed,
+  )
   const tiles = explosionKnockbackTiles(injury)
-  const from = injury.source.at
   const land = blastLandingCell(map, from, facing, tiles, occupiedKeys)
   // Actual steps taken (0 if a wall or body blocks the first tile) — never invent a slide past the land tile.
   const steps = Math.max(Math.abs(land.x - from.x), Math.abs(land.y - from.y))
@@ -236,15 +244,25 @@ function knockbackVector(facing, tiles) {
   return { x: (step.x - origin.x) * tiles, y: (step.y - origin.y) * tiles, facing, tiles, landsHome: true }
 }
 
+// Screen-space slide from `from` → `land` so slide −1 starts on the old tile and 0 lands on the marker (not facing×tiles,
+// which drifts when from/land are not a pure grid step along facing).
+function knockbackBetween(from, land, facing) {
+  const a = gridCell(from)
+  const b = gridCell(land)
+  if (!a || !b) return null
+  const tiles = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y))
+  if (!tiles) return null
+  const start = project(a)
+  const end = project(b)
+  return { x: end.x - start.x, y: end.y - start.y, facing, tiles, landsHome: true }
+}
+
 // From a blastReact { injury, from, land } (or injury alone): slide distance is how far they actually moved.
 export function explosionKnockbackFromReact(blastReact, seed = '') {
   if (!blastReact?.injury) return null
   const { injury, from, land } = blastReact
-  const facing = blastKnockbackFacing(injury, seed)
-  if (from && land) {
-    const tiles = Math.max(Math.abs(land.x - from.x), Math.abs(land.y - from.y))
-    return knockbackVector(facing, tiles)
-  }
+  const facing = blastReact.facing ?? blastKnockbackFacing(injury, seed)
+  if (from && land) return knockbackBetween(from, land, facing)
   return explosionKnockbackFromInjury(injury, seed)
 }
 

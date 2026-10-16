@@ -10,12 +10,12 @@ import {
   getSpriteAnimation,
   getSpriteMetrics,
   getSpriteSetById,
-  getUpAnimation,
   spriteMaskFile,
   spriteSheetFile,
 } from '../../../rules/appearance.js'
 import { loadSheet } from '../useRecolouredSheet.js'
-import { CHARACTER_HAZARD_FRAME, HAZARD_FRAMES, characterHazardStrip, hazardStrip } from '../environmentArt.js'
+import { exploreGetUpComplete, startExploreGetUp } from '../blastGetUpSync.js'
+import { HAZARD_FRAMES, characterHazardOverlayLook } from '../environmentArt.js'
 import { resolveHazardOverlayDisplay } from '../../../world/characterHazardOverlay.js'
 import { frameColumn, LOCOMOTION, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
 import { uniformImageUrl } from '../../useUniformImage.js'
@@ -23,10 +23,10 @@ import { stripFrames } from './effectTextures.js'
 import { cssFilterMatrix, drawnCanvas, makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 
 // Character hazard overlay (fire / plasma / … on the figure while on a tile or still afflicted).
-// Anchored on the torso (not the floor-fire foot point) so bulkier enemy sprites don't bury the flames.
-const HAZARD_OVERLAY_SCALE = 0.78
-const HAZARD_OVERLAY_ALPHA = 0.95
-const HAZARD_OVERLAY_Y = -30
+// Anchored on the torso (not the floor-fire foot point) so the body wrap sits on the sprite, not the tile diamond.
+const HAZARD_OVERLAY_SCALE = 1.05
+const HAZARD_OVERLAY_ALPHA = 0.88
+const HAZARD_OVERLAY_Y = -40
 const hazardLoopMs = 1000
 
 // The away team and NPCs on the Pixi boards: the ground ring, the sprite sheet's frame for the animation playing
@@ -97,6 +97,9 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
 // WebGL max texture size is often 8192 (sometimes 4096/16384). The fall sheet is 84 frames wide at 3× (28224 px) and
 // will not upload as one texture — cut those into per-frame canvases instead (same idea as effectTextures.js).
 const MAX_SHEET_TEXTURE = 8192
+const SHEET_RETRY_MS = 1500
+// How long to keep showing the fall frame while getup fails to load before standing without the clip.
+const GETUP_FAIL_ESCAPE_MS = 5000
 
 function sheetFrameSize(sheet) {
   return { width: sheet.frame.width * sheet.resolution, height: sheet.frame.height * sheet.resolution }
@@ -119,17 +122,23 @@ export class SheetStore {
     this.shadow = textureOf(shadowCanvas())
   }
 
-  // { texture | image+chunked, failed } for one of a set's sheets in a uniform colour; starts loading it.
+  // { texture | image+chunked, failed, failedAt } for one of a set's sheets in a uniform colour; starts loading it.
+  // A failed load is retried after SHEET_RETRY_MS (dev server can briefly 404/SPA-fallback new public PNGs).
   sheet(set, sheetId, colour) {
     const file = spriteSheetFile(set, sheetId)
     const key = `${file}|${colour}`
+    const prior = this.sheets.get(key)
+    if (prior?.failed && prior.failedAt != null && performance.now() - prior.failedAt >= SHEET_RETRY_MS) {
+      this.sheets.delete(key)
+    }
     if (!this.sheets.has(key)) {
-      const entry = { key, texture: null, image: null, chunked: false, failed: false }
+      const entry = { key, texture: null, image: null, chunked: false, failed: false, failedAt: null }
       this.sheets.set(key, entry)
       loadSheet(file, spriteMaskFile(set, sheetId), set.uniformDivision, colour).then((image) => {
         if (this.destroyed) return
         if (!image) {
           entry.failed = true
+          entry.failedAt = performance.now()
           return
         }
         const wide = image.naturalWidth > MAX_SHEET_TEXTURE || image.naturalHeight > MAX_SHEET_TEXTURE
@@ -282,36 +291,54 @@ export class FigureView {
     this.fallPlay = null
     this.staggerPlay = null
     this.staggerSeenId = null
+    this.getUpFailFrom = null
+  }
+
+  // What the sprite layer is actually drawing (may lag the wanted pose while a sheet loads).
+  displayedPlayback(now) {
+    if (!this.layer) return null
+    return {
+      name: this.layer.animation.name,
+      sheetId: this.layer.animation.sheetId,
+      progress: playbackProgress(this.layer.animation, this.layer.started, this.layer.timing, now),
+    }
   }
 
   // Blast throw slide along figure.knockback. When landsHome (position already the landing tile): progress goes
   // -1 → 0 during the fall (fly from the old tile to home) and stays 0 while getting up / lying there. Legacy
   // (no landsHome): 0 → 1 and stay at 1 when Defeated.
+  // Plant unless the throw is actively playing (fall drawing with progress < 1) — avoids parking off-marker while
+  // the fall sheet loads or during get-up.
   blastSlide(figure, now) {
     if (!figure.knockback) return 0
     const home = figure.knockback.landsHome
-    // Planted: get-up never reuses the throw progress (that would skate them again as they stand).
-    if (figure.pose?.animation === 'getUp' || this.staggerPlay?.phase === 'up') return 0
+    if (
+      figure.pose?.standingUp ||
+      figure.pose?.animation === 'getUp' ||
+      this.staggerPlay?.phase === 'up' ||
+      this.staggerPlay?.phase === 'down'
+    ) {
+      return 0
+    }
     if (reducedMotion()) return home ? 0 : figure.down ? 1 : 0
     const asThrow = (progress01) => (home ? progress01 - 1 : progress01)
     if (figure.down && (figure.pose?.settled || this.fallPlay?.settled)) return home ? 0 : 1
     if (this.staggerPlay) {
-      // Waiting for the fall sheet: stay at the old tile. Waiting for getup (or holding): stay on the landing tile.
-      if (this.staggerPlay.startedAt == null) {
-        return this.staggerPlay.phase === 'fall' && home ? -1 : 0
-      }
-      if (this.staggerPlay.phase === 'down') return 0
+      // Fall sheet not drawing yet: stay planted on the landing tile (do not sit at slide -1 off the ring).
+      if (this.staggerPlay.phase !== 'fall' || this.staggerPlay.startedAt == null) return 0
       const seconds = getSpriteAnimation(this.staggerPlay.animation)?.seconds ?? 0.8
       const t = Math.min(1, (now - this.staggerPlay.startedAt) / (seconds * 1000))
+      if (t >= 1) return 0
       return asThrow(1 - (1 - t) ** 2)
     }
-    // Get-up after Defeat: already on the landing tile.
     if (figure.pose?.reverse) return 0
-    if (!this.layer) return home ? (figure.down ? 0 : -1) : figure.down ? 1 : 0
+    if (!this.layer) return 0
     if (this.layer.timing.settled) return home ? 0 : figure.down ? 1 : 1
-    // Fall one-shot only — never key the throw off a getUp layer.
     if (this.layer.animation?.name === 'getUp' || this.layer.animation?.sheetId === 'getup') return 0
+    // Combat fall throw: only while the fall layer is drawing and not finished.
     const progress = playbackProgress(this.layer.animation, this.layer.started, this.layer.timing, now)
+    if (progress >= 1) return 0
+    if (!String(this.layer.animation?.name ?? '').startsWith('fall')) return 0
     return asThrow(1 - (1 - progress) ** 2)
   }
 
@@ -350,9 +377,9 @@ export class FigureView {
     }
   }
 
-  // Exploration: Stress-Avoid blast — fall → brief hold on the ground → getUp on the landing tile.
-  // startedAt stays null until the fall sheet is ready (updateSprite), so a slow/huge sheet doesn't burn the anim
-  // while the figure is still on idle.
+  // Exploration: Stress-Avoid blast — fall → brief hold → getUp on the landing tile.
+  // Fall/down use wall clocks only after their sheets are drawing. Get-up is requested immediately after the hold;
+  // startedAt arms when the getup texture assigns; finish on displayed playback (never a timeout skip of getUp).
   syncBlastStagger(figure, now) {
     if (figure.pose || figure.down) {
       this.staggerPlay = null
@@ -370,27 +397,27 @@ export class FigureView {
         playKey: `blast${this.playCount}`,
         startedAt: null,
       }
+      this.staggerWaitFrom = null
       return
     }
     if (!this.staggerPlay) return
-    // Sheet still loading: wait per phase (fall / getup), but don't hang forever.
-    if (this.staggerPlay.startedAt == null) {
+    // Fall sheet still loading: wait. After a long miss, request getUp (FigureView keeps the last frame until ready).
+    if (this.staggerPlay.startedAt == null && this.staggerPlay.phase === 'fall') {
       this.staggerWaitFrom ??= now
-      if (now - this.staggerWaitFrom > 8000) {
-        // Fall sheet never arrived: skip straight to getUp if we were falling; otherwise stand.
-        if (this.staggerPlay.phase === 'fall') {
-          this.playCount += 1
-          this.staggerPlay = { phase: 'up', animation: getUpAnimation(), playKey: `blastUp${this.playCount}`, startedAt: null }
-          this.staggerWaitFrom = now
-          return
-        }
-        this.staggerPlay = null
+      if (now - this.staggerWaitFrom > 3000) {
+        this.playCount += 1
+        this.staggerPlay = startExploreGetUp({ playKey: `blastUp${this.playCount}`, now: null })
         this.staggerWaitFrom = null
-        figure.onStaggerDone?.()
       }
       return
     }
+    // up: armed / finished from updateSprite (texture assign + playback).
+    if (this.staggerPlay.phase === 'up') {
+      this.staggerWaitFrom = null
+      return
+    }
     this.staggerWaitFrom = null
+    if (this.staggerPlay.startedAt == null) return
     const holdMs =
       this.staggerPlay.phase === 'down'
         ? blastDownHoldMs()
@@ -408,13 +435,8 @@ export class FigureView {
     }
     if (this.staggerPlay.phase === 'down') {
       this.playCount += 1
-      // startedAt null until the getup sheet is ready (same arming as the fall).
-      this.staggerPlay = { phase: 'up', animation: getUpAnimation(), playKey: `blastUp${this.playCount}`, startedAt: null }
-      this.staggerWaitFrom = now
-      return
+      this.staggerPlay = startExploreGetUp({ playKey: `blastUp${this.playCount}`, now: null })
     }
-    this.staggerPlay = null
-    figure.onStaggerDone?.()
   }
 
   // revealed: the map has faded in (MapRevealedContext).
@@ -431,11 +453,16 @@ export class FigureView {
       figure.knockback ??
       (figure.blastReact ? explosionKnockbackFromReact(figure.blastReact, figure.seed) : null) ??
       (figure.down ? explosionKnockback(figure.condition, figure.seed) : null)
-    const gettingUp = figure.pose?.animation === 'getUp' || this.staggerPlay?.phase === 'up'
-    // Throw travel only while flying / lying. Keep knockback during getUp so we stay planted on the landing tile
-    // (slide forced to 0) instead of dropping the offset and skating.
+    const gettingUp =
+      Boolean(figure.pose?.standingUp) ||
+      figure.pose?.animation === 'getUp' ||
+      this.staggerPlay?.phase === 'up' ||
+      this.staggerPlay?.phase === 'down'
+    // Throw travel only while flying. Keep knockback during hold/getUp so we stay planted on the landing tile.
     const throwing = Boolean(
-      figure.down || (this.staggerPlay && this.staggerPlay.phase !== 'up') || (fallPose && !gettingUp),
+      figure.down ||
+        (this.staggerPlay && this.staggerPlay.phase === 'fall') ||
+        (fallPose && !gettingUp),
     )
     const knockback = throwing || gettingUp ? reactKnock : null
     this._knockback = knockback
@@ -477,7 +504,7 @@ export class FigureView {
 
   // figure.hazardOverlay: hazard type id (fire, plasmaFire, …) while on a damaging tile or still afflicted; null/omit
   // hides it. Keeps the last type through fall → hold → getUp (and while Defeated) so a throw off the tile does not
-  // snuff the burn mid-stagger. Prefers torso character strips; falls back to the floor strip if those are not loaded.
+  // snuff the burn mid-stagger. Torso strips only — never the floor diamond art (hide until the character strip loads).
   updateHazardOverlay(figure, now) {
     const poseName = figure.pose?.animation
     const holding =
@@ -486,6 +513,9 @@ export class FigureView {
       Boolean(this.staggerPlay) ||
       Boolean(this.fallPlay && !this.fallPlay.settled) ||
       poseName === 'getUp' ||
+      Boolean(figure.pose?.standingUp) ||
+      this.staggerPlay?.phase === 'up' ||
+      this.staggerPlay?.phase === 'down' ||
       (typeof poseName === 'string' && poseName.startsWith('fall'))
     const resolved = resolveHazardOverlayDisplay(figure.hazardOverlay || null, {
       holding,
@@ -501,22 +531,19 @@ export class FigureView {
       this.hazardFx.visible = false
       return
     }
-    const characterHref = characterHazardStrip(type)
-    const character = stripFrames(characterHref, HAZARD_FRAMES)
-    const href = character ? characterHref : hazardStrip(type)
-    const textures = character ?? stripFrames(href, HAZARD_FRAMES)
+    const look = characterHazardOverlayLook(type)
+    const textures = look ? stripFrames(look.href, HAZARD_FRAMES) : null
     if (!textures) {
       this.hazardFx.visible = false
       return
     }
     const frame = Math.floor((now / hazardLoopMs) * HAZARD_FRAMES) % HAZARD_FRAMES
-    const frameSize = character ? CHARACTER_HAZARD_FRAME : { width: 64, height: 64 }
-    if (frame !== this.hazardFrame || this.hazardHref !== href) {
+    if (frame !== this.hazardFrame || this.hazardHref !== look.href) {
       this.hazardFrame = frame
-      this.hazardHref = href
+      this.hazardHref = look.href
       this.hazardFx.texture = textures[frame]
-      this.hazardFx.width = frameSize.width * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
-      this.hazardFx.height = frameSize.height * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
+      this.hazardFx.width = look.frame.width * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
+      this.hazardFx.height = look.frame.height * HAZARD_OVERLAY_SCALE * DISPLAY_SCALE
     }
     // Prone figures lie lower; keep the burn on the body rather than floating above.
     this.hazardFx.position.set(0, figure.down ? HAZARD_OVERLAY_Y * 0.45 : HAZARD_OVERLAY_Y)
@@ -597,23 +624,40 @@ export class FigureView {
   updateSprite(figure, now, revealed) {
     const set = getSpriteSetById(figure.spriteSet)
     const base = this.sheets.sheet(set, 'base', figure.colour)
+    // Prefetch getup first while blasting so oversized fall recolours are less likely to starve the stand clip.
+    const blasting = Boolean(this.staggerPlay || figure.blastReact || figure.pose?.animation === 'getUp')
+    if (blasting) this.sheets.sheet(set, 'getup', figure.colour)
     // Ask for the other sheets as soon as the base is in (fall is ~28k px wide and must start loading early for
     // blasts). preload (combat) asks up front so MapFadeIn waits.
     if (figure.preload || this.sheets.ready(base) || base.failed || revealed) {
-      for (const sheetId of ['combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']) this.sheets.sheet(set, sheetId, figure.colour)
+      const order = blasting
+        ? ['getup', 'fall', 'combat', 'sneak', 'surrender', 'idle']
+        : ['combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']
+      for (const sheetId of order) this.sheets.sheet(set, sheetId, figure.colour)
     }
     // Panic sheet while burning / afflicted (and with combat preload so MapFadeIn can wait when already on fire).
     if (figure.panic || figure.hazardOverlay) this.sheets.sheet(set, 'panic', figure.colour)
+
     const { animation, timing: wanted } = this.wantedAnimation(figure, now)
     const timing = { seed: figure.seed, phase: null, playKey: 0, settled: false, reverse: false, speed: 1, ...wanted }
     const entry = this.sheets.sheet(set, animation?.sheetId, figure.colour)
-    // Blast stagger: don't start the clock until the wanted sheet (fall or getup) can actually draw.
-    if (this.staggerPlay && this.staggerPlay.startedAt == null) {
-      // Keep requesting getup while waiting — first blast after mount can race preload.
-      if (this.staggerPlay.phase === 'up') this.sheets.sheet(set, 'getup', figure.colour)
-      if (this.sheets.ready(entry) && animation?.name === this.staggerPlay.animation) {
+    // Don't start the fall clock until that sheet can draw — otherwise the timer ends on an idle/fall-miss frame.
+    if (this.staggerPlay && this.staggerPlay.phase === 'fall' && this.staggerPlay.startedAt == null) {
+      this.sheets.sheet(set, 'fall', figure.colour)
+      if (this.sheets.ready(entry) && (animation?.name === this.staggerPlay.animation || animation?.sheetId === 'fall')) {
         this.staggerPlay.startedAt = now
       }
+    }
+    // Getup sheet still missing after retries: stand without the clip (keep fall until then / while retrying).
+    if (this.staggerPlay?.phase === 'up' && animation?.sheetId === 'getup') {
+      this.getUpFailFrom ??= now
+      if (entry?.failed && now - this.getUpFailFrom >= GETUP_FAIL_ESCAPE_MS) {
+        this.staggerPlay = null
+        this.getUpFailFrom = null
+        figure.onStaggerDone?.()
+      }
+    } else {
+      this.getUpFailFrom = null
     }
     const oneShot = animation.play === 'loop' ? '' : `${timing.playKey}|${timing.settled ? 's' : ''}|${timing.reverse ? 'r' : ''}|${timing.speed}`
     const key = `${animation.name}|${oneShot}|${entry.key}`
@@ -621,6 +665,11 @@ export class FigureView {
     // holding run/walk while standing (e.g. waiting on the panic sheet) looks like running in place.
     if (this.sheets.ready(entry) && this.layer?.key !== key) {
       this.layer = { key, animation, entry, timing, started: startTiming(animation, timing, now) }
+      // Arm get-up playback from the moment the getup texture is assigned (authoritative start).
+      if (this.staggerPlay?.phase === 'up' && animation?.name === this.staggerPlay.animation && this.staggerPlay.startedAt == null) {
+        this.staggerPlay = { ...this.staggerPlay, startedAt: now }
+        this.getUpFailFrom = null
+      }
     } else if (
       animation &&
       !this.sheets.ready(entry) &&
@@ -657,13 +706,28 @@ export class FigureView {
       mirror ? sheet.frame.width - sheet.anchor.x : -sheet.anchor.x,
       -sheet.anchor.y + floorNudge,
     )
+
+    // Exploration get-up finishes only when the last get-up frame has been displayed.
+    if (this.staggerPlay?.phase === 'up') {
+      const shown = this.displayedPlayback(now)
+      if (
+        exploreGetUpComplete(this.staggerPlay, {
+          displayedName: shown?.name ?? null,
+          progress: shown?.progress ?? 0,
+        })
+      ) {
+        this.staggerPlay = null
+        figure.onStaggerDone?.()
+      }
+    }
   }
 
   // 0 standing .. max px down when fully prone (fall / getUp sheets only). Fall frames are taller than idle; without
-  // this the body sits above the ground ring.
+  // this the body sits above the ground ring. Nudge is in body-local px (before displayScale) so ~22 screen px stay on
+  // the ring after characterSprites.json displayScale bumps — otherwise the thrown/prone sprite lands below the marker.
   proneFloorNudge(animation, started, timing, now) {
     if (animation.sheetId !== 'fall' && animation.sheetId !== 'getup') return 0
-    const max = 22
+    const max = 22 / DISPLAY_SCALE
     if (animation.sheetId === 'getup') {
       // Stay low while they press up from the floor; lift once the one-knee drive begins.
       const progress = playbackProgress(animation, started, timing, now)

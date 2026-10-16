@@ -8,7 +8,13 @@ export const hazardStrip = (type) => `/art/sprites/environment/hazards/${type}.p
 // Torso-framed strips for the figure overlay (scripts/makeHazardArt.mjs); floor boards keep hazardStrip.
 export const CHARACTER_HAZARD_FRAME = { width: 48, height: 64 }
 // ?v= busts a stale browser / loadImage cache after regenerating the torso strips.
-export const characterHazardStrip = (type) => `/art/sprites/environment/hazards/character/${type}.png?v=2`
+export const characterHazardStrip = (type) => `/art/sprites/environment/hazards/character/${type}.png?v=5`
+
+// Figure overlay art only — never the floor diamond strip (HazardLayer uses hazardStrip). Pure helper for draw + tests.
+export function characterHazardOverlayLook(type) {
+  if (!type) return null
+  return { href: characterHazardStrip(type), frame: CHARACTER_HAZARD_FRAME }
+}
 
 export const EXPLOSION_FRAMES = 8
 // Source strips (scripts/makeHazardArt.mjs): design frame size before resolution; pick large when the blast is bigger.
