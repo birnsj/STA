@@ -7,7 +7,8 @@ export const HAZARD_FRAME = { width: TILE_W, height: 64 }
 export const hazardStrip = (type) => `/art/sprites/environment/hazards/${type}.png`
 // Torso-framed strips for the figure overlay (scripts/makeHazardArt.mjs); floor boards keep hazardStrip.
 export const CHARACTER_HAZARD_FRAME = { width: 48, height: 64 }
-export const characterHazardStrip = (type) => `/art/sprites/environment/hazards/character/${type}.png`
+// ?v= busts a stale browser / loadImage cache after regenerating the torso strips.
+export const characterHazardStrip = (type) => `/art/sprites/environment/hazards/character/${type}.png?v=2`
 
 export const EXPLOSION_FRAMES = 8
 // Source strips (scripts/makeHazardArt.mjs): design frame size before resolution; pick large when the blast is bigger.

@@ -3,9 +3,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 // Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan, the mouse wheel zooms; when focus.key changes
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
-const GLIDE = 0.14
-// Gentler, for the glide back to focus.point when following is turned back on (about 0.6 s instead of 0.25 s).
-const RETURN_GLIDE = 0.06
+// Share of the remaining gap closed per 60 Hz frame. Soft enough that the view lags the focus and
+// visibly eases in after the followed unit stops (~0.9 s).
+const GLIDE = 0.045
+// Gentler still, for the glide back to focus.point when following is turned back on (~1.2 s).
+const RETURN_GLIDE = 0.03
+// After WASD / drag release: keep coasting, then slow each 60 Hz frame by this factor.
+const COAST_FRICTION = 0.92
+const COAST_STOP = 12
 const KEYS = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] }
 
 function clampAxis(value, min, max, view) {
@@ -45,7 +50,8 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 // zooms around the followed point so that stays put on screen; free, it zooms toward the pointer.
 // onPan(): the player started panning by key or drag while the camera follows (so the caller can stop following;
 // turning follow back on glides the camera back to focus.point).
-export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null) {
+// onFollow(): Space asks the caller to turn following back on after a free pan (exploration flips followCamera).
+export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null, onFollow = null) {
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const [zoom, setZoom] = useState(1)
   const cameraRef = useRef(camera)
@@ -59,19 +65,43 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const returningRef = useRef(false)
   const wasFollowingRef = useRef(follow)
   const onPanRef = useRef(onPan)
+  const onFollowRef = useRef(onFollow)
   useEffect(() => {
     onPanRef.current = onPan
+    onFollowRef.current = onFollow
   })
+  // True from the first pan input until coast settles. Blocks follow from re-arming a target mid-pan / mid-coast
+  // (exploration still ticks the lead every frame, which would otherwise cancel WASD glide).
+  const freePanRef = useRef(false)
   // Stops the follow straight away (before the caller re-renders) so it doesn't pull against the player's pan.
   const panStarted = () => {
     targetRef.current = null
     returningRef.current = false
+    freePanRef.current = true
     if (!followRef.current.follow || !onPanRef.current) return
     followRef.current = { ...followRef.current, follow: false }
     onPanRef.current?.()
   }
+  // Space (and turning follow back on): drop any pan/coast and glide to the current focus point.
+  const beginReturnToFocus = () => {
+    heldRef.current.clear()
+    velocityRef.current = { x: 0, y: 0 }
+    freePanRef.current = false
+    returningRef.current = true
+    targetRef.current = { x: followRef.current.point.x, y: followRef.current.point.y }
+  }
   // True while a glide, key-pan or drag is in flight (see writeViewBox).
   const movingRef = useRef(false)
+  // World units per second from the last pan; decays with COAST_FRICTION after release.
+  const velocityRef = useRef({ x: 0, y: 0 })
+  const endFreePan = () => {
+    velocityRef.current = { x: 0, y: 0 }
+    freePanRef.current = false
+    if (followRef.current.follow) {
+      returningRef.current = true
+      targetRef.current = { x: followRef.current.point.x, y: followRef.current.point.y }
+    }
+  }
   const { minX, maxX, minY, maxY } = bounds
   const width = view.width / zoom
   const height = view.height / zoom
@@ -123,16 +153,26 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   }, [minX, maxX, minY, maxY, view.width, view.height])
 
   useEffect(() => {
-    if (follow && !wasFollowingRef.current) returningRef.current = true
+    if (follow && !wasFollowingRef.current) beginReturnToFocus()
     wasFollowingRef.current = follow
     followRef.current = { follow, point: { x: focusX, y: focusY } }
+    // While the player is panning or coasting, leave the target alone so follow ticks cannot cancel the glide.
+    if (freePanRef.current) return
     targetRef.current = follow ? { x: focusX, y: focusY } : null
   }, [focus.key, focusX, focusY, follow])
 
   useEffect(() => {
     const down = (event) => {
+      if (isTyping(event.target) || event.ctrlKey || event.metaKey || event.altKey) return
+      if (event.code === 'Space' && !event.repeat) {
+        // After WASD / drag free-pan: glide back onto the followed point and ask the caller to turn follow on.
+        event.preventDefault()
+        beginReturnToFocus()
+        if (!followRef.current.follow) onFollowRef.current?.()
+        return
+      }
       const key = event.key.toLowerCase()
-      if (!KEYS[key] || isTyping(event.target) || event.ctrlKey || event.metaKey || event.altKey) return
+      if (!KEYS[key]) return
       event.preventDefault()
       heldRef.current.add(key)
     }
@@ -166,8 +206,25 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       let next = null
       if (dx || dy) {
         panStarted()
-        next = clamp({ x: current.x + Math.sign(dx) * PAN_SPEED * seconds, y: current.y + Math.sign(dy) * PAN_SPEED * seconds }, limits, size)
+        const length = Math.hypot(dx, dy) || 1
+        velocityRef.current = { x: (dx / length) * PAN_SPEED, y: (dy / length) * PAN_SPEED }
+        next = clamp({ x: current.x + velocityRef.current.x * seconds, y: current.y + velocityRef.current.y * seconds }, limits, size)
+      } else if (freePanRef.current) {
+        // WASD / drag coast: keep sliding after release, then ease to a stop (takes priority over follow).
+        const velocity = velocityRef.current
+        const speed = Math.hypot(velocity.x, velocity.y)
+        if (speed > COAST_STOP) {
+          next = clamp({ x: current.x + velocity.x * seconds, y: current.y + velocity.y * seconds }, limits, size)
+          const friction = COAST_FRICTION ** (seconds * 60)
+          velocityRef.current = { x: velocity.x * friction, y: velocity.y * friction }
+          // Hit the map edge: drop the axis that cannot move so the other can still coast.
+          if (next.x === current.x) velocityRef.current.x = 0
+          if (next.y === current.y) velocityRef.current.y = 0
+        } else {
+          endFreePan()
+        }
       } else if (targetRef.current) {
+        velocityRef.current = { x: 0, y: 0 }
         const target = clamp(centredOn(targetRef.current, size), limits, size)
         const close = Math.abs(target.x - current.x) < 0.5 && Math.abs(target.y - current.y) < 0.5
         // GLIDE is the share of the way covered per 60 Hz frame; scaled by the real frame time so the camera moves at the
@@ -185,6 +242,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
         svgRef.current?.setAttribute('viewBox', `${next.x} ${next.y} ${size.width} ${size.height}`)
       } else if (movingRef.current) {
         // Settled: one render to put the element's viewBox and React's idea of the camera back in step.
+        if (freePanRef.current) endFreePan()
         movingRef.current = false
         setCamera(cameraRef.current)
       }
@@ -208,8 +266,12 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     const start = { x: event.clientX, y: event.clientY, camera: cameraRef.current }
     let panning = !isTouch
     let dragged = false
-    if (panning) targetRef.current = null
+    if (panning) {
+      targetRef.current = null
+      velocityRef.current = { x: 0, y: 0 }
+    }
     let announced = false
+    let lastSample = { x: event.clientX, y: event.clientY, at: performance.now() }
     const move = (moveEvent) => {
       if (moveEvent.pointerId !== event.pointerId) return
       if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) >= TOUCH_SLOP) dragged = true
@@ -226,6 +288,14 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
         { minX, maxX, minY, maxY },
         { width, height },
       )
+      const now = performance.now()
+      const dt = Math.max(1, now - lastSample.at) / 1000
+      // Pointer drag is absolute from the press; sample recent motion so release can coast.
+      velocityRef.current = {
+        x: -(moveEvent.clientX - lastSample.x) / scale / dt,
+        y: -(moveEvent.clientY - lastSample.y) / scale / dt,
+      }
+      lastSample = { x: moveEvent.clientX, y: moveEvent.clientY, at: now }
       cameraRef.current = next
       movingRef.current = true
       writeViewBox(next)
@@ -235,7 +305,9 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
-      if (movingRef.current) {
+      // Leave velocity for the tick loop to coast; only snap-stop a tap that never panned.
+      if (!panning || !dragged) velocityRef.current = { x: 0, y: 0 }
+      if (movingRef.current && Math.hypot(velocityRef.current.x, velocityRef.current.y) <= COAST_STOP) {
         movingRef.current = false
         setCamera(cameraRef.current)
       }

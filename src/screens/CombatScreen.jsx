@@ -497,6 +497,7 @@ export function Battle({
           speed={auto === 'off' || partyBeamingOut ? 1 : speed}
           focus={focus}
           followCamera={followCamera}
+          onCameraFollow={() => setFollowCamera(true)}
           bystanders={bystanders}
           snapMarks={snapMarks}
           hiddenIds={hiddenIds}
@@ -541,7 +542,7 @@ export function Battle({
           type="button"
           className="combat-button is-small"
           aria-pressed={followCamera}
-          title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click to follow whoever is acting.'}
+          title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click or press Space to glide back to whoever is acting.'}
           onClick={() => setFollowCamera(!followCamera)}
         >
           Camera: {followCamera ? 'Follow' : 'Free'}
@@ -613,7 +614,6 @@ export function Battle({
           onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
-        {/* The AI box sits in the cards' row, the same height, so it never covers a card. */}
         <div className="combat-bottom-row">
           <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
             weapons={partyWeapons}

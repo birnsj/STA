@@ -4,6 +4,7 @@ import { normalizeCharacterRecord } from '../../character/runtimeCharacter.js'
 import { getMovementTiles } from '../../combat/movementSystem.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
 import { ENEMY_SPAWNS_NEEDED } from '../../combat/encounters.js'
+import { maxAwayTeamSize } from '../../exploration/awayTeam.js'
 import { episodeTitle, validateMap } from '../../maps/mapFormat.js'
 import { MAX_SEED } from '../../rules/seededRandom.js'
 import useEpisodeMap from '../maps/useEpisodeMap.js'
@@ -88,7 +89,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
       <div className="combat-panel lcars-frame combat-setup-panel">
         <h2 className="combat-setup-title">Load Episode: {map ? episodeTitle(map) : 'Combat Test'}</h2>
         <p className="combat-setup-text">
-          Choose up to {maxPartySize} characters for your party (one per player start on the map). Your saved characters and the playtest redshirt ensigns are listed; combat uses each character's values.
+          Choose up to {maxPartySize} characters for your party. Your saved characters and the playtest redshirt ensigns are listed; combat uses each character's values.
         </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}

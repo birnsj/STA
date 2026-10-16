@@ -64,10 +64,10 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
-  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, onStaggerDone = null, menu = null, beamIn = 'done', scanPulse = null, lastObjectShot = null } = props
+  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onCameraFollow = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, onStaggerDone = null, menu = null, beamIn = 'done', scanPulse = null, lastObjectShot = null } = props
   const { map } = state
   const leader = state.members[state.leaderId]
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan, onCameraFollow)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')

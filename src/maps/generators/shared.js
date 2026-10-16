@@ -3,7 +3,7 @@
 import { getTile } from '../mapFormat.js'
 
 // Enough for combat's roster of 4 enemies.
-export const MARKERS_PER_SIDE = 4
+export const MARKERS_PER_SIDE = 8
 export const DOOR_TILE = 'doorway'
 export const CRATE_TILE = 'crate'
 export const MACHINERY_TILE = 'machinery'

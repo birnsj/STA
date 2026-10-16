@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
+import { splitFireteams } from '../../exploration/awayTeam.js'
 import { FORMATIONS } from '../../exploration/formations.js'
 import { PARTY_ACTIONS } from '../../exploration/partyActions.js'
 import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
@@ -27,13 +28,12 @@ const cardFacts = (character) => ({
   speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
 })
 
-// The card itself, a fixed size: species / department, weapon and Stress (the condition icons sit on its top edge).
+// Fireteam A card face: weapon and Stress (species on the name title; condition icons on the top edge).
 function CardDetails({ character, condition }) {
   const { weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
     <>
-      <span className="explore-card-detail is-main">{speciesLine}</span>
-      <span className="party-weapon" title="Weapon">{weapon}</span>
+      <span className="party-weapon" title={speciesLine ? `${speciesLine} · ${weapon}` : weapon}>{weapon}</span>
       <ConditionTrack character={character} condition={condition} />
     </>
   )
@@ -176,58 +176,74 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
   const several = selectedIds.length > 1
   // UI state: the member whose info panel is open, or null.
   const [infoId, setInfoId] = useState(null)
+  const { teamA, teamB } = splitFireteams(members.map((member) => member.id))
+  const byId = Object.fromEntries(members.map((member) => [member.id, member]))
+  const indexOf = (id) => members.findIndex((member) => member.id === id) + 1
+  const renderCard = (id, { fireteamB = false } = {}) => {
+    const member = byId[id]
+    const selected = selectedIds.includes(id)
+    const lead = id === leaderId
+    const best = Boolean(recommendation?.bestIds.includes(id))
+    const infoOpen = infoId === id
+    const condition = normalizeCondition(member.condition)
+    const speciesLine = cardFacts(member.character).speciesLine
+    return (
+      <div key={id} className={`explore-card-wrap${infoOpen ? ' is-info-open' : ''}`}>
+        {infoOpen && <CardInfoPanel character={member.character} condition={condition} />}
+        <button
+          type="button"
+          className={`party-card explore-card${selected ? ' is-active' : ''}${best ? ' is-best' : ''}`}
+          aria-pressed={selected}
+          title={
+            fireteamB
+              ? `${indexOf(id)}: select ${member.character.name} only (Fireteam B follows A unless selected)`
+              : `${indexOf(id)}: select ${member.character.name} (Shift + click to add or remove)`
+          }
+          onClick={(event) => onSelect(id, event.shiftKey || event.ctrlKey || event.metaKey)}
+        >
+          <span className="party-portrait-wrap">
+            <CombatPortrait character={member.character} className="party-portrait" />
+          </span>
+          <span className="party-info">
+            <span className="party-name" title={speciesLine || undefined}>{member.character.name}</span>
+            <CardDetails character={member.character} condition={condition} />
+          </span>
+        </button>
+        <div className="explore-card-badges">
+          <ConditionIcons condition={condition} />
+          <PartyTaskTag recommendation={recommendation} memberId={id} />
+          {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
+          {several && selected && !lead && (
+            <button type="button" className="explore-make-lead is-chip" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(id)}>
+              Make Lead
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className={`explore-card-info-toggle${infoOpen ? ' is-open' : ''}`}
+          aria-expanded={infoOpen}
+          aria-label={`${member.character.name}: details`}
+          title={infoOpen ? 'Hide the details.' : `Show ${member.character.name}'s details.`}
+          onClick={() => setInfoId(infoOpen ? null : id)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={INSIGNIA_PATH} />
+          </svg>
+        </button>
+      </div>
+    )
+  }
   return (
-    <div className="party-bar explore-party-bar">
-      {members.map((member, index) => {
-        const selected = selectedIds.includes(member.id)
-        const lead = member.id === leaderId
-        const best = Boolean(recommendation?.bestIds.includes(member.id))
-        const infoOpen = infoId === member.id
-        const condition = normalizeCondition(member.condition)
-        return (
-          <div key={member.id} className="explore-card-wrap">
-            {infoOpen && <CardInfoPanel character={member.character} condition={condition} />}
-            <button
-              type="button"
-              className={`party-card explore-card${selected ? ' is-active' : ''}${best ? ' is-best' : ''}`}
-              aria-pressed={selected}
-              title={`${index + 1}: select ${member.character.name} (Shift + click to add or remove)`}
-              onClick={(event) => onSelect(member.id, event.shiftKey || event.ctrlKey || event.metaKey)}
-            >
-              <span className="party-portrait-wrap">
-                <CombatPortrait character={member.character} className="party-portrait" />
-              </span>
-              <span className="party-info">
-                <span className="party-name">{member.character.name}</span>
-                <CardDetails character={member.character} condition={condition} />
-              </span>
-            </button>
-            {/* Every notification sits on the card's top edge, so the card never changes size. */}
-            <div className="explore-card-badges">
-              <ConditionIcons condition={condition} />
-              <PartyTaskTag recommendation={recommendation} memberId={member.id} />
-              {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
-              {several && selected && !lead && (
-                <button type="button" className="explore-make-lead is-chip" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(member.id)}>
-                  Make Lead
-                </button>
-              )}
-            </div>
-            <button
-              type="button"
-              className={`explore-card-info-toggle${infoOpen ? ' is-open' : ''}`}
-              aria-expanded={infoOpen}
-              aria-label={`${member.character.name}: details`}
-              title={infoOpen ? 'Hide the details.' : `Show ${member.character.name}'s details.`}
-              onClick={() => setInfoId(infoOpen ? null : member.id)}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d={INSIGNIA_PATH} />
-              </svg>
-            </button>
-          </div>
-        )
-      })}
+    <div className={`party-bar explore-party-bar${teamB.length ? ' is-two-rows' : ''}`}>
+      <div className="party-fireteam is-a" aria-label="Fireteam A">
+        {teamA.map((id) => renderCard(id))}
+      </div>
+      {teamB.length > 0 && (
+        <div className="party-fireteam is-b" aria-label="Fireteam B">
+          {teamB.map((id) => renderCard(id, { fireteamB: true }))}
+        </div>
+      )}
     </div>
   )
 }, sameBar)
@@ -316,7 +332,7 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
           className="explore-panel-icon-button"
           aria-pressed={followCamera}
           aria-label="Camera: follow the lead character"
-          title={followCamera ? 'Camera: follows the lead character. Click to stop.' : 'Camera: stays where you put it. Click to follow the lead character.'}
+          title={followCamera ? 'Camera: follows the lead character. Click to stop.' : 'Camera: stays where you put it. Click or press Space to glide back to the lead character.'}
           onClick={() => onFollowCamera(!followCamera)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">

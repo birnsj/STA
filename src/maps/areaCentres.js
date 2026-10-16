@@ -18,7 +18,7 @@ const isWall = (id) => {
 
 // The room around a tile: the walkable tiles reachable from it without crossing a wall or a doorway (a doorway tile, or
 // a gap of up to MAX_DOORWAY tiles between walls). Null when it spills over more than MAX_ROOM_SHARE of the map.
-function roomAround(tiles, start) {
+export function roomAround(tiles, start) {
   const height = tiles.length
   const width = tiles[0]?.length ?? 0
   const inside = (x, y) => x >= 0 && y >= 0 && x < width && y < height
@@ -58,6 +58,23 @@ function roomAround(tiles, start) {
     }
   }
   return queue
+}
+
+// Room floor around a point that may itself be a solid prop (crate, console): try the point, then its orthogonal
+// neighbours, so an Environmental Control standing on the wall can still name its room.
+export function roomAroundProp(tiles, origin) {
+  const direct = roomAround(tiles, origin)
+  if (direct) return direct
+  for (const [dx, dy] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ]) {
+    const room = roomAround(tiles, { x: origin.x + dx, y: origin.y + dy })
+    if (room) return room
+  }
+  return null
 }
 
 // Where to draw each area's name on a top-down map: the middle of the room its tile is in (the box around the room's

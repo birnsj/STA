@@ -465,6 +465,17 @@ export function neutralizeHazard(environment, regionId, mode = 'remove', amount 
   return sealLeak(withoutRegion(environment, regionId))
 }
 
+// Clear every hazard region that touches any of the given tile keys (e.g. one room's floor). Whole regions go, so a
+// patch that spilled through a doorway is fully put out. Used by Environmental Control consoles (objectEffects).
+export function neutralizeHazardsOnTiles(environment, tileKeys) {
+  if (!environment?.hazards || !tileKeys?.length) return environment
+  const touch = new Set(tileKeys)
+  const ids = Object.keys(environment.hazards)
+    .filter((id) => Object.keys(environment.hazards[id].tiles).some((key) => touch.has(key)))
+    .sort()
+  return ids.reduce((next, id) => neutralizeHazard(next, id, 'remove'), environment)
+}
+
 // One spreading / dissipating / migrating step for a region; random: a seeded () => [0, 1).
 function evolveRegion(region, map, random, blocked) {
   const spreadChance = region.spread === false ? 0 : hazardValue(region, 'spreadChance')

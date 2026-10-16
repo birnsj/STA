@@ -2,6 +2,7 @@
 // world), initiative, the stats block and the opening log. addCombatant lets a late arrival join a running fight.
 import { getAuthoredCharacter } from '../character/authoredCharacters.js'
 import { assignNpcAppearances } from '../character/npcAppearance.js'
+import { placeAwayTeam } from '../exploration/awayTeam.js'
 import { gridFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { normalizeCondition } from '../rules/personalCondition.js'
@@ -104,10 +105,11 @@ export function createCombat({
   const combatSeed = seed >>> 0
   const playerPlacements =
     placements?.players ??
-    players.slice(0, mapFile.markers.playerStarts.length).map((character, index) => {
-      const { x, y, facing } = mapFile.markers.playerStarts[index]
-      return { character, position: { x, y }, ...(facing == null ? {} : { facing: gridFacing(facing) }) }
-    })
+    placeAwayTeam(mapFile, players).map(({ character, position, facingVector }) => ({
+      character,
+      position,
+      ...(facingVector ? { facing: facingVector } : {}),
+    }))
   const playerCombatants = playerPlacements.map((placement) =>
     createCombatant(withStandardIssue(placement.character, encounter.standardIssueWeapon), { ...placement, side: 'player', controller: 'player' }),
   )

@@ -304,34 +304,87 @@ const HAZARDS = {
   },
 }
 
-// Character overlay strips (48 x 64): torso-centred FX, no floor diamond. Map floor coords so DY≈48 sits mid-body.
+// Character overlay strips (48 x 64): drawn in torso space (not remapped floor diamonds). CX/CY = mid-chest.
 const CX = 24
-const CY = 36
-function bodyFlames(x, y, t, colours, seed) {
-  return flames(x + (DX - CX), y + (DY - CY) + 4, t, colours, seed)
-}
-function bodyPuffs(x, y, t, opts) {
-  return puffs(x + (DX - CX), y + (DY - CY) + 6, t, { ...opts, rise: (opts.rise ?? 20) * 0.7 })
-}
-function bodyArcs(x, y, t, colour) {
-  return arcs(x + (DX - CX), y + (DY - CY), t, colour)
-}
+const CY = 34
+
 function bodyGlow(x, y, colour, strength, t, pulse = 0.25) {
-  const d = Math.hypot((x - CX) / 14, (y - CY) / 22)
+  const d = Math.hypot((x - CX) / 16, (y - CY) / 24)
   if (d > 1) return NONE
   const flicker = 1 - pulse + pulse * Math.sin(TAU * t + x * 0.2)
-  return [...colour, (1 - smoothstep(0.45, 1, d)) * strength * flicker]
+  return [...colour, (1 - smoothstep(0.4, 1, d)) * strength * flicker]
+}
+
+// Flames rising from the lower torso, not clipped to the floor diamond.
+function bodyFlames(x, y, t, [core, mid, edge], seed) {
+  let best = 0
+  for (let i = 0; i < 7; i++) {
+    const bx = CX - 14 + hash(i, 1, seed) * 28
+    const by = CY + 8 + hash(i, 2, seed) * 10
+    const height = 22 + hash(i, 3, seed) * 18
+    const h = height * (0.75 + 0.25 * Math.sin(TAU * (t * 2 + hash(i, 4, seed))))
+    const rise = (by - y) / h
+    if (rise < 0 || rise > 1) continue
+    const sway = Math.sin(TAU * (t * 2 + rise * 0.8 + hash(i, 5, seed))) * 2.8 * rise
+    const width = (3.5 + hash(i, 6, seed) * 3) * (1 - rise) ** 0.55
+    const across = Math.abs(x - bx - sway) / Math.max(width, 0.01)
+    if (across > 1) continue
+    best = Math.max(best, (1 - across) * (1 - rise * 0.65))
+  }
+  if (best <= 0) return NONE
+  const colour = best > 0.6 ? mix(mid, core, (best - 0.6) / 0.4) : mix(edge, mid, best / 0.6)
+  return [...colour, smoothstep(0, 0.3, best)]
+}
+
+function bodyArcs(x, y, t, colour) {
+  const frame = Math.round(t * FRAMES)
+  let best = 0
+  for (let i = 0; i < 3; i++) {
+    const points = []
+    for (let k = 0; k <= 5; k++) {
+      const s = k / 5
+      const ax = CX - 16 + s * 32
+      const ay = CY - 10 + hash(i, k, frame + 50) * 20
+      points.push([ax + (hash(k, i, frame) - 0.5) * 5, ay - Math.sin(Math.PI * s) * (5 + hash(i, 9, frame) * 8)])
+    }
+    for (let k = 0; k < points.length - 1; k++) {
+      const [x0, y0] = points[k]
+      const [x1, y1] = points[k + 1]
+      const vx = x1 - x0
+      const vy = y1 - y0
+      const s = clamp01(((x - x0) * vx + (y - y0) * vy) / (vx * vx + vy * vy || 1))
+      const d = Math.hypot(x - x0 - vx * s, y - y0 - vy * s)
+      best = Math.max(best, d < 0.55 ? 1 : Math.max(0, 1 - (d - 0.55) / 2.2) * 0.65)
+    }
+  }
+  if (best <= 0) return NONE
+  return [...mix(colour, [1, 1, 1], best > 0.9 ? 0.8 : 0.2), best]
+}
+
+function bodyPuffs(x, y, t, { colour, count, rise, size, density, seed, drift = 0 }) {
+  let alpha = 0
+  for (let i = 0; i < count; i++) {
+    const phase = (t + hash(i, 1, seed)) % 1
+    const bx = CX - 14 + hash(i, 2, seed) * 28 + Math.sin(TAU * phase) * drift
+    const by = CY + 10 + hash(i, 3, seed) * 8 - phase * rise
+    const r = size * (0.55 + phase * 0.85)
+    const d = Math.hypot((x - bx) / r, (y - by) / (r * 0.75))
+    if (d > 1) continue
+    alpha += (1 - d * d) * Math.sin(Math.PI * phase) * density
+  }
+  const texture = 0.8 + loopNoise(x / 4, y / 4, t, seed) * 0.4
+  return alpha > 0 ? [...scale(colour, texture), clamp01(alpha)] : NONE
 }
 
 const CHARACTER_HAZARDS = {
-  fire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#fff4c0'), hex('#ffa030'), hex('#c02a10')], 3), bodyGlow(x, y, hex('#ff7020'), 0.55, t)),
-  plasmaFire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#f0ffff'), hex('#60c8ff'), hex('#2040c0')], 5), bodyGlow(x, y, hex('#40a0ff'), 0.55, t)),
-  electricity: (x, y, t) => over(bodyArcs(x, y, t, hex('#b0a0ff')), bodyGlow(x, y, hex('#7060ff'), 0.35, t, 0.5)),
-  smoke: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#6e6e6e'), count: 8, rise: 22, size: 10, density: 0.85, seed: 7, drift: 2 }),
-  toxicGas: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#8cc840'), count: 8, rise: 16, size: 10, density: 0.75, seed: 9, drift: 3 }),
-  radiation: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#e8ff60'), count: 10, rise: 24, size: 1.8, density: 1, seed: 13 }), bodyGlow(x, y, hex('#c8f030'), 0.4, t, 0.5)),
-  steam: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#eef6ff'), count: 7, rise: 28, size: 8, density: 0.55, seed: 15, drift: 1.5 }),
-  coolantLeak: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#a0fff0'), count: 6, rise: 8, size: 11, density: 0.4, seed: 17, drift: 3 }), bodyGlow(x, y, hex('#30d8c0'), 0.3, t)),
+  fire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#fff4c0'), hex('#ffa030'), hex('#c02a10')], 3), bodyGlow(x, y, hex('#ff7020'), 0.5, t)),
+  plasmaFire: (x, y, t) => over(bodyFlames(x, y, t, [hex('#f0ffff'), hex('#60c8ff'), hex('#2040c0')], 5), bodyGlow(x, y, hex('#40a0ff'), 0.5, t)),
+  electricity: (x, y, t) => over(bodyArcs(x, y, t, hex('#b0a0ff')), bodyGlow(x, y, hex('#7060ff'), 0.4, t, 0.5)),
+  smoke: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#9a9a9a'), count: 9, rise: 26, size: 9, density: 0.9, seed: 7, drift: 2 }),
+  toxicGas: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#8cc840'), count: 9, rise: 20, size: 9, density: 0.85, seed: 9, drift: 3 }),
+  radiation: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#e8ff60'), count: 11, rise: 28, size: 1.8, density: 1, seed: 13 }), bodyGlow(x, y, hex('#c8f030'), 0.45, t, 0.5)),
+  steam: (x, y, t) => bodyPuffs(x, y, t, { colour: hex('#eef6ff'), count: 8, rise: 30, size: 8, density: 0.65, seed: 15, drift: 1.5 }),
+  coolantLeak: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#a0fff0'), count: 7, rise: 12, size: 10, density: 0.5, seed: 17, drift: 3 }), bodyGlow(x, y, hex('#30d8c0'), 0.35, t)),
 }
 
 function hazardJobs() {

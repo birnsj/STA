@@ -100,6 +100,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const { party, world } = state
   const [followCamera, setFollowCamera] = useState(true)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
+  const startFollowing = useCallback(() => setFollowCamera(true), [])
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
@@ -551,6 +552,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           debug={debugOpen}
           followCamera={followCamera}
           onCameraPan={stopFollowing}
+          onCameraFollow={startFollowing}
           onMove={move}
           onSelect={select}
           onSelectBox={selectBox}
@@ -566,12 +568,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         <ScanReport scan={lastScan} faded={scanFaded} scannerName={party.members[lastScan.memberId]?.character.name ?? 'Scan'} onClose={() => setClosedScanKey(lastScan.key)} />
       )}
       <WeatherFx fx={weatherFor(party.map.weather).fx} follow=".exploration-board" />
-      <div className="combat-top-left">
-        <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
-        {(objectives.length > 0 || hasPendingObjectives) && (
-          <ObjectivesPanel objectives={objectives} showAll={hasPendingObjectives ? showAllObjectives : undefined} onShowAll={() => setShowAllObjectives(!showAllObjectives)} />
-        )}
-      </div>
       <div className="explore-messages">
         {!panelOpen && talkError && (
           <div className="challenge-prompts">
@@ -626,7 +622,13 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
             </svg>
           </button>
         }
+        leading={
+          (objectives.length > 0 || hasPendingObjectives) ? (
+            <ObjectivesPanel objectives={objectives} showAll={hasPendingObjectives ? showAllObjectives : undefined} onShowAll={() => setShowAllObjectives(!showAllObjectives)} />
+          ) : null
+        }
       >
+        <ResourceIndicators momentum={state.resources.momentum} threat={state.resources.threat} />
         <ActionsToggle open={actionsOpen} onToggle={toggleActions} />
       </Minimap>
       <ExplorationPartyBar

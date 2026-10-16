@@ -1254,8 +1254,7 @@
   opacity: 0.35;
 }
 
-/* Party bar */
-/* The roll panel stacks above the party cards, however tall the cards grow (condition rows). */
+/* Party bar: bottom row. Fireteam A = full cards; Fireteam B = compact (designer 2026-10-16). */
 .combat-bottom-left {
   position: absolute;
   left: 8px;
@@ -1284,6 +1283,27 @@
 
 .party-bar {
   display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  overflow: visible;
+}
+
+/* Fireteam A on top, Fireteam B (5–8) on the bottom — two rows of up to four (designer 2026-10-16). */
+.party-bar.is-two-rows {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.party-fireteam {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.party-fireteam.is-b {
   gap: 6px;
 }
 
@@ -1309,8 +1329,7 @@
   padding-left: 2px;
 }
 
-/* The combat card is the exploration card's size whatever it shows (designer request, 2026-10-12); the AI box beside
-   the bar shares its height. */
+/* Both fireteams: exploration card size; the AI box beside the bar shares its height. */
 .combat-bottom-left .party-card,
 .auto-controls {
   --party-card-height: 75px;
@@ -1318,6 +1337,7 @@
 
 .party-card-wrap {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .combat-bottom-left .party-card {
@@ -2030,9 +2050,7 @@
   color: var(--text-muted);
 }
 
-/* Auto Combat controls */
-/* In the party cards' row (.combat-bottom-row), their height, and narrow enough to fit between four cards and the
-   sidebar. */
+/* Auto Combat controls: in the party cards' row, same height as Fireteam A, narrow enough to sit beside them. */
 .combat-bottom-row {
   display: flex;
   align-items: flex-end;

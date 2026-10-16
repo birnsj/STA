@@ -28,8 +28,8 @@ export const listAuthoredCharacters = () => characterData.characters.map((entry)
 // Authored ids marked playtestParty (the map editor's default away team: redshirt ensigns).
 export const listPlaytestPartyIds = () => characterData.characters.filter((entry) => entry.playtestParty).map((entry) => entry.id)
 
-// RuntimeCharacters for the editor Play team (up to `limit`).
-export function getPlaytestParty(limit = 4) {
+// RuntimeCharacters for the editor Play / party pickers (up to `limit`; there are four authored redshirts).
+export function getPlaytestParty(limit = 8) {
   return listPlaytestPartyIds()
     .slice(0, Math.max(0, limit))
     .map((id) => getAuthoredCharacter(id))

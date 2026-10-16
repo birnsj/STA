@@ -24,3 +24,11 @@ export function characterHazardOverlayType(environment, position, character, con
 
 export const hasCharacterHazardOverlay = (environment, position, character, condition) =>
   Boolean(characterHazardOverlayType(environment, position, character, condition))
+
+// Presentation: keep the last burn through fall → hold → getUp (and while Defeated), then follow the live type again.
+// liveType: from characterHazardOverlayType. holding: blastReact / down / getUp / fall stagger. heldType: last shown.
+export function resolveHazardOverlayDisplay(liveType, { holding = false, heldType = null } = {}) {
+  if (liveType) return { type: liveType, held: liveType }
+  if (holding && heldType) return { type: heldType, held: heldType }
+  return { type: null, held: null }
+}

@@ -6,7 +6,8 @@ import { emitNoise, getNpcs } from '../exploration/awareness.js'
 import { applyFlagChange } from '../exploration/missionFlags.js'
 import { addLogEntry } from '../exploration/missionLog.js'
 import { addKnowledgeFact, revealEntity } from '../exploration/partyKnowledge.js'
-import { neutralizeHazard } from './environment.js'
+import { roomAroundProp } from '../maps/areaCentres.js'
+import { neutralizeHazard, neutralizeHazardsOnTiles } from './environment.js'
 import { withEnvironment } from './environmentState.js'
 
 const traitKey = (name) => name.toLowerCase()
@@ -92,6 +93,16 @@ const EFFECTS = {
     const hazardId = effect.hazardId ?? (object.id.startsWith('hazard:') ? object.id.slice('hazard:'.length) : null)
     if (!state.environment?.hazards?.[hazardId]) return state
     return withEnvironment(state, neutralizeHazard(state.environment, hazardId, effect.mode ?? 'remove', effect.amount ?? 1))
+  },
+  // Put out every hazard that touches this object's room (walkable floor around it). Used by Environmental Control
+  // consoles; the hazard ring Neutralize path still uses neutralizeHazard for one region.
+  neutralizeHazardsInRoom: (state, object) => {
+    const map = state.party?.map
+    if (!map?.tiles || !state.environment) return state
+    const room = roomAroundProp(map.tiles, object.position())
+    if (!room?.length) return state
+    const keys = room.map((cell) => `${cell.x},${cell.y}`)
+    return withEnvironment(state, neutralizeHazardsOnTiles(state.environment, keys))
   },
 }
 

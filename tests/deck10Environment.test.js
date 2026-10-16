@@ -1,8 +1,10 @@
-// The Deck 10 Brig's destructible objects (maps/Deck 10 Brig.json): the five placed objects load intact and in view, the
+// The Deck 10 Brig's destructible objects (maps/Deck 10 Brig.json): the fifteen placed objects load intact and in view, the
 // map has no hazards, and with every object standing the away team can still reach each objective, object, NPC and spawn.
+// Also: one Environmental Control console per named room (challenges.json).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
+import { challengeDefinitionsFor } from '../src/exploration/challengeObjects.js'
 import { createExplorationState } from '../src/exploration/explorationState.js'
 import { findTilePath } from '../src/exploration/navigation.js'
 import { getTile, parseMapFile } from '../src/maps/mapFormat.js'
@@ -56,8 +58,22 @@ describe('Deck 10 Brig environment', () => {
     })
   })
 
+  it('places one Environmental Control console per named room', () => {
+    const map = brig()
+    const controls = challengeDefinitionsFor(map).filter((entry) => entry.id.startsWith('envControl'))
+    assert.equal(controls.length, map.areas.length)
+    assert.deepEqual(
+      controls.map((entry) => entry.id).sort(),
+      ['envControlBridge', 'envControlHolodeck', 'envControlPhaser', 'envControlShuttlebay', 'envControlTorpedo', 'envControlTransporter'],
+    )
+    controls.forEach((entry) => {
+      assert.equal(entry.states.ready.tile, 'epsControl')
+      assert.ok(entry.actions.some((action) => action.id === 'clearRoomHazards'))
+    })
+  })
+
   // The east section is sealed until its bulkheads open, so the baseline is the same map without the objects: whatever
-  // the away team reaches there it must still reach with all five standing.
+  // the away team reaches there it must still reach with all fifteen standing.
   it('cuts nothing off: every objective, object, NPC and spawn reachable without the objects stays reachable', () => {
     const state = start()
     const map = state.party.map

@@ -3,10 +3,11 @@
 // clock and the combat round hook.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import brigFile from '../maps/Deck 10 Brig.json'
 import { combatReducer, createCombat, getActiveCombatant } from '../src/combat/combatState.js'
 import { attemptChallenge, challengeFor } from '../src/exploration/challengeObjects.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
-import { createBlankMap } from '../src/maps/mapFormat.js'
+import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { hazardChallengeId } from '../src/world/EnvironmentalHazard.js'
 import { characterHazardStrip } from '../src/components/maps/environmentArt.js'
 import {
@@ -146,8 +147,8 @@ describe('hazard footprints, exclusivity, scars, and overlays', () => {
   })
 
   it('characterHazardStrip points at the character overlay art path', () => {
-    assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png')
-    assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png')
+    assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png?v=2')
+    assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png?v=2')
   })
 })
 
@@ -192,6 +193,21 @@ describe('hazards in exploration', () => {
     assert.deepEqual(reduced.environment.hazards.f.tiles, { '5,6': 2 })
     const stopped = applyObjectEffect(state, object, { id: 'vent' }, { type: 'neutralizeHazard', hazardId: 'f', mode: 'stopSpread' }, { messages: [] })
     assert.equal(stopped.environment.hazards.f.spread, false)
+  })
+
+  it('neutralizeHazardsInRoom clears hazards in that room only (Deck 10 Environmental Control)', () => {
+    const map = parseMapFile(brigFile, 'Deck 10 Brig')
+    // Phaser Control Room (~3,1) vs Shuttlebay 2 (~32,1): separate rooms on Deck 10.
+    map.hazards = [
+      fire('phaserFire', { '4,3': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+      fire('bayFire', { '30,3': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+    ]
+    const state = explore(map)
+    const panel = objectFor(state.scenario, 'envControlPhaser')
+    assert.ok(panel)
+    const cleared = applyObjectEffect(state, panel, { id: 'clearRoomHazards' }, { type: 'neutralizeHazardsInRoom' }, { messages: [] })
+    assert.equal(cleared.environment.hazards.phaserFire, undefined)
+    assert.ok(cleared.environment.hazards.bayFire, 'the other room\'s hazard stays')
   })
 
   it('a hazard round passes every HAZARD_ROUND_SECONDS of world time; the member standing in it takes Stress', () => {

@@ -44,7 +44,8 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 // yellow over their doorway, solid while closed and outlined once open. Display only.
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
 // cornerButtons: more buttons to the left of that one, which stay in the corner too.
-export default function Minimap({ map, party, world, knowledge, environment = null, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, children }) {
+// leading: optional content to the left of the minimap at the same height (Objectives panel).
+export default function Minimap({ map, party, world, knowledge, environment = null, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, leading = null, children }) {
   const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])
   const size = Math.max(map.width, map.height)
   const viewBox = `${-0.5 - (size - map.width) / 2} ${-0.5 - (size - map.height) / 2} ${size} ${size}`
@@ -73,91 +74,91 @@ export default function Minimap({ map, party, world, knowledge, environment = nu
       </button>
     </div>
   )
-  if (!open) {
-    return (
-      <div className="explore-minimap-column">
-        <div className="explore-minimap-closed">{corner}</div>
-        {children}
-      </div>
-    )
-  }
+  const mapBody = open ? (
+    <section className={`explore-minimap${scanPulse ? ' is-scanning' : ''}`} aria-label="Minimap">
+      {corner}
+      <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
+        <g className="minimap-readout-tiles">
+          <MinimapTiles tiles={map.tiles} />
+        </g>
+        {doors.map((door) => (
+          <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)} data-tip={`${door.name}: ${door.stateLabel}`} />
+        ))}
+        {(map.areas ?? []).map((area, index) => (
+          <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={labelCentres[index].x} y={labelCentres[index].y} textAnchor="middle" dominantBaseline="central">
+            {area.name.toUpperCase()}
+          </text>
+        ))}
+        {objectives.map((objective) => (
+          <g
+            key={objective.id}
+            className="minimap-marker is-objective"
+            transform={`translate(${objective.position.x} ${objective.position.y})`}
+            data-tip={`Objective: ${objective.title || objective.id}`}
+          >
+            <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
+          </g>
+        ))}
+        {npcs.map(({ npc, name, state, position, kind }) => {
+          if (kind === 'lastSeen') {
+            return (
+              <g key={npc.id} className="minimap-marker is-enemy is-last-seen" transform={`translate(${position.x} ${position.y})`} data-tip={`${name}: last seen here`}>
+                <circle r="0.75" />
+                <text y="0.4" textAnchor="middle">?</text>
+              </g>
+            )
+          }
+          const mark = state ? enemyDownMark(state) : null
+          return (
+            <Marker
+              key={npc.id}
+              position={position}
+              className={`${isHostile(npc) ? 'is-enemy' : 'is-neutral'}${kind === 'unseen' ? ' is-unseen' : ''}${mark ? ` is-down-${mark}` : ''}`}
+              title={`${name}${state ? `: ${state}` : ''}`}
+              shape={mark === 'dead' ? 'cross' : 'dot'}
+            />
+          )
+        })}
+        {members.map(({ member, state }) => (
+          <Marker
+            key={member.id}
+            position={member.position}
+            className={`is-party${isSelected(party, member.id) ? ' is-selected' : ''}${member.id === party.leaderId ? ' is-lead' : ''}${stateClass(state)}`}
+            title={`${member.character.name}${state ? `: ${state}` : ''}`}
+            shape={state ? 'cross' : 'dot'}
+          />
+        ))}
+        {scanPulse?.rings.map((ring, index) => (
+          <g
+            key={`${scanPulse.key}-${index}`}
+            className="minimap-scan-pulse"
+            transform={`translate(${ring.origin.x} ${ring.origin.y})`}
+            style={{ '--scan-seconds': `${scanSweepSeconds(ring.radius)}s`, '--scan-radius': `${ring.radius}px` }}
+          >
+            <circle className="minimap-scan-pulse-fill" />
+            <circle className="minimap-scan-pulse-ring" />
+          </g>
+        ))}
+      </svg>
+      <ReadoutNoise
+        sweep={
+          scanPulse && {
+            key: scanPulse.key,
+            seconds: Math.max(...scanPulse.rings.map((ring) => scanSweepSeconds(ring.radius))),
+          }
+        }
+      />
+    </section>
+  ) : (
+    <div className="explore-minimap-closed">{corner}</div>
+  )
 
   return (
     <div className="explore-minimap-column">
-      <section className={`explore-minimap${scanPulse ? ' is-scanning' : ''}`} aria-label="Minimap">
-        {corner}
-        <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
-          <g className="minimap-readout-tiles">
-            <MinimapTiles tiles={map.tiles} />
-          </g>
-          {doors.map((door) => (
-            <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)} data-tip={`${door.name}: ${door.stateLabel}`} />
-          ))}
-          {(map.areas ?? []).map((area, index) => (
-            <text key={`${area.position.x},${area.position.y}`} className="minimap-area-label" x={labelCentres[index].x} y={labelCentres[index].y} textAnchor="middle" dominantBaseline="central">
-              {area.name.toUpperCase()}
-            </text>
-          ))}
-          {objectives.map((objective) => (
-            <g
-              key={objective.id}
-              className="minimap-marker is-objective"
-              transform={`translate(${objective.position.x} ${objective.position.y})`}
-              data-tip={`Objective: ${objective.title || objective.id}`}
-            >
-              <path d="M0 -0.95L0.95 0L0 0.95L-0.95 0Z" />
-            </g>
-          ))}
-          {npcs.map(({ npc, name, state, position, kind }) => {
-            if (kind === 'lastSeen') {
-              return (
-                <g key={npc.id} className="minimap-marker is-enemy is-last-seen" transform={`translate(${position.x} ${position.y})`} data-tip={`${name}: last seen here`}>
-                  <circle r="0.75" />
-                  <text y="0.4" textAnchor="middle">?</text>
-                </g>
-              )
-            }
-            const mark = state ? enemyDownMark(state) : null
-            return (
-              <Marker
-                key={npc.id}
-                position={position}
-                className={`${isHostile(npc) ? 'is-enemy' : 'is-neutral'}${kind === 'unseen' ? ' is-unseen' : ''}${mark ? ` is-down-${mark}` : ''}`}
-                title={`${name}${state ? `: ${state}` : ''}`}
-                shape={mark === 'dead' ? 'cross' : 'dot'}
-              />
-            )
-          })}
-          {members.map(({ member, state }) => (
-            <Marker
-              key={member.id}
-              position={member.position}
-              className={`is-party${isSelected(party, member.id) ? ' is-selected' : ''}${member.id === party.leaderId ? ' is-lead' : ''}${stateClass(state)}`}
-              title={`${member.character.name}${state ? `: ${state}` : ''}`}
-              shape={state ? 'cross' : 'dot'}
-            />
-          ))}
-          {scanPulse?.rings.map((ring, index) => (
-            <g
-              key={`${scanPulse.key}-${index}`}
-              className="minimap-scan-pulse"
-              transform={`translate(${ring.origin.x} ${ring.origin.y})`}
-              style={{ '--scan-seconds': `${scanSweepSeconds(ring.radius)}s`, '--scan-radius': `${ring.radius}px` }}
-            >
-              <circle className="minimap-scan-pulse-fill" />
-              <circle className="minimap-scan-pulse-ring" />
-            </g>
-          ))}
-        </svg>
-        <ReadoutNoise
-          sweep={
-            scanPulse && {
-              key: scanPulse.key,
-              seconds: Math.max(...scanPulse.rings.map((ring) => scanSweepSeconds(ring.radius))),
-            }
-          }
-        />
-      </section>
+      <div className="explore-minimap-row">
+        {leading}
+        {mapBody}
+      </div>
       {children}
     </div>
   )

@@ -1,12 +1,11 @@
 /* Exploration prototype: reuses the combat screen's panels, party cards and isometric units. */
 
-/* On-screen messages (the hint, a talk error), centred just above the party cards (bottom 8px + card height), clear
-   of the badges on their top edge. */
+/* On-screen messages (the hint, a talk error), centred just above the party cards (room for two rows when B is present). */
 .explore-messages {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: calc(8px + var(--explore-card-height, 75px) + 18px);
+  bottom: calc(8px + var(--explore-card-height, 75px) + var(--explore-b-row, 0px) + 18px);
   z-index: 26;
   display: flex;
   flex-direction: column;
@@ -40,15 +39,20 @@
 
 .explore-card-wrap {
   position: relative;
+  overflow: visible;
 }
 
-/* The portrait cards and the Formation panel share one resting height so their tops and bottoms line up. */
+/* Keep the open details panel above neighbouring cards. */
+.explore-card-wrap.is-info-open {
+  z-index: 40;
+}
+
+/* Fireteam A: full cards. The Formation panel shares this height so tops and bottoms line up. */
 .explore-party-bar,
 .explore-bottom-right {
   --explore-card-height: 75px;
 }
 
-/* A fixed size whatever it shows: the notifications sit on its top edge and the details open in a panel above it. */
 .explore-card {
   width: 178px;
   height: var(--explore-card-height);
@@ -371,8 +375,11 @@
   left: 8px;
   bottom: 8px;
   z-index: 26;
-  align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
+}
+
+.explore-party-bar.is-two-rows {
+  --explore-b-row: calc(var(--explore-card-height) + 10px);
 }
 
 .character-sheet {
@@ -382,24 +389,22 @@
   overflow: hidden;
 }
 
-/* On the map: left side, between the top bar and the party cards (which overlap it on hover). */
+/* On the map: left side, between the top bar and the party cards. */
 .character-sheet.is-on-map {
   position: absolute;
   top: 76px;
-  bottom: 100px;
+  bottom: 180px;
   left: 8px;
   z-index: 25;
   width: 330px;
 }
 
-/* The Captain's Log: right side, over the minimap and above the menu buttons. */
-/* In the middle of the play area: centred in the space left of the right-hand column (as the conversation box is),
-   below the Objectives panel and above the party cards. */
+/* The Captain's Log: centred left of the right-hand column, above the party cards. */
 .captains-log {
   position: absolute;
   top: 140px;
   right: 255px;
-  bottom: 100px;
+  bottom: 180px;
   left: 0;
   z-index: 25;
   display: flex;
@@ -1038,15 +1043,49 @@
 }
 
 .explore-minimap-column {
+  --explore-minimap-size: 240px;
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 20;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 6px;
-  width: 240px;
+  width: auto;
+  max-width: calc(100% - 16px);
   pointer-events: none;
+}
+
+/* Objectives to the left of the minimap, natural height (as when they sat top-left). */
+.explore-minimap-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.explore-minimap-row > * {
+  pointer-events: auto;
+}
+
+.explore-minimap-row .objectives-panel {
+  box-sizing: border-box;
+  width: 220px;
+  max-width: min(220px, calc(100vw - var(--explore-minimap-size) - 28px));
+}
+
+/* Momentum / Threat sit under the minimap (or its closed corner), above the Actions toggle. */
+.explore-minimap-column .resource-indicators {
+  pointer-events: auto;
+  width: var(--explore-minimap-size);
+}
+
+/* Threat change call-out would run off the right edge; show it to the left instead. */
+.explore-minimap-column .resource-threat-change {
+  left: auto;
+  right: calc(100% + 8px);
 }
 
 /* The minimap as a computer readout: blue-tinted tiles (the markers keep their colours), still scanlines and a dark
@@ -1055,6 +1094,9 @@
    with transform and opacity, so the browser doesn't repaint the map every frame. */
 .explore-minimap {
   position: relative;
+  box-sizing: border-box;
+  flex: 0 0 var(--explore-minimap-size);
+  width: var(--explore-minimap-size);
   overflow: hidden;
   padding: 5px;
   border: var(--ui-border) solid rgba(110, 200, 255, 0.55);
@@ -1384,6 +1426,9 @@
 .explore-minimap-closed {
   display: flex;
   justify-content: flex-end;
+  align-self: flex-start;
+  flex: 0 0 var(--explore-minimap-size);
+  width: var(--explore-minimap-size);
   padding: 7px 7px 0;
 }
 
@@ -1917,11 +1962,7 @@
 }
 
 /* A conversation (ConversationPanel.jsx) uses the interaction panel's frame. */
-/* The conversation box (designer mockup, 2026-10-11): the usual RPG dialogue spot, centred low on the screen just above
-   the party cards (8px from the bottom, 75px tall, with their tags on top). It keeps one size and scrolls its text;
-   a check is rolled in the roll window (dice.css). On a narrow stage it narrows to stay clear of the stats
-   and log area (247px wide, 8px from the right) on both sides, so it stays centred. */
-/* Centred in the space left of the right-hand column (the stats/log panel: 247 px wide, 8 px from the edge). */
+/* Dialogue: centred low, just above the party cards, clear of the right-hand column. */
 .conversation-dock {
   position: absolute;
   right: 255px;

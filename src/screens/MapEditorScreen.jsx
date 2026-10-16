@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { getPlaytestParty } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
+import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import EditorMinimap from '../components/maps/EditorMinimap.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
@@ -28,19 +29,18 @@ const ConversationEditorScreen = lazy(() => import('./ConversationEditorScreen.j
 const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
-const PLAY_TEAM_SIZE = 4
+
 // Play's away team: the authored redshirt ensigns (characters.json playtestParty) first; if none load, up to
-// PLAY_TEAM_SIZE saved characters at random. Never more members than the map has player starts.
-function playAwayTeam(savedCharacters, starts) {
-  const size = Math.min(PLAY_TEAM_SIZE, starts)
-  const authored = getPlaytestParty(size)
+// MAX_AWAY_TEAM saved characters at random. Placement fills free tiles beside player starts when the map has fewer.
+function playAwayTeam(savedCharacters) {
+  const authored = getPlaytestParty(MAX_AWAY_TEAM)
   if (authored.length) return authored
   const roster = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
   for (let i = roster.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[roster[i], roster[j]] = [roster[j], roster[i]]
   }
-  return roster.slice(0, size)
+  return roster.slice(0, MAX_AWAY_TEAM)
 }
 
 // A Generate Map size slider, in percent of the generators' own sizes.
@@ -104,9 +104,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
   const onPlay = () => {
-    const starts = map.markers.playerStarts.length
-    if (!starts) return setStatus('Play needs at least one player start on the map.')
-    const team = playAwayTeam(savedCharacters, starts)
+    if (!map.markers.playerStarts.length) return setStatus('Play needs at least one player start on the map.')
+    const team = playAwayTeam(savedCharacters)
     if (!team.length) return setStatus('Play needs the authored redshirt party or a saved character.')
     setPlayTeam(team)
   }

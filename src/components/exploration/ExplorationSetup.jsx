@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { partyPickerRoster } from '../../character/partyRoster.js'
+import { maxAwayTeamSize } from '../../exploration/awayTeam.js'
 import { episodeTitle } from '../../maps/mapFormat.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import CharacterSheetPanel from './CharacterSheetPanel.jsx'
 import useEpisodeMap from '../maps/useEpisodeMap.js'
 
-// Picks the away team from saved characters plus authored playtest redshirts (one per player start on the map, as in
-// combat). Each member is a RuntimeCharacter; exploration adds no stats of its own.
+// Picks the away team from saved characters plus authored playtest redshirts (up to MAX_AWAY_TEAM). Each member is a
+// RuntimeCharacter; exploration adds no stats of its own. Extra members beyond the map's player starts stand nearby.
 export default function ExplorationSetup({ savedCharacters, initialParty, mapId, onStart, onBack }) {
   const { map, problem } = useEpisodeMap(mapId)
-  const maxPartySize = map?.markers.playerStarts.length ?? 0
+  const maxPartySize = maxAwayTeamSize(map)
   const [party, setParty] = useState(initialParty)
   const roster = partyPickerRoster(savedCharacters)
   // UI state: whose sheet is shown beside the roster (the last one hovered or clicked).
@@ -29,7 +30,7 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
       <div className="combat-panel lcars-frame combat-setup-panel explore-setup-panel">
         <h2 className="combat-setup-title">Exploration: {map ? episodeTitle(map) : 'Loading...'}</h2>
         <p className="combat-setup-text">
-          Choose the away team: up to {maxPartySize} characters (one per player start on the map). Your saved characters and the playtest redshirt ensigns are listed.
+          Choose the away team: up to {maxPartySize} characters. Your saved characters and the playtest redshirt ensigns are listed.
         </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}

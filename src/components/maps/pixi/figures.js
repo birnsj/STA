@@ -16,6 +16,7 @@ import {
 } from '../../../rules/appearance.js'
 import { loadSheet } from '../useRecolouredSheet.js'
 import { CHARACTER_HAZARD_FRAME, HAZARD_FRAMES, characterHazardStrip, hazardStrip } from '../environmentArt.js'
+import { resolveHazardOverlayDisplay } from '../../../world/characterHazardOverlay.js'
 import { frameColumn, LOCOMOTION, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
 import { uniformImageUrl } from '../../useUniformImage.js'
 import { stripFrames } from './effectTextures.js'
@@ -257,7 +258,8 @@ export class FigureView {
     this.hazardFx.anchor.set(0.5, 0.55)
     this.hazardFx.visible = false
     this.hazardFx.alpha = HAZARD_OVERLAY_ALPHA
-    this.hazardFx.blendMode = 'add'
+    // Normal alpha (not add): dark smoke/gas is invisible under additive blending, and floor hazards already use alpha.
+    this.hazardFx.blendMode = 'normal'
     // A board's own pieces: `under` between the ring and the figure, `over` on top (combat's badges).
     this.under = new Container()
     this.over = new Container()
@@ -273,6 +275,7 @@ export class FigureView {
     this.beam = null
     this.hazardType = null
     this.hazardFrame = -1
+    this.heldHazardType = null
     // Exploration has no unitPose track: when a figure first goes down on this view, play the fall once; already-down
     // on mount (hand-off from combat) stays on the last frame. Stress-Avoid blasts use staggerPlay (fall then get-up).
     this.wasDown = undefined
@@ -473,9 +476,23 @@ export class FigureView {
   }
 
   // figure.hazardOverlay: hazard type id (fire, plasmaFire, …) while on a damaging tile or still afflicted; null/omit
-  // hides it. Prefers torso character strips; falls back to the floor strip if those are not loaded yet.
+  // hides it. Keeps the last type through fall → hold → getUp (and while Defeated) so a throw off the tile does not
+  // snuff the burn mid-stagger. Prefers torso character strips; falls back to the floor strip if those are not loaded.
   updateHazardOverlay(figure, now) {
-    const type = figure.hazardOverlay || null
+    const poseName = figure.pose?.animation
+    const holding =
+      Boolean(figure.blastReact) ||
+      Boolean(figure.down) ||
+      Boolean(this.staggerPlay) ||
+      Boolean(this.fallPlay && !this.fallPlay.settled) ||
+      poseName === 'getUp' ||
+      (typeof poseName === 'string' && poseName.startsWith('fall'))
+    const resolved = resolveHazardOverlayDisplay(figure.hazardOverlay || null, {
+      holding,
+      heldType: this.heldHazardType,
+    })
+    this.heldHazardType = resolved.held
+    const type = resolved.type
     if (type !== this.hazardType) {
       this.hazardType = type
       this.hazardFrame = -1

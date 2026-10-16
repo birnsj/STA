@@ -9,6 +9,7 @@
 import { headingTo } from '../actors/CharacterController.js'
 import { controllerFor, isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/partyControl.json'
+import { isFireteamB, placeAwayTeam, splitFireteams } from './awayTeam.js'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
 import { distance, isClear, isClearLine, nearestWalkableTile, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
@@ -43,29 +44,33 @@ function newMember(character, position, heading) {
   }
 }
 
-// characters: RuntimeCharacters in party order; each starts on the map's player start with the same index.
+// characters: RuntimeCharacters in party order (up to MAX_AWAY_TEAM). Authored player starts first; extras beside them.
+// Fireteam A (first four) starts selected; Fireteam B follows A's lead (designer 2026-10-16).
 export function createPartyState(map, characters) {
-  const starts = map.markers.playerStarts
-  const centre = { x: (map.width - 1) / 2, y: (map.height - 1) / 2 }
-  const members = characters.slice(0, starts.length).map((character, index) => {
-    // A start turned in the map editor sets the member's facing; otherwise they look toward the middle of the map.
-    const { x, y, facing } = starts[index]
-    const position = { x, y }
-    const heading = facing == null ? headingTo(position, centre) : (facing * Math.PI) / 180
-    return newMember(character, position, heading)
-  })
+  const members = placeAwayTeam(map, characters).map(({ character, position, heading }) => newMember(character, position, heading))
   const memberIds = members.map((member) => member.id)
-  return {
+  const byId = Object.fromEntries(members.map((member) => [member.id, member]))
+  const { teamA } = splitFireteams(memberIds)
+  const leaderId = teamA[0] ?? memberIds[0] ?? null
+  const selectedIds = teamA.length ? [...teamA] : [...memberIds]
+  let state = {
     map,
     memberIds,
-    members: Object.fromEntries(members.map((member) => [member.id, member])),
-    selectedIds: [...memberIds],
-    leaderId: memberIds[0] ?? null,
+    members: byId,
+    selectedIds,
+    leaderId,
     formationId: DEFAULT_FORMATION_ID,
     spacing: 1,
     // Beamed out (beamOut), in the order they left.
     departedIds: [],
   }
+  if (leaderId) {
+    const followers = memberIds.filter((id) => id !== leaderId)
+    if (followers.length) {
+      state = { ...state, members: formUp(state, state.members, leaderId, followers, state.members[leaderId].heading) }
+    }
+  }
+  return state
 }
 
 export const getMembers = (state) => state.memberIds.map((id) => state.members[id])
@@ -165,7 +170,13 @@ function moveSelection(state, target, fresh) {
   })
   const leader = members[leaderId]
   members[leaderId] = pointOrder(state.map, leader, target, distance(leader.position, target) > MOVE.runDistance)
-  const followerIds = selectedIds.filter((id) => id !== leaderId)
+  let followerIds = selectedIds.filter((id) => id !== leaderId)
+  // Fireteam B tags along when A (or a mixed selection) moves; a B-only selection moves only those members.
+  const onlyB = selectedIds.every((id) => isFireteamB(state.memberIds, id))
+  if (!onlyB) {
+    const hitch = splitFireteams(state.memberIds).teamB.filter((id) => canAct(members[id]) && !selectedIds.includes(id))
+    followerIds = [...followerIds, ...hitch]
+  }
   // While the mouse is held the destination changes constantly; slots are only reshuffled on a new press.
   const alreadyFollowing = followerIds.every((id) => members[id].order?.type === 'follow' && members[id].order.leaderId === leaderId)
   if (fresh || !alreadyFollowing) {

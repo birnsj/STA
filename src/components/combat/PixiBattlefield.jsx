@@ -66,6 +66,7 @@ export default function PixiBattlefield(props) {
     speed,
     focus,
     followCamera = true,
+    onCameraFollow = null,
     bystanders = [],
     snapMarks = null,
     hiddenIds = null,
@@ -86,7 +87,7 @@ export default function PixiBattlefield(props) {
   } = props
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick, true, null, onCameraFollow)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])

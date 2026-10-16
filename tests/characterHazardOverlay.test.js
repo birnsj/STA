@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { createCondition } from '../src/rules/personalCondition.js'
-import { characterHazardOverlayType, hasCharacterHazardOverlay } from '../src/world/characterHazardOverlay.js'
+import { characterHazardOverlayType, hasCharacterHazardOverlay, resolveHazardOverlayDisplay } from '../src/world/characterHazardOverlay.js'
 import { createEnvironment } from '../src/world/environment.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -54,5 +54,12 @@ describe('characterHazardOverlayType', () => {
       }),
       true,
     )
+  })
+
+  it('holds the last overlay through fall / getUp when the live type clears', () => {
+    assert.deepEqual(resolveHazardOverlayDisplay('fire', { holding: false, heldType: null }), { type: 'fire', held: 'fire' })
+    assert.deepEqual(resolveHazardOverlayDisplay(null, { holding: true, heldType: 'fire' }), { type: 'fire', held: 'fire' })
+    assert.deepEqual(resolveHazardOverlayDisplay(null, { holding: false, heldType: 'fire' }), { type: null, held: null })
+    assert.deepEqual(resolveHazardOverlayDisplay('plasmaFire', { holding: true, heldType: 'fire' }), { type: 'plasmaFire', held: 'plasmaFire' })
   })
 })
