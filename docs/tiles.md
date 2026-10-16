@@ -4,6 +4,8 @@
 
 This page holds the notes that used to sit in the JSON's `notes` array. When a field or tile family is added, describe it here and keep the JSON's one-line pointer and "next free symbol" current.
 
+**Doc status (2026-10-16):** still the field reference for the catalogue. Environment overlays (force fields, debris, scorched scars) are applied at runtime by `src/world/environment.js` on top of these tiles; see `prototype-rules.md` section 7.
+
 ## File layout
 
 | Key | Meaning |

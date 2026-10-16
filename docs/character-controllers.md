@@ -2,6 +2,8 @@
 
 Implementation note: how the code is organised. No rules change here; the rules are in `prototype-rules.md`.
 
+**Doc status (2026-10-16):** still accurate for the player / NPC / enemy split. Blast stagger hand-off uses `blastReact` on the combatant / party member (`toCombatant` / `fromCombatant` in `CharacterController.js`).
+
 ## The split
 
 - **State is plain data.** Party members (`createPartyState`, `src/exploration/partyControl.js`), world NPCs (`createNpc`, `src/exploration/awareness.js`) and combatants (`createCombatant`, `src/combat/combatSetup.js`) are plain objects in the exploration and combat state. The reducers replace them; nothing changes them in place. Each one carries the same read-only runtime character (`src/character/runtimeCharacter.js`).
@@ -12,7 +14,7 @@ Implementation note: how the code is organised. No rules change here; the rules 
 - **`CharacterController`** is the base class:
   - `isUp` and `facing`;
   - `animationState`, which the exploration board and battlefield figures read;
-  - `toCombatant` / `fromCombatant`, the hand-off into a fight and back;
+  - `toCombatant` / `fromCombatant`, the hand-off into a fight and back (including an in-progress `blastReact` fall / getUp so the stagger can finish on the combat board);
   - the defaults: no combat AI, no prompts answered by the player, no search.
 - **`PlayerController`** is for the away team:
   - exploration movement: orders, formation following, steering and giving way;

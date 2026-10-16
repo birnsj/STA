@@ -9,7 +9,7 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, 1085 tests (tests/*.test.js)
+npm test           # node --test, ~1280 tests (tests/**/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run app        # build, then open it in Electron
@@ -32,11 +32,12 @@ them the app runs silently.
 
 | Part | Where | What it does |
 | --- | --- | --- |
-| Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON. |
-| Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat on the game's maps: the STA 2E task roll, Momentum and Threat, Injuries, Guard / First Aid / Direct / Assist, an AI for both sides, and a seeded reducer so any fight replays exactly. |
-| Exploration | `src/exploration/`, `src/conversation/` | Moving the party around a map in formation, NPC awareness and what the party knows, challenge objects worked with the same task roll, conversations with NPCs, mission flags and objectives; hands off to combat and back (`combatLink.js`). |
-| Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints the isometric maps the other parts play on, from the tile catalogue (`docs/tiles.md`); places NPCs and objectives; edits conversations as node graphs. |
-`src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part.
+| Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON (schema `0.12.0`). |
+| Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat: STA 2e task roll, Momentum/Threat, Injuries, Guard / First Aid / Direct / Assist, social surrender, Scan trait, object shots, hazards, Auto Combat AI (both sides), seeded reducer so fights replay. |
+| Exploration | `src/exploration/`, `src/conversation/`, `src/world/` | Away team (up to 8, Fireteams A/B) on a map: formations, sneak, awareness, challenge objects, conversations, objectives, Captain's Log, intro/outro, transporter; shared destructibles/hazards/explosions; hands off to combat and back (`combatLink.js` / `WorldEncounter.js`). |
+| Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints isometric maps (`docs/tiles.md`); places NPCs, objectives, destructibles and hazards; edits conversations, challenge objects, objectives and story wording; Play-tests from the editor. |
+
+`src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part. Ship builder is a placeholder only.
 
 The exploration, combat and map editor boards are drawn only with PixiJS (WebGL): the map, figures and effects. A
 transparent SVG layer on top takes pointer input, sets the camera and holds UI such as the action ring and tooltips.
@@ -61,7 +62,7 @@ made, are in `docs/design-tracker.md`.
 ## The character model
 
 The creator holds one canonical draft (`src/character/characterModel.js`) that every screen edits through the reducer
-(`src/character/characterReducer.js`). Export (`src/export/serializeCharacter.js`, schema `0.11.0`) writes the draft plus
+(`src/character/characterReducer.js`). Export (`src/export/serializeCharacter.js`, schema `0.12.0`) writes the draft plus
 the derived `final` scores, values, focuses, talents and service details. Everyone in the game, player or NPC, is then
 read back through `src/character/runtimeCharacter.js` into the same runtime shape, so combat and exploration never care
 where a character came from.
@@ -75,13 +76,32 @@ src/
   rules              pure rule functions (creator, tasks, condition, resources)
   character          the creator's state, reducer and the runtime character
   screens            one component per screen
-  components         shared UI
+  components         shared UI (combat, exploration, maps, dice, …)
   styles.css         imports src/styles/*.css in cascade order
-  combat, exploration, maps     the other parts
+  combat             turn-based fight reducer, actions, AI
+  exploration        party, awareness, mission, combat hand-off
+  world              destructibles, hazards, challenge-object classes
+  conversation       dialogue runtime and format
+  maps               map format, generators, area centres
+  actors             player / NPC / enemy controllers
+  export             character JSON serialize + download
+  settings, audio    display and sound
 tests/               node --test suites; tests/support/ has fixtures
 tools/               dev-server stores and the JSON loader for tests
-scripts/             tile, episode-card, mock portrait-layer, portrait-backdrop and map character-sprite art generators (Node, write PNGs into public/art)
+scripts/             tile, sprite, hazard, dice, cursor and episode-card art generators
 electron/            desktop wrapper
-docs/                design-tracker.md, prototype-rules.md, performance.md, tiles.md and others
+docs/                design-tracker, prototype-rules, world-objects, combat-architecture, …
 reference/           the rulebook PDFs (not committed)
 ```
+
+## Docs map
+
+| Doc | Role |
+| --- | --- |
+| `docs/prototype-rules.md` | Every Book vs Prototype rule difference |
+| `docs/design-tracker.md` | Open designer questions and decision history |
+| `docs/world-objects.md` | Challenge / destructible / hazard code layout |
+| `docs/combat-architecture.md` | Combat actions, encounters, reducer |
+| `docs/character-controllers.md` | Player / NPC / enemy controllers |
+| `docs/tiles.md` | Tile catalogue fields and symbols |
+| `docs/performance.md` | Frame-rate measurements and probe tools |

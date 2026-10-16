@@ -45,6 +45,17 @@ export const EFFECT_TYPES = [
   },
   { id: 'removeTrait', label: 'Remove trait', fields: [{ key: 'name', kind: 'text', label: 'name' }], create: () => ({ type: 'removeTrait', name: '' }) },
   { id: 'changePotency', label: 'Change Potency', fields: [{ key: 'name', kind: 'text', label: 'name' }, { key: 'change', kind: 'number', label: 'change' }], create: () => ({ type: 'changePotency', name: '', change: -1 }) },
+  {
+    id: 'neutralizeHazard',
+    label: 'Neutralize hazard',
+    fields: [
+      { key: 'hazardId', kind: 'flag', label: 'hazard id (blank = this hazard)' },
+      { key: 'mode', kind: 'text', label: 'mode' },
+      { key: 'amount', kind: 'number', label: 'amount' },
+    ],
+    create: () => ({ type: 'neutralizeHazard', mode: 'remove', amount: 1 }),
+  },
+  { id: 'neutralizeHazardsInRoom', label: 'Neutralize hazards in room', fields: [], create: () => ({ type: 'neutralizeHazardsInRoom' }) },
 ]
 export const getEffectType = (id) => EFFECT_TYPES.find((type) => type.id === id) ?? null
 

@@ -4,6 +4,8 @@ Measured Oct 2026 on one Windows PC, a ~170 Hz monitor (so "fps" tops out near 1
 Deck 10 Brig map, the 4-member party. Tools: `tools/perfRun.mjs`, `tools/perfScenarios.mjs`, `tools/perfSummary.mjs`,
 `tools/perfProfile.mjs`; the browser-side probe is `src/dev/perfProbe.js`.
 
+**Doc status (2026-10-16):** Pixi-only boards are current. Tables that compare Pixi to SVG are historical (measured while both existed); they cannot be re-run. Away team may now be up to 8; the numbers below used 4.
+
 **Note:** the probe's hooks in the game code (timers, Profiler wrappers, `?off=` flags) were lost in an accidental
 `git checkout` on 2026-10-13 and re-added on 2026-10-14, now covering the Pixi boards too (`pixi.frame`, and `filters`
 and `animtick` act on the Pixi map). The list of timers and switches is at the top of `src/dev/perfProbe.js`;

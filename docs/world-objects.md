@@ -1,6 +1,8 @@
 # World objects
 
-Implementation note: how the code is organised. No rules change here; the rules are in `prototype-rules.md`, and the test content's objects are in `src/data/adaptation/exploration/challenges.json`.
+Implementation note: how the code is organised. No rules change here; the rules are in `prototype-rules.md`, and the test content's objects are in `src/data/adaptation/exploration/challenges.json` (a map may also store its own `objects` definitions).
+
+**Doc status (2026-10-16):** covers challenge objects, destructibles, hazards, room Environmental Controls (`neutralizeHazardsInRoom`), and the environment record including scars.
 
 ## The split
 
@@ -31,7 +33,9 @@ Object types (door, relay, panel, console, casualty) are data, not subclasses. N
 
 ## The environment record
 
-`state.environment = { seed, round, sequence, destructibles, hazards, explosions }` is plain data, created from the map's `destructibles` and `hazards` (`createEnvironment`) and handed to a fight and back (`exploration/WorldEncounter.js`). `withEnvironment(state, environment)` (`src/world/environmentState.js`) is the one place a new record is stored; it retiles the party map and any open fight's map together (`applyEnvironmentTiles`). The exploration hazard clock is `state.hazardClock` on the exploration state, not on the record, so it stops by itself while a fight runs.
+`state.environment = { seed, round, sequence, destructibles, hazards, scars, explosions }` is plain data, created from the map's `destructibles` and `hazards` (`createEnvironment`) and handed to a fight and back (`exploration/WorldEncounter.js`). `scars` are permanent floor changes (e.g. scorched tiles from fire). `withEnvironment(state, environment)` (`src/world/environmentState.js`) is the one place a new record is stored; it retiles the party map and any open fight's map together (`applyEnvironmentTiles`). The exploration hazard clock is `state.hazardClock` on the exploration state, not on the record, so it stops by itself while a fight runs.
+
+Object shots that succeed set `pendingObjectHit` on the exploration or combat state; Structure damage and explosions apply only after `applyPendingObjectHit` (beam first — see `prototype-rules.md` section 7).
 
 ## Which object
 
@@ -56,6 +60,6 @@ The functions in `challengeObjects.js` (`attemptChallenge`, `getAvailableActions
 
 `tests/objectGolden.test.js` fingerprints every authored action on the Deck 10 Brig and on a test map named Vault of the Ancients (successes, failures, complications, assists, bought dice, locks, routine actions and refusals), object tasks in combat, and a conversation changing an object's state. It also checks that a refused attempt returns the same state. Print new values with `GOLDEN_PRINT=1` only when a behaviour change is intended.
 
-`tests/destructibles.test.js`, `explosions.test.js`, `hazards.test.js` and `deck10Environment.test.js` cover the environment: damage and states, blasts and chains, hazard rounds across the hand-off to combat and back, Neutralize in both modes, and the five Deck 10 objects (in view, cutting nothing off).
+`tests/destructibles.test.js`, `explosions.test.js`, `hazards.test.js`, `hazardAfflictions.test.js`, `hazardAvoidance.test.js`, `hazardPanic.test.js`, `characterHazardOverlay.test.js`, `generatedHazards.test.js` and `deck10Environment.test.js` cover the environment: damage and states, blasts and chains, hazard rounds across the hand-off to combat and back, Neutralize and room Environmental Controls, afflictions, AI avoidance, overlays, and the Deck 10 destructible placements (fifteen objects; in view, cutting nothing off).
 
 Merging the destructibles work (2026-10-14) silently dropped five keys from `useEditorTools`' return value (`selectedNpcId`, `selectedObjectId`, `selectedMarker`, `movingNpc`, `toggleNpcMove`), which broke the editor's NPC Move button; they are restored. Check that every `tools.*` the editor screens read is still returned after a merge there.

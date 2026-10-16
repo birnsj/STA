@@ -2,6 +2,8 @@
 
 Implementation note: how the combat code is organised. No rules change here; the rules are in `prototype-rules.md`. It follows the same pattern as the character controllers (`character-controllers.md`) and the world objects.
 
+**Doc status (2026-10-16):** includes `AttackObjectAction`, deferred object hits (`pendingObjectHit`), retreat / flee, and hazard avoidance in Auto Combat.
+
 ## The split
 
 - **State is plain data.** The combat state (`createCombat`, `src/combat/combatSetup.js`) is one plain, seeded object: combatants, turn order, the turn's action economy, pools, prompts and the log. The reducer replaces it; nothing changes it in place. Every roll comes from `state.seed` plus `state.rolls` (`takeRandom`), so the same characters, encounter, seed and actions replay the same fight, headless or on screen.
@@ -29,6 +31,7 @@ The subclasses, one file per family:
 - `SocialAction.js`: Persuade and Intimidate; `DirectAction.js`; `AmbushAction.js`;
 - `FleeAction.js`: a retreating enemy (no Stress left) leaving the battle;
 - `AttackAction.js`: Attack, Reroll and Resolve Attack;
+- `AttackObjectAction.js`: Fire on a destructible (Structure damage deferred via `pendingObjectHit` until the beam lands);
 - `DecisionActions.js`: the prompts (Avoid Injury, the Fatigue attribute, Counterattack);
 - `InteractAction.js`: a challenge object's task or routine action in combat. It is not in the registry, because only fights started in the world have objects; `canInteract` and `applyInteraction` in `combatState.js` use it.
 
@@ -39,8 +42,12 @@ The subclasses, one file per family:
 `combatReducer` in `src/combat/combatState.js`:
 
 - holds back every action but the answer while a prompt waits (an incoming Injury, a new Fatigue, a Counterattack);
+- allows `clearBlastReact` and `applyPendingObjectHit` even while prompts wait (presentation / deferred boom);
+- while `pendingObjectHit` is set, refuses other actions so the laser finishes before Structure / explosion;
 - hands the action to `combatActionFor(action.type).reduce`; an unknown type changes nothing;
 - then settles a finished Direct, checks retreats, and ends the ambush chance on any attack.
+
+Headless Auto Combat (`stepAI`) applies `pendingObjectHit` on the next step when there is no UI timer. On screen, `CombatScreen` / `ExplorationScreen` timers dispatch `applyPendingObjectHit` after `impactMs`; AI pacing waits while the hit is pending.
 
 `combatState.js` also re-exports the public surface of the rule modules, so callers import combat state and previews from one place.
 
@@ -54,7 +61,7 @@ The subclasses, one file per family:
 - **Rules:** the task, Momentum and Threat, Injuries and condition, range, cover, movement, initiative (`src/rules/`, and the combat rule modules listed at the top of `combatState.js`).
 - **Turn order:** `combatTurnOrder.js` stays a module of functions; there is no turn-manager class.
 - **Weapons:** weapons stay plain data with `weaponSystem.js` helpers. A Weapon class was considered and left out: nothing about a weapon changes during a fight and no weapon has its own behaviour yet, so a class would only wrap the same lookups.
-- **Combat AI:** the brains (`combatAI`, `turnPlanner`, `supportAI`, `randomAI`) stay strategies the controllers call; they now ask actions for `unavailableReason` and `hypothetical` instead of repeating those rules.
+- **Combat AI:** the brains (`combatAI`, `turnPlanner`, `supportAI`, `randomAI`, `objectAI`, `hazardAvoidance`) stay strategies the controllers call; they now ask actions for `unavailableReason` and `hypothetical` instead of repeating those rules. Object shots and hazard escape are scored / forced in those modules.
 - **Effects:** conditions, Guard, Aim and Scan stay fields on the plain state; there is no effect framework.
 
 ## Safety net
