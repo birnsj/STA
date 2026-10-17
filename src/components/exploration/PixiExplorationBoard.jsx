@@ -154,10 +154,10 @@ export default function PixiExplorationBoard(props) {
     const grid = worldToGrid(npc.position)
     const hazardOverlay = characterHazardOverlayType(environment, grid, npc.character, npc.condition)
     const visible = isVisibleToParty(knowledge, npc.id)
-    // Burning / afflicted NPCs stay on the board even when out of party sight (hazard light through cover).
-    if (!debug && !visible && !hazardOverlay) continue
     const controller = controllerFor(npc)
     const animation = controller.animationState(npc)
+    // Burning / afflicted NPCs and fallen bodies stay on the board even when out of party sight.
+    if (!debug && !visible && !hazardOverlay && !animation.down) continue
     const centre = project(npc.position)
     const depth = atDepth(npc.position, 0.5)
     const colour = isHostile(npc) ? RED : PURPLE

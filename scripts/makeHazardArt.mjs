@@ -7,6 +7,7 @@
 // - Hazards: an 8-frame looping strip per hazard type (public/art/sprites/environment/hazards/{type}.png), each frame a
 //   64 x 64 design window with the floor diamond along its bottom (components/maps/environmentArt.js HAZARD_FRAME).
 //   Character overlays: hazards/character/{type}.png — 48 x 64 torso strips (body wrap, not floor diamonds).
+//   Wall scars: hazards/wallScar-{scarTile}.png — static 64 x 128 face overlay (environment.wallScars).
 // - Explosions: an 8-frame strip, small (128) and large (192) design frames (public/art/sprites/effects/).
 import fs from 'node:fs'
 import path from 'node:path'
@@ -407,6 +408,71 @@ const CHARACTER_HAZARDS = {
   coolantLeak: (x, y, t) => over(bodyPuffs(x, y, t, { colour: hex('#a0fff0'), count: 7, rise: 12, size: 10, density: 0.5, seed: 17, drift: 3 }), bodyGlow(x, y, hex('#30d8c0'), 0.35, t)),
 }
 
+// Static wall-face scorch (64×128, matches wall imageHeight): soot blotches on the iso column faces only.
+function wallScarImage(pixel) {
+  const W = 64
+  const H = 128
+  const res = 2
+  const width = W * res
+  const height = H * res
+  const bytes = new Uint8Array(width * height * 4)
+  for (let oy = 0; oy < height; oy++) {
+    for (let ox = 0; ox < width; ox++) {
+      const acc = [0, 0, 0, 0]
+      for (const [sx, sy] of [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]]) {
+        const [r, g, b, a] = pixel((ox + sx) / res, (oy + sy) / res)
+        acc[0] += r * a
+        acc[1] += g * a
+        acc[2] += b * a
+        acc[3] += a
+      }
+      const i = (oy * width + ox) * 4
+      const a = acc[3] / 4
+      if (a <= 0) continue
+      for (let k = 0; k < 3; k++) bytes[i + k] = Math.round(clamp01(acc[k] / acc[3]) * 255)
+      bytes[i + 3] = Math.round(clamp01(a) * 255)
+    }
+  }
+  return { width, height, bytes }
+}
+
+// Iso bulkhead column mask in a 64×128 tile image (floor diamond along the bottom 32px).
+function wallFaceMask(x, y) {
+  const top = 18
+  const bottom = 112
+  if (y < top || y > bottom + 8) return 0
+  const t = clamp01((y - top) / (bottom - top))
+  const half = 12 + t * 20
+  const dx = Math.abs(x - 32)
+  if (dx > half) return 0
+  // Soften the top cap and keep scars on the vertical faces.
+  const face = 1 - smoothstep(half - 2.5, half, dx)
+  const cap = 1 - smoothstep(top, top + 10, y) * 0.55
+  const base = 1 - smoothstep(bottom - 4, bottom + 6, y)
+  return face * Math.max(cap, 0.35) * base
+}
+
+function wallScarScorched(x, y) {
+  const mask = wallFaceMask(x, y)
+  if (mask <= 0.02) return NONE
+  let blotch = 0
+  for (let i = 0; i < 7; i++) {
+    const bx = 18 + hash(i, 1, 41) * 28
+    const by = 28 + hash(i, 2, 41) * 70
+    const rx = 7 + hash(i, 3, 41) * 9
+    const ry = 10 + hash(i, 4, 41) * 14
+    const d = Math.hypot((x - bx) / rx, (y - by) / ry)
+    if (d > 1) continue
+    blotch = Math.max(blotch, (1 - d * d) * (0.55 + hash(i, 5, 41) * 0.45))
+  }
+  const grain = 0.65 + noise(x / 3.5, y / 3.5, 19) * 0.55
+  const edge = smoothstep(0.08, 0.55, blotch) * mask
+  const alpha = clamp01(edge * grain * 0.85)
+  if (alpha <= 0) return NONE
+  const soot = mix(hex('#1a1410'), hex('#3a2a20'), noise(x / 5, y / 5, 23))
+  return [...soot, alpha]
+}
+
 function hazardJobs() {
   const floor = Object.entries(HAZARDS).map(([type, pixel]) => ({
     file: path.join(PUBLIC, 'art/sprites/environment/hazards', `${type}.png`),
@@ -416,7 +482,13 @@ function hazardJobs() {
     file: path.join(PUBLIC, 'art/sprites/environment/hazards/character', `${type}.png`),
     draw: () => strip(48, 64, 4, pixel),
   }))
-  return [...floor, ...character]
+  const wallScars = [
+    {
+      file: path.join(PUBLIC, 'art/sprites/environment/hazards', 'wallScar-scorched.png'),
+      draw: () => wallScarImage(wallScarScorched),
+    },
+  ]
+  return [...floor, ...character, ...wallScars]
 }
 
 // ---------- explosions ----------

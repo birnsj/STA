@@ -121,13 +121,45 @@ class ScanView {
   }
 }
 
-const BEAM_SHOT_MS = 800
-const BEAM_SHOT_OPACITY = [
+export const BEAM_SHOT_MS = 800
+export const BEAM_SHOT_OPACITY = [
   [0, 0],
   [0.1, 1],
   [0.6, 1],
   [1, 0],
 ]
+export const PULSE_FLY_MS = 320
+export const PULSE_IMPACT_MS = 400
+// The impact flashes this long after the bolt sets off, as it reaches the target.
+export const PULSE_IMPACT_AFTER_MS = 280
+// The bolt is a fifth of the shot long and slides from just before the shooter to just past the target.
+const PULSE_LENGTH = 0.2
+const pulseFly = cubicBezier(0.3, 0, 0.9, 1)
+
+// Pulse impact wash: hold longer than the impact circle alone so the hit reads on any uniform colour.
+const PULSE_HIT_GLOW_MS = 560
+const PULSE_HIT_GLOW_OPACITY = [
+  [0, 0],
+  [0.08, 1],
+  [0.5, 1],
+  [1, 0],
+]
+
+// How strongly a hit target should glow (0..1) for the same elapsed timing as BeamShotView / PulseShotView.
+// item: { pulse, delayMs, speed }. Beams glow while the laser is up; pulses glow from impact (bolt arrival).
+export function shotHitGlowAlpha(item, elapsed) {
+  const speed = item.speed ?? 1
+  const delayMs = item.delayMs ?? 0
+  if (item.pulse) {
+    const flash = progress(elapsed, {
+      duration: PULSE_HIT_GLOW_MS / speed,
+      delay: delayMs + PULSE_IMPACT_AFTER_MS / speed,
+    })
+    return flash === null ? 0 : track(PULSE_HIT_GLOW_OPACITY, flash, EASE.easeOut)
+  }
+  const t = progress(elapsed, { duration: BEAM_SHOT_MS / speed, delay: delayMs })
+  return t === null ? 0 : track(BEAM_SHOT_OPACITY, t, EASE.easeOut)
+}
 
 // A phaser-style beam from the shooter to the target (or wide of it, on a miss), with a flash where it hits.
 // item: { from, end, hit (where it lands, or null on a miss), colour, delayMs, speed }; positions on screen.
@@ -152,14 +184,6 @@ class BeamShotView {
     this.container.alpha = t === null ? 0 : track(BEAM_SHOT_OPACITY, t, EASE.easeOut)
   }
 }
-
-const PULSE_FLY_MS = 320
-const PULSE_IMPACT_MS = 400
-// The impact flashes this long after the bolt sets off, as it reaches the target.
-const PULSE_IMPACT_AFTER_MS = 280
-// The bolt is a fifth of the shot long and slides from just before the shooter to just past the target.
-const PULSE_LENGTH = 0.2
-const pulseFly = cubicBezier(0.3, 0, 0.9, 1)
 
 // A disruptor's pulse: a short bolt that flies from the shooter to the target (or wide), then flashes on impact.
 // item: as BeamShotView.

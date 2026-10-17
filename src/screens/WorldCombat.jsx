@@ -7,8 +7,9 @@ import { activeHazards } from '../world/environment.js'
 import { hazardChallengeId } from '../world/EnvironmentalHazard.js'
 import { getCombatDiagnostics, getCombatObjects, previewCombatObject, recommendCombatObject } from '../exploration/combatLink.js'
 import { foughtNpcIds, mustSurviveIds } from '../exploration/missionObjectives.js'
+import { hideEnemyFromBoard } from '../exploration/boardVisibility.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
-import { normalizeCondition } from '../rules/personalCondition.js'
+import { isDefeated, normalizeCondition } from '../rules/personalCondition.js'
 import { hasCharacterHazardOverlay } from '../world/characterHazardOverlay.js'
 import { Battle } from './CombatScreen.jsx'
 
@@ -21,21 +22,21 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
   const [partyAI, setPartyAI] = useState('classic')
   const [enemyAI, setEnemyAI] = useState('classic')
   const combatDispatch = useCallback((action) => dispatch({ type: 'combat', action }), [dispatch])
-  // The battlefield shows what the away team sees; burning / afflicted enemies stay visible (hazard overlay) even out of
-  // sight. Enemies it has lost with no hazard leave a marker where last seen.
+  // The battlefield shows what the away team sees; burning / afflicted enemies and bodies that have fallen stay on the
+  // board even out of sight. Upright enemies the party has lost leave a marker where last seen.
   const knowledge = state.partyKnowledge
   const environment = state.environment
   const revealedByHazard = (actor) =>
     hasCharacterHazardOverlay(environment, actor.position, actor.character, actor.condition)
   const hiddenIds = Object.values(combat.combatants)
-    .filter((unit) => unit.side === 'enemy' && !isVisibleToParty(knowledge, unit.id) && !revealedByHazard(unit))
+    .filter((unit) => hideEnemyFromBoard(knowledge, unit, { revealed: revealedByHazard(unit) }))
     .map((unit) => unit.id)
   const lastKnownMarks = getNpcs(world)
-    .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
-    .filter(({ npc, entry }) => entry.state === KNOWLEDGE.KNOWN && !combat.combatants[npc.id]?.fled && !revealedByHazard(npc))
+    .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id), unit: combat.combatants[npc.id] }))
+    .filter(({ npc, entry, unit }) => entry.state === KNOWLEDGE.KNOWN && !unit?.fled && !revealedByHazard(npc) && !isDefeated(unit?.condition ?? npc.condition))
     .map(({ npc, entry }) => ({ id: npc.id, position: entry.lastKnownPosition, label: debugOpen ? npc.name : entry.identified ? null : 'Life sign' }))
   const bystanders = getNpcs(world)
-    .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && (isVisibleToParty(knowledge, npc.id) || revealedByHazard(npc)))
+    .filter((npc) => !link.npcIds.includes(npc.id) && npc.character && (isVisibleToParty(knowledge, npc.id) || revealedByHazard(npc) || isDefeated(npc.condition)))
     .map((npc) => ({ id: npc.id, character: npc.character, position: npc.position, facing: controllerFor(npc).facing(npc), condition: normalizeCondition(npc.condition), hostile: isHostile(npc) }))
   const trigger = combat.combatants[link.trigger.npcId]
   const target = combat.combatants[link.trigger.targetId]

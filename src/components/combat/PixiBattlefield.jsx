@@ -20,7 +20,7 @@ import useStableSet from '../maps/useStableSet.js'
 import useWallFade from '../maps/useWallFade.js'
 import { actionEffectItems } from './actionEffects.js'
 import { BAR_Y, LABEL_Y, mouseOnly, POINTS_Y, useMoveAnimation, VIEW, worldBounds } from './battlefieldShared.js'
-import { justFled, shotOf } from './battleHelpers.js'
+import { justFled, SHOT_FIRE_MS, shotOf } from './battleHelpers.js'
 import useActionSounds from './useActionSounds.js'
 import { startBattleScene } from './pixi/battleScene.js'
 import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionView.js'
@@ -95,9 +95,10 @@ export default function PixiBattlefield(props) {
   const beamingId = justFled(state)?.id
   const units = Object.values(state.combatants).filter((unit) => (!unit.fled || unit.id === beamingId) && !hiddenIds?.includes(unit.id))
   const firing = shotOf(state, state.lastAction)
-  // The combatant whose turn it is cuts walls away, and so does every standing enemy, so no wall hides one (designer
-  // request, 2026-10-14). Other party members don't.
-  const cutsWalls = (unit) => unit.id === activeId || (unit.side === 'enemy' && !controllerFor(unit).animationState(unit).down)
+  // The combatant whose turn it is cuts walls away, and so does every enemy (including fallen ones), so no wall hides a
+  // body or a standing foe (designer request, 2026-10-14; downed kept so stun/dead don't vanish behind bulkheads).
+  // Other party members don't.
+  const cutsWalls = (unit) => unit.id === activeId || unit.side === 'enemy'
   const hidden = useWallFade(
     map,
     units.filter(cutsWalls).map((unit) => ({ id: unit.id, position: shownPosition(unit) })),
@@ -125,6 +126,21 @@ export default function PixiBattlefield(props) {
     const cover = Boolean(combatant.inCover && !isWalking && !down)
     const guard = Boolean(combatant.guard && !down)
     const hazardOverlay = characterHazardOverlayType(state.environment, position, combatant.character, combatant.condition)
+    // Beam/pulse colour wash while the shot effect is on this target (hits only; same clock as effects.js).
+    const hitGlow =
+      firing &&
+      firing.targetId === combatant.id &&
+      !firing.missed &&
+      firing.colour &&
+      state.lastAction?.key != null
+        ? {
+            key: state.lastAction.key,
+            colour: firing.colour,
+            pulse: Boolean(firing.pulse),
+            delayMs: SHOT_FIRE_MS / speed,
+            speed,
+          }
+        : null
     figures.push({
       id: `${isBystander ? 'n' : 'u'}${combatant.id}`,
       combatant,
@@ -154,6 +170,7 @@ export default function PixiBattlefield(props) {
       poseOptions,
       isWalking,
       onStaggerDone: combatant.blastReact && onStaggerDone ? () => onStaggerDone(combatant.id) : null,
+      hitGlow,
       selected: selected && !active,
       cover,
       statusLabel,

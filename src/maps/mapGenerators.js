@@ -162,8 +162,8 @@ function hazardSeedTiles(map) {
   return open
 }
 
-// Grow a compact blob of open tiles around seed (orthogonal steps only), skipping taken tiles.
-function hazardBlob(map, seed, size, taken, random) {
+// Grow a compact blob of open tiles around seed (orthogonal steps only), skipping taken and reserved tiles.
+function hazardBlob(map, seed, size, taken, reserved, random) {
   const tiles = {}
   const queue = [seed]
   const seen = new Set([keyOf(seed)])
@@ -171,13 +171,13 @@ function hazardBlob(map, seed, size, taken, random) {
     const index = Math.floor(random() * queue.length)
     const [cell] = queue.splice(index, 1)
     const key = keyOf(cell)
-    if (taken.has(key) || getTile(map.tiles[cell.y][cell.x]).solid) continue
+    if (taken.has(key) || reserved.has(key) || getTile(map.tiles[cell.y][cell.x]).solid) continue
     tiles[key] = 1 + Math.floor(random() * 3)
     for (const step of ORTHO) {
       const next = { x: cell.x + step.x, y: cell.y + step.y }
       if (next.x < 0 || next.y < 0 || next.x >= map.width || next.y >= map.height) continue
       const nextKey = keyOf(next)
-      if (seen.has(nextKey) || taken.has(nextKey) || getTile(map.tiles[next.y][next.x]).solid) continue
+      if (seen.has(nextKey) || taken.has(nextKey) || reserved.has(nextKey) || getTile(map.tiles[next.y][next.x]).solid) continue
       seen.add(nextKey)
       queue.push(next)
     }
@@ -190,6 +190,7 @@ function hazardBlob(map, seed, size, taken, random) {
 export function withGeneratedHazards(map, random = Math.random) {
   const open = hazardSeedTiles(map)
   if (!open.length || !HAZARD_TYPES.length) return { ...map, hazards: [] }
+  const reserved = new Set([...(map.markers?.playerStarts ?? []), ...(map.markers?.enemySpawns ?? [])].map(keyOf))
   const regionCount = Math.min(8, Math.max(2, Math.round(open.length / 90)))
   const taken = new Set()
   const hazards = []
@@ -198,7 +199,7 @@ export function withGeneratedHazards(map, random = Math.random) {
     if (!candidates.length) break
     const seed = pick(candidates, random)
     const size = 3 + Math.floor(random() * 6)
-    const tiles = hazardBlob(map, seed, size, taken, random)
+    const tiles = hazardBlob(map, seed, size, taken, reserved, random)
     if (!Object.keys(tiles).length) continue
     for (const key of Object.keys(tiles)) taken.add(key)
     hazards.push({ id: `genHazard${i + 1}`, type: pick(HAZARD_TYPES, random), tiles })

@@ -1,4 +1,5 @@
 import { ColorMatrixFilter, Container, Graphics, Rectangle, Sprite, Texture } from 'pixi.js'
+import { shotHitGlowAlpha } from './effects.js'
 import {
   blastDownHoldMs,
   blastStaggerAnimation,
@@ -233,6 +234,26 @@ function loadPortrait(src, colour) {
   return portraits.get(key)
 }
 
+// Mix white toward a CSS/hex beam colour for sprite tint (amount 0 = white, 1 = full colour).
+function mixTint(colour, amount) {
+  const hex = typeof colour === 'string' ? colour.replace('#', '') : null
+  const n = hex ? parseInt(hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex, 16) : colour
+  if (!Number.isFinite(n)) return 0xffffff
+  const t = Math.min(1, Math.max(0, amount))
+  const r = (n >> 16) & 255
+  const g = (n >> 8) & 255
+  const b = n & 255
+  return (Math.round(255 + (r - 255) * t) << 16) | (Math.round(255 + (g - 255) * t) << 8) | Math.round(255 + (b - 255) * t)
+}
+
+const glowColour = (colour) => {
+  if (typeof colour === 'number') return colour
+  const hex = String(colour).replace('#', '')
+  const full = hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex
+  const n = parseInt(full, 16)
+  return Number.isFinite(n) ? n : 0xffffff
+}
+
 // The facing arrow: a triangle on the ground ring pointing along the facing, in the tiles' projection.
 function drawArrow(graphics, facing, colour) {
   const length = Math.hypot(facing.x - facing.y, facing.x + facing.y) || 1
@@ -272,6 +293,10 @@ export class FigureView {
     // A board's own pieces: `under` between the ring and the figure, `over` on top (combat's badges).
     this.under = new Container()
     this.over = new Container()
+    // Soft coloured wash behind the body while a phaser/disruptor beam is on them (combat hitGlow).
+    this.hitGlowFx = new Graphics()
+    this.hitGlowFx.blendMode = 'add'
+    this.under.addChild(this.hitGlowFx)
     this.container.addChild(this.ring, this.under, this.body, this.token, this.hazardFx, this.arrow, this.over)
     this.pulseFrom = null
     this.label = null
@@ -285,6 +310,8 @@ export class FigureView {
     this.hazardType = null
     this.hazardFrame = -1
     this.heldHazardType = null
+    this.hitGlowKey = null
+    this.hitGlowFrom = null
     // Exploration has no unitPose track: when a figure first goes down on this view, play the fall once; already-down
     // on mount (hand-off from combat) stays on the last frame. Stress-Avoid blasts use staggerPlay (fall then get-up).
     this.wasDown = undefined
@@ -499,7 +526,53 @@ export class FigureView {
     }
     this.updateLabel(figure.label)
     this.updateHazardOverlay(figure, now)
+    this.updateHitGlow(figure, now)
     this.updateBeam(figure, now)
+  }
+
+  // figure.hitGlow: { key, colour, pulse, delayMs, speed } while a coloured beam/pulse is aimed at this figure (hits
+  // only). Strength follows the same clock as the shot effect so the wash lasts while the beam is on them.
+  updateHitGlow(figure, now) {
+    const glow = figure.hitGlow
+    if (!glow?.colour || glow.key == null) {
+      this.hitGlowKey = null
+      this.hitGlowFrom = null
+      this.applyHitGlow(null, 0)
+      return
+    }
+    if (this.hitGlowKey !== glow.key) {
+      this.hitGlowKey = glow.key
+      this.hitGlowFrom = now
+    }
+    const strength = reducedMotion() ? 0 : shotHitGlowAlpha(glow, now - this.hitGlowFrom)
+    this.applyHitGlow(glow.colour, strength)
+  }
+
+  applyHitGlow(colour, strength) {
+    const amount = Math.min(1, Math.max(0, strength))
+    if (amount <= 0.01 || !colour) {
+      this.hitGlowFx.clear()
+      this.hitGlowFx.visible = false
+      this.sheet.tint = 0xffffff
+      this.token.tint = 0xffffff
+      return
+    }
+    // Mix through white so red pulses still read on red uniforms (security / disruptor).
+    const tint = mixTint(colour, Math.min(1, amount * 0.75))
+    const hot = mixTint(colour, Math.min(1, 0.35 + amount * 0.4))
+    this.sheet.tint = tint
+    this.token.tint = tint
+    const rgb = glowColour(colour)
+    const y = -28
+    this.hitGlowFx
+      .clear()
+      .ellipse(0, y, 34, 46)
+      .fill({ color: rgb, alpha: 0.7 * amount })
+      .ellipse(0, y, 22, 32)
+      .fill({ color: hot, alpha: 0.55 * amount })
+      .ellipse(0, y, 12, 18)
+      .fill({ color: 0xffffff, alpha: 0.45 * amount })
+    this.hitGlowFx.visible = true
   }
 
   // figure.hazardOverlay: hazard type id (fire, plasmaFire, …) while on a damaging tile or still afflicted; null/omit
@@ -785,6 +858,8 @@ export class FigureView {
   // beam: 'waiting' (hidden until the beam-in), 'in' (appearing in a transporter beam), 'away' (fading out in one),
   // 'out' (a fleeing enemy beaming out, over 1.6 s / figure.beamSpeed), or null. Each plays from when it began.
   // faded: drawn see-through (an NPC shown only in the debug view).
+  // Colour-matrix runs on the sprite/token only (not the ring): filters rasterize their target, and at resolution 1 the
+  // ring looked chunky. inherit + antialias keeps the character as sharp as the rest of the board.
   updateBeam(figure, now) {
     if (figure.beam !== this.beam?.kind) this.beam = figure.beam ? { kind: figure.beam, startedAt: now } : null
     let alpha = figure.faded ? 0.35 : 1
@@ -803,13 +878,24 @@ export class FigureView {
       filter = t < 1 ? { brightness: keyframeValue(BEAM_BRIGHTNESS, t, ease, 1), saturate: keyframeValue(BEAM_BRIGHTNESS, t, ease, 2) } : null
     }
     this.container.alpha = alpha
+    // Drop any legacy container filter so the ring stays a crisp vector under alpha alone.
+    if (this.container.filters?.length) this.container.filters = []
+    const art = this.body.visible ? this.body : this.token
+    const clearArt = (target) => {
+      if (target.filters?.length) target.filters = []
+    }
     if (!filter || alpha === 0) {
-      if (this.container.filters?.length) this.container.filters = []
+      clearArt(this.body)
+      clearArt(this.token)
       return
     }
-    this.filter ??= new ColorMatrixFilter()
+    this.filter ??= new ColorMatrixFilter({ resolution: 'inherit', antialias: 'on' })
+    this.filter.resolution = 'inherit'
+    this.filter.antialias = 'on'
     this.filter.matrix = cssFilterMatrix(filter)
-    if (!this.container.filters?.length) this.container.filters = [this.filter]
+    if (this.body !== art) clearArt(this.body)
+    if (this.token !== art) clearArt(this.token)
+    if (art.filters?.[0] !== this.filter) art.filters = [this.filter]
   }
 
   destroy() {

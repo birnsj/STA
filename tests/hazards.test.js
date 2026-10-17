@@ -146,6 +146,36 @@ describe('hazard footprints, exclusivity, scars, and overlays', () => {
     assert.notEqual(applied.tiles[5][7], 'scorched')
   })
 
+  it('fire scars wall faces next to hazard tiles; smoke does not', () => {
+    const map = room({
+      hazards: [
+        fire('f', { '1,1': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 }),
+        { id: 's', type: 'smoke', tiles: { '1,5': 2 }, spreadChance: 0, dissipateChance: 0, migrateChance: 0 },
+      ],
+    })
+    const environment = createEnvironment(map)
+    assert.equal(environment.wallScars['0,1'], 'scorched', 'west wall next to fire')
+    assert.equal(environment.wallScars['1,0'], 'scorched', 'north wall next to fire')
+    assert.equal(environment.wallScars['0,0'], 'scorched', 'corner wall Chebyshev-adjacent to fire')
+    assert.equal(environment.wallScars['0,5'], undefined, 'smoke does not scar walls')
+    const applied = applyEnvironmentTiles(map, environment)
+    assert.equal(applied.wallScars['0,1'], 'scorched')
+    assert.equal(applied.tiles[1][0], 'bulkhead', 'wall tile id stays; scar is an overlay')
+  })
+
+  it('spawnHazard scars walls inside the Euclidean blast radius', () => {
+    const map = room()
+    const environment = spawnHazard(createEnvironment(map, 42), map, {
+      type: 'fire',
+      position: { x: 2, y: 2 },
+      radius: 2,
+      spread: false,
+      source: 'test',
+    })
+    assert.equal(environment.wallScars['0,2'], 'scorched', 'wall on the west rim of the blast')
+    assert.equal(environment.wallScars['2,0'], 'scorched', 'wall on the north rim of the blast')
+  })
+
   it('characterHazardStrip points at the character overlay art path', () => {
     assert.equal(characterHazardStrip('fire'), '/art/sprites/environment/hazards/character/fire.png?v=5')
     assert.equal(characterHazardStrip('plasmaFire'), '/art/sprites/environment/hazards/character/plasmaFire.png?v=5')

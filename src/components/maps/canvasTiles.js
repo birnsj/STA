@@ -26,6 +26,7 @@ import {
 } from '../../maps/tileArt.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
+import { wallScarImage } from './environmentArt.js'
 import { edgeStrip, FRAME, SHADE_BANDS, SIDES, WINDOW } from './tileShapes.js'
 
 const IMAGE_H = TILE_IMAGE.height
@@ -229,6 +230,7 @@ function listImages(map) {
       }
     }),
   )
+  Object.values(map.wallScars ?? {}).forEach((scarTile) => hrefs.add(wallScarImage(scarTile)))
   return [...hrefs]
 }
 
@@ -380,7 +382,7 @@ export function changedArea(before, after) {
   const describe = (layout, at, position) => {
     const panel = layout.panels.get(at)
     const origin = layout.bigGroups.get(at)
-    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}`
+    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}|${layout.map.wallScars?.[at] ?? ''}`
   }
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
@@ -442,8 +444,9 @@ function strokeLine(context, a, b, stroke, lineWidth) {
 }
 
 // A wall tile: the wall's image, its variant (if any) or its animation, or this tile's slot of its panel art
-// (tileArt.js panelArt, cut out at the tile's own image size) or of its animation's sprites.
-function drawWall(context, tile, position, panel, pass) {
+// (tileArt.js panelArt, cut out at the tile's own image size) or of its animation's sprites. scarTile: permanent
+// hazard face overlay (environment.wallScars) drawn over the wall art at the tile's image box.
+function drawWall(context, tile, position, panel, pass, scarTile) {
   const art = panelArt(tile, panel, position)
   const variant = art || panel?.window ? null : wallVariant(tile, position)
   const size = imageSize(tile)
@@ -460,6 +463,8 @@ function drawWall(context, tile, position, panel, pass) {
   const book = art ? art.flipbook : variant ? null : tileFlipbook(tile)
   if (book) animated(context, pass, book, animationOffset(art?.timing ?? position), draw, art?.href ?? tile.image)
   else solid(context, pass, () => draw(art?.href ?? variant?.href ?? tile.image))
+  // Board only: on an animation pass destination-out would punch the scar out of the wall/lights frame.
+  if (scarTile && !pass) drawImage(context, wallScarImage(scarTile), box.x, box.y, box.width, box.height)
   // A whole-sprite animated wall's panel lines belong on its frames layer with it; an overlay wall's stay on the board.
   if (panel) drawPanelFace(context, tile, position, panel, tile.height, book && !book.overlay && pass?.layer === 'frames' ? null : pass)
 }
@@ -587,7 +592,7 @@ function drawBlockAt(context, layout, position, opacity, pass) {
   const box = tileImageBox(position, imageSize(tile))
   const boxArgs = [box.x, box.y, box.width, box.height]
   const book = tile.wall || joined ? null : tileFlipbook(tile)
-  if (tile.wall) drawWall(context, tile, position, panel, pass)
+  if (tile.wall) drawWall(context, tile, position, panel, pass, map.wallScars?.[at] ?? null)
   else if (book) animated(context, pass, book, animationOffset(position), (key) => drawImage(context, key, ...boxArgs))
   else solid(context, pass, () => drawImage(context, href, ...boxArgs))
   context.restore()
@@ -621,6 +626,7 @@ export function blockLookKey(layout, position) {
     panel ? `${panel.axis}${panel.half}${panel.window ? 'w' : ''}` : '',
     art ? `${art.href}@${art.offset.x},${art.offset.y}/${art.size.width}x${art.size.height}` : '',
     variant?.href ?? '',
+    map.wallScars?.[at] ?? '',
   ].join('|')
 }
 

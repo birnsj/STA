@@ -9,6 +9,9 @@ export const hazardStrip = (type) => `/art/sprites/environment/hazards/${type}.p
 export const CHARACTER_HAZARD_FRAME = { width: 48, height: 64 }
 // ?v= busts a stale browser / loadImage cache after regenerating the torso strips.
 export const characterHazardStrip = (type) => `/art/sprites/environment/hazards/character/${type}.png?v=5`
+// Static wall-face scorch overlay (scripts/makeHazardArt.mjs); drawn on wall tiles in environment.wallScars.
+export const WALL_SCAR_FRAME = { width: TILE_W, height: 128 }
+export const wallScarImage = (scarTile) => `/art/sprites/environment/hazards/wallScar-${scarTile}.png`
 
 // Figure overlay art only — never the floor diamond strip (HazardLayer uses hazardStrip). Pure helper for draw + tests.
 export function characterHazardOverlayLook(type) {

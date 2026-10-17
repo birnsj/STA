@@ -2,13 +2,14 @@
 // exploration and combat; the appliers (exploration/explorationEnvironment.js, combat/combatEnvironment.js) turn the hits
 // these return into Injuries.
 // environment = { seed, round, sequence, destructibles: { [id]: record }, hazards: { [regionId]: region }, scars,
-//   explosions }
+//   wallScars, explosions }
 //   record: { id, type, name, position, structure, maxStructure, resistance, state: intact | damaged | destroyed,
 //   attackable, explosion (the type's, with the map's overrides), linkedTiles, debris, leakSealed }
 //   region: { id, type, tiles: { 'x,y': intensity 1-3 }, source: 'map' | 'explosion:{id}' | 'leak:{id}', active, spread,
 //   neutralizable, roundsLeft (null: until it dissipates), and the map's overrides of its type: severity?, spreadChance?,
 //   dissipateChance?, neutralizeDifficulty? }
 //   scars: { 'x,y': tileId } permanent walkable floor scars (e.g. scorched) left by fire / plasma this mission
+//   wallScars: { 'x,y': scarTile } permanent wall-face overlays on walls next to those hazards or inside a spawn radius
 //   explosions: the latest blasts, newest last, for the explosion effect: { id, objectId, type, kind, position, radius }
 // Book: no person-scale object rules (Core p.327 has immediate Area hazards and lingering hazards, p.291 Avoid Injury).
 // Prototype (designer decision, 2026-10-12): an object has a Structure track and Resistance; damage = severity -
@@ -91,7 +92,7 @@ export function createEnvironment(map, seed = 0) {
   const hazards = Object.fromEntries(
     (map.hazards ?? []).filter((hazard) => HAZARD_TYPES[hazard.type] && Object.keys(hazard.tiles).length).map((hazard) => [hazard.id, createHazardRegion(hazard)]),
   )
-  const environment = { seed, round: 0, sequence: 0, destructibles, hazards, scars: {}, explosions: [] }
+  const environment = { seed, round: 0, sequence: 0, destructibles, hazards, scars: {}, wallScars: {}, explosions: [] }
   return recordAllHazardScars(resolveExclusiveOccupancy(environment), map)
 }
 
@@ -172,7 +173,12 @@ export function applyEnvironmentTiles(map, environment) {
     })
   })
   blockers.forEach((key) => cover.delete(key))
-  const environmentKey = `${[...blockers].sort().join(';')}|${[...cover].sort().join(';')}|${[...slow].sort().join(';')}`
+  const wallScars = environment.wallScars ?? {}
+  const wallScarKey = Object.keys(wallScars)
+    .sort()
+    .map((key) => `${key}:${wallScars[key]}`)
+    .join(';')
+  const environmentKey = `${[...blockers].sort().join(';')}|${[...cover].sort().join(';')}|${[...slow].sort().join(';')}|w:${wallScarKey}`
   if (!changes.length && (map.environmentKey ?? '||') === environmentKey) return map
   let tiles = map.tiles
   if (changes.length) {
@@ -181,7 +187,7 @@ export function applyEnvironmentTiles(map, environment) {
       tiles[y][x] = tile
     })
   }
-  return { ...map, tiles, sightBlockers: asKeys(blockers), coverKeys: asKeys(cover), slowKeys: asKeys(slow), environmentKey }
+  return { ...map, tiles, sightBlockers: asKeys(blockers), coverKeys: asKeys(cover), slowKeys: asKeys(slow), wallScars: { ...wallScars }, environmentKey }
 }
 
 // The tiles a straight line between two tile centres crosses, ends excluded (the sampling rangeSystem.hasLineOfFire uses).
@@ -252,7 +258,40 @@ export function resolveExclusiveOccupancy(environment) {
   return next
 }
 
+const isWallTile = (map, position) => isInside(map, position) && Boolean(getTile(tileAt(map, position)).wall)
+
+// Merge permanent wall-face scars (scarTile id → overlay art). Existing scars stay.
+function withWallScars(environment, additions) {
+  if (!additions || !Object.keys(additions).length) return environment
+  const wallScars = { ...(environment.wallScars ?? {}) }
+  let changed = false
+  Object.entries(additions).forEach(([key, scarTile]) => {
+    if (wallScars[key]) return
+    wallScars[key] = scarTile
+    changed = true
+  })
+  return changed ? { ...environment, wallScars } : environment
+}
+
+// Walls Chebyshev-adjacent to a scarTile hazard tile get a permanent face scar.
+function recordAdjacentWallScars(environment, map, region) {
+  const scarTile = HAZARD_TYPES[region.type]?.scarTile
+  if (!scarTile || !region.active) return environment
+  const additions = {}
+  Object.keys(region.tiles).forEach((key) => {
+    const position = parseKey(key)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const tile = { x: position.x + dx, y: position.y + dy }
+        if (isWallTile(map, tile)) additions[tileKey(tile)] = scarTile
+      }
+    }
+  })
+  return withWallScars(environment, additions)
+}
+
 // Record permanent floor scars for types with scarTile (fire / plasmaFire → scorched). Skips walls and object tiles.
+// Also scars wall faces next to those hazard tiles.
 function recordHazardScars(environment, map, region) {
   const scarTile = HAZARD_TYPES[region.type]?.scarTile
   if (!scarTile || !region.active) return environment
@@ -267,7 +306,8 @@ function recordHazardScars(environment, map, region) {
     scars[key] = scarTile
     changed = true
   })
-  return changed ? { ...environment, scars } : environment
+  const next = changed ? { ...environment, scars } : environment
+  return recordAdjacentWallScars(next, map, region)
 }
 
 function recordAllHazardScars(environment, map) {
@@ -281,7 +321,9 @@ export function spawnHazard(environment, map, { type, position, radius = 0, cent
   if (!type || !HAZARD_TYPES[type]) return environment
   const random = seededRandomInt(deriveSeed(environment.seed, 9001 + environment.sequence + position.x * 31 + position.y * 17))
   const extent = Math.ceil(radius + SPAWN_SOFT)
+  const scarTile = HAZARD_TYPES[type].scarTile
   const tiles = {}
+  const radiusWallScars = {}
   for (let dy = -extent; dy <= extent; dy++) {
     for (let dx = -extent; dx <= extent; dx++) {
       const dist = Math.hypot(dx, dy)
@@ -289,17 +331,29 @@ export function spawnHazard(environment, map, { type, position, radius = 0, cent
       const centre = dx === 0 && dy === 0
       if (!centre && dist >= radius - SPAWN_RIM_INNER && random() > SPAWN_RIM_KEEP) continue
       const tile = { x: position.x + dx, y: position.y + dy }
+      if (!isInside(map, tile)) continue
+      // Walls inside the blast circle get face scars even when fire cannot occupy the wall tile.
+      if (scarTile && isWallTile(map, tile) && (centre || blastReaches(map, environment, position, tile))) {
+        radiusWallScars[tileKey(tile)] = scarTile
+        continue
+      }
       if (!isOpen(map, tile) || (!centre && !blastReaches(map, environment, position, tile))) continue
       tiles[tileKey(tile)] = centre ? centreIntensity : Math.min(edgeIntensity, centreIntensity)
     }
   }
-  if (!Object.keys(tiles).length) return environment
+  if (!Object.keys(tiles).length && !Object.keys(radiusWallScars).length) return environment
   const sequence = environment.sequence + 1
   const regionId = id ?? `h${sequence}`
-  let next = withRegion({ ...environment, sequence }, { id: regionId, type, tiles, source, active: true, spread, neutralizable: true, roundsLeft: duration })
-  next = resolveExclusiveOccupancy(next)
-  const region = next.hazards[regionId]
-  return region ? recordHazardScars(next, map, region) : next
+  let next = environment
+  if (Object.keys(tiles).length) {
+    next = withRegion({ ...next, sequence }, { id: regionId, type, tiles, source, active: true, spread, neutralizable: true, roundsLeft: duration })
+    next = resolveExclusiveOccupancy(next)
+    const region = next.hazards[regionId]
+    next = region ? recordHazardScars(next, map, region) : next
+  } else {
+    next = { ...next, sequence }
+  }
+  return withWallScars(next, radiusWallScars)
 }
 
 // A damaged object leaking its damagedHazard onto the open tiles round it (topped up each hazard round until it is
