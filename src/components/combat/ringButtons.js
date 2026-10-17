@@ -247,7 +247,7 @@ export default function createRingButtons({
         enabled: availability.move,
         active: mode === 'move',
         title: availability.move
-          ? 'Move (Minor action): click a highlighted tile, then the Move arc on the ring.'
+          ? 'Move (Minor action): click a highlighted tile to walk there (or the Move check on the ring).'
           : (getMovementBlock(state, active, 'move') ?? 'No tile to move to.'),
         onClick: () => {
           setMode('move')
@@ -258,7 +258,7 @@ export default function createRingButtons({
         enabled: availability.sprint,
         active: mode === 'sprint',
         title: availability.sprint
-          ? `Sprint (Major action): run up to ${getSprintTiles(active.character)} tiles; no Move this turn after it. Click a tile, then the Sprint arc.`
+          ? `Sprint (Major action): run up to ${getSprintTiles(active.character)} tiles; no Move this turn after it. Click a highlighted tile (or the Sprint check on the ring).`
           : (getMovementBlock(state, active, 'sprint') ?? 'No tile to sprint to.'),
         onClick: () => {
           setMode('sprint')

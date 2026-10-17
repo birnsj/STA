@@ -287,8 +287,9 @@ export function Battle({
     },
   }
 
-  // With Move / Sprint, clicking a reachable tile only sets the path; the Roll (Move) arc on the self ring commits.
-  const handleTileClick = (tile) => {
+  // Move / Sprint: click a reachable tile to go there (same as the Move/Sprint check arc once a path is set).
+  // Touch has no hover path, so the first tap only previews; a second tap on the same tile (or the check arc) commits.
+  const handleTileClick = (tile, { touch = false } = {}) => {
     // A non-move ring or armed attack/ambush: floor click dismisses it.
     if (mode === 'ambush' || attackMode || (ringId && ringId !== active.id)) {
       closeRing()
@@ -296,11 +297,18 @@ export function Battle({
       return
     }
     if (!moveKind || !availability[moveKind] || !reachable?.has(tileKey(tile)) || samePosition(tile, active.position)) return
-    setDestination(tile)
-    setRingId(active.id)
-    setRingInfo(false)
-    setRingPick(active.id)
-    if (mode !== 'sprint') setMode(moveKind)
+    if (touch && !(destination && samePosition(destination, tile))) {
+      setDestination(tile)
+      setRingId(active.id)
+      setRingInfo(false)
+      setRingPick(active.id)
+      if (mode !== 'sprint') setMode(moveKind)
+      return
+    }
+    dispatch({ type: moveKind, destination: tile })
+    setMode(null)
+    setDestination(null)
+    closeRing()
   }
 
   // During the party's turn, picking a party member who can still act hands them the turn.

@@ -358,7 +358,9 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
     body = (
       <>
         <p className="task-line">
-          {movePath ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}` : 'Choose a highlighted tile'}
+          {movePath
+            ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}. Click the tile or the Move check to go.`
+            : 'Click a highlighted tile to move'}
         </p>
         <p className="task-line task-sub">{ACTIONS.move.description}</p>
       </>
@@ -367,7 +369,9 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
     body = (
       <>
         <p className="task-line">
-          {movePath ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}` : 'Choose a highlighted tile'}
+          {movePath
+            ? `Route: ${movePath.length - 1} tiles${routeInCover ? ' - ends in cover' : ''}. Click the tile or the Sprint check to go.`
+            : 'Click a highlighted tile to sprint'}
         </p>
         <p className="task-line task-sub">{ACTIONS.sprint.description}</p>
       </>
