@@ -1,6 +1,6 @@
 // The Deck 10 Brig's destructible objects (maps/Deck 10 Brig.json): the fifteen placed objects load intact and in view, the
 // map has no hazards, and with every object standing the away team can still reach each objective, object, NPC and spawn.
-// Also: one Environmental Control console per named room (challenges.json).
+// Also: one Environmental Control wall panel per named room (challenges.json).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
@@ -58,7 +58,7 @@ describe('Deck 10 Brig environment', () => {
     })
   })
 
-  it('places one Environmental Control console per named room', () => {
+  it('places one Environmental Control wall panel per named room', () => {
     const map = brig()
     const controls = challengeDefinitionsFor(map).filter((entry) => entry.id.startsWith('envControl'))
     assert.equal(controls.length, map.areas.length)
@@ -67,7 +67,9 @@ describe('Deck 10 Brig environment', () => {
       ['envControlBridge', 'envControlHolodeck', 'envControlPhaser', 'envControlShuttlebay', 'envControlTorpedo', 'envControlTransporter'],
     )
     controls.forEach((entry) => {
-      assert.equal(entry.states.ready.tile, 'epsControl')
+      assert.equal(entry.type, 'panel')
+      assert.equal(entry.states.ready.tile, 'computerPanel')
+      assert.equal(entry.covers?.length, 1, `${entry.id} covers the second panel tile`)
       assert.ok(entry.actions.some((action) => action.id === 'clearRoomHazards'))
     })
   })

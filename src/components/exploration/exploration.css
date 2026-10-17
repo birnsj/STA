@@ -1,11 +1,11 @@
 /* Exploration prototype: reuses the combat screen's panels, party cards and isometric units. */
 
-/* On-screen messages (the hint, a talk error), centred just above the party cards (room for two rows when B is present). */
+/* On-screen messages: centred near the bottom; party cards are the left rail. */
 .explore-messages {
   position: absolute;
-  left: 8px;
+  left: calc(8px + var(--explore-party-rail-width, 178px) + 16px);
   right: 8px;
-  bottom: calc(8px + var(--explore-card-height, 75px) + var(--explore-b-row, 0px) + 18px);
+  bottom: 26px;
   z-index: 26;
   display: flex;
   flex-direction: column;
@@ -47,16 +47,19 @@
   z-index: 40;
 }
 
-/* Fireteam A: full cards. The Formation panel shares this height so tops and bottoms line up. */
-.explore-party-bar,
+/* Left-rail party cards (shorter so eight fit with a small gap). Formation keeps its own height. */
+.explore-party-bar {
+  --explore-card-height: 54px;
+}
+
 .explore-bottom-right {
-  --explore-card-height: 75px;
+  --explore-formation-height: 75px;
 }
 
 .explore-card {
   width: 178px;
   height: var(--explore-card-height);
-  padding: 5px 9px 5px 5px;
+  padding: 3px 8px 3px 4px;
   overflow: hidden;
 }
 
@@ -66,7 +69,12 @@
 
 .explore-card .party-info {
   flex: 1;
-  gap: 3px;
+  gap: 1px;
+  min-width: 0;
+}
+
+.explore-party-bar.is-left-rail .party-info .stress-bar {
+  height: 5px;
 }
 
 .explore-card-detail {
@@ -370,16 +378,87 @@
   text-transform: uppercase;
 }
 
+/* Left vertical rail: fixed-height cards from the top, 4px between them. Extra slots stay empty below. */
 .explore-party-bar {
+  --explore-party-rail-width: 178px;
+  --explore-party-hud-inset: 8px;
+  --explore-party-card-gap: 4px;
+  --explore-party-badge-rise: 9px;
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: var(--explore-party-hud-inset);
+  top: var(--explore-party-hud-inset);
+  bottom: var(--explore-party-hud-inset);
   z-index: 26;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--explore-party-card-gap);
+  width: var(--explore-party-rail-width);
+  height: auto;
+  padding: var(--explore-party-badge-rise) 0 0;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
-.explore-party-bar.is-two-rows {
-  --explore-b-row: calc(var(--explore-card-height) + 10px);
+.explore-party-bar.is-left-rail .explore-card-wrap {
+  flex: 0 0 auto;
+}
+
+.explore-party-bar.is-left-rail .explore-card {
+  width: 100%;
+  height: var(--explore-card-height);
+  flex: 0 0 auto;
+}
+
+.explore-party-bar.is-left-rail .party-portrait {
+  width: 36px;
+  height: 44px;
+}
+
+.explore-party-bar.is-left-rail .party-name {
+  font-size: 11px;
+}
+
+.explore-party-bar.is-left-rail .party-weapon,
+.explore-party-bar.is-left-rail .explore-card-detail {
+  font-size: 9px;
+}
+
+/* Details open to the right of the card, flush with it: top-half cards grow down, bottom-half grow up.
+   Shared by exploration and combat left rails. */
+.is-left-rail .explore-card-info {
+  left: calc(100% + 8px);
+  right: auto;
+  width: 168px;
+  height: min(168px, 32vh);
+  padding: 2px 5px 1px;
+  gap: 1px;
+  font-size: 9px;
+}
+
+.is-left-rail .explore-card-info .party-name {
+  font-size: 10px;
+}
+
+.is-left-rail .explore-card-info .explore-card-heading,
+.is-left-rail .explore-card-info .explore-card-scores li,
+.is-left-rail .explore-card-info .explore-card-list {
+  font-size: 7px;
+}
+
+.is-left-rail .explore-card-info .explore-card-scores strong {
+  font-size: 7.5px;
+}
+
+.is-left-rail .explore-card-wrap.is-info-down .explore-card-info {
+  top: 0;
+  bottom: auto;
+}
+
+.is-left-rail .explore-card-wrap.is-info-up .explore-card-info {
+  top: auto;
+  bottom: 0;
 }
 
 .character-sheet {
@@ -389,27 +468,27 @@
   overflow: hidden;
 }
 
-/* On the map: left side, between the top bar and the party cards. */
+/* On the map: to the right of the party rail. */
 .character-sheet.is-on-map {
   position: absolute;
   top: 76px;
-  bottom: 180px;
-  left: 8px;
+  bottom: 8px;
+  left: calc(8px + var(--explore-party-rail-width, 178px) + 12px);
   z-index: 25;
   width: 330px;
 }
 
-/* The Captain's Log: centred left of the right-hand column, above the party cards. */
+/* The Captain's Log: centred left of the right-hand column, clear of the party rail. */
 .captains-log {
   position: absolute;
   top: 140px;
   right: 255px;
-  bottom: 180px;
-  left: 0;
+  bottom: 8px;
+  left: calc(8px + var(--explore-party-rail-width, 178px) + 12px);
   z-index: 25;
   display: flex;
   flex-direction: column;
-  width: min(500px, calc(100% - 271px));
+  width: min(500px, calc(100% - 271px - var(--explore-party-rail-width, 178px)));
   margin: 0 auto;
   padding: 0;
   overflow: hidden;
@@ -1352,7 +1431,7 @@
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  height: var(--explore-card-height);
+  height: var(--explore-formation-height, 75px);
 }
 
 .explore-formation-options {

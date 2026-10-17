@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { splitFireteams } from '../../exploration/awayTeam.js'
+import { normalizeCondition } from '../../rules/personalCondition.js'
 import PartyTaskTag from '../task/PartyTaskTag.jsx'
+import { CARD_INFO_INSIGNIA, CardInfoPanel } from '../exploration/ExplorationPartyBar.jsx'
 import ActionPoints, { DoneIcon } from './ActionPoints.jsx'
 import CombatPortrait from './CombatPortrait.jsx'
 import ConditionIcons from './ConditionIcons.jsx'
@@ -13,9 +16,13 @@ const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
 // the turn. recommendation: who is best at the object task being considered, or null. weapons: { [id]: weapon }.
 // onCycleWeapon switches the acting member's weapon (null = can't switch now).
 export default function PartyBar({ party, activeId, selectedId, turnInfo, onSelect, recommendation = null, weapons = {}, onCycleWeapon = null }) {
+  // UI state: which card's details panel is open.
+  const [infoId, setInfoId] = useState(null)
   const ids = party.map((member) => member.id)
   const { teamA, teamB } = splitFireteams(ids)
   const byId = Object.fromEntries(party.map((member) => [member.id, member]))
+  // Top-half cards open the details panel downward; bottom-half open upward (same as exploration).
+  const openDown = (id) => ids.findIndex((memberId) => memberId === id) < Math.ceil(ids.length / 2)
   const card = (id) => (
     <MemberCard
       key={id}
@@ -27,28 +34,28 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
       weapon={weapons[id]}
       onCycleWeapon={onCycleWeapon}
       onSelect={onSelect}
+      infoOpen={infoId === id}
+      infoDown={openDown(id)}
+      onToggleInfo={() => setInfoId(infoId === id ? null : id)}
     />
   )
+  // Left vertical rail: A then B in pick order, filling the rail like exploration (designer 2026-10-16).
   return (
-    <div className={`party-bar${teamB.length ? ' is-two-rows' : ''}`}>
-      <div className="party-fireteam is-a" aria-label="Fireteam A">
-        {teamA.map(card)}
-      </div>
-      {teamB.length > 0 && (
-        <div className="party-fireteam is-b" aria-label="Fireteam B">
-          {teamB.map(card)}
-        </div>
-      )}
+    <div className="party-bar is-left-rail" aria-label="Away team">
+      {teamA.map(card)}
+      {teamB.map(card)}
     </div>
   )
 }
 
-function MemberCard({ member, activeId, selectedId, turnInfo, recommendation, weapon, onCycleWeapon, onSelect }) {
+function MemberCard({ member, activeId, selectedId, turnInfo, recommendation, weapon, onCycleWeapon, onSelect, infoOpen, infoDown, onToggleInfo }) {
   const down = member.condition.defeated
   const info = !down ? turnInfo[member.id] : null
   const best = Boolean(recommendation?.bestIds.includes(member.id))
+  const condition = normalizeCondition(member.condition)
   return (
-    <div className="party-card-wrap">
+    <div className={`party-card-wrap explore-card-wrap${infoOpen ? ' is-info-open' : ''}${infoDown ? ' is-info-down' : ' is-info-up'}`}>
+      {infoOpen && <CardInfoPanel character={member.character} condition={condition} />}
       <button
         type="button"
         className={`party-card${member.id === activeId ? ' is-active' : ''}${member.id === selectedId ? ' is-selected' : ''}${down ? ' is-down' : ''}${info ? ` is-${info.state}` : ''}${best ? ' is-best' : ''}`}
@@ -62,7 +69,7 @@ function MemberCard({ member, activeId, selectedId, turnInfo, recommendation, we
         <span className="party-info">
           <span className="party-name">{member.character.name}</span>
           <PartyWeapon weapon={weapon} onCycle={member.id === activeId ? onCycleWeapon : null} />
-          <ConditionTrack character={member.character} condition={member.condition} />
+          <ConditionTrack character={member.character} condition={condition} />
           {!down && info && (
             <span className="party-hits-row">
               <span className={`party-move-left${info.movement.left ? '' : ' is-empty'}`}>Move {info.movement.left}/{info.movement.total}</span>
@@ -75,7 +82,7 @@ function MemberCard({ member, activeId, selectedId, turnInfo, recommendation, we
       </button>
       <div className="party-card-badges">
         {info && <ActionPoints turn={info.turn} />}
-        <ConditionIcons condition={member.condition} />
+        <ConditionIcons condition={condition} />
         <PartyTaskTag recommendation={recommendation} memberId={member.id} />
         {info && (
           <span className={`party-turn-badge is-${info.state}`}>
@@ -84,6 +91,18 @@ function MemberCard({ member, activeId, selectedId, turnInfo, recommendation, we
           </span>
         )}
       </div>
+      <button
+        type="button"
+        className={`explore-card-info-toggle${infoOpen ? ' is-open' : ''}`}
+        aria-expanded={infoOpen}
+        aria-label={`${member.character.name}: details`}
+        title={infoOpen ? 'Hide the details.' : `Show ${member.character.name}'s details.`}
+        onClick={onToggleInfo}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d={CARD_INFO_INSIGNIA} />
+        </svg>
+      </button>
     </div>
   )
 }

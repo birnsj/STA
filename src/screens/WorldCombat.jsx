@@ -11,6 +11,7 @@ import { hideEnemyFromBoard } from '../exploration/boardVisibility.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../exploration/partyKnowledge.js'
 import { isDefeated, normalizeCondition } from '../rules/personalCondition.js'
 import { hasCharacterHazardOverlay } from '../world/characterHazardOverlay.js'
+import { objectFor } from '../world/objects.js'
 import { Battle } from './CombatScreen.jsx'
 
 // Combat over the same world: the exploration view is swapped for the combat battlefield on the same map, with
@@ -49,12 +50,13 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
   const failedNames = foughtNpcIds(combat, mustSurviveIds(state.party.map)).map((id) => combat.combatants[id].character.name)
   // The same challenge objects as in exploration, usable by whoever acts (combatLink.js runs them).
   const objectList = getCombatObjects(state)
+  const challengeViews = getChallengeViews(state.scenario)
   const objects = {
     list: objectList,
     preview: (objectId, actionId) => previewCombatObject(state, objectId, actionId),
     recommend: (objectId, actionId, memberIds) => recommendCombatObject(state, objectId, actionId, memberIds),
     marks: [
-      ...getChallengeViews(state.scenario).map((view) => ({
+      ...challengeViews.map((view) => ({
         id: view.id,
         name: view.name,
         position: view.position,
@@ -75,6 +77,14 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
         })),
     ],
   }
+  const doors = challengeViews
+    .map((view) => objectFor(state.scenario, view.id))
+    .filter((object) => object.definition.type === 'door')
+    .map((object) => {
+      const doorState = object.runtime(state.scenario).state
+      const info = object.definition.states[doorState] ?? {}
+      return { id: object.id, name: object.definition.name, stateLabel: info.label ?? doorState, closed: Boolean(info.tile), cells: object.tiles() }
+    })
   return (
     <Battle
       objects={objects}
@@ -98,6 +108,9 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
       openingFocus={openingFocus}
       debugOpen={debugOpen}
       onDebug={onDebug}
+      knowledge={knowledge}
+      environment={environment}
+      doors={doors}
       worldActors={debugOpen ? Object.fromEntries(getNpcs(world).map((npc) => [npc.id, { disposition: dispositionName(npc.disposition), awareness: stateName(npc.state) }])) : null}
     >
       {diagnostics && (

@@ -42,11 +42,14 @@ import RollPanel from '../components/combat/RollPanel.jsx'
 import TurnOrderStrip from '../components/combat/TurnOrderStrip.jsx'
 import AutoCombatControls from '../components/combat/AutoCombatControls.jsx'
 import TurnBanner from '../components/combat/TurnBanner.jsx'
+import { minimapKnowledgeForCombat, minimapPartyFromCombat, minimapWorldFromCombat } from '../components/combat/combatMinimap.js'
+import Minimap from '../components/exploration/Minimap.jsx'
 import useFadeAfter from '../components/useFadeAfter.js'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import PerfProfiler from '../dev/PerfProfiler.jsx'
 import { weatherFor } from '../maps/mapWeather.js'
+import '../components/exploration/exploration.css'
 import {
   aiTurnTask,
   AUTO_END_TURN_MS,
@@ -76,7 +79,7 @@ import {
 // task math), recommend(objectId, actionId, memberIds) -> who is best at it (rules/taskRecommendation.js), marks:
 // [{ id, name, position, stateLabel, inReach }] to draw }. Their actions dispatch { type: 'interact' }. failedNames
 // (combat in the world): the Must survive NPCs in this fight, so the result reads Mission Failed and offers only
-// onExitMission.
+// onExitMission. knowledge / environment / doors: optional exploration layer for the combat minimap (WorldCombat).
 export function Battle({
   state,
   dispatch,
@@ -103,6 +106,9 @@ export function Battle({
   worldActors = null,
   failedNames = [],
   onExitMission = null,
+  knowledge = null,
+  environment = null,
+  doors = [],
   children = null,
 }) {
   // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays), and How to Play
@@ -117,6 +123,7 @@ export function Battle({
   // UI state only: the chosen action, target, weapon, injury mode, move destination, hovered tile, panels and camera follow.
   // chosenMode null = the default (Move while it is still possible); 'none' = the player deselected everything.
   const [chosenMode, setMode] = useState(null)
+  const [minimapOpen, setMinimapOpen] = useState(true)
   const defaultMode = isPlayerTurn && canMove(state, active) ? 'move' : null
   const ambushOpen = isPlayerTurn && canAmbush(state)
   const chosen = chosenMode === 'ambush' && !ambushOpen ? null : chosenMode
@@ -425,9 +432,13 @@ export function Battle({
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
+  const enemies = Object.values(state.combatants).filter((combatant) => combatant.side !== 'player')
   const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getCombatantWeapon(member, weaponIds[member.id] ?? member.weaponIds[0])]))
   const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
+  const minimapParty = minimapPartyFromCombat(party, { selectedId, leaderId: active.id })
+  const minimapWorld = minimapWorldFromCombat(enemies, bystanders)
+  const minimapKnowledge = minimapKnowledgeForCombat(knowledge, minimapWorld.npcIds)
   const rollBelongsToPlayer = Boolean((state.pending ?? state.result) && isPlayerControlled(state.combatants[(state.pending ?? state.result).attackerId]))
   const hint = hiddenIds?.includes(active.id) ? 'The enemy is acting.' : getCombatHint(state, {
     taskPreview: combatTask?.task?.prepared
@@ -525,65 +536,80 @@ export function Battle({
         />
       </PerfProfiler>
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />
-      <div className="combat-top-left">
-        <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} />
+      <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
+      {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
+      {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
+      {/* Right column matches exploration: Objectives beside the minimap, Momentum/Threat under it, then the fight panels. */}
+      <Minimap
+        map={state.map}
+        party={minimapParty}
+        world={minimapWorld}
+        knowledge={minimapKnowledge}
+        environment={environment}
+        doors={doors}
+        debug={debugOpen}
+        open={minimapOpen}
+        onToggle={() => setMinimapOpen(!minimapOpen)}
+        leading={encounter.objectives?.length ? <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} /> : null}
+      >
         <ResourceIndicators
           momentum={state.resources.momentum}
           threat={state.resources.threat}
           canCancelThreat={isPlayerTurn && !combatActionFor('cancelThreat').unavailableReason(state, active)}
           onCancelThreat={() => dispatch({ type: 'cancelThreat' })}
         />
-      </div>
-      <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
-      {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
-      {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
-      <div className="combat-top-right">
-        <button
-          type="button"
-          className="combat-button is-small"
-          aria-pressed={followCamera}
-          title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click or press Space to glide back to whoever is acting.'}
-          onClick={() => setFollowCamera(!followCamera)}
-        >
-          Camera: {followCamera ? 'Follow' : 'Free'}
-        </button>
-        <button type="button" className="combat-button is-small" onClick={() => setHelpOpen(true)}>
-          How to Play
-        </button>
-        <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={toggleDebug}>
-          Debug
-        </button>
-        <button type="button" className="combat-button is-small" onClick={onExit}>
-          Exit
-        </button>
-      </div>
-      <div className="combat-sidebar">
-        <SelectedCharacterPanel combatant={shownCharacter} />
-        <TargetPanel target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null} />
-        <TaskPanel
-          mode={mode}
-          isPlayerTurn={isPlayerTurn}
-          autoTurn={auto !== 'off' && isPlayerControlled(active)}
-          preview={preview}
-          movePath={movePath}
-          routeInCover={routeInCover}
-          assist={{ allies: assistAllies, allyId: assistAlly?.id ?? null, onAlly: setAssistAllyId, helper: assistHelper }}
-          ambush={ambushPreview}
-          confirm={confirm}
-          dicePurchase={{ resources: state.resources, value: purchase, onChange: setDicePurchase }}
-          combatTask={combatTask}
-          confirmLabel={taskConfirmLabel}
-          attackMode={attackMode}
-          dev={debugOpen ? { actorName: active.character.name, purchase: purchaseCheck } : null}
-          rolling={Boolean(state.pending)}
-          aiTurn={auto !== 'off' && !isPlayerTurn && !state.outcome ? aiTurnTask(state, active) : null}
-        />
-        <EndTurnButton
-          enabled={isPlayerTurn && availability.endTurn}
-          autoEndMs={turnUsedUp && !helpOpen ? autoEndMs : null}
-          onEnd={() => selectAction('endTurn')}
-        />
-      </div>
+        <div className="combat-minimap-toolbar" aria-label="Combat controls">
+          <button
+            type="button"
+            className="combat-button is-small"
+            aria-pressed={followCamera}
+            title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click or press Space to glide back to whoever is acting.'}
+            onClick={() => setFollowCamera(!followCamera)}
+          >
+            Camera: {followCamera ? 'Follow' : 'Free'}
+          </button>
+          <button type="button" className="combat-button is-small" onClick={() => setHelpOpen(true)}>
+            How to Play
+          </button>
+          <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={toggleDebug}>
+            Debug
+          </button>
+          <button type="button" className="combat-button is-small" onClick={onExit}>
+            Exit
+          </button>
+        </div>
+        <div className="combat-sidebar">
+          <SelectedCharacterPanel combatant={shownCharacter} />
+          <TargetPanel target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null} />
+          <TaskPanel
+            mode={mode}
+            isPlayerTurn={isPlayerTurn}
+            autoTurn={auto !== 'off' && isPlayerControlled(active)}
+            preview={preview}
+            movePath={movePath}
+            routeInCover={routeInCover}
+            assist={{ allies: assistAllies, allyId: assistAlly?.id ?? null, onAlly: setAssistAllyId, helper: assistHelper }}
+            ambush={ambushPreview}
+            confirm={confirm}
+            dicePurchase={{ resources: state.resources, value: purchase, onChange: setDicePurchase }}
+            combatTask={combatTask}
+            confirmLabel={taskConfirmLabel}
+            attackMode={attackMode}
+            dev={debugOpen ? { actorName: active.character.name, purchase: purchaseCheck } : null}
+            rolling={Boolean(state.pending)}
+            aiTurn={auto !== 'off' && !isPlayerTurn && !state.outcome ? aiTurnTask(state, active) : null}
+          />
+          <EndTurnButton
+            enabled={isPlayerTurn && availability.endTurn}
+            autoEndMs={turnUsedUp && !helpOpen ? autoEndMs : null}
+            onEnd={() => selectAction('endTurn')}
+          />
+        </div>
+      </Minimap>
+      <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
+        weapons={partyWeapons}
+        onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
+      />
       <div className="combat-bottom-left">
         {hint && (showHints || ambusher) && (
           <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintTextShown ? '' : ' is-controls-only'}${hintFaded && !ambusher ? ' is-faded-out' : ''}`} aria-live="polite">
@@ -615,10 +641,6 @@ export function Battle({
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
         <div className="combat-bottom-row">
-          <PartyBar party={party} activeId={active.id} selectedId={selectedId} turnInfo={turnInfo} onSelect={selectPartyMember} recommendation={combatTask?.recommendation ?? null}
-            weapons={partyWeapons}
-            onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
-          />
           {!state.outcome && (
             <AutoCombatControls
               auto={auto}

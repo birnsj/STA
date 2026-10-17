@@ -60,8 +60,8 @@ export function roomAround(tiles, start) {
   return queue
 }
 
-// Room floor around a point that may itself be a solid prop (crate, console): try the point, then its orthogonal
-// neighbours, so an Environmental Control standing on the wall can still name its room.
+// Room floor around a point that may itself be a solid wall or prop: try the point, then its orthogonal neighbours,
+// so an Environmental Control wall panel can still name the room beside it.
 export function roomAroundProp(tiles, origin) {
   const direct = roomAround(tiles, origin)
   if (direct) return direct

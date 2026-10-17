@@ -608,15 +608,9 @@
   color: var(--text-muted);
 }
 
-/* Top-left: objectives, Momentum/Threat */
+/* Top-left HUD moved into the minimap column (matches exploration). */
 .combat-top-left {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: none;
 }
 
 .objectives-list {
@@ -849,12 +843,12 @@
   text-transform: uppercase;
 }
 
-/* Turn order strip */
+/* Turn order strip: clear of the party rail and the minimap column. */
 .turn-strip {
   position: absolute;
   top: 8px;
-  left: 250px;
-  right: 230px;
+  left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
+  right: calc(8px + var(--explore-minimap-size, 240px) + 12px);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -896,18 +890,27 @@
 }
 
 .combat-top-right {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  display: none;
+}
+
+/* Camera / Help / Debug / Exit under Momentum, matching exploration's minimap column stack. */
+.combat-minimap-toolbar {
   display: flex;
-  gap: 5px;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: var(--explore-minimap-size, 240px);
+  pointer-events: auto;
+}
+
+.combat-minimap-toolbar .combat-button {
+  flex: 1 1 auto;
 }
 
 .combat-hint {
   position: absolute;
   top: 66px;
-  left: 250px;
-  right: 180px;
+  left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
+  right: calc(8px + var(--explore-minimap-size, 240px) + 12px);
   margin: 0 auto;
   width: fit-content;
   max-width: 590px;
@@ -998,16 +1001,28 @@
   line-height: 1.35;
 }
 
-/* Right sidebar */
-.combat-sidebar {
-  position: absolute;
-  top: 38px;
-  right: 8px;
+/* Right column stretches under the minimap (sidebar is a child of .explore-minimap-column). */
+.combat-screen .explore-minimap-column {
   bottom: 8px;
-  width: 158px;
+}
+
+.combat-screen .explore-minimap-column .combat-sidebar {
+  pointer-events: auto;
+}
+
+/* Right sidebar: under Momentum / toolbar, same width as the readout. */
+.combat-sidebar {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: var(--explore-minimap-size, 240px);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow: auto;
 }
 
 .selected-panel {
@@ -1254,10 +1269,10 @@
   opacity: 0.35;
 }
 
-/* Party bar: bottom row. Fireteam A = full cards; Fireteam B = compact (designer 2026-10-16). */
+/* Hint / roll / Auto Combat: bottom-left, clear of the party rail. */
 .combat-bottom-left {
   position: absolute;
-  left: 8px;
+  left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
   bottom: 8px;
   display: flex;
   flex-direction: column;
@@ -1270,7 +1285,7 @@
   pointer-events: auto;
 }
 
-/* The hint sits in the column above the roll panel, or just above the party cards' row when no roll is shown. */
+/* The hint sits in the column above the roll panel. */
 .combat-bottom-left .combat-hint {
   position: static;
   align-self: center;
@@ -1289,11 +1304,27 @@
   overflow: visible;
 }
 
-/* Fireteam A on top, Fireteam B (5–8) on the bottom — two rows of up to four (designer 2026-10-16). */
-.party-bar.is-two-rows {
+/* Left vertical rail: same fixed card size as exploration, stacked from the top with a 4px gap. */
+.party-bar.is-left-rail {
+  --combat-party-rail-width: 178px;
+  --combat-party-hud-inset: 8px;
+  --combat-party-card-gap: 4px;
+  --combat-party-badge-rise: 9px;
+  --party-card-height: 54px;
+  position: absolute;
+  left: var(--combat-party-hud-inset);
+  top: var(--combat-party-hud-inset);
+  bottom: var(--combat-party-hud-inset);
+  z-index: 26;
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--combat-party-card-gap);
+  width: var(--combat-party-rail-width);
+  height: auto;
+  padding: var(--combat-party-badge-rise) 0 0;
+  box-sizing: border-box;
 }
 
 .party-fireteam {
@@ -1329,8 +1360,7 @@
   padding-left: 2px;
 }
 
-/* Both fireteams: exploration card size; the AI box beside the bar shares its height. */
-.combat-bottom-left .party-card,
+/* Auto Combat keeps a fixed control height; left-rail cards flex with the rail. */
 .auto-controls {
   --party-card-height: 75px;
 }
@@ -1338,18 +1368,44 @@
 .party-card-wrap {
   position: relative;
   flex: 0 0 auto;
+  overflow: visible;
 }
 
-.combat-bottom-left .party-card {
+.party-bar.is-left-rail .party-card-wrap {
+  flex: 0 0 auto;
+}
+
+.party-bar.is-left-rail .party-card {
   width: 178px;
   height: var(--party-card-height);
-  padding: 6px 10px 6px 6px;
+  flex: 0 0 auto;
+  padding: 3px 8px 3px 4px;
   overflow: hidden;
 }
 
-.combat-bottom-left .party-card .party-info {
+/* Info insignia sits on the card like exploration (explore-card-info-toggle). */
+.party-bar.is-left-rail .explore-card-info-toggle {
+  right: 5px;
+  bottom: 5px;
+}
+
+.party-bar.is-left-rail .party-card .party-info {
   flex: 1;
-  gap: 3px;
+  gap: 2px;
+}
+
+.party-bar.is-left-rail .party-portrait {
+  width: 36px;
+  height: 44px;
+}
+
+.party-bar.is-left-rail .party-name {
+  font-size: 11px;
+}
+
+.party-bar.is-left-rail .party-weapon,
+.party-bar.is-left-rail .party-move-left {
+  font-size: 9px;
 }
 
 /* One row along the card's top edge: Major / Minor and the condition tags on the left, the turn badge on the right.

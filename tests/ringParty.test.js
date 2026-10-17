@@ -1,5 +1,6 @@
 // The away team on the outer ring of an NPC's or a challenge object's radial menu (designer request 2026-10-11): who
-// could do the button last hovered and who is best at it, from the same recommendation the panels use.
+// could do the button last hovered and who is best at it, from the same recommendation the panels use. Only members
+// within interact range of the object or NPC appear on the band (designer 2026-10-16).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
@@ -11,11 +12,12 @@ import { makeCharacter } from './support/characters.js'
 
 const scientist = (id, equipment) => makeCharacter({ id, name: id, attributes: { reason: 12 }, disciplines: { science: 5 }, equipment })
 
+// Party stands next to the NPC so they are on its ring band (interact range is 2 tiles).
 function npcState() {
   const map = createBlankMap({ name: 'Ring Test Room', width: 16, height: 12 })
   map.markers.playerStarts = [
-    { x: 2, y: 5 },
-    { x: 2, y: 7 },
+    { x: 9, y: 6 },
+    { x: 9, y: 7 },
   ]
   map.markers.enemySpawns = [{ x: 10, y: 6 }]
   return createExplorationState(map, [scientist('alpha', [{ itemId: 'scienceTricorder' }]), scientist('beta', [])], 1, { enemiesActive: false })
@@ -24,11 +26,12 @@ function npcState() {
 const byId = (view) => Object.fromEntries(view.members.map((member) => [member.id, member]))
 
 describe('Ring party band (Prototype)', () => {
-  it('NPC Scan: only those who can scan the NPC are judged; the best gets the star', () => {
+  it('NPC Scan: only those in range appear; among them, only those who can scan are judged; the best gets the star', () => {
     const state = npcState()
     const npcId = Object.keys(state.world.npcs)[0]
     const view = ringPartyView(state, { npcId }, 'scan')
     const { alpha, beta } = byId(view)
+    assert.equal(view.members.length, 2)
     assert.equal(view.hasTask, true)
     assert.equal(alpha.available, true)
     assert.equal(alpha.possible, true)
@@ -39,12 +42,25 @@ describe('Ring party band (Prototype)', () => {
     assert.equal(beta.targetNumber, null)
   })
 
-  it('Info, Go To, Use Item and no button hovered: no comparison', () => {
+  it('NPC band omits members out of interact range', () => {
+    const state = npcState()
+    const npcId = Object.keys(state.world.npcs)[0]
+    const far = { ...state.party.members.beta, position: { x: 1, y: 1 } }
+    const moved = { ...state, party: { ...state.party, members: { ...state.party.members, beta: far } } }
+    const view = ringPartyView(moved, { npcId }, 'scan')
+    assert.deepEqual(
+      view.members.map((member) => member.id),
+      ['alpha'],
+    )
+  })
+
+  it('Info, Go To, Use Item and no button hovered: no comparison; only in-range members listed', () => {
     const state = npcState()
     const npcId = Object.keys(state.world.npcs)[0]
     for (const buttonId of ['info', 'goTo', 'useItem', null]) {
       const view = ringPartyView(state, { npcId }, buttonId)
       assert.equal(view.hasTask, false, String(buttonId))
+      assert.equal(view.members.length, 2)
       assert.ok(view.members.every((member) => member.available && member.targetNumber === null && !member.best))
     }
   })
@@ -52,8 +68,8 @@ describe('Ring party band (Prototype)', () => {
   it('Talk ranks on Presence + Command and Attack on Control + Security; the pick, else the best, performs', () => {
     const map = createBlankMap({ name: 'Ring Test Room', width: 16, height: 12 })
     map.markers.playerStarts = [
-      { x: 2, y: 5 },
-      { x: 2, y: 7 },
+      { x: 9, y: 6 },
+      { x: 9, y: 7 },
     ]
     map.markers.enemySpawns = [{ x: 10, y: 6 }]
     const talker = makeCharacter({ id: 'talker', name: 'Talker', attributes: { presence: 12, control: 7 }, disciplines: { command: 5, security: 1 } })
@@ -66,7 +82,7 @@ describe('Ring party band (Prototype)', () => {
     assert.equal(npcButtonPerformer(state, npcId, 'attack', 'talker'), 'talker')
   })
 
-  it('object approach: members out of reach are left out; the rest match the object recommendation', () => {
+  it('object approach: members out of reach are omitted; the rest match the object recommendation', () => {
     const team = [
       makeCharacter({ id: 'alpha', name: 'Alpha', attributes: { control: 11, reason: 10 }, disciplines: { engineering: 4 }, equipment: [{ itemId: 'engineeringToolkit' }] }),
       makeCharacter({ id: 'beta', name: 'Beta', attributes: { daring: 11 }, disciplines: { security: 4 } }),
@@ -84,8 +100,11 @@ describe('Ring party band (Prototype)', () => {
     const expected = objectFor(state.scenario, definition.id).recommend(state, action.id, ['alpha', 'gamma'])
     const entries = byId(view)
     assert.equal(view.hasTask, true)
-    assert.equal(entries.beta.available, false)
-    assert.equal(entries.beta.reason, 'Not close enough.')
+    assert.equal(entries.beta, undefined)
+    assert.deepEqual(
+      view.members.map((member) => member.id).sort(),
+      ['alpha', 'gamma'],
+    )
     for (const id of ['alpha', 'gamma']) {
       assert.equal(entries[id].available, true)
       assert.equal(entries[id].targetNumber, expected.entries[id].targetNumber)

@@ -39,8 +39,9 @@ function CardDetails({ character, condition }) {
   )
 }
 
-// The Starfleet delta on the card's info button.
-const INSIGNIA_PATH = 'M12 2C15 8 17 15 18.5 22C15.8 19.2 14 18.2 12 18.2C10 18.2 8.2 19.2 5.5 22C7 15 9 8 12 2Z'
+// The Starfleet delta on the card's info button (shared with the combat party bar).
+export const CARD_INFO_INSIGNIA = 'M12 2C15 8 17 15 18.5 22C15.8 19.2 14 18.2 12 18.2C10 18.2 8.2 19.2 5.5 22C7 15 9 8 12 2Z'
+const INSIGNIA_PATH = CARD_INFO_INSIGNIA
 
 // A shield, for Protection.
 const SHIELD_PATH = 'M12 2L20 5V11C20 16.2 16.6 20.2 12 22C7.4 20.2 4 16.2 4 11V5Z'
@@ -85,9 +86,9 @@ function NameList({ groups }) {
   )
 }
 
-// The rest, in a panel above the card that its info button opens and closes: a fixed size, so everything that
-// matters in play fits in it. The Values button swaps the stats for the Values (and back).
-function CardInfoPanel({ character, condition }) {
+// The rest, in a panel beside the card that its info button opens and closes: a fixed size, so everything that
+// matters in play fits in it. The Values button swaps the stats for the Values (and back). Shared with combat.
+export function CardInfoPanel({ character, condition }) {
   const { protection, rankRole } = useMemo(() => cardFacts(character), [character])
   // UI state: whether the Values show in place of the stats.
   const [valuesOpen, setValuesOpen] = useState(false)
@@ -179,16 +180,19 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
   const { teamA, teamB } = splitFireteams(members.map((member) => member.id))
   const byId = Object.fromEntries(members.map((member) => [member.id, member]))
   const indexOf = (id) => members.findIndex((member) => member.id === id) + 1
+  // Top-half cards open the details panel downward (flush with the card top); bottom-half open upward.
+  const openDown = (id) => members.findIndex((member) => member.id === id) < Math.ceil(members.length / 2)
   const renderCard = (id, { fireteamB = false } = {}) => {
     const member = byId[id]
     const selected = selectedIds.includes(id)
     const lead = id === leaderId
     const best = Boolean(recommendation?.bestIds.includes(id))
     const infoOpen = infoId === id
+    const infoDown = openDown(id)
     const condition = normalizeCondition(member.condition)
     const speciesLine = cardFacts(member.character).speciesLine
     return (
-      <div key={id} className={`explore-card-wrap${infoOpen ? ' is-info-open' : ''}`}>
+      <div key={id} className={`explore-card-wrap${infoOpen ? ' is-info-open' : ''}${infoDown ? ' is-info-down' : ' is-info-up'}`}>
         {infoOpen && <CardInfoPanel character={member.character} condition={condition} />}
         <button
           type="button"
@@ -212,7 +216,7 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
         <div className="explore-card-badges">
           <ConditionIcons condition={condition} />
           <PartyTaskTag recommendation={recommendation} memberId={id} />
-          {selected && lead && <span className="party-turn-badge is-acting">Lead</span>}
+          {lead && <span className="party-turn-badge is-acting">Lead</span>}
           {several && selected && !lead && (
             <button type="button" className="explore-make-lead is-chip" title={`${member.character.name} leads the selected characters`} onClick={() => onSetLeader(id)}>
               Make Lead
@@ -234,16 +238,11 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
       </div>
     )
   }
+  // Left vertical rail: A then B in pick order, spaced evenly top-to-bottom (designer 2026-10-16).
   return (
-    <div className={`party-bar explore-party-bar${teamB.length ? ' is-two-rows' : ''}`}>
-      <div className="party-fireteam is-a" aria-label="Fireteam A">
-        {teamA.map((id) => renderCard(id))}
-      </div>
-      {teamB.length > 0 && (
-        <div className="party-fireteam is-b" aria-label="Fireteam B">
-          {teamB.map((id) => renderCard(id, { fireteamB: true }))}
-        </div>
-      )}
+    <div className="party-bar explore-party-bar is-left-rail" aria-label="Away team">
+      {teamA.map((id) => renderCard(id))}
+      {teamB.map((id) => renderCard(id, { fireteamB: true }))}
     </div>
   )
 }, sameBar)

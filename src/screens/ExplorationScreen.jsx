@@ -441,11 +441,14 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         button.onClick?.()
       },
     }))
+  // Party band: only members within interact range of the NPC (ringParty.js); slices with no shot at a task stay
+  // visible but unavailable.
+  const npcBand = menuNpc ? ringPartyBand(state, { npcId: menuNpc.id }, npcButtons, hoveredRingButton, pickedId, pickRingMember) : null
   const npcMenu = menuNpc && {
     npcId: menuNpc.id,
     info: npcInfoOpen ? npcInfo(state, menuNpc) : null,
     buttons: npcButtons,
-    party: ringPartyBand(state, { npcId: menuNpc.id }, npcButtons, hoveredRingButton, pickedId, pickRingMember),
+    party: npcBand,
     onButtonHover: hoverRingButton,
   }
   const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
@@ -494,11 +497,15 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // stays up after a shot so the player can fire again.
   const destructibleButtons =
     menuDestructible && destructibleMenuButtons(state, menuDestructible.id, (memberId) => dispatch({ type: 'fireOnObject', memberId, objectId: menuDestructible.id }), pickedId)
+  const destructibleBand = menuDestructible
+    ? ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, 'fire', pickedId, pickRingMember)
+    : null
   const destructibleMenu = menuDestructible && {
     position: menuDestructible.position,
     buttons: destructibleButtons,
     info: destructibleInfo(state, menuDestructible.id),
-    party: ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, 'fire', pickedId, pickRingMember),
+    // Only members who currently have a shot (weapon range / line of fire).
+    party: destructibleBand && { ...destructibleBand, slices: destructibleBand.slices.filter((slice) => slice.available) },
     onButtonHover: hoverRingButton,
   }
   const objectMenu = menuObject && {
