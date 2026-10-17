@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { isPlayerControlled } from '../actors/controllers.js'
 import { playBeamOutSound } from '../audio/uiSounds.js'
 import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
+import { canHandTurn, combatRingPartyBand, combatRingPartyView } from '../combat/combatRingParty.js'
 import {
   SOCIAL_KINDS,
   awaitingDecision,
@@ -13,8 +15,10 @@ import {
   getActiveCombatant,
   isActive,
   isTurnFinished,
+  previewAmbush,
   rollAwaitsPlayer,
 } from '../combat/combatState.js'
+import BonusDicePicker from '../components/BonusDicePicker.jsx'
 import { buildCombatView } from '../combat/combatView.js'
 import { standingObjects } from '../combat/combatEnvironment.js'
 import { DEFAULT_ENCOUNTER_ID } from '../combat/encounters.js'
@@ -138,6 +142,10 @@ export function Battle({
   // object), and whether its Info card is open.
   const [ringId, setRingId] = useState(null)
   const [ringInfo, setRingInfo] = useState(false)
+  // Party band on combat rings (like exploration): who is picked, which action button is hovered, slot for bonus dice.
+  const [ringPick, setRingPick] = useState(null)
+  const [ringHover, setRingHover] = useState(null)
+  const [rollSlot, setRollSlot] = useState(null)
   const [destination, setDestination] = useState(null)
   const [assistAllyId, setAssistAllyId] = useState(null)
   const [hoverTile, setHoverTile] = useState(null)
@@ -177,6 +185,8 @@ export function Battle({
     setDestination(null)
     setRingId(null)
     setRingInfo(false)
+    setRingPick(null)
+    setRingHover(null)
     setDicePurchase({ bonusDice: 0, momentum: 0 })
     setTaskPick(null)
     if (isPlayerControlled(active)) setTargetId(nearestOpponentId(state, active))
@@ -203,15 +213,31 @@ export function Battle({
     // fireAttack is defined further down, so it is looked up when Fire is pressed, not now.
     fireAttack: (enemyId, injuryMode) => fireAttack(enemyId, injuryMode),
   })
-  const openTask = (taskMode, pick = null) => {
+  // Keep the ring open so the party band and Roll arc can commit the task (no Task-panel Confirm).
+  const openTask = (taskMode, pick = null, { keepObjectRing = null } = {}) => {
     setMode(taskMode)
     setTaskPick(pick)
     setDestination(null)
-    closeRing()
+    setRingHover(null)
+    if (keepObjectRing) {
+      setRingId(`object:${keepObjectRing}`)
+      setRingPick(active.id)
+      return
+    }
+    setRingId(active.id)
+    if (taskMode === 'guard') setRingPick(pick ?? active.id)
+    else if (taskMode === 'firstAid') setRingPick(pick ?? (firstAidOptions[0] ? `${firstAidOptions[0].target.id}:${firstAidOptions[0].mode}` : null))
+    else if (taskMode === 'direct') setRingPick(pick ?? directAllies[0]?.id ?? null)
+    else if (taskMode === 'assist') setRingPick(pick ?? (assistAllies.length === 1 ? assistAllies[0].id : null))
+    else setRingPick(active.id)
+    if (taskMode === 'assist') setAssistAllyId(pick ?? (assistAllies.length === 1 ? assistAllies[0].id : null))
   }
   const closeRing = () => {
     setRingId(null)
     setRingInfo(false)
+    setRingPick(null)
+    setRingHover(null)
+    setRollSlot(null)
   }
 
   const selectAction = (id) => {
@@ -222,49 +248,59 @@ export function Battle({
     setMode(mode === id ? 'none' : id)
     setDestination(null)
     setAssistAllyId(id === 'assist' && assistAllies.length === 1 ? assistAllies[0].id : null)
-    closeRing()
+    if (id === 'assist') openTask('assist')
+    else closeRing()
   }
 
+  const assistTargetId = mode === 'assist' ? (taskPick ?? assistAllyId ?? ringPick) : null
+  const moveArmed = (mode === 'move' || mode === 'sprint' || mode == null || mode === 'none') && Boolean(movePath) && Boolean(moveKind)
   const confirmations = {
     move: { enabled: Boolean(movePath) && availability.move, run: () => dispatch({ type: 'move', destination: movePath[movePath.length - 1] }) },
     sprint: { enabled: Boolean(movePath) && availability.sprint, run: () => dispatch({ type: 'sprint', destination: movePath[movePath.length - 1] }) },
-    assist: { enabled: Boolean(assistAlly) && availability.assist, run: () => dispatch({ type: 'assist', allyId: assistAlly.id }) },
+    assist: {
+      enabled: Boolean(assistTargetId) && canAssist(state, active, state.combatants[assistTargetId]) && availability.assist,
+      run: () => dispatch({ type: 'assist', allyId: assistTargetId }),
+    },
+    ambush: {
+      enabled: Boolean(taskPick) && previewAmbush(state, taskPick).available,
+      run: () => dispatch({ type: 'ambush', targetId: taskPick }),
+    },
     ...(taskConfirm ? { [mode]: taskConfirm } : {}),
   }
-  const confirmation = confirmations[mode]
-  // Move and Sprint commit by clicking a tile, so Confirm is only shown for a task being set up (or Assist's ally pick).
+  const confirmation = moveArmed ? confirmations[moveKind] : confirmations[mode]
+  // Roll arc on the party band commits armed tasks (including Move / Sprint once a path is set).
   const confirm = {
-    shown: Boolean(taskConfirm) || mode === 'assist',
+    shown: Boolean(taskConfirm) || mode === 'assist' || mode === 'ambush' || moveArmed,
     enabled: Boolean(confirmation?.enabled),
+    label:
+      taskConfirmLabel ??
+      (mode === 'assist' ? 'Assist' : mode === 'ambush' ? 'Ambush' : moveArmed ? (moveKind === 'sprint' ? 'Sprint' : 'Move') : 'Confirm'),
     onConfirm: () => {
-      confirmation.run()
+      confirmation?.run()
       setMode(null)
       setDestination(null)
       setTaskPick(null)
-      if (taskConfirm) setDicePurchase({ bonusDice: 0, momentum: 0 })
+      setAssistAllyId(null)
+      setRingPick(null)
+      if (taskConfirm || mode === 'scan' || mode === 'scanObject' || SOCIAL_KINDS.includes(mode)) setDicePurchase({ bonusDice: 0, momentum: 0 })
       closeRing()
     },
   }
 
-  // With Move selected (the default), clicking a reachable tile moves there at once.
-  // Prototype: a finger has no hover preview, so on touch the first tap shows the path and a second tap on the same
-  // tile moves; a mouse click moves at once.
-  const handleTileClick = (tile, { touch = false } = {}) => {
-    // With buttons shown around a unit, or a firing mode chosen, a click on the floor just puts them away (back to Move).
-    if (ring || mode === 'ambush' || attackMode) {
+  // With Move / Sprint, clicking a reachable tile only sets the path; the Roll (Move) arc on the self ring commits.
+  const handleTileClick = (tile) => {
+    // A non-move ring or armed attack/ambush: floor click dismisses it.
+    if (mode === 'ambush' || attackMode || (ringId && ringId !== active.id)) {
       closeRing()
       setMode(null)
       return
     }
     if (!moveKind || !availability[moveKind] || !reachable?.has(tileKey(tile)) || samePosition(tile, active.position)) return
-    if (touch && !(destination && samePosition(destination, tile))) {
-      setDestination(tile)
-      return
-    }
-    dispatch({ type: moveKind, destination: tile })
-    setMode(null)
-    setDestination(null)
-    closeRing()
+    setDestination(tile)
+    setRingId(active.id)
+    setRingInfo(false)
+    setRingPick(active.id)
+    if (mode !== 'sprint') setMode(moveKind)
   }
 
   // During the party's turn, picking a party member who can still act hands them the turn.
@@ -298,7 +334,53 @@ export function Battle({
     setSelectedId(id)
   }
 
+  // Party band pick: for performer rings, hand them the turn when they can still act; for Guard / First Aid / Direct /
+  // Assist the pick is the target (synced into taskPick for the Roll arc).
+  const pickRingMember = (id) => {
+    const next = id === ringPick ? null : id
+    setRingPick(next)
+    if (mode === 'guard' || mode === 'firstAid' || mode === 'direct' || mode === 'assist') {
+      setTaskPick(next)
+      if (mode === 'assist') setAssistAllyId(next)
+      return
+    }
+    if (next && canHandTurn(state, active, next)) {
+      dispatch({ type: 'selectCombatant', combatantId: next })
+      setSelectedId(null)
+    }
+  }
+
   const canOpenSelfRing = isPlayerTurn && !state.pending && (!turnUsedUp || extraBuyable)
+
+  const hoverRingButton = (buttonId) => setRingHover(buttonId)
+
+  // Party band + Roll arc for the open ring (exploration pattern).
+  const buildRingParty = (context, { buttonLabel = null, roll = null, pulseSlices = false } = {}) => {
+    const view = combatRingPartyView(state, context)
+    const helperId = context.kind === 'enemy' || context.kind === 'self' || context.kind === 'destructible' ? state.assists[active.id] ?? null : null
+    const band = combatRingPartyBand(view, {
+      pickedId: ringPick,
+      onPick: pickRingMember,
+      helperId,
+      buttonLabel,
+    })
+    const picked = ringPick && band.slices.some((slice) => slice.id === ringPick && slice.available)
+    return {
+      ...band,
+      pulse: pulseSlices && !picked,
+      roll: roll && picked ? { ...roll, pulse: roll.enabled } : roll && !view.members.length ? roll : picked ? roll : null,
+    }
+  }
+
+  const ringRoll = confirm.shown
+    ? {
+        icon: moveArmed || (mode === 'interact' && combatTask?.routine) ? 'check' : 'roll',
+        label: moveArmed || (mode === 'interact' && combatTask?.routine) ? confirm.label : null,
+        title: confirm.enabled ? `${confirm.label}: commit this action.` : `${confirm.label}: not ready.`,
+        enabled: confirm.enabled,
+        onClick: confirm.onConfirm,
+      }
+    : null
 
   // On the player's turn, clicking an enemy or party member shows action buttons around them (a second click puts them
   // away). An enemy becomes the target with its attack previewed; a party member gets Assist / Switch (or their own
@@ -338,6 +420,8 @@ export function Battle({
       if (canAssist(state, active, unit)) {
         setMode('assist')
         setAssistAllyId(id)
+        setTaskPick(id)
+        setRingPick(id)
       } else {
         setAssistAllyId(null)
       }
@@ -399,26 +483,142 @@ export function Battle({
   const ringShown = isPlayerTurn && ringUnit && isActive(ringUnit) && !state.pending && (!turnUsedUp || (extraBuyable && ringUnit.id === active.id))
   let ring = null
   if (ringShown && ringUnit.id === active.id) {
-    ring = { unitId: ringUnit.id, buttons: selfRingButtons(), info: null }
+    const buttons = selfRingButtons()
+    const armed =
+      mode === 'guard' ||
+      mode === 'firstAid' ||
+      mode === 'direct' ||
+      mode === 'assist' ||
+      mode === 'interact' ||
+      Boolean(attackMode) ||
+      moveArmed
+    const kind = mode === 'guard' || mode === 'firstAid' || mode === 'direct' || mode === 'assist' ? mode : 'self'
+    const hovered = ringHover ?? (moveArmed ? moveKind : armed ? mode : null)
+    const button = buttons.find((entry) => entry.id === hovered) ?? buttons.find((entry) => entry.active)
+    ring = {
+      unitId: ringUnit.id,
+      buttons: buttons.map((entry) => ({ ...entry, pulse: !armed && entry.enabled && !entry.active })),
+      info: null,
+      party: buildRingParty(
+        {
+          kind,
+          buttonId: kind === 'self' ? hovered : null,
+          actorId: active.id,
+          guardTargets,
+          firstAidOptions,
+          directAllies,
+          assistAllies,
+          objects,
+        },
+        { buttonLabel: button?.label ?? (moveArmed ? confirm.label : null), roll: ringRoll, pulseSlices: armed && !ringPick },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: confirm.shown ? setRollSlot : undefined,
+    }
   } else if (ringShown && ringUnit.side !== active.side && mode === 'ambush') {
-    ring = { unitId: ringUnit.id, buttons: ambushRingButtons(ringUnit), info: null }
-  } else if (ringShown && ringUnit.side !== active.side && (mode === 'attack' || mode === 'scan' || SOCIAL_KINDS.includes(mode)) && target?.id === ringUnit.id) {
-    ring = { unitId: ringUnit.id, buttons: enemyRingButtons(ringUnit), info: ringInfo ? enemyRingInfo(ringUnit) : null }
+    const buttons = ambushRingButtons(ringUnit)
+    ring = {
+      unitId: ringUnit.id,
+      buttons,
+      info: null,
+      party: buildRingParty(
+        { kind: 'enemy', buttonId: 'ambush', enemyId: ringUnit.id },
+        { buttonLabel: 'Ambush', roll: ringRoll, pulseSlices: !ringPick },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: confirm.shown ? setRollSlot : undefined,
+    }
+  } else if (ringShown && ringUnit.side !== active.side && (mode === 'attack' || mode === 'scan' || SOCIAL_KINDS.includes(mode) || mode === 'ambush') && (target?.id === ringUnit.id || mode === 'ambush')) {
+    const buttons = enemyRingButtons(ringUnit)
+    const hovered = ringHover ?? (mode === 'scan' || SOCIAL_KINDS.includes(mode) ? mode : attackMode)
+    const button = buttons.find((entry) => entry.id === hovered) ?? buttons.find((entry) => entry.active)
+    const armed = mode === 'scan' || SOCIAL_KINDS.includes(mode) || Boolean(attackMode)
+    ring = {
+      unitId: ringUnit.id,
+      buttons: buttons.map((entry) => ({ ...entry, pulse: !armed && entry.enabled && !entry.active })),
+      info: ringInfo ? enemyRingInfo(ringUnit) : null,
+      party: buildRingParty(
+        { kind: 'enemy', buttonId: hovered, enemyId: ringUnit.id, weaponId: weapon.id },
+        { buttonLabel: button?.label ?? null, roll: ringRoll, pulseSlices: armed && !ringPick },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: confirm.shown ? setRollSlot : undefined,
+    }
   } else if (ringShown && ringUnit.side === active.side && ringUnit.id !== active.id) {
-    ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
+    const buttons = allyRingButtons(ringUnit)
+    const assistArmed = mode === 'assist' && (taskPick === ringUnit.id || ringPick === ringUnit.id)
+    ring = {
+      unitId: ringUnit.id,
+      buttons,
+      info: null,
+      party: buildRingParty(
+        { kind: 'assist', assistAllies: [active] },
+        { buttonLabel: 'Assist', roll: assistArmed ? ringRoll : null, pulseSlices: false },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: assistArmed ? setRollSlot : undefined,
+    }
   } else if (ringObject && isPlayerTurn && !state.pending) {
-    ring = { position: ringObject.position, buttons: objectRingButtons(ringObject.id), info: null }
+    const buttons = objectRingButtons(ringObject.id)
+    const armed = mode === 'interact' && String(taskPick ?? '').startsWith(`${ringObject.id}:`)
+    const actionId = armed ? String(taskPick).slice(ringObject.id.length + 1) : ringHover
+    const button = buttons.find((entry) => entry.id === actionId) ?? buttons.find((entry) => entry.active)
+    ring = {
+      position: ringObject.position,
+      buttons: buttons.map((entry) => ({ ...entry, pulse: !armed && entry.enabled && !entry.active })),
+      info: null,
+      party: buildRingParty(
+        { kind: 'object', buttonId: actionId, objectId: ringObject.id, objects },
+        { buttonLabel: button?.label ?? null, roll: armed ? ringRoll : null, pulseSlices: armed && !ringPick },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: armed ? setRollSlot : undefined,
+    }
   } else if (ringDestructible && isPlayerTurn && !state.pending) {
-    // Scan setup keeps the card open (same pattern as an enemy Scan); otherwise the Structure card stays beside Fire.
+    const buttons = destructibleRingButtons(ringDestructible.id)
     const showDestructibleInfo = ringInfo || mode !== 'scanObject'
+    const hovered = ringHover ?? (mode === 'scanObject' ? 'scan' : 'fire')
+    const button = buttons.find((entry) => entry.id === hovered)
+    const armed = mode === 'scanObject' && taskPick === ringDestructible.id
     ring = {
       position: ringDestructible.position,
-      buttons: destructibleRingButtons(ringDestructible.id),
+      buttons: buttons.map((entry) => ({ ...entry, pulse: !armed && entry.id === 'scan' && entry.enabled && !entry.active })),
       info: showDestructibleInfo ? destructibleRingInfo(ringDestructible.id) : null,
+      party: buildRingParty(
+        { kind: 'destructible', buttonId: hovered, destructibleId: ringDestructible.id, weaponId: weapon.id },
+        { buttonLabel: button?.label ?? null, roll: armed ? ringRoll : null, pulseSlices: armed && !ringPick },
+      ),
+      onButtonHover: hoverRingButton,
+      slotRef: armed ? setRollSlot : undefined,
     }
   } else if (auto !== 'off' && !state.outcome) {
     ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
   }
+
+  // Default the party-band pick when a ring opens; keep taskPick in sync for Guard / First Aid / Direct / Assist.
+  useEffect(() => {
+    if (!isPlayerTurn || !ringId) return
+    if (ringPick != null) return
+    if (mode === 'assist' && ringUnit && ringUnit.side === active.side && ringUnit.id !== active.id) {
+      setRingPick(ringUnit.id)
+      return
+    }
+    if (mode === 'guard' || mode === 'firstAid' || mode === 'direct') return
+    setRingPick(active.id)
+  }, [isPlayerTurn, ringId, ringPick, mode, ringUnit, active.id, active.side])
+  useEffect(() => {
+    if (!isPlayerTurn || !ringPick) return
+    if (mode === 'guard' || mode === 'firstAid' || mode === 'direct') {
+      if (taskPick !== ringPick) setTaskPick(ringPick)
+    }
+    if (mode === 'assist') {
+      if (assistAllyId !== ringPick) setAssistAllyId(ringPick)
+      if (taskPick !== ringPick) setTaskPick(ringPick)
+    }
+  }, [isPlayerTurn, ringPick, mode, taskPick, assistAllyId])
+  useEffect(() => {
+    if (!confirm.shown) setRollSlot(null)
+  }, [confirm.shown])
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
@@ -654,6 +854,19 @@ export function Battle({
         weapons={partyWeapons}
         onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
       />
+      {rollSlot &&
+        confirm.shown &&
+        isPlayerTurn &&
+        !state.pending &&
+        ((mode === 'attack' && preview?.available) ||
+          Boolean(combatTask?.task?.available && combatTask.task?.prepared) ||
+          mode === 'scan' ||
+          mode === 'scanObject' ||
+          SOCIAL_KINDS.includes(mode)) &&
+        createPortal(
+          <BonusDicePicker resources={state.resources} value={purchase} onChange={setDicePurchase} />,
+          rollSlot,
+        )}
       <div className="combat-bottom-left">
         {hint && showHints && (
           <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintFaded ? ' is-faded-out' : ''}`} aria-live="polite">

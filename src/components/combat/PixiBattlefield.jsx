@@ -438,6 +438,9 @@ export default function PixiBattlefield(props) {
             position={ring.position ?? shownPosition(state.combatants[ring.unitId])}
             buttons={ring.buttons}
             info={ring.info}
+            party={ring.party ?? null}
+            onButtonHover={ring.onButtonHover}
+            slotRef={ring.slotRef}
             placement="top"
             prominent
             onPointerEnter={mouseOnly(() => onRingHover(true))}

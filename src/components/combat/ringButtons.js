@@ -69,22 +69,29 @@ export default function createRingButtons({
   setTaskPick,
   taskPick,
 }) {
+  // Ambush sets up on the ring; the Roll arc commits it (no Task-panel Confirm).
   const ambushRingButtons = (enemy) => {
     const ambush = previewAmbush(state, enemy.id)
     const percent = `${Math.round(ambush.chance * 100)}%`
+    const setUp = mode === 'ambush' && taskPick === enemy.id
     return [
       {
         id: 'ambush',
         label: `Ambush (free) ${percent}`,
         icon: 'ambush',
-        enabled: ambush.available,
+        enabled: ambush.available || setUp,
+        active: setUp,
         title: ambush.available
           ? `${ambush.ambusher.character.name} ambushes ${enemy.character.name}: TN ${ambush.task.targetNumber}, Difficulty 1, ${percent} chance. Success: an automatic hit (an Injury). Failure: the Klingons act first.`
           : ambush.reason,
         onClick: () => {
-          dispatch({ type: 'ambush', targetId: enemy.id })
-          closeRing()
-          setMode(null)
+          if (setUp) {
+            setMode(null)
+            setTaskPick(null)
+            return
+          }
+          setMode('ambush')
+          setTaskPick(enemy.id)
         },
       },
     ]
@@ -93,23 +100,28 @@ export default function createRingButtons({
   const aimEffect = aimRerollsFor(weapon) > 1 ? `may reroll up to two dice on the next attack this turn (${weapon.name} is Accurate)` : AIM_TEXT
   const aimTitle = state.turn.aimReroll ? `Aimed: you ${aimEffect}.` : `Aim (${typeName('aim')} action): you ${aimEffect}.`
 
-  // Scan shows what is in plain view at once; on an enemy not yet scanned it also sets up the Scan task (Confirm rolls it).
+  // Scan shows what is in plain view at once; on an enemy not yet scanned it sets up the Scan task (Roll arc commits).
   // Once scanned, it only shows and hides the card, which then holds everything the scan found.
   const scanButton = (enemy) => {
     const scanned = isScanned(state, enemy.id)
-    const setUp = mode === 'scan' && ringInfo
+    const setUp = mode === 'scan' && taskPick === enemy.id
     const scanTask = !scanned && previewScan(state, active.id, enemy.id)
     return {
       enabled: true,
-      active: ringInfo,
+      active: setUp || (scanned && ringInfo),
       ...(scanTask ? { details: taskDetails(scanTask.task) } : {}),
       title: scanned
         ? 'Show what the scan found: Protection, weapons and tactics.'
         : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows its Protection, weapons and tactics for the rest of the fight.`,
       onClick: () => {
-        if (scanned || setUp) {
+        if (scanned) {
           setRingInfo(!ringInfo)
-          if (setUp) setMode('attack')
+          return
+        }
+        if (setUp) {
+          setMode('attack')
+          setTaskPick(null)
+          setRingInfo(false)
           return
         }
         setMode('scan')
@@ -119,7 +131,7 @@ export default function createRingButtons({
     }
   }
 
-  // Persuade / Intimidate set up the task on this enemy (Confirm rolls it); pressing the lit button again cancels.
+  // Persuade / Intimidate set up the task on this enemy (Roll arc commits); pressing the lit button again cancels.
   const socialButton = (enemy, kind) => {
     const task = previewSocial(state, active.id, enemy.id, kind)
     const setUp = mode === kind
@@ -130,7 +142,7 @@ export default function createRingButtons({
       title: task.available ? `${actionData.actions.find((entry) => entry.id === kind).description} (${typeName(kind)} action)` : task.reason,
       onClick: () => {
         setMode(setUp ? 'attack' : kind)
-        setTaskPick(enemy.id)
+        setTaskPick(setUp ? null : enemy.id)
         setRingInfo(false)
       },
     }
@@ -192,17 +204,23 @@ export default function createRingButtons({
       : canAfford(state, active, 'assist')
         ? null
         : 'No Major action left.'
+    const assistSetUp = mode === 'assist' && taskPick === ally.id
     const buttons = [
       {
         id: 'assist',
         label: 'Assist',
         icon: 'assist',
-        enabled: !assistBlock,
-        title: assistBlock ?? `Assist (Major action): ${name}'s next task this round adds your 1d20.`,
+        enabled: !assistBlock || assistSetUp,
+        active: assistSetUp,
+        title: assistBlock ?? `Assist (Major action): ${name}'s next task this round adds your 1d20. Roll on the ring commits.`,
         onClick: () => {
-          dispatch({ type: 'assist', allyId: ally.id })
-          closeRing()
-          setMode(null)
+          if (assistSetUp) {
+            setMode(null)
+            setTaskPick(null)
+            return
+          }
+          setMode('assist')
+          setTaskPick(ally.id)
         },
       },
     ]
@@ -228,23 +246,23 @@ export default function createRingButtons({
       move: {
         enabled: availability.move,
         active: mode === 'move',
-        title: availability.move ? 'Move (Minor action): click a highlighted tile to walk there.' : (getMovementBlock(state, active, 'move') ?? 'No tile to move to.'),
+        title: availability.move
+          ? 'Move (Minor action): click a highlighted tile, then the Move arc on the ring.'
+          : (getMovementBlock(state, active, 'move') ?? 'No tile to move to.'),
         onClick: () => {
           setMode('move')
           setDestination(null)
-          closeRing()
         },
       },
       sprint: {
         enabled: availability.sprint,
         active: mode === 'sprint',
         title: availability.sprint
-          ? `Sprint (Major action): run up to ${getSprintTiles(active.character)} tiles; no Move this turn after it. Click a highlighted tile.`
+          ? `Sprint (Major action): run up to ${getSprintTiles(active.character)} tiles; no Move this turn after it. Click a tile, then the Sprint arc.`
           : (getMovementBlock(state, active, 'sprint') ?? 'No tile to sprint to.'),
         onClick: () => {
           setMode('sprint')
           setDestination(null)
-          closeRing()
         },
       },
       aim: {
@@ -255,25 +273,26 @@ export default function createRingButtons({
       },
       assist: {
         enabled: availability.assist,
-        title: unavailableReasons.assist ?? (availability.assist ? 'Assist (Major action): pick a party member; their next task this round adds your 1d20.' : 'No Major action left.'),
-        onClick: () => selectAction('assist'),
+        active: mode === 'assist' && !taskPick,
+        title: unavailableReasons.assist ?? (availability.assist ? 'Assist (Major action): pick a party member on the band; Roll commits.' : 'No Major action left.'),
+        onClick: () => openTask('assist'),
       },
       guard: {
         enabled: canAfford(state, active, 'guard'),
         active: mode === 'guard',
-        title: canAfford(state, active, 'guard') ? 'Guard (Major action): Insight + Security; attacks against you, or an ally within Reach, get +1 Difficulty.' : 'No Major action left.',
+        title: canAfford(state, active, 'guard') ? 'Guard (Major action): Insight + Security; pick who to guard on the band, then Roll.' : 'No Major action left.',
         onClick: () => openTask('guard'),
       },
       firstAid: {
         enabled: canAfford(state, active, 'firstAid'),
         active: mode === 'firstAid',
-        title: canAfford(state, active, 'firstAid') ? 'First Aid (Major action): Daring + Medicine on an ally within Reach.' : 'No Major action left.',
+        title: canAfford(state, active, 'firstAid') ? 'First Aid (Major action): pick who to treat on the band, then Roll.' : 'No Major action left.',
         onClick: () => openTask('firstAid'),
       },
       direct: {
         enabled: !directReason,
         active: mode === 'direct',
-        title: directReason ?? 'Direct (Major action, 1 Momentum): an ally takes one Major action now; you assist with Control + Command.',
+        title: directReason ?? 'Direct (Major action, 1 Momentum): pick an ally on the band; Roll commits.',
         onClick: () => openTask('direct'),
       },
       interact: {
@@ -318,13 +337,12 @@ export default function createRingButtons({
         tone: modeId,
         enabled: affordable,
         active: attackMode === modeId,
-        title: affordable ? `Attack with ${attackModeName(weapon, modeId)} (${typeName('attack')} action): then pick the target and Fire.` : 'No Major action left.',
+        title: affordable ? `Attack with ${attackModeName(weapon, modeId)} (${typeName('attack')} action): then click the target; Roll fires.` : 'No Major action left.',
         onClick: () => {
           const leaving = attackMode === modeId
           setAttackChoice(leaving ? null : modeId)
           setMode(leaving ? null : 'attack')
           setDestination(null)
-          closeRing()
         },
       }))
     }
@@ -347,7 +365,7 @@ export default function createRingButtons({
       }
     })
   }
-  // A challenge object in reach: one button per approach it offers now; picking one opens it in the Task panel.
+  // A challenge object in reach: one button per approach; Roll on the party band commits (no Task Confirm).
   const objectRingButtons = (objectId) => {
     const entry = objectList.find(({ definition }) => definition.id === objectId)
     return (entry?.actions ?? []).map(({ action, available, reason, cost, affordable }) => ({
@@ -357,7 +375,7 @@ export default function createRingButtons({
       enabled: available && affordable,
       active: mode === 'interact' && taskPick === `${objectId}:${action.id}`,
       title: !available ? reason : !affordable ? `No ${ACTION_TYPE_NAMES[cost]} action left.` : `${action.label} (${ACTION_TYPE_NAMES[cost]} action): ${action.description}`,
-      onClick: () => openTask('interact', `${objectId}:${action.id}`),
+      onClick: () => openTask('interact', `${objectId}:${action.id}`, { keepObjectRing: objectId }),
     }))
   }
   // A destructible object's ring: Fire (AttackObjectAction), Scan (hazards / countermeasures), Sabotage and Defuse not

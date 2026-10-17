@@ -220,6 +220,12 @@ Open design decisions for the designer. Each entry separates what the book says 
 - The dice and Success/Failure still appear above the ring. The panel's own Attempt button only shows when there is no ring slot.
 - Implementer picks: the pulse (1.2 s yellow glow), the Roll arc's size (as deep as a portrait slice, 28 world px, with a 20 px die, designer request 2026-10-14; 11 px outside the slices), the caption's place out past it, and the arc's tooltip text.
 
+### Combat rings match exploration; End Turn stays on the HUD (designer decision 2026-10-17, implemented)
+
+**Decision:** combat action rings use the same pattern as exploration object/NPC rings: inner actions → party band (performer / Assist target / Guard–First Aid–Direct target) → Roll (or Move / tick) arc to commit. The Task panel is readout only (task math, route, ambush odds, AI turn text). Confirm and Assist ally pickers are removed from the panel. Bonus d20 buys sit in the slot above the ring when a Roll is armed. **End Turn** remains the only combat action button on the HUD. Instant shots (enemy Stun / Deadly, destructible Fire) still fire on the button with no arc. Picking a portrait on a performer band hands them the turn when they can still act (`selectCombatant`). Next choice pulses (approaches → slices → Roll), same as exploration.
+
+**Where:** `src/combat/combatRingParty.js`, `src/screens/CombatScreen.jsx`, `src/components/combat/ringButtons.js`, `CombatSidebar.jsx`, `PixiBattlefield.jsx` / `UnitActionRing.jsx`. See `prototype-rules.md` (Assist; Combat action rings).
+
 ### Every mouseover uses the creator's info box (designer decision 2026-10-14, implemented; picks awaiting review)
 
 **Decision:** every mouseover in the game, the editors and the creator is drawn as the creator's info box (yellow left bar, blue border, uppercase yellow title strip) instead of the browser's plain tooltip. Hover only, after the creator's 0.8s delay; unlike the creator's own boxes, a click doesn't show one (in the game a click does the thing). **Update (designer request, 2026-10-15):** these boxes now wait 1.5s (implementer pick for "more of a delay"; the creator's own section and option boxes keep 0.8s), and Settings has a Tooltips switch (on by default) that turns them off; with it off the browser's plain tooltip doesn't show either.

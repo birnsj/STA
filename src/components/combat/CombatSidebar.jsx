@@ -5,7 +5,6 @@ import { describeRange, getCombatantWeapon, getInjuryMode } from '../../combat/w
 import { getProtection } from '../../rules/personalCondition.js'
 import { AMBUSH_FOCUSES, isAccurate, maxAttackSuccesses } from '../../combat/combatState.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
-import BonusDicePicker from '../BonusDicePicker.jsx'
 import { RecommendationLine, TaskBlockers, TaskDevDetails, TaskDice, TaskDifficulty, TaskFocus, TaskFormula, TaskModifiers } from '../task/TaskMath.jsx'
 import { criticalText, formulaText, successesText } from '../task/taskText.js'
 import { ACTION_ICONS } from './actionIcons.js'
@@ -218,28 +217,6 @@ function AttackTask({ preview, helper, dicePurchase, attackMode }) {
   )
 }
 
-const CONFIRM_LABEL = { move: 'Move', sprint: 'Sprint', assist: 'Assist', guard: 'Guard', firstAid: 'First Aid', direct: 'Direct', interact: 'Attempt' }
-
-// A pick list (who to guard or treat, which ally to direct, which object approach).
-function Picker({ label, options, value, onPick }) {
-  return (
-    <div className="assist-allies" role="group" aria-label={label}>
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={`assist-ally${option.id === value ? ' is-selected' : ''}`}
-          disabled={option.disabled}
-          title={option.title}
-          onClick={() => onPick(option.id)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // The character math of any combat task before the roll (Guard, First Aid, a challenge object's task): Attribute +
 // Department, Target Number, focus, the Difficulty and where it comes from, the dice and who assists.
 // task: { label, cost, prepared (taskPreparation.js), assist: { name, label, task } | null, available, reason,
@@ -269,11 +246,13 @@ function CombatTaskMath({ task }) {
 // combatTask (modes guard / firstAid / direct / interact): { picker: { label, options, value, onPick }, intro, task,
 // note, routine: the chosen object action needs no roll }.
 function CombatTask({ combatTask }) {
-  const { picker, intro, task, note, routine } = combatTask
+  // Targets (who to guard / treat / direct) are picked on the ring's party band; this panel is readout only.
+  const { intro, task, note, routine } = combatTask
+  const pickLabel = combatTask.picker?.options?.find((option) => option.id === combatTask.picker.value)?.label
   return (
     <>
       {intro && <p className="task-line task-sub">{intro}</p>}
-      {picker && picker.options.length > 0 && <Picker {...picker} />}
+      {pickLabel && <p className="task-line">Target: {pickLabel}</p>}
       {recommendationNote(combatTask)}
       {routine && (
         <div className="tm-block">
@@ -284,6 +263,7 @@ function CombatTask({ combatTask }) {
       {task?.prepared && <CombatTaskMath task={task} />}
       {task && !task.prepared && task.reason && <p className="task-warning">{task.reason}</p>}
       {note && <p className="task-line task-sub">{note}</p>}
+      <p className="task-line task-sub">Commit from the Roll arc on the ring.</p>
     </>
   )
 }
@@ -313,18 +293,13 @@ function AmbushTask({ ambush }) {
   )
 }
 
-// The allies who can be assisted, as a pick list (one is pre-picked when there is only one).
-function AssistTask({ allies, allyId, onAlly }) {
+// Assist target is picked on the ring's party band; this is readout only.
+function AssistTask({ allies, allyId }) {
+  const name = allies.find((ally) => ally.id === allyId)?.character.name
   return (
     <>
       <p className="task-line task-sub">{ACTIONS.assist.description}</p>
-      <div className="assist-allies" role="group" aria-label="Ally to assist">
-        {allies.map((ally) => (
-          <button key={ally.id} type="button" className={`assist-ally${ally.id === allyId ? ' is-selected' : ''}`} onClick={() => onAlly(ally.id)}>
-            {ally.character.name}
-          </button>
-        ))}
-      </div>
+      <p className="task-line">{name ? `Assisting ${name}.` : 'Pick an ally on the ring, then Roll.'}</p>
     </>
   )
 }
@@ -355,15 +330,9 @@ function AiTurnTask({ aiTurn }) {
   )
 }
 
-// confirm: { shown, enabled, onConfirm }; Confirm only appears on the player's turn while shown; routeInCover: the chosen route ends next to cover
-// assist: { allies, allyId, onAlly } for the Assist pick list, and helper: who is assisting the acting character's next attack.
-// ambush: the opening Ambush preview on the chosen Klingon (mode 'ambush').
-// dicePurchase: { resources, value, onChange } for buying bonus d20s on the attack or task (BonusDicePicker).
-// combatTask: the Guard / First Aid / Direct / object task being set up (see CombatTask).
-// attackMode: the firing mode chosen for the next attack from the acting character's ring (see AttackTask).
-// dev: { actorName } to show the raw task details (Debug open), or null.
-// rolling: a roll is on the dice panel, which shows its math; the panel doesn't repeat it.
-// aiTurn: the acting AI's decision and task during Auto Combat (see AiTurnTask), or null.
+// Readout only: Confirm and Assist picks live on the ring (Roll arc / party band). End Turn stays under the minimap.
+// assist: { allies, allyId, helper }; ambush: Ambush preview; dicePurchase: for debug rows and attack math.
+// combatTask: Guard / First Aid / Direct / object / scan task; attackMode: firing mode from the self ring.
 export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, assist, ambush, confirm, dicePurchase, combatTask = null, confirmLabel = null, attackMode = null, dev = null, rolling = false, aiTurn = null }) {
   let body
   let devTask = null
@@ -383,7 +352,7 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
       action: `${preview.weapon.name}${attackMode ? ` (${getInjuryMode(attackMode).name})` : ''} at ${preview.target.character.name}${preview.opposition ? '; opposed: Difficulty set after the defender rolls' : ''}`,
     }
   }
-  else if (mode === 'assist') body = <AssistTask allies={assist.allies} allyId={assist.allyId} onAlly={assist.onAlly} />
+  else if (mode === 'assist') body = <AssistTask allies={assist.allies} allyId={assist.allyId} />
   else if (mode === 'attack') body = <p className="combat-panel-empty">Select a target</p>
   else if (mode === 'move')
     body = (
@@ -403,16 +372,13 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
         <p className="task-line task-sub">{ACTIONS.sprint.description}</p>
       </>
     )
-  else body = <p className="combat-panel-empty">Choose an action, or click a unit on the map</p>
+  else body = <p className="combat-panel-empty">Choose an action on the ring</p>
 
-  const showBonusDice =
-    isPlayerTurn && !rolling && ((mode === 'attack' && preview?.available) || Boolean(combatTask?.task?.available && combatTask.task?.prepared))
-  const label = confirmLabel ?? CONFIRM_LABEL[mode] ?? 'Confirm'
+  // Bonus d20s live on the ring slot when a Roll is armed; the panel is readout only (End Turn stays below).
   return (
     <section className="combat-panel task-panel">
       <h2 className="combat-panel-title">Task</h2>
       <div className="task-body">
-        {showBonusDice && <BonusDicePicker resources={dicePurchase.resources} value={dicePurchase.value} onChange={dicePurchase.onChange} />}
         {body}
         {dev && devTask && (
           <TaskDevDetails
@@ -428,11 +394,6 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
           />
         )}
       </div>
-      {isPlayerTurn && confirm.shown && (
-        <button type="button" className="task-confirm" disabled={!confirm.enabled} onClick={confirm.onConfirm}>
-          {label}
-        </button>
-      )}
     </section>
   )
 }

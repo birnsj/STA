@@ -16,9 +16,9 @@ import {
 } from '../../combat/combatState.js'
 import { typeName } from './battleHelpers.js'
 
-// The Task panel for the action being set up on the player's turn: its explanation, any picker (who to guard, treat,
-// direct...), the prepared roll, and what Confirm does. Pure: it reads the combat view and calls back into the screen's
-// handlers, so adding an action's panel means editing here and nowhere in the screen.
+// Task readout + what the ring's Roll arc commits for the action being set up on the player's turn. Pure: it reads the
+// combat view and calls back into the screen's handlers. Picker values still drive who is guarded / treated / directed
+// (chosen on the party band); the panel no longer renders Confirm or pick buttons.
 // Returns { combatTask, taskConfirm, taskConfirmLabel }, each null when the mode has no task panel.
 export default function buildTaskPanel({
   state,
