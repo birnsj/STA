@@ -2,7 +2,6 @@ import { memo, useMemo, useState } from 'react'
 import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } from '../../character/runtimeCharacter.js'
 import { armedForWorldCombat } from '../../combat/encounters.js'
 import { getCharacterWeapons } from '../../combat/weaponSystem.js'
-import { splitFireteams } from '../../exploration/awayTeam.js'
 import { FORMATIONS } from '../../exploration/formations.js'
 import { PARTY_ACTIONS } from '../../exploration/partyActions.js'
 import { getProtection, normalizeCondition } from '../../rules/personalCondition.js'
@@ -28,7 +27,7 @@ const cardFacts = (character) => ({
   speciesLine: [character.species?.name, character.department?.name].filter(Boolean).join(' / '),
 })
 
-// Fireteam A card face: weapon and Stress (species on the name title; condition icons on the top edge).
+// Card face: weapon and Stress (species on the name title; condition icons on the top edge).
 function CardDetails({ character, condition }) {
   const { weapon, speciesLine } = useMemo(() => cardFacts(character), [character])
   return (
@@ -177,12 +176,11 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
   const several = selectedIds.length > 1
   // UI state: the member whose info panel is open, or null.
   const [infoId, setInfoId] = useState(null)
-  const { teamA, teamB } = splitFireteams(members.map((member) => member.id))
   const byId = Object.fromEntries(members.map((member) => [member.id, member]))
   const indexOf = (id) => members.findIndex((member) => member.id === id) + 1
   // Top-half cards open the details panel downward (flush with the card top); bottom-half open upward.
   const openDown = (id) => members.findIndex((member) => member.id === id) < Math.ceil(members.length / 2)
-  const renderCard = (id, { fireteamB = false } = {}) => {
+  const renderCard = (id) => {
     const member = byId[id]
     const selected = selectedIds.includes(id)
     const lead = id === leaderId
@@ -198,11 +196,7 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
           type="button"
           className={`party-card explore-card${selected ? ' is-active' : ''}${best ? ' is-best' : ''}`}
           aria-pressed={selected}
-          title={
-            fireteamB
-              ? `${indexOf(id)}: select ${member.character.name} only (Fireteam B follows A unless selected)`
-              : `${indexOf(id)}: select ${member.character.name} (Shift + click to add or remove)`
-          }
+          title={`${indexOf(id)}: select ${member.character.name} (Shift + click to add or remove)`}
           onClick={(event) => onSelect(id, event.shiftKey || event.ctrlKey || event.metaKey)}
         >
           <span className="party-portrait-wrap">
@@ -238,11 +232,10 @@ export const ExplorationPartyBar = memo(function ExplorationPartyBar({ members, 
       </div>
     )
   }
-  // Left vertical rail: A then B in pick order, spaced evenly top-to-bottom (designer 2026-10-16).
+  // Left vertical rail: the whole away team in pick order, spaced evenly top-to-bottom.
   return (
     <div className="party-bar explore-party-bar is-left-rail" aria-label="Away team">
-      {teamA.map((id) => renderCard(id))}
-      {teamB.map((id) => renderCard(id, { fireteamB: true }))}
+      {members.map((member) => renderCard(member.id))}
     </div>
   )
 }, sameBar)

@@ -77,23 +77,21 @@ export default function ConversationPanel({ state, dispatch, defaultPerformerId,
     <>
       <div className="conversation-dock" onPointerDown={(event) => event.stopPropagation()}>
         <div className="combat-panel challenge-panel conversation-panel">
-          <div className="challenge-header">
-            <div>
-              <h3>{npc?.name ?? 'Conversation'}</h3>
-              {dev && <p className="challenge-state">{conversation.definition.name} &middot; node {conversation.nodeId ?? 'end'}</p>}
-            </div>
-          </div>
+          {dev && <p className="challenge-state">{conversation.definition.name} &middot; node {conversation.nodeId ?? 'end'}</p>}
 
           {conversation.line && (
-            <div className="conversation-line">
-              <div className="conversation-line-body">
-                <p className="conversation-speaker">{conversation.line.speaker}</p>
-                <p className="conversation-text">{conversation.line.text}</p>
+            <>
+              <div className="conversation-line">
+                <div className="conversation-line-body">
+                  <p className="conversation-speaker">{conversation.line.speaker}</p>
+                  <p className="conversation-text">{conversation.line.text}</p>
+                </div>
+                {npc?.character && (
+                  <CombatPortrait character={npc.character} className="conversation-npc-portrait" style={episodeCard ? { backgroundImage: `url("${episodeCard}")` } : undefined} />
+                )}
               </div>
-              {npc?.character && (
-                <CombatPortrait character={npc.character} className="conversation-npc-portrait" style={episodeCard ? { backgroundImage: `url("${episodeCard}")` } : undefined} />
-              )}
-            </div>
+              <div className="conversation-separator" role="separator" />
+            </>
           )}
 
           {conversation.choiceId && (

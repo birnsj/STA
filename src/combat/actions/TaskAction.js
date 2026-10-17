@@ -1,7 +1,7 @@
 import { injuryText, reviveCondition, treatInjury } from '../../rules/personalCondition.js'
 import { updateCombatant } from '../combatLog.js'
 import { SCAN_TRAIT } from '../combatScan.js'
-import { previewFirstAid, previewGuard, previewScan, rollCombatTask } from '../combatTasks.js'
+import { previewFirstAid, previewGuard, previewScan, previewScanObject, rollCombatTask } from '../combatTasks.js'
 import { canTakeCover } from '../coverSystem.js'
 import { CombatAction } from './CombatAction.js'
 
@@ -93,18 +93,28 @@ export class FirstAidAction extends TaskAction {
   }
 }
 
-// Scan an enemy (PROTOTYPE, major, combatScan.js): success makes its Protection, weapons and tactics known to the party
-// for the rest of the fight.
+// Scan an enemy (PROTOTYPE, major, combatScan.js) or a destructible (designer request 2026-10-17): success makes an
+// enemy's Protection, weapons and tactics known, or an object's hazards and countermeasures known, for the rest of the
+// fight (and object scans carry back to exploration via WorldEncounter).
 export class ScanAction extends TaskAction {
   constructor() {
     super('scan')
   }
 
-  preview(state, actor, { targetId }) {
+  preview(state, actor, { targetId, objectId }) {
+    if (objectId) return previewScanObject(state, actor.id, objectId)
     return previewScan(state, actor.id, targetId)
   }
 
   outcome(state, actor, params, preview, passed) {
+    if (preview.objectId) {
+      const name = state.environment.destructibles[preview.objectId].name
+      const next = passed ? { ...state, scannedObjects: { ...state.scannedObjects, [preview.objectId]: true } } : state
+      const line = passed
+        ? `${name} is scanned: the hazards it may release and how to counteract them are known.`
+        : `The scan of the ${name} reveals nothing useful.`
+      return { state: next, details: { objectId: preview.objectId }, lines: [line] }
+    }
     const name = state.combatants[preview.targetId].character.name
     const next = passed ? { ...state, scanned: { ...state.scanned, [preview.targetId]: true } } : state
     const line = passed
@@ -113,7 +123,8 @@ export class ScanAction extends TaskAction {
     return { state: next, details: { targetId: preview.targetId }, lines: [line] }
   }
 
-  hypothetical(state, actor, { targetId }) {
+  hypothetical(state, actor, { targetId, objectId }) {
+    if (objectId) return { ...state, scannedObjects: { ...state.scannedObjects, [objectId]: true } }
     return { ...state, scanned: { ...state.scanned, [targetId]: true } }
   }
 }

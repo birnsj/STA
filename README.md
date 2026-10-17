@@ -34,7 +34,7 @@ them the app runs silently.
 | --- | --- | --- |
 | Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON (schema `0.12.0`). |
 | Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat: STA 2e task roll, Momentum/Threat, Injuries, Guard / First Aid / Direct / Assist, social surrender, Scan trait, object shots, hazards, Auto Combat AI (both sides), seeded reducer so fights replay. |
-| Exploration | `src/exploration/`, `src/conversation/`, `src/world/` | Away team (up to 8, Fireteams A/B) on a map: formations, sneak, awareness, challenge objects, conversations, objectives, Captain's Log, intro/outro, transporter; shared destructibles/hazards/explosions; hands off to combat and back (`combatLink.js` / `WorldEncounter.js`). |
+| Exploration | `src/exploration/`, `src/conversation/`, `src/world/` | Away team (up to 8, one team) on a map: formations, sneak, awareness, challenge objects, conversations, objectives, Captain's Log, intro/outro, transporter; shared destructibles/hazards/explosions; hands off to combat and back (`combatLink.js` / `WorldEncounter.js`). |
 | Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints isometric maps (`docs/tiles.md`); places NPCs, objectives, destructibles and hazards; edits conversations, challenge objects, objectives and story wording; Play-tests from the editor. |
 
 `src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part. Ship builder is a placeholder only.

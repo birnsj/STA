@@ -1501,6 +1501,19 @@
   z-index: 2;
 }
 
+/* Combat: the same buttons in their own panel above the minimap, so the readout sits clear below. */
+.explore-minimap-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  box-sizing: border-box;
+  min-width: var(--explore-minimap-size);
+  padding: 4px 6px;
+  pointer-events: auto;
+}
+
 /* While the minimap is hidden its toggle keeps the same corner (inside where the minimap's 1px border was). */
 .explore-minimap-closed {
   display: flex;
@@ -2041,22 +2054,47 @@
 }
 
 /* A conversation (ConversationPanel.jsx) uses the interaction panel's frame. */
-/* Dialogue: centred low, just above the party cards, clear of the right-hand column. */
+/* Dialogue: its bottom lines up with the Formation panel, and the gap beside it is the same 6px
+   Objectives leaves before the minimap. The NPC's line stays put; the replies scroll. */
 .conversation-dock {
   position: absolute;
-  right: 255px;
-  bottom: 100px;
-  left: 0;
+  right: calc(8px + 248px + 6px);
+  bottom: 8px;
   z-index: 30;
-  width: min(540px, calc(100% - 271px));
-  height: 180px;
-  margin: 0 auto;
+  width: 540px;
+  height: 280px;
 }
 
 .conversation-dock .conversation-panel {
   inset: 0;
   width: auto;
   max-height: none;
+  overflow: hidden;
+}
+
+.conversation-dock .challenge-header,
+.conversation-dock .conversation-line,
+.conversation-dock .challenge-actions {
+  flex: none;
+}
+
+.conversation-dock .conversation-options {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* The replies' scrollbar narrows that column. Keep the NPC's line, and the rule under it, the same length. */
+.conversation-dock .conversation-line,
+.conversation-dock .conversation-separator {
+  box-sizing: border-box;
+  width: calc(100% - 10px);
+}
+
+.conversation-dock .conversation-separator {
+  flex: none;
+  height: 0;
+  border-top: var(--ui-border) solid var(--panel-border);
 }
 
 .d20-icon {

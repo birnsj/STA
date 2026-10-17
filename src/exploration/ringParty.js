@@ -10,7 +10,7 @@ import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { challengeFor, INTERACT_RANGE } from './challengeObjects.js'
 import { previewObjectShot } from './explorationEnvironment.js'
 import { getMembers } from './partyControl.js'
-import { canScanNpc } from './partyScan.js'
+import { canScanDestructible, canScanNpc, SCAN_TASK } from './partyScan.js'
 import { canAskNpc, SOCIAL_KINDS } from './partySocial.js'
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
@@ -62,6 +62,16 @@ export function ringPartyView(state, target, buttonId) {
     const shots = Object.fromEntries(members.map((member) => [member.id, previewObjectShot(state, member.id, target.destructibleId)]))
     for (const member of members) blocked[member.id] = shots[member.id].available ? null : shots[member.id].reason
     recommendation = recommendPerformers(members.filter((member) => !blocked[member.id]).map((member) => ({ id: member.id, prepared: shots[member.id].prepared })))
+  } else if (target.destructibleId && buttonId === 'scan') {
+    for (const member of members) blocked[member.id] = canScanDestructible(state, member.id, target.destructibleId).reason
+    recommendation = recommendPerformers(
+      members
+        .filter((member) => !blocked[member.id])
+        .map((member) => ({
+          id: member.id,
+          prepared: prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition }),
+        })),
+    )
   } else if (target.objectId && buttonId) {
     const challenge = challengeFor(state, target.objectId)
     recommendation = challenge.recommend(state, buttonId, members.map((member) => member.id))
@@ -102,6 +112,22 @@ export function destructibleShooter(state, objectId, pickedId = null) {
   const view = ringPartyView(state, { destructibleId: objectId }, 'fire')
   if (pickedId && view.members.some((entry) => entry.id === pickedId && entry.available)) return pickedId
   return view.bestIds[0] ?? view.members.find((entry) => entry.available)?.id ?? null
+}
+
+// Who scans a destructible from its ring: the member picked when they can, else the best by Scan odds, else null.
+// Returns { member, check } or null when nobody is available.
+export function destructibleScanner(state, objectId, pickedId = null) {
+  const { party } = state
+  if (pickedId && canScanDestructible(state, pickedId, objectId).possible) {
+    return { member: party.members[pickedId], check: canScanDestructible(state, pickedId, objectId) }
+  }
+  const view = ringPartyView(state, { destructibleId: objectId }, 'scan')
+  const id = view.bestIds[0] ?? view.members.find((entry) => entry.available)?.id ?? null
+  if (!id) {
+    const fallback = pickedId ?? party.selectedIds[0] ?? party.leaderId
+    return fallback ? { member: party.members[fallback], check: canScanDestructible(state, fallback, objectId) } : null
+  }
+  return { member: party.members[id], check: canScanDestructible(state, id, objectId) }
 }
 
 // Who does an NPC ring button that has no performer of its own (Talk's checks, Attack's opening): the member picked on

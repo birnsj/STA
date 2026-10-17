@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import actionData from '../../data/adaptation/combat/actions.json'
 import { getMovementTiles } from '../../combat/movementSystem.js'
 import { describeRange, getCombatantWeapon, getInjuryMode } from '../../combat/weaponSystem.js'
@@ -8,6 +9,7 @@ import BonusDicePicker from '../BonusDicePicker.jsx'
 import { RecommendationLine, TaskBlockers, TaskDevDetails, TaskDice, TaskDifficulty, TaskFocus, TaskFormula, TaskModifiers } from '../task/TaskMath.jsx'
 import { criticalText, formulaText, successesText } from '../task/taskText.js'
 import { ACTION_ICONS } from './actionIcons.js'
+import { CARD_INFO_INSIGNIA } from '../exploration/ExplorationPartyBar.jsx'
 import CombatPortrait from './CombatPortrait.jsx'
 import ConditionIcons from './ConditionIcons.jsx'
 import ConditionTrack from './ConditionTrack.jsx'
@@ -54,32 +56,55 @@ function MatchupScores({ combatant }) {
 function MatchupCard({ role, combatant, weapon, enemy = false }) {
   const character = combatant?.character
   const armed = weapon ?? (combatant?.weaponIds?.length ? getCombatantWeapon(combatant, combatant.weaponIds[0]) : null)
+  // UI state: the insignia pins the stats open; hovering the card shows them without pinning.
+  const [pinned, setPinned] = useState(false)
+  const [hover, setHover] = useState(false)
+  const statsOpen = Boolean(character) && (pinned || hover)
   return (
-    <section className={`combat-panel combat-matchup-card${enemy ? ' is-enemy' : ''}${combatant ? '' : ' is-empty'}`} aria-label={role}>
-      <h2 className="ui-heading">{role}</h2>
-      <div className="combat-matchup-head">
-        {character ? (
-          <CombatPortrait character={character} className="combat-matchup-portrait" />
-        ) : (
-          <span className="combat-matchup-portrait is-blank" aria-hidden="true" />
-        )}
-        <span className="combat-matchup-id">
-          <span className="combat-matchup-name">{character?.name ?? 'No target'}</span>
-          <span className="combat-matchup-weapon">{armed?.name ?? '—'}</span>
-        </span>
-      </div>
-      <div className="panel-condition">
-        {character ? (
-          <>
-            <ConditionTrack character={character} condition={combatant.condition} showCategory />
+    <div
+      className={`combat-matchup-wrap${statsOpen ? ' is-stats-open' : ''}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <section className={`combat-panel combat-matchup-card${enemy ? ' is-enemy' : ''}${combatant ? '' : ' is-empty'}`} aria-label={role}>
+        {character && (
+          <div className="combat-matchup-conditions">
             <ConditionIcons condition={combatant.condition} />
-          </>
-        ) : (
-          <span className="combat-matchup-quiet">No one targeted</span>
+          </div>
         )}
-      </div>
-      <MatchupScores combatant={combatant} />
-    </section>
+        <div className="combat-matchup-body">
+          {character ? (
+            <CombatPortrait character={character} className="combat-matchup-portrait" />
+          ) : (
+            <span className="combat-matchup-portrait is-blank" aria-hidden="true" />
+          )}
+          <span className="party-info">
+            <span className="party-name">{character?.name ?? 'No target'}</span>
+            <span className="party-weapon">{armed?.name ?? '—'}</span>
+            {character ? (
+              <ConditionTrack character={character} condition={combatant.condition} showCategory />
+            ) : (
+              <span className="combat-matchup-quiet">No one targeted</span>
+            )}
+          </span>
+        </div>
+        {character && (
+          <button
+            type="button"
+            className={`explore-card-info-toggle${pinned ? ' is-open' : ''}`}
+            aria-expanded={statsOpen}
+            aria-label={`${character.name}: stats`}
+            title={pinned ? 'Hide the stats.' : `Show ${character.name}'s stats.`}
+            onClick={() => setPinned((open) => !open)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={CARD_INFO_INSIGNIA} />
+            </svg>
+          </button>
+        )}
+      </section>
+      {statsOpen && <MatchupScores combatant={combatant} />}
+    </div>
   )
 }
 
@@ -180,7 +205,6 @@ function AttackTask({ preview, helper, dicePurchase, attackMode }) {
       <p className="task-line task-sub">
         {preview.band.name}, {preview.distance} tiles &middot; {describeRange(weapon)}
       </p>
-      {preview.available && <BonusDicePicker resources={dicePurchase.resources} value={dicePurchase.value} onChange={dicePurchase.onChange} />}
       {!preview.available && <p className="task-warning">{preview.reason}</p>}
       {preview.available && task.difficulty > maxSuccesses && (
         <p className="task-warning">
@@ -220,7 +244,7 @@ function Picker({ label, options, value, onPick }) {
 // Department, Target Number, focus, the Difficulty and where it comes from, the dice and who assists.
 // task: { label, cost, prepared (taskPreparation.js), assist: { name, label, task } | null, available, reason,
 //   focusOptions: the focuses the task accepts }.
-function CombatTaskMath({ task, dicePurchase }) {
+function CombatTaskMath({ task }) {
   const { prepared } = task
   const { task: roll } = prepared
   return (
@@ -237,7 +261,6 @@ function CombatTaskMath({ task, dicePurchase }) {
         task={roll}
         assist={task.assist ? `${task.assist.name} adds 1d20 (${task.assist.label}, TN ${task.assist.task.targetNumber}); it counts only if you score a success.` : null}
       />
-      {task.available && <BonusDicePicker resources={dicePurchase.resources} value={dicePurchase.value} onChange={dicePurchase.onChange} />}
       {!task.available && task.reason && <p className="task-warning">{task.reason}</p>}
     </>
   )
@@ -245,7 +268,7 @@ function CombatTaskMath({ task, dicePurchase }) {
 
 // combatTask (modes guard / firstAid / direct / interact): { picker: { label, options, value, onPick }, intro, task,
 // note, routine: the chosen object action needs no roll }.
-function CombatTask({ combatTask, dicePurchase }) {
+function CombatTask({ combatTask }) {
   const { picker, intro, task, note, routine } = combatTask
   return (
     <>
@@ -258,7 +281,7 @@ function CombatTask({ combatTask, dicePurchase }) {
           <p className="tm-help">Routine action: it simply happens.</p>
         </div>
       )}
-      {task?.prepared && <CombatTaskMath task={task} dicePurchase={dicePurchase} />}
+      {task?.prepared && <CombatTaskMath task={task} />}
       {task && !task.prepared && task.reason && <p className="task-warning">{task.reason}</p>}
       {note && <p className="task-line task-sub">{note}</p>}
     </>
@@ -349,7 +372,7 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
   else if (rolling) body = <p className="combat-panel-empty">Rolling: see the dice panel</p>
   else if (mode === 'ambush') body = <AmbushTask ambush={ambush} />
   else if (combatTask) {
-    body = <CombatTask combatTask={combatTask} dicePurchase={dicePurchase} />
+    body = <CombatTask combatTask={combatTask} />
     const prepared = combatTask.task?.prepared
     if (prepared) devTask = { prepared, task: { ...prepared.task, difficulty: prepared.difficulty }, action: combatTask.task.label }
   } else if (mode === 'attack' && preview?.task) {
@@ -382,11 +405,14 @@ export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, rou
     )
   else body = <p className="combat-panel-empty">Choose an action, or click a unit on the map</p>
 
+  const showBonusDice =
+    isPlayerTurn && !rolling && ((mode === 'attack' && preview?.available) || Boolean(combatTask?.task?.available && combatTask.task?.prepared))
   const label = confirmLabel ?? CONFIRM_LABEL[mode] ?? 'Confirm'
   return (
     <section className="combat-panel task-panel">
       <h2 className="combat-panel-title">Task</h2>
       <div className="task-body">
+        {showBonusDice && <BonusDicePicker resources={dicePurchase.resources} value={dicePurchase.value} onChange={dicePurchase.onChange} />}
         {body}
         {dev && devTask && (
           <TaskDevDetails

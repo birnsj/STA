@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { splitFireteams } from '../../exploration/awayTeam.js'
 import { normalizeCondition } from '../../rules/personalCondition.js'
 import PartyTaskTag from '../task/PartyTaskTag.jsx'
 import { CARD_INFO_INSIGNIA, CardInfoPanel } from '../exploration/ExplorationPartyBar.jsx'
@@ -10,8 +9,7 @@ import ConditionTrack from './ConditionTrack.jsx'
 
 const BADGE_LABEL = { acting: 'Acting', ready: 'Ready', done: 'Done' }
 
-// The party, in pick order. First four = Fireteam A; the rest = Fireteam B (same card layout; follows A in
-// exploration). turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { ap }, movement: { left, total,
+// The party, in pick order, one away team. turnInfo: { [id]: { state: 'acting' | 'ready' | 'done', turn: { ap }, movement: { left, total,
 // sprintLeft, sprintTotal } } } for members whose turn status is known this round; clicking a Ready member hands them
 // the turn. recommendation: who is best at the object task being considered, or null. weapons: { [id]: weapon }.
 // onCycleWeapon switches the acting member's weapon (null = can't switch now).
@@ -19,7 +17,6 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
   // UI state: which card's details panel is open.
   const [infoId, setInfoId] = useState(null)
   const ids = party.map((member) => member.id)
-  const { teamA, teamB } = splitFireteams(ids)
   const byId = Object.fromEntries(party.map((member) => [member.id, member]))
   // Top-half cards open the details panel downward; bottom-half open upward (same as exploration).
   const openDown = (id) => ids.findIndex((memberId) => memberId === id) < Math.ceil(ids.length / 2)
@@ -39,11 +36,9 @@ export default function PartyBar({ party, activeId, selectedId, turnInfo, onSele
       onToggleInfo={() => setInfoId(infoId === id ? null : id)}
     />
   )
-  // Left vertical rail: A then B in pick order, filling the rail like exploration (designer 2026-10-16).
   return (
     <div className="party-bar is-left-rail" aria-label="Away team">
-      {teamA.map(card)}
-      {teamB.map(card)}
+      {ids.map(card)}
     </div>
   )
 }

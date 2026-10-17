@@ -7,11 +7,11 @@ import { challengeFor, getAvailableActions, getDefinition, objectsInReach } from
 import { previewObjectShot } from '../../exploration/explorationEnvironment.js'
 import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
 import { canAskNpc } from '../../exploration/partySocial.js'
-import { destructibleShooter, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
+import { destructibleScanner, destructibleShooter, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
 import { getEquippedItems } from '../../rules/equipment.js'
 import { getFaction } from '../../rules/factions.js'
 import { conditionSummary, getProtection, isDefeated, normalizeCondition } from '../../rules/personalCondition.js'
-import { DESTRUCTIBLE_TYPES, HAZARD_TYPES } from '../../world/environment.js'
+import { destructibleScanCard, isDestructibleScanned } from '../../world/destructibleScan.js'
 
 const NOT_BUILT = 'Not built yet.'
 
@@ -73,31 +73,46 @@ export function objectMenuButtons(state, objectId, open, activeId = null) {
 }
 
 // A destructible object's radial menu (left click on it; designer request 2026-10-12): Fire, by the member picked on the
-// band or else the best shot. fire(memberId) opens fire.
-export function destructibleMenuButtons(state, objectId, fire, pickedId = null) {
+// band or else the best shot; Scan (designer request 2026-10-17: hazards and countermeasures); Sabotage and Defuse are
+// shown but not built yet. fire(memberId) / scan(memberId) open those actions.
+export function destructibleMenuButtons(state, objectId, actions, pickedId = null) {
   const record = state.environment.destructibles[objectId]
   const shooterId = destructibleShooter(state, objectId, pickedId)
   const preview = shooterId ? previewObjectShot(state, shooterId, objectId) : previewObjectShot(state, pickedId ?? state.party.selectedIds[0] ?? state.party.leaderId, objectId)
   const name = shooterId ? state.party.members[shooterId].character.name : null
   const blast = record.explosion ? ` It explodes at 0 Structure (radius ${record.explosion.radius}): everyone near it is caught.` : ''
-  const title = shooterId
+  const fireTitle = shooterId
     ? `${name} fires at the ${record.name} (${preview.weapon.name}, Difficulty ${preview.prepared.difficulty}): ${preview.damage} Structure on a hit.${blast}`
     : `Fire: ${preview.reason ?? 'nobody has a shot.'}`
-  return [{ id: 'fire', label: 'Fire', icon: 'attack', enabled: Boolean(shooterId), title, onClick: () => fire(shooterId) }]
+  const scanner = destructibleScanner(state, objectId, pickedId)
+  const scanned = isDestructibleScanned(state.objectScans, objectId)
+  const scanTitle = !scanner
+    ? 'Scan: select a character first.'
+    : scanner.check.possible
+      ? scanned
+        ? `${scanner.member.character.name} scans the ${record.name} again (Reason + Science): refresh its hazard readings.`
+        : `${scanner.member.character.name} scans the ${record.name} (Reason + Science): the hazards it may release and how to counteract them.`
+      : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
+  const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
+  return [
+    { id: 'fire', label: 'Fire', icon: 'attack', enabled: Boolean(shooterId), title: fireTitle, onClick: () => actions.fire(shooterId) },
+    { id: 'scan', label: 'Scan', icon: 'scan', enabled: Boolean(scanner?.check.possible), title: scanTitle, onClick: () => actions.scan(scanner.member.id), keepOpen: true },
+    unbuilt('sabotage', 'Sabotage', 'sabotage'),
+    unbuilt('defuse', 'Defuse', 'defuse'),
+  ]
 }
 
-// The card beside a destructible's ring: what it is and how close it is to giving way.
+// The card beside a destructible's ring: Structure always; hazards and countermeasures after a successful scan.
 export function destructibleInfo(state, objectId) {
   const record = state.environment.destructibles[objectId]
-  const info = DESTRUCTIBLE_TYPES[record.type]
-  const rows = [
-    ['Structure', `${record.structure} / ${record.maxStructure}`],
-    ['Resistance', String(record.resistance)],
-    ['State', record.state.charAt(0).toUpperCase() + record.state.slice(1)],
-  ]
-  const tips = [info.description]
-  if (record.explosion) tips.push(`Explodes at 0 Structure: radius ${record.explosion.radius}, Severity ${record.explosion.severity}${record.explosion.hazard ? `, leaving ${HAZARD_TYPES[record.explosion.hazard]?.name.toLowerCase() ?? record.explosion.hazard}` : ''}.`)
-  return { title: record.name, rows, tips }
+  const card = destructibleScanCard(record, { scanned: isDestructibleScanned(state.objectScans, objectId) })
+  const scan = state.objectScans?.[objectId]
+  if (scan?.success) {
+    card.tips.push(`Scanned by ${state.party.members[scan.memberId]?.character.name ?? 'the away team'}.`)
+  } else if (scan) {
+    card.tips.push('Scan failed: no clear readings. Scan again to retry.')
+  }
+  return card
 }
 
 // The character who would scan this NPC: the one picked on the ring's party band when they can, else the selected

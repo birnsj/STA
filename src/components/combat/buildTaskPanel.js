@@ -9,6 +9,7 @@ import {
   previewFirstAid,
   previewGuard,
   previewScan,
+  previewScanObject,
   previewSocial,
   SOCIAL_KINDS,
   socialChance,
@@ -93,6 +94,23 @@ export default function buildTaskPanel({
       enabled: task.available && purchaseCheck.valid,
       run: () => {
         dispatch({ type: 'scan', targetId: target.id, purchase })
+        setMode('attack')
+        setRingInfo(true)
+      },
+    }
+    taskConfirmLabel = 'Scan'
+  }
+  if (isPlayerTurn && mode === 'scanObject' && taskPick) {
+    const task = previewScanObject(state, active.id, taskPick)
+    const name = state.environment?.destructibles?.[taskPick]?.name ?? 'object'
+    combatTask = {
+      intro: `Scan the ${name} (Reason + Science). Success: the hazards it may release and how to counteract them are known for the rest of the mission.`,
+      task: fromPreview(task, COMBAT_TASKS.scan.focuses),
+    }
+    taskConfirm = {
+      enabled: task.available && purchaseCheck.valid,
+      run: () => {
+        dispatch({ type: 'scan', objectId: taskPick, purchase })
         setMode('attack')
         setRingInfo(true)
       },

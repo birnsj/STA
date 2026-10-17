@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { samePosition } from '../combat/battleMap.js'
-import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
+import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import useBeamIn from '../components/combat/useBeamIn.js'
@@ -60,6 +60,7 @@ const reducer = withPerf(explorationReducer)
 
 // An open book, for the Captain's Log button in the minimap's corner.
 const LOG_ICON = 'M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5c2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5zM12 6v13'
+const SETTINGS_ICON = 'M12 15.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7zM12 2.5v2.2M12 19.3v2.2M4.8 6.2l1.6 1.5M17.6 16.3l1.6 1.5M4.8 17.8l1.6-1.5M17.6 7.7l1.6-1.5M2.5 12h2.2M19.3 12h2.2'
 
 // Who the transporter can beam down: anyone who beamed out, then authored playtest redshirts and saved characters not
 // already on the away team. Editor Play uses the redshirts (characters.json playtestParty); they are not saved
@@ -98,13 +99,14 @@ function transporterCandidates(party, savedCharacters) {
 // savedCharacters: the saved characters the transporter can beam down.
 function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const { party, world } = state
-  const [followCamera, setFollowCamera] = useState(true)
+  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro, cameraFollow } = useDisplaySettings()
+  const { open: settingsOpen, openSettings } = useOpenSettings()
+  const [followCamera, setFollowCamera] = useState(cameraFollow)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
   const startFollowing = useCallback(() => setFollowCamera(true), [])
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
-  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro } = useDisplaySettings()
   // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
   // picked on its ring (null: the panel lists them) and the member picked on the ring's party band (null: the selection
   // decides). The party can still move while it's open (designer decision: never pause the players); walking out of
@@ -219,7 +221,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   useEffect(() => {
     if (outro && !playOutro) onExit()
   }, [outro, playOutro, onExit])
-  useWorldClock(dispatch, !ending.paused)
+  useWorldClock(dispatch, !ending.paused && !settingsOpen)
   // UI state: the transporter's picker is open (the last fight's id when opened; a fight since closes it).
   const beamIn = useTransporter(dispatch)
   const [transporterFor, setTransporterFor] = useState(null)
@@ -493,19 +495,32 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const objectBand = objectAction && objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, objectAction, pickedId, pickRingMember) : null
   const objectSlices = objectBand?.slices.filter((slice) => slice.available) ?? []
   const objectPicked = objectSlices.some((slice) => slice.picked)
-  // A destructible's Fire ring: the band shows who has the best shot at once (Fire is its only button), and the ring
-  // stays up after a shot so the player can fire again.
+  // A destructible's ring: Fire (band ranks who has the best shot), Scan (hazards / countermeasures), plus Sabotage and
+  // Defuse (not built yet). The ring stays up after a shot or scan so the player can act again.
   const destructibleButtons =
-    menuDestructible && destructibleMenuButtons(state, menuDestructible.id, (memberId) => dispatch({ type: 'fireOnObject', memberId, objectId: menuDestructible.id }), pickedId)
+    menuDestructible &&
+    destructibleMenuButtons(
+      state,
+      menuDestructible.id,
+      {
+        fire: (memberId) => dispatch({ type: 'fireOnObject', memberId, objectId: menuDestructible.id }),
+        scan: (memberId) => dispatch({ type: 'scanDestructible', memberId, objectId: menuDestructible.id }),
+      },
+      pickedId,
+    )
   const destructibleBand = menuDestructible
-    ? ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, 'fire', pickedId, pickRingMember)
+    ? ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, hoveredRingButton ?? 'fire', pickedId, pickRingMember)
     : null
+  const destructibleHover = hoveredRingButton ?? 'fire'
   const destructibleMenu = menuDestructible && {
     position: menuDestructible.position,
     buttons: destructibleButtons,
     info: destructibleInfo(state, menuDestructible.id),
-    // Only members who currently have a shot (weapon range / line of fire).
-    party: destructibleBand && { ...destructibleBand, slices: destructibleBand.slices.filter((slice) => slice.available) },
+    // Fire: only members with a shot. Scan: only those in tricorder range who can scan now.
+    party: destructibleBand && {
+      ...destructibleBand,
+      slices: destructibleBand.slices.filter((slice) => (destructibleHover === 'fire' || destructibleHover === 'scan' ? slice.available : true)),
+    },
     onButtonHover: hoverRingButton,
   }
   const objectMenu = menuObject && {
@@ -623,11 +638,18 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       )}
       <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} environment={state.environment} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen} open={minimapOpen} onToggle={() => setMinimapOpen(!minimapOpen)}
         cornerButtons={
-          <button type="button" className="explore-minimap-toggle" aria-pressed={logOpen} aria-label="Captain's Log" title="Captain's Log: briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d={LOG_ICON} />
-            </svg>
-          </button>
+          <>
+            <button type="button" className="explore-minimap-toggle" aria-label="Settings" title="Settings" onClick={openSettings}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={SETTINGS_ICON} />
+              </svg>
+            </button>
+            <button type="button" className="explore-minimap-toggle" aria-pressed={logOpen} aria-label="Captain's Log" title="Captain's Log: briefing, objectives and mission log (L)" onClick={() => setLogOpen(!logOpen)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={LOG_ICON} />
+              </svg>
+            </button>
+          </>
         }
         leading={
           (objectives.length > 0 || hasPendingObjectives) ? (

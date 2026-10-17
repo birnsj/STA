@@ -15,7 +15,7 @@ import creationSteps from './data/adaptation/creationSteps.json'
 import ScaledStage from './components/ScaledStage.jsx'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
-import { DisplaySettingsContext } from './settings/DisplaySettingsContext.js'
+import { DisplaySettingsContext, OpenSettingsProvider } from './settings/DisplaySettingsContext.js'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ShipBuilderPlaceholder from './screens/ShipBuilderPlaceholder.jsx'
@@ -56,6 +56,7 @@ function Views() {
     const saved = { mode: 'combat', mapId: null, ...loadLocation().episode }
     return EPISODE_MODES.includes(saved.mode) ? saved : { ...saved, mode: EPISODE_MODES[0] }
   })
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const openMenu = () => setView('menu')
   const handleConfirmed = (characters) => {
     setSavedCharacters(characters)
@@ -63,6 +64,7 @@ function Views() {
   }
 
   useEffect(() => saveLocation({ ...loadLocation(), view, episode }), [view, episode])
+  useEffect(() => setSettingsOpen(false), [view])
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
@@ -109,9 +111,23 @@ function Views() {
     },
   }
 
+  const settingsLayer = settingsOpen ? (
+    <div className="settings-overlay">
+      <SettingsScreen
+        displaySettings={displaySettings}
+        onChangeDisplay={setDisplaySettings}
+        audioSettings={audioSettings}
+        onChangeAudio={setAudioSettings}
+        onSave={() => saveSettings({ ...loadSettings(), display: displaySettings, audio: audioSettings })}
+        onBack={() => setSettingsOpen(false)}
+      />
+    </div>
+  ) : null
+
   // While a view's code is still arriving the stage stays black, as it is between views anyway.
   return (
     <DisplaySettingsContext.Provider value={displaySettings}>
+    <OpenSettingsProvider value={{ open: settingsOpen, openSettings: () => setSettingsOpen(true) }}>
     <Suspense fallback={null}>
       {view === 'menu' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
@@ -130,6 +146,7 @@ function Views() {
             onChangeDisplay={setDisplaySettings}
             audioSettings={audioSettings}
             onChangeAudio={setAudioSettings}
+            onSave={() => saveSettings({ ...loadSettings(), display: displaySettings, audio: audioSettings })}
             onBack={openMenu}
           />
         </ScaledStage>
@@ -150,16 +167,19 @@ function Views() {
       {view === 'combat' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <CombatScreen savedCharacters={savedCharacters} mapId={episode.mapId} onExit={openMenu} />
+          {settingsLayer}
         </ScaledStage>
       )}
       {view === 'exploration' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <ExplorationScreen savedCharacters={savedCharacters} mapId={episode.mapId} onBack={() => setView('episodeSelect')} onExit={openMenu} />
+          {settingsLayer}
         </ScaledStage>
       )}
       {view === 'mapEditor' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
+          {settingsLayer}
         </ScaledStage>
       )}
       {view === 'creator' && (
@@ -168,6 +188,7 @@ function Views() {
         </ScaledStage>
       )}
     </Suspense>
+    </OpenSettingsProvider>
     </DisplaySettingsContext.Provider>
   )
 }

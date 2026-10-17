@@ -14,7 +14,7 @@ import { applyScenarioTiles, attemptChallenge, challengeFor, createScenario, INT
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
-import { scanArea, scanNpc } from './partyScan.js'
+import { scanArea, scanDestructible, scanNpc } from './partyScan.js'
 import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
@@ -111,6 +111,8 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
     lastTargetScan: null,
     // Scans of single NPCs (partyScan.js scanNpc), by NPC id.
     npcScans: {},
+    // Scans of destructibles (partyScan.js scanDestructible), by object id: hazards and countermeasures on success.
+    objectScans: {},
     // Persuade / Intimidate on NPCs (partySocial.js): world time each member may ask again, per NPC
     // { intimidated, last }, and the latest request for the screen.
     socialReadyAt: {},
@@ -249,6 +251,9 @@ function reduceExploration(state, action) {
     // { memberId, npcId }: that character scans one NPC (partyScan.js).
     case 'scanNpc':
       return state.mode === MODE.COMBAT ? state : scanNpc(state, action.memberId, action.npcId)
+    // { memberId, objectId }: that character scans one destructible (partyScan.js).
+    case 'scanDestructible':
+      return state.mode === MODE.COMBAT ? state : scanDestructible(state, action.memberId, action.objectId)
     // { memberId, npcId, kind: 'persuade' | 'intimidate' }: that character asks one NPC (partySocial.js).
     // A lost Intimidate on an aggressive NPC provokes it: it attacks the one who threatened it.
     case 'askNpc': {

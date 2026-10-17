@@ -11,6 +11,7 @@ import { getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
 import { characterHazardOverlayType } from '../../world/characterHazardOverlay.js'
 import { hazardPanic } from '../../world/hazardPanic.js'
 import { playBoardHover, playBoardPress } from '../../audio/uiSounds.js'
+import { highlightBox, highlightTiles } from '../exploration/boardGeometry.js'
 import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
 import { RINGS, SIDE_COLOURS } from '../maps/pixi/figures.js'
@@ -234,12 +235,18 @@ export default function PixiBattlefield(props) {
     })
   }
   // Destructible objects open their Fire ring on the player's turn; drawn behind any figure on the same tile.
+  // Outline templates for hover highlight (only the hovered id is shown each frame).
+  const destructibleHighlights = []
   for (const mark of destructibleMarks) {
     const centre = tileCentre(mark.position)
+    const tiles = highlightTiles([mark.position], bigGroups)
+    const area = highlightBox(map, bigGroups, tiles)
+    const depth = mark.position.x + mark.position.y + 0.35
+    destructibleHighlights.push({ id: mark.id, tiles, area, depth, changed: false, inReach: true })
     targets.push({
       kind: 'destructible',
       id: mark.id,
-      depth: mark.position.x + mark.position.y + 0.35,
+      depth,
       clickable: true,
       sound: true,
       title: mark.name,
@@ -276,6 +283,7 @@ export default function PixiBattlefield(props) {
   const boardRef = useRef(null)
   const targetsRef = useRef(targets)
   const hoverKeyRef = useRef(null)
+  const hoverDestructibleRef = useRef(null)
   const handlersRef = useRef(props)
   useLayoutEffect(() => {
     boardRef.current = {
@@ -287,6 +295,7 @@ export default function PixiBattlefield(props) {
       snapMarks,
       lastKnown: lastKnownMarks ?? [],
       objects: objectMarks ?? [],
+      destructibleHighlights,
       effects,
       explosions,
       environment: state.environment,
@@ -305,8 +314,12 @@ export default function PixiBattlefield(props) {
     const read = () => {
       const board = boardRef.current
       if (!board) return null
+      const hovered = hoverDestructibleRef.current
       board.svg = svgRef.current
       board.hoverKey = hoverKeyRef.current
+      board.highlights = hovered
+        ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
+        : []
       return board
     }
     return startBattleScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
@@ -370,10 +383,18 @@ export default function PixiBattlefield(props) {
     const position = floorAt(event)
     if (position) handlersRef.current.onTileClick(position, { touch: pointerTypeRef.current === 'touch' })
   }
+  const setHoveredDestructible = (id, sound) => {
+    if (hoverDestructibleRef.current === id) return
+    hoverDestructibleRef.current = id
+    if (id !== null && sound) playBoardHover()
+  }
   const handlePointerMove = (event) => {
     const overSvg = event.target === svgRef.current
     const target = targetAt(event)
-    if (event.pointerType === 'mouse') setHoveredUnit(target?.kind === 'unit' ? target.id : null, target?.sound)
+    if (event.pointerType === 'mouse') {
+      setHoveredUnit(target?.kind === 'unit' ? target.id : null, target?.sound)
+      setHoveredDestructible(target?.kind === 'destructible' ? target.id : null, target?.sound)
+    }
     setTitle(target?.title ?? null)
     const tile = overSvg && !target ? floorAt(event) : null
     const key = tile && tileKey(tile)
@@ -388,6 +409,7 @@ export default function PixiBattlefield(props) {
   }
   const handleMouseLeave = () => {
     setHoveredUnit(null)
+    setHoveredDestructible(null)
     setTitle(null)
     hoverKeyRef.current = null
     hoverTileRef.current = null

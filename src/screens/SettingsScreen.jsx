@@ -1,16 +1,20 @@
-import background from '../assets/main-menu-background.jpg'
+import { useEffect, useState } from 'react'
+import { ENEMY_AIS, PARTY_AIS } from '../combat/autoCombat.js'
 import { AUDIO_CATEGORIES } from '../settings/audioSettings.js'
 import { SCALE_MODE_OPTIONS } from '../settings/displaySettings.js'
 
-export default function SettingsScreen({ displaySettings, onChangeDisplay, audioSettings, onChangeAudio, onBack }) {
+export default function SettingsScreen({ displaySettings, onChangeDisplay, audioSettings, onChangeAudio, onSave, onBack }) {
+  const [saved, setSaved] = useState(false)
+  useEffect(() => setSaved(false), [displaySettings, audioSettings])
   return (
-    <div className="ship-builder-placeholder" style={{ backgroundImage: `url(${background})` }}>
-      <div className="ship-builder-panel settings-panel">
-        <h1 className="ship-builder-title">Settings</h1>
-        <section className="settings-section" aria-labelledby="settings-display">
-          <h2 id="settings-display" className="settings-heading">
-            Display
-          </h2>
+    <div className="settings-screen">
+      <div className="settings-panel">
+      <header className="settings-header">
+        <h1>Settings</h1>
+      </header>
+      <div className="settings-body">
+        <section className="settings-column" aria-labelledby="settings-display">
+          <h2 id="settings-display" className="ui-heading">Display</h2>
           <div className="settings-options" role="radiogroup" aria-labelledby="settings-display">
             {SCALE_MODE_OPTIONS.map((option) => {
               const selected = displaySettings.scaleMode === option.id
@@ -20,7 +24,7 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  className={`settings-option${selected ? ' is-selected' : ''}`}
+                  className={`settings-option ui-row${selected ? ' is-selected' : ''}`}
                   onClick={() => onChangeDisplay({ ...displaySettings, scaleMode: option.id })}
                 >
                   <span className="settings-option-label">{option.label}</span>
@@ -29,118 +33,102 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
               )
             })}
           </div>
-          <div className="settings-toggles">
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Guide Highlight</span>
-                <span className="settings-option-description">In character creation, a box moves to the next section to fill in.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.guideHighlight}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, guideHighlight: event.target.checked })}
-              />
-            </label>
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Help Hints</span>
-                <span className="settings-option-description">In combat and exploration, a box above the party cards says what to do next. Also opens How to Play on the first fight after Load Episode.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.helpHints}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, helpHints: event.target.checked })}
-              />
-            </label>
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Fade Walls One at a Time</span>
-                <span className="settings-option-description">On the maps, only the wall blocks hiding a character fade, instead of the room's whole front walls.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.wallFade === 'single'}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, wallFade: event.target.checked ? 'single' : 'room' })}
-              />
-            </label>
-            {/* The toggles fill two columns row by row, so this one sits under Help Hints. */}
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Pulse Objective Tag</span>
-                <span className="settings-option-description">On the map, the tag over the object your current objective is on pulses.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.objectivePulse}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, objectivePulse: event.target.checked })}
-              />
-            </label>
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Captain&rsquo;s Log Intro</span>
-                <span className="settings-option-description">Before a mission, the Captain&rsquo;s Log opening plays. Off goes straight to the map.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.missionIntro}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, missionIntro: event.target.checked })}
-              />
-            </label>
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Captain&rsquo;s Log Outro</span>
-                <span className="settings-option-description">Once the away team beams out, the Captain&rsquo;s Log mission report plays. Off leaves the mission at once.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.missionOutro}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, missionOutro: event.target.checked })}
-              />
-            </label>
-            <label className="settings-toggle">
-              <span className="settings-toggle-text">
-                <span className="settings-slider-label">Tooltips</span>
-                <span className="settings-option-description">Resting the pointer on a button, icon or value shows a box explaining it.</span>
-              </span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={displaySettings.tooltips}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, tooltips: event.target.checked })}
-              />
-            </label>
-          </div>
-        </section>
-        <section className="settings-section" aria-labelledby="settings-audio">
-          <h2 id="settings-audio" className="settings-heading">
-            Audio
-          </h2>
-          {AUDIO_CATEGORIES.map((category) => (
-            <label key={category.id} className="settings-slider">
-              <span className="settings-slider-label">{category.label}</span>
+          <h2 id="settings-audio" className="ui-heading">Audio</h2>
+          <div className="settings-audio">
+            {AUDIO_CATEGORIES.map((category) => (
+              <label key={category.id} className="settings-slider ui-row">
+                <span className="settings-slider-label">{category.label}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={audioSettings[category.id]}
+                  onChange={(event) => onChangeAudio({ ...audioSettings, [category.id]: Number(event.target.value) })}
+                  style={{ '--fill': `${audioSettings[category.id]}%` }}
+                />
+                <span className="settings-slider-value">{audioSettings[category.id]}%</span>
+              </label>
+            ))}
+            <label className="settings-slider ui-row" title="WASD after glide: how far the camera keeps sliding after you release the keys. 100% is full coast; 0% stops at once.">
+              <span className="settings-slider-label">Sensitivity</span>
               <input
                 type="range"
                 min="0"
                 max="100"
                 step="1"
-                value={audioSettings[category.id]}
-                onChange={(event) => onChangeAudio({ ...audioSettings, [category.id]: Number(event.target.value) })}
-                style={{ '--fill': `${audioSettings[category.id]}%` }}
+                value={displaySettings.wasdCoast}
+                onChange={(event) => onChangeDisplay({ ...displaySettings, wasdCoast: Number(event.target.value) })}
+                style={{ '--fill': `${displaySettings.wasdCoast}%` }}
               />
-              <span className="settings-slider-value">{audioSettings[category.id]}%</span>
+              <span className="settings-slider-value">{displaySettings.wasdCoast}%</span>
             </label>
-          ))}
+          </div>
+          <h2 id="settings-combat" className="ui-heading">Combat</h2>
+          <div className="settings-ai" role="group" aria-labelledby="settings-combat">
+            <AISelect
+              label="Party AI"
+              title="How your party plays during Auto Combat."
+              options={PARTY_AIS}
+              value={displaySettings.partyAI}
+              onChange={(partyAI) => onChangeDisplay({ ...displaySettings, partyAI })}
+            />
+            <AISelect
+              label="Enemy AI"
+              title="How enemies play every fight, not only Auto Combat."
+              options={ENEMY_AIS}
+              value={displaySettings.enemyAI}
+              onChange={(enemyAI) => onChangeDisplay({ ...displaySettings, enemyAI })}
+            />
+          </div>
+          <div className="settings-switches" aria-label="Display switches">
+            <Toggle label="Guide Highlight" description="In character creation, a box moves to the next section to fill in." checked={displaySettings.guideHighlight} onChange={(checked) => onChangeDisplay({ ...displaySettings, guideHighlight: checked })} />
+            <Toggle label="Help Hints" description="A box above the party cards says what to do next, and How to Play opens on the first fight." checked={displaySettings.helpHints} onChange={(checked) => onChangeDisplay({ ...displaySettings, helpHints: checked })} />
+            <Toggle label="Fade Walls One at a Time" description="Only the wall blocks hiding a character fade, instead of the room's whole front walls." checked={displaySettings.wallFade === 'single'} onChange={(checked) => onChangeDisplay({ ...displaySettings, wallFade: checked ? 'single' : 'room' })} />
+            <Toggle label="Pulse Objective Tag" description="The tag over the object your current objective is on pulses." checked={displaySettings.objectivePulse} onChange={(checked) => onChangeDisplay({ ...displaySettings, objectivePulse: checked })} />
+            <Toggle label="Captain's Log Intro" description="Before a mission, the Captain's Log opening plays. Off goes straight to the map." checked={displaySettings.missionIntro} onChange={(checked) => onChangeDisplay({ ...displaySettings, missionIntro: checked })} />
+            <Toggle label="Captain's Log Outro" description="Once the away team beams out, the mission report plays. Off leaves the mission at once." checked={displaySettings.missionOutro} onChange={(checked) => onChangeDisplay({ ...displaySettings, missionOutro: checked })} />
+            <Toggle label="Tooltips" description="Resting the pointer on a button, icon or value shows a box explaining it." checked={displaySettings.tooltips} onChange={(checked) => onChangeDisplay({ ...displaySettings, tooltips: checked })} />
+            <Toggle label="Camera Follow" description="Combat and exploration start with the view following the acting character." checked={displaySettings.cameraFollow} onChange={(checked) => onChangeDisplay({ ...displaySettings, cameraFollow: checked })} />
+          </div>
         </section>
+      </div>
+      <div className="settings-actions">
         <button type="button" className="nav-button" onClick={onBack}>
           Close
         </button>
+        <button type="button" className={`nav-button nav-next${saved ? '' : ' is-advance'}`} onClick={() => { onSave(); setSaved(true) }}>
+          {saved ? 'Saved' : 'Save Settings'}
+        </button>
+      </div>
       </div>
     </div>
+  )
+}
+
+function Toggle({ label, description, checked, onChange }) {
+  return (
+    <label className="settings-toggle ui-row">
+      <span className="settings-toggle-text">
+        <span className="settings-slider-label">{label}</span>
+        <span className="settings-option-description">{description}</span>
+      </span>
+      <input type="checkbox" role="switch" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    </label>
+  )
+}
+
+function AISelect({ label, title, options, value, onChange }) {
+  return (
+    <label className="settings-ai-picker ui-row" title={title}>
+      <span className="settings-slider-label">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
+        {options.map((ai) => (
+          <option key={ai.id} value={ai.id}>
+            {ai.name}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }

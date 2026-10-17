@@ -6,22 +6,10 @@ import { gridFacing } from '../maps/facing.js'
 import { nearestFreeCell } from './tacticalGrid.js'
 
 export const MAX_AWAY_TEAM = 8
-// Fireteam A is the first FIRETEAM_A_SIZE in party pick order; the rest are Fireteam B (designer 2026-10-16).
-export const FIRETEAM_A_SIZE = 4
 
 // How many the setup screens may pick: 8 when the map has at least one player start, otherwise none.
 export function maxAwayTeamSize(map) {
   return map?.markers?.playerStarts?.length ? MAX_AWAY_TEAM : 0
-}
-
-// Split party pick order into Fireteam A (full cards) and Fireteam B (compact; follows A).
-export function splitFireteams(memberIds) {
-  const ids = memberIds ?? []
-  return { teamA: ids.slice(0, FIRETEAM_A_SIZE), teamB: ids.slice(FIRETEAM_A_SIZE) }
-}
-
-export function isFireteamB(memberIds, id) {
-  return splitFireteams(memberIds).teamB.includes(id)
 }
 
 // [{ character, position, facing (degrees or null), heading (radians), facingVector }] for each member that fits.

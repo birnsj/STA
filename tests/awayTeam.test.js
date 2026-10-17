@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { createBlankMap } from '../src/maps/mapFormat.js'
-import { FIRETEAM_A_SIZE, MAX_AWAY_TEAM, maxAwayTeamSize, placeAwayTeam, splitFireteams } from '../src/exploration/awayTeam.js'
+import { MAX_AWAY_TEAM, maxAwayTeamSize, placeAwayTeam } from '../src/exploration/awayTeam.js'
 import { createPartyState, partyReducer } from '../src/exploration/partyControl.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -40,43 +40,43 @@ describe('awayTeam', () => {
     assert.equal(party.memberIds.length, 8)
   })
 
-  it('splits pick order into Fireteam A (4) and B (the rest)', () => {
-    const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    assert.deepEqual(splitFireteams(ids), { teamA: ids.slice(0, FIRETEAM_A_SIZE), teamB: ids.slice(FIRETEAM_A_SIZE) })
-    assert.deepEqual(splitFireteams(ids.slice(0, 3)), { teamA: ['a', 'b', 'c'], teamB: [] })
-  })
-
-  it('starts with Fireteam A selected and B following the lead', () => {
+  it('starts with the whole away team selected, standing still and facing their start', () => {
     const map = {
       ...createBlankMap({ name: 'Starts', width: 16, height: 16 }),
-      markers: { playerStarts: [{ x: 4, y: 4 }], enemySpawns: [] },
+      markers: { playerStarts: [{ x: 4, y: 4, facing: 90 }], enemySpawns: [] },
     }
     const characters = Array.from({ length: 8 }, (_, i) => makeCharacter({ id: `c${i}`, name: `Officer ${i}` }))
     const party = createPartyState(map, characters)
-    assert.deepEqual(party.selectedIds, party.memberIds.slice(0, FIRETEAM_A_SIZE))
+    assert.deepEqual(party.selectedIds, party.memberIds)
     assert.equal(party.leaderId, party.memberIds[0])
-    party.memberIds.slice(FIRETEAM_A_SIZE).forEach((id) => {
-      assert.equal(party.members[id].order?.type, 'follow')
-      assert.equal(party.members[id].order.leaderId, party.leaderId)
+    party.memberIds.forEach((id) => {
+      assert.equal(party.members[id].order, null)
+      assert.equal(party.members[id].moving, false)
+      assert.ok(Math.abs(party.members[id].heading - Math.PI / 2) < 1e-6)
     })
   })
 
-  it('hitches Fireteam B when A moves; a B-only selection moves alone', () => {
+  it('moves the whole selected away team; a single selection moves alone', () => {
     const map = {
       ...createBlankMap({ name: 'Starts', width: 24, height: 24 }),
       markers: { playerStarts: [{ x: 10, y: 10 }], enemySpawns: [] },
     }
     const characters = Array.from({ length: 8 }, (_, i) => makeCharacter({ id: `c${i}`, name: `Officer ${i}` }))
     let party = createPartyState(map, characters)
-    const [lead, , , , b0] = party.memberIds
+    const [lead, second] = party.memberIds
     party = partyReducer(party, { type: 'moveTo', target: { x: 14, y: 12 }, fresh: true })
-    party.memberIds.slice(FIRETEAM_A_SIZE).forEach((id) => {
+    assert.equal(party.members[lead].order?.type, 'point')
+    party.memberIds.slice(1).forEach((id) => {
       assert.equal(party.members[id].order?.type, 'follow')
       assert.equal(party.members[id].order.leaderId, lead)
     })
-    party = partyReducer(party, { type: 'select', id: b0 })
+    party = partyReducer(party, { type: 'select', id: second })
     party = partyReducer(party, { type: 'moveTo', target: { x: 8, y: 8 }, fresh: true })
-    assert.equal(party.members[b0].order?.type, 'point')
+    assert.equal(party.members[second].order?.type, 'point')
     assert.equal(party.members[lead].order?.type, 'point')
+    party.memberIds.slice(2).forEach((id) => {
+      assert.equal(party.members[id].order?.type, 'follow')
+      assert.equal(party.members[id].order.leaderId, lead)
+    })
   })
 })

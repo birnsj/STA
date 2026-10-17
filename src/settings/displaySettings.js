@@ -13,8 +13,30 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // missionIntro: the Captain's Log intro before a mission's map (MissionStory.jsx MissionIntro); off goes straight in.
 // missionOutro: the Captain's Log outro once the away team has beamed out (MissionOutro); off leaves the mission at once.
 // tooltips: the hover boxes drawn from title / data-tip attributes (components/TitleTips.jsx).
-export const DEFAULT_DISPLAY_SETTINGS = { scaleMode: 'fill', fixedScale: 1, guideHighlight: true, helpHints: true, objectivePulse: true, wallFade: 'room', missionIntro: true, missionOutro: true, tooltips: true }
+// cameraFollow: combat and exploration start with the view following the acting character (the camera button still
+// changes it during play).
+// wasdCoast: how far the camera keeps sliding after WASD / arrow keys are released (0 = stop at once, 100 = the
+// current coast). Pointer-drag coast is unchanged.
+// partyAI / enemyAI: which Auto Combat brain plays each side (ids must match PARTY_AIS / ENEMY_AIS in autoCombat.js);
+// Party AI only runs while Auto Combat is on, Enemy AI runs every enemy turn.
+export const DEFAULT_DISPLAY_SETTINGS = {
+  scaleMode: 'fill',
+  fixedScale: 1,
+  guideHighlight: true,
+  helpHints: true,
+  objectivePulse: true,
+  wallFade: 'room',
+  missionIntro: true,
+  missionOutro: true,
+  tooltips: true,
+  cameraFollow: true,
+  wasdCoast: 100,
+  partyAI: 'classic',
+  enemyAI: 'classic',
+}
 const WALL_FADE_MODES = ['room', 'single']
+// Kept here (not imported from autoCombat) so Node tests can load this file without Vite JSON imports.
+const COMBAT_AI_IDS = new Set(['classic', 'planner', 'squad', 'aggressive', 'cautious', 'lookahead', 'random'])
 
 // The modes offered on the Settings screen ('fixed' stays available to code but is not offered yet).
 export const SCALE_MODE_OPTIONS = [
@@ -27,7 +49,25 @@ export function normalizeDisplaySettings(saved) {
   const scaleMode = SCALE_MODE_OPTIONS.some((option) => option.id === saved?.scaleMode) ? saved.scaleMode : DEFAULT_DISPLAY_SETTINGS.scaleMode
   const flag = (key) => (typeof saved?.[key] === 'boolean' ? saved[key] : DEFAULT_DISPLAY_SETTINGS[key])
   const wallFade = WALL_FADE_MODES.includes(saved?.wallFade) ? saved.wallFade : DEFAULT_DISPLAY_SETTINGS.wallFade
-  return { ...DEFAULT_DISPLAY_SETTINGS, scaleMode, guideHighlight: flag('guideHighlight'), helpHints: flag('helpHints'), objectivePulse: flag('objectivePulse'), wallFade, missionIntro: flag('missionIntro'), missionOutro: flag('missionOutro'), tooltips: flag('tooltips') }
+  const coast = Number(saved?.wasdCoast)
+  const wasdCoast = Number.isFinite(coast) ? Math.min(100, Math.max(0, Math.round(coast))) : DEFAULT_DISPLAY_SETTINGS.wasdCoast
+  const partyAI = COMBAT_AI_IDS.has(saved?.partyAI) ? saved.partyAI : DEFAULT_DISPLAY_SETTINGS.partyAI
+  const enemyAI = COMBAT_AI_IDS.has(saved?.enemyAI) ? saved.enemyAI : DEFAULT_DISPLAY_SETTINGS.enemyAI
+  return {
+    ...DEFAULT_DISPLAY_SETTINGS,
+    scaleMode,
+    guideHighlight: flag('guideHighlight'),
+    helpHints: flag('helpHints'),
+    objectivePulse: flag('objectivePulse'),
+    wallFade,
+    missionIntro: flag('missionIntro'),
+    missionOutro: flag('missionOutro'),
+    tooltips: flag('tooltips'),
+    cameraFollow: flag('cameraFollow'),
+    wasdCoast,
+    partyAI,
+    enemyAI,
+  }
 }
 
 // Fill mode stretches the stage only within this shape range; beyond it (tall tablets and phones, very wide

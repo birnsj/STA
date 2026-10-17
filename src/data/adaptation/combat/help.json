@@ -33,7 +33,7 @@
         "The portraits at the top show the turn order. The large yellow one is acting now.",
         "The deck is bigger than the screen: use W A S D (or the arrow keys), hold the right mouse button and drag, or on a touch screen drag with one finger, to look around. Scroll the mouse wheel to zoom in and out. The view moves to whoever is acting; press Camera: Follow (top right) to switch to Camera: Free and keep the view where you put it.",
         "Your party acts first each round, then the Klingons take their turns automatically.",
-        "Ambush (optional, until anyone attacks): your party member with the best Control + Security can ambush one Klingon they could shoot (in weapon range, with a clear line of fire). Sneak into position first, over several rounds if needed, then on a party turn press Ambush under the hint, click the Klingon, then Ambush (free). They roll at Difficulty 1 (Camouflage or Ambush Tactics gives a free reroll). Success is an automatic hit on that Klingon (an Injury from their weapon, on Stun). Failure means you are spotted: a new round starts at once and the Klingons act first for the rest of the fight. Any attack, by either side, ends the chance.",
+        "Ambush (optional, until anyone attacks): your party member with the best Control + Security can ambush one Klingon they could shoot (in weapon range, with a clear line of fire). Sneak into position first, over several rounds if needed, then on a party turn click the Klingon and press Ambush (free) on their ring. They roll at Difficulty 1 (Camouflage or Ambush Tactics gives a free reroll). Success is an automatic hit on that Klingon (an Injury from their weapon, on Stun). Failure means you are spotted: a new round starts at once and the Klingons act first for the rest of the fight. Any attack, by either side, ends the chance.",
         "The arrow at each figure's feet shows which way it is facing: blue for your party, red for Klingons, yellow for whoever is acting, grey once a turn is done. Figures turn toward where they walk and whom they shoot. Facing is for show only and has no effect on the rules.",
         "During the party's turn, click any party member marked Ready in the bar at the bottom (or click them on the map, then Switch) to act with them. You can switch at any time and come back to finish their actions. Each character has one Major and one Minor action (the M and m lights above them); once both are used the turn passes to the next Ready member automatically, and once the whole party is done the Klingons act."
       ]
@@ -88,9 +88,9 @@
     {
       "heading": "Auto Combat (testing)",
       "lines": [
-        "Auto Combat (bottom right) lets the AI play your party too, with the same rules and dice. Pause, Resume and Stop at any time; Stop hands control back to you. 2x and 4x only make it faster to watch.",
+        "Auto Combat (play button on the minimap, beside Settings) lets the AI play your party too, with the same rules and dice. Click again to stop. The speed button beside it steps 1x, 2x and 4x — that only makes it faster to watch.",
         "Type a Seed on the setup screen to replay the exact same fight. The seed of the current fight is shown in Debug.",
-        "Enemy AI picks how the Klingons play, in every fight (not only Auto Combat); Classic is the original enemy AI. Party AI picks how your party plays. Classic acts one action at a time; Turn Planner scores every combination of its Major and Minor action (attack, aim, assist, move, sprint and where it ends up) against the danger of the enemies' next round. To compare them, replay the same Seed with each AI."
+        "Party AI and Enemy AI are chosen in Settings. Enemy AI picks how the Klingons play in every fight (not only Auto Combat); Classic is the original enemy AI. Party AI picks how your party plays during Auto Combat. Classic acts one action at a time; Turn Planner scores every combination of its Major and Minor action (attack, aim, assist, move, sprint and where it ends up) against the danger of the enemies' next round. To compare them, replay the same Seed with each AI."
       ]
     }
   ]

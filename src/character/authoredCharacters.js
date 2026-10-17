@@ -35,6 +35,18 @@ export function getPlaytestParty(limit = 8) {
     .map((id) => getAuthoredCharacter(id))
 }
 
+// Import-screen entries for the playtest ensigns: the same { id, name, record } shape as a saved character, but not a
+// save (playtest: true). Importing one opens it in the creator; it is written to the saved list only if confirmed.
+export function playtestImportEntries() {
+  return listPlaytestPartyIds()
+    .map((id) => {
+      const record = getAuthoredRecord(id)
+      if (!record) return null
+      return { id, name: record.character.identity?.name?.trim() || id, savedAt: null, record, playtest: true }
+    })
+    .filter(Boolean)
+}
+
 // The full character record for an authored character id, or null.
 export function getAuthoredRecord(characterId) {
   const entry = entriesById.get(characterId)

@@ -944,33 +944,6 @@
   transition: opacity 0.8s ease;
 }
 
-/* The optional opening Ambush, offered under the hint until anyone acts. */
-.combat-ambush {
-  display: block;
-  margin: 5px auto 0;
-  padding: 1px 9px;
-  border: var(--ui-border) solid var(--yellow);
-  border-radius: var(--ui-radius);
-  background: none;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--yellow);
-}
-
-.combat-ambush:disabled {
-  border-color: var(--panel-border);
-  color: var(--text-muted);
-  background: none;
-  cursor: var(--cursor-default);
-}
-
-.combat-ambush:not(:disabled):hover,
-.combat-ambush.is-selected {
-  background: var(--yellow);
-  color: #10121a;
-}
-
 .combat-modal.combat-help {
   width: 600px;
   padding: 14px 20px;
@@ -1013,6 +986,8 @@
 /* Right column stretches under the minimap (sidebar is a child of .explore-minimap-column). */
 .combat-screen .explore-minimap-column {
   bottom: 8px;
+  /* Tighter than exploration's 6px so Momentum / Threat sit closer under the minimap. */
+  gap: 2px;
 }
 
 .combat-screen .explore-minimap-column .combat-sidebar {
@@ -1032,82 +1007,113 @@
   flex-direction: column;
   gap: 4px;
   overflow: auto;
+  pointer-events: auto;
 }
 
-/* Attacker and target: equal cards under the carousel. Stats use the creator's rows (.ui-heading, .ui-row). */
+/* Attacker and target: party-card width under the carousel, so the Stress bar is the same length.
+   Stats stay closed until the insignia is pinned or the card is hovered. */
 .combat-matchup {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: center;
   gap: 8px;
   width: 100%;
 }
 
-.combat-matchup-card {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 240px;
+.combat-matchup-wrap {
+  position: relative;
+  flex: 0 0 178px;
+  width: 178px;
   pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 4px 6px;
 }
 
-.combat-matchup-card > .ui-heading {
-  margin: 0;
-  font-size: 10px;
-  line-height: 1.2;
+.combat-matchup-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 178px;
+  box-sizing: border-box;
+  padding: 3px 8px 3px 4px;
+}
+
+/* Injury / fatigue icons sit on the card so Attacker / Target headings are not needed. */
+.combat-matchup-conditions {
+  position: absolute;
+  top: 2px;
+  right: 26px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.combat-matchup-body {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
 }
 
 .combat-matchup-card.is-enemy .combat-matchup-portrait {
   border-color: var(--red);
 }
 
-.combat-matchup-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
 .combat-matchup-portrait {
   width: 36px;
   height: 44px;
+  flex-shrink: 0;
 }
 
 .combat-matchup-portrait.is-blank {
   display: inline-block;
-  flex-shrink: 0;
   background: #0b1428;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
 }
 
-.combat-matchup-id {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
+.combat-matchup-card .party-info {
+  flex: 1;
+  gap: 2px;
 }
 
-.combat-matchup-name {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+.combat-matchup-card .party-name {
+  font-size: 11px;
   color: var(--yellow);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.combat-matchup-weapon,
+.combat-matchup-card .party-weapon,
 .combat-matchup-quiet {
-  font-size: 10px;
+  font-size: 9px;
+}
+
+.combat-matchup-quiet {
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Same Stress row as the party cards: the bar fills the column, and the number stays clear of the insignia. */
+.combat-matchup-card .party-info .condition-track {
+  width: 100%;
+  padding-right: 16px;
+}
+
+.combat-matchup-card .explore-card-info-toggle {
+  right: 5px;
+  bottom: 5px;
+}
+
+.combat-matchup-scores {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 4px 6px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .combat-matchup-scores > .ui-heading {
@@ -1402,11 +1408,10 @@
   opacity: 0.35;
 }
 
-/* Hint / roll / Auto Combat: between the party rail and the minimap column (same band as
-   exploration's .explore-messages). z-index keeps the dice above the minimap column (20). */
+/* Hint / roll: same horizontal band as the turn order; dice centred under it. Bottom stays put. */
 .combat-bottom-left {
   position: absolute;
-  left: calc(8px + var(--combat-party-rail-width, 178px) + 16px);
+  left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
   right: calc(8px + var(--explore-minimap-size, 240px) + 12px);
   bottom: 8px;
   z-index: 26;
@@ -1421,10 +1426,8 @@
   pointer-events: auto;
 }
 
-/* The hint sits in the column above the roll panel. */
 .combat-bottom-left .combat-hint {
   position: static;
-  align-self: center;
   margin: 0;
 }
 
@@ -1846,7 +1849,7 @@
   white-space: nowrap;
 }
 
-/* Under the Task box, outside it. */
+/* Under the Task box, outside it, the full width of the sidebar. */
 .task-end-turn {
   position: relative;
   overflow: hidden;
@@ -2251,109 +2254,12 @@
   color: var(--text-muted);
 }
 
-/* Auto Combat controls: in the party cards' row, same height as Fireteam A, narrow enough to sit beside them. */
-.combat-bottom-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.auto-controls {
-  position: relative;
-  box-sizing: border-box;
-  width: 104px;
-  height: var(--party-card-height);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 2px;
-  padding: 5px;
-}
-
-.auto-controls .combat-button.is-small {
-  padding-left: 4px;
-  padding-right: 4px;
-  font-size: 10px;
-}
-
-.auto-controls .auto-row .combat-button {
-  flex: 1;
-}
-
-/* Running, the status sits on the box's top edge like the cards' badges, and the controls share one row. */
-.auto-controls.is-on .auto-status {
-  position: absolute;
-  top: -8px;
-  right: 6px;
-  padding: 0 5px;
-  border-radius: 3px;
-  background: var(--yellow);
-  color: #1a1200;
-  font-size: 9px;
-  line-height: 14px;
-}
-
-.auto-controls.is-on {
-  border-color: var(--yellow);
-}
-
-.auto-status {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--yellow);
-  text-transform: uppercase;
-}
-
-.auto-row {
-  display: flex;
-  gap: 3px;
-}
-
-.auto-speed {
-  padding: 1px 3px;
-  border: var(--ui-border) solid var(--blue);
-  border-radius: var(--ui-radius);
-  background: none;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.auto-speed.is-selected {
-  border-color: var(--yellow);
-  background: var(--yellow);
-  color: #111;
-}
-
-.auto-ai {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  width: 100%;
-}
-
-.auto-ai-label {
+/* Auto Combat speed: same 22px corner button as Settings / Camera, with the rate as the label. */
+.explore-minimap-toggle.auto-speed-toggle {
   font-size: 9px;
   font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.auto-ai-select {
-  /* Narrower than the longest AI name ("Squad Tactician"), which the closed box ellipsises; the open list still shows
-     every name in full. */
-  width: 60px;
-  min-width: 0;
-  padding: 0 1px;
-  text-overflow: ellipsis;
-  border: var(--ui-border) solid var(--blue);
-  border-radius: var(--ui-radius);
-  background: #0b1424;
-  color: var(--text);
-  font: inherit;
-  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: inherit;
 }
 
 .combat-setup-seed {

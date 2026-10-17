@@ -79,7 +79,7 @@ export {
   previewAttack,
   rollAwaitsPlayer,
 } from './combatAttacks.js'
-export { directBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan } from './combatTasks.js'
+export { directBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan, previewScanObject } from './combatTasks.js'
 export { isScanned, scanReport, SCAN_TRAIT, visibleCondition } from './combatScan.js'
 export { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
 export { injuryDefeats, injuryFor, previewInjuries } from './combatInjuries.js'

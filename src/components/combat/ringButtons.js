@@ -5,6 +5,7 @@ import {
   aimRerollsFor,
   canAfford,
   canAim,
+  canAmbush,
   canAssist,
   COMBAT_TASKS,
   EXTRA_ACTIONS,
@@ -16,6 +17,7 @@ import {
   previewFirstAid,
   previewGuard,
   previewScan,
+  previewScanObject,
   previewSocial,
   scanReport,
   visibleCondition,
@@ -25,6 +27,7 @@ import { previewObjectAttack } from '../../combat/combatEnvironment.js'
 import { getSprintTiles } from '../../combat/movementSystem.js'
 import { getInjuryMode } from '../../combat/weaponSystem.js'
 import { prepareAssist } from '../../rules/taskPreparation.js'
+import { destructibleScanCard, isDestructibleScanned } from '../../world/destructibleScan.js'
 import { attackModeDetails, attackModeName, enemyButtonDefs, taskDetails, typeName } from './battleHelpers.js'
 
 // The buttons and info card drawn in a ring around a unit on the map: the acting character's own actions, an enemy's
@@ -147,7 +150,7 @@ export default function createRingButtons({
       scan: scanButton(enemy),
     }
     const shot = enemy.id === targetAttack?.target.id ? targetAttack : previewAttack(state, active.id, enemy.id, weapon.id)
-    return enemyButtonDefs(weapon, { task: shot.task, opposed: Boolean(shot.opposition) }).map((button) => ({
+    const buttons = enemyButtonDefs(weapon, { task: shot.task, opposed: Boolean(shot.opposition) }).map((button) => ({
       ...button,
       ...(behaviour[button.id] ?? {
         enabled: !attackBlock && canAfford(state, active, 'attack'),
@@ -156,6 +159,9 @@ export default function createRingButtons({
         onClick: () => fireAttack(enemy.id, button.id),
       }),
     }))
+    // The opening Ambush lives on this ring while the chance lasts (designer request, 2026-10-17).
+    if (canAmbush(state)) buttons.unshift(...ambushRingButtons(enemy))
+    return buttons
   }
 
   const enemyRingInfo = (enemy) => {
@@ -354,13 +360,18 @@ export default function createRingButtons({
       onClick: () => openTask('interact', `${objectId}:${action.id}`),
     }))
   }
-  // A destructible object's ring (combat/actions/AttackObjectAction.js): Fire with the weapon in hand, the attack's cost.
+  // A destructible object's ring: Fire (AttackObjectAction), Scan (hazards / countermeasures), Sabotage and Defuse not
+  // built yet (designer request 2026-10-17).
   const destructibleRingButtons = (objectId) => {
     const record = state.environment.destructibles[objectId]
     const blocked = combatActionFor('attackObject').unavailableReason(state, active, { objectId, weaponId: weapon.id })
     const shot = previewObjectAttack(state, active.id, objectId, weapon.id)
     const blast = record.explosion ? ` It explodes at 0 Structure (radius ${record.explosion.radius}), catching everyone near it.` : ''
     const title = blocked ? `Fire: ${blocked}` : `Fire at the ${record.name} (${weapon.name}, Difficulty ${shot.task.difficulty}): ${shot.damage} Structure on a hit.${blast}`
+    const scanned = isDestructibleScanned(state.scannedObjects, objectId)
+    const setUp = mode === 'scanObject' && taskPick === objectId
+    const scanTask = !scanned && previewScanObject(state, active.id, objectId)
+    const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: not in this prototype yet.` })
     return [
       {
         id: 'fire',
@@ -373,18 +384,34 @@ export default function createRingButtons({
           closeRing()
         },
       },
+      {
+        id: 'scan',
+        label: 'Scan',
+        icon: 'scan',
+        enabled: true,
+        active: setUp || (scanned && ringInfo),
+        ...(scanTask ? { details: taskDetails(scanTask.task) } : {}),
+        title: scanned
+          ? 'Show what the scan found: hazards it may release and how to counteract them.'
+          : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows the hazards it may release and how to counteract them.`,
+        onClick: () => {
+          if (scanned || setUp) {
+            setRingInfo(!ringInfo)
+            if (setUp) setMode('attack')
+            return
+          }
+          setMode('scanObject')
+          setTaskPick(objectId)
+          setRingInfo(true)
+        },
+      },
+      unbuilt('sabotage', 'Sabotage', 'sabotage'),
+      unbuilt('defuse', 'Defuse', 'defuse'),
     ]
   }
   const destructibleRingInfo = (objectId) => {
     const record = state.environment.destructibles[objectId]
-    return {
-      title: record.name,
-      rows: [
-        ['Structure', `${record.structure} / ${record.maxStructure}`],
-        ['Resistance', String(record.resistance)],
-      ],
-      tips: [],
-    }
+    return destructibleScanCard(record, { scanned: isDestructibleScanned(state.scannedObjects, objectId) })
   }
   return { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo }
 }

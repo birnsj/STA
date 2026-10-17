@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { isPlayerControlled } from '../actors/controllers.js'
 import { playBeamOutSound } from '../audio/uiSounds.js'
-import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
+import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
 import {
   SOCIAL_KINDS,
@@ -13,12 +13,11 @@ import {
   getActiveCombatant,
   isActive,
   isTurnFinished,
-  previewAmbush,
   rollAwaitsPlayer,
 } from '../combat/combatState.js'
 import { buildCombatView } from '../combat/combatView.js'
 import { standingObjects } from '../combat/combatEnvironment.js'
-import { DEFAULT_ENCOUNTER_ID, getEncounter } from '../combat/encounters.js'
+import { DEFAULT_ENCOUNTER_ID } from '../combat/encounters.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
 import { getCombatantWeapon } from '../combat/weaponSystem.js'
 import buildTaskPanel from '../components/combat/buildTaskPanel.js'
@@ -35,7 +34,6 @@ import FatigueChoice from '../components/combat/FatigueChoice.jsx'
 import InjuryChoice from '../components/combat/InjuryChoice.jsx'
 import CounterattackChoice from '../components/combat/CounterattackChoice.jsx'
 import { getCombatHint } from '../combat/combatHints.js'
-import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import PartyBar from '../components/combat/PartyBar.jsx'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import RollPanel from '../components/combat/RollPanel.jsx'
@@ -55,6 +53,7 @@ import {
   AUTO_END_TURN_MS,
   BEAM_OUT_MS,
   cameraFocus,
+  cameraFocusAlongShot,
   choiceRing,
   getPartyTurnInfo,
   justFled,
@@ -63,6 +62,8 @@ import {
   nearestOpponentId,
   newSeed,
   plannedChoice,
+  shotAim,
+  shotCameraRideMs,
   turnBanner,
 } from '../components/combat/battleHelpers.js'
 
@@ -70,6 +71,7 @@ import {
 const CAMERA_ICON = 'M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7'
 const HELP_ICON = 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M9.5 9.2a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.8-1.1 1.8M12 17h.01'
 const DEBUG_ICON = 'M9 6a3 3 0 0 1 6 0M8 9h8v6a4 4 0 0 1-8 0zM12 9v10M8 12H4M20 12h-4M8 16l-3 2M16 16l3 2M8 9L5 7M16 9l3-2'
+const SETTINGS_ICON = 'M12 15.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7zM12 2.5v2.2M12 19.3v2.2M4.8 6.2l1.6 1.5M17.6 16.3l1.6 1.5M4.8 17.8l1.6-1.5M17.6 7.7l1.6-1.5M2.5 12h2.2M19.3 12h2.2'
 const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
 
 // Combat started in the exploration world (ExplorationScreen) also passes: onContinue (the result offers only Return to
@@ -90,10 +92,6 @@ export function Battle({
   dispatch,
   showHelpOnStart,
   onHelpSeen,
-  partyAI,
-  onPartyAI,
-  enemyAI,
-  onEnemyAI,
   onRestart,
   onChangeCharacter,
   onExit,
@@ -116,9 +114,10 @@ export function Battle({
   doors = [],
   children = null,
 }) {
-  // Settings > Help Hints off: the hint text goes (the Ambush button that shares its box stays), and How to Play
-  // does not open by itself (the How to Play button still works).
-  const showHints = useDisplaySettings().helpHints
+  // Settings > Help Hints off: the hint text goes, and How to Play does not open by itself (the How to Play button still works).
+  // partyAI / enemyAI come from Settings (persisted display settings).
+  const { helpHints: showHints, cameraFollow, partyAI, enemyAI } = useDisplaySettings()
+  const openSettings = useOpenSettings().openSettings
   const active = getActiveCombatant(state)
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
   const [auto, setAuto] = useState('off')
@@ -146,7 +145,7 @@ export function Battle({
   const [ownDebugOpen, setOwnDebugOpen] = useState(false)
   const debugOpen = worldDebugOpen ?? ownDebugOpen
   const toggleDebug = onDebug ?? (() => setOwnDebugOpen(!ownDebugOpen))
-  const [followCamera, setFollowCamera] = useState(true)
+  const [followCamera, setFollowCamera] = useState(cameraFollow)
   const [helpOpen, setHelpOpen] = useState(showHelpOnStart && showHints)
   // Bonus d20s to buy for the next attack (Buy d20s): { bonusDice, momentum paid }; reset each turn and after each attack.
   const [dicePurchase, setDicePurchase] = useState({ bonusDice: 0, momentum: 0 })
@@ -193,7 +192,7 @@ export function Battle({
   const {
     moveKind, reachable, movePath, routeInCover, overlay,
     preview, targetAttack, ringAttackRoll, attackBlock, targetInRange, purchase, purchaseCheck,
-    ambushPreview, ambusher, ambushTargets,
+    ambushPreview,
     assistAllies, assistAlly, assistHelper,
     objectList, guardTargets, firstAidOptions, authority, isCommander, directAllies, directReason,
     extraMinorReason, secondMajorReason, availability, unavailableReasons,
@@ -301,8 +300,9 @@ export function Battle({
 
   const canOpenSelfRing = isPlayerTurn && !state.pending && (!turnUsedUp || extraBuyable)
 
-  // On the player's turn, clicking an enemy or another party member shows action buttons around them (a second click
-  // puts them away). The enemy becomes the target with its attack previewed; a party member is picked for Assist.
+  // On the player's turn, clicking an enemy or party member shows action buttons around them (a second click puts them
+  // away). An enemy becomes the target with its attack previewed; a party member gets Assist / Switch (or their own
+  // actions when they are acting).
   const handleUnitClick = (id) => {
     const unit = state.combatants[id]
     const toggleRing = (ringMode) => {
@@ -321,14 +321,26 @@ export function Battle({
       return
     }
     if (unit.side === active.side) {
-      const offersActions = isPlayerTurn && !state.pending && id !== active.id && (canAssist(state, active, unit) || canSwitchTo(id))
-      if (!offersActions) {
+      if (!isPlayerTurn || state.pending || id === active.id) {
         selectPartyMember(id)
         return
       }
       setSelectedId(id)
-      const opened = toggleRing('assist')
-      setAssistAllyId(opened && canAssist(state, active, unit) ? id : null)
+      const closing = ringId === id
+      setRingId(closing ? null : id)
+      setRingInfo(false)
+      setDestination(null)
+      if (closing) {
+        setAssistAllyId(null)
+        if (mode === 'assist') setMode(null)
+        return
+      }
+      if (canAssist(state, active, unit)) {
+        setMode('assist')
+        setAssistAllyId(id)
+      } else {
+        setAssistAllyId(null)
+      }
       return
     }
     setSelectedId(id)
@@ -341,12 +353,6 @@ export function Battle({
       return
     }
     toggleRing('attack')
-  }
-
-  const startAmbush = () => {
-    setMode(mode === 'ambush' ? 'none' : 'ambush')
-    setDestination(null)
-    closeRing()
   }
 
   useEffect(() => {
@@ -398,12 +404,18 @@ export function Battle({
     ring = { unitId: ringUnit.id, buttons: ambushRingButtons(ringUnit), info: null }
   } else if (ringShown && ringUnit.side !== active.side && (mode === 'attack' || mode === 'scan' || SOCIAL_KINDS.includes(mode)) && target?.id === ringUnit.id) {
     ring = { unitId: ringUnit.id, buttons: enemyRingButtons(ringUnit), info: ringInfo ? enemyRingInfo(ringUnit) : null }
-  } else if (ringShown && ringUnit.side === active.side && mode === 'assist') {
+  } else if (ringShown && ringUnit.side === active.side && ringUnit.id !== active.id) {
     ring = { unitId: ringUnit.id, buttons: allyRingButtons(ringUnit), info: null }
   } else if (ringObject && isPlayerTurn && !state.pending) {
     ring = { position: ringObject.position, buttons: objectRingButtons(ringObject.id), info: null }
   } else if (ringDestructible && isPlayerTurn && !state.pending) {
-    ring = { position: ringDestructible.position, buttons: destructibleRingButtons(ringDestructible.id), info: destructibleRingInfo(ringDestructible.id) }
+    // Scan setup keeps the card open (same pattern as an enemy Scan); otherwise the Structure card stays beside Fire.
+    const showDestructibleInfo = ringInfo || mode !== 'scanObject'
+    ring = {
+      position: ringDestructible.position,
+      buttons: destructibleRingButtons(ringDestructible.id),
+      info: showDestructibleInfo ? destructibleRingInfo(ringDestructible.id) : null,
+    }
   } else if (auto !== 'off' && !state.outcome) {
     ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
   }
@@ -412,7 +424,6 @@ export function Battle({
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
   const enemies = Object.values(state.combatants).filter((combatant) => combatant.side !== 'player')
   const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getCombatantWeapon(member, weaponIds[member.id] ?? member.weaponIds[0])]))
-  const encounter = getEncounter(state.encounterId)
   const minimapParty = minimapPartyFromCombat(party, { selectedId, leaderId: active.id })
   const minimapWorld = minimapWorldFromCombat(enemies, bystanders)
   const minimapKnowledge = minimapKnowledgeForCombat(knowledge, minimapWorld.npcIds)
@@ -423,9 +434,7 @@ export function Battle({
       : null,
     directBlock: directReason,
     planned, mode, attackMode, preview, bonusDice: purchase.bonusDice, ambushPreview, movePath, routeInCover, auto, targetInRange, assistAlly, assistHelper, ringAllyName: ringShown && ringUnit.side === active.side ? ringUnit.character.name : null, nextName: nextMemberId && state.combatants[nextMemberId].character.name })
-  // The hint fades after a while; the Ambush button sharing its box stays, so with one offered only the text goes.
   const hintFaded = useFadeAfter(hint)
-  const hintTextShown = showHints && !(hintFaded && ambusher)
 
   // Right-click on the battlefield releases the selection: no action chosen, no planned move, no inspected character.
   const releaseSelection = () => {
@@ -464,7 +473,30 @@ export function Battle({
   const resultShown = Boolean(state.outcome) && (!beamOutKey || beamOutDoneKey === beamOutKey) && !partyBeamingOut
 
   // During an unseen enemy's turn the camera stays where it was, so it never points at what the party can't perceive.
-  const followFocus = openingFocus && !state.lastAction ? { key: 'opening', position: openingFocus } : cameraFocus(state, turnKey, active)
+  // With follow on, a fired shot rides the beam from the shooter to where it was aimed (presentation only).
+  const [shotFocus, setShotFocus] = useState(null)
+  const shotKey = shotAim(state)?.key ?? null
+  useEffect(() => {
+    const aim = shotAim(state)
+    if (!followCamera || !aim || activeHidden) {
+      setShotFocus(null)
+      return undefined
+    }
+    const track = { ...aim, from: { ...aim.from }, to: { ...aim.to } }
+    const started = performance.now()
+    const rideMs = shotCameraRideMs(track, effectSpeed)
+    let frame = 0
+    const tick = (now) => {
+      setShotFocus(cameraFocusAlongShot(track, now - started, effectSpeed))
+      if (now - started < rideMs) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+    // Snapshot the aim when the shot begins; restarting mid-flight would snap the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shotKey / followCamera / effectSpeed / activeHidden
+  }, [followCamera, shotKey, effectSpeed, activeHidden])
+  const baseFocus = openingFocus && !state.lastAction ? { key: 'opening', position: openingFocus } : cameraFocus(state, turnKey, active)
+  const followFocus = shotFocus ?? baseFocus
   const [heldFocus, setHeldFocus] = useState(followFocus)
   const focusChanged = heldFocus.key !== followFocus.key || heldFocus.position.x !== followFocus.position.x || heldFocus.position.y !== followFocus.position.y
   if (!activeHidden && focusChanged) setHeldFocus(followFocus)
@@ -521,7 +553,7 @@ export function Battle({
       </div>
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
-      {/* Right column: minimap with Camera / Help / Debug / Exit beside its toggle; Momentum, then Objectives, then the fight panels. */}
+      {/* Right column: toolbar panel, then minimap, Momentum, Task / End Turn. */}
       <Minimap
         map={state.map}
         party={minimapParty}
@@ -532,8 +564,23 @@ export function Battle({
         debug={debugOpen}
         open={minimapOpen}
         onToggle={() => setMinimapOpen(!minimapOpen)}
+        toolbarOutside
         cornerButtons={
           <>
+            {!state.outcome && (
+              <AutoCombatControls
+                auto={auto}
+                speed={speed}
+                onStart={startAuto}
+                onStop={() => setAuto('off')}
+                onSpeed={setSpeed}
+              />
+            )}
+            <button type="button" className="explore-minimap-toggle" aria-label="Settings" title="Settings" onClick={openSettings}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={SETTINGS_ICON} />
+              </svg>
+            </button>
             <button
               type="button"
               className="explore-minimap-toggle"
@@ -577,7 +624,6 @@ export function Battle({
           canCancelThreat={isPlayerTurn && !combatActionFor('cancelThreat').unavailableReason(state, active)}
           onCancelThreat={() => dispatch({ type: 'cancelThreat' })}
         />
-        {encounter.objectives?.length ? <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} /> : null}
         <div className="combat-sidebar">
           <TaskPanel
             mode={mode}
@@ -609,25 +655,9 @@ export function Battle({
         onCycleWeapon={isPlayerTurn && active.weaponIds.length > 1 ? cycleWeapon : null}
       />
       <div className="combat-bottom-left">
-        {hint && (showHints || ambusher) && (
-          <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintTextShown ? '' : ' is-controls-only'}${hintFaded && !ambusher ? ' is-faded-out' : ''}`} aria-live="polite">
-            {hintTextShown && hint}
-            {ambusher && (
-              <button
-                type="button"
-                className={`combat-ambush${mode === 'ambush' ? ' is-selected' : ''}`}
-                disabled={!ambushTargets.length}
-                title={
-                  ambushTargets.length
-                    ? `Optional, until anyone attacks: ${ambusher.character.name} rolls Control + Security at Difficulty 1 against a Klingon they have a shot at. Success: an automatic hit (an Injury) on that Klingon. Failure: you are spotted; a new round starts and the Klingons act first for the rest of the fight.`
-                    : `${ambusher.character.name} has no shot at any Klingon yet (out of range or no line of fire). Move ${ambusher.character.name} closer without attacking to set up an ambush; any attack, by either side, ends the chance.`
-                }
-                onClick={startAmbush}
-              >
-                Ambush: {ambusher.character.name}, TN {previewAmbush(state, null).task.targetNumber}
-                {!ambushTargets.length && ' (no shot yet: move closer)'}
-              </button>
-            )}
+        {hint && showHints && (
+          <p className={`combat-hint${isPlayerTurn ? ' is-player-turn' : ''}${hintFaded ? ' is-faded-out' : ''}`} aria-live="polite">
+            {hint}
           </p>
         )}
         <RollPanel
@@ -638,23 +668,6 @@ export function Battle({
           onReroll={(dieIndex, source) => dispatch({ type: 'reroll', dieIndex, source })}
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
-        <div className="combat-bottom-row">
-          {!state.outcome && (
-            <AutoCombatControls
-              auto={auto}
-              speed={speed}
-              partyAI={partyAI}
-              onPartyAI={onPartyAI}
-              enemyAI={enemyAI}
-              onEnemyAI={onEnemyAI}
-              onStart={startAuto}
-              onPause={() => setAuto('paused')}
-              onResume={() => setAuto('running')}
-              onStop={() => setAuto('off')}
-              onSpeed={setSpeed}
-            />
-          )}
-        </div>
       </div>
       {state.incomingInjury && auto === 'off' && !state.outcome && (
         <InjuryChoice
@@ -699,9 +712,6 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
   const [phase, setPhase] = useState('setup')
   // How to Play opens by itself only for the first fight after opening Load Episode.
   const [helpSeen, setHelpSeen] = useState(false)
-  // Test options kept across Restart, so AIs can be compared on the same seed.
-  const [partyAI, setPartyAI] = useState('classic')
-  const [enemyAI, setEnemyAI] = useState('classic')
 
   const start = (members, seed, chosenMap) => {
     setParty(members)
@@ -726,10 +736,6 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
         beamIn
         showHelpOnStart={!helpSeen}
         onHelpSeen={() => setHelpSeen(true)}
-        partyAI={partyAI}
-        onPartyAI={setPartyAI}
-        enemyAI={enemyAI}
-        onEnemyAI={setEnemyAI}
         onRestart={() => start(party, fixedSeed, map)}
         onChangeCharacter={() => setPhase('setup')}
         onExit={onExit}

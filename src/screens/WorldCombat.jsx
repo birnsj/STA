@@ -19,9 +19,6 @@ import { Battle } from './CombatScreen.jsx'
 // onExitMission: ends the fight and beams the away team out (the result offers it when the fight failed the mission).
 export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit, onExitMission }) {
   const { combat, link, world } = state
-  // Test options for Auto Combat, as on the combat screen.
-  const [partyAI, setPartyAI] = useState('classic')
-  const [enemyAI, setEnemyAI] = useState('classic')
   const combatDispatch = useCallback((action) => dispatch({ type: 'combat', action }), [dispatch])
   // The battlefield shows what the away team sees; burning / afflicted enemies and bodies that have fallen stay on the
   // board even out of sight. Upright enemies the party has lost leave a marker where last seen.
@@ -92,10 +89,6 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
       dispatch={combatDispatch}
       showHelpOnStart={false}
       onHelpSeen={() => {}}
-      partyAI={partyAI}
-      onPartyAI={setPartyAI}
-      enemyAI={enemyAI}
-      onEnemyAI={setEnemyAI}
       onExit={onExit}
       onContinue={() => dispatch({ type: 'endCombat' })}
       failedNames={failedNames}

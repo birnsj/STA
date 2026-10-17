@@ -32,8 +32,8 @@ function ProfileList({ rows }) {
   )
 }
 
-function ScoreList({ title, kind, character }) {
-  const scores = getFinalScores(character, kind)
+function ScoreList({ title, kind, character, fallback = null }) {
+  const scores = getFinalScores(character, kind) ?? fallback
   return (
     <section className="import-card-section">
       <h3 className="import-card-heading">{title}</h3>
@@ -85,7 +85,12 @@ function SavedCharacterCard({ entry }) {
   }
 
   const { identity, species, environment, education, career } = character
-  const service = [career.rank?.name, career.department?.name].filter(Boolean).join(' ◆ ')
+  const final = entry.record?.final ?? {}
+  const service = [career.rank?.name ?? final.rank?.name, career.department?.name ?? final.department?.name].filter(Boolean).join(' ◆ ')
+  const traits = getTraitEntries(character).map((trait) => trait.name)
+  const values = getCharacterValues(character).map((value) => value.text.trim())
+  const focuses = getCharacterFocuses(character).map((focus) => focus.name.trim())
+  const talents = getTalentEntries(character).map((entry) => entry.label)
   return (
     <div className="import-card">
       {portraitBlock}
@@ -98,7 +103,7 @@ function SavedCharacterCard({ entry }) {
               { label: 'Species', value: getSpeciesDisplayName(species) },
               { label: 'Gender', value: identity.gender?.name },
               { label: 'Pronouns', value: identity.pronouns.trim() },
-              { label: 'Traits', value: getTraitEntries(character).map((trait) => trait.name).join(', ') },
+              { label: 'Traits', value: (traits.length ? traits : (final.traits ?? []).map((trait) => trait.name)).filter(Boolean).join(', ') },
               { label: 'Species Ability', value: getSpeciesAbilityLabel(species) },
               { label: 'Environment', value: environment.setting?.name },
               { label: 'Career Path', value: education.option?.name },
@@ -107,13 +112,13 @@ function SavedCharacterCard({ entry }) {
               { label: 'Role', value: career.role?.name },
             ]}
           />
-          <ScoreList title="Attributes" kind="attributes" character={character} />
-          <ScoreList title="Departments" kind="disciplines" character={character} />
+          <ScoreList title="Attributes" kind="attributes" character={character} fallback={final.attributes} />
+          <ScoreList title="Departments" kind="disciplines" character={character} fallback={final.disciplines} />
         </div>
         <div className="import-card-lists">
-          <NameList title="Values" items={getCharacterValues(character).map((value) => value.text.trim())} />
-          <NameList title="Focuses" items={getCharacterFocuses(character).map((focus) => focus.name.trim())} />
-          <NameList title="Talents" items={getTalentEntries(character).map((entry) => entry.label)} />
+          <NameList title="Values" items={values.length ? values : (final.values ?? []).map((value) => value.text ?? value.name).filter(Boolean)} />
+          <NameList title="Focuses" items={focuses.length ? focuses : (final.focuses ?? []).map((focus) => focus.name).filter(Boolean)} />
+          <NameList title="Talents" items={talents.length ? talents : (final.talents ?? []).map((talent) => talent.name).filter(Boolean)} />
         </div>
       </div>
     </div>
@@ -174,7 +179,7 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
               <span className="import-carousel-counter">
                 {current + 1} / {count}
               </span>
-              <span>Saved {new Date(selected.savedAt).toLocaleString()}</span>
+              <span>{selected.playtest ? 'Playtest ensign' : `Saved ${new Date(selected.savedAt).toLocaleString()}`}</span>
             </p>
           </>
         ) : (
@@ -185,7 +190,7 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
           <button type="button" className="nav-button nav-back" onClick={onCancel}>
             Cancel
           </button>
-          <button type="button" className="nav-button import-delete" disabled={!selected} onClick={() => setConfirmingDelete(true)}>
+          <button type="button" className="nav-button import-delete" disabled={!selected || selected.playtest} onClick={() => setConfirmingDelete(true)}>
             Delete
           </button>
           <button type="button" className="nav-button nav-next" disabled={!selected} onClick={() => onLoad(selected)}>
@@ -194,10 +199,10 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
         </div>
 
         <div className="import-dev-actions">
-          <button type="button" className="dev-button import-duplicate" disabled={!selected} onClick={() => onDuplicate(selected)}>
+          <button type="button" className="dev-button import-duplicate" disabled={!selected || selected.playtest} onClick={() => onDuplicate(selected)}>
             Duplicate (dev)
           </button>
-          <button type="button" className="dev-button import-duplicate" disabled={!selected} onClick={() => setConfirmingDeleteAll(true)}>
+          <button type="button" className="dev-button import-duplicate" disabled={!characters.some((entry) => !entry.playtest)} onClick={() => setConfirmingDeleteAll(true)}>
             Delete All (dev)
           </button>
         </div>
@@ -208,7 +213,7 @@ export default function ImportCharacterCarousel({ characters, onLoad, onDelete, 
           <div className="ship-builder-panel menu-notice delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="delete-all-confirm-title">
             <h2 id="delete-all-confirm-title" className="menu-notice-title">Are You Sure?</h2>
             <p className="menu-notice-text">
-              Delete all <strong>{count}</strong> saved characters? This cannot be undone.
+              Delete all <strong>{characters.filter((entry) => !entry.playtest).length}</strong> saved characters? This cannot be undone. The playtest ensigns stay.
             </p>
             <div className="menu-notice-actions">
               <button type="button" className="nav-button nav-back" onClick={() => setConfirmingDeleteAll(false)} autoFocus>

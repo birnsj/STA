@@ -78,8 +78,8 @@ function createStats(combatants) {
 }
 const freshCombatantStats = () => ({ attacks: 0, attacksHit: 0, injuriesInflicted: 0, injuriesSuffered: 0, injuriesAvoided: 0, stressTaken: 0, lastAttackRound: 0 })
 
-// players: RuntimeCharacters controlled by the player, in party order; each stands on the map's player start of the same
-// index (members beyond the map's player starts are left out). map: a parsed map file (src/maps/mapFormat.js).
+// players: RuntimeCharacters controlled by the player, in party order (up to MAX_AWAY_TEAM). Each stands on a player
+// start; members beyond the map's starts take free tiles beside them (placeAwayTeam). map: a parsed map file.
 // seed: a whole number; it fixes initiative ties and every roll.
 // placements (optional): { players, enemies }, each [{ id?, character, position, condition?, facing? }] (id: the world
 // actor's id; defaults to the character's). Used when
@@ -154,6 +154,8 @@ export function createCombat({
     directedThisRound: [],
     // Enemies the party has scanned this fight ({ [id]: true }; combatScan.js).
     scanned: {},
+    // Destructibles scanned this fight ({ [id]: true }; seeded from exploration objectScans).
+    scannedObjects: {},
     // Major actions each combatant has taken this round ({ [id]: count }; MAX_MAJORS_PER_ROUND).
     majorsThisRound: {},
     // Combatants whose turn has started this round (a Guard on them ends when their next turn starts).

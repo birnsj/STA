@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MAX_AWAY_TEAM } from '../../exploration/awayTeam.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
 import {
@@ -262,7 +263,15 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         placeholder: 'e.g. Tool Shed',
         removeLabel: current ? 'Remove' : null,
       }).then((name) => name !== null && edit(setAreaLabel(map, position, name)))
-    } else edit(toggleMarker(map, tool, position))
+    } else {
+      const list = map.markers[tool] ?? []
+      const exists = list.some((marker) => marker.x === position.x && marker.y === position.y)
+      if (tool === 'playerStarts' && !exists && list.length >= MAX_AWAY_TEAM) {
+        setStatus(`A map holds ${MAX_AWAY_TEAM} player starts.`)
+        return
+      }
+      edit(toggleMarker(map, tool, position))
+    }
   }
 
   // Move: what was picked up is dropped where the button is released (off the map: nothing moves). A tile with markers

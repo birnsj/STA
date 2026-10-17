@@ -279,9 +279,11 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 
 **Decided (2026-10-15, presentation):** object shots show the laser (or pulse) before the explosion. Structure damage and blasts wait for `applyPendingObjectHit` after `objectShotImpactMs`. See `prototype-rules.md` section 7.
 
-**Decided (2026-10-15): away team up to 8.** Exploration and combat setup allow up to eight party members (`MAX_AWAY_TEAM`). Authored player starts are preferred; extras take free tiles beside those starts so maps with fewer markers still work. Generated maps place up to 8 player starts.
+**Decided (2026-10-15): away team up to 8.** Exploration and combat setup allow up to eight party members (`MAX_AWAY_TEAM`), including saved characters and JSON imported on the combat setup screen. Authored player starts are preferred; extras take free tiles beside those starts so maps with fewer markers still work. Generated maps place up to 8 player starts. The map editor places at most 8 player starts, and Play fields saved characters first, then redshirts, up to 8 (2026-10-17).
 
-**Decided (2026-10-16): Fireteam A / B on the party bar.** Pick order 1–4 = Fireteam A; 5–8 = Fireteam B (same card size and layout). Left vertical rail: all eight cards spaced evenly top-to-bottom (A then B). Clicking a B card selects only that member. B follows A's lead when A moves (a B-only selection moves only those members). Where: `awayTeam.js` (`FIRETEAM_A_SIZE`, `splitFireteams`), `partyControl.js` (`moveSelection` hitch), `PartyBar.jsx`, `ExplorationPartyBar.jsx`.
+**Decided (2026-10-16, superseded 2026-10-17): one away team.** The party bar is one left rail of up to eight cards in pick order (the earlier Fireteam A / B split is gone). Everyone starts selected. A move takes the current selection, so the whole team moves together until the player selects fewer. Where: `partyControl.js` (`createPartyState`, `moveSelection`), `PartyBar.jsx`, `ExplorationPartyBar.jsx`.
+
+**Decided (2026-10-17): stand still on beam-in.** The away team materialises on its starts facing the way those starts face, and nobody walks until the player gives a move.
 
 **Decided (2026-10-16): combat HUD matches exploration.** Left party rail; top-right minimap column with Objectives beside it and Momentum/Threat under it; Camera / How to Play / Debug / Exit under those; fight panels (character, target, task, end turn) fill the rest of that column. World combat reuses party knowledge, environment and door marks on the minimap. Where: `CombatScreen.jsx`, `combatMinimap.js`, `Minimap.jsx`, `WorldCombat.jsx`.
 
@@ -298,6 +300,8 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 **Explosion falls (2026-10-15):** a character Defeated by an explosion (stun KO or deadly) plays one of three blast falls (`fallBlastBack` / `fallBlastSpin` / `fallBlastFlat`), faces a seeded random map direction, and slides 1–3 tiles from blast power (severity + radius). Weapon defeats keep crumple / deadly falls. Hazards still use the weapon falls. Exploration used to snap to the last fall frame with no playback; it now plays the fall once when they go down (still no replay after a combat hand-off).
 
 **Fire draw order (designer report 2026-10-15: "the fire is drawing wrong"):** floor hazards used to sit in the ground layer under every block, so flames in front of a crate were buried by the crate and looked sunk. Floor and air hazards now both sort in the depth layer (floor at tile depth + 0.2, air at + 0.6, figures at + 0.5), so a crate or wall in front covers the fire and fire in front of a crate sits on top of it. Where: `components/maps/pixi/hazardLayer.js`.
+
+**Scan / Sabotage / Defuse on destructible rings (2026-10-17):** Sabotage and Defuse remain stubs. **Scan is built:** Reason + Science (same party / combat Scan task); exploration needs a tricorder in range; combat is a Major action. Success reveals which hazards the object emits when damaged / destroyed, how to counteract each (hazards.json Neutralize label + pairing), and which suits ignore them. Plain view no longer names the leftover hazard until scanned. Knowledge persists via `objectScans` / combat `scannedObjects`. Awaiting design for Sabotage and Defuse (tasks, reach, what success does). Labelled Defuse (not Diffuse).
 
 **Awaiting the designer:**
 - **R2. Hazard duration** is a new rule: an optional number of hazard rounds, applied alongside the chance to dissipate.
@@ -479,7 +483,17 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 
 **Book:** no rule.
 
-**Prototype (designer request, 2026-10-09):** Settings > Display has a Help Hints switch (on by default, saved with the other settings). Off hides the hint box at the top of combat and exploration. It covers only that box (designer choice): the How to Play window and the Guide Highlight keep their own behaviour. Implementer picks: in combat the Ambush button, which sits in the same box, still shows on its own; in exploration the box still appears while the debug noise tool waits for a click. Setting `helpHints` in `src/settings/displaySettings.js`, read through `src/settings/DisplaySettingsContext.js`.
+**Prototype (designer request, 2026-10-09):** Settings > Display has a Help Hints switch (on by default, saved with the other settings). Off hides the hint box at the top of combat and exploration. It covers only that box (designer choice): the How to Play window and the Guide Highlight keep their own behaviour. Implementer picks: in exploration the box still appears while the debug noise tool waits for a click. Designer request (2026-10-17): the Ambush button is not on the main screen; it is on the enemy's ring. Setting `helpHints` in `src/settings/displaySettings.js`, read through `src/settings/DisplaySettingsContext.js`.
+
+### Camera Follow setting (decided 2026-10-17)
+
+**Book:** no rule.
+
+**Prototype (designer request, 2026-10-17):** Settings > Display has a Camera Follow switch (on by default, saved with the other settings). Combat and exploration start with the view following the acting character when it is on, and with the view staying put when it is off. The camera button during play still turns following on and off. Setting `cameraFollow` in `src/settings/displaySettings.js`. The Settings panel's Save Settings button writes the current display and audio settings; changes also save as they are made. Combat and exploration each have a Settings button on the minimap's top corner; it opens this panel over the mission, and Close returns to it.
+
+**Decided (2026-10-17): camera follows a shot.** With Camera Follow on, when a ranged shot fires the view rides from the shooter to where the shot was aimed (combat attacks and object shots; exploration object shots too), timed with the beam or pulse on the board. Free camera is unchanged. Where: `battleHelpers.js` (`shotAim`, `cameraFocusAlongShot`), `CombatScreen.jsx`, `PixiExplorationBoard.jsx`.
+
+**Decided (2026-10-17): WASD Sensitivity.** Settings lists a 0–100 **Sensitivity** slider with Music and Effects (same thin row). It scales how far the camera coasts after WASD / arrow keys are released (100 = full coast, 0 = stop at once). Pointer-drag coast is unchanged. Where: `displaySettings.js` (`wasdCoast`), `useCamera.js`, `SettingsScreen.jsx`.
 
 ### Box selection in exploration (decided 2026-10-09)
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import background from '../assets/main-menu-background.jpg'
 import CoverArt from '../components/CoverArt.jsx'
+import { playtestImportEntries } from '../character/authoredCharacters.js'
 import ImportCharacterCarousel from '../components/ImportCharacterCarousel.jsx'
 import NewCharacterNotice from '../components/NewCharacterNotice.jsx'
 import LogoSheen from '../components/LogoSheen.jsx'
@@ -29,6 +30,8 @@ const isEnabled = (item, hasSavedCharacter) => (item.enabled === 'afterCharacter
 
 export default function MainMenuScreen({ width, height, savedCharacters, onOpen, savedCharacterActions }) {
   const hasSavedCharacter = savedCharacters.length > 0
+  const savedIds = new Set(savedCharacters.map((entry) => entry.id))
+  const importCharacters = [...savedCharacters, ...playtestImportEntries().filter((entry) => !savedIds.has(entry.id))]
   // UI state: which dialog is over the menu ('newCharacter', 'import', or none).
   const [popup, setPopup] = useState(null)
   const closePopup = () => setPopup(null)
@@ -48,7 +51,7 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
         <LogoSheen image={background} />
         <nav className="main-menu-list" aria-label="Main menu" inert={Boolean(popup)}>
           {MENU_ITEMS.map((item) => {
-            const enabled = isEnabled(item, hasSavedCharacter)
+            const enabled = item.id === 'importCharacter' ? importCharacters.length > 0 : isEnabled(item, hasSavedCharacter)
             const checked = item.checkedAfterCharacter && hasSavedCharacter
             return (
             <div key={item.id} className={`main-menu-row${enabled ? '' : ' is-disabled'}`}>
@@ -77,7 +80,7 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
       {popup === 'newCharacter' && (
         <NewCharacterNotice savedCount={savedCharacters.length} onContinue={() => onOpen('creator')} onCancel={closePopup} />
       )}
-      {popup === 'import' && <ImportCharacterCarousel characters={savedCharacters} {...savedCharacterActions} onCancel={closePopup} />}
+      {popup === 'import' && <ImportCharacterCarousel characters={importCharacters} {...savedCharacterActions} onCancel={closePopup} />}
     </div>
   )
 }

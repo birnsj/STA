@@ -67,6 +67,18 @@ export function canScanNpc(state, memberId, npcId) {
   return { possible: true, reason: null }
 }
 
+// { possible, reason }: whether the member can scan this destructible now (tricorder range; already-scanned may retry).
+export function canScanDestructible(state, memberId, objectId) {
+  const check = canScan(state, memberId)
+  if (!check.possible) return check
+  const member = state.party.members[memberId]
+  const record = state.environment?.destructibles?.[objectId]
+  if (!record || record.state === 'destroyed') return { possible: false, reason: 'Nothing there to scan.' }
+  const radius = scanRadius(member.character)
+  if (distance(member.position, record.position) > radius) return { possible: false, reason: `Out of tricorder range (${radius} tiles).` }
+  return { possible: true, reason: null }
+}
+
 // The member scans one NPC with the same Scan task (videogame adaptation, designer request 2026-10-09). Returns the
 // state with the roll's Momentum saved, the cooldown started (shared with area scans) and npcScans[npcId]:
 // { key, memberId, success, successes, difficulty } (the NPC's radial-menu card shows what a success reveals).
@@ -103,6 +115,46 @@ export function scanNpc(state, memberId, npcId) {
       npcId,
       origin: { x: member.position.x, y: member.position.y },
       targetOrigin: { x: npc.position.x, y: npc.position.y },
+    },
+  }
+}
+
+// The member scans one destructible with the same Scan task (designer request 2026-10-17). Returns the state with the
+// roll's Momentum saved, the cooldown started and objectScans[objectId]: { key, memberId, success, ... } (the object's
+// ring card shows hazards and countermeasures on a success). Unchanged when they can't scan it.
+export function scanDestructible(state, memberId, objectId) {
+  if (!canScanDestructible(state, memberId, objectId).possible) return state
+  const member = state.party.members[memberId]
+  const record = state.environment.destructibles[objectId]
+  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  if (!prepared.possible) return state
+
+  const key = state.scenario.taskCount
+  const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + key))
+  const result = resolveStaTask({
+    leader: { task: prepared.task, dice: rollDice(random, checkDicePurchase(state.resources).dice) },
+    difficulty: prepared.difficulty,
+    ignoreComplications: prepared.ignoreComplications,
+    bonusMomentum: prepared.bonusMomentum,
+  })
+  const { resources } = saveMomentum(state.resources, savableMomentum(result))
+  const previous = state.objectScans?.[objectId]
+  const success = result.success || Boolean(previous?.success)
+  return {
+    ...state,
+    resources,
+    scenario: { ...state.scenario, taskCount: key + 1 },
+    scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
+    objectScans: {
+      ...state.objectScans,
+      [objectId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty },
+    },
+    lastTargetScan: {
+      key,
+      memberId,
+      objectId,
+      origin: { x: member.position.x, y: member.position.y },
+      targetOrigin: { x: record.position.x, y: record.position.y },
     },
   }
 }

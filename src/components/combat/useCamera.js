@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 
 // Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan, the mouse wheel zooms; when focus.key changes
 // (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
@@ -11,6 +12,7 @@ const RETURN_GLIDE = 0.03
 // After WASD / drag release: keep coasting, then slow each 60 Hz frame by this factor.
 const COAST_FRICTION = 0.92
 const COAST_STOP = 12
+// Display setting wasdCoast (0–100) scales WASD after-glide: 100 = this full coast, 0 = stop on release.
 const KEYS = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] }
 
 function clampAxis(value, min, max, view) {
@@ -52,6 +54,7 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 // turning follow back on glides the camera back to focus.point).
 // onFollow(): Space asks the caller to turn following back on after a free pan (exploration flips followCamera).
 export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null, onFollow = null) {
+  const wasdCoast = useDisplaySettings().wasdCoast ?? 100
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const [zoom, setZoom] = useState(1)
   const cameraRef = useRef(camera)
@@ -66,10 +69,16 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const wasFollowingRef = useRef(follow)
   const onPanRef = useRef(onPan)
   const onFollowRef = useRef(onFollow)
+  const wasdCoastRef = useRef(wasdCoast)
+  // True while WASD / arrows are held, so the first coast frame can scale after-glide by wasdCoast.
+  const keyPanningRef = useRef(false)
   useEffect(() => {
     onPanRef.current = onPan
     onFollowRef.current = onFollow
   })
+  useEffect(() => {
+    wasdCoastRef.current = wasdCoast
+  }, [wasdCoast])
   // True from the first pan input until coast settles. Blocks follow from re-arming a target mid-pan / mid-coast
   // (exploration still ticks the lead every frame, which would otherwise cancel WASD glide).
   const freePanRef = useRef(false)
@@ -206,11 +215,18 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       let next = null
       if (dx || dy) {
         panStarted()
+        keyPanningRef.current = true
         const length = Math.hypot(dx, dy) || 1
         velocityRef.current = { x: (dx / length) * PAN_SPEED, y: (dy / length) * PAN_SPEED }
         next = clamp({ x: current.x + velocityRef.current.x * seconds, y: current.y + velocityRef.current.y * seconds }, limits, size)
       } else if (freePanRef.current) {
         // WASD / drag coast: keep sliding after release, then ease to a stop (takes priority over follow).
+        // WASD after-glide is scaled by Settings > WASD After Glide (0 = stop on release, 100 = full coast).
+        if (keyPanningRef.current) {
+          keyPanningRef.current = false
+          const scale = Math.min(1, Math.max(0, wasdCoastRef.current / 100))
+          velocityRef.current = { x: velocityRef.current.x * scale, y: velocityRef.current.y * scale }
+        }
         const velocity = velocityRef.current
         const speed = Math.hypot(velocity.x, velocity.y)
         if (speed > COAST_STOP) {
@@ -281,6 +297,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       }
       if (!announced) {
         announced = true
+        keyPanningRef.current = false
         panStarted()
       }
       const next = clamp(

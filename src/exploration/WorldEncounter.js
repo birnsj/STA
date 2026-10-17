@@ -464,6 +464,12 @@ export class WorldEncounter extends CombatEncounter {
       knowledge,
       blockedKeys,
       scanned: scannedInWorld(state, npcIds),
+      // Destructibles scanned in exploration stay known in the fight (hazards / countermeasures on the object's card).
+      scannedObjects: Object.fromEntries(
+        Object.entries(state.objectScans ?? {})
+          .filter(([, entry]) => entry?.success)
+          .map(([id]) => [id, true]),
+      ),
       // The party has been spotted, so combat's opening Ambush is not offered (no ambush rules in this pass).
       ambush: { passed: true },
       log: [...created.log, { id: created.log.length, round: 1, kind: 'info', lines }],
@@ -585,6 +591,21 @@ export class WorldEncounter extends CombatEncounter {
     const joins = []
     const searchPoints = {}
     const latest = combat.lastAction?.key !== before.lastAction?.key ? combat.lastAction : null
+    // A successful object scan in the fight carries into exploration (same card after the fight).
+    if (latest?.type === 'scan' && latest.objectId && latest.passed) {
+      next = {
+        ...next,
+        objectScans: {
+          ...next.objectScans,
+          [latest.objectId]: {
+            key: latest.key,
+            memberId: latest.actorId,
+            success: true,
+            rolledSuccess: true,
+          },
+        },
+      }
+    }
     // A shot at an object is heard like any shot, and each explosion it set off much further.
     if (latest?.type === 'attackObject') {
       const attacker = combat.combatants[latest.actorId]

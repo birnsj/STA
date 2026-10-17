@@ -8,6 +8,7 @@ import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { getAssistFor, taskContext, withoutUsedAssist } from './combatAttacks.js'
 import { assistLine, bonusMomentumLine, diceText, focusText, momentumLine, purchaseLine, takeRandom, taskText, withStats } from './combatLog.js'
+import { isStanding } from '../world/environment.js'
 import { canAfford, getCombatantList, isActive, reachLines, secondMajorLines } from './combatSelectors.js'
 import { tileDistance } from './rangeSystem.js'
 import { ACTION_TYPE_NAMES, actionsLeftText, actionTypeOf, COMBAT_TASKS, majorsTaken, MAX_MAJORS_PER_ROUND, spendTurnAction } from './turnActions.js'
@@ -86,6 +87,20 @@ export function previewScan(state, actorId, targetId) {
         ? `${target.character.name} is already scanned.`
         : null
   return previewCombatTask(state, actor, { kind: 'scan', label: target ? `Scan ${target.character.name}` : 'Scan', target, spec: COMBAT_TASKS.scan, block })
+}
+
+// Scan a destructible (designer request 2026-10-17): same Reason + Science task; success shows the hazards it may
+// release and how to counteract them (world/destructibleScan.js).
+export function previewScanObject(state, actorId, objectId) {
+  const actor = state.combatants[actorId]
+  const record = state.environment?.destructibles?.[objectId]
+  const block =
+    !record || !isStanding(record)
+      ? 'Choose an object to scan.'
+      : state.scannedObjects?.[objectId]
+        ? `${record.name} is already scanned.`
+        : null
+  return { ...previewCombatTask(state, actor, { kind: 'scan', label: record ? `Scan ${record.name}` : 'Scan', target: null, spec: COMBAT_TASKS.scan, block }), objectId }
 }
 
 // The character in authority on a side (rules/authority.js), from those able to act, in pick order (party members are

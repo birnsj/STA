@@ -30,17 +30,13 @@ const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 
-// Play's away team: the authored redshirt ensigns (characters.json playtestParty) first; if none load, up to
-// MAX_AWAY_TEAM saved characters at random. Placement fills free tiles beside player starts when the map has fewer.
+// Play's away team: saved characters first (the imported party), then redshirt ensigns, up to MAX_AWAY_TEAM.
+// Placement fills free tiles beside player starts when the map has fewer.
 function playAwayTeam(savedCharacters) {
-  const authored = getPlaytestParty(MAX_AWAY_TEAM)
-  if (authored.length) return authored
-  const roster = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
-  for (let i = roster.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[roster[i], roster[j]] = [roster[j], roster[i]]
-  }
-  return roster.slice(0, MAX_AWAY_TEAM)
+  const saved = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
+  const taken = new Set(saved.map((character) => character.id))
+  const authored = getPlaytestParty(MAX_AWAY_TEAM).filter((character) => character && !taken.has(character.id))
+  return [...saved, ...authored].slice(0, MAX_AWAY_TEAM)
 }
 
 // A Generate Map size slider, in percent of the generators' own sizes.

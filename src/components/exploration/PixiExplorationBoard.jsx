@@ -13,7 +13,7 @@ import { hasCharacterSprite } from '../../rules/appearance.js'
 import { worldToGrid } from '../../exploration/tacticalGrid.js'
 import { characterHazardOverlayType, hasCharacterHazardOverlay } from '../../world/characterHazardOverlay.js'
 import { hazardPanic } from '../../world/hazardPanic.js'
-import { SHOT_FIRE_MS, weaponShotLook } from '../combat/battleHelpers.js'
+import { cameraFocusAlongShot, SHOT_FIRE_MS, shotCameraRideMs, weaponShotLook } from '../combat/battleHelpers.js'
 import UnitActionRing from '../combat/UnitActionRing.jsx'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from '../maps/canvasTiles.js'
@@ -67,7 +67,44 @@ export default function PixiExplorationBoard(props) {
   const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onCameraFollow = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, onStaggerDone = null, menu = null, beamIn = 'done', scanPulse = null, lastObjectShot = null } = props
   const { map } = state
   const leader = state.members[state.leaderId]
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: `lead:${state.leaderId}`, point: project(leader.position) }, followCamera, null, false, onCameraPan, onCameraFollow)
+  // With follow on, ride a destructible shot from the shooter to the object (same timing as the beam on the board).
+  const [shotFocus, setShotFocus] = useState(null)
+  const objectShotKey = lastObjectShot?.key ?? null
+  useEffect(() => {
+    if (!followCamera || !lastObjectShot) {
+      setShotFocus(null)
+      return undefined
+    }
+    const shooter = state.members[lastObjectShot.memberId]
+    const record = environment?.destructibles?.[lastObjectShot.objectId]
+    const weapon = getWeapon(lastObjectShot.weaponId)
+    const look = weapon ? weaponShotLook('player', weapon, { missed: !lastObjectShot.passed }) : null
+    if (!shooter || !record || !look) {
+      setShotFocus(null)
+      return undefined
+    }
+    const aim = {
+      key: lastObjectShot.key,
+      from: { ...shooter.position },
+      to: { ...record.position },
+      pulse: look.pulse,
+      impactMs: look.impactMs,
+    }
+    const started = performance.now()
+    const rideMs = shotCameraRideMs(aim, 1)
+    let frame = 0
+    const tick = (now) => {
+      const focus = cameraFocusAlongShot(aim, now - started, 1)
+      setShotFocus({ key: focus.key, point: project(focus.position) })
+      if (now - started < rideMs) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+    // Positions are frozen when the shot begins; restarting mid-flight would snap the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- objectShotKey / followCamera only
+  }, [followCamera, objectShotKey])
+  const boardFocus = shotFocus ?? { key: `lead:${state.leaderId}`, point: project(leader.position) }
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, boardFocus, followCamera, null, false, onCameraPan, onCameraFollow)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')
@@ -214,11 +251,17 @@ export default function PixiExplorationBoard(props) {
       targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: art }, { kind: 'object', id: view.id, depth: nearest + 0.4, shapes: [marker] })
     }
   }
-  // Destructible objects open their Fire ring; a hazard in reach opens its Neutralize ring from its anchor tile only, so
-  // clicking the rest of a fire still walks the party (out of it).
+  // Destructible objects open their Fire ring; outline templates for hover highlight (only the hovered id is shown each
+  // frame). A hazard in reach opens its Neutralize ring from its anchor tile only, so clicking the rest of a fire still
+  // walks the party (out of it).
+  const destructibleHighlights = []
   for (const view of destructibles) {
     const centre = project(view.position)
-    targets.push({ kind: 'destructible', id: view.id, depth: atDepth(view.position, 0.35), shapes: [{ type: 'rect', x: centre.x - 26, y: centre.y - 64, width: 52, height: 78 }] })
+    const tiles = highlightTiles([view.position], bigGroups)
+    const area = highlightBox(map, bigGroups, tiles)
+    const depth = atDepth(view.position, 0.35)
+    destructibleHighlights.push({ id: view.id, tiles, area, depth, changed: false, inReach: true })
+    targets.push({ kind: 'destructible', id: view.id, depth, shapes: [{ type: 'rect', x: centre.x - 26, y: centre.y - 64, width: 52, height: 78 }] })
   }
   for (const view of hazards) {
     const centre = project(view.position)
@@ -278,7 +321,6 @@ export default function PixiExplorationBoard(props) {
     }
     playNewExplosionSounds(explosions, heardExplosionsRef.current)
   }, [explosionKey, explosions])
-  const objectShotKey = lastObjectShot?.key
   const objectWeapon = lastObjectShot ? getWeapon(lastObjectShot.weaponId) : null
   const objectShotSound = objectWeapon ? weaponShotLook('player', objectWeapon, { missed: !lastObjectShot.passed }) : null
   useEffect(() => {
@@ -293,7 +335,7 @@ export default function PixiExplorationBoard(props) {
   const targetsRef = useRef(targets)
   const membersRef = useRef(state)
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, markers, lastKnown, pulses, effects, explosions, environment, revealed }
+    boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, lastKnown, pulses, effects, explosions, environment, revealed }
     targetsRef.current = targets
     membersRef.current = state
   })
@@ -308,7 +350,11 @@ export default function PixiExplorationBoard(props) {
       const board = boardRef.current
       if (!board) return null
       const hovered = hoverRef.current
-      return { ...board, svg: svgRef.current, highlights: board.highlights.map((item) => (item.id === hovered ? { ...item, hovered: true } : item)) }
+      const objectOutlines = board.highlights.map((item) => (item.id === hovered ? { ...item, hovered: true } : item))
+      const destructibleOutlines = hovered
+        ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
+        : []
+      return { ...board, svg: svgRef.current, highlights: [...objectOutlines, ...destructibleOutlines] }
     }
     return startBoardScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
   })
@@ -444,13 +490,18 @@ export default function PixiExplorationBoard(props) {
     onMove(point, true)
     addPulse(point)
   }
-  // Pointer cursor over what can be clicked (a figure standing, an object in reach); the object under it holds its
-  // outline steady.
+  // Pointer cursor over what can be clicked (a figure standing, an object in reach); the object or destructible under
+  // it holds its outline steady (destructibles only outline while hovered).
   const handlePointerMove = (event) => {
     const target = targetAt(event)
-    hoverRef.current = target?.kind === 'object' ? target.id : null
+    hoverRef.current = target?.kind === 'object' || target?.kind === 'destructible' ? target.id : null
     const svg = svgRef.current
     if (svg) svg.dataset.cursor = boardCursor(target)
+  }
+  const handleMouseLeave = () => {
+    hoverRef.current = null
+    const svg = svgRef.current
+    if (svg) delete svg.dataset.cursor
   }
 
   const menuPosition = menu?.position
@@ -473,6 +524,7 @@ export default function PixiExplorationBoard(props) {
         ref={svgRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
+        onMouseLeave={handleMouseLeave}
         onContextMenu={preventMenu}
         onClick={handleClick}
       >

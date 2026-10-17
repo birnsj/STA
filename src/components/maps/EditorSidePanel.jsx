@@ -1,4 +1,5 @@
 import missionLogData from '../../data/adaptation/exploration/missionLog.json'
+import { MAX_AWAY_TEAM } from '../../exploration/awayTeam.js'
 import { authoredDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { getTile, isRotated, mapFileId } from '../../maps/mapFormat.js'
 import { randomMapName } from '../../maps/mapGenerators.js'
@@ -179,6 +180,10 @@ export default function EditorSidePanel({
         {hoverTile ? `${hoverTile.x}, ${hoverTile.y}: ${getTile(map.tiles[hoverTile.y][hoverTile.x]).label}${isRotated(map, hoverTile) ? ' (rotated)' : ''}` : '-'}
       </p>
       <p className="me-text">Brush: {placing ? (rotated ? 'rotated' : 'not rotated') : 'off (Place Tiles)'}</p>
+      <p className="me-heading">Player Starts</p>
+      <p className="me-text">
+        {map.markers.playerStarts.length} / {MAX_AWAY_TEAM}. Combat and Play field up to eight; anyone past these starts stands beside them.
+      </p>
       <p className="me-heading">Warnings</p>
       {warnings.length ? (
         <ul className="me-warnings">

@@ -139,15 +139,53 @@ export function pacingEffect(state) {
   return null
 }
 
-// The camera centres on whoever is acting, and on the middle of the line of fire when a shot is fired.
-export function cameraFocus(state, turnKey, active) {
-  // Stays on the shot through rerolls and the result (one attack per turn, so the key is stable until the next action).
+// The endpoints of a shot still on the board (attacker tile → where it was aimed), or null.
+export function shotAim(state) {
   const action = state.lastAction
+  const shot = shotOf(state, action)
+  if (!shot) return null
+  const from = state.combatants[shot.attackerId]?.position
+  const to = shot.targetId ? state.combatants[shot.targetId]?.position : shot.targetPosition
+  if (!from || !to) return null
+  return { key: action.key, from, to, pulse: shot.pulse, impactMs: shot.impactMs }
+}
+
+// How long the camera rides from shooter to aim after the muzzle flash (beams have no flight time on impactMs).
+const BEAM_CAMERA_TRAVEL_MS = 450
+
+export function shotCameraRideMs(aim, speed = 1) {
+  const pace = Math.max(0.01, speed)
+  const fly = aim.impactMs - SHOT_FIRE_MS
+  return SHOT_FIRE_MS / pace + Math.max(1, (fly > 0 ? fly : BEAM_CAMERA_TRAVEL_MS) / pace)
+}
+
+// Camera point along a shot path after elapsedMs (from when the shot action began). Matches the board: sits on the
+// shooter until SHOT_FIRE_MS, then rides to the aim point as the pulse flies / the beam holds. Presentation only.
+export function cameraFocusAlongShot(aim, elapsedMs, speed = 1) {
+  const pace = Math.max(0.01, speed)
+  const delay = SHOT_FIRE_MS / pace
+  const travel = shotCameraRideMs(aim, speed) - delay
+  const raw = Math.min(1, Math.max(0, (elapsedMs - delay) / Math.max(1, travel)))
+  const t = raw * raw * (3 - 2 * raw)
+  return {
+    key: `shot:${aim.key}`,
+    position: { x: aim.from.x + (aim.to.x - aim.from.x) * t, y: aim.from.y + (aim.to.y - aim.from.y) * t },
+  }
+}
+
+// The camera centres on whoever is acting; during an open attack roll it looks at the middle of the line of fire; once
+// a shot is fired it holds on the aim point (CombatScreen overlays cameraFocusAlongShot while follow is on).
+export function cameraFocus(state, turnKey, active) {
+  const action = state.lastAction
+  // A fired shot: look where it was aimed (follow rides along the path in CombatScreen).
+  const aim = shotAim(state)
+  if (aim) return { key: `${turnKey}:shot:${aim.key}`, position: { ...aim.to } }
+  // Before the shot leaves: keep the line of fire framed while the roll is read.
   const roll = state.pending ?? (state.result?.closed ? null : state.result)
-  if (roll && ['attack', 'reroll', 'resolve', 'injury', 'ambush'].includes(action?.type)) {
+  if (roll && ['attack', 'reroll', 'injury'].includes(action?.type) && roll.targetId && state.combatants[roll.targetId]) {
     const from = state.combatants[roll.attackerId].position
     const to = state.combatants[roll.targetId].position
-    return { key: `${turnKey}:shot`, position: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }
+    return { key: `${turnKey}:aim`, position: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 } }
   }
   const fled = justFled(state)
   if (fled) return { key: `${turnKey}:fled`, position: fled.position }

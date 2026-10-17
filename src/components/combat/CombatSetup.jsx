@@ -44,8 +44,8 @@ function parseSeed(text) {
 export default function CombatSetup({ savedCharacters, initialParty, initialSeed, mapId, onStart, onExit }) {
   const { map, problem: mapProblem } = useEpisodeMap(mapId)
   const mapWarnings = map ? validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat' }) : []
-  // One party member per player start on the chosen map.
-  const maxPartySize = map?.markers.playerStarts.length ?? 0
+  // Up to eight, the same as exploration. Starts are preferred; anyone past them stands on a free tile beside a start.
+  const maxPartySize = maxAwayTeamSize(map)
   // UI state: the chosen party (RuntimeCharacters, in pick order), characters loaded from files, the one being previewed, and the seed text.
   const [party, setParty] = useState(initialParty)
   const [seedText, setSeedText] = useState(initialSeed == null ? '' : String(initialSeed))
@@ -89,7 +89,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
       <div className="combat-panel lcars-frame combat-setup-panel">
         <h2 className="combat-setup-title">Load Episode: {map ? episodeTitle(map) : 'Combat Test'}</h2>
         <p className="combat-setup-text">
-          Choose up to {maxPartySize} characters for your party. Your saved characters and the playtest redshirt ensigns are listed; combat uses each character's values.
+          Choose up to {maxPartySize} characters for your party. Saved characters, imported JSON and the playtest redshirt ensigns are listed; combat uses each character's values.
         </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}
@@ -100,7 +100,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
               {warning}
             </span>
           ))}
-          {party.length > maxPartySize && map && <span className="task-warning">This map has room for {maxPartySize} party members.</span>}
+          {map && !maxPartySize && <span className="task-warning">This map has no player start.</span>}
         </div>
         <div className="combat-setup-body">
           <ul className="combat-setup-list">

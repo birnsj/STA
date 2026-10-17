@@ -28,4 +28,28 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ tooltips: false }).tooltips, false)
     assert.equal(normalizeDisplaySettings({ tooltips: 'no' }).tooltips, true)
   })
+
+  it('older saves without Camera Follow get it on; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({ tooltips: false }).cameraFollow, true)
+    assert.equal(normalizeDisplaySettings({ cameraFollow: false }).cameraFollow, false)
+    assert.equal(normalizeDisplaySettings({ cameraFollow: 'no' }).cameraFollow, true)
+  })
+
+  it('older saves without WASD After Glide get 100; a saved value is clamped 0–100', () => {
+    assert.equal(normalizeDisplaySettings({ cameraFollow: false }).wasdCoast, 100)
+    assert.equal(normalizeDisplaySettings({ wasdCoast: 0 }).wasdCoast, 0)
+    assert.equal(normalizeDisplaySettings({ wasdCoast: 40 }).wasdCoast, 40)
+    assert.equal(normalizeDisplaySettings({ wasdCoast: 150 }).wasdCoast, 100)
+    assert.equal(normalizeDisplaySettings({ wasdCoast: -5 }).wasdCoast, 0)
+    assert.equal(normalizeDisplaySettings({ wasdCoast: 'no' }).wasdCoast, 100)
+  })
+
+  it('older saves without Party / Enemy AI get Classic; a known id is kept', () => {
+    assert.equal(normalizeDisplaySettings({ wasdCoast: 40 }).partyAI, 'classic')
+    assert.equal(normalizeDisplaySettings({}).enemyAI, 'classic')
+    assert.equal(normalizeDisplaySettings({ partyAI: 'planner', enemyAI: 'squad' }).partyAI, 'planner')
+    assert.equal(normalizeDisplaySettings({ partyAI: 'planner', enemyAI: 'squad' }).enemyAI, 'squad')
+    assert.equal(normalizeDisplaySettings({ partyAI: 'nope' }).partyAI, 'classic')
+    assert.equal(normalizeDisplaySettings({ enemyAI: 'nope' }).enemyAI, 'classic')
+  })
 })

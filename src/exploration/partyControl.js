@@ -9,7 +9,7 @@
 import { headingTo } from '../actors/CharacterController.js'
 import { controllerFor, isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/partyControl.json'
-import { isFireteamB, placeAwayTeam, splitFireteams } from './awayTeam.js'
+import { placeAwayTeam } from './awayTeam.js'
 import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } from './formations.js'
 import { distance, isClear, isClearLine, nearestWalkableTile, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
@@ -45,15 +45,15 @@ function newMember(character, position, heading) {
 }
 
 // characters: RuntimeCharacters in party order (up to MAX_AWAY_TEAM). Authored player starts first; extras beside them.
-// Fireteam A (first four) starts selected; Fireteam B follows A's lead (designer 2026-10-16).
+// The whole party is one away team and starts selected. Everyone stands on that spot, facing the start, until the
+// player moves them (designer 2026-10-17).
 export function createPartyState(map, characters) {
   const members = placeAwayTeam(map, characters).map(({ character, position, heading }) => newMember(character, position, heading))
   const memberIds = members.map((member) => member.id)
   const byId = Object.fromEntries(members.map((member) => [member.id, member]))
-  const { teamA } = splitFireteams(memberIds)
-  const leaderId = teamA[0] ?? memberIds[0] ?? null
-  const selectedIds = teamA.length ? [...teamA] : [...memberIds]
-  let state = {
+  const leaderId = memberIds[0] ?? null
+  const selectedIds = [...memberIds]
+  return {
     map,
     memberIds,
     members: byId,
@@ -64,13 +64,6 @@ export function createPartyState(map, characters) {
     // Beamed out (beamOut), in the order they left.
     departedIds: [],
   }
-  if (leaderId) {
-    const followers = memberIds.filter((id) => id !== leaderId)
-    if (followers.length) {
-      state = { ...state, members: formUp(state, state.members, leaderId, followers, state.members[leaderId].heading) }
-    }
-  }
-  return state
 }
 
 export const getMembers = (state) => state.memberIds.map((id) => state.members[id])
@@ -176,13 +169,7 @@ function moveSelection(state, target, fresh) {
   })
   const leader = members[leaderId]
   members[leaderId] = pointOrder(state.map, leader, target, distance(leader.position, target) > MOVE.runDistance)
-  let followerIds = selectedIds.filter((id) => id !== leaderId)
-  // Fireteam B tags along when A (or a mixed selection) moves; a B-only selection moves only those members.
-  const onlyB = selectedIds.every((id) => isFireteamB(state.memberIds, id))
-  if (!onlyB) {
-    const hitch = splitFireteams(state.memberIds).teamB.filter((id) => canAct(members[id]) && !selectedIds.includes(id))
-    followerIds = [...followerIds, ...hitch]
-  }
+  const followerIds = selectedIds.filter((id) => id !== leaderId && canAct(members[id]))
   // While the mouse is held the destination changes constantly; slots are only reshuffled on a new press.
   const alreadyFollowing = followerIds.every((id) => members[id].order?.type === 'follow' && members[id].order.leaderId === leaderId)
   if (fresh || !alreadyFollowing) {
