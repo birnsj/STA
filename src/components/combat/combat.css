@@ -843,12 +843,27 @@
   text-transform: uppercase;
 }
 
-/* Turn order strip: clear of the party rail and the minimap column. */
-.turn-strip {
+/* Turn order, then the attacker and target, centred between the party rail and the minimap column. */
+.combat-top-center {
   position: absolute;
   top: 8px;
   left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
   right: calc(8px + var(--explore-minimap-size, 240px) + 12px);
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.combat-top-center > * {
+  pointer-events: none;
+}
+
+.turn-strip {
+  position: static;
+  width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1017,6 +1032,130 @@
   flex-direction: column;
   gap: 4px;
   overflow: auto;
+}
+
+/* Attacker and target: equal cards under the carousel. Stats use the creator's rows (.ui-heading, .ui-row). */
+.combat-matchup {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.combat-matchup-card {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 240px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 6px;
+}
+
+.combat-matchup-card > .ui-heading {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.combat-matchup-card.is-enemy .combat-matchup-portrait {
+  border-color: var(--red);
+}
+
+.combat-matchup-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.combat-matchup-portrait {
+  width: 36px;
+  height: 44px;
+}
+
+.combat-matchup-portrait.is-blank {
+  display: inline-block;
+  flex-shrink: 0;
+  background: #0b1428;
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+}
+
+.combat-matchup-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.combat-matchup-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combat-matchup-weapon,
+.combat-matchup-quiet {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combat-matchup-scores > .ui-heading {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.combat-matchup-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.combat-matchup-scores ul {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.combat-matchup-scores .ui-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0 4px;
+  font-size: 9px;
+  line-height: 13px;
+  text-transform: uppercase;
+}
+
+.combat-matchup-scores .ui-row strong {
+  color: var(--yellow);
+  font-size: 10px;
+}
+
+.combat-matchup-arrow {
+  align-self: center;
+  flex: none;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 11px solid var(--yellow);
 }
 
 .selected-panel {
@@ -1301,12 +1440,12 @@
   overflow: visible;
 }
 
-/* Left vertical rail: same fixed card size as exploration, stacked from the top with a 4px gap. */
+/* Left vertical rail: same fixed card size as exploration. The gap holds the tags, which sit above the card. */
 .party-bar.is-left-rail {
   --combat-party-rail-width: 178px;
   --combat-party-hud-inset: 8px;
-  --combat-party-card-gap: 4px;
-  --combat-party-badge-rise: 9px;
+  --combat-party-card-gap: 16px;
+  --combat-party-badge-rise: 16px;
   --party-card-height: 54px;
   position: absolute;
   left: var(--combat-party-hud-inset);
@@ -1380,10 +1519,19 @@
   overflow: hidden;
 }
 
-/* Info insignia sits on the card like exploration (explore-card-info-toggle). */
+/* Info insignia sits on the card like exploration: the right end of the Stress row, with the number clear of it. */
 .party-bar.is-left-rail .explore-card-info-toggle {
   right: 5px;
   bottom: 5px;
+}
+
+.party-bar.is-left-rail .party-info .condition-track {
+  padding-right: 16px;
+}
+
+/* Move/Sprint is a line under Stress, so the insignia stays on the Stress row instead of dropping onto it. */
+.party-bar.is-left-rail .party-card-wrap:has(.party-hits-row) .explore-card-info-toggle {
+  bottom: 12px;
 }
 
 .party-bar.is-left-rail .party-card .party-info {
@@ -1409,7 +1557,7 @@
    Only the task tag's number takes clicks; the rest let them through to the card. */
 .party-card-badges {
   position: absolute;
-  top: -8px;
+  top: -16px;
   left: 6px;
   right: 6px;
   z-index: 1;

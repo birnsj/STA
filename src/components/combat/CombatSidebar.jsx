@@ -1,6 +1,7 @@
 import actionData from '../../data/adaptation/combat/actions.json'
 import { getMovementTiles } from '../../combat/movementSystem.js'
-import { describeRange, getInjuryMode } from '../../combat/weaponSystem.js'
+import { describeRange, getCombatantWeapon, getInjuryMode } from '../../combat/weaponSystem.js'
+import { getProtection } from '../../rules/personalCondition.js'
 import { AMBUSH_FOCUSES, isAccurate, maxAttackSuccesses } from '../../combat/combatState.js'
 import { TASK_DICE } from '../../rules/taskResolver.js'
 import BonusDicePicker from '../BonusDicePicker.jsx'
@@ -15,29 +16,81 @@ const ACTIONS = Object.fromEntries(actionData.actions.map((action) => [action.id
 
 const ICONS = ACTION_ICONS
 
-export function SelectedCharacterPanel({ combatant }) {
-  if (!combatant) return null
-  const { character } = combatant
-  const { attributes, disciplines } = character
+// The numbers a fight actually uses, in the creator's summary rows (ui-row / ui-heading): name left, score right.
+function MatchupScores({ combatant }) {
+  const character = combatant?.character
+  const attributes = character?.attributes ?? {}
+  const security = character?.disciplines?.security
+  const dash = '—'
+  const rows = [
+    ['Control', character ? attributes.control : dash],
+    ['Daring', character ? attributes.daring : dash],
+    ['Fitness', character ? attributes.fitness : dash],
+    ['Security', character ? security : dash],
+    ['Move', character ? getMovementTiles(character) : dash],
+    ['Cover', combatant ? (combatant.inCover ? 'Yes' : 'No') : dash],
+    ['Guard', combatant ? (combatant.guard ? 'Yes' : 'No') : dash],
+    ['Protection', character ? getProtection(character, { injuryType: 'stun', inCover: combatant.inCover }).value : dash],
+  ]
   return (
-    <section className="combat-panel selected-panel">
-      <CombatPortrait character={character} className="selected-portrait" />
-      <div className="selected-info">
-        <h2 className="selected-name">{character.name}</h2>
-        <p className="selected-stats">
-          Control {attributes.control} &middot; Security {disciplines.security}
-          <br />
-          Daring {attributes.daring} &middot; Fitness {attributes.fitness}
-          <br />
-          Move {getMovementTiles(character)} &middot; {combatant.inCover ? 'In Cover' : 'No Cover'}
-          {combatant.guard && <> &middot; Guarded</>}
-        </p>
+    <div className="combat-matchup-scores">
+      <span className="ui-heading">Stats</span>
+      <div className="combat-matchup-columns">
+        {[rows.slice(0, 4), rows.slice(4)].map((column) => (
+          <ul key={column[0][0]}>
+            {column.map(([label, value]) => (
+              <li key={label} className="ui-row">
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MatchupCard({ role, combatant, weapon, enemy = false }) {
+  const character = combatant?.character
+  const armed = weapon ?? (combatant?.weaponIds?.length ? getCombatantWeapon(combatant, combatant.weaponIds[0]) : null)
+  return (
+    <section className={`combat-panel combat-matchup-card${enemy ? ' is-enemy' : ''}${combatant ? '' : ' is-empty'}`} aria-label={role}>
+      <h2 className="ui-heading">{role}</h2>
+      <div className="combat-matchup-head">
+        {character ? (
+          <CombatPortrait character={character} className="combat-matchup-portrait" />
+        ) : (
+          <span className="combat-matchup-portrait is-blank" aria-hidden="true" />
+        )}
+        <span className="combat-matchup-id">
+          <span className="combat-matchup-name">{character?.name ?? 'No target'}</span>
+          <span className="combat-matchup-weapon">{armed?.name ?? '—'}</span>
+        </span>
       </div>
       <div className="panel-condition">
-        <ConditionTrack character={character} condition={combatant.condition} showCategory />
-        <ConditionIcons condition={combatant.condition} />
+        {character ? (
+          <>
+            <ConditionTrack character={character} condition={combatant.condition} showCategory />
+            <ConditionIcons condition={combatant.condition} />
+          </>
+        ) : (
+          <span className="combat-matchup-quiet">No one targeted</span>
+        )}
       </div>
+      <MatchupScores combatant={combatant} />
     </section>
+  )
+}
+
+// Under the turn-order carousel: the acting character and their target, the same size, with an arrow between them.
+export function CombatMatchup({ attacker, attackerWeapon = null, target }) {
+  return (
+    <div className="combat-matchup" aria-label="Attacker and target">
+      <MatchupCard role="Attacker" combatant={attacker} weapon={attackerWeapon} enemy={attacker?.side === 'enemy'} />
+      <span className="combat-matchup-arrow" aria-hidden="true" />
+      <MatchupCard role="Target" combatant={target} enemy />
+    </div>
   )
 }
 
@@ -60,30 +113,6 @@ export function EndTurnButton({ enabled, autoEndMs, onEnd }) {
         <span key={autoEndMs} className="task-auto-end" style={{ animationDuration: `${autoEndMs}ms` }} aria-hidden="true" />
       )}
     </button>
-  )
-}
-
-export function TargetPanel({ target }) {
-  return (
-    <section className="combat-panel target-panel">
-      <h2 className="combat-panel-title">Target</h2>
-      {target ? (
-        <div className="target-body">
-          <CombatPortrait character={target.character} className="target-portrait" />
-          <div className="target-info">
-            <span className="target-name">{target.character.name}</span>
-            <span className={`target-row target-cover${target.inCover ? ' is-covered' : ''}`}>Cover: {target.inCover ? 'In Cover' : 'No Cover'}</span>
-            {target.guard && <span className="target-row target-cover is-covered">Guarded: attacks +1 Difficulty</span>}
-          </div>
-          <div className="panel-condition">
-            <ConditionTrack character={target.character} condition={target.condition} showCategory />
-            <ConditionIcons condition={target.condition} />
-          </div>
-        </div>
-      ) : (
-        <p className="combat-panel-empty">No target</p>
-      )}
-    </section>
   )
 }
 

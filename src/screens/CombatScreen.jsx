@@ -28,7 +28,7 @@ import useBeamIn from '../components/combat/useBeamIn.js'
 import Battlefield from '../components/combat/PixiBattlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
-import { EndTurnButton, SelectedCharacterPanel, TargetPanel, TaskPanel } from '../components/combat/CombatSidebar.jsx'
+import { CombatMatchup, EndTurnButton, TaskPanel } from '../components/combat/CombatSidebar.jsx'
 import DebugPanel from '../components/combat/DebugPanel.jsx'
 import HowToPlay from '../components/combat/HowToPlay.jsx'
 import FatigueChoice from '../components/combat/FatigueChoice.jsx'
@@ -412,7 +412,6 @@ export function Battle({
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
   const enemies = Object.values(state.combatants).filter((combatant) => combatant.side !== 'player')
   const partyWeapons = Object.fromEntries(party.map((member) => [member.id, getCombatantWeapon(member, weaponIds[member.id] ?? member.weaponIds[0])]))
-  const shownCharacter = (selectedId && state.combatants[selectedId]) || active
   const encounter = getEncounter(state.encounterId)
   const minimapParty = minimapPartyFromCombat(party, { selectedId, leaderId: active.id })
   const minimapWorld = minimapWorldFromCombat(enemies, bystanders)
@@ -512,7 +511,14 @@ export function Battle({
         />
       </PerfProfiler>
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />
-      <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
+      <div className="combat-top-center">
+        <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
+        <CombatMatchup
+          attacker={active}
+          attackerWeapon={weapon}
+          target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null}
+        />
+      </div>
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
       {/* Right column: minimap with Camera / Help / Debug / Exit beside its toggle; Momentum, then Objectives, then the fight panels. */}
@@ -573,8 +579,6 @@ export function Battle({
         />
         {encounter.objectives?.length ? <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} /> : null}
         <div className="combat-sidebar">
-          <SelectedCharacterPanel combatant={shownCharacter} />
-          <TargetPanel target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null} />
           <TaskPanel
             mode={mode}
             isPlayerTurn={isPlayerTurn}

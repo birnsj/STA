@@ -11,7 +11,7 @@
     "Outcomes: onSuccess, onFailure, onComplication (once if any complication remains after the roll, whether the task passed or failed), always. Effects: setState, setFlag { flag, value }, changeFlag { flag, op: 'set' | 'clear' | 'add', value }, noise { radius, intensity } (the NPC awareness noise event), revealNpcs { radius, source, identified } and addFact { id, text } (into Party Knowledge), adjustDifficulty { actionId (default: this action), change, label }, setNpcResponse { alertGroupId, from, to } (NPC reaction override), lock { seconds } (no retry until then; during combat, where the world clock stands still, no retry until the next combat round), message { text }, addLogEntry { text } (an entry in the Captain's Log, exploration/missionLog.js), neutralizeHazard { hazardId?, mode?, amount? }, neutralizeHazardsInRoom (put out every lingering hazard that touches this object's room).",
     "Scene traits (Book p.252, Create Trait p.289): addTrait { name, potency (default 1), description }, removeTrait { name }, changePotency { name, change } (a trait at Potency 0 is gone). The trait applies to any task (exploration or combat) whose traitRules name it. kind: 'createTrait' marks an action as Create Trait for the UI (Book: Difficulty 2, a contextual Attribute + Department). Which traits exist and where they can be created is authored (VIDEOGAME ADAPTATION: no free-text GM interface).",
     "Deck 10 Brig (conversation validation encounter, Oct 2026, test content): the east section's two doorways are sealed bulkheads; the EPS Power Junction beside Lt. Okafor restores power. Talking to her (conversations/engineerSealedSection.json) can grant clearance (sectionAccessGranted: the bulkheads open normally) or diagnose the fault (faultDiagnosed: the junction also offers the easier Replace the EPS Coupling). The junction's own Scan for the Fault (tricorder) diagnoses it too; Restore Power stays open as the direct way (designer request 2026-10-11). Override the Lockout opens a powered bulkhead with or without clearance. Opening either bulkhead sets eastSectionOpen (the map's 'Get into the east section' objective reads it).",
-    "Deck 10 Environmental Controls (designer request 2026-10-16, implementer picks): one two-tile computerPanel wall panel per named room (on the wall, not a floor prop). Engage Environmental Controls is Control + Engineering Difficulty 1; success runs neutralizeHazardsInRoom (every hazard region that touches that room). Hazard-ring Neutralize stays available on the hazard itself.",
+    "Deck 10 Environmental Controls (designer request 2026-10-16, updated 2026-10-17: a floor object again, not a wall panel): one epsControl console per named room, on the floor against the wall. Engage Environmental Controls is Control + Engineering Difficulty 1; success runs neutralizeHazardsInRoom (every hazard region that touches that room). Hazard-ring Neutralize stays available on the hazard itself.",
     "In combat (Book p.288): an action takes the action type in actionCost.combat (major or minor; a routine action without one is minor, any other action major), is attempted by the character whose turn it is, and is assisted by whoever set up an Assist for them or by the commander on a Direct (Control + Command), not by the assist approaches below."
   ],
   "interactRange": 2,
@@ -217,18 +217,17 @@
       {
         "id": "envControlPhaser",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [2, 0],
-        "covers": [[3, 0]],
+        "type": "console",
+        "position": [3, 1],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -240,13 +239,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]
@@ -254,18 +253,17 @@
       {
         "id": "envControlTorpedo",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [18, 0],
-        "covers": [[19, 0]],
+        "type": "console",
+        "position": [18, 1],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -277,13 +275,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]
@@ -291,18 +289,17 @@
       {
         "id": "envControlShuttlebay",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [32, 0],
-        "covers": [[33, 0]],
+        "type": "console",
+        "position": [32, 1],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -314,13 +311,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]
@@ -328,18 +325,17 @@
       {
         "id": "envControlBridge",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [0, 22],
-        "covers": [[0, 23]],
+        "type": "console",
+        "position": [1, 22],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -351,13 +347,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]
@@ -365,18 +361,17 @@
       {
         "id": "envControlHolodeck",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [12, 19],
-        "covers": [[12, 20]],
+        "type": "console",
+        "position": [13, 19],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -388,13 +383,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]
@@ -402,18 +397,17 @@
       {
         "id": "envControlTransporter",
         "name": "Environmental Control",
-        "type": "panel",
-        "position": [24, 17],
-        "covers": [[24, 18]],
+        "type": "console",
+        "position": [25, 18],
         "state": "ready",
         "states": {
-          "ready": { "label": "Ready", "description": "A wall panel tied into this room's life support and damage-control net.", "tile": "computerPanel" }
+          "ready": { "label": "Ready", "description": "A console tied into this room's life support and damage-control net.", "tile": "epsControl" }
         },
         "actions": [
           {
             "id": "clearRoomHazards",
             "label": "Engage Environmental Controls",
-            "description": "Vent, seal and suppress hazards in this room from the wall panel.",
+            "description": "Vent, seal and suppress hazards in this room from the console.",
             "task": {
               "attribute": "control",
               "department": "engineering",
@@ -425,13 +419,13 @@
             "actionCost": { "exploration": "free", "combat": "major" },
             "onSuccess": [
               { "type": "neutralizeHazardsInRoom" },
-              { "type": "message", "text": "The panel cycles the room's environmental systems. Local hazards clear." },
+              { "type": "message", "text": "The console cycles the room's environmental systems. Local hazards clear." },
               { "type": "addLogEntry", "text": "We engaged the room's environmental controls and cleared the local hazards." }
             ],
-            "onFailure": [{ "type": "message", "text": "The panel refuses the sequence; the room's hazards remain." }],
+            "onFailure": [{ "type": "message", "text": "The console refuses the sequence; the room's hazards remain." }],
             "onComplication": [
               { "type": "noise", "radius": 5, "intensity": 0.5 },
-              { "type": "message", "text": "The panel chirps a warning as fans spin up." }
+              { "type": "message", "text": "The console chirps a warning as fans spin up." }
             ]
           }
         ]

@@ -311,7 +311,7 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 
 **Implementer picks, open for review:** the hazard ring and its combat marker sit on the region's anchor (the tile nearest its centre); Neutralize's label comes from `hazards.json` (Extinguish, Vent the Smoke, Cut the Power, and so on); explosions are capped at 8 at a time on screen.
 
-**Room Environmental Controls (designer request 2026-10-16, implemented; picks awaiting review):** one two-tile `computerPanel` wall panel per named Deck 10 room (`envControlPhaser` … `envControlTransporter` in `challenges.json`, type `panel`). Engage Environmental Controls: Control + Engineering Difficulty 1, focuses Emergency Repairs / Damage Control. Success clears every lingering hazard region that touches that room (`neutralizeHazardsInRoom`). Spots (implementer): (2,0)+(3,0), (18,0)+(19,0), (32,0)+(33,0), (0,22)+(0,23), (12,19)+(12,20), (24,17)+(24,18). Hazard-ring Neutralize unchanged.
+**Room Environmental Controls (designer request 2026-10-16, implemented; picks awaiting review):** one console per named Deck 10 room (`envControlPhaser` … `envControlTransporter` in `challenges.json`). Designer request (2026-10-17): a floor object again, the `epsControl` tile, not a two-tile `computerPanel` wall. Engage Environmental Controls: Control + Engineering Difficulty 1, focuses Emergency Repairs / Damage Control. Success clears every lingering hazard region that touches that room (`neutralizeHazardsInRoom`). Spots (implementer, on the floor against the wall): (3,1), (18,1), (32,1), (1,22), (13,19), (25,18). Hazard-ring Neutralize unchanged.
 
 ## Decided
 
