@@ -893,17 +893,11 @@
   display: none;
 }
 
-/* Camera / Help / Debug / Exit under Momentum, matching exploration's minimap column stack. */
-.combat-minimap-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  width: var(--explore-minimap-size, 240px);
+/* Objectives under Momentum in the minimap column. */
+.combat-screen .explore-minimap-column .objectives-panel {
   pointer-events: auto;
-}
-
-.combat-minimap-toolbar .combat-button {
-  flex: 1 1 auto;
+  width: var(--explore-minimap-size, 240px);
+  box-sizing: border-box;
 }
 
 .combat-hint {
@@ -1269,14 +1263,17 @@
   opacity: 0.35;
 }
 
-/* Hint / roll / Auto Combat: bottom-left, clear of the party rail. */
+/* Hint / roll / Auto Combat: between the party rail and the minimap column (same band as
+   exploration's .explore-messages). z-index keeps the dice above the minimap column (20). */
 .combat-bottom-left {
   position: absolute;
-  left: calc(8px + var(--combat-party-rail-width, 178px) + 12px);
+  left: calc(8px + var(--combat-party-rail-width, 178px) + 16px);
+  right: calc(8px + var(--explore-minimap-size, 240px) + 12px);
   bottom: 8px;
+  z-index: 26;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   pointer-events: none;
 }

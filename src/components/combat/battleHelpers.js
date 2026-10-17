@@ -34,9 +34,6 @@ export const BEAM_OUT_MS = 1600
 export const BEAM_IN_MS = 1600
 // The same beat the AI's rolls get, so the dice can be read before the result lands.
 export const AUTO_RESOLVE_MS = AI_ROLL_MS
-// The acting character's own ring opens on mouse-over and closes this long after the mouse leaves both them and the ring,
-// so the pointer can cross the gaps between buttons.
-export const SELF_RING_CLOSE_MS = 350
 // A fight's seed is drawn when it starts (never during render) unless the player typed one in.
 export const newSeed = () => Math.floor(Math.random() * MAX_SEED)
 

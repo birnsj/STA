@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { isPlayerControlled } from '../actors/controllers.js'
 import { playBeamOutSound } from '../audio/uiSounds.js'
 import { useDisplaySettings } from '../settings/DisplaySettingsContext.js'
@@ -63,9 +63,14 @@ import {
   nearestOpponentId,
   newSeed,
   plannedChoice,
-  SELF_RING_CLOSE_MS,
   turnBanner,
 } from '../components/combat/battleHelpers.js'
+
+// Minimap corner icons (same strokes as exploration's Formation panel / Captain's Log toggle).
+const CAMERA_ICON = 'M4 8h3l2-3h6l2 3h3v11H4zM12 10.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7'
+const HELP_ICON = 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M9.5 9.2a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.8-1.1 1.8M12 17h.01'
+const DEBUG_ICON = 'M9 6a3 3 0 0 1 6 0M8 9h8v6a4 4 0 0 1-8 0zM12 9v10M8 12H4M20 12h-4M8 16l-3 2M16 16l3 2M8 9L5 7M16 9l3-2'
+const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
 
 // Combat started in the exploration world (ExplorationScreen) also passes: onContinue (the result offers only Return to
 // Exploration), bystanders (NPCs outside the fight, drawn where they stand), snapMarks (debug: world position -> cell),
@@ -295,30 +300,6 @@ export function Battle({
   }
 
   const canOpenSelfRing = isPlayerTurn && !state.pending && (!turnUsedUp || extraBuyable)
-  const selfRingCloseTimer = useRef(null)
-  // True while the ring was opened by mouse-over, so the click that usually follows doesn't toggle it shut.
-  const hoverOpenedRef = useRef(false)
-  const cancelSelfRingClose = () => clearTimeout(selfRingCloseTimer.current)
-  useEffect(() => () => clearTimeout(selfRingCloseTimer.current), [])
-  const hoverSelfRing = (entering) => {
-    cancelSelfRingClose()
-    if (entering) return
-    selfRingCloseTimer.current = setTimeout(() => {
-      hoverOpenedRef.current = false
-      setRingId((current) => (current === active.id ? null : current))
-    }, SELF_RING_CLOSE_MS)
-  }
-  const handleUnitHover = (id, entering) => {
-    if (id !== active.id) return
-    if (entering && canOpenSelfRing) {
-      cancelSelfRingClose()
-      if (ringId !== id) hoverOpenedRef.current = true
-      setRingId(id)
-      setRingInfo(false)
-      return
-    }
-    if (ringId === id) hoverSelfRing(entering)
-  }
 
   // On the player's turn, clicking an enemy or another party member shows action buttons around them (a second click
   // puts them away). The enemy becomes the target with its attack previewed; a party member is picked for Assist.
@@ -334,11 +315,8 @@ export function Battle({
     }
     // Clicking the acting character shows their own actions around them; the current action (Move) stays selected.
     if (id === active.id && canOpenSelfRing) {
-      cancelSelfRingClose()
       setSelectedId(id)
-      const keepHoverOpened = hoverOpenedRef.current
-      hoverOpenedRef.current = false
-      setRingId(ringId === id && !keepHoverOpened ? null : id)
+      setRingId(ringId === id ? null : id)
       setRingInfo(false)
       return
     }
@@ -516,8 +494,6 @@ export function Battle({
           onTileClick={handleTileClick}
           onTileHover={setHoverTile}
           onUnitClick={handleUnitClick}
-          onUnitHover={handleUnitHover}
-          onRingHover={(entering) => ringId === active.id && hoverSelfRing(entering)}
           onRightClick={releaseSelection}
           beamIn={beamPhase}
           beamOut={partyBeamingOut}
@@ -539,7 +515,7 @@ export function Battle({
       <TurnOrderStrip state={state} hiddenIds={hiddenIds} />
       {!openingDone && <TurnBanner title={openingBanner.title} subtitle={openingBanner.subtitle} side="start" />}
       {openingDone && banner.title && !state.outcome && <TurnBanner key={banner.key} title={banner.title} subtitle={banner.subtitle} side={banner.side} />}
-      {/* Right column matches exploration: Objectives beside the minimap, Momentum/Threat under it, then the fight panels. */}
+      {/* Right column: minimap with Camera / Help / Debug / Exit beside its toggle; Momentum, then Objectives, then the fight panels. */}
       <Minimap
         map={state.map}
         party={minimapParty}
@@ -550,7 +526,44 @@ export function Battle({
         debug={debugOpen}
         open={minimapOpen}
         onToggle={() => setMinimapOpen(!minimapOpen)}
-        leading={encounter.objectives?.length ? <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} /> : null}
+        cornerButtons={
+          <>
+            <button
+              type="button"
+              className="explore-minimap-toggle"
+              aria-pressed={followCamera}
+              aria-label="Camera"
+              title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click or press Space to glide back to whoever is acting.'}
+              onClick={() => setFollowCamera(!followCamera)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={CAMERA_ICON} />
+              </svg>
+            </button>
+            <button type="button" className="explore-minimap-toggle" aria-label="How to Play" title="How to Play" onClick={() => setHelpOpen(true)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={HELP_ICON} />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="explore-minimap-toggle"
+              aria-pressed={debugOpen}
+              aria-label="Debug"
+              title={debugOpen ? 'Hide the debug panel.' : 'Show the debug panel.'}
+              onClick={toggleDebug}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={DEBUG_ICON} />
+              </svg>
+            </button>
+            <button type="button" className="explore-minimap-toggle" aria-label="Exit" title="Exit" onClick={onExit}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d={EXIT_ICON} />
+              </svg>
+            </button>
+          </>
+        }
       >
         <ResourceIndicators
           momentum={state.resources.momentum}
@@ -558,26 +571,7 @@ export function Battle({
           canCancelThreat={isPlayerTurn && !combatActionFor('cancelThreat').unavailableReason(state, active)}
           onCancelThreat={() => dispatch({ type: 'cancelThreat' })}
         />
-        <div className="combat-minimap-toolbar" aria-label="Combat controls">
-          <button
-            type="button"
-            className="combat-button is-small"
-            aria-pressed={followCamera}
-            title={followCamera ? 'The view moves to whoever is acting. Click to stop.' : 'The view stays where you put it. Click or press Space to glide back to whoever is acting.'}
-            onClick={() => setFollowCamera(!followCamera)}
-          >
-            Camera: {followCamera ? 'Follow' : 'Free'}
-          </button>
-          <button type="button" className="combat-button is-small" onClick={() => setHelpOpen(true)}>
-            How to Play
-          </button>
-          <button type="button" className="combat-button is-small" aria-pressed={debugOpen} onClick={toggleDebug}>
-            Debug
-          </button>
-          <button type="button" className="combat-button is-small" onClick={onExit}>
-            Exit
-          </button>
-        </div>
+        {encounter.objectives?.length ? <ObjectivesPanel objectives={encounter.objectives} complete={state.outcome === 'victory'} /> : null}
         <div className="combat-sidebar">
           <SelectedCharacterPanel combatant={shownCharacter} />
           <TargetPanel target={isPlayerTurn ? target : state.combatants[(state.pending ?? state.result)?.targetId] ?? null} />
