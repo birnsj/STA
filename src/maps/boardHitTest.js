@@ -21,6 +21,14 @@ export function hitTest(point, targets) {
   return found
 }
 
+// The part of a rect at or below `floor` (screen y grows downward). The name tag floats above that line.
+export function rectOnGround(rect, floor) {
+  const y = Math.max(rect.y, floor)
+  const height = rect.y + rect.height - y
+  if (height <= 1) return null
+  return { x: rect.x, y, width: rect.width, height }
+}
+
 // About how wide a label is (SVG text, the display font): for hit areas only.
 export const labelWidth = (text, fontSize) => String(text).length * fontSize * 0.56
 

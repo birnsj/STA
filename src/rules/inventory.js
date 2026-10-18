@@ -106,14 +106,32 @@ function takeInstance(state, instanceId) {
   const member = state.party.members[owner.memberId]
   const inventory = { ...member.character.inventory, slots: { ...member.character.inventory.slots }, bag: [...member.character.inventory.bag] }
   if (owner.kind === 'slot') inventory.slots[owner.slot] = null
-  else inventory.bag = inventory.bag.filter((id) => id !== instanceId)
+  else inventory.bag = inventory.bag.map((id, index) => (index === owner.bagIndex ? null : id))
   const character = syncEquippedEquipment({ ...member.character, inventory }, state.itemInstances)
   return { state: withMemberCharacter(state, owner.memberId, character), owner: { ...owner, instanceId } }
 }
 
+export function bagUsedCount(bag = []) {
+  return bag.filter(Boolean).length
+}
+
 export function bagFreeSlots(character) {
-  const bag = character.inventory?.bag ?? []
-  return Math.max(0, BAG_CAPACITY - bag.length)
+  return Math.max(0, BAG_CAPACITY - bagUsedCount(character.inventory?.bag))
+}
+
+function firstFreeBagIndex(bag) {
+  for (let index = 0; index < BAG_CAPACITY; index += 1) {
+    if (!bag[index]) return index
+  }
+  return -1
+}
+
+// Bag cells keep their index, including holes, so a drop lands on the cell under the pointer.
+function assignBagIndex(bag, index, instanceId) {
+  const next = [...bag]
+  while (next.length <= index) next.push(null)
+  next[index] = instanceId
+  return next
 }
 
 export function canEquipToSlot(state, instanceId, slot) {
@@ -212,24 +230,60 @@ export function seedPartyInventory(state) {
   }
 }
 
+function copyInventory(character) {
+  return { ...character.inventory, slots: { ...character.inventory.slots }, bag: [...character.inventory.bag] }
+}
+
+function writeInventory(state, memberId, inventory) {
+  const member = state.party.members[memberId]
+  const character = syncEquippedEquipment({ ...member.character, inventory }, state.itemInstances)
+  return withMemberCharacter(state, memberId, character)
+}
+
+// Exchange two slotted items. Caller has already checked that each fits the slot it lands in.
+function swapSlotted(state, from, to) {
+  const occupant = state.party.members[to.memberId].character.inventory.slots[to.slot]
+  if (from.memberId === to.memberId) {
+    const inventory = copyInventory(state.party.members[from.memberId].character)
+    inventory.slots[from.slot] = occupant
+    inventory.slots[to.slot] = from.instanceId
+    return writeInventory(state, from.memberId, inventory)
+  }
+  const sourceInventory = copyInventory(state.party.members[from.memberId].character)
+  sourceInventory.slots[from.slot] = occupant
+  let next = writeInventory(state, from.memberId, sourceInventory)
+  const destInventory = copyInventory(next.party.members[to.memberId].character)
+  destInventory.slots[to.slot] = from.instanceId
+  return writeInventory(next, to.memberId, destInventory)
+}
+
 export function equipItem(state, { memberId, instanceId, slot }) {
   const check = canEquipToSlot(state, instanceId, slot)
   if (!check.ok) return state
   const member = state.party.members[memberId]
   if (!member?.character.inventory) return state
+  const owner = findOwner(state, instanceId)
+  if (!owner) return state
+  if (owner.kind === 'slot' && owner.memberId === memberId && owner.slot === slot) return state
+  const displaced = member.character.inventory.slots[slot]
+  // Slot onto an occupied slot swaps only when the occupant fits the slot being vacated.
+  if (displaced && displaced !== instanceId && owner.kind === 'slot') {
+    if (!canEquipToSlot(state, displaced, owner.slot).ok) return state
+    return swapSlotted(state, { memberId: owner.memberId, slot: owner.slot, instanceId }, { memberId, slot })
+  }
   const taken = takeInstance(state, instanceId)
   if (!taken) return state
   let next = taken.state
   const target = next.party.members[memberId]
-  const inventory = { ...target.character.inventory, slots: { ...target.character.inventory.slots }, bag: [...target.character.inventory.bag] }
-  const displaced = inventory.slots[slot]
+  const inventory = copyInventory(target.character)
+  const occupant = inventory.slots[slot]
   inventory.slots[slot] = instanceId
-  if (displaced && displaced !== instanceId) {
-    if (inventory.bag.length >= BAG_CAPACITY) return state
-    inventory.bag.push(displaced)
+  if (occupant && occupant !== instanceId) {
+    const free = firstFreeBagIndex(inventory.bag)
+    if (free < 0) return state
+    inventory.bag = assignBagIndex(inventory.bag, free, occupant)
   }
-  const character = syncEquippedEquipment({ ...target.character, inventory }, next.itemInstances)
-  return withMemberCharacter(next, memberId, character)
+  return writeInventory(next, memberId, inventory)
 }
 
 export function unequipItem(state, { memberId, slot }) {
@@ -238,40 +292,120 @@ export function unequipItem(state, { memberId, slot }) {
   if (!instanceId) return state
   if (bagFreeSlots(member.character) < 1) return state
   const inventory = { ...member.character.inventory, slots: { ...member.character.inventory.slots }, bag: [...member.character.inventory.bag] }
+  const free = firstFreeBagIndex(inventory.bag)
+  if (free < 0) return state
   inventory.slots[slot] = null
-  inventory.bag.push(instanceId)
+  inventory.bag = assignBagIndex(inventory.bag, free, instanceId)
   const character = syncEquippedEquipment({ ...member.character, inventory }, state.itemInstances)
   return withMemberCharacter(state, memberId, character)
 }
 
-export function moveToBag(state, { memberId, instanceId }) {
+// Exchange a bag cell with another bag cell. The occupant may be null (a hole).
+function swapBagCells(state, from, to) {
+  const occupant = state.party.members[to.memberId].character.inventory.bag[to.bagIndex] ?? null
+  if (from.memberId === to.memberId) {
+    const inventory = copyInventory(state.party.members[from.memberId].character)
+    inventory.bag = assignBagIndex(inventory.bag, from.bagIndex, occupant)
+    inventory.bag = assignBagIndex(inventory.bag, to.bagIndex, from.instanceId)
+    return writeInventory(state, from.memberId, inventory)
+  }
+  const sourceInventory = copyInventory(state.party.members[from.memberId].character)
+  sourceInventory.bag = assignBagIndex(sourceInventory.bag, from.bagIndex, occupant)
+  let next = writeInventory(state, from.memberId, sourceInventory)
+  const destInventory = copyInventory(next.party.members[to.memberId].character)
+  destInventory.bag = assignBagIndex(destInventory.bag, to.bagIndex, from.instanceId)
+  return writeInventory(next, to.memberId, destInventory)
+}
+
+function swapSlotAndBag(state, from, to) {
+  const occupant = state.party.members[to.memberId].character.inventory.bag[to.bagIndex] ?? null
+  if (from.memberId === to.memberId) {
+    const inventory = copyInventory(state.party.members[from.memberId].character)
+    inventory.slots[from.slot] = occupant
+    inventory.bag = assignBagIndex(inventory.bag, to.bagIndex, from.instanceId)
+    return writeInventory(state, from.memberId, inventory)
+  }
+  const sourceInventory = copyInventory(state.party.members[from.memberId].character)
+  sourceInventory.slots[from.slot] = occupant
+  let next = writeInventory(state, from.memberId, sourceInventory)
+  const destInventory = copyInventory(next.party.members[to.memberId].character)
+  destInventory.bag = assignBagIndex(destInventory.bag, to.bagIndex, from.instanceId)
+  return writeInventory(next, to.memberId, destInventory)
+}
+
+function swapGroundAndBag(state, owner, to) {
+  const position = state.groundItems[owner.instanceId].position
+  const occupant = state.party.members[to.memberId].character.inventory.bag[to.bagIndex] ?? null
+  const groundItems = { ...state.groundItems }
+  delete groundItems[owner.instanceId]
+  let next = { ...state, groundItems }
+  const inventory = copyInventory(next.party.members[to.memberId].character)
+  inventory.bag = assignBagIndex(inventory.bag, to.bagIndex, owner.instanceId)
+  next = writeInventory(next, to.memberId, inventory)
+  if (!occupant) return next
+  return {
+    ...next,
+    groundItems: {
+      ...next.groundItems,
+      [occupant]: { instanceId: occupant, position: { x: position.x, y: position.y } },
+    },
+  }
+}
+
+export function moveToBag(state, { memberId, instanceId, toIndex = null }) {
   const member = state.party.members[memberId]
   if (!member?.character.inventory) return state
   const owner = findOwner(state, instanceId)
   if (!owner) return state
-  if (owner.kind === 'bag' && owner.memberId === memberId) return state
-  if (owner.kind === 'slot' && owner.memberId === memberId) {
+  const index = toIndex == null ? null : Number(toIndex)
+  if (index != null && (!Number.isInteger(index) || index < 0 || index >= BAG_CAPACITY)) return state
+  if (index == null && owner.kind === 'bag' && owner.memberId === memberId) return state
+  if (index != null && owner.kind === 'bag' && owner.memberId === memberId && owner.bagIndex === index) return state
+
+  const destBag = member.character.inventory.bag
+  const occupant = index == null ? null : destBag[index] ?? null
+  if (occupant && occupant === instanceId) return state
+  if (occupant) {
+    if (owner.kind === 'bag') return swapBagCells(state, owner, { memberId, bagIndex: index })
+    if (owner.kind === 'slot' && canEquipToSlot(state, occupant, owner.slot).ok) {
+      return swapSlotAndBag(state, owner, { memberId, bagIndex: index })
+    }
+    if (owner.kind === 'ground') return swapGroundAndBag(state, owner, { memberId, bagIndex: index })
+    const free = firstFreeBagIndex(destBag)
+    if (free < 0) return state
+  } else if (index == null && bagFreeSlots(member.character) < 1) {
+    return state
+  }
+
+  if (index == null && owner.kind === 'slot' && owner.memberId === memberId) {
     return unequipItem(state, { memberId, slot: owner.slot })
   }
-  if (bagFreeSlots(member.character) < 1) return state
+
+  const placeIndex = index == null ? firstFreeBagIndex(destBag) : index
+  if (placeIndex < 0) return state
   const taken = takeInstance(state, instanceId)
   if (!taken) return state
   let next = taken.state
   const target = next.party.members[memberId]
-  const inventory = { ...target.character.inventory, slots: { ...target.character.inventory.slots }, bag: [...target.character.inventory.bag, instanceId] }
-  const character = syncEquippedEquipment({ ...target.character, inventory }, next.itemInstances)
-  return withMemberCharacter(next, memberId, character)
+  const inventory = copyInventory(target.character)
+  if (occupant) {
+    const free = firstFreeBagIndex(inventory.bag)
+    if (free < 0) return state
+    inventory.bag = assignBagIndex(inventory.bag, free, occupant)
+  }
+  inventory.bag = assignBagIndex(inventory.bag, placeIndex, instanceId)
+  return writeInventory(next, memberId, inventory)
 }
 
-export function transferItem(state, { instanceId, toMemberId, toSlot = null }) {
+export function transferItem(state, { instanceId, toMemberId, toSlot = null, toBagIndex = null }) {
   const target = state.party.members[toMemberId]
   if (!target?.character.inventory) return state
   if (toSlot) {
-    const check = canEquipToSlot(state, instanceId, toSlot)
-    if (!check.ok) return moveToBag(state, { memberId: toMemberId, instanceId })
+    // A slot drop that does not fit stays where it was. It does not fall through into the bag.
+    if (!canEquipToSlot(state, instanceId, toSlot).ok) return state
     return equipItem(state, { memberId: toMemberId, instanceId, slot: toSlot })
   }
-  return moveToBag(state, { memberId: toMemberId, instanceId })
+  return moveToBag(state, { memberId: toMemberId, instanceId, toIndex: toBagIndex })
 }
 
 export function dropItem(state, { instanceId, position }) {
@@ -295,10 +429,12 @@ export function pickupItem(state, { instanceId, memberId }) {
   if (!member?.character.inventory || bagFreeSlots(member.character) < 1) return state
   const groundItems = { ...state.groundItems }
   delete groundItems[instanceId]
+  const free = firstFreeBagIndex(member.character.inventory.bag)
+  if (free < 0) return state
   const inventory = {
     ...member.character.inventory,
     slots: { ...member.character.inventory.slots },
-    bag: [...member.character.inventory.bag, instanceId],
+    bag: assignBagIndex(member.character.inventory.bag, free, instanceId),
   }
   const next = { ...state, groundItems }
   const character = syncEquippedEquipment({ ...member.character, inventory }, next.itemInstances)

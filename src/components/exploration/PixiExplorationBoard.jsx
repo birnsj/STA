@@ -4,7 +4,7 @@ import { getNpcs, isHostile } from '../../exploration/awareness.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
-import { figureShapes, hitTest } from '../../maps/boardHitTest.js'
+import { figureShapes, hitTest, rectOnGround } from '../../maps/boardHitTest.js'
 import { diamond, project, pts, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
 import { canPlaceAt } from '../../rules/inventory.js'
@@ -35,6 +35,7 @@ import {
   highlightTiles,
   HOLD_INTERVAL_MS,
   HOLD_MIN_CHANGE,
+  MARKER_DIAMOND,
   NPC_TAG_DOWN_Y,
   NPC_TAG_Y,
   STRIDE_SPREAD,
@@ -103,6 +104,8 @@ export default function PixiExplorationBoard(props) {
   } = props
   const { map } = state
   const leader = state.members[state.leaderId]
+  // A blast throw already moved the lead to the landing tile. Follow that, not a shot ride still aimed at the explosive.
+  const leaderThrown = Boolean(leader?.blastReact?.from && leader?.blastReact?.land)
   // With follow on, ride a destructible shot from the shooter to the object (same timing as the beam on the board).
   const [shotFocus, setShotFocus] = useState(null)
   const objectShotKey = lastObjectShot?.key ?? null
@@ -130,16 +133,27 @@ export default function PixiExplorationBoard(props) {
     const rideMs = shotCameraRideMs(aim, 1)
     let frame = 0
     const tick = (now) => {
+      if (now - started >= rideMs) {
+        // The ride is done. Leave the shot or the view stays on the impact while the party is thrown clear of it.
+        setShotFocus(null)
+        return
+      }
       const focus = cameraFocusAlongShot(aim, now - started, 1)
       setShotFocus({ key: focus.key, point: project(focus.position) })
-      if (now - started < rideMs) frame = requestAnimationFrame(tick)
+      frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
     // Positions are frozen when the shot begins; restarting mid-flight would snap the camera.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- objectShotKey / followCamera only
   }, [followCamera, objectShotKey])
-  const boardFocus = shotFocus ?? { key: `lead:${state.leaderId}`, point: project(leader.position) }
+  const boardFocus =
+    shotFocus && !leaderThrown
+      ? shotFocus
+      : {
+          key: `lead:${state.leaderId}${leaderThrown ? `:throw:${leader.blastReact.from.x},${leader.blastReact.from.y}` : ''}`,
+          point: project(leader.position),
+        }
   const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, boardFocus, followCamera, null, false, onCameraPan, onCameraFollow)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
@@ -278,11 +292,15 @@ export default function PixiExplorationBoard(props) {
     const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
     highlights.push({ id: view.id, tiles, area, depth: nearest + 0.35, changed: Boolean(view.changed), inReach })
     markers.push({ id: view.id, position: view.position, artTop, name: view.name, stateLabel: view.stateLabel, changed: Boolean(view.changed), objective: Boolean(view.objective), inReach, depth: nearest + 0.4 })
-    // Only in-reach objects take hits. The name tag is display-only (not a hit target), so leaving the art
-    // clears hover immediately instead of lingering over the floating label.
+    // Only in-reach objects take hits, and only on the art sitting on the ground. The name tag floats above that
+    // and is display-only, so the pointer leaves the object as soon as it moves onto the label.
     if (inReach) {
-      const art = artBoxes(map, bigGroups, tiles).map((box) => ({ type: 'rect', ...box }))
-      targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: [...art, { type: 'rect', ...area }] })
+      const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND
+      const shapes = artBoxes(map, bigGroups, tiles)
+        .map((box) => rectOnGround(box, floor))
+        .filter(Boolean)
+        .map((box) => ({ type: 'rect', ...box }))
+      if (shapes.length) targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes })
     }
   }
   // Destructible objects open their Fire ring; outline templates for hover highlight (only the hovered id is shown each
@@ -335,14 +353,14 @@ export default function PixiExplorationBoard(props) {
       inReach,
       depth: nearest + 0.4,
     })
-    // Match the drawn prop (tileImageBox) and pad — the old centred box sat above the sprite's feet.
-    // Tag is not a hit target: cursor off the prop clears the name immediately.
+    // Match the drawn prop, but not the name tag floating above it.
     const scale = Math.max(0.15, Math.min(1, worldScale))
     const size = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
     const box = tileImageBox(view.position, size)
     const pad = 10
-    const art = { type: 'rect', x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }
-    targets.push({ kind: 'groundItem', id: view.id, depth, shapes: [art] })
+    const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND
+    const art = rectOnGround({ x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }, floor)
+    if (art) targets.push({ kind: 'groundItem', id: view.id, depth, shapes: [{ type: 'rect', ...art }] })
   }
   const lastKnown = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))

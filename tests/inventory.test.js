@@ -84,6 +84,56 @@ describe('equip and unequip', () => {
     const before = state
     state = equipItem(state, { memberId: 'a', instanceId: medkitId, slot: 'sidearm' })
     assert.equal(state, before)
+    state = transferItem(before, { instanceId: medkitId, toMemberId: 'a', toSlot: 'sidearm' })
+    assert.equal(state, before)
+  })
+
+  it('equips a bag phaser to sidearm and leaves it in the bag when dropped on body', () => {
+    let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'phaserType2' }] })])
+    state = unequipItem(state, { memberId: 'a', slot: 'sidearm' })
+    const phaserId = state.party.members.a.character.inventory.bag.find((id) => state.itemInstances[id].itemId === 'phaserType2')
+    const inBag = state
+    state = transferItem(state, { instanceId: phaserId, toMemberId: 'a', toSlot: 'body' })
+    assert.equal(state, inBag)
+    assert.ok(state.party.members.a.character.inventory.bag.includes(phaserId))
+    state = transferItem(state, { instanceId: phaserId, toMemberId: 'a', toSlot: 'sidearm' })
+    assert.equal(state.party.members.a.character.inventory.slots.sidearm, phaserId)
+    assert.ok(!state.party.members.a.character.inventory.bag.includes(phaserId))
+  })
+})
+
+describe('slot swaps', () => {
+  it('swaps sidearms between characters and refuses a sidearm dropped on body', () => {
+    let state = partyState([
+      makeCharacter({ id: 'a', equipment: [{ itemId: 'phaserType1' }, { itemId: 'standardUniform' }] }),
+      makeCharacter({ id: 'b', equipment: [{ itemId: 'phaserType2' }] }),
+    ])
+    const aPhaser = state.party.members.a.character.inventory.slots.sidearm
+    const bPhaser = state.party.members.b.character.inventory.slots.sidearm
+    const beforeBody = state
+    state = transferItem(state, { instanceId: aPhaser, toMemberId: 'a', toSlot: 'body' })
+    assert.equal(state, beforeBody)
+    state = transferItem(state, { instanceId: aPhaser, toMemberId: 'b', toSlot: 'sidearm' })
+    assert.equal(state.party.members.b.character.inventory.slots.sidearm, aPhaser)
+    assert.equal(state.party.members.a.character.inventory.slots.sidearm, bPhaser)
+  })
+})
+
+describe('bag cells', () => {
+  it('drops onto the cell under the pointer instead of the first open cell', () => {
+    let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }] })])
+    const bag = state.party.members.a.character.inventory.bag
+    const medkitId = bag.find((id) => state.itemInstances[id].itemId === 'medkit')
+    const missionId = bag.find((id) => state.itemInstances[id].itemId === 'missionObject')
+    state = transferItem(state, { instanceId: missionId, toMemberId: 'a', toBagIndex: 4 })
+    const placed = state.party.members.a.character.inventory.bag
+    assert.equal(placed[0], medkitId)
+    assert.equal(placed[1] ?? null, null)
+    assert.equal(placed[4], missionId)
+    state = transferItem(state, { instanceId: medkitId, toMemberId: 'a', toBagIndex: 4 })
+    const swapped = state.party.members.a.character.inventory.bag
+    assert.equal(swapped[0], missionId)
+    assert.equal(swapped[4], medkitId)
   })
 })
 
@@ -102,6 +152,19 @@ describe('transfer between characters', () => {
 })
 
 describe('ground drop and pickup', () => {
+  it('equips a ground phaser to sidearm and leaves it on the ground when dropped on body', () => {
+    let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'phaserType2' }] })])
+    const phaserId = state.party.members.a.character.inventory.slots.sidearm
+    state = dropItem(state, { instanceId: phaserId, position: { x: 3, y: 3 } })
+    const onGround = state
+    state = transferItem(state, { instanceId: phaserId, toMemberId: 'a', toSlot: 'body' })
+    assert.equal(state, onGround)
+    assert.ok(state.groundItems[phaserId])
+    state = transferItem(state, { instanceId: phaserId, toMemberId: 'a', toSlot: 'sidearm' })
+    assert.equal(state.party.members.a.character.inventory.slots.sidearm, phaserId)
+    assert.equal(state.groundItems[phaserId], undefined)
+  })
+
   it('places on a free floor cell and returns the item to the bag', () => {
     let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }] })])
     const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')

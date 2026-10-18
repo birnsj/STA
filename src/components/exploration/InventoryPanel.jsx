@@ -2,10 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { loadInventoryWindow, saveInventoryWindow } from '../../character/persistence.js'
 import { getPortraitById } from '../../rules/appearance.js'
-import { getCategoryName, getItemStatLines } from '../../rules/equipment.js'
+import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
+import InfoTipBubble from '../InfoTipBubble.jsx'
+import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import { TILE_H, tileImageBox } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
-import { BAG_CAPACITY, BAG_COLS, BAG_ROWS, EQUIP_SLOTS, emptyInventory, resolveItem } from '../../rules/inventory.js'
+import { BAG_CAPACITY, BAG_COLS, BAG_ROWS, EQUIP_SLOTS, canEquipToSlot, emptyInventory, resolveItem } from '../../rules/inventory.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import { useStageSize } from '../stageSize.js'
 
@@ -39,23 +41,40 @@ function stageScaleOf(el) {
   return el.getBoundingClientRect().width / width
 }
 
-function itemTooltip(def) {
-  if (!def) return ''
-  const stats = getItemStatLines(def)
-    .map((line) => `${line.label} ${line.value}`)
-    .join(' · ')
-  return [def.name, def.description, getCategoryName(def.category), stats].filter(Boolean).join('\n')
+// Long enough that sliding across the grid does not flash a box on every icon.
+const ITEM_TIP_DELAY_MS = 350
+
+function itemTipContent(def, quantity) {
+  const category = getCategoryName(def.category)
+  const sections = [
+    category ? { label: 'Type', text: category } : null,
+    quantity > 1 ? { label: 'Quantity', text: String(quantity) } : null,
+    ...(def.stats ? getItemStatLines(def) : []).map((line) => ({ label: line.label, text: line.value })),
+  ].filter(Boolean)
+  return { title: def.name, text: def.description || null, sections }
 }
 
-function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, title }) {
+// The element the pointer is resting on that owns an item tip (an equipment slot, or a carried cell).
+function itemTipTarget(target) {
+  if (!(target instanceof Element)) return null
+  return target.closest('[data-item-tip]')
+}
+
+function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, bagDrop = null }) {
   const filled = Boolean(def)
   const draggable = Boolean(def && onPointerDown)
   // Divs, not disabled buttons: empty cells must not eat clicks, and buttons fight pointer-drag in Electron.
   // Filled cells always take hits across the full box — pointer-events:none punched through to the map SVG.
+  // Bag cells are always hit targets so a drop lands on that cell, not the first open one.
+  // A carried cell is its own slot, so the tip lives on it. An equipped cell sits inside the slot that owns the tip.
   return (
     <div
-      className={`inventory-item-cell${selected ? ' is-selected' : ''}${invalid ? ' is-invalid' : ''}${dimmed ? ' is-dimmed' : ''}${filled ? ' is-filled' : ' is-empty'}${draggable ? ' is-draggable' : ''}`}
-      title={title ?? (def ? itemTooltip(def) : undefined)}
+      className={`inventory-item-cell${selected ? ' is-selected' : ''}${invalid ? ' is-invalid' : ''}${dimmed ? ' is-dimmed' : ''}${filled ? ' is-filled' : ' is-empty'}${draggable ? ' is-draggable' : ''}${bagDrop ? ' is-bag-cell' : ''}`}
+      data-inventory-drop={bagDrop ? 'bag' : undefined}
+      data-member-id={bagDrop?.memberId}
+      data-bag-index={bagDrop ? bagDrop.bagIndex : undefined}
+      data-item-tip={bagDrop && def ? def.id : undefined}
+      data-item-qty={bagDrop && def ? quantity : undefined}
       onPointerDown={
         draggable
           ? (event) => {
@@ -78,9 +97,9 @@ function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, tit
 function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag }) {
   const resolved = instanceId ? resolveItem(state, instanceId) : null
   const dragging = drag?.instanceId
-  const dragResolved = dragging ? resolveItem(state, dragging) : null
-  const invalid = Boolean(dragging && dragResolved && dragResolved.def.equipSlot !== slot)
-  const canDrop = Boolean(dragging && dragResolved && dragResolved.def.equipSlot === slot)
+  const fromThisSlot = drag?.from?.location === 'slot' && drag.from.memberId === memberId && drag.from.slot === slot
+  const canDrop = Boolean(dragging && !fromThisSlot && canEquipToSlot(state, dragging, slot).ok)
+  const invalid = Boolean(dragging && !fromThisSlot && !canDrop)
   const startDrag = resolved
     ? (event) => {
         if (event.button !== 0) return
@@ -95,8 +114,9 @@ function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag }) {
       data-inventory-drop="slot"
       data-slot={slot}
       data-member-id={memberId}
+      data-item-tip={resolved ? resolved.def.id : undefined}
+      data-item-qty={resolved ? resolved.instance.quantity ?? 1 : undefined}
       onPointerDown={startDrag}
-      title={resolved ? itemTooltip(resolved.def) : undefined}
     >
       <span className="inventory-slot-label">{SLOT_LABELS[slot]}</span>
       <ItemCell
@@ -147,7 +167,15 @@ export function inventoryDropAt(clientX, clientY) {
   const party = el.closest('[data-inventory-drop="party"]')
   if (party?.dataset.memberId) return { kind: 'bag', memberId: party.dataset.memberId }
   const bag = el.closest('[data-inventory-drop="bag"]')
-  if (bag?.dataset.memberId) return { kind: 'bag', memberId: bag.dataset.memberId }
+  if (bag?.dataset.memberId) {
+    const raw = bag.dataset.bagIndex
+    const bagIndex = raw == null || raw === '' ? null : Number(raw)
+    return {
+      kind: 'bag',
+      memberId: bag.dataset.memberId,
+      bagIndex: Number.isInteger(bagIndex) ? bagIndex : null,
+    }
+  }
   return null
 }
 
@@ -179,6 +207,59 @@ export default function InventoryPanel({
   useEffect(() => {
     setPosition((current) => clampPosition(current.left, current.top, stage.width, stage.height))
   }, [stage.width, stage.height])
+
+  const tips = useDisplaySettings().tooltips !== false
+  const [itemTip, setItemTip] = useState(null)
+  // One listener on the window, not on each icon. The world re-renders every frame; matching the item id (not the
+  // DOM node) keeps the delay from restarting when the slot under the pointer is recreated.
+  useEffect(() => {
+    const panel = panelRef?.current
+    if (!panel || !tips) return undefined
+    let hoveredId = null
+    let timer = null
+    const clear = () => {
+      clearTimeout(timer)
+      timer = null
+      hoveredId = null
+      setItemTip(null)
+    }
+    const dimmed = (target) => target.classList.contains('is-dimmed') || Boolean(target.querySelector('.inventory-item-cell.is-dimmed'))
+    const over = (event) => {
+      const target = itemTipTarget(event.target)
+      const itemId = target?.dataset.itemTip || null
+      if (!target || !itemId || dimmed(target)) {
+        if (hoveredId) clear()
+        return
+      }
+      if (itemId === hoveredId) {
+        setItemTip((tip) => (tip && tip.anchor !== target ? { ...tip, anchor: target } : tip))
+        return
+      }
+      clearTimeout(timer)
+      hoveredId = itemId
+      setItemTip(null)
+      const quantity = Number(target.dataset.itemQty) || 1
+      timer = setTimeout(() => {
+        if (hoveredId !== itemId) return
+        setItemTip({ itemId, quantity, anchor: target })
+      }, ITEM_TIP_DELAY_MS)
+    }
+    const out = (event) => {
+      if (!hoveredId) return
+      const next = event.relatedTarget
+      const nextTarget = next instanceof Element ? itemTipTarget(next) : null
+      if (nextTarget?.dataset.itemTip === hoveredId) return
+      if (next instanceof Element && next.closest('.info-tip')) return
+      clear()
+    }
+    panel.addEventListener('pointerover', over)
+    panel.addEventListener('pointerout', out)
+    return () => {
+      clearTimeout(timer)
+      panel.removeEventListener('pointerover', over)
+      panel.removeEventListener('pointerout', out)
+    }
+  }, [panelRef, tips])
 
   const startWindowDrag = (event) => {
     if (event.button !== 0 || drag) return
@@ -233,6 +314,7 @@ export default function InventoryPanel({
   }
 
   const bagCells = Array.from({ length: BAG_CAPACITY }, (_, index) => inventory.bag[index] ?? null)
+  const tipDef = itemTip ? getItemById(itemTip.itemId) : null
 
   return (
     <div
@@ -297,12 +379,16 @@ export default function InventoryPanel({
                 quantity={resolved?.instance.quantity ?? 1}
                 selected={drag?.instanceId === instanceId}
                 dimmed={Boolean(drag && instanceId && drag.instanceId === instanceId)}
-                onPointerDown={resolved ? (event) => beginItemDrag(event, { instanceId, location: 'bag' }) : undefined}
+                bagDrop={{ memberId: member.id, bagIndex: index }}
+                onPointerDown={resolved ? (event) => beginItemDrag(event, { instanceId, location: 'bag', bagIndex: index }) : undefined}
               />
             )
           })}
         </div>
       </div>
+      {itemTip && tipDef && itemTip.anchor.isConnected ? (
+        <InfoTipBubble anchor={itemTip.anchor} content={itemTipContent(tipDef, itemTip.quantity)} />
+      ) : null}
     </div>
   )
 }

@@ -44,7 +44,7 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 // yellow over their doorway, solid while closed and outlined once open. Display only.
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
 // cornerButtons: more buttons to the left of that one, which stay in the corner too.
-// toolbarOutside: combat puts the button strip in its own panel above the minimap instead of over the readout.
+// toolbarOutside: the button strip is its own panel above the minimap (combat and exploration), so the readout sits clear below.
 // leading: optional content to the left of the minimap at the same height (Objectives panel).
 export default function Minimap({ map, party, world, knowledge, environment = null, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, toolbarOutside = false, leading = null, children }) {
   const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])

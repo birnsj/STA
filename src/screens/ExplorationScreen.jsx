@@ -271,7 +271,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           // Same bag → same bag is a no-op; ignore so a tiny drag on the medkit does not feel "stuck".
           const from = current.from
           const sameBag =
-            invDrop.kind === 'bag' && from?.location === 'bag' && from.memberId === invDrop.memberId
+            invDrop.kind === 'bag' &&
+            from?.location === 'bag' &&
+            from.memberId === invDrop.memberId &&
+            (invDrop.bagIndex == null || from.bagIndex === invDrop.bagIndex)
           const sameSlot =
             invDrop.kind === 'slot' && from?.location === 'slot' && from.memberId === invDrop.memberId && from.slot === invDrop.slot
           if (!sameBag && !sameSlot) {
@@ -280,6 +283,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
               instanceId,
               toMemberId: invDrop.memberId,
               toSlot: invDrop.kind === 'slot' ? invDrop.slot : null,
+              toBagIndex: invDrop.kind === 'bag' ? (invDrop.bagIndex ?? null) : null,
             })
           }
           return
@@ -881,6 +885,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
       <Minimap map={party.map} party={party} world={world} knowledge={state.partyKnowledge} environment={state.environment} objectives={knownObjectives.filter((objective) => objective.status === 'active' && objective.position)} doors={minimapDoors} scanPulse={scanPulse} debug={debugOpen} open={minimapOpen} onToggle={() => setMinimapOpen(!minimapOpen)}
+        toolbarOutside
         cornerButtons={
           <>
             <button type="button" className="explore-minimap-toggle" aria-label="Settings" title="Settings" onClick={openSettings}>

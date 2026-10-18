@@ -52,6 +52,10 @@
   --explore-card-height: 54px;
 }
 
+.exploration-screen {
+  --explore-minimap-size: 240px;
+}
+
 .explore-bottom-right {
   --explore-formation-height: 75px;
 }
@@ -1099,15 +1103,16 @@
   color: var(--text-muted);
 }
 
-/* The action buttons are stacked on top of the Formation panel. */
+/* The action buttons are stacked on top of the Formation panel. Same width and right edge as the minimap. */
 .explore-bottom-right {
   position: absolute;
   right: 8px;
   bottom: 8px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 6px;
+  width: var(--explore-minimap-size);
 }
 
 .explore-action-stack {
@@ -1431,12 +1436,14 @@
   flex-direction: column;
   justify-content: center;
   gap: 5px;
+  box-sizing: border-box;
+  width: 100%;
   height: var(--explore-formation-height, 75px);
 }
 
 .explore-formation-options {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* The title, then the small Camera and Debug toggles at its right end. */
@@ -1448,7 +1455,11 @@
 
 .explore-formation-header .combat-panel-title {
   flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .explore-panel-icon-button,
@@ -1501,7 +1512,7 @@
   z-index: 2;
 }
 
-/* Combat: the same buttons in their own panel above the minimap, so the readout sits clear below. */
+/* The Settings, Captain's Log, and minimap buttons in their own panel above the readout. */
 .explore-minimap-toolbar {
   display: flex;
   flex-wrap: nowrap;
@@ -1546,7 +1557,7 @@
 }
 
 .explore-formation-button.is-regroup {
-  margin-left: 6px;
+  margin-left: 2px;
 }
 
 .explore-formation-icon {
@@ -1925,13 +1936,13 @@
   font-size: 12px;
 }
 
-/* An object's stats and log, as wide as the bottom-right stack: below the minimap column (it ends 284px down) and
-   above the Formation panel (75px tall, 8px from the bottom); the text scrolls. */
+/* An object's stats and log, as wide as the bottom-right stack: below the minimap column (toolbar panel, then the
+   readout; the stack ends 324px down) and above the Formation panel (75px tall, 8px from the bottom); the text scrolls. */
 .challenge-panel.is-docked {
-  top: 292px;
+  top: 332px;
   right: 8px;
   bottom: 89px;
-  width: 247px;
+  width: var(--explore-minimap-size);
   padding: 6px 8px;
   overflow: hidden;
 }
@@ -2655,6 +2666,15 @@
   cursor: var(--cursor-pointer);
 }
 
+/* The whole equipment slot lights up under the pointer, including its label, not only the icon. */
+.inventory-slot.is-filled:hover:not(.is-valid-target):not(.is-invalid-target):not(:has(.is-dimmed)) {
+  border-color: var(--yellow);
+}
+
+.inventory-slot.is-filled:hover:not(:has(.is-dimmed)) .inventory-item-cell {
+  border-color: var(--yellow);
+}
+
 .inventory-slot .inventory-item-cell {
   width: 100%;
   height: 40px;
@@ -2752,6 +2772,10 @@
   pointer-events: none;
 }
 
+.inventory-bag-grid .inventory-item-cell.is-bag-cell {
+  pointer-events: auto;
+}
+
 .inventory-item-cell.is-filled,
 .inventory-item-cell.is-draggable {
   pointer-events: auto;
@@ -2764,6 +2788,10 @@
 .inventory-item-cell.is-filled {
   border-color: color-mix(in srgb, var(--blue) 70%, var(--panel-border));
   background: var(--blue-deep);
+}
+
+.inventory-bag-grid .inventory-item-cell.is-filled:hover:not(.is-dimmed) {
+  border-color: var(--yellow);
 }
 
 .inventory-item-cell.is-selected,

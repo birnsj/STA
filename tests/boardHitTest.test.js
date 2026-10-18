@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { figureShapes, hitTest } from '../src/maps/boardHitTest.js'
+import { figureShapes, hitTest, rectOnGround } from '../src/maps/boardHitTest.js'
 
 const figure = (id, x, y, depth) => ({ kind: 'member', id, depth, shapes: figureShapes({ x, y }) })
 
@@ -24,4 +24,12 @@ test('of two at the same depth the later one wins', () => {
 test('a label is part of the figure', () => {
   const targets = [{ kind: 'npc', id: 'n', depth: 1, shapes: figureShapes({ x: 0, y: 0 }, { label: 'Commander Riker', labelY: -58 }) }]
   assert.equal(hitTest({ x: 30, y: -60 }, targets).id, 'n')
+})
+
+test('a world object hit stops at the ground art and does not include the tag above it', () => {
+  const box = { x: 0, y: -80, width: 40, height: 90 }
+  const onGround = rectOnGround(box, -20)
+  assert.equal(onGround.y, -20)
+  assert.equal(onGround.height, 30)
+  assert.equal(rectOnGround({ x: 0, y: -40, width: 10, height: 10 }, -20), null)
 })
