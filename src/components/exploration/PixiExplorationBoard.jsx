@@ -4,8 +4,10 @@ import { getNpcs, isHostile } from '../../exploration/awareness.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
-import { figureShapes, hitTest, labelWidth } from '../../maps/boardHitTest.js'
-import { project, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { figureShapes, hitTest } from '../../maps/boardHitTest.js'
+import { diamond, project, pts, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
+import { TILE_IMAGE } from '../../maps/mapFormat.js'
+import { canPlaceAt } from '../../rules/inventory.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playWeaponSound } from '../../audio/uiSounds.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
@@ -33,8 +35,6 @@ import {
   highlightTiles,
   HOLD_INTERVAL_MS,
   HOLD_MIN_CHANGE,
-  MARKER_DIAMOND,
-  MARKER_NAME,
   NPC_TAG_DOWN_Y,
   NPC_TAG_Y,
   STRIDE_SPREAD,
@@ -60,11 +60,47 @@ const boardCursor = (target) => {
   if (!target || target.down) return ''
   if (target.kind === 'npc') return target.hostile ? 'attack' : 'talk'
   if (target.kind === 'destructible') return 'attack'
+  if (target.kind === 'groundItem') return 'use'
   return target.kind === 'object' ? 'use' : 'pointer'
 }
 
 export default function PixiExplorationBoard(props) {
-  const { state, world, knowledge, challenges = [], reachableIds = [], onInteract, environment = null, hazards = [], destructibles = [], onDestructible = () => {}, debug, followCamera, onCameraPan = null, onCameraFollow = null, onMove, onSelect, onSelectBox, onOpenMenu, onOpenNpcMenu, onStaggerDone = null, menu = null, beamIn = 'done', scanPulse = null, lastObjectShot = null } = props
+  const {
+    state,
+    world,
+    knowledge,
+    challenges = [],
+    reachableIds = [],
+    onInteract,
+    environment = null,
+    hazards = [],
+    destructibles = [],
+    onDestructible = () => {},
+    groundItems = [],
+    groundReachableIds = [],
+    onGroundItem = () => {},
+    onGroundItemDragStart = null,
+    placingItem = null,
+    placeHover = null,
+    onPlaceHover = null,
+    exploreState = null,
+    placeHelpersRef = null,
+    itemDragActive = false,
+    debug,
+    followCamera,
+    onCameraPan = null,
+    onCameraFollow = null,
+    onMove,
+    onSelect,
+    onSelectBox,
+    onOpenMenu,
+    onOpenNpcMenu,
+    onStaggerDone = null,
+    menu = null,
+    beamIn = 'done',
+    scanPulse = null,
+    lastObjectShot = null,
+  } = props
   const { map } = state
   const leader = state.members[state.leaderId]
   // With follow on, ride a destructible shot from the shooter to the object (same timing as the beam on the board).
@@ -242,13 +278,11 @@ export default function PixiExplorationBoard(props) {
     const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
     highlights.push({ id: view.id, tiles, area, depth: nearest + 0.35, changed: Boolean(view.changed), inReach })
     markers.push({ id: view.id, position: view.position, artTop, name: view.name, stateLabel: view.stateLabel, changed: Boolean(view.changed), objective: Boolean(view.objective), inReach, depth: nearest + 0.4 })
+    // Only in-reach objects take hits. The name tag is display-only (not a hit target), so leaving the art
+    // clears hover immediately instead of lingering over the floating label.
     if (inReach) {
-      const centre = project(view.position)
-      const half = Math.max(9, labelWidth(view.name, 10) / 2, labelWidth(view.stateLabel, 9) / 2) + 6
-      const top = centre.y - artTop - MARKER_NAME - 12
-      const marker = { type: 'rect', x: centre.x - half, y: top, width: half * 2, height: centre.y - artTop - MARKER_DIAMOND - top }
       const art = artBoxes(map, bigGroups, tiles).map((box) => ({ type: 'rect', ...box }))
-      targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: art }, { kind: 'object', id: view.id, depth: nearest + 0.4, shapes: [marker] })
+      targets.push({ kind: 'object', id: view.id, depth: nearest + 0.35, shapes: [...art, { type: 'rect', ...area }] })
     }
   }
   // Destructible objects open their Fire ring; outline templates for hover highlight (only the hovered id is shown each
@@ -266,6 +300,49 @@ export default function PixiExplorationBoard(props) {
   for (const view of hazards) {
     const centre = project(view.position)
     targets.push({ kind: 'object', id: view.id, depth: atDepth(view.position, -0.4), shapes: [{ type: 'diamond', cx: centre.x, cy: centre.y, rx: TILE_W / 2, ry: TILE_H / 2 }] })
+  }
+  // Runtime inventory drops (rules/inventory.js): isometric tile props + challenge-style name markers.
+  const groundLoot = []
+  for (const view of groundItems) {
+    const inReach = groundReachableIds.includes(view.id)
+    // Markers/depth use the containing map tile; the prop itself sits on the 8×8 sub-grid position.
+    const floorTile = { x: Math.round(view.position.x), y: Math.round(view.position.y) }
+    const tiles = highlightTiles([floorTile], bigGroups)
+    const nearest = Math.max(...tiles.map((tile) => tile.x + tile.y))
+    const area = highlightBox(map, bigGroups, tiles)
+    const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
+    const depth = view.position.x + view.position.y + 0.35
+    const worldScale = view.worldScale ?? 0.4
+    groundLoot.push({
+      id: view.id,
+      position: view.position,
+      worldImage: view.worldImage,
+      worldTile: view.worldTile,
+      worldScale,
+      category: view.category,
+      inReach,
+      depth,
+    })
+    // Same floating object tag as challenge objects (hover only — see MarkerView).
+    markers.push({
+      id: `ground:${view.id}`,
+      position: view.position,
+      artTop,
+      name: view.name,
+      stateLabel: 'On ground',
+      changed: false,
+      objective: false,
+      inReach,
+      depth: nearest + 0.4,
+    })
+    // Match the drawn prop (tileImageBox) and pad — the old centred box sat above the sprite's feet.
+    // Tag is not a hit target: cursor off the prop clears the name immediately.
+    const scale = Math.max(0.15, Math.min(1, worldScale))
+    const size = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
+    const box = tileImageBox(view.position, size)
+    const pad = 10
+    const art = { type: 'rect', x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }
+    targets.push({ kind: 'groundItem', id: view.id, depth, shapes: [art] })
   }
   const lastKnown = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
@@ -334,10 +411,28 @@ export default function PixiExplorationBoard(props) {
   const boardRef = useRef(null)
   const targetsRef = useRef(targets)
   const membersRef = useRef(state)
+  const toBoard = (clientX, clientY) => {
+    const matrix = svgRef.current?.getScreenCTM()
+    if (!matrix) return null
+    const point = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse())
+    return { x: point.x, y: point.y }
+  }
+  const toTiles = (clientX, clientY) => {
+    const point = toBoard(clientX, clientY)
+    return point ? unproject(point) : null
+  }
+  const toClient = (svgX, svgY) => {
+    const matrix = svgRef.current?.getScreenCTM()
+    if (!matrix) return null
+    const point = new DOMPoint(svgX, svgY).matrixTransform(matrix)
+    return { x: point.x, y: point.y }
+  }
+
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, lastKnown, pulses, effects, explosions, environment, revealed }
+    boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, groundLoot, lastKnown, pulses, effects, explosions, environment, revealed }
     targetsRef.current = targets
     membersRef.current = state
+    if (placeHelpersRef) placeHelpersRef.current = { toTiles, toClient }
   })
   const onMapReady = useContext(MapReadyContext)
   const onMapReadyRef = useRef(onMapReady)
@@ -354,21 +449,19 @@ export default function PixiExplorationBoard(props) {
       const destructibleOutlines = hovered
         ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
         : []
-      return { ...board, svg: svgRef.current, highlights: [...objectOutlines, ...destructibleOutlines] }
+      const groundLoot = (board.groundLoot ?? []).map((item) => (item.id === hovered ? { ...item, hovered: true } : { ...item, hovered: false }))
+      // Name tags only while the pointer is over that object / ground drop (MarkerView).
+      const markers = (board.markers ?? []).map((item) => {
+        const hoverId = item.id.startsWith('ground:') ? item.id.slice('ground:'.length) : item.id
+        return { ...item, hovered: hoverId === hovered }
+      })
+      return { ...board, svg: svgRef.current, highlights: [...objectOutlines, ...destructibleOutlines], groundLoot, markers }
     }
     return startBoardScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
   })
 
   // ---------------------------------------------------------------- input
 
-  const toBoard = (clientX, clientY) => {
-    const matrix = svgRef.current?.getScreenCTM()
-    return matrix ? new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse()) : null
-  }
-  const toTiles = (clientX, clientY) => {
-    const point = toBoard(clientX, clientY)
-    return point ? unproject(point) : null
-  }
   // The figure or object under the pointer; null over the overlay's own controls (a radial menu's buttons).
   const targetAt = (event) => {
     if (event.target !== svgRef.current) return null
@@ -469,13 +562,37 @@ export default function PixiExplorationBoard(props) {
     }
     if (event.button !== 0) return false
     if (target.kind === 'destructible') onDestructible(target.id)
+    else if (target.kind === 'groundItem') onGroundItem(target.id)
     else onInteract(target.id)
     return true
   }
 
+  const reportPlaceHover = (clientX, clientY) => {
+    if (!placingItem || !onPlaceHover || !exploreState) return
+    const point = toTiles(clientX, clientY)
+    if (!point) {
+      onPlaceHover(null)
+      return
+    }
+    const check = canPlaceAt(exploreState, point, {
+      excludeInstanceId: placingItem.from?.location === 'ground' ? placingItem.instanceId : null,
+    })
+    onPlaceHover({ position: check.position ?? point, valid: check.ok })
+  }
+
   const handlePointerDown = (event) => {
     pointerTypeRef.current = event.pointerType
+    if (placingItem || itemDragActive) {
+      reportPlaceHover(event.clientX, event.clientY)
+      return
+    }
     const target = targetAt(event)
+    // Left-drag a ground item: pick it up as the cursor (same model as inventory). Right-click still opens the ring.
+    if (target?.kind === 'groundItem' && event.button === 0 && onGroundItemDragStart) {
+      event.preventDefault()
+      onGroundItemDragStart(target.id, event.clientX, event.clientY, event.pointerId)
+      return
+    }
     if (target && pressTarget(target, event)) return
     startCameraDrag(event)
     if (event.pointerType === 'mouse' && event.button === 0) startHold(event)
@@ -493,8 +610,14 @@ export default function PixiExplorationBoard(props) {
   // Pointer cursor over what can be clicked (a figure standing, an object in reach); the object or destructible under
   // it holds its outline steady (destructibles only outline while hovered).
   const handlePointerMove = (event) => {
+    if (placingItem || itemDragActive) {
+      reportPlaceHover(event.clientX, event.clientY)
+      const svg = svgRef.current
+      if (svg) delete svg.dataset.cursor
+      return
+    }
     const target = targetAt(event)
-    hoverRef.current = target?.kind === 'object' || target?.kind === 'destructible' ? target.id : null
+    hoverRef.current = target?.kind === 'object' || target?.kind === 'destructible' || target?.kind === 'groundItem' ? target.id : null
     const svg = svgRef.current
     if (svg) svg.dataset.cursor = boardCursor(target)
   }
@@ -542,6 +665,12 @@ export default function PixiExplorationBoard(props) {
             width={Math.abs(box.to.x - box.from.x)}
             height={Math.abs(box.to.y - box.from.y)}
             pointerEvents="none"
+          />
+        )}
+        {placingItem && placeHover && (
+          <polygon
+            className={`explore-place-preview${placeHover.valid ? '' : ' is-invalid'}`}
+            points={pts(diamond(placeHover.position, 0, 1 / 8))}
           />
         )}
       </svg>

@@ -12,6 +12,9 @@ export const getItems = () => items
 export const getItemById = (itemId) => itemsById.get(itemId) ?? null
 export const getCategoryName = (categoryId) => itemData.categories[categoryId] ?? categoryId
 
+// World hover outline for dropped items (items.json categoryHighlights). Falls back to creator yellow.
+export const getCategoryHighlight = (categoryId) => itemData.categoryHighlights?.[categoryId] ?? '#f6b928'
+
 const officerRankIds = rankSource.ranks.map((rank) => rank.id)
 const enlistedRankIds = rankSource.enlistedRanks.map((rank) => rank.id)
 
@@ -48,7 +51,9 @@ export function reconcileEquipment(character) {
   return { ...character, equipment: itemIds.map((itemId) => ({ itemId })) }
 }
 
-// Resolves the character's references; unknown IDs (e.g. an item removed from the data) are skipped.
+// Resolves the character's equipped references; unknown IDs are skipped.
+// Exploration party members keep equipment synced to inventory slots only (rules/inventory.js); bag items are not listed.
+// NPCs and creator characters without inventory still use a flat equipment list.
 export const getEquippedItems = (character) => (character.equipment ?? []).map((entry) => getItemById(entry.itemId)).filter(Boolean)
 
 // Union of stats.hazardImmunity on equipped items (Prototype: suits ignore matching lingering hazard types).

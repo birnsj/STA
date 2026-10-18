@@ -6,6 +6,17 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 ## Open
 
+### Exploration inventory UI (implemented 2026-10-17; follow-ups open)
+
+**Decided for this phase:** floating inventory over exploration (not full-screen); STA-aligned slots `body`, `sidearm`, `scanner`, `communicator` plus a carried bag (not a ten-slot fantasy layout); one continuous cursor-as-item drag across inventory, equipment slots, characters, and the world; 8×8 sub-tile placement grid for drops; session-only inventory/ground state; window position in localStorage. Open with B or the Formation panel button. Where: `src/rules/inventory.js`, `InventoryPanel.jsx`, `docs/prototype-rules.md` (Equipment).
+
+**Implementer picks, for review:** bag capacity 24; bag weapons unusable until equipped; one playtest `missionObject` seeded on the lead character; world props use `worldImage` + `worldScale` (inventory uses `icon`); ground items and challenge objects show name tags only on mouseover (designer request 2026-10-17); ground items keep a larger grab hit area; Pick Up ring remains as a secondary path (left-drag grabs directly).
+
+**Questions / follow-ups:**
+- When should mission save/load include inventory and ground items?
+- Should bag weapons remain usable without equipping?
+- Full mission-object / loot content beyond the test item?
+
 ### Rank should matter in the game (opened 2026-10-02)
 
 **Decision needed:** how rank affects the videogame (designer has confirmed it should matter; integration not yet decided).

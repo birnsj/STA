@@ -18,6 +18,15 @@ import { scanArea, scanDestructible, scanNpc } from './partyScan.js'
 import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
+import {
+  dropItem,
+  equipItem,
+  pickupItem,
+  seedMemberInventory,
+  seedPartyInventory,
+  transferItem,
+  unequipItem,
+} from '../rules/inventory.js'
 import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
 import { answerInjuryPrompt, applyPendingObjectHit, clearBlastReact, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
 
@@ -84,14 +93,18 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
   // Destructible objects and hazards (world/environment.js): each object's tile is on the world map too.
   const environment = createEnvironment(map, seed >>> 0)
   const worldMap = applyEnvironmentTiles(applyScenarioTiles(map, scenario), environment)
-  return {
+  // itemInstances / groundItems / per-member inventory: session-only play inventory (rules/inventory.js).
+  const seeded = seedPartyInventory({
     mode: MODE.EXPLORATION,
     party: createPartyState(worldMap, characters),
     world: createNpcWorld(worldMap),
     scenario,
     environment,
-    // World seconds since the last hazard round (explorationEnvironment.js tickHazards); it stands still in a fight, so
-    // exploration resumes the count where it stopped.
+    itemInstances: {},
+    groundItems: {},
+  })
+  return {
+    ...seeded,
     hazardClock: 0,
     // Avoid Injury prompts a blast or hazard round left for party members, answered one at a time.
     injuryPrompts: [],
@@ -301,7 +314,9 @@ function reduceExploration(state, action) {
       const party = partyReducer(state.party, { type: 'startBeamIn', characters: action.characters, avoid })
       if (party === state.party) return state
       const ids = party.memberIds.filter((id) => !state.party.memberIds.includes(id))
-      return ids.reduce((logged, id) => addLogEntry(logged, { kind: 'beam', text: `${party.members[id].character.name} beamed in.` }), { ...state, party })
+      // New arrivals expand their loadout into play inventory; returning members keep what they had.
+      const withGear = ids.reduce((next, id) => seedMemberInventory(next, id), { ...state, party })
+      return ids.reduce((logged, id) => addLogEntry(logged, { kind: 'beam', text: `${withGear.party.members[id].character.name} beamed in.` }), withGear)
     }
     // A fight may have started meanwhile: they are on the mission either way.
     case 'finishBeamIn':
@@ -309,6 +324,17 @@ function reduceExploration(state, action) {
     // Puts every NPC back on its post, unaware (developer tool).
     case 'resetNpcs':
       return state.mode === MODE.COMBAT ? state : { ...state, world: createNpcWorld(state.party.map), partyKnowledge: createPartyKnowledge(), lastCombat: null }
+    // Inventory (rules/inventory.js). Frozen during combat: gear changes wait until the fight ends.
+    case 'equipItem':
+      return state.mode === MODE.COMBAT ? state : equipItem(state, action)
+    case 'unequipItem':
+      return state.mode === MODE.COMBAT ? state : unequipItem(state, action)
+    case 'transferItem':
+      return state.mode === MODE.COMBAT ? state : transferItem(state, action)
+    case 'dropItem':
+      return state.mode === MODE.COMBAT ? state : dropItem(state, action)
+    case 'pickupItem':
+      return state.mode === MODE.COMBAT ? state : pickupItem(state, action)
     default: {
       // Party orders are frozen while combat runs: the combat screen gives the orders then.
       if (state.mode === MODE.COMBAT) return state

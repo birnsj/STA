@@ -11,9 +11,10 @@ export const getAttackTaskSpec = (weapon) => weaponData.attackTasks[weapon.type]
 // The weapon as this combatant wields it (talents can change it: combatTalents.js).
 export const getCombatantWeapon = (combatant, weaponId) => wieldWeapon(combatant.character, getWeapon(weaponId))
 
-// Weapons the character carries (equipment linked by itemId), plus the always-available Unarmed Strike, as they wield them.
+// Weapons from equipped gear (equipment linked by itemId), plus the always-available Unarmed Strike, as they wield them.
+// Bag items on exploration inventory characters are not equipped and do not appear here until slotted as a sidearm.
 export function getCharacterWeapons(character) {
-  const carried = character.equipment.map((item) => getWeaponForItem(item.itemId)).filter(Boolean)
+  const carried = (character.equipment ?? []).map((item) => getWeaponForItem(item.itemId)).filter(Boolean)
   const always = weaponData.weapons.filter((weapon) => weapon.alwaysAvailable)
   return [...new Set([...carried, ...always])].map((weapon) => wieldWeapon(character, weapon))
 }

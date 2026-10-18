@@ -155,6 +155,11 @@ export default function CharacterSheetPanel({ character, condition = null, class
         <Section title="Equipment">
           <Chips items={character.equipment.map((item) => item.name)} />
         </Section>
+        {Array.isArray(character.carried) && (
+          <Section title="Carried">
+            <Chips items={character.carried.map((item) => item.name)} />
+          </Section>
+        )}
       </div>
     </aside>
   )

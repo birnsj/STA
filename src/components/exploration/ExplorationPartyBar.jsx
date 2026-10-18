@@ -309,16 +309,30 @@ const EXIT_ICON = 'M14 4H5v16h9M10 12h10M16 8l4 4l-4 4'
 // A transporter beam: a column with sparkles, over a pad.
 const TRANSPORTER_ICON = 'M8 4h8v13H8zM5 20h14M12 7v1M10.5 10v1M13.5 12v1M12 14.5v1'
 
+const INVENTORY_ICON = 'M4 5h16v14H4zM8 5v3h8V5M8 11h8M8 15h5'
+
 // followCamera / onFollowCamera(on): the view follows the lead character or stays put. debugOpen / onDebug(open): the
-// debug panels (party, awareness, scenario state and the task log). onTransporter(): opens the transporter's picker;
-// null while it can't be used. onExitMission(): Exit Mission (the screen confirms, then beams the away team out); null
-// while it can't be used.
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, onTransporter, onExitMission }) {
+// debug panels (party, awareness, scenario state and the task log). onInventory(): opens the inventory window.
+// onTransporter(): opens the transporter's picker; null while it can't be used. onExitMission(): Exit Mission (the
+// screen confirms, then beams the away team out); null while it can't be used.
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, inventoryOpen, onInventory, onTransporter, onExitMission }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
       <div className="explore-formation-header">
         <p className="combat-panel-title">Formation{current ? `: ${current.name}` : ''}</p>
+        <button
+          type="button"
+          className="explore-panel-icon-button"
+          aria-pressed={inventoryOpen}
+          aria-label="Inventory"
+          title={inventoryOpen ? 'Close inventory (B).' : 'Open inventory (B).'}
+          onClick={onInventory}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d={INVENTORY_ICON} />
+          </svg>
+        </button>
         <button
           type="button"
           className="explore-panel-icon-button"

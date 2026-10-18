@@ -9,6 +9,8 @@ import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
 import { canAskNpc } from '../../exploration/partySocial.js'
 import { destructibleScanner, destructibleShooter, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
 import { getEquippedItems } from '../../rules/equipment.js'
+import { bagFreeSlots, resolveItem } from '../../rules/inventory.js'
+import { groundItemFor } from '../../world/GroundItem.js'
 import { getFaction } from '../../rules/factions.js'
 import { conditionSummary, getProtection, isDefeated, normalizeCondition } from '../../rules/personalCondition.js'
 import { destructibleScanCard, isDestructibleScanned } from '../../world/destructibleScan.js'
@@ -263,3 +265,42 @@ function socialResultText(state, npc, last) {
   const result = last.stoodDown ? 'stands down' : last.after !== last.before ? `is now ${dispositionName(last.after)}` : 'is unmoved'
   return `${verb} by ${asker} worked (${roll}): ${npc.name} ${result}.`
 }
+
+// A dropped inventory item's ring: Pick Up (into the selected / lead character's bag) and Go To.
+// actions: { pickup(memberId), goTo }.
+export function groundItemMenuButtons(state, instanceId, actions) {
+  const item = groundItemFor(instanceId)
+  const view = item.view(state)
+  const name = view?.name ?? resolveItem(state, instanceId)?.def.name ?? 'Item'
+  const inRange = item.membersInRange(state)
+  const pickerId = [state.party.leaderId, ...state.party.selectedIds].find((id) => inRange.some((member) => member.id === id) && bagFreeSlots(state.party.members[id].character) > 0)
+  const anyInRange = inRange[0]
+  const picker = pickerId ? state.party.members[pickerId] : anyInRange
+  const canPick = Boolean(pickerId)
+  const reason = !anyInRange
+    ? 'Walk closer to pick it up.'
+    : !picker
+      ? 'Select a character first.'
+      : bagFreeSlots(picker.character) < 1
+        ? `${picker.character.name}'s bag is full.`
+        : `${picker.character.name} picks up the ${name}.`
+  return [
+    {
+      id: 'pickup',
+      label: 'Pick Up',
+      icon: 'interact',
+      enabled: canPick,
+      title: canPick ? reason : reason,
+      onClick: () => actions.pickup(pickerId),
+    },
+    {
+      id: 'goTo',
+      label: 'Go To',
+      icon: 'move',
+      enabled: true,
+      title: `Walk to the ${name}.`,
+      onClick: actions.goTo,
+    },
+  ]
+}
+

@@ -142,3 +142,23 @@ export function readSavedCharacterData(entry) {
 // Player preferences (Settings screen). Not character data; never exported.
 export const loadSettings = () => read(SETTINGS_KEY)
 export const saveSettings = (settings) => write(SETTINGS_KEY, settings)
+
+// Inventory panel position (exploration UI). Not character or mission data.
+const INVENTORY_WINDOW_KEY = 'st-adventures.inventoryWindow'
+
+export function loadInventoryWindow() {
+  const saved = read(INVENTORY_WINDOW_KEY)
+  if (!isPlainObject(saved)) return null
+  const left = Number(saved.left)
+  const top = Number(saved.top)
+  if (!Number.isFinite(left) || !Number.isFinite(top)) return null
+  return { left, top }
+}
+
+export function saveInventoryWindow(position) {
+  if (!isPlainObject(position)) return
+  const left = Number(position.left)
+  const top = Number(position.top)
+  if (!Number.isFinite(left) || !Number.isFinite(top)) return
+  write(INVENTORY_WINDOW_KEY, { left, top })
+}

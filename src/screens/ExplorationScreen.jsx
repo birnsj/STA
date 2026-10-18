@@ -7,6 +7,7 @@ import useBeamIn from '../components/combat/useBeamIn.js'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
+import InventoryPanel, { InventoryDragGhost, inventoryDropAt, syncInventoryGhostPosition } from '../components/exploration/InventoryPanel.jsx'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
@@ -19,7 +20,7 @@ import { loadConversation } from '../conversation/conversationFiles.js'
 import Board from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
-import { destructibleInfo, destructibleMenuButtons, memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
+import { destructibleInfo, destructibleMenuButtons, groundItemMenuButtons, memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
@@ -31,7 +32,7 @@ import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { dispositionName, isHostile } from '../exploration/awareness.js'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
-import { challengeFor, getChallengeViews, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
+import { challengeFor, getChallengeViews, INTERACT_RANGE, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
 import { MODE } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
@@ -45,6 +46,7 @@ import InjuryChoice from '../components/combat/InjuryChoice.jsx'
 import { normalizeCondition } from '../rules/personalCondition.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
+import { canPlaceAt, groundItemViews } from '../rules/inventory.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { npcButtonPerformer } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
@@ -141,8 +143,159 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }, [])
   // UI state: whether the character sheet is open (I toggles it); selecting never opens it (designer decision).
   const [sheetOpen, setSheetOpen] = useState(false)
+  // UI state: floating inventory (B); position remembered in localStorage.
+  const [inventoryOpen, setInventoryOpen] = useState(false)
+  const [inventoryViewId, setInventoryViewId] = useState(null)
+  const [itemDrag, setItemDrag] = useState(null)
+  const [placeHover, setPlaceHover] = useState(null)
+  const placeHoverRef = useRef(null)
+  const placeHelpersRef = useRef(null)
+  const inventoryPanelRef = useRef(null)
+  const itemDragRef = useRef(null)
+  const stopItemDragListenersRef = useRef(null)
+  const exploreStateRef = useRef(state)
   // UI state: whether the Captain's Log panel is open.
   const [logOpen, setLogOpen] = useState(false)
+
+  useEffect(() => {
+    exploreStateRef.current = state
+  }, [state])
+
+  useEffect(() => {
+    itemDragRef.current = itemDrag
+    document.body.classList.toggle('is-item-dragging', Boolean(itemDrag))
+    return () => document.body.classList.remove('is-item-dragging')
+  }, [itemDrag])
+
+  const pointerOverInventory = useCallback((clientX, clientY) => {
+    const panel = inventoryPanelRef.current?.getBoundingClientRect()
+    if (!panel) return false
+    return clientX >= panel.left && clientX <= panel.right && clientY >= panel.top && clientY <= panel.bottom
+  }, [])
+
+  const updatePlaceHover = useCallback((clientX, clientY, overWorld) => {
+    if (!overWorld) {
+      if (placeHoverRef.current) {
+        placeHoverRef.current = null
+        setPlaceHover(null)
+      }
+      return
+    }
+    const point = placeHelpersRef.current?.toTiles?.(clientX, clientY)
+    if (!point) {
+      if (placeHoverRef.current) {
+        placeHoverRef.current = null
+        setPlaceHover(null)
+      }
+      return
+    }
+    const dragging = itemDragRef.current
+    const check = canPlaceAt(exploreStateRef.current, point, {
+      excludeInstanceId: dragging?.from?.location === 'ground' ? dragging.instanceId : null,
+    })
+    const hover = { position: check.position ?? point, valid: check.ok }
+    const prev = placeHoverRef.current
+    if (prev && prev.valid === hover.valid && prev.position.x === hover.position.x && prev.position.y === hover.position.y) return
+    placeHoverRef.current = hover
+    setPlaceHover(hover)
+  }, [])
+
+  const clearItemDrag = useCallback(() => {
+    stopItemDragListenersRef.current?.()
+    stopItemDragListenersRef.current = null
+    setItemDrag(null)
+    setPlaceHover(null)
+    placeHoverRef.current = null
+    itemDragRef.current = null
+  }, [])
+
+  // One drag controller for inventory ↔ world: the item follows the pointer until release or Escape.
+  const beginItemDrag = useCallback(
+    (start) => {
+      if (itemDragRef.current) return
+      const drag = { ...start, overWorld: !pointerOverInventory(start.clientX, start.clientY) }
+      itemDragRef.current = drag
+      setItemDrag(drag)
+      updatePlaceHover(start.clientX, start.clientY, drag.overWorld)
+      syncInventoryGhostPosition(start.clientX, start.clientY)
+
+      // Re-project place preview every frame so a moving camera cannot leave the diamond behind the cursor.
+      let rafId = 0
+      const tick = () => {
+        const current = itemDragRef.current
+        if (!current) return
+        if (current.overWorld) updatePlaceHover(current.clientX, current.clientY, true)
+        rafId = requestAnimationFrame(tick)
+      }
+      rafId = requestAnimationFrame(tick)
+
+      const move = (moveEvent) => {
+        if (start.pointerId != null && moveEvent.pointerId !== start.pointerId) return
+        if (!itemDragRef.current) return
+        const overWorld = !pointerOverInventory(moveEvent.clientX, moveEvent.clientY)
+        const overChanged = overWorld !== itemDragRef.current.overWorld
+        const next = { ...itemDragRef.current, clientX: moveEvent.clientX, clientY: moveEvent.clientY, overWorld }
+        itemDragRef.current = next
+        // Screen position without a React render — setState every move lagged behind the pointer on a scaled stage.
+        syncInventoryGhostPosition(moveEvent.clientX, moveEvent.clientY)
+        if (overChanged) setItemDrag(next)
+        updatePlaceHover(moveEvent.clientX, moveEvent.clientY, overWorld)
+      }
+
+      const teardown = () => {
+        cancelAnimationFrame(rafId)
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', end)
+        window.removeEventListener('pointercancel', end)
+        stopItemDragListenersRef.current = null
+      }
+
+      const end = (endEvent) => {
+        if (start.pointerId != null && endEvent.pointerId !== start.pointerId) return
+        const current = itemDragRef.current
+        teardown()
+        if (!current) return
+        const cancelled = endEvent.type === 'pointercancel'
+        const overWorld = !pointerOverInventory(endEvent.clientX, endEvent.clientY)
+        if (overWorld && !cancelled) updatePlaceHover(endEvent.clientX, endEvent.clientY, true)
+        const hover = placeHoverRef.current
+        const instanceId = current.instanceId
+        // Hit-test inventory here: board-started drags never deliver React pointerUp to bag/slot targets.
+        const invDrop = !cancelled && !overWorld ? inventoryDropAt(endEvent.clientX, endEvent.clientY) : null
+        setItemDrag(null)
+        setPlaceHover(null)
+        placeHoverRef.current = null
+        itemDragRef.current = null
+        if (!instanceId || cancelled) return
+        if (invDrop) {
+          // Same bag → same bag is a no-op; ignore so a tiny drag on the medkit does not feel "stuck".
+          const from = current.from
+          const sameBag =
+            invDrop.kind === 'bag' && from?.location === 'bag' && from.memberId === invDrop.memberId
+          const sameSlot =
+            invDrop.kind === 'slot' && from?.location === 'slot' && from.memberId === invDrop.memberId && from.slot === invDrop.slot
+          if (!sameBag && !sameSlot) {
+            dispatch({
+              type: 'transferItem',
+              instanceId,
+              toMemberId: invDrop.memberId,
+              toSlot: invDrop.kind === 'slot' ? invDrop.slot : null,
+            })
+          }
+          return
+        }
+        if (overWorld && hover?.valid) dispatch({ type: 'dropItem', instanceId, position: hover.position })
+      }
+
+      stopItemDragListenersRef.current = teardown
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', end)
+      window.addEventListener('pointercancel', end)
+    },
+    [dispatch, pointerOverInventory, updatePlaceHover],
+  )
+  // UI state: ground-item ring.
+  const [menuGroundItemId, setMenuGroundItemId] = useState(null)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
@@ -305,25 +458,51 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setMenuNpcId(null)
     setMenuObjectId(null)
     setMenuDestructibleId(null)
+    setMenuGroundItemId(null)
   }
   const openNpcMenu = (id) => {
     setMenuNpcId(id)
     setMenuMemberId(null)
     setMenuObjectId(null)
     setMenuDestructibleId(null)
+    setMenuGroundItemId(null)
   }
   const openObjectMenu = (id) => {
     setMenuObjectId((current) => (current === id ? null : id))
     setMenuMemberId(null)
     setMenuNpcId(null)
     setMenuDestructibleId(null)
+    setMenuGroundItemId(null)
   }
   const openDestructibleMenu = (id) => {
     setMenuDestructibleId((current) => (current === id ? null : id))
     setMenuMemberId(null)
     setMenuNpcId(null)
     setMenuObjectId(null)
+    setMenuGroundItemId(null)
   }
+  const openGroundItemMenu = (id) => {
+    if (itemDragRef.current) return
+    setMenuGroundItemId((current) => (current === id ? null : id))
+    setMenuMemberId(null)
+    setMenuNpcId(null)
+    setMenuObjectId(null)
+    setMenuDestructibleId(null)
+  }
+
+  const startGroundItemDrag = useCallback(
+    (instanceId, clientX, clientY, pointerId) => {
+      setMenuGroundItemId(null)
+      beginItemDrag({
+        instanceId,
+        from: { location: 'ground', memberId: null },
+        clientX,
+        clientY,
+        pointerId,
+      })
+    },
+    [beginItemDrag],
+  )
   // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
   // request cancels it.
   const pendingTalkNpc = pendingTalk && pendingTalk.combatId === (state.lastCombat?.id ?? null) ? talkable.find((npc) => npc.id === pendingTalk.npcId) : null
@@ -339,22 +518,37 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const toggleSneak = useCallback(() => dispatch({ type: 'toggleSneak' }), [dispatch])
   // With several selected, the sheet shows the first of them.
   const sheetMember = sheetOpen && !debugOpen && party.selectedIds.length > 0 ? party.members[party.selectedIds[0]] : null
+  const inventoryMemberId = inventoryViewId && party.members[inventoryViewId] ? inventoryViewId : party.selectedIds[0] ?? party.leaderId
+  const groundViews = groundItemViews(state, { hideInstanceId: itemDrag?.instanceId ?? null })
+  const groundReachableIds = groundViews
+    .filter((view) => getMembers(party).some((member) => Math.hypot(member.position.x - view.position.x, member.position.y - view.position.y) <= INTERACT_RANGE))
+    .map((view) => view.id)
 
   useExplorationKeys({
     memberIds: party.memberIds,
     onPick: select,
     onEscape: () => {
+      if (itemDragRef.current) {
+        clearItemDrag()
+        return
+      }
       setInteraction(null)
       setMenuMemberId(null)
       setMenuNpcId(null)
       setMenuObjectId(null)
       setMenuDestructibleId(null)
+      setMenuGroundItemId(null)
       setPendingTalk(null)
       setLogOpen(false)
+      setInventoryOpen(false)
       if (talking) dispatch({ type: 'conversationLeave' })
     },
     onSneak: toggleSneak,
     onSheet: () => setSheetOpen((open) => !open),
+    onInventory: () => {
+      setInventoryOpen((open) => !open)
+      setInventoryViewId((id) => id ?? party.selectedIds[0] ?? party.leaderId)
+    },
     onLog: () => setLogOpen((open) => !open),
   })
 
@@ -364,6 +558,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setMenuNpcId(null)
       setMenuObjectId(null)
       setMenuDestructibleId(null)
+      setMenuGroundItemId(null)
       setPendingTalk(null)
     }
     if (beamPhase !== 'done') return
@@ -396,7 +591,17 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }
   // The Fire ring goes once the object is destroyed.
   const menuDestructible = menuDestructibleId && !inCombat && !panelOpen ? (destructibleViews.find((view) => view.id === menuDestructibleId) ?? null) : null
-  const ringKey = menuNpc ? `npc:${menuNpc.id}` : menuObject ? `object:${menuObject}` : menuDestructible ? `destructible:${menuDestructible.id}` : null
+  const menuGroundItem =
+    menuGroundItemId && !inCombat && !panelOpen ? (groundViews.find((view) => view.id === menuGroundItemId) ?? null) : null
+  const ringKey = menuNpc
+    ? `npc:${menuNpc.id}`
+    : menuObject
+      ? `object:${menuObject}`
+      : menuDestructible
+        ? `destructible:${menuDestructible.id}`
+        : menuGroundItem
+          ? `ground:${menuGroundItem.id}`
+          : null
   const hoveredRingButton = ringHover?.key === ringKey ? ringHover.buttonId : null
   const pickedId = ringPick?.key === ringKey ? ringPick.memberId : null
   const hoverRingButton = (buttonId) => setRingHover({ key: ringKey, buttonId })
@@ -538,6 +743,19 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     onButtonHover: hoverRingButton,
     slotRef: openId ? setRollSlot : undefined,
   }
+  const groundItemMenu = menuGroundItem && {
+    position: menuGroundItem.position,
+    buttons: groundItemMenuButtons(state, menuGroundItem.id, {
+      pickup: (memberId) => {
+        setMenuGroundItemId(null)
+        dispatch({ type: 'pickupItem', instanceId: menuGroundItem.id, memberId })
+      },
+      goTo: () => {
+        setMenuGroundItemId(null)
+        dispatch({ type: 'moveTo', target: menuGroundItem.position, fresh: true })
+      },
+    }),
+  }
   // The report waits for the sweep to reach the edge of the scan, and its fade timer starts when it appears.
   const scanSwept = !scanPulse
   const scanFaded = useFadeAfter(scanSwept ? lastScanKey : null)
@@ -571,6 +789,19 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           environment={state.environment}
           lastObjectShot={state.lastObjectShot ?? null}
           onDestructible={openDestructibleMenu}
+          groundItems={groundViews}
+          groundReachableIds={groundReachableIds}
+          onGroundItem={openGroundItemMenu}
+          onGroundItemDragStart={startGroundItemDrag}
+          placingItem={itemDrag?.overWorld ? itemDrag : null}
+          placeHover={placeHover}
+          onPlaceHover={(hover) => {
+            placeHoverRef.current = hover
+            setPlaceHover(hover)
+          }}
+          placeHelpersRef={placeHelpersRef}
+          exploreState={state}
+          itemDragActive={Boolean(itemDrag)}
           debug={debugOpen}
           followCamera={followCamera}
           onCameraPan={stopFollowing}
@@ -581,7 +812,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onOpenMenu={openMenu}
           onOpenNpcMenu={openNpcMenu}
           onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
-          menu={memberMenu || npcMenu || objectMenu || destructibleMenu}
+          menu={memberMenu || npcMenu || objectMenu || destructibleMenu || groundItemMenu}
           beamIn={beamPhase}
           scanPulse={scanPulse}
         />
@@ -633,6 +864,19 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         />
       )}
       {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}
+      {inventoryOpen && !inCombat && (
+        <InventoryPanel
+          state={state}
+          members={members}
+          viewedId={inventoryMemberId}
+          onViewMember={setInventoryViewId}
+          onClose={() => setInventoryOpen(false)}
+          drag={itemDrag}
+          panelRef={inventoryPanelRef}
+          onDragStart={beginItemDrag}
+        />
+      )}
+      <InventoryDragGhost drag={itemDrag} state={state} placeHelpersRef={placeHelpersRef} />
       {logOpen && (
         <CaptainsLogPanel map={party.map} time={world.time} objectives={knownObjectives} entries={state.missionLog?.entries ?? []} onClose={() => setLogOpen(false)} />
       )}
@@ -696,6 +940,11 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onFollowCamera={setFollowCamera}
           debugOpen={debugOpen}
           onDebug={setDebugOpen}
+          inventoryOpen={inventoryOpen}
+          onInventory={() => {
+            setInventoryOpen((open) => !open)
+            setInventoryViewId((id) => id ?? party.selectedIds[0] ?? party.leaderId)
+          }}
           onTransporter={canBeamIn ? openTransporter : null}
           onExitMission={beaming ? null : ending.askExitMission}
         />

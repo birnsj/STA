@@ -1,0 +1,56 @@
+// A dropped inventory item on the exploration map. Runtime only — never written into map files.
+// Behaviour class matching docs/world-objects.md: methods take state and return values / new state.
+import { INTERACT_RANGE } from '../exploration/challengeObjects.js'
+import { canAct, getMembers } from '../exploration/partyControl.js'
+import { pickupItem as pickupIntoBag, resolveItem } from '../rules/inventory.js'
+
+export class GroundItem {
+  constructor(instanceId) {
+    this.instanceId = instanceId
+  }
+
+  get id() {
+    return this.instanceId
+  }
+
+  record(state) {
+    return state.groundItems?.[this.instanceId] ?? null
+  }
+
+  position(state) {
+    const entry = this.record(state)
+    return entry ? { ...entry.position } : null
+  }
+
+  inReach(state, point) {
+    const position = this.position(state)
+    if (!position) return false
+    return Math.hypot(point.x - position.x, point.y - position.y) <= INTERACT_RANGE
+  }
+
+  membersInRange(state) {
+    return getMembers(state.party).filter((member) => canAct(member) && this.inReach(state, member.position))
+  }
+
+  view(state) {
+    const entry = this.record(state)
+    if (!entry) return null
+    const resolved = resolveItem(state, this.instanceId)
+    return {
+      id: this.instanceId,
+      instanceId: this.instanceId,
+      position: entry.position,
+      name: resolved?.def.name ?? 'Item',
+      icon: resolved?.def.icon ?? null,
+      itemId: resolved?.instance.itemId ?? null,
+      stateLabel: 'On ground',
+      description: resolved?.def.description ?? '',
+    }
+  }
+
+  pickup(state, memberId) {
+    return pickupIntoBag(state, { instanceId: this.instanceId, memberId })
+  }
+}
+
+export const groundItemFor = (instanceId) => new GroundItem(instanceId)
