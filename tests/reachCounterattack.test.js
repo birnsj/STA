@@ -143,9 +143,11 @@ describe('Counterattack (Core p.290)', () => {
     assert.equal(resolved.resources.threat, 0)
     assert.equal(resolved.stats.tasks.counterattack, 1)
     assert.equal(resolved.result.counterattack.decided, 'taken')
-    // The party attacker now chooses whether to Avoid the Injury.
-    assert.equal(resolved.incomingInjury?.targetId, alpha.id)
-    assert.equal(resolved.incomingInjury?.attackerId, enemy.id)
+    // Avoid Injury is settled at once: Stress spent, no popup.
+    assert.equal(resolved.pendingFatigue || null, null)
+    assert.ok(resolved.combatants[alpha.id].condition.stress > 0)
+    assert.equal(resolved.combatants[alpha.id].condition.defeated, false)
+    assert.ok(resolved.log.at(-1)?.lines?.some((line) => /avoids the Injury/i.test(line)))
   })
 
   it('an unopposed miss offers nothing', () => {

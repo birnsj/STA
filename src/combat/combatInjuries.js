@@ -1,8 +1,8 @@
 // Injuries in combat (Book p.290-292; rules/personalCondition.js): a successful attack inflicts an Injury of the
 // weapon's severity (less Protection); the target may Avoid it by taking that much Stress (notable NPCs: Threat), else
-// suffers it and is Defeated. The player decides for party members (state.incomingInjury waits for the injuryDecision
-// action) and which attribute a newly Fatigued member shuts down (state.pendingFatigue); AI-controlled combatants decide
-// through injuryPolicy.js.
+// suffers it and is Defeated. Prototype (designer 2026-10-15 blasts/hazards; 2026-10-18 weapon attacks): Always spend
+// Stress or Threat when Avoid Injury is possible — no player prompt. Which attribute a newly Fatigued member shuts down
+// still waits for the player (state.pendingFatigue) or injuryPolicy.js for AI.
 import { controllerFor } from '../actors/controllers.js'
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import {
@@ -23,7 +23,7 @@ import { blastFaceOrigin, blastThrow, isExplosionInjury } from '../rules/appeara
 import { updateCombatant, withStats } from './combatLog.js'
 import { getTurnOf, knowsAbout, statusText } from './combatSelectors.js'
 import { talentSeverityLines } from './combatTalents.js'
-import { chooseAvoidInjury, chooseFatigueAttribute } from './injuryPolicy.js'
+import { chooseFatigueAttribute } from './injuryPolicy.js'
 import { getCombatantWeapon } from './weaponSystem.js'
 
 // After the fall / getUp stagger has finished (presentation). Walk interpolation keys off blastReact, so it must go.
@@ -65,36 +65,10 @@ const severityText = (injury) => {
   return parts.length > 1 ? ` (${parts.join(' ')}, minimum 1)` : ''
 }
 
-// The avoid-or-suffer outcome for an incoming Injury: { targetId, attackerId, injury, option }. avoid: the decision
-// (ignored when the rules don't allow avoiding). Returns { state, lines, avoided }.
+// The avoid-or-suffer outcome for an Injury: { targetId, attackerId, injury, option }. avoid: spend Stress/Threat when
+// the rules allow it (ignored when they don't). Returns { state, lines, avoided }.
 export function resolveInjury(state, incoming, avoid) {
-  const resolved = resolveOneInjury(state, incoming, avoid)
-  if (incoming !== state.incomingInjury) return resolved
-  const next = nextQueuedInjury({ ...resolved.state, incomingInjury: null })
-  return { ...resolved, state: next.state, lines: [...resolved.lines, ...next.lines] }
-}
-
-// Designer decision (Oct 2026): an explosion or hazard can hit several party members at once, so their Avoid Injury
-// prompts wait in state.injuryQueue and come up one at a time. A queued Injury's option is worked out again when its
-// turn comes (an earlier answer may have changed it); one that can no longer be avoided is suffered at once.
-function nextQueuedInjury(state) {
-  let next = state
-  const lines = []
-  while (next.injuryQueue?.length && !next.incomingInjury) {
-    const [queued, ...rest] = next.injuryQueue
-    next = { ...next, injuryQueue: rest }
-    const target = next.combatants[queued.targetId]
-    if (!target) continue
-    const incoming = { ...queued, option: avoidOptionFor(next, target, queued.injury) }
-    if (incoming.option.possible) {
-      next = { ...next, incomingInjury: incoming }
-      continue
-    }
-    const resolved = resolveOneInjury(next, incoming, false)
-    next = resolved.state
-    lines.push(...(incoming.option.reason ? [`Cannot Avoid Injury: ${incoming.option.reason}`] : []), ...resolved.lines)
-  }
-  return { state: next, lines }
+  return resolveOneInjury(state, incoming, avoid)
 }
 
 // Tiles other standing combatants occupy (blast landing must not stack onto them).
@@ -198,11 +172,9 @@ export const avoidOptionFor = (state, target, injury) =>
 // The Injury would Defeat this target: they couldn't avoid it. What the AI weighs a shot by.
 export const injuryDefeats = (state, target, injury) => !avoidOptionFor(state, target, injury).possible
 
-// A hit lands: the target either decides (party members: the player, through state.incomingInjury and the
-// injuryDecision action) or the decision is made now (no choice possible, or an AI-controlled character through
-// combat/injuryPolicy.js). Options: { autoAvoid: true } — designer 2026-10-15: blasts and hazards spend Stress (or Threat)
-// when Avoid Injury is possible, with no prompt; weapon hits still ask. Returns { state, lines }.
-export function inflictInjury(state, attackerId, targetId, injury, { autoAvoid = false } = {}) {
+// A hit lands. Prototype: always Avoid Injury when the rules allow it (Stress or Threat), else suffer Defeat — same for
+// weapon attacks, blasts and hazards (designer 2026-10-15 / 2026-10-18). Returns { state, lines, avoided }.
+export function inflictInjury(state, attackerId, targetId, injury) {
   const target = state.combatants[targetId]
   const option = avoidOptionFor(state, target, injury)
   const incoming = { targetId, attackerId, injury, option }
@@ -210,20 +182,10 @@ export function inflictInjury(state, attackerId, targetId, injury, { autoAvoid =
   if (!option.possible) {
     if (option.reason) lines.push(`Cannot Avoid Injury: ${option.reason}`)
     const resolved = resolveInjury(state, incoming, false)
-    return { state: resolved.state, lines: [...lines, ...resolved.lines] }
+    return { state: resolved.state, lines: [...lines, ...resolved.lines], avoided: false }
   }
-  if (autoAvoid) {
-    const resolved = resolveInjury(state, incoming, true)
-    return { state: resolved.state, lines: [...lines, ...resolved.lines] }
-  }
-  if (controllerFor(target).answersPrompts(target)) {
-    const offer = option.overflow ? `take ${option.taken} Stress, filling the track, plus a complication` : `take ${option.cost} Stress`
-    const waiting = state.incomingInjury ? { ...state, injuryQueue: [...(state.injuryQueue ?? []), incoming] } : { ...state, incomingInjury: incoming }
-    return { state: waiting, lines: [...lines, `${target.character.name} may Avoid Injury: ${offer} (${statusText(target)}).`] }
-  }
-  const avoid = chooseAvoidInjury({ state, target, injury, option })
-  const resolved = resolveInjury(state, incoming, avoid)
-  return { state: resolved.state, lines: [...lines, ...resolved.lines] }
+  const resolved = resolveInjury(state, incoming, true)
+  return { state: resolved.state, lines: [...lines, ...resolved.lines], avoided: true }
 }
 
 // Hook (Book p.292): Momentum spent on a successful attack adds severity, 2 per point (1 with Intense), at most +2.

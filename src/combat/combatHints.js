@@ -74,12 +74,6 @@ function modeHint(mode, ui) {
 export function getCombatHint(state, ui) {
   if (state.outcome) return null
   const active = getActiveCombatant(state)
-  if (state.incomingInjury && !(ui.auto && ui.auto !== 'off')) {
-    const target = state.combatants[state.incomingInjury.targetId]
-    const { cost, overflow } = state.incomingInjury.option
-    const avoid = overflow ? 'fill Stress to maximum and suffer a complication' : `take ${cost} Stress`
-    return `${target.character.name} is hit: Avoid Injury (${avoid}) or accept the Injury and be Defeated.`
-  }
   if (state.pendingFatigue && !(ui.auto && ui.auto !== 'off')) {
     return `${state.combatants[state.pendingFatigue.combatantId].character.name} is Fatigued: choose the attribute to shut down (its tasks automatically fail).`
   }

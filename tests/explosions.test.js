@@ -8,7 +8,7 @@ import { chooseAIStep } from '../src/combat/autoCombat.js'
 import { combatReducer, createCombat, getActiveCombatant } from '../src/combat/combatState.js'
 import { damageObjectInCombat } from '../src/combat/combatEnvironment.js'
 import { objectShotOptions } from '../src/combat/objectAI.js'
-import { currentInjuryPrompt, previewObjectShot } from '../src/exploration/explorationEnvironment.js'
+import { previewObjectShot } from '../src/exploration/explorationEnvironment.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { blastFaceOrigin } from '../src/rules/appearance.js'
@@ -143,8 +143,6 @@ describe('firing on an object in exploration', () => {
   it('auto-spends Stress for each party member the blast catches (no Avoid Injury prompt)', () => {
     const state = blown()
     assert.equal(state.environment.explosions.length, 1)
-    assert.deepEqual(state.injuryPrompts ?? [], [])
-    assert.equal(currentInjuryPrompt(state), null)
     assert.ok(state.party.members.alpha.condition.stress > 0)
     assert.ok(state.party.members.beta.condition.stress > 0)
     assert.equal(state.party.members.alpha.condition.defeated, false)
@@ -163,8 +161,6 @@ describe('explosions in combat', () => {
   it('auto-spends Stress for each party member caught (no Avoid Injury prompt)', () => {
     const state = fight([{ id: 'g', type: 'gasCylinder', position: { x: 6, y: 6 } }], [{ x: 5, y: 6 }, { x: 7, y: 6 }], [{ x: 14, y: 2 }])
     const { state: after } = damageObjectInCombat(state, 'g', 10)
-    assert.equal(after.incomingInjury, null)
-    assert.deepEqual(after.injuryQueue ?? [], [])
     assert.ok(after.combatants.p1.condition.stress > 0 && after.combatants.p2.condition.stress > 0)
     assert.equal(after.combatants.p1.condition.defeated, false)
     assert.equal(after.combatants.p2.condition.defeated, false)

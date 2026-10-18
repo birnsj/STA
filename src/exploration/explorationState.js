@@ -28,7 +28,7 @@ import {
   unequipItem,
 } from '../rules/inventory.js'
 import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
-import { answerInjuryPrompt, applyPendingObjectHit, clearBlastReact, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
+import { applyPendingObjectHit, clearBlastReact, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
 
 // The away team perceives from where each member stands now (see partyKnowledge.js).
 function perceive(state) {
@@ -106,8 +106,6 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
   return {
     ...seeded,
     hazardClock: 0,
-    // Avoid Injury prompts a blast or hazard round left for party members, answered one at a time.
-    injuryPrompts: [],
     // The last challenge attempt, for the interaction panel (attemptChallenge).
     lastTask: null,
     // The conversation open now (conversation/conversationRuntime.js), or null.
@@ -249,9 +247,6 @@ function reduceExploration(state, action) {
     // After the object-shot beam: Structure damage, explosion, blast stagger (and fight if needed).
     case 'applyPendingObjectHit':
       return applyPendingObjectHit(state)
-    // { avoid }: the answer to the first queued Avoid Injury prompt from a blast or hazard.
-    case 'answerInjuryPrompt':
-      return answerInjuryPrompt(state, action.avoid)
     // { id }: blast fall / getUp finished — drop the presentation marker so walk and facing return to normal.
     case 'clearBlastReact':
       return clearBlastReact(state, action.id)

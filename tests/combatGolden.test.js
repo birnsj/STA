@@ -29,9 +29,9 @@ import { createBlankMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  closeQuarters: '551096ba29f6ac47',
-  standOff: '5cd25e4531642b54',
-  refusals: '8c73afa27fb212af',
+  closeQuarters: '095ae70bdec6a9a6',
+  standOff: 'ccfbd06ce3192a3c',
+  refusals: '5cbfd343071584f3',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)
@@ -132,7 +132,6 @@ const PROBES = [
   () => ({ type: 'reroll', dieIndex: 0, source: 'aim' }),
   () => ({ type: 'resolveAttack' }),
   () => ({ type: 'cancelThreat' }),
-  () => ({ type: 'injuryDecision', avoid: true }),
   () => ({ type: 'nonsense' }),
 ]
 
@@ -176,10 +175,6 @@ function scriptedFight({ map, seed, maxSteps = 900, initiativeOptions }) {
   let partyTurns = 0
   let decisions = 0
   for (let step = 0; step < maxSteps && !state.outcome; step += 1) {
-    if (state.incomingInjury) {
-      dispatch({ type: 'injuryDecision', avoid: decisions++ % 3 !== 2 })
-      continue
-    }
     if (state.pendingFatigue) {
       dispatch({ type: 'chooseFatigueAttribute', attribute: 'nonsense' })
       const combatant = state.combatants[state.pendingFatigue.combatantId]
@@ -236,7 +231,7 @@ describe('combat fingerprints', () => {
     ]
     const taken = new Set(fights.flatMap((fight) => [...actionTypes(fight.record)]))
     if (PRINT) console.log(`TAKEN ${[...taken].join(',')}`)
-    for (const type of ['guard', 'aim', 'attack', 'resolveAttack', 'scan', 'buyExtraMinor', 'move', 'assist', 'persuade', 'intimidate', 'direct', 'buySecondMajor', 'endTurn', 'selectCombatant', 'firstAid', 'sprint', 'counterattackDecision', 'chooseFatigueAttribute', 'reroll', 'injuryDecision', 'aiStep']) {
+    for (const type of ['guard', 'aim', 'attack', 'resolveAttack', 'scan', 'buyExtraMinor', 'move', 'assist', 'persuade', 'intimidate', 'direct', 'buySecondMajor', 'endTurn', 'selectCombatant', 'firstAid', 'sprint', 'counterattackDecision', 'chooseFatigueAttribute', 'reroll', 'aiStep']) {
       assert.ok(taken.has(type), `control: ${type} is taken`)
     }
     check('closeQuarters', fights)

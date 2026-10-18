@@ -108,7 +108,7 @@ export function takeCounterattack(state, offer, decision) {
     weaponId: weapon.id,
     injuryMode: decision.injuryMode,
     injury,
-    awaiting: Boolean(hit.state.incomingInjury),
+    awaiting: false,
     removed: !isActive(hit.state.combatants[attacker.id]),
   })
   const paidText = party ? `${offer.cost} Momentum (group pool now ${paid.momentum})` : `${offer.cost} Threat (Threat now ${paid.threat})`

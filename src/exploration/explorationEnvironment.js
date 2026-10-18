@@ -141,7 +141,7 @@ function settleInjury(state, id, injury, avoid) {
 
 // The blast and hazard hits of an environment result. Designer decision (2026-10-15): blasts and hazards always spend
 // Stress (or Threat for notables) when Avoid Injury is possible — no prompt, so play is not interrupted. NPCs and anyone
-// who cannot Avoid are settled the usual way. Weapon Avoid Injury in combat is unchanged. Returns { state, lines }.
+// who cannot Avoid are settled the usual way. Combat weapon hits use the same automatic policy. Returns { state, lines }.
 function applyHits(state, hits) {
   let next = state
   const lines = []
@@ -157,22 +157,6 @@ function applyHits(state, hits) {
     lines.push(...settled.lines)
   })
   return { state: next, lines }
-}
-
-// The first queued prompt with its option worked out now (an earlier answer may have changed it), or null.
-export function currentInjuryPrompt(state) {
-  const prompt = state.injuryPrompts?.[0]
-  if (!prompt) return null
-  const member = state.party.members[prompt.targetId]
-  return member ? { ...prompt, member, option: avoidOption(state, member, prompt.injury) } : null
-}
-
-// The player's answer to the first queued prompt ({ avoid }). Prompts that can no longer be avoided are suffered.
-export function answerInjuryPrompt(state, avoid) {
-  const [prompt, ...rest] = state.injuryPrompts ?? []
-  if (!prompt) return state
-  const settled = settleInjury({ ...state, injuryPrompts: rest }, prompt.targetId, prompt.injury, avoid)
-  return settled.lines.reduce((next, text) => addLogEntry(next, { kind: 'environment', text }), settled.state)
 }
 
 // After the fall / getUp stagger has finished playing (presentation). Clears the marker and faces the explosive.
@@ -343,12 +327,10 @@ export function neutralizeHazardTask(state, { hazardId, ...request }) {
 // ---------- hazard rounds ----------
 
 // Exploration's 'tick': world time passes, and every HAZARD_ROUND_SECONDS a hazard round (world/environment.js
-// hazardRound). Nothing happens while there is no hazard and nothing leaking; the rounds wait while an Avoid Injury
-// prompt is still open, so answers never pile up behind the player.
+// hazardRound). Nothing happens while there is no hazard and nothing leaking.
 export function tickHazards(state, seconds) {
   if (!state.environment || state.mode === MODE.COMBAT) return state
   if (!needsHazardRounds(state.environment)) return state.hazardClock ? { ...state, hazardClock: 0 } : state
-  if (state.injuryPrompts?.length) return state
   const clock = (state.hazardClock ?? 0) + Math.max(0, seconds)
   if (clock < HAZARD_ROUND_SECONDS) return { ...state, hazardClock: clock }
   const next = { ...state, hazardClock: clock - HAZARD_ROUND_SECONDS }

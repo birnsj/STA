@@ -218,6 +218,7 @@ export class ResolveAttackAction extends CombatAction {
       const hit = inflictInjury(next, attacker.id, target.id, injury)
       next = hit.state
       injuryLines = hit.lines
+      injury = { ...injury, decided: hit.avoided ? 'avoided' : 'suffered' }
     }
     const after = next.combatants[target.id]
     next = withStats(next, (stats) => {
@@ -249,8 +250,7 @@ export class ResolveAttackAction extends CombatAction {
       ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
       ...(deadlyThreat ? [`Threat +1 (Deadly attack), now ${resources.threat}`] : []),
     ]
-    const awaiting = Boolean(next.incomingInjury)
-    next = markAction(next, 'resolve', attacker.id, { targetId: target.id, weaponId: weapon.id, passed, removed: !isActive(after), injury, awaiting })
+    next = markAction(next, 'resolve', attacker.id, { targetId: target.id, weaponId: weapon.id, passed, removed: !isActive(after), injury, awaiting: false })
     next = addLog(next, lines)
     // Book p.290: an opposed attack the target won may be answered with a Counterattack (combatCounterattack.js).
     const won = !passed && pending.opposition ? defenderWins(next, pending, evaluation) : null
@@ -276,8 +276,8 @@ export class ResolveAttackAction extends CombatAction {
         threatAdded: npcThreat + deadlyThreat,
         complications: evaluation.complications,
         taskResult: evaluation,
-        // The Injury the hit inflicts; decided: 'pending' (waiting for Avoid Injury), 'avoided' or 'suffered'.
-        injury: injury && { ...injury, decided: awaiting ? 'pending' : isActive(after) ? 'avoided' : 'suffered' },
+        // The Injury the hit inflicts; decided: 'avoided' (Stress/Threat spent) or 'suffered' (Defeated).
+        injury,
         counterattack: won?.counterattack ?? null,
         closed: false,
       },

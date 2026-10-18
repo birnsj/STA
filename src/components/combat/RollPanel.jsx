@@ -70,7 +70,7 @@ export default function RollPanel({ state, speed = 1, playerControls, awaitingCh
   const { injury } = roll
   // A Minor NPC stores no Injury: the hit leaves it unconscious (Stun) or dead (Deadly).
   const minorOutcome = injury?.decided === 'suffered' && target && minorDefeatText(target.condition)
-  const injuryOutcome = injury && (minorOutcome ? `${minorOutcome} (Minor NPC: no Injury)` : { pending: 'Avoid Injury?', avoided: 'Injury avoided', suffered: 'Defeated' }[injury.decided])
+  const injuryOutcome = injury && (minorOutcome ? `${minorOutcome} (Minor NPC: no Injury)` : { avoided: 'Injury avoided', suffered: 'Defeated' }[injury.decided])
   const { social } = roll
   // An enemy's bought d20s (a pool is always TASK_DICE plus those), paid in Threat (Book p.265).
   const enemyBought = !ambush && attacker.side !== 'player' ? values.length - TASK_DICE : 0

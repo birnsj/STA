@@ -6,7 +6,7 @@ import { AssistAction } from './AssistAction.js'
 import { AttackAction, RerollAction, ResolveAttackAction } from './AttackAction.js'
 import { AttackObjectAction } from './AttackObjectAction.js'
 import { CancelThreatAction } from './CancelThreatAction.js'
-import { CounterattackDecisionAction, FatigueDecisionAction, InjuryDecisionAction } from './DecisionActions.js'
+import { CounterattackDecisionAction, FatigueDecisionAction } from './DecisionActions.js'
 import { BuyExtraMinorAction, BuySecondMajorAction } from './ExtraActionPurchase.js'
 import { DirectAction } from './DirectAction.js'
 import { FleeAction } from './FleeAction.js'
@@ -37,7 +37,6 @@ const ACTIONS = [
   new RerollAction(),
   new ResolveAttackAction(),
   new AttackObjectAction(),
-  new InjuryDecisionAction(),
   new FatigueDecisionAction(),
   new CounterattackDecisionAction(),
 ]

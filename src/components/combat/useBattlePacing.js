@@ -41,8 +41,7 @@ export default function useBattlePacing({
   const effectWaitedRef = useRef(null)
   useEffect(() => {
     if (state.outcome || !aiControlled || helpOpen || !openingDone || beamingIn || auto === 'paused') return undefined
-    // An Injury on a party member waits for the player's Avoid Injury choice, a new Fatigue for the attribute choice, a
-    // won opposed attack for the Counterattack choice (outside Auto Combat).
+    // A new Fatigue for the attribute choice, or a won opposed attack for the Counterattack choice (outside Auto Combat).
     if (awaitingDecision(state) && auto === 'off') return undefined
     // Object-shot boom is landed by Battle's pendingObjectHit timer; don't aiStep until it has (stepAI would apply it
     // headlessly, but on screen that would race the laser).

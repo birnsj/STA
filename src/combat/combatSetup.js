@@ -160,10 +160,6 @@ export function createCombat({
     majorsThisRound: {},
     // Combatants whose turn has started this round (a Guard on them ends when their next turn starts).
     startedThisRound: [first.id],
-    // An Injury waiting for the player's Avoid Injury decision: { targetId, attackerId, injury, option } (see injuryStep).
-    incomingInjury: null,
-    // Further Avoid Injury prompts waiting their turn (a blast or hazard hitting several party members; combatInjuries.js).
-    injuryQueue: [],
     // A party member who just became Fatigued and must choose the attribute to shut down: { combatantId }.
     pendingFatigue: null,
     // A party defender who won an opposed attack and may Counterattack: { defenderId, attackerId, weaponId, injuryModes,

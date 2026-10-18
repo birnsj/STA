@@ -17,7 +17,7 @@ import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
 import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { retreatStep } from './combatRetreat.js'
-import { chooseAvoidInjury, chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
+import { chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
 import { objectShotStep } from './objectAI.js'
 import { tileDistance } from './rangeSystem.js'
 import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
@@ -112,20 +112,6 @@ export function chooseAIStep(state, options = {}) {
   return controllerFor(self).combatStep(state, self, options)
 }
 
-// The Avoid Injury decision for a party member when the AI plays the party (combat/injuryPolicy.js).
-function injuryDecisionStep(state) {
-  const { targetId, injury, option } = state.incomingInjury
-  const target = state.combatants[targetId]
-  const avoid = chooseAvoidInjury({ state, target, injury, option })
-  return {
-    type: 'injuryDecision',
-    avoid,
-    reason: avoid
-      ? `Auto Combat policy: avoid whenever possible (${option.cost} Stress instead of a Severity ${injury.severity} Injury and Defeat${option.overflow ? '; the track fills and a complication follows' : ''}).`
-      : 'Auto Combat policy: cannot avoid.',
-  }
-}
-
 // The attribute a newly Fatigued party member shuts down when the AI plays the party (combat/injuryPolicy.js).
 function fatigueChoiceStep(state) {
   const { attributeId, reason } = chooseFatigueAttribute({ combatant: state.combatants[state.pendingFatigue.combatantId] })
@@ -140,14 +126,13 @@ function counterattackStep(state) {
 }
 
 // One AI step for whoever is acting. A rejected step (state unchanged) ends the turn instead of stalling.
-// options: { partyAI, enemyAI, partyAmbush, partyAuto } (AI ids from PARTY_AIS / ENEMY_AIS). An incoming Injury, a
-// Fatigue attribute choice or a Counterattack on a party member waits for the player (state unchanged) unless partyAuto:
-// the AI plays the party.
+// options: { partyAI, enemyAI, partyAmbush, partyAuto } (AI ids from PARTY_AIS / ENEMY_AIS). A Fatigue attribute choice
+// or a Counterattack on a party member waits for the player (state unchanged) unless partyAuto: the AI plays the party.
+// Avoid Injury is settled at once (combatInjuries.js) and never waits here.
 export function stepAI(state, options = {}) {
   if (!state || state.outcome) return state
   // Beam first: the UI timer applies this after impactMs; headless Auto Combat has no timer, so land the hit here.
   if (state.pendingObjectHit) return combatReducer(state, { type: 'applyPendingObjectHit' })
-  if (state.incomingInjury) return options.partyAuto ? combatReducer(state, injuryDecisionStep(state)) : state
   if (state.pendingFatigue) return options.partyAuto ? combatReducer(state, fatigueChoiceStep(state)) : state
   if (state.pendingCounterattack) return options.partyAuto ? combatReducer(state, counterattackStep(state)) : state
   const action = chooseAIStep(state, options)

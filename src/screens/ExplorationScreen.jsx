@@ -41,9 +41,6 @@ import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
 import { activeHazards, isStanding } from '../world/environment.js'
 import { hazardChallengeId, isHazardChallengeId } from '../world/EnvironmentalHazard.js'
-import { currentInjuryPrompt } from '../exploration/explorationEnvironment.js'
-import InjuryChoice from '../components/combat/InjuryChoice.jsx'
-import { normalizeCondition } from '../rules/personalCondition.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
 import { canPlaceAt, groundItemViews } from '../rules/inventory.js'
@@ -661,8 +658,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     onButtonHover: hoverRingButton,
   }
   const confirmAttackNpc = confirmAttackId && !inCombat ? world.npcs[confirmAttackId] : null
-  // A blast or hazard hit a party member: Avoid Injury, one queued prompt at a time (explorationEnvironment.js).
-  const injuryPrompt = inCombat ? null : currentInjuryPrompt(state)
   const menuMember = menuMemberId && !inCombat && party.memberIds.includes(menuMemberId) && !party.members[menuMemberId].beaming ? party.members[menuMemberId] : null
   const memberMenu = menuMember && {
     memberId: menuMember.id,
@@ -853,16 +848,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
             attackNpc(confirmAttackNpc, confirmAttackerId)
           }}
           onCancel={() => setConfirmAttackId(null)}
-        />
-      )}
-      {injuryPrompt && (
-        <InjuryChoice
-          incoming={injuryPrompt}
-          target={{ ...injuryPrompt.member, condition: normalizeCondition(injuryPrompt.member.condition) }}
-          attacker={null}
-          cause={injuryPrompt.text}
-          onAvoid={() => dispatch({ type: 'answerInjuryPrompt', avoid: true })}
-          onAccept={() => dispatch({ type: 'answerInjuryPrompt', avoid: false })}
         />
       )}
       {sheetMember && <CharacterSheetPanel character={sheetMember.character} condition={sheetMember.condition} className="is-on-map" onClose={() => setSheetOpen(false)} />}

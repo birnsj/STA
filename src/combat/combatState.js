@@ -2,10 +2,9 @@
 // The reducer is pure and never reads the clock or Math.random: every roll comes from the combat's own seed plus a roll
 // counter, so the same characters, encounter, seed and actions always replay the same fight (and it can run headless).
 // Personal condition (Book p.277-278, p.290-292; rules/personalCondition.js): a successful attack inflicts an Injury of
-// the weapon's severity (less Protection); the target may Avoid it by taking that much Stress, else suffers it and is
-// Defeated. There are no Hits. The player decides Avoid Injury for party members (state.incomingInjury waits for it),
-// and which attribute a newly Fatigued party member shuts down (state.pendingFatigue); AI-controlled combatants decide
-// through combat/injuryPolicy.js. A failed attack is a miss.
+// the weapon's severity (less Protection); Avoid Injury spends Stress (or Threat) automatically when possible, else the
+// target suffers Defeat. There are no Hits. Which attribute a newly Fatigued party member shuts down still waits
+// (state.pendingFatigue); AI-controlled combatants use combat/injuryPolicy.js. A failed attack is a miss.
 // Every roll (attacks, assists, opposed rolls, the Ambush) is the shared STA 2E task (rules/taskPreparation.js +
 // rules/taskResolver.js) on the combatants' own characters, the same one challenge objects use. Combat decides what a
 // result means here: a Hit, and what happens to the mission's pools (state.resources, rules/missionResources.js; the
@@ -82,7 +81,7 @@ export {
 export { directBlock, getAuthority, getDirectableAllies, getFirstAidOptions, getGuardTargets, previewFirstAid, previewGuard, previewScan, previewScanObject } from './combatTasks.js'
 export { isScanned, scanReport, SCAN_TRAIT, visibleCondition } from './combatScan.js'
 export { previewSocial, SOCIAL_KINDS, socialChance } from './combatSocial.js'
-export { injuryDefeats, injuryFor, previewInjuries } from './combatInjuries.js'
+export { inflictInjury, injuryDefeats, injuryFor, previewInjuries } from './combatInjuries.js'
 export { combatActionFor } from './actions/registry.js'
 export { AMBUSH_FOCUSES, canAmbush, getAmbushTargets, getAmbusher, previewAmbush } from './combatAmbush.js'
 export { addCombatant, createCombat } from './combatSetup.js'
@@ -116,8 +115,7 @@ function reduceAction(state, action) {
   // Beam has played: apply deferred object Structure / explosion.
   if (action.type === 'applyPendingObjectHit') return applyPendingObjectHit(state)
   const actor = getActiveCombatant(state)
-  // An incoming Injury waits for its Avoid Injury decision, and a new Fatigue for its attribute, before anything else.
-  if (state.incomingInjury && action.type !== 'injuryDecision') return state
+  // A new Fatigue for its attribute, or a Counterattack offer, waits before anything else.
   if (state.pendingFatigue && action.type !== 'chooseFatigueAttribute') return state
   if (state.pendingCounterattack && action.type !== 'counterattackDecision') return state
   // Wait for the object-shot beam before the next action (explosion lands after the laser).

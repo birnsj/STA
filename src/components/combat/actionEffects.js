@@ -23,14 +23,12 @@ function actionLabel(action) {
   return ACTION_LABELS[action.type] ?? null
 }
 
-// What a hit did to the target: an Injury waiting for Avoid Injury, avoided (Stress taken), or Defeated (a Minor NPC:
-// Unconscious or Dead, target condition).
+// What a hit did to the target: Injury avoided (Stress taken) or Defeated (a Minor NPC: Unconscious or Dead).
 function resultLabel(action, target) {
   if (action.type === 'resolve' && !action.passed) return 'Miss'
   const defeated = minorDefeatText(target?.condition) ?? 'Defeated'
   if (action.type === 'injury') return action.avoided ? 'Injury avoided' : defeated
   const injury = action.injury ? `${injuryTypeName(action.injury.type)} ${action.injury.severity}` : 'Hit'
-  if (action.awaiting) return `${injury}: Avoid?`
   if (action.removed) return `${injury}: ${defeated}`
   return `${injury}: avoided`
 }

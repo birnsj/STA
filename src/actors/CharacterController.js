@@ -69,8 +69,8 @@ export class CharacterController {
     return false
   }
 
-  // Whether this character's combat prompts (Avoid Injury, the Fatigued attribute, a Counterattack) wait for the
-  // player. Auto Combat answers them for the party (combat/autoCombat.js stepAI).
+  // Whether this character's combat prompts (the Fatigued attribute, a Counterattack) wait for the player. Auto Combat
+  // answers them for the party (combat/autoCombat.js stepAI). Avoid Injury no longer prompts.
   answersPrompts(actor) {
     return this.isPlayerControlled(actor)
   }

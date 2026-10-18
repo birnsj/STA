@@ -1,6 +1,6 @@
 // Destructible objects and hazards in a fight (world/environment.js). state.environment is the fight's copy of the
 // world's environment (WorldEncounter.js hands it in and takes it back); state.map shows each object's tile and what smoke
-// hides. Blasts and hazards hurt through combatInjuries.js inflictInjury with autoAvoid: when Avoid Injury is possible,
+// hides. Blasts and hazards hurt through combatInjuries.js inflictInjury: when Avoid Injury is possible,
 // Stress (or Threat) is spent immediately — no prompt (designer 2026-10-15). Weapon hits still ask as usual.
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { getAttackTaskSpec, getCombatantWeapon, getRangeModifier } from './weaponSystem.js'
@@ -44,7 +44,7 @@ export function applyEnvironmentHits(state, hits) {
     if (!target || !isActive(target)) return
     const injury = injuryFromHit(target.character, hit, `${state.seed}-${state.log.length}-env${index}-${target.id}`)
     lines.push(`${target.character.name} is ${hitText(hit)}.`)
-    const result = inflictInjury(next, null, target.id, injury, { autoAvoid: true })
+    const result = inflictInjury(next, null, target.id, injury)
     next = result.state
     lines.push(...result.lines)
   })
@@ -80,7 +80,7 @@ export function applyPendingObjectHit(state) {
   let next = hit.lines.length ? addLog(hit.state, hit.lines) : hit.state
   const explosions = (next.environment?.explosions ?? []).filter((blast) => !before.includes(blast)).map((blast) => blast.id)
   if (next.lastAction?.type === 'attackObject' && next.lastAction.key === pending.key) {
-    next = { ...next, lastAction: { ...next.lastAction, explosions, awaiting: Boolean(next.incomingInjury) } }
+    next = { ...next, lastAction: { ...next.lastAction, explosions, awaiting: false } }
   }
   return next
 }

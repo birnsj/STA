@@ -530,47 +530,6 @@
   color: var(--text-dim, #9aa6c2);
 }
 
-/* Avoid Injury choice (InjuryChoice.jsx) */
-.combat-modal-backdrop.is-injury {
-  z-index: 12;
-}
-
-.injury-choice.is-deadly {
-  border-color: var(--red);
-}
-
-.injury-choice-who {
-  margin: 0 0 4px;
-  font-size: 14px;
-}
-
-.injury-choice-severity {
-  margin: 0 0 4px;
-  font-size: 22px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.injury-choice-detail {
-  margin: 0 0 10px;
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.injury-choice-actions .combat-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 14px;
-}
-
-.injury-choice-sub {
-  font-size: 11px;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
 .combat-button.is-danger {
   border-color: var(--red);
   color: #ff9a92;

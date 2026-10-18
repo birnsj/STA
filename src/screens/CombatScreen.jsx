@@ -35,7 +35,6 @@ import { CombatMatchup, EndTurnButton, TaskPanel } from '../components/combat/Co
 import DebugPanel from '../components/combat/DebugPanel.jsx'
 import HowToPlay from '../components/combat/HowToPlay.jsx'
 import FatigueChoice from '../components/combat/FatigueChoice.jsx'
-import InjuryChoice from '../components/combat/InjuryChoice.jsx'
 import CounterattackChoice from '../components/combat/CounterattackChoice.jsx'
 import { getCombatHint } from '../combat/combatHints.js'
 import PartyBar from '../components/combat/PartyBar.jsx'
@@ -890,15 +889,6 @@ export function Battle({
           onResolve={() => dispatch({ type: 'resolveAttack' })}
         />
       </div>
-      {state.incomingInjury && auto === 'off' && !state.outcome && (
-        <InjuryChoice
-          incoming={state.incomingInjury}
-          target={state.combatants[state.incomingInjury.targetId]}
-          attacker={state.combatants[state.incomingInjury.attackerId] ?? null}
-          onAvoid={() => dispatch({ type: 'injuryDecision', avoid: true })}
-          onAccept={() => dispatch({ type: 'injuryDecision', avoid: false })}
-        />
-      )}
       {state.pendingCounterattack && auto === 'off' && !state.outcome && (
         <CounterattackChoice
           offer={state.pendingCounterattack}

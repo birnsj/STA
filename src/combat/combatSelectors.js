@@ -71,9 +71,8 @@ export function isTurnFinished(state, id) {
   return turn.done || actionsLeft(turn) <= 0
 }
 
-// Something waits for a decision before play goes on: an Avoid Injury choice, a Fatigue attribute choice or a
-// Counterattack.
-export const awaitingDecision = (state) => Boolean(state.incomingInjury || state.pendingFatigue || state.pendingCounterattack)
+// Something waits for a decision before play goes on: a Fatigue attribute choice or a Counterattack.
+export const awaitingDecision = (state) => Boolean(state.pendingFatigue || state.pendingCounterattack)
 
 export const canAct = (state, combatant) => !state.outcome && !state.pending && !awaitingDecision(state) && getActiveCombatant(state)?.id === combatant.id
 // actionId: an action id (its type from actions.json) or a type ('major' | 'minor' | 'free').
