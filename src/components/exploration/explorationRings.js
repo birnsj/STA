@@ -3,7 +3,7 @@
 import { controllerFor } from '../../actors/controllers.js'
 import { SCAN_TRAIT } from '../../combat/combatScan.js'
 import { dispositionName, isDown, STATE, stateName } from '../../exploration/awareness.js'
-import { challengeFor, getAvailableActions, getDefinition, objectsInReach } from '../../exploration/challengeObjects.js'
+import { challengeFor } from '../../exploration/challengeObjects.js'
 import { previewObjectShot } from '../../exploration/explorationEnvironment.js'
 import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
 import { canAskNpc } from '../../exploration/partySocial.js'
@@ -18,14 +18,13 @@ import { destructibleScanCard, isDestructibleScanned } from '../../world/destruc
 const NOT_BUILT = 'Not built yet.'
 
 // A party member's radial menu (right-click on them; designer decision, 2026-10-09): Scan, Use, Switch, Search,
-// First Aid, Attack, Interact, Sneak and Beam Out (2026-10-11), each for that character only. Use, Search, First Aid
-// and Attack are shown but not built yet (they may later act on objects).
-// actions: { scan, switchTo, interact(objectId), sneak, beamOut }.
+// First Aid, Attack, Inventory, Sneak and Beam Out, each for that character only. Use, Search, First Aid and Attack
+// are shown but not built yet (they may later act on objects). Inventory replaced Interact (designer request, 2026-10-18).
+// actions: { scan, switchTo, inventory, sneak, beamOut }.
 export function memberMenuButtons(state, member, actions) {
   const up = !isDefeated(member.condition)
   const scan = canScan(state, member.id)
   const radius = scanRadius(member.character)
-  const objectId = up ? objectsInReach(state, [member.id]).find((definition) => getAvailableActions(state, definition.id).length)?.id : null
   const name = member.character.name
   const isOnlySelected = state.party.selectedIds.length === 1 && state.party.selectedIds[0] === member.id
   const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
@@ -37,12 +36,12 @@ export function memberMenuButtons(state, member, actions) {
     unbuilt('firstAid', 'First Aid', 'firstAid'),
     unbuilt('attack', 'Attack', 'attack'),
     {
-      id: 'interact',
-      label: 'Interact',
-      icon: 'interact',
-      enabled: Boolean(objectId),
-      title: objectId ? `Interact: ${getDefinition(state.scenario, objectId).name}` : 'Interact: nothing in reach.',
-      onClick: () => actions.interact(objectId),
+      id: 'inventory',
+      label: 'Inventory',
+      icon: 'inventory',
+      enabled: true,
+      title: `Inventory: open ${name}'s carried gear (I).`,
+      onClick: actions.inventory,
     },
     { id: 'sneak', label: 'Sneak', icon: 'sneak', enabled: up, active: member.sneaking, title: `Sneak: ${name} crouches and moves slowly, harder to notice.`, onClick: actions.sneak },
     {

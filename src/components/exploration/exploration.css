@@ -2529,13 +2529,38 @@
   gap: 6px;
   margin: 0 0 2px;
   padding: 0 0 3px;
-  cursor: grab;
+  cursor: var(--cursor-grab);
   user-select: none;
   border-bottom: var(--ui-border) solid var(--panel-border);
 }
 
-.inventory-titlebar:active {
-  cursor: grabbing;
+.inventory-titlebar:active,
+.inventory-titlebar.is-dragging {
+  cursor: var(--cursor-grabbing);
+}
+
+.inventory-drag-handle {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.inventory-drag-handle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.inventory-titlebar:hover .inventory-drag-handle,
+.inventory-titlebar.is-dragging .inventory-drag-handle {
+  color: var(--yellow);
 }
 
 .inventory-title {
@@ -2825,7 +2850,9 @@
 
 /* Cursor-as-item: hide the system cursor while an inventory/world item is grabbed. */
 body.is-item-dragging,
-body.is-item-dragging * {
+body.is-item-dragging *,
+body.is-window-dragging,
+body.is-window-dragging * {
   cursor: none !important;
 }
 

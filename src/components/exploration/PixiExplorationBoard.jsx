@@ -685,7 +685,8 @@ export default function PixiExplorationBoard(props) {
             pointerEvents="none"
           />
         )}
-        {placingItem && placeHover && (
+        {/* Drop tile under a dragged inventory item: debug only so normal play keeps the floor clear. */}
+        {debug && placingItem && placeHover && (
           <polygon
             className={`explore-place-preview${placeHover.valid ? '' : ' is-invalid'}`}
             points={pts(diamond(placeHover.position, 0, 1 / 8))}

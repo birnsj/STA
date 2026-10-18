@@ -10,6 +10,7 @@
   --cursor-text: url('/art/cursors/text.png') 16 16, text;
   --cursor-crosshair: url('/art/cursors/crosshair.png') 16 16, crosshair;
   --cursor-grab: url('/art/cursors/grab.png') 16 16, grab;
+  --cursor-grabbing: url('/art/cursors/grabbing.png') 16 16, grabbing;
   /* The game boards: what a click on the thing under the pointer would do. */
   --cursor-attack: url('/art/cursors/attack.png') 3 5, crosshair;
   --cursor-move: url('/art/cursors/move.png') 16 25, pointer;

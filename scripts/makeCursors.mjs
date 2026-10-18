@@ -161,6 +161,25 @@ const CURSORS = {
       fill: YELLOW,
     },
   ],
+  // A small panel with a title strip and four-way arrows: dragging a floating window (inventory).
+  grabbing: [
+    { shape: roundRect(9, 10, 14, 12, 2), fill: BLUE },
+    { shape: roundRect(9, 10, 14, 3.5, 1.5), fill: YELLOW },
+    {
+      shape: union(
+        line([16, 3], [16, 8], 2),
+        line([16, 24], [16, 29], 2),
+        line([3, 16], [8, 16], 2),
+        line([24, 16], [29, 16], 2),
+        polygon([[16, 1], [19, 5.5], [13, 5.5]]),
+        polygon([[16, 31], [19, 26.5], [13, 26.5]]),
+        polygon([[1, 16], [5.5, 13], [5.5, 19]]),
+        polygon([[31, 16], [26.5, 13], [26.5, 19]]),
+      ),
+      fill: CYAN,
+      glow: GLOW_CYAN,
+    },
+  ],
   // A Type-2 phaser aimed at the enemy, its emitter glowing.
   attack: [
     { shape: aimed(PHASER_GRIP), fill: GRIP },

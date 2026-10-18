@@ -141,9 +141,9 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setActionsOpen((open) => !open)
     setConsideredActionId(null)
   }, [])
-  // UI state: whether the character sheet is open (I toggles it); selecting never opens it (designer decision).
+  // UI state: whether the character sheet is open (C toggles it); selecting never opens it (designer decision).
   const [sheetOpen, setSheetOpen] = useState(false)
-  // UI state: floating inventory (B); position remembered in localStorage.
+  // UI state: floating inventory (I, also B); position remembered in localStorage.
   const [inventoryOpen, setInventoryOpen] = useState(false)
   const [inventoryViewId, setInventoryViewId] = useState(null)
   const [itemDrag, setItemDrag] = useState(null)
@@ -292,7 +292,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       }
 
       stopItemDragListenersRef.current = teardown
-      window.addEventListener('pointermove', move)
+      window.addEventListener('pointermove', move, { passive: true })
       window.addEventListener('pointerup', end)
       window.addEventListener('pointercancel', end)
     },
@@ -519,7 +519,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
-  const toggleSneak = useCallback(() => dispatch({ type: 'toggleSneak' }), [dispatch])
   // With several selected, the sheet shows the first of them.
   const sheetMember = sheetOpen && !debugOpen && party.selectedIds.length > 0 ? party.members[party.selectedIds[0]] : null
   const inventoryMemberId = inventoryViewId && party.members[inventoryViewId] ? inventoryViewId : party.selectedIds[0] ?? party.leaderId
@@ -547,7 +546,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setInventoryOpen(false)
       if (talking) dispatch({ type: 'conversationLeave' })
     },
-    onSneak: toggleSneak,
     onSheet: () => setSheetOpen((open) => !open),
     onInventory: () => {
       setInventoryOpen((open) => !open)
@@ -671,9 +669,9 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     buttons: memberMenuButtons(state, menuMember, {
       scan: () => dispatch({ type: 'scan', memberId: menuMember.id }),
       switchTo: () => select(menuMember.id, false),
-      interact: (objectId) => {
-        select(menuMember.id, false)
-        setInteractionId(objectId)
+      inventory: () => {
+        setInventoryViewId(menuMember.id)
+        setInventoryOpen(true)
       },
       sneak: () => dispatch({ type: 'toggleSneakFor', id: menuMember.id }),
       beamOut: () => ending.askBeamOut(menuMember.id),
@@ -770,7 +768,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     ? 'Interacting: Escape closes the panel; walking out of reach closes it too. The world keeps moving.'
     : noiseTool
       ? 'Noise tool: click the floor to make a noise there.'
-      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: sneak. I: character sheet. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
+      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />

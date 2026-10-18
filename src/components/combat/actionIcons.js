@@ -11,6 +11,7 @@ export const ACTION_ICONS = {
   switch: 'M4 9h13l-3-3M20 15H7l3 3',
   endTurn: 'M19 12H7M11 7l-5 5 5 5',
   interact: 'M9 12V5a1.5 1.5 0 0 1 3 0v6M12 11V4a1.5 1.5 0 0 1 3 0v7M15 11a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a1.5 1.5 0 0 1 2.5-1.5L9 15',
+  inventory: 'M4 5h16v14H4zM8 5v3h8V5M8 11h8M8 15h5',
   sprint: 'M3 7l5 5-5 5M9 7l5 5-5 5M15 7l5 5-5 5',
   firstAid: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z',
   guard: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',

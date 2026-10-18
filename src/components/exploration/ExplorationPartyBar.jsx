@@ -326,7 +326,7 @@ export const FormationPanel = memo(function FormationPanel({ formationId, onForm
           className="explore-panel-icon-button"
           aria-pressed={inventoryOpen}
           aria-label="Inventory"
-          title={inventoryOpen ? 'Close inventory (B).' : 'Open inventory (B).'}
+          title={inventoryOpen ? 'Close inventory (I).' : 'Open inventory (I).'}
           onClick={onInventory}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
