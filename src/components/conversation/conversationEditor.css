@@ -223,13 +223,15 @@
   padding: 5px 7px;
   border: var(--ui-border) solid #23434a;
   border-radius: var(--ui-radius);
+  background: #13272b;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: var(--cursor-pointer);
 }
 
-.oe-item.is-selected { border-color: #ffb347; box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.35); }
+.oe-item:hover { border-color: #3f6f78; }
+.oe-item.is-selected { border-color: #ffb347; background: #3d2a1a; box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.35); }
 .oe-item-title { font-weight: bold; }
 .oe-item-meta { color: #8fb4ba; font-size: 10px; }
 
