@@ -54,7 +54,7 @@ import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
 
 const clockNow = () => performance.now()
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
-const { yellow: YELLOW, red: RED, purple: PURPLE, blue: BLUE } = SIDE_COLOURS
+const { yellow: YELLOW, red: RED, purple: PURPLE, blue: BLUE, drop: DROP } = SIDE_COLOURS
 
 const gaitOf = ({ walking, running, sneaking }) => (sneaking ? (walking ? 'sneakWalk' : 'sneakIdle') : running ? 'run' : walking ? 'walk' : 'idle')
 const boardCursor = (target) => {
@@ -86,6 +86,8 @@ export default function PixiExplorationBoard(props) {
     onPlaceHover = null,
     exploreState = null,
     placeHelpersRef = null,
+    // Member id under an item drag who can take it into their bag (green ring).
+    itemDropMemberId = null,
     itemDragActive = false,
     debug,
     followCamera,
@@ -199,12 +201,14 @@ export default function PixiExplorationBoard(props) {
     const controller = controllerFor(member)
     const animation = controller.animationState(member)
     const selected = isSelected(state, member.id)
+    const dropTarget = itemDropMemberId === member.id
     const lead = member.id === state.leaderId
     const centre = project(member.position)
     const depth = atDepth(member.position, 0.5)
     const { portrait } = member.character
     const beam = member.beaming ? 'away' : beamIn === 'done' ? (member.arriving ? 'in' : null) : beamIn === 'waiting' ? 'waiting' : 'in'
     const hazardOverlay = characterHazardOverlayType(environment, worldToGrid(member.position), member.character, member.condition)
+    const accent = dropTarget ? DROP : selected ? YELLOW : BLUE
     figures.push({
       id: `u${member.id}`,
       centre,
@@ -223,10 +227,10 @@ export default function PixiExplorationBoard(props) {
       colour: portrait.uniform ?? null,
       image: portrait.image,
       name: member.character.name,
-      ring: selected ? 'selected' : 'player',
-      arrowColour: lead ? YELLOW : BLUE,
-      bodyColour: selected ? YELLOW : BLUE,
-      label: lead ? { text: 'LEAD', y: -58, size: 9, weight: '700', colour: YELLOW, letterSpacing: 0.72 } : null,
+      ring: dropTarget ? 'dropTarget' : selected ? 'selected' : 'player',
+      arrowColour: dropTarget ? DROP : lead ? YELLOW : BLUE,
+      bodyColour: accent,
+      label: lead ? { text: 'LEAD', y: -58, size: 9, weight: '700', colour: dropTarget ? DROP : YELLOW, letterSpacing: 0.72 } : null,
       beam,
       // Fall / getup sheets are large; ask early so blast stagger can play getUp.
       preload: true,
@@ -450,7 +454,19 @@ export default function PixiExplorationBoard(props) {
     boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, groundLoot, lastKnown, pulses, effects, explosions, environment, revealed }
     targetsRef.current = targets
     membersRef.current = state
-    if (placeHelpersRef) placeHelpersRef.current = { toTiles, toClient }
+    if (placeHelpersRef) {
+      placeHelpersRef.current = {
+        toTiles,
+        toClient,
+        // Party member under the pointer (for item-drag → bag). Uses the same hit list as clicks.
+        memberAt: (clientX, clientY) => {
+          const point = toBoard(clientX, clientY)
+          if (!point) return null
+          const hit = hitTest(point, targetsRef.current)
+          return hit?.kind === 'member' ? hit.id : null
+        },
+      }
+    }
   })
   const onMapReady = useContext(MapReadyContext)
   const onMapReadyRef = useRef(onMapReady)

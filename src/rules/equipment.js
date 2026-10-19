@@ -4,6 +4,7 @@ import itemData from '../data/adaptation/items.json'
 import loadoutData from '../data/adaptation/startingEquipment.json'
 import rankSource from '../data/source/ranks.json'
 import { describeRange, getWeaponForItem } from '../combat/weaponSystem.js'
+import { itemBehaviorFor as behaviorForItemId } from '../items/registry.js'
 
 const items = itemData.items.map((item) => ({ ...itemData.itemDefaults, ...item }))
 const itemsById = new Map(items.map((item) => [item.id, item]))
@@ -11,6 +12,9 @@ const itemsById = new Map(items.map((item) => [item.id, item]))
 export const getItems = () => items
 export const getItemById = (itemId) => itemsById.get(itemId) ?? null
 export const getCategoryName = (categoryId) => itemData.categories[categoryId] ?? categoryId
+
+// Behavior class for catalogue ids that have one (Technical Manual tools/weapons). Null for ordinary items.
+export const getItemBehavior = (itemId) => behaviorForItemId(itemId)
 
 // World hover outline for dropped items (items.json categoryHighlights). Falls back to creator yellow.
 export const getCategoryHighlight = (categoryId) => itemData.categoryHighlights?.[categoryId] ?? '#f6b928'

@@ -271,25 +271,28 @@ export function groundItemMenuButtons(state, instanceId, actions) {
   const item = groundItemFor(instanceId)
   const view = item.view(state)
   const name = view?.name ?? resolveItem(state, instanceId)?.def.name ?? 'Item'
+  const pickable = view?.pickable !== false && state.groundItems?.[instanceId]?.pickable !== false
   const inRange = item.membersInRange(state)
   const pickerId = [state.party.leaderId, ...state.party.selectedIds].find((id) => inRange.some((member) => member.id === id) && bagFreeSlots(state.party.members[id].character) > 0)
   const anyInRange = inRange[0]
   const picker = pickerId ? state.party.members[pickerId] : anyInRange
-  const canPick = Boolean(pickerId)
-  const reason = !anyInRange
-    ? 'Walk closer to pick it up.'
-    : !picker
-      ? 'Select a character first.'
-      : bagFreeSlots(picker.character) < 1
-        ? `${picker.character.name}'s bag is full.`
-        : `${picker.character.name} picks up the ${name}.`
+  const canPick = pickable && Boolean(pickerId)
+  const reason = !pickable
+    ? 'This item cannot be picked up.'
+    : !anyInRange
+      ? 'Walk closer to pick it up.'
+      : !picker
+        ? 'Select a character first.'
+        : bagFreeSlots(picker.character) < 1
+          ? `${picker.character.name}'s bag is full.`
+          : `${picker.character.name} picks up the ${name}.`
   return [
     {
       id: 'pickup',
       label: 'Pick Up',
       icon: 'interact',
       enabled: canPick,
-      title: canPick ? reason : reason,
+      title: reason,
       onClick: () => actions.pickup(pickerId),
     },
     {

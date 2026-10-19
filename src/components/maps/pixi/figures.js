@@ -40,14 +40,17 @@ const YELLOW = 0xf6b928
 const RED = 0xe2463d
 const PURPLE = 0xb07ee8
 const BLUE = 0x3d7bff
+const DROP = 0x7fd07f
 // The ground ring by side.
 export const RINGS = {
   player: { fill: { color: 0x2c66d8, alpha: 0.15 }, stroke: { color: BLUE, width: 2 } },
   selected: { fill: { color: YELLOW, alpha: 0.15 }, stroke: { color: YELLOW, width: 2.5 } },
+  // Inventory item dragged over this character — release puts it in their bag.
+  dropTarget: { fill: { color: DROP, alpha: 0.28 }, stroke: { color: DROP, width: 3 } },
   enemy: { fill: { color: RED, alpha: 0.15 }, stroke: { color: RED, width: 2 } },
   neutral: { fill: { color: PURPLE, alpha: 0.15 }, stroke: { color: PURPLE, width: 2 } },
 }
-export const SIDE_COLOURS = { blue: BLUE, yellow: YELLOW, red: RED, purple: PURPLE }
+export const SIDE_COLOURS = { blue: BLUE, yellow: YELLOW, red: RED, purple: PURPLE, drop: DROP }
 // The active combatant's ring: pulsing 1 → 0.55 → 1 over 1.4 s, eased in and out.
 const PULSE_MS = 1400
 const pulseAlpha = (elapsed) => 1 - 0.45 * (0.5 - 0.5 * Math.cos(((elapsed % PULSE_MS) / PULSE_MS) * Math.PI * 2))

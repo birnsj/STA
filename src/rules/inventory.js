@@ -185,6 +185,32 @@ export function seedMemberInventory(state, memberId, { grantMissionObject = fals
   return withMemberCharacter({ ...state, itemInstances }, memberId, character)
 }
 
+// Place authored map groundItemPlacements into session groundItems (mapFormat.js). Skips unknown itemIds and blocked cells.
+// Uses the placement's authored id as the instance id when free; otherwise allocates a fresh one. Optional name /
+// pickable / visible ride on the ground entry for views and pickup gating.
+export function seedGroundItemPlacements(state, placements = []) {
+  if (!placements?.length) return state
+  let itemInstances = { ...(state.itemInstances ?? {}) }
+  let groundItems = { ...(state.groundItems ?? {}) }
+  let next = { ...state, itemInstances, groundItems }
+  for (const placement of placements) {
+    const def = getItemById(placement.itemId)
+    if (!def) continue
+    const place = canPlaceAt(next, placement.position)
+    if (!place.ok) continue
+    const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
+    const id = authored ? placement.id : freshInstanceId()
+    itemInstances = { ...itemInstances, [id]: { id, itemId: def.id, quantity: 1 } }
+    const ground = { instanceId: id, position: { x: place.position.x, y: place.position.y } }
+    if (placement.name) ground.name = placement.name
+    if (placement.pickable === false) ground.pickable = false
+    if (placement.visible === false) ground.visible = false
+    groundItems = { ...groundItems, [id]: ground }
+    next = { ...next, itemInstances, groundItems }
+  }
+  return next
+}
+
 // Expand each party member's flat equipment into instances, slots, and bag. Adds one missionObject to the lead bag.
 export function seedPartyInventory(state) {
   let itemInstances = { ...(state.itemInstances ?? {}) }
@@ -424,7 +450,7 @@ export function dropItem(state, { instanceId, position }) {
 
 export function pickupItem(state, { instanceId, memberId }) {
   const ground = state.groundItems?.[instanceId]
-  if (!ground) return state
+  if (!ground || ground.pickable === false) return state
   const member = state.party.members[memberId]
   if (!member?.character.inventory || bagFreeSlots(member.character) < 1) return state
   const groundItems = { ...state.groundItems }
@@ -443,14 +469,14 @@ export function pickupItem(state, { instanceId, memberId }) {
 
 export function groundItemViews(state, { hideInstanceId = null } = {}) {
   return Object.values(state.groundItems ?? {})
-    .filter((entry) => entry.instanceId !== hideInstanceId)
+    .filter((entry) => entry.instanceId !== hideInstanceId && entry.visible !== false)
     .map((entry) => {
       const resolved = resolveItem(state, entry.instanceId)
       return {
         id: entry.instanceId,
         instanceId: entry.instanceId,
         position: entry.position,
-        name: resolved?.def.name ?? 'Item',
+        name: entry.name || resolved?.def.name || 'Item',
         itemId: resolved?.instance.itemId ?? null,
         category: resolved?.def.category ?? null,
         // Isometric world prop PNG; never the inventory icon. Falls back to crate tile art.
@@ -459,6 +485,7 @@ export function groundItemViews(state, { hideInstanceId = null } = {}) {
         // Fraction of a 64×96 tile image; handheld gear is much smaller than a character (40×64 frames).
         worldScale: resolved?.def.worldScale ?? 0.4,
         icon: resolved?.def.icon ?? null,
+        pickable: entry.pickable !== false,
       }
     })
 }

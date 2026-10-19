@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "name": "Inventory Object Test",
+  "episodeName": "Inventory Object Test",
+  "card": null,
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 95,
+  "rows": [
+    "########################",
+    "#......................#",
+    "#......................#",
+    "#......h...h...h.......#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "D......h.h.h.h.h.h.....#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......h...h...h.......#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "########################"
+  ],
+  "areas": [
+    { "name": "Medical", "position": [8, 2] },
+    { "name": "Engineering", "position": [11, 6] },
+    { "name": "Equipment", "position": [8, 10] },
+    { "name": "Cargo Bay", "position": [12, 13] }
+  ],
+  "markers": {
+    "playerStarts": [
+      [2, 7, 0],
+      [2, 6, 0],
+      [3, 7, 0],
+      [2, 8, 0]
+    ],
+    "enemySpawns": []
+  },
+  "briefing": "Equipment testing bay. Inspect the twelve Technical Manual inventory props: pick up, bag, drop, and reposition. No mission stakes.",
+  "stardate": 9999.2,
+  "groundItemPlacements": [
+    { "itemId": "hypospray", "position": [6, 3] },
+    { "itemId": "autosuture", "position": [9, 3] },
+    { "itemId": "osteogenicStimulator", "position": [12, 3] },
+    { "itemId": "hyperspanner", "position": [6, 7] },
+    { "itemId": "plasmaTorch", "position": [8, 7] },
+    { "itemId": "tridentScanner", "position": [10, 7] },
+    { "itemId": "magneticProbe", "position": [12, 7] },
+    { "itemId": "odnRecoupler", "position": [14, 7] },
+    { "itemId": "fluxCoupler", "position": [16, 7] },
+    { "itemId": "starfleetPadd", "position": [6, 11] },
+    { "itemId": "phaserRifle", "position": [9, 11] },
+    { "itemId": "klingonBatleth", "position": [12, 11] }
+  ]
+}

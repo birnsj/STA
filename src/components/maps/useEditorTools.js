@@ -6,17 +6,22 @@ import {
   areaAt,
   destructibleAt,
   duplicateDestructible,
+  duplicateGroundItem,
   eraseHazardTile,
   eraseMarkers,
+  groundItemAt,
   hasMarkers,
   hazardRegionAt,
   moveDestructible,
+  moveGroundItem,
   moveMarkers,
   npcAt,
   paintBrush,
   paintHazardTile,
   placeDestructible,
+  placeGroundItem,
   placeNpc,
+  removeGroundItem,
   selectionAt,
   setAreaLabel,
   swapTilesWithObjects,
@@ -26,6 +31,7 @@ import {
   updateNpc,
 } from '../../maps/mapEdits.js'
 import { getTile, isRotated } from '../../maps/mapFormat.js'
+import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 
 // The character a newly placed NPC starts as (changed in its inspector).
@@ -67,6 +73,9 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   const [linkingDestructible, setLinkingDestructible] = useState(false)
   const [selectedHazardId, setSelectedHazardId] = useState(null)
   const [hazardIntensity, setHazardIntensity] = useState(2)
+  // Inventory ground placements (tools 'inventory:{itemId}'): selected instance and Move mode.
+  const [selectedGroundItemId, setSelectedGroundItemId] = useState(null)
+  const [movingGroundItem, setMovingGroundItem] = useState(false)
 
   // A different map clears everything selected or half-done on the old one.
   const [seenBoardKey, setSeenBoardKey] = useState(boardKey)
@@ -84,6 +93,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setPlacingObject(false)
     setMovingNpc(false)
     setMoveFrom(null)
+    setSelectedGroundItemId(null)
+    setMovingGroundItem(false)
   }
 
   const selectedNpc = (map.npcs ?? []).find((npc) => npc.id === selectedNpcId) ?? null
@@ -98,6 +109,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   const selectedObject = objectDefinitions.find((definition) => definition.id === selectedObjectId) ?? null
   const selectedDestructible = (map.destructibles ?? []).find((object) => object.id === selectedDestructibleId) ?? null
   const selectedHazard = (map.hazards ?? []).find((region) => region.id === selectedHazardId) ?? null
+  const selectedGroundItem = (map.groundItemPlacements ?? []).find((entry) => entry.id === selectedGroundItemId) ?? null
   // Tiles a destructible can't take: where challenge objects stand.
   const objectTiles = useMemo(() => objectDefinitions.map(({ position: [x, y] }) => ({ x, y })), [objectDefinitions])
   const duplicateSelected = () => {
@@ -108,6 +120,14 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedDestructibleId(copy.object.id)
     setStatus(`Duplicated ${selectedDestructible.id} as ${copy.object.id} at (${copy.object.position.x}, ${copy.object.position.y}).`)
   }
+  const duplicateSelectedGroundItem = () => {
+    if (!selectedGroundItem) return
+    const copy = duplicateGroundItem(map, selectedGroundItem.id)
+    if (!copy) return setStatus('No free cell near it for the copy.')
+    edit(copy.map)
+    setSelectedGroundItemId(copy.object.id)
+    setStatus(`Duplicated ${selectedGroundItem.id} as ${copy.object.id}.`)
+  }
 
   // Escape puts the brush down (no tool selected, Place Tiles off), unless a popup is open (its own Escape cancels it)
   // or a text box has focus. R rotates the tile brush.
@@ -116,6 +136,11 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     const onKey = (event) => {
       if (event.target.closest?.('input, textarea, select')) return
       if ((event.key === 'd' || event.key === 'D') && (event.ctrlKey || event.metaKey)) {
+        if (selectedGroundItem) {
+          event.preventDefault()
+          duplicateSelectedGroundItem()
+          return
+        }
         if (!selectedDestructible) return
         event.preventDefault()
         return duplicateSelected()
@@ -124,9 +149,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         if (placing && tool?.startsWith('tile:')) setRotated((value) => !value)
         return
       }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedGroundItem) {
+        event.preventDefault()
+        edit(removeGroundItem(map, selectedGroundItem.id))
+        setSelectedGroundItemId(null)
+        setMovingGroundItem(false)
+        setStatus(`Removed ${selectedGroundItem.id}.`)
+        return
+      }
       if (event.key !== 'Escape') return
       if (linkingDestructible) return setLinkingDestructible(false)
       if (movingDestructible) return setMovingDestructible(false)
+      if (movingGroundItem) return setMovingGroundItem(false)
       if (placingObject) return setPlacingObject(false)
       if (placingObjective !== null) {
         if (placingFromEditor) onObjectivePlaced(placingObjective)
@@ -173,10 +207,12 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedObjectId(object?.id ?? null)
     setSelectedDestructibleId(destructibleAt(map, position)?.id ?? null)
     setSelectedHazardId(hazardRegionAt(map, position)?.id ?? null)
+    setSelectedGroundItemId(groundItemAt(map, position)?.id ?? null)
     setPlacingObject(false)
     setMovingNpc(false)
     setMovingDestructible(false)
     setLinkingDestructible(false)
+    setMovingGroundItem(false)
   }
 
   // The destructible tools: click a destructible to select it, a free floor tile to place one of the held type.
@@ -189,6 +225,28 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedDestructibleId(placed.object.id)
     setSelectedHazardId(null)
     setStatus(`Placed ${DESTRUCTIBLE_TYPES[type].name} (${placed.object.id}). Ctrl+D duplicates it.`)
+  }
+
+  // Inventory tools: click an existing ground placement to select it, else place the held catalogue item (8×8 snap).
+  const onInventoryTool = (position, itemId) => {
+    const existing = groundItemAt(map, position)
+    if (existing) {
+      setSelectedGroundItemId(existing.id)
+      setSelectedDestructibleId(null)
+      setSelectedHazardId(null)
+      setSelectedNpcId(null)
+      setSelectedMarker(null)
+      setSelectedObjectId(null)
+      return
+    }
+    const placed = placeGroundItem(map, position, itemId)
+    if (!placed) return setStatus('Inventory objects need a free floor cell (8×8 grid).')
+    edit(placed.map)
+    setSelectedGroundItemId(placed.object.id)
+    setSelectedDestructibleId(null)
+    setSelectedHazardId(null)
+    const def = getItemById(itemId)
+    setStatus(`Placed ${def?.name ?? itemId} (${placed.object.id}).`)
   }
 
   const onPaint = (position, { first }) => {
@@ -208,6 +266,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       if (moved === map) setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
       edit(moved)
       setMovingDestructible(false)
+      return
+    }
+    if (movingGroundItem && selectedGroundItem) {
+      if (!first) return
+      const moved = moveGroundItem(map, selectedGroundItem.id, position)
+      if (moved === map) setStatus('Inventory objects need a free floor cell (8×8 grid).')
+      else edit(moved)
+      setMovingGroundItem(false)
+      return
+    }
+    if (tool?.startsWith('inventory:')) {
+      if (first) onInventoryTool(position, tool.slice('inventory:'.length))
       return
     }
     if (tool?.startsWith('destructible:')) {
@@ -340,7 +410,14 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       setPlacingFromEditor(true)
     },
     objectDefinitions,
-    selection: { npc: selectedNpc, object: selectedObject, marker: markerInspected, destructible: selectedDestructible, hazard: selectedHazard },
+    selection: {
+      npc: selectedNpc,
+      object: selectedObject,
+      marker: markerInspected,
+      destructible: selectedDestructible,
+      hazard: selectedHazard,
+      groundItem: selectedGroundItem,
+    },
     selectedNpcId,
     selectedObjectId,
     // What the board highlights for the start / spawn inspector (null once it has moved or been deleted).
@@ -352,6 +429,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     },
     selectedDestructibleId: selectedDestructible?.id ?? null,
     selectedHazardId: selectedHazard?.id ?? null,
+    selectedGroundItemId: selectedGroundItem?.id ?? null,
     movingDestructible,
     toggleDestructibleMove: () => {
       setLinkingDestructible(false)
@@ -362,11 +440,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       setMovingDestructible(false)
       setLinkingDestructible((value) => !value)
     },
+    movingGroundItem,
+    toggleGroundItemMove: () => setMovingGroundItem((value) => !value),
     duplicateDestructible: duplicateSelected,
+    duplicateGroundItem: duplicateSelectedGroundItem,
     clearDestructible: () => {
       setSelectedDestructibleId(null)
       setMovingDestructible(false)
       setLinkingDestructible(false)
+    },
+    clearGroundItem: () => {
+      setSelectedGroundItemId(null)
+      setMovingGroundItem(false)
     },
     clearHazard: () => setSelectedHazardId(null),
     hazardIntensity,

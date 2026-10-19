@@ -22,6 +22,7 @@ import {
   dropItem,
   equipItem,
   pickupItem,
+  seedGroundItemPlacements,
   seedMemberInventory,
   seedPartyInventory,
   transferItem,
@@ -94,15 +95,19 @@ export function createExplorationState(map, characters, seed = 0, { enemiesActiv
   const environment = createEnvironment(map, seed >>> 0)
   const worldMap = applyEnvironmentTiles(applyScenarioTiles(map, scenario), environment)
   // itemInstances / groundItems / per-member inventory: session-only play inventory (rules/inventory.js).
-  const seeded = seedPartyInventory({
-    mode: MODE.EXPLORATION,
-    party: createPartyState(worldMap, characters),
-    world: createNpcWorld(worldMap),
-    scenario,
-    environment,
-    itemInstances: {},
-    groundItems: {},
-  })
+  // Map groundItemPlacements seed real ground instances after party gear (do not write back to the map file).
+  const seeded = seedGroundItemPlacements(
+    seedPartyInventory({
+      mode: MODE.EXPLORATION,
+      party: createPartyState(worldMap, characters),
+      world: createNpcWorld(worldMap),
+      scenario,
+      environment,
+      itemInstances: {},
+      groundItems: {},
+    }),
+    map.groundItemPlacements ?? [],
+  )
   return {
     ...seeded,
     hazardClock: 0,

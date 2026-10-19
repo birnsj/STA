@@ -1,9 +1,14 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
+import { snapItemPosition } from '../rules/inventory.js'
 import { nextFacing, spawnFacing } from './facing.js'
 import { getTile, HAZARD_OVERRIDES, isRotated } from './mapFormat.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
+const itemGridKey = (position) => {
+  const snapped = snapItemPosition(position)
+  return `${snapped.x},${snapped.y}`
+}
 
 // The tiles one brush press covers: a wall with panels is laid as a whole two-tile panel, along x (or along y when
 // rotated); the second tile is skipped past the map's edge. Anything else covers one tile.
@@ -211,6 +216,90 @@ export function updateDestructible(map, id, changes) {
 }
 
 export const removeDestructible = (map, id) => ({ ...map, destructibles: (map.destructibles ?? []).filter((entry) => entry.id !== id) })
+
+// ---------- Ground inventory placements (mapFormat.js groundItemPlacements; 8×8 snap) ----------
+
+export const groundItemAt = (map, position, { excludeId = null } = {}) => {
+  const key = itemGridKey(position)
+  return (
+    (map.groundItemPlacements ?? []).find((entry) => {
+      if (excludeId && entry.id === excludeId) return false
+      return itemGridKey(entry.position) === key
+    }) ?? null
+  )
+}
+
+const groundItemTile = (position) => ({ x: Math.round(position.x), y: Math.round(position.y) })
+
+const groundItemFits = (map, position, { excludeId = null } = {}) => {
+  const snapped = snapItemPosition(position)
+  const tile = groundItemTile(snapped)
+  if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) return false
+  if (getTile(map.tiles[tile.y][tile.x]).solid) return false
+  return !groundItemAt(map, snapped, { excludeId })
+}
+
+// Returns { map, object } or null when the cell can't take it.
+export function placeGroundItem(map, position, itemId) {
+  const snapped = snapItemPosition(position)
+  if (!groundItemFits(map, snapped)) return null
+  const list = map.groundItemPlacements ?? []
+  const object = { id: freeId(itemId, new Set(list.map((entry) => entry.id))), itemId, position: snapped }
+  return { map: { ...map, groundItemPlacements: [...list, object] }, object }
+}
+
+export function moveGroundItem(map, id, position) {
+  const object = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
+  const snapped = snapItemPosition(position)
+  if (!object || itemGridKey(object.position) === itemGridKey(snapped) || !groundItemFits(map, snapped, { excludeId: id })) return map
+  return {
+    ...map,
+    groundItemPlacements: map.groundItemPlacements.map((entry) => (entry.id === id ? { ...entry, position: snapped } : entry)),
+  }
+}
+
+// changes: name, pickable, visible, position (null / '' / true defaults remove overrides).
+export function updateGroundItem(map, id, changes) {
+  return {
+    ...map,
+    groundItemPlacements: (map.groundItemPlacements ?? []).map((entry) => {
+      if (entry.id !== id) return entry
+      const next = { ...entry, ...changes }
+      if (changes.position) next.position = snapItemPosition(changes.position)
+      if (next.name === null || next.name === '') delete next.name
+      if (next.pickable === true || next.pickable == null) delete next.pickable
+      if (next.visible === true || next.visible == null) delete next.visible
+      return next
+    }),
+  }
+}
+
+export const removeGroundItem = (map, id) => ({
+  ...map,
+  groundItemPlacements: (map.groundItemPlacements ?? []).filter((entry) => entry.id !== id),
+})
+
+// A copy (new id, same overrides) on the nearest free 8×8 cell within 4 tiles. Returns { map, object } or null.
+export function duplicateGroundItem(map, id) {
+  const source = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
+  if (!source) return null
+  for (let ring = 1; ring <= 4; ring++) {
+    for (let dy = -ring; dy <= ring; dy++) {
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue
+        const position = snapItemPosition({ x: source.position.x + dx, y: source.position.y + dy })
+        if (!groundItemFits(map, position)) continue
+        const object = {
+          ...source,
+          id: freeId(source.itemId, new Set(map.groundItemPlacements.map((entry) => entry.id))),
+          position,
+        }
+        return { map: { ...map, groundItemPlacements: [...map.groundItemPlacements, object] }, object }
+      }
+    }
+  }
+  return null
+}
 
 // A copy (new id, same type and overrides) on the nearest tile that can take it, nearest ring first, then row by row.
 // Returns { map, object } or null when nothing within 4 tiles is free.

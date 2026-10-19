@@ -1141,7 +1141,36 @@
   pointer-events: none;
 }
 
-/* Objectives to the left of the minimap, natural height (as when they sat top-left). */
+/* Objectives left of the button/minimap column; tops line up. The stack keeps map + below under the buttons. */
+.explore-minimap-column.has-leading {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.explore-minimap-column.has-leading > .objectives-panel {
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: 220px;
+  max-width: min(220px, calc(100vw - var(--explore-minimap-size) - 28px));
+}
+
+.explore-minimap-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: var(--explore-minimap-size);
+  pointer-events: none;
+}
+
+.explore-minimap-stack > * {
+  pointer-events: auto;
+}
+
+/* Minimap readout row (objectives only sit here when the toolbar is not outside). */
 .explore-minimap-row {
   display: flex;
   flex-direction: row;
@@ -2618,6 +2647,13 @@
 
 .inventory-party-card.is-drop-target {
   outline: 1px dashed var(--text-muted);
+}
+
+/* The party card under the dragged item — clear “drop here” cue (world figures use the green ring). */
+.inventory-party-card.is-drop-target:hover {
+  outline: 2px solid #7fd07f;
+  border-color: #7fd07f;
+  background: color-mix(in srgb, #7fd07f 22%, var(--blue-deep));
 }
 
 .inventory-party-portrait {

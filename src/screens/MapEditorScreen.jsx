@@ -242,6 +242,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             selectedObjectId={tools.selectedObjectId}
             selectedDestructibleId={tools.selectedDestructibleId}
             selectedHazardId={tools.selectedHazardId}
+            selectedGroundItemId={tools.selectedGroundItemId}
+            inventoryTool={tool?.startsWith('inventory:') ? tool.slice('inventory:'.length) : null}
             moveFrom={tools.moveFrom}
             onPaint={tools.onPaint}
             onPaintEnd={tools.onPaintEnd}
@@ -296,6 +298,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             onToggleDestructibleLink={tools.toggleDestructibleLink}
             onDuplicateDestructible={tools.duplicateDestructible}
             onDestructibleCleared={tools.clearDestructible}
+            groundItemMoving={tools.movingGroundItem}
+            onToggleGroundItemMove={tools.toggleGroundItemMove}
+            onDuplicateGroundItem={tools.duplicateGroundItem}
+            onGroundItemCleared={tools.clearGroundItem}
             onHazardCleared={tools.clearHazard}
           />
         </EditorSidePanel>

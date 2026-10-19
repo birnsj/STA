@@ -1,8 +1,9 @@
 import { assignNpcAppearances } from '../../character/npcAppearance.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../../maps/facing.js'
-import { removeDestructible, removeHazard, removeNpc, setFacing, toggleMarker, updateDestructible, updateHazard, updateNpc } from '../../maps/mapEdits.js'
+import { removeDestructible, removeGroundItem, removeHazard, removeNpc, setFacing, toggleMarker, updateDestructible, updateGroundItem, updateHazard, updateNpc } from '../../maps/mapEdits.js'
 import DestructibleInspector from './DestructibleInspector.jsx'
+import GroundItemInspector from './GroundItemInspector.jsx'
 import HazardInspector from './HazardInspector.jsx'
 import MarkerInspector from './MarkerInspector.jsx'
 import NpcInspector from './NpcInspector.jsx'
@@ -40,9 +41,13 @@ export default function EditorInspectors({
   onToggleDestructibleLink,
   onDuplicateDestructible,
   onDestructibleCleared,
+  groundItemMoving = false,
+  onToggleGroundItemMove,
+  onDuplicateGroundItem,
+  onGroundItemCleared,
   onHazardCleared,
 }) {
-  const { npc, object, marker, destructible, hazard } = selection
+  const { npc, object, marker, destructible, hazard, groundItem } = selection
   return (
     <>
       {destructible && (
@@ -57,6 +62,19 @@ export default function EditorInspectors({
           onDelete={() => {
             edit(removeDestructible(map, destructible.id))
             onDestructibleCleared()
+          }}
+        />
+      )}
+      {groundItem && (
+        <GroundItemInspector
+          object={groundItem}
+          moving={groundItemMoving}
+          onChange={(changes) => edit(updateGroundItem(map, groundItem.id, changes))}
+          onMove={onToggleGroundItemMove}
+          onDuplicate={onDuplicateGroundItem}
+          onDelete={() => {
+            edit(removeGroundItem(map, groundItem.id))
+            onGroundItemCleared()
           }}
         />
       )}

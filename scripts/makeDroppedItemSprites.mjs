@@ -195,6 +195,274 @@ const PROPS = {
       ),
       { bloom: 1.25 },
     ),
+
+  // Technical Manual catalogue props (plan 2026-10-18) — unique silhouette/material each.
+  starfleetPadd: () =>
+    render(
+      blockScene(
+        5,
+        caseMaterial({
+          H: 5,
+          body: rgb('#2a3848'),
+          trim: rgb('#8aa0b4'),
+          accent: rgb('#3a88c0'),
+          screen: { r: 7.5, colour: rgb('#6ad8ff') },
+        }),
+      ),
+      { bloom: 1.12 },
+    ),
+  hypospray: () => render(blockScene(7, cylinderToolMaterial({ body: rgb('#c8d0d8'), tip: rgb('#2a88a8'), band: rgb('#e8f0f4') }))),
+  hyperspanner: () => render(blockScene(8, wrenchMaterial({ body: rgb('#c9a024'), grip: rgb('#2a3038') }))),
+  plasmaTorch: () => render(blockScene(9, torchMaterial()), { bloom: 1.2 }),
+  tridentScanner: () =>
+    render(
+      blockScene(
+        8,
+        caseMaterial({
+          H: 8,
+          body: rgb('#1e2830'),
+          trim: rgb('#70a0b8'),
+          accent: rgb('#40c090'),
+          screen: { r: 4.2, colour: rgb('#50f0b0') },
+          topMark: { r: 2.4, h: 0.9 },
+        }),
+      ),
+      { bloom: 1.1 },
+    ),
+  magneticProbe: () => render(blockScene(7, probeMaterial({ body: rgb('#5a6878'), tip: rgb('#4060a0'), ring: rgb('#90b0e0') }))),
+  odnRecoupler: () =>
+    render(
+      blockScene(
+        7,
+        caseMaterial({
+          H: 7,
+          body: rgb('#3a4850'),
+          trim: rgb('#20a080'),
+          accent: rgb('#a0e0c0'),
+          topMark: { r: 3.5, h: 0.6 },
+        }),
+      ),
+    ),
+  fluxCoupler: () =>
+    render(
+      blockScene(
+        8,
+        caseMaterial({
+          H: 8,
+          body: rgb('#484058'),
+          trim: rgb('#c09040'),
+          accent: rgb('#e0c060'),
+          screen: { r: 3.8, colour: rgb('#ffd060') },
+        }),
+      ),
+      { bloom: 1.08 },
+    ),
+  autosuture: () => render(blockScene(6, cylinderToolMaterial({ body: rgb('#e8ece8'), tip: rgb('#a02840'), band: rgb('#60a080') }))),
+  osteogenicStimulator: () =>
+    render(
+      blockScene(
+        8,
+        caseMaterial({
+          H: 8,
+          body: rgb('#d0d8e0'),
+          trim: rgb('#5080a0'),
+          accent: rgb('#80c0e0'),
+          topMark: { r: 4.5, h: 0.5, colour: rgb('#4080a0'), cross: true },
+        }),
+      ),
+    ),
+  phaserRifle: () => render(blockScene(10, rifleMaterial()), { bloom: 1.08 }),
+  klingonBatleth: () => render(blockScene(9, batlethMaterial())),
+}
+
+function cylinderToolMaterial({ body, tip, band }) {
+  const H = 7
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const r = Math.hypot(u - 16, v - 16)
+        return r < 5.5 ? bevel(5.5 - r, 1, 0.8) : 0
+      }
+      const z = v
+      const r = Math.abs(u - 16)
+      if (r > 5.5) return 0
+      return bevel(Math.min(5.5 - r, z, H - z), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        const r = Math.hypot(u - 16, v - 16)
+        if (r < 2.2) return { albedo: tip, spec: 0.55, shininess: 40 }
+        if (r < 4) return { albedo: band, spec: 0.35, shininess: 28 }
+        return { albedo: body, spec: 0.4, shininess: 32 }
+      }
+      const z = v
+      const ao = 0.7 + 0.3 * smoothstep(0, 4, z)
+      if (z > H * 0.7) return { albedo: tip, spec: 0.5, shininess: 36, ao }
+      if (z > H * 0.45 && z < H * 0.58) return { albedo: band, spec: 0.3, shininess: 24, ao }
+      return { albedo: scale(body, 0.9 + brushed(u, z, 71) * 0.1), spec: 0.35, shininess: 28, ao }
+    },
+  }
+}
+
+function wrenchMaterial({ body, grip }) {
+  const H = 8
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const shaft = inside(u, v, 13, 4, 19, 28)
+        const head = Math.hypot(u - 16, v - 8) < 7 ? 1 : 0
+        let h = 0
+        if (shaft > 0) h = bevel(shaft, 1, 0.7)
+        if (head) h = Math.max(h, bevel(7 - Math.hypot(u - 16, v - 8), 1.2, 0.8))
+        return h
+      }
+      const z = v
+      const onShaft = u > 13 && u < 19
+      const onHead = Math.hypot(u - 16, 0) < 7 && z < 4
+      if (!onShaft && !onHead) return 0
+      return bevel(Math.min(onHead ? 7 - Math.abs(u - 16) : Math.min(u - 13, 19 - u), z, H - z), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (v > 20) return { albedo: grip, spec: 0.25, shininess: 18 }
+        return { albedo: scale(body, 0.92 + brushed(u, v, 81) * 0.08), spec: 0.5, shininess: 36 }
+      }
+      const ao = 0.7 + 0.3 * smoothstep(0, 5, v)
+      if (v > 5) return { albedo: grip, spec: 0.2, shininess: 16, ao }
+      return { albedo: body, spec: 0.45, shininess: 32, ao }
+    },
+  }
+}
+
+function torchMaterial() {
+  const H = 9
+  const body = rgb('#3a4048')
+  const nozzle = rgb('#8a9098')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const shaft = inside(u, v, 12, 6, 20, 26)
+        let h = bevel(shaft, 1, 0.7)
+        if (inside(u, v, 13, 4, 19, 8) > 0) h += 0.8
+        return Math.max(0, h)
+      }
+      const z = v
+      if (u < 12 || u > 20) return 0
+      return bevel(Math.min(u - 12, 20 - u, z, H - z), 0.9, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (v < 8) return { albedo: nozzle, emit: rgb('#ff9040'), tag: 'emitter', spec: 0.4, shininess: 30 }
+        if (v > 18 && v < 22) return { albedo: rgb('#c04020'), spec: 0.3, shininess: 22 }
+        return { albedo: body, spec: 0.35, shininess: 26 }
+      }
+      const ao = 0.68 + 0.32 * smoothstep(0, 5, v)
+      if (v > 6.5) return { albedo: nozzle, emit: rgb('#ff7030'), tag: 'emitter', spec: 0.4, shininess: 28, ao }
+      return { albedo: scale(body, 0.9 + brushed(u, v, 91) * 0.08), spec: 0.3, shininess: 24, ao }
+    },
+  }
+}
+
+function probeMaterial({ body, tip, ring }) {
+  const H = 7
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const shaft = inside(u, v, 14, 5, 18, 27)
+        const disc = Math.hypot(u - 16, v - 10) < 6 ? 1 : 0
+        let h = 0
+        if (shaft > 0) h = bevel(shaft, 0.8, 0.6)
+        if (disc) h = Math.max(h, bevel(6 - Math.hypot(u - 16, v - 10), 1, 0.7) * 0.7)
+        return h
+      }
+      const z = v
+      if (u < 14 || u > 18) {
+        if (Math.hypot(u - 16, 0) < 6 && z < 3) return bevel(6 - Math.abs(u - 16), 0.8, 0.6)
+        return 0
+      }
+      return bevel(Math.min(u - 14, 18 - u, z, H - z), 0.7, 0.6)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (Math.hypot(u - 16, v - 10) < 5) return { albedo: ring, spec: 0.55, shininess: 40 }
+        if (v < 8) return { albedo: tip, emit: scale(tip, 0.4), tag: 'emitter', spec: 0.4, shininess: 30 }
+        return { albedo: body, spec: 0.35, shininess: 26 }
+      }
+      const ao = 0.7 + 0.3 * smoothstep(0, 4, v)
+      if (v > 5) return { albedo: tip, spec: 0.45, shininess: 34, ao }
+      return { albedo: body, spec: 0.3, shininess: 24, ao }
+    },
+  }
+}
+
+function rifleMaterial() {
+  const H = 10
+  const body = rgb('#2a3038')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const barrel = inside(u, v, 6, 12, 28, 20)
+        const stock = inside(u, v, 2, 11, 10, 21)
+        let h = 0
+        if (barrel > 0) h = bevel(barrel, 1, 0.7) + 0.4 * smoothstep(0, 2, barrel)
+        if (stock > 0) h = Math.max(h, bevel(stock, 1, 0.7))
+        return Math.max(0, h)
+      }
+      const z = v
+      const onBarrel = u > 6 && u < 28 && z > 2 && z < H - 2
+      const onStock = u > 2 && u < 10
+      if (!onBarrel && !onStock) return 0
+      return bevel(Math.min(onStock ? Math.min(u - 2, 10 - u) : Math.min(u - 6, 28 - u), z, H - z), 0.9, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (inside(u, v, 22, 13, 27, 19) > 0) return { albedo: rgb('#402010'), emit: rgb('#ff9040'), tag: 'emitter' }
+        if (u < 10) return { albedo: rgb('#1a1e24'), spec: 0.4, shininess: 28 }
+        return { albedo: body, spec: 0.35, shininess: 26 }
+      }
+      const ao = 0.7 + 0.3 * smoothstep(0, 5, v)
+      if (face === 'right' && u > 20) return { albedo: rgb('#402010'), emit: rgb('#ff8040'), tag: 'emitter', ao }
+      return { albedo: scale(body, 0.9 + brushed(u, v, 101) * 0.08), spec: 0.35, shininess: 28, ao }
+    },
+  }
+}
+
+function batlethMaterial() {
+  const H = 9
+  const steel = rgb('#a0a8b0')
+  const grip = rgb('#4a3020')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        // Crescent blade: thick arc with a central grip bar.
+        const dx = u - 16
+        const dy = v - 16
+        const r = Math.hypot(dx, dy)
+        const ang = Math.atan2(dy, dx)
+        const onArc = r > 8 && r < 14 && ang > -2.4 && ang < 2.4
+        const onGrip = Math.abs(dx) < 2.2 && Math.abs(dy) < 6
+        let h = 0
+        if (onArc) h = bevel(Math.min(r - 8, 14 - r), 1.2, 0.85)
+        if (onGrip) h = Math.max(h, bevel(Math.min(2.2 - Math.abs(dx), 6 - Math.abs(dy)), 0.8, 0.7))
+        return h
+      }
+      const z = v
+      const dx = u - 16
+      const onGrip = Math.abs(dx) < 2.5
+      const onBlade = Math.abs(dx) > 4 && Math.abs(dx) < 14
+      if (!onGrip && !onBlade) return 0
+      return bevel(Math.min(onGrip ? 2.5 - Math.abs(dx) : 14 - Math.abs(dx), z, H - z), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (Math.abs(u - 16) < 2.2 && Math.abs(v - 16) < 6) return { albedo: grip, spec: 0.2, shininess: 16 }
+        return { albedo: scale(steel, 0.9 + brushed(u, v, 111) * 0.12), spec: 0.6, shininess: 42 }
+      }
+      const ao = 0.68 + 0.32 * smoothstep(0, 5, v)
+      if (Math.abs(u - 16) < 2.5) return { albedo: grip, spec: 0.2, shininess: 14, ao }
+      return { albedo: steel, spec: 0.55, shininess: 38, ao }
+    },
+  }
 }
 
 for (const [id, draw] of Object.entries(PROPS)) {

@@ -34,21 +34,24 @@ export class GroundItem {
 
   view(state) {
     const entry = this.record(state)
-    if (!entry) return null
+    if (!entry || entry.visible === false) return null
     const resolved = resolveItem(state, this.instanceId)
     return {
       id: this.instanceId,
       instanceId: this.instanceId,
       position: entry.position,
-      name: resolved?.def.name ?? 'Item',
+      name: entry.name || resolved?.def.name || 'Item',
       icon: resolved?.def.icon ?? null,
       itemId: resolved?.instance.itemId ?? null,
       stateLabel: 'On ground',
       description: resolved?.def.description ?? '',
+      pickable: entry.pickable !== false,
     }
   }
 
   pickup(state, memberId) {
+    const entry = this.record(state)
+    if (!entry || entry.pickable === false) return state
     return pickupIntoBag(state, { instanceId: this.instanceId, memberId })
   }
 }

@@ -164,6 +164,22 @@
       "note": "Book (STA 2e Core p.355, Klingon Warrior attacks): D'k tahg dagger = Melee, Deadly 2, Size 1H, Hidden 1. Hidden is recorded but not applied (no concealment rules yet). focuses: none authored yet (designer to decide)."
     },
     {
+      "id": "klingonBatleth",
+      "itemId": "klingonBatleth",
+      "name": "Bat'leth",
+      "type": "melee",
+      "injuryModes": ["deadly"],
+      "severity": 3,
+      "hands": 2,
+      "qualities": [],
+      "optimalRange": "reach",
+      "maximumRange": "reach",
+      "focuses": [],
+      "attackSound": "punch",
+      "sourceType": "book",
+      "note": "Book (STA 2e Core p.355 Klingon Warrior): Escalation 1 Bat'leth = Melee, Deadly 3, Size 2H. Core p.243 Heavy Blade row is Deadly 3 / 2H / Intense — Intense omitted here to match the explicit Bat'leth attack line. TM p.94 describes the weapon. focuses: none authored yet (designer to decide)."
+    },
+    {
       "id": "unarmedStrike",
       "itemId": null,
       "name": "Unarmed Strike",

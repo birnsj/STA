@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { getTile, PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
+import { getCategoryName, getItems } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // The map editor's tool list: catalogue tiles in collapsible categories (each tile drawn as the map shows it, with Cover
 // and Fade checkboxes that edit the catalogue), the destructible objects and hazards (destructibles.json, hazards.json),
-// then the marker tools. tool: 'tile:{id}' | 'destructible:{type}' | 'hazard:{type}' | 'hazardErase' | 'playerStarts' |
-// 'enemySpawns' | 'npcs' | 'area' | 'erase'.
+// inventory ground objects (items.json), then the marker tools. tool: 'tile:{id}' | 'destructible:{type}' |
+// 'hazard:{type}' | 'hazardErase' | 'inventory:{itemId}' | 'playerStarts' | 'enemySpawns' | 'npcs' | 'area' | 'erase'.
 const MARKER_TOOLS = [
   { id: 'playerStarts', label: 'Player Start', swatch: 'player' },
   { id: 'enemySpawns', label: 'Enemy Spawn', swatch: 'enemy' },
@@ -26,9 +27,9 @@ const GROUPS = [
   { id: 'other', label: 'Other', tiles: TILES.filter((tile) => !GROUPED.has(tile.id) && tile.role !== 'destructible') },
 ]
 
-function ToolButton({ selected, onClick, children }) {
+function ToolButton({ selected, onClick, title, children }) {
   return (
-    <button type="button" className={`me-tool${selected ? ' is-selected' : ''}`} aria-pressed={selected} onClick={onClick}>
+    <button type="button" className={`me-tool${selected ? ' is-selected' : ''}`} aria-pressed={selected} title={title} onClick={onClick}>
       {children}
     </button>
   )
@@ -129,6 +130,26 @@ function EnvironmentTools({ tool, onTool, open, onToggle, hazardIntensity, onHaz
   )
 }
 
+// Catalogue inventory items place on the 8×8 ground grid (map.groundItemPlacements); no Place Tiles needed.
+function InventoryObjectTools({ tool, onTool, open, onToggle }) {
+  const items = getItems()
+  return (
+    <>
+      <p className="me-heading">Inventory Objects</p>
+      <ToolGroup id="inv:items" label="Items" count={items.length} open={open} onToggle={onToggle}>
+        {items.map((item) => (
+          <ToolButton key={item.id} selected={tool === `inventory:${item.id}`} onClick={() => onTool(`inventory:${item.id}`)} title={getCategoryName(item.category)}>
+            <span className="me-thumb-wrap">
+              {item.icon ? <img className="me-thumb-preview" src={item.icon} alt="" /> : <span className="me-swatch is-area" aria-hidden="true" />}
+            </span>
+            <span title={getCategoryName(item.category)}>{item.name}</span>
+          </ToolButton>
+        ))}
+      </ToolGroup>
+    </>
+  )
+}
+
 // The tile list only chooses which tile the brush holds; the toolbar's Place Tiles turns painting on.
 export default function EditorPalette({
   tool,
@@ -202,6 +223,7 @@ export default function EditorPalette({
         )
       })}
       <EnvironmentTools tool={tool} onTool={onTool} open={open} onToggle={toggle} hazardIntensity={hazardIntensity} onHazardIntensity={onHazardIntensity} />
+      <InventoryObjectTools tool={tool} onTool={onTool} open={open} onToggle={toggle} />
       <p className="me-heading">Markers</p>
       {MARKER_TOOLS.map((marker) => (
         <ToolButton key={marker.id} selected={tool === marker.id} onClick={() => onTool(marker.id)}>

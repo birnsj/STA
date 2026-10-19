@@ -45,7 +45,8 @@ const MINIMAP_ICON = 'M3 6l6-2l6 2l6-2v14l-6 2l-6-2l-6 2zM9 4v14M15 6v14'
 // open / onToggle(): the button in its top-right corner hides and shows it; while hidden the button stays in that spot.
 // cornerButtons: more buttons to the left of that one, which stay in the corner too.
 // toolbarOutside: the button strip is its own panel above the minimap (combat and exploration), so the readout sits clear below.
-// leading: optional content to the left of the minimap at the same height (Objectives panel).
+// leading: optional Objectives panel. With toolbarOutside it sits to the left, top-aligned with the buttons; the map and
+// everything under it stay in a column directly under the button bar.
 export default function Minimap({ map, party, world, knowledge, environment = null, objectives = [], doors = [], scanPulse = null, debug = false, open = true, onToggle = () => {}, cornerButtons = null, toolbarOutside = false, leading = null, children }) {
   const labelCentres = useMemo(() => areaLabelCentres(map.tiles, map.areas ?? []), [map.tiles, map.areas])
   const size = Math.max(map.width, map.height)
@@ -154,9 +155,21 @@ export default function Minimap({ map, party, world, knowledge, environment = nu
     <div className="explore-minimap-closed">{toolbar}</div>
   )
 
+  if (toolbarOutside) {
+    return (
+      <div className={`explore-minimap-column${leading ? ' has-leading' : ''}`}>
+        {leading}
+        <div className="explore-minimap-stack">
+          {toolbar}
+          {mapBody}
+          {children}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="explore-minimap-column">
-      {toolbarOutside && toolbar}
       <div className="explore-minimap-row">
         {leading}
         {mapBody}

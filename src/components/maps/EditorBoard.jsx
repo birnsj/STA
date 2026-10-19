@@ -4,6 +4,8 @@ import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
+import { getItemById } from '../../rules/equipment.js'
+import { snapItemPosition } from '../../rules/inventory.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from './canvasTiles.js'
@@ -26,6 +28,54 @@ function tileAt(event, map) {
   const tile = unproject(point)
   const position = { x: Math.round(tile.x), y: Math.round(tile.y) }
   return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
+}
+
+// Inventory tools: fractional board point snapped to the 8×8 item grid, or null off the map.
+function itemAt(event, map) {
+  const svg = event.currentTarget.ownerSVGElement
+  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse())
+  const position = snapItemPosition(unproject(point))
+  const tile = { x: Math.round(position.x), y: Math.round(position.y) }
+  return tile.x >= 0 && tile.y >= 0 && tile.x < map.width && tile.y < map.height ? position : null
+}
+
+const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
+
+function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
+  const list = (map.groundItemPlacements ?? []).flatMap((entry) => {
+    const def = getItemById(entry.itemId)
+    if (!def) return []
+    return [
+      {
+        id: entry.id,
+        position: entry.position,
+        worldImage: def.worldImage,
+        worldTile: def.worldTile ?? 'crate',
+        worldScale: def.worldScale ?? 0.4,
+        category: def.category,
+        depth: entry.position.x + entry.position.y,
+        hovered: entry.id === selectedGroundItemId,
+        inReach: true,
+      },
+    ]
+  })
+  if (inventoryTool && hover) {
+    const def = getItemById(inventoryTool)
+    if (def) {
+      list.push({
+        id: '__ghost',
+        position: hover,
+        worldImage: def.worldImage,
+        worldTile: def.worldTile ?? 'crate',
+        worldScale: def.worldScale ?? 0.4,
+        category: def.category,
+        depth: hover.x + hover.y + 0.001,
+        hovered: false,
+        inReach: true,
+      })
+    }
+  }
+  return list
 }
 
 // The tiles drawn see-through over everything (so a block in front doesn't hide them), as they would look placed: the
@@ -84,6 +134,8 @@ export default function EditorBoard({
   selectedObjectId = null,
   selectedDestructibleId = null,
   selectedHazardId = null,
+  selectedGroundItemId = null,
+  inventoryTool = null,
   moveFrom = null,
   onPaint,
   onPaintEnd,
@@ -105,14 +157,15 @@ export default function EditorBoard({
   const sceneRef = useRef(null)
   const { hostRef, failed } = usePixiScene((host, isCancelled) => startMapScene(host, () => sceneRef.current, isCancelled))
   const [hover, setHoverState] = useState(null)
-  // Only a move onto another tile counts, so the board re-renders once per tile crossed rather than per pointer move.
+  // Only a move onto another cell counts, so the board re-renders once per grid step rather than per pointer move.
   const setHover = (position) => {
     hoverRef.current = position
-    if (position?.x === hover?.x && position?.y === hover?.y) return
+    if (sameHover(position, hover)) return
     setHoverState(position)
     onHover(position)
   }
   const painting = useRef(false)
+  const pointerAt = (event) => (inventoryTool ? itemAt(event, map) : tileAt(event, map))
 
   useEffect(() => {
     const stop = () => {
@@ -173,9 +226,25 @@ export default function EditorBoard({
       return position ? [{ id: `o${index}`, position, kind: 'objective', label: `O${index + 1}`, facing: null, selected: false, doomed: false }] : []
     }),
   ]
-  const preview = useMemo(() => tilePreview(map, hover, brush, rotated, moveFrom), [map, hover, brush, rotated, moveFrom])
+  const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
+  const groundLoot = useMemo(
+    () => groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null),
+    [map, selectedGroundItemId, inventoryTool, hover],
+  )
   useLayoutEffect(() => {
-    sceneRef.current = { layout, ghost: ghostBlocks, lighting, animate, environment: shownEnvironment, labels, markers, outlines, preview, svg: dragHandlers.ref.current }
+    sceneRef.current = {
+      layout,
+      ghost: ghostBlocks,
+      lighting,
+      animate,
+      environment: shownEnvironment,
+      labels,
+      markers,
+      groundLoot,
+      outlines,
+      preview,
+      svg: dragHandlers.ref.current,
+    }
   })
 
   if (failed) return <WebglUnavailable />
@@ -205,23 +274,23 @@ export default function EditorBoard({
           className="me-cells"
           points={outline}
           onPointerDown={(event) => {
-            const position = event.button === 0 ? tileAt(event, map) : null
+            const position = event.button === 0 ? pointerAt(event) : null
             if (!position) return
             painting.current = true
             setHover(position)
             onPaint(position, { first: true })
           }}
           onPointerMove={(event) => {
-            const position = tileAt(event, map)
-            const moved = position?.x !== hover?.x || position?.y !== hover?.y
+            const position = pointerAt(event)
+            const moved = !sameHover(position, hover)
             setHover(position)
             if (position && moved && painting.current) onPaint(position, { first: false })
           }}
           onPointerLeave={() => setHover(null)}
         />
         <g className="me-overlay">
-          {moveFrom && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
-          {hover && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
+          {moveFrom && !inventoryTool && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
+          {hover && !inventoryTool && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
         </g>
       </svg>
     </>

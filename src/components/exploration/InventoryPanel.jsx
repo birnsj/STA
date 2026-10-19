@@ -2,13 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { loadInventoryWindow, saveInventoryWindow } from '../../character/persistence.js'
 import { getPortraitById } from '../../rules/appearance.js'
-import { getCategoryName, getItemStatLines } from '../../rules/equipment.js'
+import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
 import { TILE_H, tileImageBox } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
 import { BAG_CAPACITY, BAG_COLS, BAG_ROWS, EQUIP_SLOTS, canEquipToSlot, emptyInventory, resolveItem } from '../../rules/inventory.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
-import { useInfoTip } from '../useInfoTip.js'
-import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
+import InfoTipBubble from '../InfoTipBubble.jsx'
 import { useStageSize } from '../stageSize.js'
 
 const SLOT_LABELS = {
@@ -53,21 +52,30 @@ function itemTipContent(def, quantity = 1) {
   return { title: def.name, text: def.description || null, sections }
 }
 
-function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, bagDrop = null, tipBind = null }) {
+// Long enough that sliding across the grid does not flash a box on every icon; shorter than TitleTips (1.5s).
+const ITEM_TIP_DELAY_MS = 350
+
+// The element the pointer is resting on that owns an item tip (an equipment slot, or a carried cell).
+function itemTipTarget(target) {
+  if (!(target instanceof Element)) return null
+  return target.closest('[data-item-tip]')
+}
+
+function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, bagDrop = null }) {
   const filled = Boolean(def)
   const draggable = Boolean(def && onPointerDown)
   // Divs, not disabled buttons: empty cells must not eat clicks, and buttons fight pointer-drag in Electron.
   // Filled cells always take hits across the full box — pointer-events:none punched through to the map SVG.
   // Bag cells are always hit targets so a drop lands on that cell, not the first open one.
-  // tipBind: useInfoTip handlers (same as ChoiceList / TalentPicker). Not TitleTips — exploration re-renders
-  // every world tick and that path never keeps a tip alive on these cells.
+  // A carried cell is its own tip target. Equipped cells sit inside the slot that owns data-item-tip.
   return (
     <div
       className={`inventory-item-cell${selected ? ' is-selected' : ''}${invalid ? ' is-invalid' : ''}${dimmed ? ' is-dimmed' : ''}${filled ? ' is-filled' : ' is-empty'}${draggable ? ' is-draggable' : ''}${bagDrop ? ' is-bag-cell' : ''}`}
       data-inventory-drop={bagDrop ? 'bag' : undefined}
       data-member-id={bagDrop?.memberId}
       data-bag-index={bagDrop ? bagDrop.bagIndex : undefined}
-      {...(tipBind && filled && !dimmed ? tipBind(itemTipContent(def, quantity)) : {})}
+      data-item-tip={bagDrop && def ? def.id : undefined}
+      data-item-qty={bagDrop && def ? quantity : undefined}
       onPointerDown={
         draggable
           ? (event) => {
@@ -87,7 +95,7 @@ function ItemCell({ def, quantity, selected, invalid, dimmed, onPointerDown, bag
   )
 }
 
-function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag, tipBind = null }) {
+function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag }) {
   const resolved = instanceId ? resolveItem(state, instanceId) : null
   const dragging = drag?.instanceId
   const fromThisSlot = drag?.from?.location === 'slot' && drag.from.memberId === memberId && drag.from.slot === slot
@@ -102,15 +110,14 @@ function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag, tipBin
         onStartDrag(event, { instanceId, location: 'slot', slot })
       }
     : undefined
-  // Tip on the whole slot (label + icon), same bind as carried cells.
-  const tip = tipBind && resolved && !dimmed ? tipBind(itemTipContent(resolved.def, resolved.instance.quantity ?? 1)) : {}
   return (
     <div
       className={`inventory-slot${resolved ? ' is-filled is-draggable' : ' is-empty'}${invalid ? ' is-invalid-target' : ''}${canDrop ? ' is-valid-target' : ''}`}
       data-inventory-drop="slot"
       data-slot={slot}
       data-member-id={memberId}
-      {...tip}
+      data-item-tip={resolved ? resolved.def.id : undefined}
+      data-item-qty={resolved ? resolved.instance.quantity ?? 1 : undefined}
       onPointerDown={startDrag}
     >
       <span className="inventory-slot-label">{SLOT_LABELS[slot]}</span>
@@ -204,10 +211,64 @@ export default function InventoryPanel({
     setPosition((current) => clampPosition(current.left, current.top, stage.width, stage.height))
   }, [stage.width, stage.height])
 
-  // Creator-style hover tip (useInfoTip): TitleTips title/data-tip does not survive exploration's per-frame ticks.
-  const tipsEnabled = useDisplaySettings().tooltips !== false
-  const tip = useInfoTip()
-  const tipBind = tipsEnabled && !drag ? tip.bind : null
+  // Panel-level tip by item id (not useInfoTip / TitleTips): exploration re-renders every world tick and recreates
+  // cell DOM; matching the catalogue id keeps the delay and tip alive, and retargets the anchor when the node changes.
+  // Always on — independent of Settings → Tooltips (that switch only covers TitleTips chrome elsewhere).
+  const tipsEnabled = !drag
+  const [itemTip, setItemTip] = useState(null)
+  useEffect(() => {
+    const panel = panelRef?.current
+    if (!panel || !tipsEnabled) {
+      setItemTip(null)
+      return undefined
+    }
+    let hoveredId = null
+    let timer = null
+    const clear = () => {
+      clearTimeout(timer)
+      timer = null
+      hoveredId = null
+      setItemTip(null)
+    }
+    const dimmed = (target) =>
+      target.classList.contains('is-dimmed') || Boolean(target.querySelector('.inventory-item-cell.is-dimmed'))
+    const over = (event) => {
+      const target = itemTipTarget(event.target)
+      const itemId = target?.dataset.itemTip || null
+      if (!target || !itemId || dimmed(target)) {
+        if (hoveredId) clear()
+        return
+      }
+      if (itemId === hoveredId) {
+        setItemTip((tip) => (tip && tip.anchor !== target ? { ...tip, anchor: target } : tip))
+        return
+      }
+      clearTimeout(timer)
+      hoveredId = itemId
+      setItemTip(null)
+      const quantity = Number(target.dataset.itemQty) || 1
+      timer = setTimeout(() => {
+        if (hoveredId !== itemId) return
+        setItemTip({ itemId, quantity, anchor: target })
+      }, ITEM_TIP_DELAY_MS)
+    }
+    const out = (event) => {
+      if (!hoveredId) return
+      const next = event.relatedTarget
+      const nextTarget = next instanceof Element ? itemTipTarget(next) : null
+      if (nextTarget?.dataset.itemTip === hoveredId) return
+      if (next instanceof Element && next.closest('.info-tip')) return
+      clear()
+    }
+    panel.addEventListener('pointerover', over)
+    panel.addEventListener('pointerout', out)
+    return () => {
+      clearTimeout(timer)
+      panel.removeEventListener('pointerover', over)
+      panel.removeEventListener('pointerout', out)
+    }
+  }, [panelRef, tipsEnabled])
+
   // Live panel spot while dragging; React state only commits on release so world ticks cannot snap it back.
   const positionRef = useRef(position)
   const windowDraggingRef = useRef(false)
@@ -314,7 +375,7 @@ export default function InventoryPanel({
           <button
             key={entry.id}
             type="button"
-            className={`inventory-party-card${entry.id === member.id ? ' is-selected' : ''}${drag && drag.from.memberId !== entry.id ? ' is-drop-target' : ''}`}
+            className={`inventory-party-card${entry.id === member.id ? ' is-selected' : ''}${drag ? ' is-drop-target' : ''}`}
             data-inventory-drop="party"
             data-member-id={entry.id}
             onClick={() => onViewMember(entry.id)}
@@ -329,7 +390,7 @@ export default function InventoryPanel({
       <div className="inventory-body-row">
         <div className="inventory-slots-col">
           {EQUIP_SLOTS.slice(0, 2).map((slot) => (
-            <SlotCell key={slot} slot={slot} memberId={member.id} instanceId={inventory.slots[slot]} state={state} drag={drag} onStartDrag={beginItemDrag} tipBind={tipBind} />
+            <SlotCell key={slot} slot={slot} memberId={member.id} instanceId={inventory.slots[slot]} state={state} drag={drag} onStartDrag={beginItemDrag} />
           ))}
         </div>
         <div className="inventory-body-art">
@@ -338,7 +399,7 @@ export default function InventoryPanel({
         </div>
         <div className="inventory-slots-col">
           {EQUIP_SLOTS.slice(2).map((slot) => (
-            <SlotCell key={slot} slot={slot} memberId={member.id} instanceId={inventory.slots[slot]} state={state} drag={drag} onStartDrag={beginItemDrag} tipBind={tipBind} />
+            <SlotCell key={slot} slot={slot} memberId={member.id} instanceId={inventory.slots[slot]} state={state} drag={drag} onStartDrag={beginItemDrag} />
           ))}
         </div>
       </div>
@@ -356,14 +417,15 @@ export default function InventoryPanel({
                 selected={drag?.instanceId === instanceId}
                 dimmed={Boolean(drag && instanceId && drag.instanceId === instanceId)}
                 bagDrop={{ memberId: member.id, bagIndex: index }}
-                tipBind={tipBind}
                 onPointerDown={resolved ? (event) => beginItemDrag(event, { instanceId, location: 'bag', bagIndex: index }) : undefined}
               />
             )
           })}
         </div>
       </div>
-      {!drag ? tip.element : null}
+      {itemTip && tipsEnabled ? (
+        <InfoTipBubble content={itemTipContent(getItemById(itemTip.itemId), itemTip.quantity)} anchor={itemTip.anchor} />
+      ) : null}
     </div>
   )
 }

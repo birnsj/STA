@@ -32,6 +32,10 @@
 // hazards: [{ id, type (hazards.json), tiles: { 'x,y': intensity 1-3 }, severity?, spreadChance?, dissipateChance?,
 // neutralizeDifficulty? }] — hazard regions present when the mission starts (the optional fields override the type's);
 // on disk tiles is [[x, y, intensity]]. Both are left out on disk when empty.
+// groundItemPlacements: [{ id, itemId (items.json), position: [x, y], name?, pickable?, visible? }] — authored spawn
+// points for session ground inventory (rules/inventory.js seedGroundItemPlacements; map editor Inventory Objects tool).
+// Fractional x/y are allowed for the 8×8 drop grid. name overrides the hover label; pickable/visible default true and
+// are left out on disk when true. Entries missing id get one on parse. Runtime drops never write back into the map file.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
@@ -120,12 +124,42 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     objectPlacements: {},
     destructibles: [],
     hazards: [],
+    groundItemPlacements: [],
     briefing: '',
     outro: '',
     outroAbandoned: '',
     outroFailed: '',
     stardate: null,
   }
+}
+
+function freeGroundItemId(itemId, used) {
+  let index = 1
+  while (used.has(`${itemId}${index}`)) index += 1
+  return `${itemId}${index}`
+}
+
+function parseGroundItemPlacement(raw, inside, usedIds) {
+  if (!raw || raw.itemId == null || !Array.isArray(raw.position)) return null
+  const position = toPosition(raw.position)
+  if (!inside(position)) return null
+  const itemId = String(raw.itemId)
+  let id = typeof raw.id === 'string' && raw.id ? raw.id : null
+  if (!id || usedIds.has(id)) id = freeGroundItemId(itemId, usedIds)
+  usedIds.add(id)
+  const entry = { id, itemId, position }
+  if (typeof raw.name === 'string' && raw.name.trim()) entry.name = raw.name.trim()
+  if (raw.pickable === false) entry.pickable = false
+  if (raw.visible === false) entry.visible = false
+  return entry
+}
+
+function serializeGroundItemPlacement(entry) {
+  const record = { id: entry.id, itemId: entry.itemId, position: fromPosition(entry.position) }
+  if (entry.name) record.name = entry.name
+  if (entry.pickable === false) record.pickable = false
+  if (entry.visible === false) record.visible = false
+  return record
 }
 
 // The fields an NPC placement keeps (anything else in a file is dropped); empty optional ones are left out on disk.
@@ -254,6 +288,7 @@ export function parseMapFile(file, id) {
   const inside = (position) => isInside(width, rows.length, position)
   const rotatedKeys = new Set((file.rotated ?? []).map(toPosition).filter(inside).map(({ x, y }) => `${x},${y}`))
   const oldBiomeType = BIOME_MAP_TYPES.has(file.mapType)
+  const groundItemIds = new Set()
   return {
     id,
     name: file.name ?? id,
@@ -286,6 +321,9 @@ export function parseMapFile(file, id) {
       .filter((raw) => raw?.id != null)
       .map((raw) => parseHazard(raw, inside))
       .filter((hazard) => Object.keys(hazard.tiles).length),
+    groundItemPlacements: (file.groundItemPlacements ?? [])
+      .map((raw) => parseGroundItemPlacement(raw, inside, groundItemIds))
+      .filter(Boolean),
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     outro: typeof file.outro === 'string' ? file.outro : '',
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
@@ -319,6 +357,9 @@ export function serializeMap(map) {
       : {}),
     ...(map.destructibles?.length ? { destructibles: map.destructibles.map(serializeDestructible) } : {}),
     ...(map.hazards?.length ? { hazards: map.hazards.map(serializeHazard) } : {}),
+    ...(map.groundItemPlacements?.length
+      ? { groundItemPlacements: map.groundItemPlacements.map(serializeGroundItemPlacement) }
+      : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
@@ -347,6 +388,7 @@ export function resizeMap(map, width, height) {
       .filter((object) => inside(object.position))
       .map((object) => (object.linkedTiles ? { ...object, linkedTiles: object.linkedTiles.filter(inside) } : object)),
     hazards: (map.hazards ?? []).map((hazard) => hazardInside(hazard, inside)).filter((hazard) => Object.keys(hazard.tiles).length),
+    groundItemPlacements: (map.groundItemPlacements ?? []).filter((entry) => inside(entry.position)),
   }
 }
 

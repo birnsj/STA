@@ -43,7 +43,7 @@ import { activeHazards, isStanding } from '../world/environment.js'
 import { hazardChallengeId, isHazardChallengeId } from '../world/EnvironmentalHazard.js'
 import { getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
-import { canPlaceAt, groundItemViews } from '../rules/inventory.js'
+import { bagFreeSlots, canPlaceAt, groundItemViews } from '../rules/inventory.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { npcButtonPerformer } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
@@ -178,7 +178,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       }
       return
     }
-    const point = placeHelpersRef.current?.toTiles?.(clientX, clientY)
+    const helpers = placeHelpersRef.current
+    const point = helpers?.toTiles?.(clientX, clientY)
     if (!point) {
       if (placeHoverRef.current) {
         placeHoverRef.current = null
@@ -190,9 +191,24 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     const check = canPlaceAt(exploreStateRef.current, point, {
       excludeInstanceId: dragging?.from?.location === 'ground' ? dragging.instanceId : null,
     })
-    const hover = { position: check.position ?? point, valid: check.ok }
+    // Prefer giving the item to a party member under the pointer (green ring) when their bag has room.
+    let dropMemberId = null
+    const memberId = helpers?.memberAt?.(clientX, clientY) ?? null
+    if (memberId) {
+      const member = exploreStateRef.current.party?.members?.[memberId]
+      if (member?.character?.inventory && bagFreeSlots(member.character) > 0) dropMemberId = memberId
+    }
+    const hover = { position: check.position ?? point, valid: check.ok, dropMemberId }
     const prev = placeHoverRef.current
-    if (prev && prev.valid === hover.valid && prev.position.x === hover.position.x && prev.position.y === hover.position.y) return
+    if (
+      prev &&
+      prev.valid === hover.valid &&
+      prev.dropMemberId === hover.dropMemberId &&
+      prev.position.x === hover.position.x &&
+      prev.position.y === hover.position.y
+    ) {
+      return
+    }
     placeHoverRef.current = hover
     setPlaceHover(hover)
   }, [])
@@ -283,6 +299,11 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
               toBagIndex: invDrop.kind === 'bag' ? (invDrop.bagIndex ?? null) : null,
             })
           }
+          return
+        }
+        // World drag released over a party figure → that member's bag (same path as inventory party-card drops).
+        if (overWorld && hover?.dropMemberId) {
+          dispatch({ type: 'transferItem', instanceId, toMemberId: hover.dropMemberId })
           return
         }
         if (overWorld && hover?.valid) dispatch({ type: 'dropItem', instanceId, position: hover.position })
@@ -493,6 +514,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
 
   const startGroundItemDrag = useCallback(
     (instanceId, clientX, clientY, pointerId) => {
+      if (state.groundItems?.[instanceId]?.pickable === false) return
       setMenuGroundItemId(null)
       beginItemDrag({
         instanceId,
@@ -502,7 +524,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         pointerId,
       })
     },
-    [beginItemDrag],
+    [beginItemDrag, state.groundItems],
   )
   // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
   // request cancels it.
@@ -793,11 +815,14 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           placingItem={itemDrag?.overWorld ? itemDrag : null}
           placeHover={placeHover}
           onPlaceHover={(hover) => {
-            placeHoverRef.current = hover
-            setPlaceHover(hover)
+            const prev = placeHoverRef.current
+            const next = { dropMemberId: prev?.dropMemberId ?? null, ...hover }
+            placeHoverRef.current = next
+            setPlaceHover(next)
           }}
           placeHelpersRef={placeHelpersRef}
           exploreState={state}
+          itemDropMemberId={itemDrag?.overWorld ? placeHover?.dropMemberId ?? null : null}
           itemDragActive={Boolean(itemDrag)}
           debug={debugOpen}
           followCamera={followCamera}

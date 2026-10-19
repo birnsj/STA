@@ -178,6 +178,19 @@ describe('ground drop and pickup', () => {
     assert.ok(state.party.members.a.character.inventory.bag.includes(medkitId))
   })
 
+  it('transferItem from the ground into another member bag (world drop-on-figure)', () => {
+    let state = partyState([
+      makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }] }),
+      makeCharacter({ id: 'b', equipment: [] }),
+    ])
+    const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    state = dropItem(state, { instanceId: medkitId, position: { x: 2, y: 2 } })
+    assert.ok(state.groundItems[medkitId])
+    state = transferItem(state, { instanceId: medkitId, toMemberId: 'b' })
+    assert.ok(!state.groundItems[medkitId])
+    assert.ok(state.party.members.b.character.inventory.bag.includes(medkitId))
+  })
+
   it('snaps placement to the 8×8 item grid and allows multiple items on one map tile', () => {
     assert.deepEqual(snapItemPosition({ x: 2.04, y: 2.11 }), { x: 2, y: 2.125 })
     let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'missionObject' }] })])
