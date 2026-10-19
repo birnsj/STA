@@ -27,6 +27,7 @@ music/
 /.tmp-*
 /contact-sheets/
 /tmp-check/
+/tmp_*.txt
 
 # Editor directories and files
 .vscode/*

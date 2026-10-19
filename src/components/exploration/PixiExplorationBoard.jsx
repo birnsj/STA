@@ -8,8 +8,9 @@ import { figureShapes, hitTest, rectOnGround } from '../../maps/boardHitTest.js'
 import { diamond, project, pts, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
 import { canPlaceAt } from '../../rules/inventory.js'
+import { isDestructibleScanned } from '../../world/destructibleScan.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
-import { playWeaponSound } from '../../audio/uiSounds.js'
+import { playBoardHover, playWeaponSound } from '../../audio/uiSounds.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
 import { worldToGrid } from '../../exploration/tacticalGrid.js'
@@ -80,6 +81,7 @@ export default function PixiExplorationBoard(props) {
     groundItems = [],
     groundReachableIds = [],
     onGroundItem = () => {},
+    onGroundItemMenu = null,
     onGroundItemDragStart = null,
     placingItem = null,
     placeHover = null,
@@ -89,6 +91,8 @@ export default function PixiExplorationBoard(props) {
     // Member id under an item drag who can take it into their bag (green ring).
     itemDropMemberId = null,
     itemDragActive = false,
+    // Marker / ground ids whose floating name tags stay hidden (open ring under the pointer).
+    hiddenTagIds = [],
     debug,
     followCamera,
     onCameraPan = null,
@@ -161,6 +165,12 @@ export default function PixiExplorationBoard(props) {
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')
   const hoverRef = useRef(null)
+  // Left Alt held: outline every challenge object, destructible, and ground item (and their name tags).
+  const altHighlightRef = useRef(false)
+  const hiddenTagIdsRef = useRef(hiddenTagIds)
+  useEffect(() => {
+    hiddenTagIdsRef.current = hiddenTagIds
+  }, [hiddenTagIds])
   const [pulses, setPulses] = useState([])
   const pulseIdRef = useRef(0)
   const pulseTimers = useRef(new Set())
@@ -295,7 +305,21 @@ export default function PixiExplorationBoard(props) {
     const area = highlightBox(map, bigGroups, tiles)
     const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
     highlights.push({ id: view.id, tiles, area, depth: nearest + 0.35, changed: Boolean(view.changed), inReach })
-    markers.push({ id: view.id, position: view.position, artTop, name: view.name, stateLabel: view.stateLabel, changed: Boolean(view.changed), objective: Boolean(view.objective), inReach, depth: nearest + 0.4 })
+    // After a successful Scan, mouseover shows type + authored description (objectScans).
+    const scanned = isDestructibleScanned(exploreState?.objectScans, view.id)
+    markers.push({
+      id: view.id,
+      position: view.position,
+      artTop,
+      name: view.name,
+      stateLabel: view.stateLabel,
+      typeLabel: scanned ? view.type : null,
+      description: scanned && view.description ? view.description : null,
+      changed: Boolean(view.changed),
+      objective: Boolean(view.objective),
+      inReach,
+      depth: nearest + 0.4,
+    })
     // Only in-reach objects take hits, and only on the art sitting on the ground. The name tag floats above that
     // and is display-only, so the pointer leaves the object as soon as it moves onto the label.
     if (inReach) {
@@ -345,13 +369,16 @@ export default function PixiExplorationBoard(props) {
       inReach,
       depth,
     })
-    // Same floating object tag as challenge objects (hover only — see MarkerView).
+    // Same floating object tag as challenge objects (hover only — see MarkerView). After Scan: category + description.
+    const groundScanned = isDestructibleScanned(exploreState?.objectScans, view.id)
     markers.push({
       id: `ground:${view.id}`,
       position: view.position,
       artTop,
       name: view.name,
       stateLabel: 'On ground',
+      typeLabel: groundScanned ? view.category : null,
+      description: groundScanned && view.description ? view.description : null,
       changed: false,
       objective: false,
       inReach,
@@ -474,20 +501,59 @@ export default function PixiExplorationBoard(props) {
     onMapReadyRef.current = onMapReady
   }, [onMapReady])
 
+  // Hold Left Alt to light up every world prop outline (challenges, destructibles, ground loot).
+  useEffect(() => {
+    const setHeld = (held) => {
+      altHighlightRef.current = held
+    }
+    const onKeyDown = (event) => {
+      if (event.code !== 'AltLeft' || event.repeat) return
+      event.preventDefault()
+      setHeld(true)
+    }
+    const onKeyUp = (event) => {
+      if (event.code !== 'AltLeft') return
+      setHeld(false)
+    }
+    const clear = () => setHeld(false)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', clear)
+    document.addEventListener('visibilitychange', clear)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', clear)
+      document.removeEventListener('visibilitychange', clear)
+      altHighlightRef.current = false
+    }
+  }, [])
+
   const { hostRef, failed } = usePixiScene((host, isCancelled) => {
     const read = () => {
       const board = boardRef.current
       if (!board) return null
       const hovered = hoverRef.current
-      const objectOutlines = board.highlights.map((item) => (item.id === hovered ? { ...item, hovered: true } : item))
-      const destructibleOutlines = hovered
-        ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
-        : []
-      const groundLoot = (board.groundLoot ?? []).map((item) => (item.id === hovered ? { ...item, hovered: true } : { ...item, hovered: false }))
-      // Name tags only while the pointer is over that object / ground drop (MarkerView).
+      const showAll = altHighlightRef.current
+      const hideTags = new Set(hiddenTagIdsRef.current ?? [])
+      const tagHidden = (id) => hideTags.has(id) || hideTags.has(`ground:${id}`)
+      const objectOutlines = board.highlights.map((item) =>
+        showAll || item.id === hovered ? { ...item, hovered: true } : item,
+      )
+      const destructibleOutlines = showAll
+        ? board.destructibleHighlights.map((item) => ({ ...item, hovered: true }))
+        : hovered
+          ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
+          : []
+      const groundLoot = (board.groundLoot ?? []).map((item) => ({
+        ...item,
+        hovered: showAll || item.id === hovered,
+      }))
+      // Name tags while hovered or Left Alt — never while that object's ring is open (hides under the menu).
       const markers = (board.markers ?? []).map((item) => {
         const hoverId = item.id.startsWith('ground:') ? item.id.slice('ground:'.length) : item.id
-        return { ...item, hovered: hoverId === hovered }
+        const show = !tagHidden(item.id) && !tagHidden(hoverId) && (showAll || hoverId === hovered)
+        return { ...item, hovered: show }
       })
       return { ...board, svg: svgRef.current, highlights: [...objectOutlines, ...destructibleOutlines], groundLoot, markers }
     }
@@ -621,10 +687,40 @@ export default function PixiExplorationBoard(props) {
       return
     }
     const target = targetAt(event)
-    // Left-drag a ground item: pick it up as the cursor (same model as inventory). Right-click still opens the ring.
-    if (target?.kind === 'groundItem' && event.button === 0 && onGroundItemDragStart) {
+    // Ground item: left-click walks over and picks up; left-drag past BOX_MIN_DRAG lifts it as the cursor;
+    // right-click opens the Pick Up / Go To ring.
+    if (target?.kind === 'groundItem' && event.pointerType === 'mouse' && event.button === 2) {
       event.preventDefault()
-      onGroundItemDragStart(target.id, event.clientX, event.clientY, event.pointerId)
+      ;(onGroundItemMenu ?? onGroundItem)(target.id)
+      return
+    }
+    if (target?.kind === 'groundItem' && event.button === 0) {
+      event.preventDefault()
+      const instanceId = target.id
+      const pointerId = event.pointerId
+      const originX = event.clientX
+      const originY = event.clientY
+      let dragging = false
+      const stop = () => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
+      }
+      const onMove = (moveEvent) => {
+        if (moveEvent.pointerId !== pointerId || dragging) return
+        if (Math.hypot(moveEvent.clientX - originX, moveEvent.clientY - originY) < BOX_MIN_DRAG) return
+        dragging = true
+        stop()
+        onGroundItemDragStart?.(instanceId, moveEvent.clientX, moveEvent.clientY, pointerId)
+      }
+      const onUp = (upEvent) => {
+        if (upEvent.pointerId !== pointerId) return
+        stop()
+        if (!dragging && upEvent.type === 'pointerup') onGroundItem(instanceId)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
       return
     }
     if (target && pressTarget(target, event)) return
@@ -642,7 +738,8 @@ export default function PixiExplorationBoard(props) {
     addPulse(point)
   }
   // Pointer cursor over what can be clicked (a figure standing, an object in reach); the object or destructible under
-  // it holds its outline steady (destructibles only outline while hovered).
+  // it holds its outline steady (destructibles only outline while hovered). Hover blip matches the combat board
+  // (playBoardHover) when the mouse enters a world prop.
   const handlePointerMove = (event) => {
     if (placingItem || itemDragActive) {
       reportPlaceHover(event.clientX, event.clientY)
@@ -651,7 +748,10 @@ export default function PixiExplorationBoard(props) {
       return
     }
     const target = targetAt(event)
-    hoverRef.current = target?.kind === 'object' || target?.kind === 'destructible' || target?.kind === 'groundItem' ? target.id : null
+    const hoverable =
+      target && (target.kind === 'object' || target.kind === 'destructible' || target.kind === 'groundItem') ? target.id : null
+    if (event.pointerType === 'mouse' && hoverable && hoverable !== hoverRef.current) playBoardHover()
+    hoverRef.current = hoverable
     const svg = svgRef.current
     if (svg) svg.dataset.cursor = boardCursor(target)
   }

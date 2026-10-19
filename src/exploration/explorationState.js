@@ -14,10 +14,12 @@ import { applyScenarioTiles, attemptChallenge, challengeFor, createScenario, INT
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
-import { scanArea, scanDestructible, scanNpc } from './partyScan.js'
+import { scanArea, scanChallenge, scanDestructible, scanGroundItem, scanNpc } from './partyScan.js'
 import { askNpc } from './partySocial.js'
 import { addLogEntry, createMissionLog, logObjectiveChanges } from './missionLog.js'
 import { foughtNpcIds, isMissionFailed, mustSurviveIds, updateObjectives } from './missionObjectives.js'
+import { playItemDrop, playItemPickup } from '../audio/uiSounds.js'
+import { getItemById } from '../rules/equipment.js'
 import {
   dropItem,
   equipItem,
@@ -28,6 +30,11 @@ import {
   transferItem,
   unequipItem,
 } from '../rules/inventory.js'
+
+function itemCategoryOf(state, instanceId) {
+  const itemId = state.itemInstances?.[instanceId]?.itemId
+  return getItemById(itemId)?.category ?? null
+}
 import { applyEnvironmentTiles, createEnvironment } from '../world/environment.js'
 import { applyPendingObjectHit, clearBlastReact, fireOnObject, neutralizeHazardTask, tickHazards } from './explorationEnvironment.js'
 
@@ -267,6 +274,12 @@ function reduceExploration(state, action) {
     // { memberId, objectId }: that character scans one destructible (partyScan.js).
     case 'scanDestructible':
       return state.mode === MODE.COMBAT ? state : scanDestructible(state, action.memberId, action.objectId)
+    // { memberId, objectId }: that character scans one challenge object (partyScan.js).
+    case 'scanChallenge':
+      return state.mode === MODE.COMBAT ? state : scanChallenge(state, action.memberId, action.objectId)
+    // { memberId, instanceId }: that character scans one ground inventory prop (partyScan.js).
+    case 'scanGroundItem':
+      return state.mode === MODE.COMBAT ? state : scanGroundItem(state, action.memberId, action.instanceId)
     // { memberId, npcId, kind: 'persuade' | 'intimidate' }: that character asks one NPC (partySocial.js).
     // A lost Intimidate on an aggressive NPC provokes it: it attacks the one who threatened it.
     case 'askNpc': {
@@ -329,12 +342,34 @@ function reduceExploration(state, action) {
       return state.mode === MODE.COMBAT ? state : equipItem(state, action)
     case 'unequipItem':
       return state.mode === MODE.COMBAT ? state : unequipItem(state, action)
-    case 'transferItem':
-      return state.mode === MODE.COMBAT ? state : transferItem(state, action)
-    case 'dropItem':
-      return state.mode === MODE.COMBAT ? state : dropItem(state, action)
-    case 'pickupItem':
-      return state.mode === MODE.COMBAT ? state : pickupItem(state, action)
+    case 'transferItem': {
+      if (state.mode === MODE.COMBAT) return state
+      // Ground → bag/slot without a prior drag lift (rare); drag-from-ground already chirps on grab.
+      const fromGround = Boolean(state.groundItems?.[action.instanceId])
+      const category = fromGround ? itemCategoryOf(state, action.instanceId) : null
+      const next = transferItem(state, action)
+      if (next !== state) {
+        if (fromGround && !next.groundItems?.[action.instanceId] && !action.skipPickupSound) {
+          playItemPickup(category)
+        }
+        // Drag release into bag/slot (ExplorationScreen sets playDropSound).
+        if (action.playDropSound) playItemDrop()
+      }
+      return next
+    }
+    case 'dropItem': {
+      if (state.mode === MODE.COMBAT) return state
+      const next = dropItem(state, action)
+      if (next !== state) playItemDrop()
+      return next
+    }
+    case 'pickupItem': {
+      if (state.mode === MODE.COMBAT) return state
+      const category = itemCategoryOf(state, action.instanceId)
+      const next = pickupItem(state, action)
+      if (next !== state) playItemPickup(category)
+      return next
+    }
     default: {
       // Party orders are frozen while combat runs: the combat screen gives the orders then.
       if (state.mode === MODE.COMBAT) return state

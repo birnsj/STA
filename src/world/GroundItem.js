@@ -4,6 +4,11 @@ import { INTERACT_RANGE } from '../exploration/challengeObjects.js'
 import { canAct, getMembers } from '../exploration/partyControl.js'
 import { pickupItem as pickupIntoBag, resolveItem } from '../rules/inventory.js'
 
+// How close (tiles) a character must stand before the item leaves the ground.
+// Tighter than INTERACT_RANGE (ring / walk order) so props stay visible until the character is on top of them.
+// Keep >= party arriveDistance (0.6) so a moveTo the item position still completes the pickup.
+export const GROUND_PICKUP_RANGE = 0.75
+
 export class GroundItem {
   constructor(instanceId) {
     this.instanceId = instanceId
@@ -22,14 +27,28 @@ export class GroundItem {
     return entry ? { ...entry.position } : null
   }
 
-  inReach(state, point) {
+  distanceTo(state, point) {
     const position = this.position(state)
-    if (!position) return false
-    return Math.hypot(point.x - position.x, point.y - position.y) <= INTERACT_RANGE
+    if (!position || !point) return Infinity
+    return Math.hypot(point.x - position.x, point.y - position.y)
+  }
+
+  // Ring / approach range (same as challenge objects).
+  inReach(state, point) {
+    return this.distanceTo(state, point) <= INTERACT_RANGE
+  }
+
+  // Actual grab — item stays on the ground until this close.
+  inPickupRange(state, point) {
+    return this.distanceTo(state, point) <= GROUND_PICKUP_RANGE
   }
 
   membersInRange(state) {
     return getMembers(state.party).filter((member) => canAct(member) && this.inReach(state, member.position))
+  }
+
+  membersInPickupRange(state) {
+    return getMembers(state.party).filter((member) => canAct(member) && this.inPickupRange(state, member.position))
   }
 
   view(state) {

@@ -23,8 +23,11 @@ export default function ReadoutNoise({ sweep = null }) {
 
   return (
     <div className="readout-noise" aria-hidden="true">
-      {pulse && <div key={pulse.id} className="readout-noise-pulse" style={{ animationDuration: `${pulse.seconds}s` }} onAnimationEnd={() => setPulse(null)} />}
-      {sweep && <div key={sweep.key} className="readout-noise-band" style={{ animationDuration: `${sweep.seconds}s` }} />}
+      {pulse && (
+        <div key={`pulse-${pulse.id}`} className="readout-noise-pulse" style={{ animationDuration: `${pulse.seconds}s` }} onAnimationEnd={() => setPulse(null)} />
+      )}
+      {/* Prefix: sweep.key is scenario.taskCount and can be 0, same as the first idle pulse id. */}
+      {sweep && <div key={`sweep-${sweep.key}`} className="readout-noise-band" style={{ animationDuration: `${sweep.seconds}s` }} />}
     </div>
   )
 }

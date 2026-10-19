@@ -100,10 +100,30 @@ const PANEL = 0x060c1c
 const FRAME_PAD_X = 6
 const FRAME_PAD_Y = 2
 
+// Soft-wrap a description for the hover tag (no Pixi wordWrap on makeLabel).
+function wrapMarkerLines(text, maxChars = 34) {
+  const words = String(text).trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return []
+  const lines = []
+  let line = ''
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word
+    if (next.length > maxChars && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = next
+    }
+  }
+  if (line) lines.push(line)
+  return lines.slice(0, 4)
+}
+
 // A challenge object's marker: a diamond over the object's art with its state and name above, framed. Shown only while
-// the pointer is over the object (or a ground drop). On an active objective's object (objective) a glow round the frame
-// pulses (0.15 -> 0.9 -> 0.15 over 1.6 s; steady with reduced motion).
-// object: { position, artTop, name, stateLabel, changed, objective, inReach, depth, hovered }.
+// the pointer is over the object (or a ground drop). After a successful Scan, type + authored description join the tag.
+// On an active objective's object (objective) a glow round the frame pulses (0.15 -> 0.9 -> 0.15 over 1.6 s; steady with
+// reduced motion).
+// object: { position, artTop, name, stateLabel, typeLabel?, description?, changed, objective, inReach, depth, hovered }.
 export class MarkerView {
   constructor() {
     this.container = new Container()
@@ -118,7 +138,7 @@ export class MarkerView {
     this.container.visible = Boolean(object.hovered)
     if (!this.container.visible) return
     this.container.alpha = object.inReach ? 1 : 0.75
-    const look = `${object.name}|${object.stateLabel}|${object.changed}|${object.objective}|${object.artTop}`
+    const look = `${object.name}|${object.stateLabel}|${object.typeLabel ?? ''}|${object.description ?? ''}|${object.changed}|${object.objective}|${object.artTop}`
     if (this.look !== look) this.draw(object, look)
     if (this.glow) this.glow.alpha = reducedMotion() ? 0.6 : 0.525 - 0.375 * Math.cos(((now % 1600) / 1600) * Math.PI * 2)
   }
@@ -132,14 +152,32 @@ export class MarkerView {
       .poly([0, diamond - 20, 9, diamond - 10, 0, diamond, -9, diamond - 10])
       .fill({ color: colour })
       .stroke({ color: 0x03060e, width: 1.5 })
+
+    const typeLabel = object.typeLabel ? object.typeLabel.charAt(0).toUpperCase() + object.typeLabel.slice(1) : ''
+    const detail = typeLabel ? `${typeLabel} · ${object.stateLabel}` : object.stateLabel
+    const descLines = object.description ? wrapMarkerLines(object.description) : []
+    // Stack upward from the diamond: description (lowest), state/type, name (highest).
+    const lineGap = 11
+    let y = -object.artTop - MARKER_STATE
+    const labels = []
+    for (let i = descLines.length - 1; i >= 0; i--) {
+      const label = makeLabel(descLines[i], { size: 8, weight: '500', fill: colour, outline: false })
+      placeLabel(label, 0, y)
+      labels.unshift(label)
+      y -= lineGap
+    }
+    const state = makeLabel(detail, { size: 9, weight: '600', fill: colour, outline: false })
+    placeLabel(state, 0, y)
+    labels.unshift(state)
+    y -= lineGap + 1
     const name = makeLabel(object.name, { size: 10, fill: colour, outline: false })
-    placeLabel(name, 0, -object.artTop - MARKER_NAME)
-    const state = makeLabel(object.stateLabel, { size: 9, weight: '600', fill: colour, outline: false })
-    placeLabel(state, 0, -object.artTop - MARKER_STATE)
-    // The HUD panels' frame (base.css --panel, rounded, bordered) in the marker's colour.
-    const width = Math.max(name.width, state.width) + FRAME_PAD_X * 2
+    placeLabel(name, 0, Math.min(y, -object.artTop - MARKER_NAME))
+    labels.unshift(name)
+
+    const width = Math.max(...labels.map((label) => label.width)) + FRAME_PAD_X * 2
     const top = name.y - FRAME_PAD_Y
-    const height = state.y + state.height + FRAME_PAD_Y - top
+    const bottom = labels[labels.length - 1]
+    const height = bottom.y + bottom.height + FRAME_PAD_Y - top
     const frame = new Graphics()
       .roundRect(-width / 2, top, width, height, 4)
       .fill({ color: PANEL })
@@ -151,7 +189,7 @@ export class MarkerView {
           .roundRect(-width / 2 - 5, top - 5, width + 10, height + 10, 8)
           .stroke({ color: colour, width: 2, alpha: 0.4 })
       : null
-    this.container.addChild(...(this.glow ? [this.glow] : []), shape, frame, name, state)
+    this.container.addChild(...(this.glow ? [this.glow] : []), shape, frame, ...labels)
   }
 
   destroy() {

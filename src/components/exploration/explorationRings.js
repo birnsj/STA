@@ -7,10 +7,11 @@ import { challengeFor } from '../../exploration/challengeObjects.js'
 import { previewObjectShot } from '../../exploration/explorationEnvironment.js'
 import { canScan, canScanNpc, scanRadius } from '../../exploration/partyScan.js'
 import { canAskNpc } from '../../exploration/partySocial.js'
-import { destructibleScanner, destructibleShooter, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
+import { challengeScanner, destructibleScanner, destructibleShooter, groundItemScanner, npcButtonPerformer, ringPartyView } from '../../exploration/ringParty.js'
 import { getEquippedItems } from '../../rules/equipment.js'
 import { bagFreeSlots, resolveItem } from '../../rules/inventory.js'
 import { groundItemFor } from '../../world/GroundItem.js'
+import itemsData from '../../data/adaptation/items.json'
 import { getFaction } from '../../rules/factions.js'
 import { conditionSummary, getProtection, isDefeated, normalizeCondition } from '../../rules/personalCondition.js'
 import { destructibleScanCard, isDestructibleScanned } from '../../world/destructibleScan.js'
@@ -55,22 +56,65 @@ export function memberMenuButtons(state, member, actions) {
   ]
 }
 
-// A challenge object's radial menu (left click on it while in reach): one button per approach it offers now. open(actionId)
-// opens the interaction panel on that approach; activeId: the approach the open panel is on (lit).
-export function objectMenuButtons(state, objectId, open, activeId = null) {
+// A challenge object's radial menu (left click on it while in reach): Scan (Reason + Science, tricorder range), then one
+// button per approach it offers now. actions: { open(actionId), scan(memberId) }; activeId: the approach the open panel
+// is on (lit); pickedId: who is picked on the party band for Scan.
+export function objectMenuButtons(state, objectId, actions, activeId = null, pickedId = null) {
   const challenge = challengeFor(state, objectId)
   if (!challenge) return []
-  return challenge
-    .listedActions(state)
-    .map(({ action, available, reason }) => ({
-      id: action.id,
-      label: action.label,
-      icon: action.icon ?? 'interact',
-      enabled: available,
-      active: action.id === activeId,
-      title: available ? `${action.label}: ${action.description}` : reason,
-      onClick: () => open(action.id),
-    }))
+  const view = challenge.view(state.scenario)
+  const scanner = challengeScanner(state, objectId, pickedId)
+  const scanned = isDestructibleScanned(state.objectScans, objectId)
+  const scanTitle = !scanner
+    ? 'Scan: select a character first.'
+    : scanner.check.possible
+      ? scanned
+        ? `${scanner.member.character.name} scans the ${view.name} again (Reason + Science): refresh its readings.`
+        : `${scanner.member.character.name} scans the ${view.name} (Reason + Science): read its current state.`
+      : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
+  const approaches = challenge.listedActions(state).map(({ action, available, reason }) => ({
+    id: action.id,
+    label: action.label,
+    icon: action.icon ?? 'interact',
+    enabled: available,
+    active: action.id === activeId,
+    title: available ? `${action.label}: ${action.description}` : reason,
+    onClick: () => actions.open(action.id),
+  }))
+  return [
+    {
+      id: 'scan',
+      label: 'Scan',
+      icon: 'scan',
+      enabled: Boolean(scanner?.check.possible),
+      title: scanTitle,
+      onClick: () => actions.scan(scanner.member.id),
+      keepOpen: true,
+    },
+    ...approaches,
+  ]
+}
+
+// The card beside a challenge object's ring: name / type / state always; authored description after a successful scan.
+export function objectInfo(state, objectId) {
+  const challenge = challengeFor(state, objectId)
+  if (!challenge) return null
+  const view = challenge.view(state.scenario)
+  const scan = state.objectScans?.[objectId]
+  const scanned = isDestructibleScanned(state.objectScans, objectId)
+  const rows = [
+    ['Type', view.type ? view.type.charAt(0).toUpperCase() + view.type.slice(1) : 'Object'],
+    ['State', view.stateLabel || view.state || '—'],
+  ]
+  const tips = []
+  if (scanned && view.description) tips.push(view.description)
+  else if (!scanned) tips.push('Scan for a tricorder reading of its current state.')
+  if (scan?.success) {
+    tips.push(`Scanned by ${state.party.members[scan.memberId]?.character.name ?? 'the away team'}.`)
+  } else if (scan) {
+    tips.push('Scan failed: no clear readings. Scan again to retry.')
+  }
+  return { title: view.name, rows, tips }
 }
 
 // A destructible object's radial menu (left click on it; designer request 2026-10-12): Fire, by the member picked on the
@@ -265,28 +309,51 @@ function socialResultText(state, npc, last) {
   return `${verb} by ${asker} worked (${roll}): ${npc.name} ${result}.`
 }
 
-// A dropped inventory item's ring: Pick Up (into the selected / lead character's bag) and Go To.
-// actions: { pickup(memberId), goTo }.
-export function groundItemMenuButtons(state, instanceId, actions) {
+// A dropped inventory item's ring: Scan (catalogue reading), Pick Up, Go To.
+// Out of reach, Pick Up walks over then picks up (same as a left-click on the prop).
+// actions: { scan(memberId), pickup(memberId), goTo }; pickedId: who is picked on the party band for Scan.
+export function groundItemMenuButtons(state, instanceId, actions, pickedId = null) {
   const item = groundItemFor(instanceId)
   const view = item.view(state)
   const name = view?.name ?? resolveItem(state, instanceId)?.def.name ?? 'Item'
   const pickable = view?.pickable !== false && state.groundItems?.[instanceId]?.pickable !== false
-  const inRange = item.membersInRange(state)
-  const pickerId = [state.party.leaderId, ...state.party.selectedIds].find((id) => inRange.some((member) => member.id === id) && bagFreeSlots(state.party.members[id].character) > 0)
-  const anyInRange = inRange[0]
-  const picker = pickerId ? state.party.members[pickerId] : anyInRange
+  const inPickupRange = item.membersInPickupRange(state)
+  const orderedIds = [...new Set([state.party.leaderId, ...state.party.selectedIds])].filter(Boolean)
+  const pickerId =
+    orderedIds.find((id) => inPickupRange.some((member) => member.id === id) && bagFreeSlots(state.party.members[id].character) > 0) ??
+    orderedIds.find((id) => state.party.members[id] && bagFreeSlots(state.party.members[id].character) > 0) ??
+    null
+  const picker = pickerId ? state.party.members[pickerId] : null
+  const canGrabNow = Boolean(pickerId && inPickupRange.some((member) => member.id === pickerId))
   const canPick = pickable && Boolean(pickerId)
   const reason = !pickable
     ? 'This item cannot be picked up.'
-    : !anyInRange
-      ? 'Walk closer to pick it up.'
-      : !picker
-        ? 'Select a character first.'
-        : bagFreeSlots(picker.character) < 1
-          ? `${picker.character.name}'s bag is full.`
-          : `${picker.character.name} picks up the ${name}.`
+    : !picker
+      ? 'Select a character with bag space first.'
+      : bagFreeSlots(picker.character) < 1
+        ? `${picker.character.name}'s bag is full.`
+        : canGrabNow
+          ? `${picker.character.name} picks up the ${name}.`
+          : `${picker.character.name} walks over and picks up the ${name}.`
+  const scanner = groundItemScanner(state, instanceId, pickedId)
+  const scanned = isDestructibleScanned(state.objectScans, instanceId)
+  const scanTitle = !scanner
+    ? 'Scan: select a character first.'
+    : scanner.check.possible
+      ? scanned
+        ? `${scanner.member.character.name} scans the ${name} again (Reason + Science): refresh its readings.`
+        : `${scanner.member.character.name} scans the ${name} (Reason + Science): identify it and read its catalogue entry.`
+      : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
   return [
+    {
+      id: 'scan',
+      label: 'Scan',
+      icon: 'scan',
+      enabled: Boolean(scanner?.check.possible),
+      title: scanTitle,
+      onClick: () => actions.scan(scanner.member.id),
+      keepOpen: true,
+    },
     {
       id: 'pickup',
       label: 'Pick Up',
@@ -304,5 +371,27 @@ export function groundItemMenuButtons(state, instanceId, actions) {
       onClick: actions.goTo,
     },
   ]
+}
+
+// The card beside a ground item's ring: name / category always; catalogue description after a successful scan.
+export function groundItemInfo(state, instanceId) {
+  const resolved = resolveItem(state, instanceId)
+  const view = groundItemFor(instanceId).view(state)
+  if (!view && !resolved) return null
+  const name = view?.name ?? resolved?.def.name ?? 'Item'
+  const categoryId = resolved?.def.category ?? null
+  const category = categoryId ? itemsData.categories?.[categoryId] ?? categoryId : 'Item'
+  const scan = state.objectScans?.[instanceId]
+  const scanned = isDestructibleScanned(state.objectScans, instanceId)
+  const rows = [['Category', category]]
+  const tips = []
+  if (scanned && resolved?.def.description) tips.push(resolved.def.description)
+  else if (!scanned) tips.push('Scan for a tricorder reading of this item.')
+  if (scan?.success) {
+    tips.push(`Scanned by ${state.party.members[scan.memberId]?.character.name ?? 'the away team'}.`)
+  } else if (scan) {
+    tips.push('Scan failed: no clear readings. Scan again to retry.')
+  }
+  return { title: name, rows, tips }
 }
 

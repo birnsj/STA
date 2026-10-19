@@ -764,6 +764,111 @@ export function setEffectsVolume(nextLevel) {
   level = Math.min(Math.max(nextLevel, 0), 1)
 }
 
+// Inventory pickup / drop (exploration). Gains sit under UI beeps and well under music.
+const ITEM_PICKUP_GAIN = 0.08
+const ITEM_DROP_GAIN = 0.09
+
+// One short enveloped tone (or noise) into destination.
+function playItemTone(audio, destination, { at, from, to = from, length, gain, wave = 'sine', attack = 0.004 }) {
+  const tone = audio.createOscillator()
+  const envelope = audio.createGain()
+  tone.type = wave
+  tone.frequency.setValueAtTime(from, at)
+  if (to !== from) tone.frequency.linearRampToValueAtTime(to, at + length)
+  envelope.gain.setValueAtTime(0, at)
+  envelope.gain.linearRampToValueAtTime(gain, at + attack)
+  envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+  tone.connect(envelope).connect(destination)
+  tone.start(at)
+  tone.stop(at + length + 0.02)
+}
+
+function playItemNoise(audio, destination, { at, length, gain, frequency = 1800, type = 'bandpass' }) {
+  const bufferSize = Math.max(1, Math.floor(audio.sampleRate * length))
+  const buffer = audio.createBuffer(1, bufferSize, audio.sampleRate)
+  const data = buffer.getChannelData(0)
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
+  const source = audio.createBufferSource()
+  source.buffer = buffer
+  const filter = audio.createBiquadFilter()
+  filter.type = type
+  filter.frequency.value = frequency
+  filter.Q.value = 0.8
+  const envelope = audio.createGain()
+  envelope.gain.setValueAtTime(0, at)
+  envelope.gain.linearRampToValueAtTime(gain, at + 0.004)
+  envelope.gain.exponentialRampToValueAtTime(0.0001, at + length)
+  source.connect(filter).connect(envelope).connect(destination)
+  source.start(at)
+  source.stop(at + length + 0.02)
+}
+
+// Distinct grab chirps per items.json category (clothing, utility, scanner, weapon, medical, engineering).
+function playItemPickupByCategory(audio, category) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const out = audio.createGain()
+  out.connect(audio.destination)
+  const g = ITEM_PICKUP_GAIN * level
+
+  switch (category) {
+    case 'medical':
+      // Soft glass / hypospray: high rising glass ping.
+      playItemTone(audio, out, { at: start, from: 1400, to: 2100, length: 0.1, gain: g, wave: 'sine' })
+      playItemTone(audio, out, { at: start + 0.03, from: 2100, to: 2600, length: 0.08, gain: g * 0.45, wave: 'triangle' })
+      break
+    case 'engineering':
+      // Metal tool clink.
+      playItemTone(audio, out, { at: start, from: 920, to: 640, length: 0.07, gain: g * 1.1, wave: 'triangle' })
+      playItemTone(audio, out, { at: start + 0.025, from: 1800, to: 1100, length: 0.06, gain: g * 0.5, wave: 'square' })
+      break
+    case 'weapon':
+      // Heavier grip / holster clack.
+      playItemTone(audio, out, { at: start, from: 220, to: 160, length: 0.08, gain: g * 1.2, wave: 'triangle' })
+      playItemNoise(audio, out, { at: start, length: 0.05, gain: g * 0.55, frequency: 900, type: 'lowpass' })
+      playItemTone(audio, out, { at: start + 0.04, from: 480, to: 360, length: 0.07, gain: g * 0.6, wave: 'sine' })
+      break
+    case 'scanner':
+      // Tricorder-ish electronic tick-up.
+      playItemTone(audio, out, { at: start, from: 980, to: 980, length: 0.04, gain: g * 0.7, wave: 'square' })
+      playItemTone(audio, out, { at: start + 0.045, from: 1320, to: 1680, length: 0.09, gain: g, wave: 'sine' })
+      break
+    case 'utility':
+      // PADD / chip: plastic-plastic soft taps.
+      playItemTone(audio, out, { at: start, from: 700, to: 820, length: 0.06, gain: g, wave: 'triangle' })
+      playItemTone(audio, out, { at: start + 0.05, from: 900, to: 760, length: 0.07, gain: g * 0.7, wave: 'sine' })
+      break
+    case 'clothing':
+      // Soft fabric rustle.
+      playItemNoise(audio, out, { at: start, length: 0.12, gain: g * 0.85, frequency: 1400, type: 'bandpass' })
+      playItemTone(audio, out, { at: start + 0.02, from: 320, to: 280, length: 0.1, gain: g * 0.35, wave: 'sine' })
+      break
+    default:
+      playItemTone(audio, out, { at: start, from: 880, to: 1100, length: 0.09, gain: g, wave: 'sine' })
+  }
+}
+
+// Soft place / set-down when an item hits the ground (or is released onto the world).
+function playItemDropTone(audio) {
+  const start = audio.currentTime + LOOKAHEAD_S
+  const out = audio.createGain()
+  out.connect(audio.destination)
+  const g = ITEM_DROP_GAIN * level
+  playItemNoise(audio, out, { at: start, length: 0.08, gain: g * 0.7, frequency: 420, type: 'lowpass' })
+  playItemTone(audio, out, { at: start, from: 180, to: 90, length: 0.12, gain: g, wave: 'sine', attack: 0.006 })
+  playItemTone(audio, out, { at: start + 0.03, from: 360, to: 200, length: 0.08, gain: g * 0.4, wave: 'triangle' })
+}
+
+// category: items.json category id (medical, engineering, weapon, scanner, utility, clothing).
+export function playItemPickup(category) {
+  if (level === 0) return
+  withRunningContext((audio) => playItemPickupByCategory(audio, category))
+}
+
+export function playItemDrop() {
+  if (level === 0) return
+  withRunningContext(playItemDropTone)
+}
+
 // For a board drawn without an element under the pointer (the Pixi combat board): the hover blip and press beep a
 // data-ui-sound (or, press only, data-ui-press) element gets from the listeners below.
 export function playBoardHover() {

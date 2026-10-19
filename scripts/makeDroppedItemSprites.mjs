@@ -273,6 +273,69 @@ const PROPS = {
     ),
   phaserRifle: () => render(blockScene(10, rifleMaterial()), { bloom: 1.08 }),
   klingonBatleth: () => render(blockScene(9, batlethMaterial())),
+
+  // Batch 2 (plan 2026-10-18 equipment expansion)
+  corticalInhibitor: () =>
+    render(blockScene(6, caseMaterial({ H: 6, body: rgb('#c8d8e0'), trim: rgb('#8aa0b0'), accent: rgb('#60c0e8'), topMark: { r: 3.2, h: 0.7 } })), {
+      bloom: 1.08,
+    }),
+  corticalStimulator: () =>
+    render(blockScene(7, caseMaterial({ H: 7, body: rgb('#e0e8f0'), trim: rgb('#5080a0'), accent: rgb('#ffe060'), screen: { r: 3.5, colour: rgb('#ffe060') } })), {
+      bloom: 1.12,
+    }),
+  cytoplasmicStimulator: () =>
+    render(blockScene(7, cylinderToolMaterial({ body: rgb('#b8e0c8'), tip: rgb('#40a070'), band: rgb('#206048') }))),
+  dermalStimulator: () =>
+    render(blockScene(6, caseMaterial({ H: 6, body: rgb('#f0d0c0'), trim: rgb('#e08060'), accent: rgb('#ffb090'), topMark: { r: 3, h: 0.5 } }))),
+  detronalScanner: () =>
+    render(
+      blockScene(8, caseMaterial({ H: 8, body: rgb('#203040'), trim: rgb('#40a090'), accent: rgb('#80ffe0'), screen: { r: 5, colour: rgb('#80ffe0') } })),
+      { bloom: 1.1 },
+    ),
+  neuralCalipers: () => render(blockScene(7, caliperMaterial())),
+  neuralStimulator: () =>
+    render(blockScene(5, caseMaterial({ H: 5, body: rgb('#506878'), trim: rgb('#70e0ff'), accent: rgb('#70e0ff'), topMark: { r: 2.5, h: 0.4 } })), {
+      bloom: 1.08,
+    }),
+  neuralTransducer: () =>
+    render(blockScene(8, caseMaterial({ H: 8, body: rgb('#687880'), trim: rgb('#90c0d0'), accent: rgb('#40a0c0'), topMark: { r: 3.5, h: 0.6 } }))),
+  sonicSeparator: () => render(blockScene(8, coneToolMaterial({ body: rgb('#e8f0f8'), cone: rgb('#60a0e0'), tip: rgb('#a0d0ff') })), { bloom: 1.1 }),
+  vascularRegenerator: () =>
+    render(blockScene(7, caseMaterial({ H: 7, body: rgb('#f0e8e8'), trim: rgb('#c03040'), accent: rgb('#c03040'), topMark: { r: 3, h: 0.5, colour: rgb('#c03040') } }))),
+  medicalShotgun: () => render(blockScene(10, shotgunMaterial()), { bloom: 1.06 }),
+  dualiticInverter: () =>
+    render(blockScene(8, caseMaterial({ H: 8, body: rgb('#405060'), trim: rgb('#f0c040'), accent: rgb('#40c0e0'), screen: { r: 3.5, colour: rgb('#f0c040') } }))),
+  focalAdjustmentSpanner: () => render(blockScene(8, wrenchMaterial({ body: rgb('#c0c8d0'), grip: rgb('#303840') })), { bloom: 1.05 }),
+  graviticCaliper: () => render(blockScene(7, probeMaterial({ body: rgb('#586878'), tip: rgb('#a080e0'), ring: rgb('#8060c0') })), { bloom: 1.1 }),
+  ionicFlowRegulator: () =>
+    render(blockScene(8, caseMaterial({ H: 8, body: rgb('#304850'), trim: rgb('#40e0a0'), accent: rgb('#40e0a0'), screen: { r: 4, colour: rgb('#40e0a0') } })), {
+      bloom: 1.08,
+    }),
+  microResonator: () => render(blockScene(7, probeMaterial({ body: rgb('#808890'), tip: rgb('#e0e8f0'), ring: rgb('#40a0ff') }))),
+  parametricScanner: () =>
+    render(
+      blockScene(8, caseMaterial({ H: 8, body: rgb('#1a2830'), trim: rgb('#c08020'), accent: rgb('#ffb040'), screen: { r: 5, colour: rgb('#ffb040') } })),
+      { bloom: 1.1 },
+    ),
+  phaseModulator: () =>
+    render(blockScene(7, caseMaterial({ H: 7, body: rgb('#384050'), trim: rgb('#80ffe0'), accent: rgb('#80ffe0'), screen: { r: 3.8, colour: rgb('#80ffe0') } })), {
+      bloom: 1.1,
+    }),
+  selfSealingStemBolt: () => render(blockScene(6, boltMaterial())),
+  laserPistol2250: () => render(blockScene(8, laserPistolMaterial()), { bloom: 1.08 }),
+  gintak: () => render(blockScene(11, spearMaterial())),
+  kurleth: () => render(blockScene(9, curvedBladeMaterial({ large: true }))),
+  kutluch: () => render(blockScene(7, daggerMaterial({ serrated: true }))),
+  mekleth: () => render(blockScene(8, curvedBladeMaterial({ large: false }))),
+  ushaantor: () => render(blockScene(8, ushaanMaterial())),
+  vulcanLirpa: () => render(blockScene(11, lirpaMaterial())),
+  phaserRifle2255: () => render(blockScene(10, rifle2255Material()), { bloom: 1.1 }),
+  isolinearOpticalChip: () =>
+    render(blockScene(4, caseMaterial({ H: 4, body: rgb('#204050'), trim: rgb('#60e0ff'), accent: rgb('#e0ffff'), screen: { r: 4.5, colour: rgb('#60e0ff') } })), {
+      bloom: 1.2,
+    }),
+  disruptorPistol: () => render(blockScene(8, disruptorPistolMaterial()), { bloom: 1.08 }),
+  dkTahg: () => render(blockScene(7, daggerMaterial({ serrated: false }))),
 }
 
 function cylinderToolMaterial({ body, tip, band }) {
@@ -461,6 +524,321 @@ function batlethMaterial() {
       const ao = 0.68 + 0.32 * smoothstep(0, 5, v)
       if (Math.abs(u - 16) < 2.5) return { albedo: grip, spec: 0.2, shininess: 14, ao }
       return { albedo: steel, spec: 0.55, shininess: 38, ao }
+    },
+  }
+}
+
+function caliperMaterial() {
+  const H = 7
+  const metal = rgb('#a8b0b8')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const left = Math.abs(u - 10) < 1.5 && v > 6 && v < 24
+        const right = Math.abs(u - 22) < 1.5 && v > 6 && v < 24
+        const base = inside(u, v, 12, 20, 20, 26)
+        let h = 0
+        if (left || right) h = 0.9
+        if (base > 0) h = Math.max(h, bevel(base, 0.8, 0.6))
+        return h
+      }
+      return bevel(Math.min(Math.abs(u - 16) < 8 ? 3 : 0, v, H - v), 0.7, 0.6)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v > 20) return { albedo: rgb('#304050'), spec: 0.3, shininess: 22 }
+      return { albedo: metal, spec: 0.55, shininess: 36 }
+    },
+  }
+}
+
+function coneToolMaterial({ body, cone, tip }) {
+  const H = 8
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const shaft = inside(u, v, 12, 14, 20, 26)
+        const head = inside(u, v, 10, 4, 22, 14)
+        let h = 0
+        if (shaft > 0) h = bevel(shaft, 1, 0.7)
+        if (head > 0) h = Math.max(h, bevel(head, 1.2, 0.8))
+        return h
+      }
+      if (u < 10 || u > 22) return 0
+      return bevel(Math.min(u - 10, 22 - u, v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (v < 8) return { albedo: tip, emit: scale(tip, 0.35), tag: 'emitter', spec: 0.4, shininess: 30 }
+        if (v < 14) return { albedo: cone, spec: 0.45, shininess: 32 }
+        return { albedo: body, spec: 0.35, shininess: 26 }
+      }
+      return { albedo: body, spec: 0.3, shininess: 24, ao: 0.75 }
+    },
+  }
+}
+
+function shotgunMaterial() {
+  const H = 10
+  const body = rgb('#d8e0e8')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const barrel = inside(u, v, 8, 12, 28, 20)
+        const stock = inside(u, v, 2, 13, 10, 21)
+        let h = 0
+        if (barrel > 0) h = bevel(barrel, 1, 0.7)
+        if (stock > 0) h = Math.max(h, bevel(stock, 1, 0.7))
+        return h
+      }
+      const on = (u > 2 && u < 28 && v > 1 && v < H - 1)
+      return on ? bevel(Math.min(u - 2, 28 - u, v, H - v), 0.9, 0.7) : 0
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (u > 22) return { albedo: rgb('#40a080'), emit: rgb('#60c0a0'), tag: 'emitter', spec: 0.4, shininess: 30 }
+        if (u < 10) return { albedo: rgb('#708090'), spec: 0.35, shininess: 26 }
+        return { albedo: body, spec: 0.4, shininess: 28 }
+      }
+      return { albedo: body, spec: 0.35, shininess: 26, ao: 0.72 }
+    },
+  }
+}
+
+function boltMaterial() {
+  const H = 6
+  const metal = rgb('#b0b8c0')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const shaft = inside(u, v, 13, 10, 19, 26)
+        const head = inside(u, v, 10, 6, 22, 12)
+        let h = 0
+        if (shaft > 0) h = bevel(shaft, 0.8, 0.6)
+        if (head > 0) h = Math.max(h, bevel(head, 1, 0.7))
+        return h
+      }
+      if (u < 10 || u > 22) return 0
+      return bevel(Math.min(u - 10, 22 - u, v, H - v), 0.7, 0.6)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v < 12) return { albedo: rgb('#d0d8e0'), spec: 0.55, shininess: 38 }
+      if (face === 'top' && Math.abs(u - 16) < 2 && v > 15 && v < 20) return { albedo: rgb('#40a070'), spec: 0.3, shininess: 22 }
+      return { albedo: metal, spec: 0.5, shininess: 34 }
+    },
+  }
+}
+
+function laserPistolMaterial() {
+  const H = 8
+  const body = rgb('#c8a050')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const barrel = inside(u, v, 10, 10, 26, 20)
+        const grip = inside(u, v, 8, 16, 14, 26)
+        let h = 0
+        if (barrel > 0) h = bevel(barrel, 1, 0.7)
+        if (grip > 0) h = Math.max(h, bevel(grip, 0.9, 0.7))
+        return h
+      }
+      return bevel(Math.min(u - 8, 26 - u, v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (u > 22) return { albedo: rgb('#ff6040'), emit: rgb('#ff8040'), tag: 'emitter' }
+        if (v > 18) return { albedo: rgb('#604830'), spec: 0.25, shininess: 18 }
+        return { albedo: body, spec: 0.5, shininess: 36 }
+      }
+      return { albedo: body, spec: 0.45, shininess: 32, ao: 0.72 }
+    },
+  }
+}
+
+function spearMaterial() {
+  const H = 11
+  const shaft = rgb('#6a4a28')
+  const blade = rgb('#a8b0b8')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const pole = inside(u, v, 14, 8, 18, 28)
+        const tip = inside(u, v, 10, 2, 22, 10)
+        let h = 0
+        if (pole > 0) h = bevel(pole, 0.8, 0.6)
+        if (tip > 0) h = Math.max(h, bevel(tip, 1.1, 0.8))
+        return h
+      }
+      if (Math.abs(u - 16) > 6) return 0
+      return bevel(Math.min(6 - Math.abs(u - 16), v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v < 10) return { albedo: blade, spec: 0.6, shininess: 40 }
+      return { albedo: shaft, spec: 0.25, shininess: 18 }
+    },
+  }
+}
+
+function curvedBladeMaterial({ large }) {
+  const H = large ? 9 : 8
+  const steel = rgb('#9098a0')
+  const grip = rgb('#503020')
+  const radius = large ? 11 : 9
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const dx = u - (large ? 12 : 14)
+        const dy = v - 16
+        const r = Math.hypot(dx, dy)
+        const ang = Math.atan2(dy, dx)
+        const onArc = r > radius - 3 && r < radius + 2 && ang > -1.2 && ang < 2
+        const onGrip = Math.abs(u - 12) < 2.5 && Math.abs(v - 16) < 5
+        let h = 0
+        if (onArc) h = bevel(2.5 - Math.abs(r - radius), 1, 0.8)
+        if (onGrip) h = Math.max(h, 0.9)
+        return h
+      }
+      return bevel(Math.min(8 - Math.abs(u - 16), v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && Math.abs(u - 12) < 2.5 && Math.abs(v - 16) < 5) return { albedo: grip, spec: 0.2, shininess: 16 }
+      return { albedo: scale(steel, 0.92 + brushed(u, v, 121) * 0.1), spec: 0.55, shininess: 38 }
+    },
+  }
+}
+
+function daggerMaterial({ serrated }) {
+  const H = 7
+  const steel = rgb('#b0b8c0')
+  const grip = rgb('#503828')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const blade = inside(u, v, 14, 4, 18, 18)
+        const guard = serrated ? inside(u, v, 11, 10, 21, 14) : inside(u, v, 12, 10, 20, 14)
+        const hilt = inside(u, v, 13, 18, 19, 26)
+        let h = 0
+        if (blade > 0) h = bevel(blade, 0.9, 0.7)
+        if (guard > 0) h = Math.max(h, bevel(guard, 0.8, 0.6))
+        if (hilt > 0) h = Math.max(h, bevel(hilt, 0.8, 0.6))
+        return h
+      }
+      if (u < 11 || u > 21) return 0
+      return bevel(Math.min(u - 11, 21 - u, v, H - v), 0.7, 0.6)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v > 18) return { albedo: grip, spec: 0.2, shininess: 16 }
+      if (serrated && face === 'top' && u > 17 && v > 6 && v < 16) return { albedo: rgb('#9098a0'), spec: 0.5, shininess: 34 }
+      return { albedo: steel, spec: 0.55, shininess: 38 }
+    },
+  }
+}
+
+function ushaanMaterial() {
+  const H = 8
+  const ice = rgb('#a0d0e8')
+  const grip = rgb('#c0c8d0')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const hilt = inside(u, v, 14, 14, 18, 26)
+        const left = Math.abs((u - 10) + (v - 10)) < 2 && u < 16 && v < 16
+        const right = Math.abs((u - 22) - (v - 8)) < 2 && u > 16 && v < 16
+        let h = 0
+        if (hilt > 0) h = bevel(hilt, 0.8, 0.6)
+        if (left || right) h = Math.max(h, 1)
+        return h
+      }
+      return bevel(Math.min(6 - Math.abs(u - 16), v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v > 16) return { albedo: grip, spec: 0.35, shininess: 26 }
+      return { albedo: ice, emit: scale(ice, 0.2), tag: 'emitter', spec: 0.5, shininess: 36 }
+    },
+  }
+}
+
+function lirpaMaterial() {
+  const H = 11
+  const wood = rgb('#8a6040')
+  const blade = rgb('#c0c8d0')
+  const fan = rgb('#a03030')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const pole = inside(u, v, 14, 6, 18, 26)
+        const top = inside(u, v, 8, 2, 24, 10)
+        const bottom = inside(u, v, 10, 22, 22, 28)
+        let h = 0
+        if (pole > 0) h = bevel(pole, 0.8, 0.6)
+        if (top > 0) h = Math.max(h, bevel(top, 1, 0.7))
+        if (bottom > 0) h = Math.max(h, bevel(bottom, 1, 0.7))
+        return h
+      }
+      if (Math.abs(u - 16) > 8) return 0
+      return bevel(Math.min(8 - Math.abs(u - 16), v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top' && v < 10) return { albedo: blade, spec: 0.55, shininess: 38 }
+      if (face === 'top' && v > 22) return { albedo: fan, spec: 0.3, shininess: 22 }
+      return { albedo: wood, spec: 0.25, shininess: 18 }
+    },
+  }
+}
+
+function rifle2255Material() {
+  const H = 10
+  const body = rgb('#3a4850')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const barrel = inside(u, v, 8, 12, 28, 20)
+        const stock = inside(u, v, 2, 13, 10, 21)
+        const sight = inside(u, v, 12, 9, 16, 13)
+        let h = 0
+        if (barrel > 0) h = bevel(barrel, 1, 0.7)
+        if (stock > 0) h = Math.max(h, bevel(stock, 1, 0.7))
+        if (sight > 0) h = Math.max(h, 1.1)
+        return h
+      }
+      const on = u > 2 && u < 28
+      return on ? bevel(Math.min(u - 2, 28 - u, v, H - v), 0.9, 0.7) : 0
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (u > 22) return { albedo: rgb('#206080'), emit: rgb('#50c0ff'), tag: 'emitter' }
+        if (u < 10) return { albedo: rgb('#2a3038'), spec: 0.35, shininess: 26 }
+        return { albedo: body, spec: 0.4, shininess: 28 }
+      }
+      return { albedo: body, spec: 0.35, shininess: 26, ao: 0.72 }
+    },
+  }
+}
+
+function disruptorPistolMaterial() {
+  const H = 8
+  const body = rgb('#4a3020')
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        const barrel = inside(u, v, 10, 10, 26, 18)
+        const grip = inside(u, v, 8, 16, 14, 26)
+        const hood = inside(u, v, 14, 7, 20, 12)
+        let h = 0
+        if (barrel > 0) h = bevel(barrel, 1, 0.7)
+        if (grip > 0) h = Math.max(h, bevel(grip, 0.9, 0.7))
+        if (hood > 0) h = Math.max(h, 1.1)
+        return h
+      }
+      return bevel(Math.min(u - 8, 26 - u, v, H - v), 0.8, 0.7)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        if (u > 20) return { albedo: rgb('#ff2e1f'), emit: rgb('#ff4a32'), tag: 'emitter' }
+        if (v < 12) return { albedo: rgb('#c04020'), spec: 0.4, shininess: 28 }
+        if (v > 18) return { albedo: rgb('#302018'), spec: 0.25, shininess: 18 }
+        return { albedo: body, spec: 0.35, shininess: 26 }
+      }
+      return { albedo: body, spec: 0.3, shininess: 24, ao: 0.72 }
     },
   }
 }

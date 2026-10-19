@@ -5,7 +5,15 @@ import { getPortraitById } from '../../rules/appearance.js'
 import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
 import { TILE_H, tileImageBox } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
-import { BAG_CAPACITY, BAG_COLS, BAG_ROWS, EQUIP_SLOTS, canEquipToSlot, emptyInventory, resolveItem } from '../../rules/inventory.js'
+import {
+  BAG_CAPACITY,
+  BAG_COLS,
+  BAG_VISIBLE_ROWS,
+  EQUIP_SLOTS,
+  canEquipToSlot,
+  emptyInventory,
+  resolveItem,
+} from '../../rules/inventory.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import InfoTipBubble from '../InfoTipBubble.jsx'
 import { useStageSize } from '../stageSize.js'
@@ -404,23 +412,30 @@ export default function InventoryPanel({
         </div>
       </div>
 
-      <div className={`inventory-bag${drag ? ' is-drop-target' : ''}`} style={{ '--bag-cols': BAG_COLS, '--bag-rows': BAG_ROWS }} data-inventory-drop="bag" data-member-id={member.id}>
+      <div
+        className={`inventory-bag${drag ? ' is-drop-target' : ''}`}
+        style={{ '--bag-cols': BAG_COLS, '--bag-visible-rows': BAG_VISIBLE_ROWS }}
+        data-inventory-drop="bag"
+        data-member-id={member.id}
+      >
         <p className="inventory-bag-label">Carried</p>
-        <div className="inventory-bag-grid">
-          {bagCells.map((instanceId, index) => {
-            const resolved = instanceId ? resolveItem(state, instanceId) : null
-            return (
-              <ItemCell
-                key={instanceId ?? `empty-${index}`}
-                def={resolved?.def}
-                quantity={resolved?.instance.quantity ?? 1}
-                selected={drag?.instanceId === instanceId}
-                dimmed={Boolean(drag && instanceId && drag.instanceId === instanceId)}
-                bagDrop={{ memberId: member.id, bagIndex: index }}
-                onPointerDown={resolved ? (event) => beginItemDrag(event, { instanceId, location: 'bag', bagIndex: index }) : undefined}
-              />
-            )
-          })}
+        <div className="inventory-bag-scroll">
+          <div className="inventory-bag-grid">
+            {bagCells.map((instanceId, index) => {
+              const resolved = instanceId ? resolveItem(state, instanceId) : null
+              return (
+                <ItemCell
+                  key={instanceId ?? `empty-${index}`}
+                  def={resolved?.def}
+                  quantity={resolved?.instance.quantity ?? 1}
+                  selected={drag?.instanceId === instanceId}
+                  dimmed={Boolean(drag && instanceId && drag.instanceId === instanceId)}
+                  bagDrop={{ memberId: member.id, bagIndex: index }}
+                  onPointerDown={resolved ? (event) => beginItemDrag(event, { instanceId, location: 'bag', bagIndex: index }) : undefined}
+                />
+              )
+            })}
+          </div>
         </div>
       </div>
       {itemTip && tipsEnabled ? (

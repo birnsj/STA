@@ -20,7 +20,18 @@ import { loadConversation } from '../conversation/conversationFiles.js'
 import Board from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
-import { destructibleInfo, destructibleMenuButtons, groundItemMenuButtons, memberMenuButtons, npcInfo, npcMenuButtons, objectMenuButtons, ringPartyBand } from '../components/exploration/explorationRings.js'
+import {
+  destructibleInfo,
+  destructibleMenuButtons,
+  groundItemInfo,
+  groundItemMenuButtons,
+  memberMenuButtons,
+  npcInfo,
+  npcMenuButtons,
+  objectInfo,
+  objectMenuButtons,
+  ringPartyBand,
+} from '../components/exploration/explorationRings.js'
 import ExplorationSetup from '../components/exploration/ExplorationSetup.jsx'
 import useExplorationFootsteps from '../components/exploration/useExplorationFootsteps.js'
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
@@ -41,15 +52,16 @@ import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
 import { activeHazards, isStanding } from '../world/environment.js'
 import { hazardChallengeId, isHazardChallengeId } from '../world/EnvironmentalHazard.js'
-import { getMembers } from '../exploration/partyControl.js'
+import { canAct, getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
-import { bagFreeSlots, canPlaceAt, groundItemViews } from '../rules/inventory.js'
+import { bagFreeSlots, canPlaceAt, groundItemViews, resolveItem } from '../rules/inventory.js'
+import { groundItemFor } from '../world/GroundItem.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { npcButtonPerformer } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
-import { CHARACTER_SCAN_RADIUS } from '../components/exploration/scanSweep.js'
+import { CHARACTER_SCAN_RADIUS, OBJECT_SCAN_RADIUS } from '../components/exploration/scanSweep.js'
 import useFadeAfter from '../components/useFadeAfter.js'
-import { playRequestSound, playScanSound } from '../audio/uiSounds.js'
+import { playItemPickup, playRequestSound, playScanSound } from '../audio/uiSounds.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WorldCombat from './WorldCombat.jsx'
 import PerfProfiler from '../dev/PerfProfiler.jsx'
@@ -231,6 +243,9 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setItemDrag(drag)
       updatePlaceHover(start.clientX, start.clientY, drag.overWorld)
       syncInventoryGhostPosition(start.clientX, start.clientY)
+      // Category grab chirp when lifting from bag, slot, or ground (click pickup plays via the reducer).
+      const lifted = resolveItem(state, start.instanceId)
+      if (lifted) playItemPickup(lifted.def.category)
 
       // Re-project place preview every frame so a moving camera cannot leave the diamond behind the cursor.
       let rafId = 0
@@ -297,13 +312,22 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
               toMemberId: invDrop.memberId,
               toSlot: invDrop.kind === 'slot' ? invDrop.slot : null,
               toBagIndex: invDrop.kind === 'bag' ? (invDrop.bagIndex ?? null) : null,
+              // Grab chirp already played when the drag began; drop plays on successful place.
+              skipPickupSound: true,
+              playDropSound: true,
             })
           }
           return
         }
         // World drag released over a party figure → that member's bag (same path as inventory party-card drops).
         if (overWorld && hover?.dropMemberId) {
-          dispatch({ type: 'transferItem', instanceId, toMemberId: hover.dropMemberId })
+          dispatch({
+            type: 'transferItem',
+            instanceId,
+            toMemberId: hover.dropMemberId,
+            skipPickupSound: true,
+            playDropSound: true,
+          })
           return
         }
         if (overWorld && hover?.valid) dispatch({ type: 'dropItem', instanceId, position: hover.position })
@@ -314,8 +338,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       window.addEventListener('pointerup', end)
       window.addEventListener('pointercancel', end)
     },
-    [dispatch, pointerOverInventory, updatePlaceHover],
+    [dispatch, pointerOverInventory, state, updatePlaceHover],
   )
+  // UI state: walk-then-pick-up for a ground item (same idea as pendingTalk for NPCs).
+  const [pendingPickup, setPendingPickup] = useState(null)
   // UI state: ground-item ring.
   const [menuGroundItemId, setMenuGroundItemId] = useState(null)
   const members = getMembers(party)
@@ -451,24 +477,31 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }, [lastSocialKey, lastSocialKind, lastSocialPassed])
   // UI state: the scan whose sweep has finished playing, so a fight and back doesn't replay it.
   const [sweptScanKey, setSweptScanKey] = useState(null)
-  // Area scan: one ring out to the tricorder radius. NPC scan: a ring around the scanner and one around the NPC.
+  // Area scan: one ring out to the tricorder radius. NPC scan: a small ring on the scanner and on the NPC.
+  // Challenge / destructible Scan: big tricorder ring around the scanner, smaller ring on the object.
   // Only the newer of the two plays (both keys count tasks): sweptScanKey holds one key, so playing the older one
   // after the newer would mark the newer unplayed again and the two would take turns for ever.
   const areaScanIsNewer = lastScan != null && (lastTargetScan == null || lastScanKey > lastTargetScanKey)
+  const targetScanRings = (() => {
+    if (!lastTargetScan?.origin || !lastTargetScan.targetOrigin) return null
+    if (lastTargetScan.objectId) {
+      return [
+        { origin: lastTargetScan.origin, radius: lastTargetScan.radius ?? CHARACTER_SCAN_RADIUS },
+        { origin: lastTargetScan.targetOrigin, radius: OBJECT_SCAN_RADIUS },
+      ]
+    }
+    return [
+      { origin: lastTargetScan.origin, radius: CHARACTER_SCAN_RADIUS },
+      { origin: lastTargetScan.targetOrigin, radius: CHARACTER_SCAN_RADIUS },
+    ]
+  })()
   const scanPulse =
     areaScanIsNewer
       ? lastScan.origin && sweptScanKey !== lastScanKey
         ? { key: lastScanKey, rings: [{ origin: lastScan.origin, radius: lastScan.radius }], onDone: () => setSweptScanKey(lastScanKey) }
         : null
-      : lastTargetScan && sweptScanKey !== lastTargetScanKey
-        ? {
-            key: lastTargetScanKey,
-            rings: [
-              { origin: lastTargetScan.origin, radius: CHARACTER_SCAN_RADIUS },
-              { origin: lastTargetScan.targetOrigin, radius: CHARACTER_SCAN_RADIUS },
-            ],
-            onDone: () => setSweptScanKey(lastTargetScanKey),
-          }
+      : lastTargetScan && sweptScanKey !== lastTargetScanKey && targetScanRings
+        ? { key: lastTargetScanKey, rings: targetScanRings, onDone: () => setSweptScanKey(lastTargetScanKey) }
         : null
   const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
   const selectBox = useCallback((ids, additive) => dispatch({ type: 'selectBox', ids, additive }), [dispatch])
@@ -503,6 +536,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setMenuObjectId(null)
     setMenuGroundItemId(null)
   }
+  // Left-click a ground item: walk the selected party over and pick it up when in reach (pendingPickup).
+  // Right-click still opens the Pick Up / Go To ring (PixiExplorationBoard).
   const openGroundItemMenu = (id) => {
     if (itemDragRef.current) return
     setMenuGroundItemId((current) => (current === id ? null : id))
@@ -512,10 +547,53 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setMenuDestructibleId(null)
   }
 
+  const groundPickupMemberId = useCallback(
+    (instanceId) => {
+      const ground = state.groundItems?.[instanceId]
+      if (!ground || ground.pickable === false) return null
+      // Prefer someone who will receive the moveTo order (the selection, else the lead).
+      const movers = (party.selectedIds?.length ? party.selectedIds : [party.leaderId]).filter(Boolean)
+      const ordered = [...new Set([party.leaderId, ...movers])].filter((id) => movers.includes(id))
+      return (
+        ordered.find((id) => {
+          const member = party.members[id]
+          return member && canAct(member) && bagFreeSlots(member.character) > 0
+        }) ?? null
+      )
+    },
+    [party.leaderId, party.members, party.selectedIds, state.groundItems],
+  )
+
+  const requestPickupGroundItem = useCallback(
+    (instanceId) => {
+      if (itemDragRef.current || beamPhase !== 'done') return
+      const memberId = groundPickupMemberId(instanceId)
+      if (!memberId) return
+      const ground = state.groundItems?.[instanceId]
+      if (!ground) return
+      setMenuGroundItemId(null)
+      setMenuMemberId(null)
+      setMenuNpcId(null)
+      setMenuObjectId(null)
+      setMenuDestructibleId(null)
+      setPendingTalk(null)
+      const member = party.members[memberId]
+      if (groundItemFor(instanceId).inPickupRange({ groundItems: state.groundItems }, member.position)) {
+        setPendingPickup(null)
+        dispatch({ type: 'pickupItem', instanceId, memberId })
+        return
+      }
+      dispatch({ type: 'moveTo', target: ground.position, fresh: true })
+      setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
+    },
+    [beamPhase, dispatch, groundPickupMemberId, party.members, state.groundItems, state.lastCombat?.id],
+  )
+
   const startGroundItemDrag = useCallback(
     (instanceId, clientX, clientY, pointerId) => {
       if (state.groundItems?.[instanceId]?.pickable === false) return
       setMenuGroundItemId(null)
+      setPendingPickup(null)
       beginItemDrag({
         instanceId,
         from: { location: 'ground', memberId: null },
@@ -535,6 +613,28 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     requestedTalkRef.current = pendingTalk
     talkTo(pendingTalkNpc)
   }, [pendingTalkNpc, pendingTalk, talkTo])
+
+  // Pending pickup: once the chosen character reaches the item, put it in their bag. A fight since the request cancels it.
+  useEffect(() => {
+    if (!pendingPickup) return
+    if (pendingPickup.combatId !== (state.lastCombat?.id ?? null)) {
+      setPendingPickup(null)
+      return
+    }
+    const ground = state.groundItems?.[pendingPickup.instanceId]
+    if (!ground || ground.pickable === false) {
+      setPendingPickup(null)
+      return
+    }
+    const member = party.members[pendingPickup.memberId]
+    if (!member || !canAct(member) || bagFreeSlots(member.character) < 1) {
+      setPendingPickup(null)
+      return
+    }
+    if (!groundItemFor(pendingPickup.instanceId).inPickupRange({ groundItems: state.groundItems }, member.position)) return
+    setPendingPickup(null)
+    dispatch({ type: 'pickupItem', instanceId: pendingPickup.instanceId, memberId: pendingPickup.memberId })
+  }, [dispatch, party.members, pendingPickup, state.groundItems, state.lastCombat?.id])
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
@@ -561,6 +661,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setMenuDestructibleId(null)
       setMenuGroundItemId(null)
       setPendingTalk(null)
+      setPendingPickup(null)
       setLogOpen(false)
       setInventoryOpen(false)
       if (talking) dispatch({ type: 'conversationLeave' })
@@ -581,6 +682,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setMenuDestructibleId(null)
       setMenuGroundItemId(null)
       setPendingTalk(null)
+      setPendingPickup(null)
     }
     if (beamPhase !== 'done') return
     if (!noiseTool) {
@@ -702,23 +804,34 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }
   // An object's ring is chosen in order (designer decision, 2026-10-14): an approach, then who does it (only members
   // within reach, shown once the approach is chosen, picked even when there's only one), then Roll on the outermost arc
-  // over them. The next choice pulses.
+  // over them. Scan uses the party band while hovered (like a destructible). The next approach choice pulses.
   const objectAction = openId ? panelActionId : null
   const objectButtons =
     menuObject &&
     objectMenuButtons(
       state,
       menuObject,
-      (actionId) => {
-        setMenuObjectId(null)
-        setRingPick(null)
-        setInteractionId(menuObject, actionId)
+      {
+        open: (actionId) => {
+          setMenuObjectId(null)
+          setRingPick(null)
+          setInteractionId(menuObject, actionId)
+        },
+        scan: (memberId) => dispatch({ type: 'scanChallenge', memberId, objectId: menuObject }),
       },
       objectAction,
-    ).map((button) => ({ ...button, pulse: !objectAction && button.enabled }))
-  const objectBand = objectAction && objectButtons.length > 0 ? ringPartyBand(state, { objectId: menuObject }, objectButtons, objectAction, pickedId, pickRingMember) : null
+      pickedId,
+    ).map((button) => ({
+      ...button,
+      pulse: !objectAction && button.enabled && button.id !== 'scan',
+    }))
+  const objectBandHover = objectAction ?? (hoveredRingButton === 'scan' ? 'scan' : null)
+  const objectBand =
+    objectButtons?.length > 0 && objectBandHover
+      ? ringPartyBand(state, { objectId: menuObject }, objectButtons, objectBandHover, pickedId, pickRingMember)
+      : null
   const objectSlices = objectBand?.slices.filter((slice) => slice.available) ?? []
-  const objectPicked = objectSlices.some((slice) => slice.picked)
+  const objectPicked = objectBandHover === 'scan' ? false : objectSlices.some((slice) => slice.picked)
   // A destructible's ring: Fire (band ranks who has the best shot), Scan (hazards / countermeasures), plus Sabotage and
   // Defuse (not built yet). The ring stays up after a shot or scan so the player can act again.
   const destructibleButtons =
@@ -752,28 +865,62 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     // A hazard's ring opens on its anchor tile (the board only knows the challenge objects' positions).
     ...(isHazardChallengeId(menuObject) && hazardAnchor?.id === menuObject ? { position: hazardAnchor.position } : {}),
     buttons: objectButtons,
+    info: objectInfo(state, menuObject),
     // Once every approach is spent (the panel is still showing the last roll) only the dice stay above the object.
     party: objectBand && {
       ...objectBand,
       slices: objectSlices,
-      pulse: !objectPicked,
-      roll: objectPicked && objectRoll ? { ...objectRoll, pulse: objectRoll.enabled } : null,
+      pulse: objectBandHover !== 'scan' && !objectPicked,
+      roll: objectBandHover !== 'scan' && objectPicked && objectRoll ? { ...objectRoll, pulse: objectRoll.enabled } : null,
     },
     onButtonHover: hoverRingButton,
     slotRef: openId ? setRollSlot : undefined,
   }
+  // Name tags hide while that object's ring is open (pointer often stays over the prop).
+  const hiddenTagIds = [
+    ...(menuObject && !isHazardChallengeId(menuObject) ? [menuObject] : []),
+    ...(menuGroundItem ? [menuGroundItem.id, `ground:${menuGroundItem.id}`] : []),
+  ]
+  const groundItemButtons =
+    menuGroundItem &&
+    groundItemMenuButtons(
+      state,
+      menuGroundItem.id,
+      {
+        scan: (memberId) => dispatch({ type: 'scanGroundItem', memberId, instanceId: menuGroundItem.id }),
+        pickup: (memberId) => {
+          setMenuGroundItemId(null)
+          if (memberId) {
+            const member = party.members[memberId]
+            if (member && groundItemFor(menuGroundItem.id).inPickupRange(state, member.position)) {
+              setPendingPickup(null)
+              dispatch({ type: 'pickupItem', instanceId: menuGroundItem.id, memberId })
+              return
+            }
+          }
+          requestPickupGroundItem(menuGroundItem.id)
+        },
+        goTo: () => {
+          setMenuGroundItemId(null)
+          setPendingPickup(null)
+          dispatch({ type: 'moveTo', target: menuGroundItem.position, fresh: true })
+        },
+      },
+      pickedId,
+    )
+  const groundItemBand =
+    menuGroundItem && hoveredRingButton === 'scan'
+      ? ringPartyBand(state, { groundItemId: menuGroundItem.id }, groundItemButtons, 'scan', pickedId, pickRingMember)
+      : null
   const groundItemMenu = menuGroundItem && {
     position: menuGroundItem.position,
-    buttons: groundItemMenuButtons(state, menuGroundItem.id, {
-      pickup: (memberId) => {
-        setMenuGroundItemId(null)
-        dispatch({ type: 'pickupItem', instanceId: menuGroundItem.id, memberId })
-      },
-      goTo: () => {
-        setMenuGroundItemId(null)
-        dispatch({ type: 'moveTo', target: menuGroundItem.position, fresh: true })
-      },
-    }),
+    buttons: groundItemButtons,
+    info: groundItemInfo(state, menuGroundItem.id),
+    party: groundItemBand && {
+      ...groundItemBand,
+      slices: groundItemBand.slices.filter((slice) => slice.available),
+    },
+    onButtonHover: hoverRingButton,
   }
   // The report waits for the sweep to reach the edge of the scan, and its fade timer starts when it appears.
   const scanSwept = !scanPulse
@@ -785,7 +932,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     ? 'Interacting: Escape closes the panel; walking out of reach closes it too. The world keeps moving.'
     : noiseTool
       ? 'Noise tool: click the floor to make a noise there.'
-      : `Click or hold the left button to move. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
+      : `Click or hold the left button to move. Click a ground item to walk over and pick it up; drag it to carry it. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
@@ -810,7 +957,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onDestructible={openDestructibleMenu}
           groundItems={groundViews}
           groundReachableIds={groundReachableIds}
-          onGroundItem={openGroundItemMenu}
+          onGroundItem={requestPickupGroundItem}
+          onGroundItemMenu={openGroundItemMenu}
           onGroundItemDragStart={startGroundItemDrag}
           placingItem={itemDrag?.overWorld ? itemDrag : null}
           placeHover={placeHover}
@@ -824,6 +972,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           exploreState={state}
           itemDropMemberId={itemDrag?.overWorld ? placeHover?.dropMemberId ?? null : null}
           itemDragActive={Boolean(itemDrag)}
+          hiddenTagIds={hiddenTagIds}
           debug={debugOpen}
           followCamera={followCamera}
           onCameraPan={stopFollowing}

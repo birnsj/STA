@@ -20,18 +20,48 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MAP_PATH = path.join(ROOT, 'maps', 'Inventory Object Test.json')
 
 const TM_IDS = [
-  'starfleetPadd',
   'hypospray',
+  'autosuture',
+  'osteogenicStimulator',
+  'corticalInhibitor',
+  'corticalStimulator',
+  'cytoplasmicStimulator',
+  'dermalStimulator',
+  'detronalScanner',
+  'neuralCalipers',
+  'neuralStimulator',
+  'neuralTransducer',
+  'sonicSeparator',
+  'vascularRegenerator',
+  'medicalShotgun',
   'hyperspanner',
   'plasmaTorch',
   'tridentScanner',
   'magneticProbe',
   'odnRecoupler',
   'fluxCoupler',
-  'autosuture',
-  'osteogenicStimulator',
+  'dualiticInverter',
+  'focalAdjustmentSpanner',
+  'graviticCaliper',
+  'ionicFlowRegulator',
+  'microResonator',
+  'parametricScanner',
+  'phaseModulator',
+  'selfSealingStemBolt',
+  'starfleetPadd',
+  'isolinearOpticalChip',
   'phaserRifle',
+  'phaserRifle2255',
+  'laserPistol2250',
+  'disruptorPistol',
+  'dkTahg',
   'klingonBatleth',
+  'mekleth',
+  'kurleth',
+  'kutluch',
+  'gintak',
+  'ushaantor',
+  'vulcanLirpa',
 ]
 
 beforeEach(() => resetInstanceIds(1))
@@ -44,7 +74,7 @@ function loadTestMap() {
 describe('groundItemPlacements schema', () => {
   it('parses and round-trips placements from Inventory Object Test', () => {
     const map = loadTestMap()
-    assert.equal(map.groundItemPlacements.length, 12)
+    assert.equal(map.groundItemPlacements.length, TM_IDS.length)
     const ids = map.groundItemPlacements.map((entry) => entry.itemId).sort()
     assert.deepEqual(ids, [...TM_IDS].sort())
     const again = parseMapFile(serializeMap(map), map.id)
@@ -123,11 +153,11 @@ describe('mapEdits ground items', () => {
 })
 
 describe('createExplorationState seeding', () => {
-  it('places all 12 Technical Manual items as ground instances with snapped positions', () => {
+  it('places all Technical Manual catalogue items as ground instances with snapped positions', () => {
     const map = loadTestMap()
     const state = createExplorationState(map, [makeCharacter({ id: 'a', equipment: [] })], 1, { enemiesActive: false })
     const views = groundItemViews(state)
-    assert.equal(views.length, 12)
+    assert.equal(views.length, TM_IDS.length)
     const itemIds = views.map((view) => view.itemId).sort()
     assert.deepEqual(itemIds, [...TM_IDS].sort())
     for (const view of views) {
@@ -198,24 +228,21 @@ describe('pickup and drop round-trip', () => {
     let state = createExplorationState(map, [makeCharacter({ id: 'a', equipment: [] })], 1, { enemiesActive: false })
     const memberId = state.party.memberIds[0]
     const before = groundItemViews(state)
-    assert.equal(before.length, 12)
+    assert.equal(before.length, TM_IDS.length)
     for (const view of before) {
       const itemId = view.itemId
       const instanceId = view.instanceId
       state = pickupItem(state, { instanceId, memberId })
       assert.ok(!state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
-      state = dropItem(state, { instanceId, position: { x: 4, y: 4 } })
+      // Cargo row (y=13) stays clear of authored catalogue placements.
+      const park = { x: 4 + before.indexOf(view) * 0.125, y: 13 }
+      state = dropItem(state, { instanceId, position: park })
       assert.ok(state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
-      assert.deepEqual(state.groundItems[instanceId].position, snapItemPosition({ x: 4, y: 4 }))
-      // Move aside so the next drop can reuse the same cell.
-      state = dropItem(state, {
-        instanceId,
-        position: { x: 4 + before.indexOf(view) * 0.125, y: 5 },
-      })
+      assert.deepEqual(state.groundItems[instanceId].position, snapItemPosition(park))
     }
-    assert.equal(groundItemViews(state).length, 12)
-    assert.equal(new Set(groundItemViews(state).map((view) => view.itemId)).size, 12)
+    assert.equal(groundItemViews(state).length, TM_IDS.length)
+    assert.equal(new Set(groundItemViews(state).map((view) => view.itemId)).size, TM_IDS.length)
   })
 })

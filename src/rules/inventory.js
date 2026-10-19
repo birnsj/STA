@@ -5,9 +5,11 @@ import { tileOf } from '../exploration/navigation.js'
 import { getItemById } from './equipment.js'
 
 export const EQUIP_SLOTS = ['body', 'sidearm', 'scanner', 'communicator']
-export const BAG_CAPACITY = 24
 export const BAG_COLS = 6
-export const BAG_ROWS = 4
+export const BAG_ROWS = 8
+export const BAG_CAPACITY = BAG_COLS * BAG_ROWS
+// How many bag rows stay visible in the inventory window; the rest scroll.
+export const BAG_VISIBLE_ROWS = 4
 // Subdivisions of one map tile for dropped-item placement (designer request: 8×8 logical grid).
 export const ITEM_GRID = 8
 export const ITEM_GRID_STEP = 1 / ITEM_GRID
@@ -479,6 +481,7 @@ export function groundItemViews(state, { hideInstanceId = null } = {}) {
         name: entry.name || resolved?.def.name || 'Item',
         itemId: resolved?.instance.itemId ?? null,
         category: resolved?.def.category ?? null,
+        description: resolved?.def.description ?? '',
         // Isometric world prop PNG; never the inventory icon. Falls back to crate tile art.
         worldImage: resolved?.def.worldImage ?? null,
         worldTile: resolved?.def.worldTile ?? 'crate',

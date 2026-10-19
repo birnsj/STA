@@ -12,9 +12,10 @@ import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { getNpcs, isDown } from './awareness.js'
-import { TASK_SEED_OFFSET } from './challengeObjects.js'
+import { challengeFor, TASK_SEED_OFFSET } from './challengeObjects.js'
 import { locationReport } from './locationReport.js'
 import { revealEntity } from './partyKnowledge.js'
+import { groundItemFor } from '../world/GroundItem.js'
 
 export const SCAN_TASK = actionData.actions.find((action) => action.id === 'scan').task
 
@@ -76,6 +77,31 @@ export function canScanDestructible(state, memberId, objectId) {
   if (!record || record.state === 'destroyed') return { possible: false, reason: 'Nothing there to scan.' }
   const radius = scanRadius(member.character)
   if (distance(member.position, record.position) > radius) return { possible: false, reason: `Out of tricorder range (${radius} tiles).` }
+  return { possible: true, reason: null }
+}
+
+// { possible, reason }: whether the member can scan this challenge object (tricorder range).
+export function canScanChallenge(state, memberId, objectId) {
+  const check = canScan(state, memberId)
+  if (!check.possible) return check
+  const member = state.party.members[memberId]
+  const challenge = challengeFor(state, objectId)
+  if (!challenge) return { possible: false, reason: 'Nothing there to scan.' }
+  const radius = scanRadius(member.character)
+  const position = challenge.position()
+  if (distance(member.position, position) > radius) return { possible: false, reason: `Out of tricorder range (${radius} tiles).` }
+  return { possible: true, reason: null }
+}
+
+// { possible, reason }: whether the member can scan this ground inventory prop (tricorder range).
+export function canScanGroundItem(state, memberId, instanceId) {
+  const check = canScan(state, memberId)
+  if (!check.possible) return check
+  const member = state.party.members[memberId]
+  const position = groundItemFor(instanceId).position(state)
+  if (!position) return { possible: false, reason: 'Nothing there to scan.' }
+  const radius = scanRadius(member.character)
+  if (distance(member.position, position) > radius) return { possible: false, reason: `Out of tricorder range (${radius} tiles).` }
   return { possible: true, reason: null }
 }
 
@@ -155,6 +181,89 @@ export function scanDestructible(state, memberId, objectId) {
       objectId,
       origin: { x: member.position.x, y: member.position.y },
       targetOrigin: { x: record.position.x, y: record.position.y },
+      // Floor rings: tricorder sweep around the scanner, tight ring on the object (ExplorationScreen scanPulse).
+      radius: scanRadius(member.character),
+    },
+  }
+}
+
+// The member scans one challenge object with the same Scan task. Success records objectScans[objectId] so the ring card
+// and mouseover tag can show the authored state description. Unchanged when they can't scan it.
+export function scanChallenge(state, memberId, objectId) {
+  if (!canScanChallenge(state, memberId, objectId).possible) return state
+  const member = state.party.members[memberId]
+  const challenge = challengeFor(state, objectId)
+  const position = challenge.position()
+  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  if (!prepared.possible) return state
+
+  const key = state.scenario.taskCount
+  const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + key))
+  const result = resolveStaTask({
+    leader: { task: prepared.task, dice: rollDice(random, checkDicePurchase(state.resources).dice) },
+    difficulty: prepared.difficulty,
+    ignoreComplications: prepared.ignoreComplications,
+    bonusMomentum: prepared.bonusMomentum,
+  })
+  const { resources } = saveMomentum(state.resources, savableMomentum(result))
+  const previous = state.objectScans?.[objectId]
+  const success = result.success || Boolean(previous?.success)
+  return {
+    ...state,
+    resources,
+    scenario: { ...state.scenario, taskCount: key + 1 },
+    scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
+    objectScans: {
+      ...state.objectScans,
+      [objectId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty },
+    },
+    lastTargetScan: {
+      key,
+      memberId,
+      objectId,
+      origin: { x: member.position.x, y: member.position.y },
+      targetOrigin: { x: position.x, y: position.y },
+      radius: scanRadius(member.character),
+    },
+  }
+}
+
+// The member scans one ground inventory prop. Success records objectScans[instanceId] so the mouseover tag can show
+// the item's catalogue description. Unchanged when they can't scan it.
+export function scanGroundItem(state, memberId, instanceId) {
+  if (!canScanGroundItem(state, memberId, instanceId).possible) return state
+  const member = state.party.members[memberId]
+  const position = groundItemFor(instanceId).position(state)
+  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  if (!prepared.possible) return state
+
+  const key = state.scenario.taskCount
+  const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + key))
+  const result = resolveStaTask({
+    leader: { task: prepared.task, dice: rollDice(random, checkDicePurchase(state.resources).dice) },
+    difficulty: prepared.difficulty,
+    ignoreComplications: prepared.ignoreComplications,
+    bonusMomentum: prepared.bonusMomentum,
+  })
+  const { resources } = saveMomentum(state.resources, savableMomentum(result))
+  const previous = state.objectScans?.[instanceId]
+  const success = result.success || Boolean(previous?.success)
+  return {
+    ...state,
+    resources,
+    scenario: { ...state.scenario, taskCount: key + 1 },
+    scanReadyAt: { ...state.scanReadyAt, [memberId]: state.world.time + scanData.cooldownSeconds },
+    objectScans: {
+      ...state.objectScans,
+      [instanceId]: { key, memberId, success, rolledSuccess: result.success, successes: result.successes, difficulty: prepared.difficulty },
+    },
+    lastTargetScan: {
+      key,
+      memberId,
+      objectId: instanceId,
+      origin: { x: member.position.x, y: member.position.y },
+      targetOrigin: { x: position.x, y: position.y },
+      radius: scanRadius(member.character),
     },
   }
 }
