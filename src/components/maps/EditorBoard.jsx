@@ -90,10 +90,12 @@ function tilePreview(map, hover, brush, rotated, moveFrom) {
 
 const SELECTED = 0xffb347
 const LINKED = 0x5fe8ff
+const PATROL = 0xe8c44a
 
 // What the Pixi scene outlines for the selection (pixi/editorMarkers.js EditorOutlineView): the selected destructible's
-// tile with the square its explosion reaches and its linked tiles, or the selected hazard region's tiles.
-function selectionOutlines(map, environment, destructibleId, hazardId) {
+// tile with the square its explosion reaches and its linked tiles, the selected hazard region's tiles, or the selected
+// NPC's patrol route.
+function selectionOutlines(map, environment, destructibleId, hazardId, selectedNpcId) {
   const outlines = []
   const record = destructibleId && environment.destructibles[destructibleId]
   if (record) {
@@ -108,6 +110,17 @@ function selectionOutlines(map, environment, destructibleId, hazardId) {
     })
     outlines.push({ id: `h:${region.id}`, tiles, square: null, colour: SELECTED, fillAlpha: 0.1 })
   }
+  const npc = selectedNpcId && (map.npcs ?? []).find((entry) => entry.id === selectedNpcId)
+  if (npc?.patrol?.length) {
+    outlines.push({
+      id: `p:${npc.id}`,
+      tiles: npc.patrol.map((point) => point.at),
+      square: null,
+      colour: PATROL,
+      fillAlpha: 0.12,
+      route: true,
+    })
+  }
   return outlines
 }
 
@@ -120,7 +133,8 @@ function selectionOutlines(map, environment, destructibleId, hazardId) {
 // tile's markers rather than the tile }), or null.
 // lighting: draw shadows, light pools and the map's darkness. animate: animated tiles play (off: each holds its first
 // frame). erasing: the Erase Marker tool is held, so the markers and label on the hovered tile are highlighted as the
-// ones a click removes. selectedNpcId: the NPC the inspector shows.
+// ones a click removes. selectedNpcId: the NPC the inspector shows. selectedWaypointIndex: patrol waypoint index
+// while editing that NPC's route (null: none).
 export default function EditorBoard({
   map,
   ghostBlocks,
@@ -130,6 +144,7 @@ export default function EditorBoard({
   rotated,
   erasing = false,
   selectedNpcId = null,
+  selectedWaypointIndex = null,
   selectedMarker = null,
   selectedObjectId = null,
   selectedDestructibleId = null,
@@ -145,7 +160,10 @@ export default function EditorBoard({
   // Destructible objects show in the state they start the mission in, force fields up, as play will draw them.
   const environment = useMemo(() => createEnvironment(map), [map])
   const layout = useMemo(() => boardLayout(applyEnvironmentTiles(map, environment)), [map, environment])
-  const outlines = useMemo(() => selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId), [map, environment, selectedDestructibleId, selectedHazardId])
+  const outlines = useMemo(
+    () => selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId),
+    [map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId],
+  )
   // Every painted hazard shows while authoring, including one that only starts when something sets it off.
   const shownEnvironment = useMemo(
     () => ({ ...environment, hazards: Object.fromEntries(Object.entries(environment.hazards).map(([id, region]) => [id, { ...region, active: true }])) }),
@@ -220,6 +238,15 @@ export default function EditorBoard({
       facing: npc.facing ?? 0,
       selected: npc.id === selectedNpcId,
       doomed: doomed(npc.position),
+    })),
+    ...((map.npcs ?? []).find((npc) => npc.id === selectedNpcId)?.patrol ?? []).map((point, index) => ({
+      id: `w${selectedNpcId}:${index}`,
+      position: point.at,
+      kind: 'patrol',
+      label: `W${index + 1}`,
+      facing: point.facing ?? null,
+      selected: index === selectedWaypointIndex,
+      doomed: false,
     })),
     ...(map.objectives ?? []).flatMap((objective, index) => {
       const position = objectivePosition(map, objective)

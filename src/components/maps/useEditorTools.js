@@ -3,6 +3,7 @@ import { MAX_AWAY_TEAM } from '../../exploration/awayTeam.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
 import {
+  addPatrolWaypoint,
   areaAt,
   destructibleAt,
   duplicateDestructible,
@@ -22,12 +23,14 @@ import {
   placeGroundItem,
   placeNpc,
   removeGroundItem,
+  removePatrolWaypoint,
   selectionAt,
   setAreaLabel,
   swapTilesWithObjects,
   toggleMarker,
   turnFacing,
   updateDestructible,
+  updatePatrolWaypoint,
   updateNpc,
 } from '../../maps/mapEdits.js'
 import { getTile, isRotated } from '../../maps/mapFormat.js'
@@ -60,6 +63,10 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   // The NPC tool: the NPC shown in the inspector, and whether the next board click moves it.
   const [selectedNpcId, setSelectedNpcId] = useState(null)
   const [movingNpc, setMovingNpc] = useState(false)
+  // Patrol authoring for the selected NPC: Edit Patrol mode, selected waypoint index, Move Waypoint mode.
+  const [editingPatrol, setEditingPatrol] = useState(false)
+  const [selectedWaypointIndex, setSelectedWaypointIndex] = useState(null)
+  const [movingWaypoint, setMovingWaypoint] = useState(false)
   // The player start or enemy spawn shown in its inspector ({ kind, x, y }), or null. Looked up by tile, so moving or
   // deleting it closes the inspector.
   const [selectedMarker, setSelectedMarker] = useState(null)
@@ -92,6 +99,9 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedObjectId(null)
     setPlacingObject(false)
     setMovingNpc(false)
+    setEditingPatrol(false)
+    setSelectedWaypointIndex(null)
+    setMovingWaypoint(false)
     setMoveFrom(null)
     setSelectedGroundItemId(null)
     setMovingGroundItem(false)
@@ -149,6 +159,14 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         if (placing && tool?.startsWith('tile:')) setRotated((value) => !value)
         return
       }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && editingPatrol && selectedNpc && selectedWaypointIndex != null) {
+        event.preventDefault()
+        edit(removePatrolWaypoint(map, selectedNpc.id, selectedWaypointIndex))
+        setSelectedWaypointIndex(null)
+        setMovingWaypoint(false)
+        setStatus('Removed patrol waypoint.')
+        return
+      }
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedGroundItem) {
         event.preventDefault()
         edit(removeGroundItem(map, selectedGroundItem.id))
@@ -158,6 +176,12 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         return
       }
       if (event.key !== 'Escape') return
+      if (movingWaypoint) return setMovingWaypoint(false)
+      if (editingPatrol) {
+        setEditingPatrol(false)
+        setSelectedWaypointIndex(null)
+        return
+      }
       if (linkingDestructible) return setLinkingDestructible(false)
       if (movingDestructible) return setMovingDestructible(false)
       if (movingGroundItem) return setMovingGroundItem(false)
@@ -178,9 +202,46 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Patrol edit: click a waypoint of the selected NPC to select it, or an empty floor tile to append one; Move Waypoint
+  // relocates the selected point.
+  const onPatrolEdit = (position) => {
+    if (!selectedNpc) return false
+    const patrol = selectedNpc.patrol ?? []
+    if (movingWaypoint && selectedWaypointIndex != null) {
+      const moved = updatePatrolWaypoint(map, selectedNpc.id, selectedWaypointIndex, { at: position })
+      if (moved === map) setStatus('Patrol waypoints stand on free floor tiles.')
+      else {
+        edit(moved)
+        setStatus(`Moved W${selectedWaypointIndex + 1} to (${position.x}, ${position.y}).`)
+      }
+      setMovingWaypoint(false)
+      return true
+    }
+    const hit = patrol.findIndex((point) => point.at.x === position.x && point.at.y === position.y)
+    if (hit >= 0) {
+      setSelectedWaypointIndex(hit)
+      setStatus(`Selected W${hit + 1}.`)
+      return true
+    }
+    if (editingPatrol) {
+      const next = addPatrolWaypoint(map, selectedNpc.id, position)
+      if (!next) {
+        setStatus('Patrol waypoints stand on free floor tiles.')
+        return true
+      }
+      edit(next)
+      const count = next.npcs.find((npc) => npc.id === selectedNpc.id)?.patrol?.length ?? 0
+      setSelectedWaypointIndex(count > 0 ? count - 1 : null)
+      setStatus(`Added W${count} at (${position.x}, ${position.y}).`)
+      return true
+    }
+    return false
+  }
+
   // The NPC tool: click an NPC to select it, an empty floor tile to place a new one (or, while moving, to move the
   // selected one there).
   const onNpcTool = (position) => {
+    if (onPatrolEdit(position)) return
     if (movingNpc && selectedNpc) {
       const moved = updateNpc(map, selectedNpc.id, { position })
       if (moved === map) setStatus('NPCs stand on free floor tiles.')
@@ -191,16 +252,27 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     }
     const existing = npcAt(map, position)
     setSelectedMarker(null)
-    if (existing) return setSelectedNpcId(existing.id)
+    if (existing) {
+      setSelectedNpcId(existing.id)
+      setSelectedWaypointIndex(null)
+      setMovingWaypoint(false)
+      return
+    }
+    if (editingPatrol) return
     const placed = placeNpc(map, position, FIRST_CHARACTER_ID)
     if (!placed) return setStatus('NPCs stand on free floor tiles.')
     edit(placed.map)
     setSelectedNpcId(placed.npc.id)
+    setEditingPatrol(false)
+    setSelectedWaypointIndex(null)
   }
 
   // A click with no marker tool held (Place Tiles and Move off): select what stands on the tile for editing (the NPC
   // and the player start or enemy spawn under it, each in its own inspector); an empty tile closes the inspectors.
   const selectAt = (position) => {
+    if (editingPatrol || movingWaypoint) {
+      if (onPatrolEdit(position)) return
+    }
     const { npc, markerKind, object } = selectionAt(map, objectDefinitions, position)
     setSelectedNpcId(npc?.id ?? null)
     setSelectedMarker(markerKind ? { kind: markerKind, x: position.x, y: position.y } : null)
@@ -213,6 +285,11 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setMovingDestructible(false)
     setLinkingDestructible(false)
     setMovingGroundItem(false)
+    if (!npc) {
+      setEditingPatrol(false)
+      setSelectedWaypointIndex(null)
+      setMovingWaypoint(false)
+    }
   }
 
   // The destructible tools: click a destructible to select it, a free floor tile to place one of the held type.
@@ -249,7 +326,10 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setStatus(`Placed ${def?.name ?? itemId} (${placed.object.id}).`)
   }
 
-  const onPaint = (position, { first }) => {
+    const onPaint = (position, { first }) => {
+    if ((editingPatrol || movingWaypoint) && selectedNpc && first) {
+      if (onPatrolEdit(position)) return
+    }
     // Picking linked tiles: each click adds or removes one (a force-field generator's field).
     if (linkingDestructible && selectedDestructible) {
       if (!first) return
@@ -425,7 +505,34 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     movingNpc,
     toggleNpcMove: () => {
       setTool('npcs')
+      setEditingPatrol(false)
+      setMovingWaypoint(false)
       setMovingNpc((value) => !value)
+    },
+    editingPatrol,
+    movingWaypoint,
+    selectedWaypointIndex,
+    togglePatrolEdit: () => {
+      setTool('npcs')
+      setMovingNpc(false)
+      setMovingWaypoint(false)
+      setEditingPatrol((value) => {
+        if (value) setSelectedWaypointIndex(null)
+        return !value
+      })
+    },
+    toggleMoveWaypoint: () => {
+      if (selectedWaypointIndex == null) return
+      setMovingNpc(false)
+      setMovingWaypoint((value) => !value)
+    },
+    selectWaypoint: (index) => {
+      setSelectedWaypointIndex(index)
+      setMovingWaypoint(false)
+    },
+    clearWaypoint: () => {
+      setSelectedWaypointIndex(null)
+      setMovingWaypoint(false)
     },
     selectedDestructibleId: selectedDestructible?.id ?? null,
     selectedHazardId: selectedHazard?.id ?? null,
@@ -459,6 +566,9 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     clearNpc: () => {
       setSelectedNpcId(null)
       setMovingNpc(false)
+      setEditingPatrol(false)
+      setSelectedWaypointIndex(null)
+      setMovingWaypoint(false)
     },
     placingObject,
     toggleObjectPlace: () => setPlacingObject((value) => !value),

@@ -4,6 +4,7 @@ import { getGenders, getNpcBackdropById } from '../../rules/appearance.js'
 import awareness from '../../data/adaptation/exploration/awareness.json'
 import factionData from '../../data/adaptation/factions.json'
 import { FACINGS, snapFacing } from '../../maps/facing.js'
+import { PERCEPTION_DEFAULTS, PERCEPTION_KEYS, RESPONSE_TYPES } from '../../maps/mapFormat.js'
 
 // The map editor's inspector for the selected NPC (mapFormat.js npcs): who it is (an authored character, never a copy),
 // and how this instance behaves in the world. Every change goes straight into the map (onChange(changes)).
@@ -15,6 +16,16 @@ const NPC_RULES = [
   { id: 'notable', label: 'Notable NPC (Core p.291)' },
   { id: 'major', label: 'Major NPC (Core p.291)' },
 ]
+const PERCEPTION_FIELDS = [
+  { key: 'visionRange', label: 'Vision range', min: 1, max: 30, step: 1 },
+  { key: 'normalRange', label: 'Normal range', min: 1, max: 30, step: 1 },
+  { key: 'closeRange', label: 'Close range', min: 0, max: 30, step: 1 },
+  { key: 'fieldOfView', label: 'Field of view (°)', min: 1, max: 360, step: 1 },
+  { key: 'hearingRange', label: 'Hearing range', min: 0, max: 30, step: 1 },
+  { key: 'awarenessBuildRate', label: 'Awareness build / s', min: 0, max: 10, step: 0.05 },
+  { key: 'awarenessDecayRate', label: 'Awareness decay / s', min: 0, max: 10, step: 0.05 },
+]
+
 export function Field({ label, children }) {
   return (
     <label className="me-field">
@@ -75,13 +86,183 @@ function AppearanceFields({ npc, appearance, onChange }) {
   )
 }
 
+function dispositionResponse(dispositionId) {
+  return awareness.dispositions.find((entry) => entry.id === dispositionId)?.response ?? 'observe'
+}
+
+function PerceptionFields({ npc, onChange }) {
+  const overrides = npc.perception ?? {}
+  const setKey = (key, value) => {
+    if (value == null) {
+      const next = { ...overrides }
+      delete next[key]
+      onChange({ perception: Object.keys(next).length ? next : null })
+      return
+    }
+    onChange({ perception: { ...overrides, [key]: value } })
+  }
+  return (
+    <>
+      <p className="me-heading">Perception</p>
+      <p className="me-text">Blank uses the global default from awareness.json. Reset clears every override.</p>
+      {PERCEPTION_FIELDS.filter((field) => PERCEPTION_KEYS.includes(field.key)).map((field) => (
+        <label key={field.key} className="me-field">
+          {field.label}
+          <input
+            className="me-name me-wide"
+            type="number"
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            value={overrides[field.key] ?? ''}
+            placeholder={`Default ${PERCEPTION_DEFAULTS[field.key]}`}
+            onChange={(event) => {
+              if (event.target.value === '') return setKey(field.key, null)
+              const next = Number(event.target.value)
+              if (!Number.isFinite(next)) return
+              setKey(field.key, Math.min(field.max, Math.max(field.min, next)))
+            }}
+          />
+        </label>
+      ))}
+      <button type="button" className="me-button" disabled={!npc.perception} onClick={() => onChange({ perception: null })}>
+        Reset perception
+      </button>
+    </>
+  )
+}
+
+function PatrolFields({
+  npc,
+  editing,
+  movingWaypoint,
+  selectedIndex,
+  onToggleEdit,
+  onToggleMoveWaypoint,
+  onSelectWaypoint,
+  onChangeWaypoint,
+  onReorderWaypoint,
+  onDeleteWaypoint,
+  onClearPatrol,
+}) {
+  const patrol = npc.patrol ?? []
+  const selected = selectedIndex != null ? patrol[selectedIndex] : null
+  return (
+    <>
+      <p className="me-heading">Patrol</p>
+      <p className="me-text">
+        {patrol.length
+          ? `${patrol.length} waypoint${patrol.length === 1 ? '' : 's'} (loops).`
+          : 'No patrol — stands at its post.'}
+      </p>
+      <div className="me-inspector-actions">
+        <button type="button" className={`me-button${editing ? ' is-primary' : ''}`} aria-pressed={editing} onClick={onToggleEdit}>
+          {editing ? 'Click tiles to add…' : 'Edit Patrol'}
+        </button>
+        {patrol.length > 0 && (
+          <button type="button" className="me-button" onClick={onClearPatrol}>
+            Clear
+          </button>
+        )}
+      </div>
+      {editing && <p className="me-text">Click a floor tile to add a waypoint; click a W marker to select it. Escape finishes.</p>}
+      {patrol.length > 0 && (
+        <ul className="me-patrol-list">
+          {patrol.map((point, index) => (
+            <li key={`${point.at.x},${point.at.y},${index}`}>
+              <button
+                type="button"
+                className={`me-link${index === selectedIndex ? ' is-selected' : ''}`}
+                onClick={() => onSelectWaypoint(index)}
+              >
+                W{index + 1} · {point.at.x}, {point.at.y}
+                {point.wait ? ` · wait ${point.wait}s` : ''}
+                {point.facing != null ? ` · ${snapFacing(point.facing)}°` : ''}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {selected && (
+        <>
+          <Field label={`Waypoint W${selectedIndex + 1} wait (seconds)`}>
+            <input
+              className="me-name me-wide"
+              type="number"
+              min={0}
+              max={120}
+              step={0.5}
+              value={selected.wait ?? 0}
+              onChange={(event) => onChangeWaypoint(selectedIndex, { wait: Number(event.target.value) })}
+            />
+          </Field>
+          <Field label="Facing while waiting">
+            <select
+              className="me-select me-wide"
+              value={selected.facing == null ? '' : snapFacing(selected.facing)}
+              onChange={(event) => onChangeWaypoint(selectedIndex, { facing: event.target.value === '' ? null : Number(event.target.value) })}
+            >
+              <option value="">Keep walking facing</option>
+              {FACINGS.map((entry) => (
+                <option key={entry.degrees} value={entry.degrees}>
+                  {entry.degrees}° {entry.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="me-inspector-actions">
+            <button type="button" className={`me-button${movingWaypoint ? ' is-primary' : ''}`} aria-pressed={movingWaypoint} onClick={onToggleMoveWaypoint}>
+              {movingWaypoint ? 'Click a tile…' : 'Move Waypoint'}
+            </button>
+            <button type="button" className="me-button" disabled={selectedIndex === 0} onClick={() => onReorderWaypoint(selectedIndex, selectedIndex - 1)}>
+              Up
+            </button>
+            <button
+              type="button"
+              className="me-button"
+              disabled={selectedIndex >= patrol.length - 1}
+              onClick={() => onReorderWaypoint(selectedIndex, selectedIndex + 1)}
+            >
+              Down
+            </button>
+            <button type="button" className="me-button" onClick={() => onDeleteWaypoint(selectedIndex)}>
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
 // npc: the selected NPC; conversations: [{ id, name }]; moving: the next board click moves it (onMove toggles).
 // onFacing(degrees): the Facing list (it also turns a start or spawn the NPC stands on). appearance: its gender,
 // portrait and backdrop in play (npcAppearance.js), or null.
-export default function NpcInspector({ npc, appearance = null, conversations, moving, onChange, onFacing, onMove, onDelete, onEditConversation }) {
+export default function NpcInspector({
+  npc,
+  appearance = null,
+  conversations,
+  moving,
+  onChange,
+  onFacing,
+  onMove,
+  onDelete,
+  onEditConversation,
+  editingPatrol = false,
+  movingWaypoint = false,
+  selectedWaypointIndex = null,
+  onTogglePatrolEdit,
+  onToggleMoveWaypoint,
+  onSelectWaypoint,
+  onChangeWaypoint,
+  onReorderWaypoint,
+  onDeleteWaypoint,
+  onClearPatrol,
+}) {
   const character = CHARACTERS.find((entry) => entry.id === npc.characterId)
   const text = (key) => (event) => onChange({ [key]: event.target.value.trim() ? event.target.value : null })
   const select = (key) => (event) => onChange({ [key]: event.target.value || null })
+  const defaultResponse = dispositionResponse(npc.disposition ?? 'neutral')
   // A new character keeps the chosen gender and portrait only while its species can wear them.
   const setCharacter = (event) => {
     const characterId = event.target.value || null
@@ -126,6 +307,16 @@ export default function NpcInspector({ npc, appearance = null, conversations, mo
           {awareness.dispositions.map((disposition) => (
             <option key={disposition.id} value={disposition.id}>
               {disposition.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Response when identified">
+        <select className="me-select me-wide" value={npc.responseType ?? ''} onChange={select('responseType')}>
+          <option value="">Default ({RESPONSE_TYPES.find((entry) => entry.id === defaultResponse)?.label ?? defaultResponse})</option>
+          {RESPONSE_TYPES.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.label}
             </option>
           ))}
         </select>
@@ -180,6 +371,20 @@ export default function NpcInspector({ npc, appearance = null, conversations, mo
           ))}
         </select>
       </Field>
+      <PerceptionFields npc={npc} onChange={onChange} />
+      <PatrolFields
+        npc={npc}
+        editing={editingPatrol}
+        movingWaypoint={movingWaypoint}
+        selectedIndex={selectedWaypointIndex}
+        onToggleEdit={onTogglePatrolEdit}
+        onToggleMoveWaypoint={onToggleMoveWaypoint}
+        onSelectWaypoint={onSelectWaypoint}
+        onChangeWaypoint={onChangeWaypoint}
+        onReorderWaypoint={onReorderWaypoint}
+        onDeleteWaypoint={onDeleteWaypoint}
+        onClearPatrol={onClearPatrol}
+      />
       <div className="me-inspector-actions">
         <button type="button" className={`me-button${moving ? ' is-primary' : ''}`} aria-pressed={moving} onClick={onMove}>
           {moving ? 'Click a tile…' : 'Move'}

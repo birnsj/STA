@@ -161,6 +161,53 @@ export function updateNpc(map, npcId, changes) {
 
 export const removeNpc = (map, npcId) => ({ ...map, npcs: (map.npcs ?? []).filter((npc) => npc.id !== npcId) })
 
+// Patrol waypoints (mapFormat.js / npcs.json schema): { at: { x, y }, wait, facing (degrees or null) }.
+const patrolOf = (map, npcId) => (map.npcs ?? []).find((npc) => npc.id === npcId)?.patrol ?? []
+
+const floorAt = (map, position) => {
+  const tileId = map.tiles[position.y]?.[position.x]
+  return tileId != null && !getTile(tileId).solid
+}
+
+export function addPatrolWaypoint(map, npcId, position, { wait = 2, facing = null } = {}) {
+  if (!floorAt(map, position)) return null
+  const npc = (map.npcs ?? []).find((entry) => entry.id === npcId)
+  if (!npc) return null
+  const point = { at: { x: position.x, y: position.y }, wait, facing }
+  return updateNpc(map, npcId, { patrol: [...patrolOf(map, npcId), point] })
+}
+
+export function updatePatrolWaypoint(map, npcId, index, changes) {
+  const patrol = [...patrolOf(map, npcId)]
+  if (index < 0 || index >= patrol.length) return map
+  const next = { ...patrol[index], ...changes }
+  if (changes.at) {
+    if (!floorAt(map, changes.at)) return map
+    next.at = { x: changes.at.x, y: changes.at.y }
+  }
+  if ('wait' in changes) next.wait = Math.max(0, Number(changes.wait) || 0)
+  if ('facing' in changes) next.facing = changes.facing == null ? null : Number(changes.facing)
+  patrol[index] = next
+  return updateNpc(map, npcId, { patrol })
+}
+
+export function removePatrolWaypoint(map, npcId, index) {
+  const patrol = patrolOf(map, npcId).filter((_, at) => at !== index)
+  return updateNpc(map, npcId, { patrol: patrol.length ? patrol : null })
+}
+
+export function reorderPatrolWaypoint(map, npcId, from, to) {
+  const patrol = [...patrolOf(map, npcId)]
+  if (from < 0 || from >= patrol.length || to < 0 || to >= patrol.length || from === to) return map
+  const [point] = patrol.splice(from, 1)
+  patrol.splice(to, 0, point)
+  return updateNpc(map, npcId, { patrol })
+}
+
+export function clearNpcPatrol(map, npcId) {
+  return updateNpc(map, npcId, { patrol: null })
+}
+
 export const areaAt = (map, position) => map.areas.find((area) => same(area.position, position)) ?? null
 
 // An empty name removes the label.

@@ -177,7 +177,13 @@ export default function EditorSidePanel({
       {fileId && mapFileId(map.name) && mapFileId(map.name) !== fileId && <p className="me-text">Renamed to maps/{mapFileId(map.name)}.json on Save.</p>}
       <p className="me-heading">Tile</p>
       <p className="me-text">
-        {hoverTile ? `${hoverTile.x}, ${hoverTile.y}: ${getTile(map.tiles[hoverTile.y][hoverTile.x]).label}${isRotated(map, hoverTile) ? ' (rotated)' : ''}` : '-'}
+        {hoverTile
+          ? (() => {
+              const tileId = map.tiles[hoverTile.y]?.[hoverTile.x]
+              const label = tileId != null ? getTile(tileId)?.label ?? String(tileId) : 'out of bounds'
+              return `${hoverTile.x}, ${hoverTile.y}: ${label}${isRotated(map, hoverTile) ? ' (rotated)' : ''}`
+            })()
+          : '-'}
       </p>
       <p className="me-text">Brush: {placing ? (rotated ? 'rotated' : 'not rotated') : 'off (Place Tiles)'}</p>
       <p className="me-heading">Player Starts</p>

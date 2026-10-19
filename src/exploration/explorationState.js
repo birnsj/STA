@@ -54,10 +54,28 @@ function perceive(state) {
 const actorCharacter = (config, appearance) =>
   config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: config.npcRules ?? null, appearance }) : null
 
+// Patrol points in memory use { at: { x, y } }; createNpc expects npcs.json's { at: [x, y] }.
+const patrolForRuntime = (patrol) =>
+  patrol?.length
+    ? patrol.map((point) => ({
+        at: Array.isArray(point.at) ? point.at : [point.at.x, point.at.y],
+        wait: point.wait ?? 0,
+        ...(point.facing != null ? { facing: point.facing } : {}),
+      }))
+    : undefined
+
 // A map's NPCs: those placed on it in the map editor; otherwise its own entry in npcs.json, or the fallback test NPCs
 // on its enemy spawns.
 export function npcConfigsFor(map) {
-  if (map.npcs?.length) return map.npcs.map((npc) => ({ ...npc, name: npc.name || null, position: [npc.position.x, npc.position.y] }))
+  if (map.npcs?.length) {
+    return map.npcs.map((npc) => ({
+      ...npc,
+      name: npc.name || null,
+      position: [npc.position.x, npc.position.y],
+      ...(npc.patrol?.length ? { patrol: patrolForRuntime(npc.patrol) } : { patrol: undefined }),
+      ...(npc.perception ? { perception: npc.perception } : {}),
+    }))
+  }
   const own = npcData.maps[map.id] ?? npcData.maps[map.name]
   if (own) return own
   return npcData.fallback.slice(0, map.markers.enemySpawns.length).map((config, index) => {

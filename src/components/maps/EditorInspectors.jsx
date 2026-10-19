@@ -1,7 +1,22 @@
 import { assignNpcAppearances } from '../../character/npcAppearance.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../../maps/facing.js'
-import { removeDestructible, removeGroundItem, removeHazard, removeNpc, setFacing, toggleMarker, updateDestructible, updateGroundItem, updateHazard, updateNpc } from '../../maps/mapEdits.js'
+import {
+  clearNpcPatrol,
+  removeDestructible,
+  removeGroundItem,
+  removeHazard,
+  removeNpc,
+  reorderPatrolWaypoint,
+  removePatrolWaypoint,
+  setFacing,
+  toggleMarker,
+  updateDestructible,
+  updateGroundItem,
+  updateHazard,
+  updateNpc,
+  updatePatrolWaypoint,
+} from '../../maps/mapEdits.js'
 import DestructibleInspector from './DestructibleInspector.jsx'
 import GroundItemInspector from './GroundItemInspector.jsx'
 import HazardInspector from './HazardInspector.jsx'
@@ -46,6 +61,13 @@ export default function EditorInspectors({
   onDuplicateGroundItem,
   onGroundItemCleared,
   onHazardCleared,
+  editingPatrol = false,
+  movingWaypoint = false,
+  selectedWaypointIndex = null,
+  onTogglePatrolEdit,
+  onToggleMoveWaypoint,
+  onSelectWaypoint,
+  onWaypointCleared,
 }) {
   const { npc, object, marker, destructible, hazard, groundItem } = selection
   return (
@@ -102,6 +124,25 @@ export default function EditorInspectors({
             onNpcCleared()
           }}
           onEditConversation={onEditConversation}
+          editingPatrol={editingPatrol}
+          movingWaypoint={movingWaypoint}
+          selectedWaypointIndex={selectedWaypointIndex}
+          onTogglePatrolEdit={onTogglePatrolEdit}
+          onToggleMoveWaypoint={onToggleMoveWaypoint}
+          onSelectWaypoint={onSelectWaypoint}
+          onChangeWaypoint={(index, changes) => edit(updatePatrolWaypoint(map, npc.id, index, changes))}
+          onReorderWaypoint={(from, to) => {
+            edit(reorderPatrolWaypoint(map, npc.id, from, to))
+            onSelectWaypoint(to)
+          }}
+          onDeleteWaypoint={(index) => {
+            edit(removePatrolWaypoint(map, npc.id, index))
+            onWaypointCleared()
+          }}
+          onClearPatrol={() => {
+            edit(clearNpcPatrol(map, npc.id))
+            onWaypointCleared()
+          }}
         />
       )}
       {!npc && tool === 'npcs' && <p className="me-text">NPC tool: click a floor tile to place an NPC, or click an NPC to edit it.</p>}

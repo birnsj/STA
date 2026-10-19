@@ -9,8 +9,9 @@ export default function EditorControlsHelp() {
         clockwise (the arrow shows which way it faces). Red: enemies and hostile NPCs (Wary, Hostile, Aggressive); purple:
         other NPCs. R: rotate the tile brush (long walls run the other way, other tiles are mirrored).
         Move on, drag a tile onto another: the two swap places; a tile with a player start, enemy spawn, NPC, label or
-        objective on it moves those instead. Marker tools: click to place, click again to
-        remove. NPC: click a floor tile to place one, click an NPC to edit it in the panel on the right. No marker tool (and Place
+        objective on it moves those instead.         Marker tools: click to place, click again to
+        remove. NPC: click a floor tile to place one, click an NPC to edit it in the panel on the right (Response, Perception,
+        and Edit Patrol for waypoints on the map). No marker tool (and Place
         Tiles and Move off): click an NPC, player start or enemy spawn to edit it (an NPC standing on one opens both). Destructible
         Objects: click a floor tile to place one, click one to edit it; Ctrl+D duplicates the selected one, and Move drags it.
         Hazards: drag to paint at the chosen intensity (touching tiles of one hazard form one region); Erase Hazard trims a

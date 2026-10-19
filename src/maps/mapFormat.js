@@ -11,8 +11,12 @@
 // npcs: the NPCs placed in the editor, each a world actor referencing an authored character (characters.json) plus how
 // this instance behaves: { id, characterId, name (blank: the character's), position, facing (degrees, 0 = +x),
 // faction (blank: the character's), disposition (awareness.json), conversationId (conversations/{id}.json or null),
-// npcRules, alertGroupId, alertMethod, responseType, mustSurvive (the mission fails if they are killed; left out on
-// disk when false), gender and portraitId (npcPortraits.json; null: Auto, see character/npcAppearance.js) }. A map with NPCs of its own doesn't get npcs.json's test NPCs.
+// npcRules, alertGroupId, alertMethod, responseType (awareness response: none|observe|confront|alarm|combat, or null:
+// the disposition's), mustSurvive (the mission fails if they are killed; left out on disk when false), gender and
+// portraitId (npcPortraits.json; null: Auto, see character/npcAppearance.js), patrol (waypoints walked in order,
+// looping: [{ at, wait, facing? }], same schema as npcs.json; left out when empty), perception (optional overrides of
+// awareness.json perceptionDefaults; only set keys are stored) }. A map with NPCs of its own doesn't get npcs.json's
+// test NPCs.
 // objectives: [{ id, title, description, position (the minimap marks it while active; null: no marker), activeWhen,
 // completeWhen }]; their progress is a mission flag (exploration/missionFlags.js). activeWhen / completeWhen: mission
 // flag conditions (all must hold) that set it active / complete by themselves (missionObjectives.js); empty or left
@@ -41,6 +45,7 @@
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
 // map's middle);
 // on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
+import awareness from '../data/adaptation/exploration/awareness.json'
 import catalogue from '../data/adaptation/maps/tiles.json'
 import destructibleData from '../data/adaptation/world/destructibles.json'
 import hazardData from '../data/adaptation/world/hazards.json'
@@ -166,15 +171,74 @@ function serializeGroundItemPlacement(entry) {
 const NPC_TEXT_FIELDS = ['name', 'faction', 'disposition', 'conversationId', 'npcRules', 'alertGroupId', 'alertMethod', 'responseType']
 // Only on an NPC that has them (missing: Auto).
 const NPC_APPEARANCE_FIELDS = ['gender', 'portraitId']
-function parseNpc(raw) {
+// awareness.json perceptionDefaults keys an NPC may override (createNpc merges these over the defaults).
+export const PERCEPTION_KEYS = Object.keys(awareness.perceptionDefaults)
+export const PERCEPTION_DEFAULTS = { ...awareness.perceptionDefaults }
+// Valid responseType values (disposition.response in awareness.json, plus overrides the runtime understands).
+export const RESPONSE_TYPES = [
+  { id: 'none', label: 'None (ignore once identified)' },
+  { id: 'observe', label: 'Observe' },
+  { id: 'confront', label: 'Confront' },
+  { id: 'alarm', label: 'Raise alarm, then fight' },
+  { id: 'combat', label: 'Fight at once' },
+]
+const RESPONSE_IDS = new Set(RESPONSE_TYPES.map((entry) => entry.id))
+
+function parsePatrol(raw, inside) {
+  if (!Array.isArray(raw) || !raw.length) return null
+  const points = raw
+    .map((point) => {
+      if (!point || !Array.isArray(point.at)) return null
+      const at = toPosition(point.at)
+      if (!inside(at)) return null
+      const entry = { at, wait: Number.isFinite(point.wait) ? Math.max(0, Number(point.wait)) : 0 }
+      if (point.facing != null && Number.isFinite(Number(point.facing))) entry.facing = Number(point.facing)
+      else entry.facing = null
+      return entry
+    })
+    .filter(Boolean)
+  return points.length ? points : null
+}
+
+function serializePatrol(patrol) {
+  return patrol.map((point) => {
+    const record = { at: fromPosition(point.at), wait: Number.isFinite(point.wait) ? point.wait : 0 }
+    if (point.facing != null && Number.isFinite(point.facing)) record.facing = Math.round(point.facing)
+    return record
+  })
+}
+
+function parsePerception(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const perception = {}
+  PERCEPTION_KEYS.forEach((key) => {
+    if (Number.isFinite(raw[key])) perception[key] = Number(raw[key])
+  })
+  return Object.keys(perception).length ? perception : null
+}
+
+function serializePerception(perception) {
+  const record = {}
+  PERCEPTION_KEYS.forEach((key) => {
+    if (Number.isFinite(perception[key])) record[key] = perception[key]
+  })
+  return Object.keys(record).length ? record : null
+}
+
+function parseNpc(raw, inside) {
   const npc = { id: String(raw.id), characterId: raw.characterId ?? null, position: toPosition(raw.position ?? [0, 0]), facing: Number(raw.facing) || 0 }
   NPC_TEXT_FIELDS.forEach((field) => {
     npc[field] = raw[field] ?? null
   })
+  if (npc.responseType && !RESPONSE_IDS.has(npc.responseType)) npc.responseType = null
   npc.mustSurvive = raw.mustSurvive === true
   NPC_APPEARANCE_FIELDS.forEach((field) => {
     if (typeof raw[field] === 'string' && raw[field]) npc[field] = raw[field]
   })
+  const patrol = parsePatrol(raw.patrol, inside)
+  if (patrol) npc.patrol = patrol
+  const perception = parsePerception(raw.perception)
+  if (perception) npc.perception = perception
   return npc
 }
 function serializeNpc(npc) {
@@ -183,6 +247,9 @@ function serializeNpc(npc) {
     if (npc[field] != null && npc[field] !== '') record[field] = npc[field]
   })
   if (npc.mustSurvive) record.mustSurvive = true
+  if (npc.patrol?.length) record.patrol = serializePatrol(npc.patrol)
+  const perception = npc.perception ? serializePerception(npc.perception) : null
+  if (perception) record.perception = perception
   return record
 }
 const conditionList = (raw) => (Array.isArray(raw) ? raw.filter((condition) => condition?.flag) : [])
@@ -307,7 +374,7 @@ export function parseMapFile(file, id) {
       playerStarts: (file.markers?.playerStarts ?? []).map(toSpawn).filter(inside),
       enemySpawns: (file.markers?.enemySpawns ?? []).map(toSpawn).filter(inside),
     },
-    npcs: (file.npcs ?? []).filter((raw) => raw?.id != null).map(parseNpc).filter((npc) => inside(npc.position)),
+    npcs: (file.npcs ?? []).filter((raw) => raw?.id != null).map((raw) => parseNpc(raw, inside)).filter((npc) => inside(npc.position)),
     objectives: (file.objectives ?? []).filter((raw) => raw?.id != null).map((raw) => parseObjective(raw, inside)),
     objectPlacements: Object.fromEntries(
       Object.entries(file.objectPlacements ?? {})
@@ -381,7 +448,13 @@ export function resizeMap(map, width, height) {
     rotated: rotationGrid(w, h, (x, y) => isRotated(map, { x, y })),
     areas: map.areas.filter((area) => inside(area.position)),
     markers: { playerStarts: map.markers.playerStarts.filter(inside), enemySpawns: map.markers.enemySpawns.filter(inside) },
-    npcs: (map.npcs ?? []).filter((npc) => inside(npc.position)),
+    npcs: (map.npcs ?? [])
+      .filter((npc) => inside(npc.position))
+      .map((npc) => {
+        if (!npc.patrol?.length) return npc
+        const patrol = npc.patrol.filter((point) => inside(point.at))
+        return patrol.length ? { ...npc, patrol } : { ...npc, patrol: null }
+      }),
     objectives: (map.objectives ?? []).map((objective) => (objective.position && !inside(objective.position) ? { ...objective, position: null } : objective)),
     objectPlacements: Object.fromEntries(Object.entries(map.objectPlacements ?? {}).filter(([, position]) => inside(position))),
     destructibles: (map.destructibles ?? [])

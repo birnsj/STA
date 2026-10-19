@@ -238,6 +238,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             rotated={rotated}
             erasing={tool === 'erase'}
             selectedNpcId={tools.selectedNpcId}
+            selectedWaypointIndex={tools.selectedWaypointIndex}
             selectedMarker={tools.selectedMarker}
             selectedObjectId={tools.selectedObjectId}
             selectedDestructibleId={tools.selectedDestructibleId}
@@ -303,6 +304,13 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             onDuplicateGroundItem={tools.duplicateGroundItem}
             onGroundItemCleared={tools.clearGroundItem}
             onHazardCleared={tools.clearHazard}
+            editingPatrol={tools.editingPatrol}
+            movingWaypoint={tools.movingWaypoint}
+            selectedWaypointIndex={tools.selectedWaypointIndex}
+            onTogglePatrolEdit={tools.togglePatrolEdit}
+            onToggleMoveWaypoint={tools.toggleMoveWaypoint}
+            onSelectWaypoint={tools.selectWaypoint}
+            onWaypointCleared={tools.clearWaypoint}
           />
         </EditorSidePanel>
       </div>

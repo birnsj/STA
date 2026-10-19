@@ -8,7 +8,7 @@ import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 // NPCs, challenge objects and objectives as small labelled diamonds, with a facing arrow where they face a way.
 // Presentation only.
 
-const MARKER_FILLS = { player: 0x3fb6e8, enemy: 0xe5483a, npc: 0xb07ee8, objective: 0xe0a800, object: 0x1fa59a }
+const MARKER_FILLS = { player: 0x3fb6e8, enemy: 0xe5483a, npc: 0xb07ee8, objective: 0xe0a800, object: 0x1fa59a, patrol: 0xe8c44a }
 const HIGHLIGHT = 0xffb347
 const OUTLINE = 0x03060e
 // Erase Marker: what a click would remove pulses between full and this opacity, 0.8 s each way.
@@ -79,7 +79,8 @@ export class EditorMarkerView {
 }
 
 // The selected destructible's or hazard region's footprint, outlined on the floor. item: { id, tiles [{ x, y }], square
-// ({ position, radius }: the square an explosion reaches, walls aside) or null, colour, fillAlpha }.
+// ({ position, radius }: the square an explosion reaches, walls aside) or null, colour, fillAlpha, route (draw a
+// looping polyline through tiles in order — NPC patrol preview) }.
 export class EditorOutlineView {
   constructor() {
     this.graphics = new Graphics()
@@ -91,7 +92,7 @@ export class EditorOutlineView {
     const key = JSON.stringify(item)
     if (key === this.drawn) return
     this.drawn = key
-    const { tiles, square, colour, fillAlpha = 0 } = item
+    const { tiles, square, colour, fillAlpha = 0, route = false } = item
     this.graphics.clear()
     if (square) {
       const { x, y } = square.position
@@ -106,6 +107,13 @@ export class EditorOutlineView {
         return [p.x, p.y]
       })
       this.graphics.poly(corners, true).fill({ color: colour, alpha: 0.08 }).stroke({ color: colour, width: 1.5, alpha: 0.8 })
+    }
+    if (route && tiles.length) {
+      const centres = tiles.map((tile) => project(tile))
+      const path = tiles.length > 1 ? [...centres, centres[0]] : centres
+      this.graphics.moveTo(path[0].x, path[0].y)
+      for (let i = 1; i < path.length; i++) this.graphics.lineTo(path[i].x, path[i].y)
+      this.graphics.stroke({ color: colour, width: 2.5, alpha: 0.9, cap: 'round', join: 'round' })
     }
     tiles.forEach((tile) => {
       this.graphics.poly(diamond(tile).flat(), true).fill({ color: colour, alpha: fillAlpha }).stroke({ color: colour, width: 2, alpha: 0.95 })
