@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { getPlaytestParty } from '../character/authoredCharacters.js'
+import { getPlaytestParty, hasAuthoredCharacter } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
@@ -15,11 +15,13 @@ import '../components/maps/mapEditor.css'
 import { listConversations } from '../conversation/conversationFiles.js'
 import useEditorTools from '../components/maps/useEditorTools.js'
 import useMapDocument from '../components/maps/useMapDocument.js'
+import { updateNpc } from '../maps/mapEdits.js'
 import { canSaveMaps } from '../maps/mapFiles.js'
 import { resizeMap, validateMap } from '../maps/mapFormat.js'
 import { canDrawEpisodeArt } from '../maps/episodeArt.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
+import { npcPortraitOptions } from '../character/npcAppearance.js'
 
 // Dev map editor (opened from the Main Menu's Dev Edit). Edits combat-independent map files in the project's maps/ folder,
 // which both combat types play.
@@ -29,6 +31,7 @@ const ConversationEditorScreen = lazy(() => import('./ConversationEditorScreen.j
 const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
+const CharacterLibraryScreen = lazy(() => import('./CharacterLibraryScreen.jsx'))
 
 // Play's away team: saved characters first (the imported party), then redshirt ensigns, up to MAX_AWAY_TEAM.
 // Placement fills free tiles beside player starts when the map has fewer.
@@ -75,6 +78,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   // The challenge object editor ({ id }: the object selected) and the Story Wording editor while open.
   const [objectEditor, setObjectEditor] = useState(null)
   const [storyEditor, setStoryEditor] = useState(false)
+  const [characterLibrary, setCharacterLibrary] = useState(false)
 
   const refreshConversations = () =>
     listConversations()
@@ -84,7 +88,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     refreshConversations()
   }, [])
 
-  const dialogOpen = dialogShowing || doc.showLoad || Boolean(playTeam) || Boolean(conversationEditor) || Boolean(objectiveEditor) || Boolean(objectEditor) || storyEditor
+  const dialogOpen =
+    dialogShowing ||
+    doc.showLoad ||
+    Boolean(playTeam) ||
+    Boolean(conversationEditor) ||
+    Boolean(objectiveEditor) ||
+    Boolean(objectEditor) ||
+    storyEditor ||
+    characterLibrary
   const tools = useEditorTools({
     map,
     edit,
@@ -96,7 +108,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   })
   const { tool, placing, rotated, selection } = tools
 
-  const warnings = useMemo(() => validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat' }), [map])
+  const warnings = useMemo(
+    () => validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }),
+    [map],
+  )
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
   const onPlay = () => {
@@ -161,6 +176,34 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     return (
       <Suspense fallback={null}>
         <StoryEditorScreen onBack={() => setStoryEditor(false)} />
+      </Suspense>
+    )
+  }
+
+  if (characterLibrary) {
+    return (
+      <Suspense fallback={null}>
+        <CharacterLibraryScreen
+          map={map}
+          selectedNpcId={tools.selectedNpcId}
+          onBack={() => setCharacterLibrary(false)}
+          onUseForPlacement={(characterId) => {
+            tools.setPendingCharacterId(characterId)
+            tools.setTool('npcs')
+            setStatus(`Next Place NPC uses ${characterId}.`)
+          }}
+          onUpdateNpcCharacter={(npcId, characterId) => {
+            const npc = (map.npcs || []).find((entry) => entry.id === npcId)
+            const options = npcPortraitOptions(characterId)
+            edit(
+              updateNpc(map, npcId, {
+                characterId,
+                gender: options.some((portrait) => portrait.gender === npc?.gender) ? npc.gender : null,
+                portraitId: options.some((portrait) => portrait.id === npc?.portraitId) ? npc.portraitId : null,
+              }),
+            )
+          }}
+        />
       </Suspense>
     )
   }
@@ -279,6 +322,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           onOpenConversations={() => setConversationEditor({ id: null })}
           onOpenObjects={() => setObjectEditor({ id: tools.selectedObjectId ?? null })}
           onOpenStory={() => setStoryEditor(true)}
+          onOpenCharacterLibrary={() => setCharacterLibrary(true)}
         >
           <EditorInspectors
             map={map}

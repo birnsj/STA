@@ -15,10 +15,11 @@ import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  exploreRoom: '8cdcf9cb3ac1f8be',
-  exploreBrig: '586492362cd8278e',
-  autoCombat: 'af3a57e92df36fdf',
-  handOff: 'ee7a0ac7970cbb7d',
+  // 2026-10-18: waypointAnim on world NPCs + Deck 10 Brig test NPC placements.
+  exploreRoom: '5e241666a75e2d43',
+  exploreBrig: 'ff3272b1aa576678',
+  autoCombat: '07266e856f3ba263',
+  handOff: '5f824f185c50116b',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)

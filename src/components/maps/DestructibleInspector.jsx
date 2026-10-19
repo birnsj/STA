@@ -1,4 +1,10 @@
-import { DESTRUCTIBLE_STATES, DESTRUCTIBLE_TYPES, EXPLOSION_KINDS, HAZARD_TYPES } from '../../world/environment.js'
+import {
+  DESTRUCTIBLE_STATES,
+  DESTRUCTIBLE_TYPES,
+  EXPLOSION_KINDS,
+  HAZARD_TYPES,
+  OBJECT_ATTACK_DIFFICULTY,
+} from '../../world/environment.js'
 
 // A number box for an override: blank goes back to the type's value (shown as the placeholder).
 export function OverrideField({ label, value, fallback, min = 0, max = 20, onChange }) {
@@ -87,27 +93,97 @@ export default function DestructibleInspector({ object, moving, linking, onChang
         <input type="checkbox" checked={object.attackable !== false} onChange={(event) => onChange({ attackable: event.target.checked ? null : false })} />
         Can be attacked
       </label>
+      <OverrideField
+        label="Attack Difficulty"
+        value={object.attackDifficulty}
+        fallback={OBJECT_ATTACK_DIFFICULTY}
+        min={0}
+        max={5}
+        onChange={(attackDifficulty) => onChange({ attackDifficulty })}
+      />
+      <OverrideSelect
+        label="When damaged, leaks"
+        value={object.damagedHazard}
+        fallbackLabel={hazardName(info.damagedHazard)}
+        options={HAZARD_OPTIONS}
+        onChange={(damagedHazard) => onChange({ damagedHazard })}
+      />
 
       <p className="me-heading">Explosion</p>
-      <OverrideSelect
-        label="Kind"
-        value={overrides.kind}
-        fallbackLabel={capitalised(typeExplosion.kind ?? 'none')}
-        options={EXPLOSION_KINDS.map((kind) => ({ value: kind, label: capitalised(kind) }))}
-        onChange={(kind) => setExplosion('kind', kind)}
-      />
-      <OverrideField label="Radius" value={overrides.radius} fallback={typeExplosion.radius} max={6} onChange={(radius) => setExplosion('radius', radius)} />
-      <OverrideField label="Severity" value={overrides.severity} fallback={typeExplosion.severity} max={10} onChange={(severity) => setExplosion('severity', severity)} />
-      <OverrideSelect label="Injury type" value={overrides.injuryType} fallbackLabel={capitalised(typeExplosion.injuryType ?? 'deadly')} options={INJURY_OPTIONS} onChange={(injuryType) => setExplosion('injuryType', injuryType)} />
-      <OverrideSelect label="Leaves hazard" value={overrides.hazard} fallbackLabel={hazardName(typeExplosion.hazard)} options={HAZARD_OPTIONS} onChange={(hazard) => setExplosion('hazard', hazard)} />
-      <OverrideField label="Hazard radius" value={overrides.hazardRadius} fallback={typeExplosion.hazardRadius} max={6} onChange={(hazardRadius) => setExplosion('hazardRadius', hazardRadius)} />
-      <OverrideField label="Hazard intensity" value={overrides.hazardIntensity} fallback={typeExplosion.hazardIntensity ?? 3} min={1} max={3} onChange={(hazardIntensity) => setExplosion('hazardIntensity', hazardIntensity)} />
-      <OverrideField label="Hazard duration (rounds)" value={overrides.hazardDuration} fallback={typeExplosion.hazardDuration} min={1} max={99} onChange={(hazardDuration) => setExplosion('hazardDuration', hazardDuration)} />
       <label className="me-check">
-        <input type="checkbox" checked={(overrides.hazardSpread ?? typeExplosion.hazardSpread) !== false} onChange={(event) => setExplosion('hazardSpread', event.target.checked ? null : false)} />
-        The hazard spreads
+        <input
+          type="checkbox"
+          checked={object.noExplosion !== true && Boolean(info.explosion)}
+          disabled={!info.explosion}
+          onChange={(event) => onChange({ noExplosion: event.target.checked ? null : true, explosion: event.target.checked ? object.explosion : null })}
+        />
+        Explodes when destroyed
       </label>
-      <p className="me-text">Damaged: leaks {hazardName(info.damagedHazard)}.</p>
+      {object.noExplosion !== true && info.explosion && (
+        <>
+          <OverrideSelect
+            label="Kind"
+            value={overrides.kind}
+            fallbackLabel={capitalised(typeExplosion.kind ?? 'none')}
+            options={EXPLOSION_KINDS.map((kind) => ({ value: kind, label: capitalised(kind) }))}
+            onChange={(kind) => setExplosion('kind', kind)}
+          />
+          <OverrideField label="Radius" value={overrides.radius} fallback={typeExplosion.radius} max={6} onChange={(radius) => setExplosion('radius', radius)} />
+          <OverrideField label="Severity" value={overrides.severity} fallback={typeExplosion.severity} max={10} onChange={(severity) => setExplosion('severity', severity)} />
+          <OverrideSelect label="Injury type" value={overrides.injuryType} fallbackLabel={capitalised(typeExplosion.injuryType ?? 'deadly')} options={INJURY_OPTIONS} onChange={(injuryType) => setExplosion('injuryType', injuryType)} />
+          <OverrideSelect label="Leaves hazard" value={overrides.hazard} fallbackLabel={hazardName(typeExplosion.hazard)} options={HAZARD_OPTIONS} onChange={(hazard) => setExplosion('hazard', hazard)} />
+          <OverrideField label="Hazard radius" value={overrides.hazardRadius} fallback={typeExplosion.hazardRadius} max={6} onChange={(hazardRadius) => setExplosion('hazardRadius', hazardRadius)} />
+          <OverrideField label="Hazard intensity" value={overrides.hazardIntensity} fallback={typeExplosion.hazardIntensity ?? 3} min={1} max={3} onChange={(hazardIntensity) => setExplosion('hazardIntensity', hazardIntensity)} />
+          <OverrideField label="Hazard duration (rounds)" value={overrides.hazardDuration} fallback={typeExplosion.hazardDuration} min={1} max={99} onChange={(hazardDuration) => setExplosion('hazardDuration', hazardDuration)} />
+          <label className="me-check">
+            <input type="checkbox" checked={(overrides.hazardSpread ?? typeExplosion.hazardSpread) !== false} onChange={(event) => setExplosion('hazardSpread', event.target.checked ? null : false)} />
+            The hazard spreads
+          </label>
+        </>
+      )}
+
+      <p className="me-heading">Debris</p>
+      <p className="me-text">
+        Type default: {info.debris ? `${info.debris.count}× ${info.debris.tile} (radius ${info.debris.radius})` : 'none'}. Blank fields keep the type.
+      </p>
+      <label className="me-field">
+        Debris tile id
+        <input
+          className="me-name me-wide"
+          value={object.debris?.tile ?? ''}
+          placeholder={info.debris?.tile ?? 'none'}
+          onChange={(event) => {
+            const tile = event.target.value.trim()
+            const next = { ...(object.debris ?? {}), tile }
+            if (!tile) {
+              const { tile: _drop, ...rest } = next
+              onChange({ debris: rest.radius != null || rest.count != null ? rest : null })
+            } else onChange({ debris: next })
+          }}
+        />
+      </label>
+      <OverrideField
+        label="Debris radius"
+        value={object.debris?.radius}
+        fallback={info.debris?.radius}
+        max={6}
+        onChange={(radius) => {
+          const next = { ...(object.debris ?? {}), radius }
+          if (radius == null) delete next.radius
+          onChange({ debris: next.tile || next.radius != null || next.count != null ? next : null })
+        }}
+      />
+      <OverrideField
+        label="Debris count"
+        value={object.debris?.count}
+        fallback={info.debris?.count}
+        max={20}
+        onChange={(count) => {
+          const next = { ...(object.debris ?? {}), count }
+          if (count == null) delete next.count
+          onChange({ debris: next.tile || next.radius != null || next.count != null ? next : null })
+        }}
+      />
 
       <p className="me-heading">Linked tiles</p>
       <p className="me-text">

@@ -61,6 +61,9 @@ const patrolForRuntime = (patrol) =>
         at: Array.isArray(point.at) ? point.at : [point.at.x, point.at.y],
         wait: point.wait ?? 0,
         ...(point.facing != null ? { facing: point.facing } : {}),
+        ...(point.animation ? { animation: point.animation } : {}),
+        ...(Number.isFinite(point.animationDuration) ? { animationDuration: point.animationDuration } : {}),
+        ...(point.animationLoop ? { animationLoop: true } : {}),
       }))
     : undefined
 

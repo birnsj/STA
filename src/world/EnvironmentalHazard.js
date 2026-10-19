@@ -63,19 +63,28 @@ export class EnvironmentalHazard extends WorldObject {
     }
   }
 
-  // The challenge definition of its Neutralize task (hazards.json neutralize; PLACEHOLDER numbers). Success puts the
-  // whole hazard out (objectEffects.js neutralizeHazard with this hazard).
+  // The challenge definition of its Neutralize task (hazards.json neutralize, merged with region.neutralize).
+  // Success puts the whole hazard out (objectEffects.js neutralizeHazard with this hazard).
   challengeDefinition() {
-    const task = this.info.neutralize
+    const typeTask = this.info.neutralize
+    const override = this.region.neutralize && typeof this.region.neutralize === 'object' ? this.region.neutralize : {}
+    const label = override.label || typeTask.label
+    const task = {
+      attribute: override.attribute || typeTask.attribute,
+      department: override.department || typeTask.department,
+      difficulty: neutralizeDifficulty(this.region),
+      focuses: override.focuses ?? typeTask.focuses ?? [],
+      ...(override.equipment ? { equipment: override.equipment } : typeTask.equipment ? { equipment: typeTask.equipment } : {}),
+    }
     const actions = this.region.neutralizable === false
       ? []
       : [
           {
             id: 'neutralize',
-            label: task.label,
-            description: `${task.label}: put the ${this.info.name.toLowerCase()} out.`,
+            label,
+            description: `${label}: put the ${this.info.name.toLowerCase()} out.`,
             icon: 'interact',
-            task: { attribute: task.attribute, department: task.department, difficulty: neutralizeDifficulty(this.region), focuses: task.focuses ?? [] },
+            task,
             actionCost: { exploration: 'free', combat: 'major' },
             onSuccess: [
               { type: 'neutralizeHazard', mode: 'remove' },

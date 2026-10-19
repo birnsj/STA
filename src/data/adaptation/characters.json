@@ -9,7 +9,8 @@
     "identity.portrait.image is used because Klingon portraits are not in portraits.json. Warriors 3 and 4 share portrait art with Warriors 1 and 2. In play (designer request, Oct 2026) each Klingon NPC is shown with a Klingon portrait from npcPortraits.json instead, male or female, chosen per NPC in the map editor or given one on Auto (character/npcAppearance.js); the authored gender, pronouns and portrait here are the fallback only.",
     "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.108), the Klingon Veteran (p.355) and Moq'var, Son of Koloth (p.356). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented.",
     "Station Engineer (Book: STA 2e Core p.352, Starfleet Officer, Minor NPC): stat block Control 10, Daring 10, Fitness 8, Insight 8, Presence 9, Reason 9 before species ('add 3 points to attributes based on species'); every department 1; traits Species, Starfleet Officer; Unarmed Strike, Phaser Type-1. GM note: add 1 point to two different departments to make a type. Implementer picks for the NPC and conversation test encounter (Oct 2026), open for review: Human (Core p.98: +1 to three attributes) taking Control, Insight and Reason; the engineer type takes +1 Engineering and +1 Science; name Lt. Mara Okafor; her own painted portrait (public/art/portraits/npc/stationEngineer.png, Oct 2026, shown as drawn, no uniform recolour), with portrait id human-female-3 kept for her map sprite set. No values, focuses or talents (the Minor NPC stat block has none); Intensive Training (p.351) is not implemented.",
-    "Redshirt Ensigns (Prototype playtest party, designer 2026-10-15): four human male Starfleet ensigns marked playtestParty for the map editor's Play away team. Same Starfleet Officer Minor NPC base (Core p.352), Human bonuses into Daring, Fitness and Presence, security type (+1 Security, +1 Conn). Operations-division red shirts (uniforms.json). Disposable away-team fillers, not book individuals."
+    "Redshirt Ensigns (Prototype playtest party, designer 2026-10-15): four human male Starfleet ensigns marked playtestParty for the map editor's Play away team. Same Starfleet Officer Minor NPC base (Core p.352), Human bonuses into Daring, Fitness and Presence, security type (+1 Security, +1 Conn). Operations-division red shirts (uniforms.json). Disposable away-team fillers, not book individuals.",
+    "Deck 10 Brig authoring test NPCs (2026-10-18): sfSecurityReyes (Lt. Cmdr. Elena Reyes), sfEngineerChen (P.O. Wei Chen), sfScienceVoss (Lt. Amara Voss), klingonGuardKorath (Korath, Son of M'Rek), klingonSentryTorak (Torak), klingonWarriorKrel (K'Rel). Starfleet officers use Core p.352 Minor NPC base with department typing; Klingons use Core p.354 Klingon Warrior. Reuse existing portraits/sprites only. World placement, patrol, response and waypoint animations are on the Deck 10 Brig map, not in these records."
   ],
   "characters": [
     {
@@ -1148,6 +1149,446 @@
           "id": "security",
           "name": "Security"
         },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "sfSecurityReyes",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Deck 10 Brig corridor patrol test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            { "id": "daring", "name": "Daring", "value": 1 },
+            { "id": "fitness", "name": "Fitness", "value": 1 },
+            { "id": "presence", "name": "Presence", "value": 1 }
+          ],
+          "traits": [{ "id": "human", "name": "Human" }]
+        },
+        "career": {
+          "department": { "id": "security", "name": "Security" },
+          "rank": { "id": "lieutenantCommander", "name": "Lieutenant Commander" },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Lt. Cmdr. Elena Reyes",
+          "pronouns": "She / her",
+          "gender": { "id": "female", "name": "Female" },
+          "portrait": { "id": "human-female-1", "name": "Lt. Cmdr. Elena Reyes" }
+        },
+        "equipment": [
+          { "itemId": "standardUniform" },
+          { "itemId": "communicator" },
+          { "itemId": "phaserType2" }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 11,
+          "fitness": 9,
+          "insight": 8,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 2,
+          "conn": 1,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "human", "name": "Human" },
+          { "id": "starfleetOfficer", "name": "Starfleet Officer" }
+        ],
+        "talents": [],
+        "rank": { "id": "lieutenantCommander", "name": "Lieutenant Commander" },
+        "department": { "id": "security", "name": "Security" },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "sfEngineerChen",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Deck 10 Brig stationary maintenance test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            { "id": "control", "name": "Control", "value": 1 },
+            { "id": "insight", "name": "Insight", "value": 1 },
+            { "id": "reason", "name": "Reason", "value": 1 }
+          ],
+          "traits": [{ "id": "human", "name": "Human" }]
+        },
+        "career": {
+          "department": { "id": "engineering", "name": "Engineering" },
+          "rank": { "id": "pettyOfficer", "name": "Petty Officer" },
+          "assignment": null
+        },
+        "identity": {
+          "name": "P.O. Wei Chen",
+          "pronouns": "He / him",
+          "gender": { "id": "male", "name": "Male" },
+          "portrait": { "id": "human-male-5", "name": "P.O. Wei Chen" }
+        },
+        "equipment": [
+          { "itemId": "standardUniform" },
+          { "itemId": "communicator" },
+          { "itemId": "standardTricorder" },
+          { "itemId": "phaserType1" }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 11,
+          "daring": 9,
+          "fitness": 8,
+          "insight": 10,
+          "presence": 9,
+          "reason": 11
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 2,
+          "security": 1,
+          "science": 2,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "human", "name": "Human" },
+          { "id": "starfleetOfficer", "name": "Starfleet Officer" }
+        ],
+        "talents": [],
+        "rank": { "id": "pettyOfficer", "name": "Petty Officer" },
+        "department": { "id": "engineering", "name": "Engineering" },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "sfScienceVoss",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Deck 10 Brig laboratory patrol test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            { "id": "control", "name": "Control", "value": 1 },
+            { "id": "insight", "name": "Insight", "value": 1 },
+            { "id": "reason", "name": "Reason", "value": 1 }
+          ],
+          "traits": [{ "id": "human", "name": "Human" }]
+        },
+        "career": {
+          "department": { "id": "science", "name": "Science" },
+          "rank": { "id": "lieutenant", "name": "Lieutenant" },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Lt. Amara Voss",
+          "pronouns": "She / her",
+          "gender": { "id": "female", "name": "Female" },
+          "portrait": { "id": "human-female-2", "name": "Lt. Amara Voss" }
+        },
+        "equipment": [
+          { "itemId": "standardUniform" },
+          { "itemId": "communicator" },
+          { "itemId": "standardTricorder" },
+          { "itemId": "phaserType1" }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 11,
+          "daring": 9,
+          "fitness": 8,
+          "insight": 11,
+          "presence": 9,
+          "reason": 11
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 2,
+          "medicine": 2
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "human", "name": "Human" },
+          { "id": "starfleetOfficer", "name": "Starfleet Officer" }
+        ],
+        "talents": [],
+        "rank": { "id": "lieutenant", "name": "Lieutenant" },
+        "department": { "id": "science", "name": "Science" },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonGuardKorath",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "note": "Deck 10 Brig checkpoint guard test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            { "id": "daring", "name": "Daring", "value": 1 },
+            { "id": "fitness", "name": "Fitness", "value": 1 },
+            { "id": "presence", "name": "Presence", "value": 1 }
+          ],
+          "traits": [{ "id": "klingon", "name": "Klingon" }]
+        },
+        "career": {
+          "department": { "id": "security", "name": "Security" },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Korath, Son of M'Rek",
+          "pronouns": "He / him",
+          "gender": { "id": "male", "name": "Male" },
+          "portrait": {
+            "id": "klingon-warrior-1",
+            "name": "Korath, Son of M'Rek",
+            "image": "/art/combat/klingon-warrior-1.png"
+          }
+        },
+        "equipment": [{ "itemId": "dkTahg" }, { "itemId": "disruptorPistol" }]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "klingon", "name": "Klingon" },
+          { "id": "warrior", "name": "Warrior" }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": { "id": "security", "name": "Security" },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonSentryTorak",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "note": "Deck 10 Brig alarm-patrol sentry test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            { "id": "daring", "name": "Daring", "value": 1 },
+            { "id": "fitness", "name": "Fitness", "value": 1 },
+            { "id": "presence", "name": "Presence", "value": 1 }
+          ],
+          "traits": [{ "id": "klingon", "name": "Klingon" }]
+        },
+        "career": {
+          "department": { "id": "security", "name": "Security" },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "Torak",
+          "pronouns": "He / him",
+          "gender": { "id": "male", "name": "Male" },
+          "portrait": {
+            "id": "klingon-warrior-2",
+            "name": "Torak",
+            "image": "/art/combat/klingon-warrior-2.png"
+          }
+        },
+        "equipment": [{ "itemId": "dkTahg" }, { "itemId": "disruptorPistol" }]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "klingon", "name": "Klingon" },
+          { "id": "warrior", "name": "Warrior" }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": { "id": "security", "name": "Security" },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "klingonWarriorKrel",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 354,
+        "statBlock": "Klingon Warrior",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 1,
+        "note": "Deck 10 Brig combat-response warrior test NPC (editor authoring)."
+      },
+      "character": {
+        "faction": {
+          "id": "klingonEmpire",
+          "name": "Klingon Empire"
+        },
+        "species": {
+          "id": "klingon",
+          "name": "Klingon",
+          "attributeBonuses": [
+            { "id": "daring", "name": "Daring", "value": 1 },
+            { "id": "fitness", "name": "Fitness", "value": 1 },
+            { "id": "presence", "name": "Presence", "value": 1 }
+          ],
+          "traits": [{ "id": "klingon", "name": "Klingon" }]
+        },
+        "career": {
+          "department": { "id": "security", "name": "Security" },
+          "rank": null,
+          "assignment": null
+        },
+        "identity": {
+          "name": "K'Rel",
+          "pronouns": "He / him",
+          "gender": { "id": "male", "name": "Male" },
+          "portrait": {
+            "id": "klingon-warrior-1",
+            "name": "K'Rel",
+            "image": "/art/combat/klingon-warrior-1.png"
+          }
+        },
+        "equipment": [{ "itemId": "dkTahg" }, { "itemId": "disruptorPistol" }]
+      },
+      "final": {
+        "attributes": {
+          "control": 7,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 7,
+          "presence": 9,
+          "reason": 8
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 2,
+          "science": 0,
+          "medicine": 0
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          { "id": "klingon", "name": "Klingon" },
+          { "id": "warrior", "name": "Warrior" }
+        ],
+        "talents": [],
+        "rank": null,
+        "department": { "id": "security", "name": "Security" },
         "assignment": null,
         "role": null
       }

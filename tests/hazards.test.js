@@ -317,3 +317,34 @@ describe('hazards in combat', () => {
     assert.ok(state.log.some((entry) => entry.lines.some((line) => line.includes('in the fire'))))
   })
 })
+
+describe('hazard instance overrides', () => {
+  it('uses injuryType and damagesObjects from the region when set', () => {
+    const map = room({
+      hazards: [fire('f', { '5,5': 1 }, { injuryType: 'stun', damagesObjects: 3, spreadChance: 0, dissipateChance: 0, migrateChance: 0 })],
+      destructibles: [{ id: 'c', type: 'chemicalContainer', position: { x: 6, y: 5 } }],
+    })
+    const environment = createEnvironment(map)
+    const at = hazardRound(environment, map, [{ id: 'in', position: { x: 5, y: 5 } }])
+    assert.equal(at.hits[0].injuryType, 'stun')
+    assert.equal(at.environment.destructibles.c.structure, environment.destructibles.c.structure - 3)
+  })
+
+  it('merges region.neutralize into the Neutralize challenge task', () => {
+    const map = room({
+      hazards: [
+        fire('f', { '5,5': 2 }, {
+          neutralize: { label: 'Smother', attribute: 'daring', department: 'security', difficulty: 4, focuses: ['Hand-to-Hand Combat'] },
+        }),
+      ],
+    })
+    const state = createExplorationState(map, team(), 1)
+    const challenge = challengeFor(state, hazardChallengeId('f'))
+    const action = challenge.definition.actions[0]
+    assert.equal(action.label, 'Smother')
+    assert.equal(action.task.attribute, 'daring')
+    assert.equal(action.task.department, 'security')
+    assert.equal(action.task.difficulty, 4)
+    assert.deepEqual(action.task.focuses, ['Hand-to-Hand Combat'])
+  })
+})

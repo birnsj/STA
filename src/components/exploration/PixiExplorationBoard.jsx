@@ -287,6 +287,8 @@ export default function PixiExplorationBoard(props) {
       arrowColour: colour,
       bodyColour: colour,
       label: tag ? { text: tag, y: tagY, size: 9, weight: '700', colour, letterSpacing: 0.36 } : null,
+      // Patrol waypoint idle fidget (NPCController.animationState); null keeps random idle fidgets.
+      pose: animation.pose ?? null,
       beam: null,
       preload: true,
       faded: !visible && !hazardOverlay,

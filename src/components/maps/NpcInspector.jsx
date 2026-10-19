@@ -1,14 +1,25 @@
-import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
+import { useEffect, useState } from 'react'
+import {
+  getAuthoredCatalogueVersion,
+  listAuthoredCharacters,
+  subscribeAuthoredCatalogue,
+} from '../../character/authoredCharacters.js'
 import { npcPortraitOptions } from '../../character/npcAppearance.js'
 import { getGenders, getNpcBackdropById } from '../../rules/appearance.js'
 import awareness from '../../data/adaptation/exploration/awareness.json'
 import factionData from '../../data/adaptation/factions.json'
 import { FACINGS, snapFacing } from '../../maps/facing.js'
 import { PERCEPTION_DEFAULTS, PERCEPTION_KEYS, RESPONSE_TYPES } from '../../maps/mapFormat.js'
+import { listWaypointAnimations, waypointAnimationsForCharacter } from '../../maps/waypointAnimations.js'
+import WaypointAnimPreview from './WaypointAnimPreview.jsx'
 
 // The map editor's inspector for the selected NPC (mapFormat.js npcs): who it is (an authored character, never a copy),
 // and how this instance behaves in the world. Every change goes straight into the map (onChange(changes)).
-const CHARACTERS = listAuthoredCharacters()
+function useAuthoredCharacterOptions() {
+  const [, setVersion] = useState(getAuthoredCatalogueVersion)
+  useEffect(() => subscribeAuthoredCatalogue(setVersion), [])
+  return listAuthoredCharacters()
+}
 const NPC_RULES = [
   { id: '', label: 'Full character rules' },
   { id: 'supporting', label: 'Supporting (Core p.278)' },
@@ -147,6 +158,12 @@ function PatrolFields({
 }) {
   const patrol = npc.patrol ?? []
   const selected = selectedIndex != null ? patrol[selectedIndex] : null
+  const animChoices = waypointAnimationsForCharacter(npc.characterId)
+  const allAnims = listWaypointAnimations()
+  const [previewKey, setPreviewKey] = useState(0)
+  const defaultDuration = selected?.animation
+    ? (allAnims.find((entry) => entry.id === selected.animation)?.seconds ?? '')
+    : ''
   return (
     <>
       <p className="me-heading">Patrol</p>
@@ -178,6 +195,7 @@ function PatrolFields({
                 W{index + 1} · {point.at.x}, {point.at.y}
                 {point.wait ? ` · wait ${point.wait}s` : ''}
                 {point.facing != null ? ` · ${snapFacing(point.facing)}°` : ''}
+                {point.animation ? ` · ${point.animation}` : ''}
               </button>
             </li>
           ))}
@@ -210,6 +228,69 @@ function PatrolFields({
               ))}
             </select>
           </Field>
+          <Field label="Animation while waiting">
+            <select
+              className="me-select me-wide"
+              value={selected.animation ?? ''}
+              onChange={(event) => {
+                const animation = event.target.value || null
+                const seconds = animation ? allAnims.find((entry) => entry.id === animation)?.seconds : null
+                onChangeWaypoint(selectedIndex, {
+                  animation,
+                  animationDuration: animation ? (selected.animationDuration ?? seconds ?? null) : null,
+                  animationLoop: animation ? selected.animationLoop === true : false,
+                })
+                if (animation) setPreviewKey((key) => key + 1)
+              }}
+              disabled={!animChoices.length}
+            >
+              <option value="">{animChoices.length ? 'None (idle)' : 'No sprite animations'}</option>
+              {animChoices.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.label} ({entry.seconds}s)
+                </option>
+              ))}
+            </select>
+          </Field>
+          {selected.animation && (
+            <>
+              <Field label="Animation duration (seconds)">
+                <input
+                  className="me-name me-wide"
+                  type="number"
+                  min={0}
+                  max={120}
+                  step={0.1}
+                  placeholder={defaultDuration === '' ? undefined : String(defaultDuration)}
+                  value={selected.animationDuration ?? ''}
+                  onChange={(event) =>
+                    onChangeWaypoint(selectedIndex, {
+                      animationDuration: event.target.value === '' ? null : Number(event.target.value),
+                    })
+                  }
+                />
+              </Field>
+              <label className="me-check">
+                <input
+                  type="checkbox"
+                  checked={selected.animationLoop === true}
+                  onChange={(event) => onChangeWaypoint(selectedIndex, { animationLoop: event.target.checked })}
+                />{' '}
+                Loop animation until wait ends
+              </label>
+              <div className="me-inspector-actions">
+                <button type="button" className="me-button" onClick={() => setPreviewKey((key) => key + 1)}>
+                  Preview animation
+                </button>
+              </div>
+              <WaypointAnimPreview
+                characterId={npc.characterId}
+                animation={selected.animation}
+                facingDegrees={selected.facing == null ? npc.facing ?? 90 : selected.facing}
+                playKey={previewKey}
+              />
+            </>
+          )}
           <div className="me-inspector-actions">
             <button type="button" className={`me-button${movingWaypoint ? ' is-primary' : ''}`} aria-pressed={movingWaypoint} onClick={onToggleMoveWaypoint}>
               {movingWaypoint ? 'Click a tile…' : 'Move Waypoint'}
@@ -259,7 +340,8 @@ export default function NpcInspector({
   onDeleteWaypoint,
   onClearPatrol,
 }) {
-  const character = CHARACTERS.find((entry) => entry.id === npc.characterId)
+  const characters = useAuthoredCharacterOptions()
+  const character = characters.find((entry) => entry.id === npc.characterId)
   const text = (key) => (event) => onChange({ [key]: event.target.value.trim() ? event.target.value : null })
   const select = (key) => (event) => onChange({ [key]: event.target.value || null })
   const defaultResponse = dispositionResponse(npc.disposition ?? 'neutral')
@@ -281,7 +363,7 @@ export default function NpcInspector({
       <Field label="Character">
         <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
           {!character && <option value="">Choose a character</option>}
-          {CHARACTERS.map((entry) => (
+          {characters.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.name}
             </option>

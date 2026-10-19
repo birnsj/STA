@@ -20,7 +20,7 @@ import { countHazards } from '../dev/hazardPerf.js'
 import { perfEnd, perfOff, perfStart } from '../dev/perfProbe.js'
 import { avoidInjury, chooseFatiguedAttribute, getAvoidOption, injuryText, injuryTypeName, normalizeCondition, takeHit } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
-import { damageObject, hazardRound, HAZARD_ROUND_SECONDS, hitText, injuryFromHit, isStanding, needsHazardRounds, OBJECT_ATTACK_DIFFICULTY, objectDamage } from '../world/environment.js'
+import { damageObject, hazardRound, HAZARD_ROUND_SECONDS, hitText, injuryFromHit, isStanding, needsHazardRounds, objectAttackDifficulty, objectDamage } from '../world/environment.js'
 import { withEnvironment } from '../world/environmentState.js'
 import { hazardChallengeId } from '../world/EnvironmentalHazard.js'
 import { syncHazardAfflictions } from '../world/hazardAfflictions.js'
@@ -218,7 +218,14 @@ function shotOptions(state, member, record) {
     .filter(({ range }) => range.available)
     .map(({ weapon, range }) => {
       const spec = getAttackTaskSpec(weapon)
-      const task = { attribute: spec.attribute, department: spec.department, difficulty: OBJECT_ATTACK_DIFFICULTY, focuses: weapon.focuses, tags: spec.tags, traitRules: spec.traitRules }
+      const task = {
+        attribute: spec.attribute,
+        department: spec.department,
+        difficulty: objectAttackDifficulty(record),
+        focuses: weapon.focuses,
+        tags: spec.tags,
+        traitRules: spec.traitRules,
+      }
       const context = { traits: state.scenario?.traits ?? [], side: 'player', condition: normalizeCondition(member.condition), extraLines: range.modifier ? [{ label: `Range: ${band.name}`, change: range.modifier }] : [] }
       return { weapon, band, distance, prepared: prepareTask(member.character, task, context), damage: objectDamage(record, weapon.severity) }
     })

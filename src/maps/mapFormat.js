@@ -14,7 +14,8 @@
 // npcRules, alertGroupId, alertMethod, responseType (awareness response: none|observe|confront|alarm|combat, or null:
 // the disposition's), mustSurvive (the mission fails if they are killed; left out on disk when false), gender and
 // portraitId (npcPortraits.json; null: Auto, see character/npcAppearance.js), patrol (waypoints walked in order,
-// looping: [{ at, wait, facing? }], same schema as npcs.json; left out when empty), perception (optional overrides of
+// looping: [{ at, wait, facing?, animation?, animationDuration?, animationLoop? }], same schema as npcs.json; left out
+// when empty; animation fields are optional idle fidgets — see waypointAnimations.js), perception (optional overrides of
 // awareness.json perceptionDefaults; only set keys are stored) }. A map with NPCs of its own doesn't get npcs.json's
 // test NPCs.
 // objectives: [{ id, title, description, position (the minimap marks it while active; null: no marker), activeWhen,
@@ -49,6 +50,12 @@ import awareness from '../data/adaptation/exploration/awareness.json'
 import catalogue from '../data/adaptation/maps/tiles.json'
 import destructibleData from '../data/adaptation/world/destructibles.json'
 import hazardData from '../data/adaptation/world/hazards.json'
+import attributeData from '../data/source/attributes.json'
+import disciplineData from '../data/source/disciplines.json'
+
+const ATTRIBUTE_IDS = new Set(attributeData.attributes.map((entry) => entry.id))
+const DEPARTMENT_IDS = new Set(disciplineData.disciplines.map((entry) => entry.id))
+const TILE_IDS = new Set((catalogue.tiles ?? []).map((tile) => tile.id))
 
 export const MAP_SCHEMA_VERSION = 1
 export const TILES = catalogue.tiles
@@ -194,6 +201,11 @@ function parsePatrol(raw, inside) {
       const entry = { at, wait: Number.isFinite(point.wait) ? Math.max(0, Number(point.wait)) : 0 }
       if (point.facing != null && Number.isFinite(Number(point.facing))) entry.facing = Number(point.facing)
       else entry.facing = null
+      if (typeof point.animation === 'string' && point.animation) entry.animation = point.animation
+      else entry.animation = null
+      if (Number.isFinite(point.animationDuration)) entry.animationDuration = Math.max(0, Number(point.animationDuration))
+      else entry.animationDuration = null
+      entry.animationLoop = point.animationLoop === true
       return entry
     })
     .filter(Boolean)
@@ -204,6 +216,9 @@ function serializePatrol(patrol) {
   return patrol.map((point) => {
     const record = { at: fromPosition(point.at), wait: Number.isFinite(point.wait) ? point.wait : 0 }
     if (point.facing != null && Number.isFinite(point.facing)) record.facing = Math.round(point.facing)
+    if (point.animation) record.animation = point.animation
+    if (Number.isFinite(point.animationDuration)) record.animationDuration = point.animationDuration
+    if (point.animationLoop) record.animationLoop = true
     return record
   })
 }
@@ -284,6 +299,15 @@ function explosionOverrides(raw) {
   if (typeof raw.hazardSpread === 'boolean') explosion.hazardSpread = raw.hazardSpread
   return Object.keys(explosion).length ? explosion : null
 }
+function parseDebrisOverride(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const debris = {}
+  if (typeof raw.tile === 'string' && raw.tile.trim()) debris.tile = raw.tile.trim()
+  if (Number.isFinite(raw.radius)) debris.radius = Math.max(0, Math.round(raw.radius))
+  if (Number.isFinite(raw.count)) debris.count = Math.max(0, Math.round(raw.count))
+  return Object.keys(debris).length ? debris : null
+}
+
 function parseDestructible(raw, inside) {
   const object = { id: String(raw.id), type: String(raw.type ?? ''), position: toPosition(raw.position ?? [0, 0]) }
   if (typeof raw.name === 'string' && raw.name.trim()) object.name = raw.name.trim()
@@ -292,7 +316,13 @@ function parseDestructible(raw, inside) {
   })
   if (DESTRUCTIBLE_STATES.includes(raw.initialState) && raw.initialState !== 'intact') object.initialState = raw.initialState
   if (raw.attackable === false) object.attackable = false
-  const explosion = explosionOverrides(raw.explosion)
+  if (raw.noExplosion === true) object.noExplosion = true
+  if (Number.isFinite(raw.attackDifficulty)) object.attackDifficulty = raw.attackDifficulty
+  if (raw.damagedHazard === 'none') object.damagedHazard = 'none'
+  else if (typeof raw.damagedHazard === 'string' && raw.damagedHazard.trim()) object.damagedHazard = raw.damagedHazard.trim()
+  const debris = parseDebrisOverride(raw.debris)
+  if (debris) object.debris = debris
+  const explosion = object.noExplosion ? null : explosionOverrides(raw.explosion)
   if (explosion) object.explosion = explosion
   const linked = (Array.isArray(raw.linkedTiles) ? raw.linkedTiles : []).filter((tile) => Array.isArray(tile)).map(toPosition).filter(inside)
   if (linked.length) object.linkedTiles = linked
@@ -306,25 +336,74 @@ const serializeDestructible = (object) => ({
   ...Object.fromEntries(DESTRUCTIBLE_OVERRIDES.filter((field) => Number.isFinite(object[field])).map((field) => [field, object[field]])),
   ...(object.initialState && object.initialState !== 'intact' ? { initialState: object.initialState } : {}),
   ...(object.attackable === false ? { attackable: false } : {}),
-  ...(explosionOverrides(object.explosion) ? { explosion: explosionOverrides(object.explosion) } : {}),
+  ...(object.noExplosion === true ? { noExplosion: true } : {}),
+  ...(Number.isFinite(object.attackDifficulty) ? { attackDifficulty: object.attackDifficulty } : {}),
+  ...(object.damagedHazard === 'none' || (typeof object.damagedHazard === 'string' && object.damagedHazard)
+    ? { damagedHazard: object.damagedHazard }
+    : {}),
+  ...(parseDebrisOverride(object.debris) ? { debris: parseDebrisOverride(object.debris) } : {}),
+  ...(!object.noExplosion && explosionOverrides(object.explosion) ? { explosion: explosionOverrides(object.explosion) } : {}),
   ...(object.linkedTiles?.length ? { linkedTiles: object.linkedTiles.map(fromPosition) } : {}),
 })
 const clampIntensity = (value) => Math.min(3, Math.max(1, Math.round(Number(value) || 1)))
 // A hazard region's overrides of its type's values (hazards.json); any left out use the type's.
-export const HAZARD_OVERRIDES = ['severity', 'spreadChance', 'dissipateChance', 'neutralizeDifficulty']
+export const HAZARD_OVERRIDES = [
+  'severity',
+  'spreadChance',
+  'dissipateChance',
+  'neutralizeDifficulty',
+  'migrateChance',
+  'damagesObjects',
+]
+export const HAZARD_TEXT_OVERRIDES = ['injuryType', 'scarTile', 'movement', 'layer']
+export const HAZARD_INJURY_TYPES = ['stun', 'deadly']
+export const HAZARD_LAYERS = ['floor', 'air']
+export const HAZARD_MOVEMENTS = ['slow']
 // duration: hazard rounds the region lasts (left out: until it dissipates). The switches are kept only when false
 // (spread: never spreads; active: placed but not acting yet; neutralizable: no Neutralize task).
 const HAZARD_SWITCHES = ['spread', 'active', 'neutralizable']
-const hazardOverrides = (source) => ({
-  ...Object.fromEntries([...HAZARD_OVERRIDES, 'duration'].filter((field) => Number.isFinite(source[field])).map((field) => [field, source[field]])),
-  ...Object.fromEntries(HAZARD_SWITCHES.filter((field) => source[field] === false).map((field) => [field, false])),
-})
+
+function parseNeutralizeOverride(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const neutralize = {}
+  if (typeof raw.label === 'string' && raw.label.trim()) neutralize.label = raw.label.trim()
+  if (typeof raw.attribute === 'string' && raw.attribute) neutralize.attribute = raw.attribute
+  if (typeof raw.department === 'string' && raw.department) neutralize.department = raw.department
+  if (Number.isFinite(raw.difficulty)) neutralize.difficulty = raw.difficulty
+  if (Array.isArray(raw.focuses)) {
+    const focuses = raw.focuses.filter((name) => typeof name === 'string' && name.trim()).map((name) => name.trim())
+    if (focuses.length) neutralize.focuses = focuses
+  }
+  // Same prepareTask equipment object shape as challenge actions (label, tags, without, bonus).
+  if (raw.equipment && typeof raw.equipment === 'object' && !Array.isArray(raw.equipment)) {
+    neutralize.equipment = raw.equipment
+  }
+  return Object.keys(neutralize).length ? neutralize : null
+}
+
+const hazardOverrides = (source) => {
+  const overrides = {
+    ...Object.fromEntries([...HAZARD_OVERRIDES, 'duration'].filter((field) => Number.isFinite(source[field])).map((field) => [field, source[field]])),
+    ...Object.fromEntries(HAZARD_SWITCHES.filter((field) => source[field] === false).map((field) => [field, false])),
+  }
+  HAZARD_TEXT_OVERRIDES.forEach((field) => {
+    if (typeof source[field] === 'string' && source[field]) overrides[field] = source[field]
+  })
+  if (typeof source.blocksSight === 'boolean') overrides.blocksSight = source.blocksSight
+  const neutralize = parseNeutralizeOverride(source.neutralize)
+  if (neutralize) overrides.neutralize = neutralize
+  return overrides
+}
 function parseHazard(raw, inside) {
   const tiles = {}
   ;(Array.isArray(raw.tiles) ? raw.tiles : []).forEach(([x, y, intensity]) => {
     if (Number.isInteger(x) && Number.isInteger(y) && inside({ x, y })) tiles[`${x},${y}`] = clampIntensity(intensity)
   })
-  return { id: String(raw.id), type: String(raw.type ?? ''), tiles, ...hazardOverrides(raw) }
+  const parsed = { id: String(raw.id), type: String(raw.type ?? ''), tiles, ...hazardOverrides(raw) }
+  if (parsed.injuryType && !HAZARD_INJURY_TYPES.includes(parsed.injuryType)) delete parsed.injuryType
+  if (parsed.layer && !HAZARD_LAYERS.includes(parsed.layer)) delete parsed.layer
+  if (parsed.movement && !HAZARD_MOVEMENTS.includes(parsed.movement)) delete parsed.movement
+  return parsed
 }
 const serializeHazard = (hazard) => ({
   id: hazard.id,
@@ -466,7 +545,8 @@ export function resizeMap(map, width, height) {
 }
 
 // Warnings only: a map can be saved in any state. requirements come from whichever mode will play it.
-export function validateMap(map, { enemySpawns = 0, label = 'this mode' } = {}) {
+// hasAuthoredCharacter: optional (Character Library / editor); when omitted, unknown characterId is not checked.
+export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuthoredCharacter = null } = {}) {
   const warnings = []
   const tileAt = ({ x, y }) => getTile(map.tiles[y][x])
   const { playerStarts, enemySpawns: spawns } = map.markers
@@ -480,13 +560,49 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode' } = {}) 
     const label = npc.name || npc.id
     if (tileAt(npc.position).solid) warnings.push(`NPC ${label} stands on a solid tile.`)
     if (!npc.characterId) warnings.push(`NPC ${label} has no character.`)
+    else if (typeof hasAuthoredCharacter === 'function' && !hasAuthoredCharacter(npc.characterId)) {
+      warnings.push(`NPC ${label} references unknown character “${npc.characterId}”.`)
+    }
   })
   ;(map.destructibles ?? []).forEach((object) => {
     if (!destructibleData.types[object.type]) warnings.push(`Destructible ${object.id} has an unknown type (${object.type}); it is left out of play.`)
     else if (tileAt(object.position).solid) warnings.push(`Destructible ${object.id} is on a solid tile.`)
+    if (object.damagedHazard && object.damagedHazard !== 'none' && !hazardData.types[object.damagedHazard]) {
+      warnings.push(`Destructible ${object.id} leaks unknown hazard “${object.damagedHazard}”.`)
+    }
+    if (Number.isFinite(object.attackDifficulty) && (object.attackDifficulty < 0 || object.attackDifficulty > 5)) {
+      warnings.push(`Destructible ${object.id} has an out-of-range attackDifficulty.`)
+    }
+    if (object.debris?.tile && !TILE_IDS.has(object.debris.tile)) {
+      warnings.push(`Destructible ${object.id} debris tile “${object.debris.tile}” is unknown.`)
+    }
   })
   ;(map.hazards ?? []).forEach((hazard) => {
-    if (!hazardData.types[hazard.type]) warnings.push(`Hazard ${hazard.id} has an unknown type (${hazard.type}); it is left out of play.`)
+    if (!hazardData.types[hazard.type]) {
+      warnings.push(`Hazard ${hazard.id} has an unknown type (${hazard.type}); it is left out of play.`)
+      return
+    }
+    if (hazard.injuryType && !HAZARD_INJURY_TYPES.includes(hazard.injuryType)) {
+      warnings.push(`Hazard ${hazard.id} has an invalid injuryType (${hazard.injuryType}).`)
+    }
+    if (hazard.scarTile && !TILE_IDS.has(hazard.scarTile)) {
+      warnings.push(`Hazard ${hazard.id} scar tile “${hazard.scarTile}” is unknown.`)
+    }
+    ;['spreadChance', 'dissipateChance', 'migrateChance'].forEach((field) => {
+      if (Number.isFinite(hazard[field]) && (hazard[field] < 0 || hazard[field] > 100)) {
+        warnings.push(`Hazard ${hazard.id} ${field} is out of range (0–100).`)
+      }
+    })
+    if (Number.isFinite(hazard.damagesObjects) && hazard.damagesObjects < 0) {
+      warnings.push(`Hazard ${hazard.id} damagesObjects cannot be negative.`)
+    }
+    const neutralize = hazard.neutralize
+    if (neutralize?.attribute && !ATTRIBUTE_IDS.has(neutralize.attribute)) {
+      warnings.push(`Hazard ${hazard.id} neutralize attribute “${neutralize.attribute}” is unknown.`)
+    }
+    if (neutralize?.department && !DEPARTMENT_IDS.has(neutralize.department)) {
+      warnings.push(`Hazard ${hazard.id} neutralize department “${neutralize.department}” is unknown.`)
+    }
   })
   const roles = new Set(map.tiles.flat().map((id) => getTile(id).role))
   if (roles.has('hazard') && !roles.has('hazardControl')) warnings.push('Hazard tiles but no hazard control, so the hazard can never be set off.')

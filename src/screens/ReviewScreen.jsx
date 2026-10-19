@@ -366,10 +366,14 @@ export default function ReviewScreen({ navigation }) {
         <button
           type="button"
           className="nav-button nav-next review-confirm"
-          disabled={issues.length > 0}
+          disabled={navigation.confirmDisabled ?? issues.length > 0}
           onClick={navigation.onConfirm}
         >
-          {character.confirmedAt ? 'Character Confirmed ✓' : 'Confirm Character →'}
+          {navigation.confirmLabel
+            ? navigation.confirmLabel
+            : character.confirmedAt
+              ? 'Character Confirmed ✓'
+              : 'Confirm Character →'}
         </button>
       </footer>
     </section>

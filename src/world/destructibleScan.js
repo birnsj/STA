@@ -8,7 +8,8 @@ import { DESTRUCTIBLE_TYPES, HAZARD_TYPES } from './environment.js'
 // Hazard type ids this object may emit: when damaged (damagedHazard) and/or when destroyed (explosion.hazard).
 export function emittedHazardIds(record) {
   const ids = []
-  if (record.damagedHazard) ids.push(record.damagedHazard)
+  const leak = record.damagedHazard ?? DESTRUCTIBLE_TYPES[record.type]?.damagedHazard
+  if (leak) ids.push(leak)
   if (record.explosion?.hazard) ids.push(record.explosion.hazard)
   return [...new Set(ids)]
 }
@@ -48,8 +49,9 @@ export function destructibleScanCard(record, { scanned = false } = {}) {
     return { title: record.name, rows, tips }
   }
 
-  if (record.damagedHazard) {
-    const name = HAZARD_TYPES[record.damagedHazard]?.name ?? record.damagedHazard
+  const leakHazard = record.damagedHazard ?? DESTRUCTIBLE_TYPES[record.type]?.damagedHazard
+  if (leakHazard) {
+    const name = HAZARD_TYPES[leakHazard]?.name ?? leakHazard
     rows.push(['When damaged', `Leaks ${name}`])
   }
   if (record.explosion?.hazard) {
@@ -57,7 +59,7 @@ export function destructibleScanCard(record, { scanned = false } = {}) {
     const radius = record.explosion.hazardRadius != null ? ` (radius ${record.explosion.hazardRadius})` : ''
     rows.push(['When destroyed', `Leaves ${name}${radius}`])
   }
-  if (!record.damagedHazard && !record.explosion?.hazard) {
+  if (!leakHazard && !record.explosion?.hazard) {
     rows.push(['Hazards', 'None'])
   }
 

@@ -2,31 +2,75 @@
 // encounter places. Each entry becomes a character export record of exactly the shape the creator exports (the same
 // schemaVersion, the creator's default character sections, final.speciesAbility / equipment / faction resolved the same
 // way) and then a RuntimeCharacter through the same normalizer as a player character. There is no second schema.
+// Mutable in DEV after Character Library Save/Delete so pickers refresh without a full reload.
 import characterData from '../data/adaptation/characters.json'
 import { SCHEMA_VERSION } from '../export/serializeCharacter.js'
 import { getGenderById, getNpcBackdropById, getNpcPortraitById } from '../rules/appearance.js'
 import { getEquippedItems } from '../rules/equipment.js'
-import { getSpeciesAbility, withSpeciesAbility } from '../rules/species.js'
+import { getSpeciesAbility } from '../rules/species.js'
 import { createEmptyCharacter } from './characterModel.js'
+import { withCreatorShape } from './characterImport.js'
 import { normalizeCharacterRecord } from './runtimeCharacter.js'
 
-const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const entriesById = new Map(characterData.characters.map((entry) => [entry.id, entry]))
+let catalogueNotes = Array.isArray(characterData.notes) ? [...characterData.notes] : []
+let entriesById = buildIndex(characterData.characters || [])
+let catalogueVersion = 0
+const catalogueListeners = new Set()
 
-// The creator's default sections, with the entry's own on top (one level deep, as persistence.js upgrades saves).
-function withCreatorShape(authored) {
-  const character = createEmptyCharacter()
-  Object.entries(authored).forEach(([key, value]) => {
-    character[key] = isPlainObject(character[key]) && isPlainObject(value) ? { ...character[key], ...value } : value
-  })
-  return { ...character, species: withSpeciesAbility(character.species) }
+function buildIndex(entries) {
+  return new Map((entries || []).map((entry) => [entry.id, entry]))
 }
 
-// [{ id, name }] of every authored character, for pickers (the map editor's NPC tool).
-export const listAuthoredCharacters = () => characterData.characters.map((entry) => ({ id: entry.id, name: entry.character.identity?.name || entry.id }))
+function notifyCatalogue() {
+  catalogueVersion += 1
+  catalogueListeners.forEach((listener) => {
+    try {
+      listener(catalogueVersion)
+    } catch {
+      /* ignore subscriber errors */
+    }
+  })
+}
+
+export function getAuthoredCatalogueVersion() {
+  return catalogueVersion
+}
+
+export function subscribeAuthoredCatalogue(listener) {
+  catalogueListeners.add(listener)
+  return () => catalogueListeners.delete(listener)
+}
+
+/** Replace the in-memory catalogue (after DEV disk write or delete). */
+export function reloadAuthoredCatalogue(data) {
+  const characters = Array.isArray(data?.characters) ? data.characters : Array.isArray(data) ? data : []
+  catalogueNotes = Array.isArray(data?.notes) ? [...data.notes] : catalogueNotes
+  entriesById = buildIndex(characters)
+  notifyCatalogue()
+  return listAuthoredCharacters()
+}
+
+export function listAuthoredCatalogueNotes() {
+  return [...catalogueNotes]
+}
+
+export function listAuthoredCharacterEntries() {
+  return [...entriesById.values()].map((entry) => structuredClone(entry))
+}
+
+// [{ id, name, faction?, playtestParty? }] of every authored character, for pickers (the map editor's NPC tool).
+export function listAuthoredCharacters() {
+  return [...entriesById.values()].map((entry) => ({
+    id: entry.id,
+    name: entry.character?.identity?.name || entry.id,
+    faction: entry.character?.faction || 'unknown',
+    playtestParty: Boolean(entry.playtestParty),
+  }))
+}
 
 // Authored ids marked playtestParty (the map editor's default away team: redshirt ensigns).
-export const listPlaytestPartyIds = () => characterData.characters.filter((entry) => entry.playtestParty).map((entry) => entry.id)
+export const listPlaytestPartyIds = () =>
+  [...entriesById.values()].filter((entry) => entry.playtestParty).map((entry) => entry.id)
 
 // RuntimeCharacters for the editor Play / party pickers (up to `limit`; there are four authored redshirts).
 export function getPlaytestParty(limit = 8) {
@@ -51,7 +95,7 @@ export function playtestImportEntries() {
 export function getAuthoredRecord(characterId) {
   const entry = entriesById.get(characterId)
   if (!entry) return null
-  const character = withCreatorShape(entry.character)
+  const character = withCreatorShape(structuredClone(entry.character), createEmptyCharacter())
   return {
     schemaVersion: SCHEMA_VERSION,
     sourceType: 'authored',
@@ -97,4 +141,38 @@ export function getAuthoredCharacter(characterId, { npcRules = null, appearance 
   const { character, error } = normalizeCharacterRecord(record, { id: characterId })
   if (error) throw new Error(`Character ${characterId}: ${error}`)
   return npcRules ? { ...character, npcRules } : character
+}
+
+export function hasAuthoredCharacter(id) {
+  return entriesById.has(id)
+}
+
+/**
+ * Stable camelCase id from a display name. Adds a numeric suffix on collision
+ * unless `excludeId` is the same id (edit rename of display name only).
+ */
+export function allocateAuthoredCharacterId(name, { excludeId = null } = {}) {
+  const base = slugifyCharacterId(name)
+  if (!entriesById.has(base) || base === excludeId) return base
+  let n = 2
+  while (entriesById.has(`${base}${n}`)) n += 1
+  return `${base}${n}`
+}
+
+function slugifyCharacterId(name) {
+  const raw = String(name || '')
+    .trim()
+    .replace(/['']/g, '')
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+  if (raw.length === 0) return 'character'
+  const [first, ...rest] = raw
+  const camel =
+    first.charAt(0).toLowerCase() +
+    first.slice(1).replace(/[^a-zA-Z0-9]/g, '') +
+    rest.map((part) => part.charAt(0).toUpperCase() + part.slice(1).replace(/[^a-zA-Z0-9]/g, '')).join('')
+  const cleaned = camel.replace(/[^a-zA-Z0-9_-]/g, '')
+  if (!cleaned) return 'character'
+  if (!/^[a-zA-Z]/.test(cleaned)) return `c${cleaned}`
+  return cleaned.slice(0, 80)
 }

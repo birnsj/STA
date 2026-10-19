@@ -1,7 +1,7 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
 import { snapItemPosition } from '../rules/inventory.js'
 import { nextFacing, spawnFacing } from './facing.js'
-import { getTile, HAZARD_OVERRIDES, isRotated } from './mapFormat.js'
+import { getTile, HAZARD_OVERRIDES, HAZARD_TEXT_OVERRIDES, isRotated } from './mapFormat.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
@@ -169,11 +169,18 @@ const floorAt = (map, position) => {
   return tileId != null && !getTile(tileId).solid
 }
 
-export function addPatrolWaypoint(map, npcId, position, { wait = 2, facing = null } = {}) {
+export function addPatrolWaypoint(map, npcId, position, { wait = 2, facing = null, animation = null, animationDuration = null, animationLoop = false } = {}) {
   if (!floorAt(map, position)) return null
   const npc = (map.npcs ?? []).find((entry) => entry.id === npcId)
   if (!npc) return null
-  const point = { at: { x: position.x, y: position.y }, wait, facing }
+  const point = {
+    at: { x: position.x, y: position.y },
+    wait,
+    facing,
+    animation: animation || null,
+    animationDuration: Number.isFinite(animationDuration) ? animationDuration : null,
+    animationLoop: animationLoop === true,
+  }
   return updateNpc(map, npcId, { patrol: [...patrolOf(map, npcId), point] })
 }
 
@@ -187,6 +194,13 @@ export function updatePatrolWaypoint(map, npcId, index, changes) {
   }
   if ('wait' in changes) next.wait = Math.max(0, Number(changes.wait) || 0)
   if ('facing' in changes) next.facing = changes.facing == null ? null : Number(changes.facing)
+  if ('animation' in changes) next.animation = changes.animation || null
+  if ('animationDuration' in changes) {
+    next.animationDuration = changes.animationDuration == null || changes.animationDuration === ''
+      ? null
+      : Math.max(0, Number(changes.animationDuration) || 0)
+  }
+  if ('animationLoop' in changes) next.animationLoop = changes.animationLoop === true
   patrol[index] = next
   return updateNpc(map, npcId, { patrol })
 }
@@ -458,8 +472,8 @@ export function eraseHazardTile(map, position) {
   return { ...map, hazards: withoutHazardTile(map.hazards, position) }
 }
 
-// changes: any of HAZARD_OVERRIDES and duration (null: back to the type's / no limit), the switches spread, active and
-// neutralizable (only false is stored), intensity (sets every tile of the region).
+// changes: any of HAZARD_OVERRIDES / HAZARD_TEXT_OVERRIDES / blocksSight / neutralize and duration (null: back to the
+// type's / no limit), the switches spread, active and neutralizable (only false is stored), intensity (sets every tile).
 export function updateHazard(map, id, { intensity, ...overrides } = {}) {
   return {
     ...map,
@@ -470,6 +484,19 @@ export function updateHazard(map, id, { intensity, ...overrides } = {}) {
         if (Number.isFinite(overrides[field])) next[field] = overrides[field]
         else delete next[field]
       })
+      ;HAZARD_TEXT_OVERRIDES.filter((field) => field in overrides).forEach((field) => {
+        if (typeof overrides[field] === 'string' && overrides[field]) next[field] = overrides[field]
+        else delete next[field]
+      })
+      if ('blocksSight' in overrides) {
+        if (typeof overrides.blocksSight === 'boolean') next.blocksSight = overrides.blocksSight
+        else delete next.blocksSight
+      }
+      if ('neutralize' in overrides) {
+        if (overrides.neutralize && typeof overrides.neutralize === 'object' && Object.keys(overrides.neutralize).length) {
+          next.neutralize = overrides.neutralize
+        } else delete next.neutralize
+      }
       ;['spread', 'active', 'neutralizable'].filter((field) => field in overrides).forEach((field) => {
         if (overrides[field] === false) next[field] = false
         else delete next[field]

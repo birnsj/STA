@@ -12,7 +12,7 @@ import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 // challenge object and conversation sections, the file, the tile under the pointer, warnings and controls.
 // map and edit(map): the map being edited. cardTools: { canGenerate, busy, onGenerate } for the episode card.
 // onGenerateMap(): Generate Map. generateHazards / onGenerateHazards: checkbox so Generate Map also scatters hazards.
-// onOpenObjective(index) / onOpenObjects() / onOpenStory() / onOpenConversations(): the full-screen editors.
+// onOpenObjective(index) / onOpenObjects() / onOpenStory() / onOpenConversations() / onOpenCharacterLibrary(): full-screen editors.
 export default function EditorSidePanel({
   map,
   edit,
@@ -33,6 +33,7 @@ export default function EditorSidePanel({
   onOpenConversations,
   onOpenObjects,
   onOpenStory,
+  onOpenCharacterLibrary,
   children,
 }) {
   const objectives = map.objectives ?? []
@@ -172,6 +173,11 @@ export default function EditorSidePanel({
       <button type="button" className="me-button me-generate" onClick={onOpenConversations}>
         Conversation Editor
       </button>
+      <p className="me-heading">Characters</p>
+      <button type="button" className="me-button me-generate" onClick={onOpenCharacterLibrary}>
+        Character Library
+      </button>
+      <p className="me-text">Authored NPC pool (characters.json).</p>
       <p className="me-heading">File</p>
       <p className="me-text">{fileId ? `maps/${fileId}.json` : 'Not saved yet'}</p>
       {fileId && mapFileId(map.name) && mapFileId(map.name) !== fileId && <p className="me-text">Renamed to maps/{mapFileId(map.name)}.json on Save.</p>}

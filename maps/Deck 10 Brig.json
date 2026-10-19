@@ -183,6 +183,257 @@
       "npcRules": "supporting",
       "alertGroupId": "security-b",
       "alertMethod": "shout"
+    },
+    {
+      "id": "npc5",
+      "characterId": "stationEngineer",
+      "position": [
+        5,
+        5
+      ],
+      "facing": 90,
+      "disposition": "neutral",
+      "patrol": [
+        {
+          "at": [
+            3,
+            8
+          ],
+          "wait": 2
+        },
+        {
+          "at": [
+            5,
+            12
+          ],
+          "wait": 2
+        },
+        {
+          "at": [
+            7,
+            9
+          ],
+          "wait": 2
+        },
+        {
+          "at": [
+            5,
+            5
+          ],
+          "wait": 2
+        }
+      ]
+    },
+    {
+      "id": "sfSecurityReyes",
+      "characterId": "sfSecurityReyes",
+      "position": [
+        8,
+        3
+      ],
+      "facing": 270,
+      "disposition": "friendly",
+      "patrol": [
+        {
+          "at": [
+            8,
+            3
+          ],
+          "wait": 3,
+          "facing": 0,
+          "animation": "idleLookAround",
+          "animationDuration": 2.6
+        },
+        {
+          "at": [
+            8,
+            7
+          ],
+          "wait": 2.5,
+          "facing": 90,
+          "animation": "idleLookAround",
+          "animationDuration": 2.6
+        },
+        {
+          "at": [
+            8,
+            11
+          ],
+          "wait": 3,
+          "facing": 180,
+          "animation": "idleTurn",
+          "animationDuration": 3
+        },
+        {
+          "at": [
+            4,
+            11
+          ],
+          "wait": 2,
+          "facing": 270,
+          "animation": "idleLookAround",
+          "animationDuration": 2.6
+        }
+      ]
+    },
+    {
+      "id": "sfEngineerChen",
+      "characterId": "sfEngineerChen",
+      "position": [
+        16,
+        10
+      ],
+      "facing": 225,
+      "disposition": "friendly",
+      "patrol": [
+        {
+          "at": [
+            16,
+            10
+          ],
+          "wait": 5,
+          "facing": 225,
+          "animation": "idleScratchHead",
+          "animationDuration": 2.2,
+          "animationLoop": true
+        }
+      ]
+    },
+    {
+      "id": "sfScienceVoss",
+      "characterId": "sfScienceVoss",
+      "position": [
+        16,
+        3
+      ],
+      "facing": 0,
+      "disposition": "neutral",
+      "responseType": "observe",
+      "patrol": [
+        {
+          "at": [
+            16,
+            3
+          ],
+          "wait": 4,
+          "facing": 90,
+          "animation": "idleTurn",
+          "animationDuration": 3
+        },
+        {
+          "at": [
+            20,
+            3
+          ],
+          "wait": 2,
+          "facing": 0,
+          "animation": "idleShiftWeight",
+          "animationDuration": 2.2
+        },
+        {
+          "at": [
+            20,
+            7
+          ],
+          "wait": 3.5,
+          "facing": 270,
+          "animation": "idleTurn",
+          "animationDuration": 3
+        }
+      ]
+    },
+    {
+      "id": "klingonGuardKorath",
+      "characterId": "klingonGuardKorath",
+      "position": [
+        28,
+        8
+      ],
+      "facing": 180,
+      "disposition": "wary",
+      "responseType": "confront",
+      "npcRules": "supporting",
+      "perception": {
+        "visionRange": 10,
+        "fieldOfView": 100,
+        "hearingRange": 5
+      },
+      "patrol": [
+        {
+          "at": [
+            28,
+            8
+          ],
+          "wait": 6,
+          "facing": 180,
+          "animation": "idleCheckPhaser",
+          "animationDuration": 3.2,
+          "animationLoop": true
+        }
+      ]
+    },
+    {
+      "id": "klingonSentryTorak",
+      "characterId": "klingonSentryTorak",
+      "position": [
+        35,
+        4
+      ],
+      "facing": 270,
+      "disposition": "hostile",
+      "responseType": "alarm",
+      "npcRules": "supporting",
+      "alertGroupId": "brig-east-alert",
+      "alertMethod": "shout",
+      "patrol": [
+        {
+          "at": [
+            35,
+            4
+          ],
+          "wait": 3,
+          "facing": 180,
+          "animation": "idleLookAround",
+          "animationDuration": 2.6
+        },
+        {
+          "at": [
+            35,
+            8
+          ],
+          "wait": 3,
+          "facing": 0,
+          "animation": "idleLookAround",
+          "animationDuration": 2.6
+        }
+      ]
+    },
+    {
+      "id": "klingonWarriorKrel",
+      "characterId": "klingonWarriorKrel",
+      "position": [
+        34,
+        12
+      ],
+      "facing": 225,
+      "disposition": "hostile",
+      "responseType": "combat",
+      "npcRules": "supporting",
+      "alertGroupId": "brig-east-alert",
+      "alertMethod": "shout",
+      "patrol": [
+        {
+          "at": [
+            34,
+            12
+          ],
+          "wait": 4,
+          "facing": 225,
+          "animation": "idleCheckPhaser",
+          "animationDuration": 3.2,
+          "animationLoop": true
+        }
+      ]
     }
   ],
   "objectives": [

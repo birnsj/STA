@@ -17,7 +17,9 @@ import {
   destructibleTileId,
   EXPLOSION_KINDS,
   FORCE_FIELD_TILES,
+  hazardRound,
   HAZARD_TYPES,
+  objectAttackDifficulty,
 } from '../src/world/environment.js'
 import { getReachableTiles } from '../src/combat/movementSystem.js'
 
@@ -177,5 +179,33 @@ describe('map file fields', () => {
     assert.equal(getTile('dsGasCylinder').role, 'destructible')
     const listed = JSON.stringify(PALETTE_GROUPS)
     assert.ok(!/"ds[A-Z]/.test(listed))
+  })
+
+  it('honours damagedHazard, noExplosion, attackDifficulty and debris overrides', () => {
+    const map = testMap({
+      destructibles: [
+        {
+          id: 'd1',
+          type: 'epsConduit',
+          position: { x: 3, y: 2 },
+          damagedHazard: 'smoke',
+          noExplosion: true,
+          attackDifficulty: 4,
+          debris: { tile: 'debris', radius: 2, count: 1 },
+        },
+      ],
+    })
+    const environment = createEnvironment(map)
+    const record = environment.destructibles.d1
+    assert.equal(record.damagedHazard, 'smoke')
+    assert.equal(record.explosion, null)
+    assert.equal(record.attackDifficulty, 4)
+    assert.equal(objectAttackDifficulty(record), 4)
+    assert.deepEqual(record.debrisSpec, { tile: 'debris', radius: 2, count: 1 })
+    const half = damageObject(environment, map, 'd1', record.maxStructure - Math.floor(record.maxStructure / 2), [])
+    assert.equal(half.environment.destructibles.d1.state, 'damaged')
+    const leaking = hazardRound(half.environment, half.map).environment
+    assert.ok(leaking.hazards['leak:d1'], 'leaks the overridden hazard')
+    assert.equal(leaking.hazards['leak:d1'].type, 'smoke')
   })
 })

@@ -12,7 +12,7 @@ import { canAfford, isActive } from './combatSelectors.js'
 import { countHazards } from '../dev/hazardPerf.js'
 import { perfEnd, perfOff, perfStart } from '../dev/perfProbe.js'
 import { normalizeCondition } from '../rules/personalCondition.js'
-import { damageObject, hazardRound, hitText, injuryFromHit, isStanding, OBJECT_ATTACK_DIFFICULTY, objectDamage } from '../world/environment.js'
+import { damageObject, hazardRound, hitText, injuryFromHit, isStanding, objectAttackDifficulty, objectDamage } from '../world/environment.js'
 import { syncHazardAfflictions } from '../world/hazardAfflictions.js'
 
 // Who a blast or hazard can catch: every combatant still in the fight, whatever their side.
@@ -114,7 +114,8 @@ export function previewObjectAttack(state, attackerId, objectId, weaponId, fromP
   const band = getRangeBand(distance)
   const range = getRangeModifier(weapon, band)
   const prepared = getAttackTask(state, attackerId, weaponId)
-  const difficulty = Math.max(0, prepared.difficulty - getAttackTaskSpec(weapon).baseDifficulty + OBJECT_ATTACK_DIFFICULTY + range.modifier)
+  const objectDifficulty = objectAttackDifficulty(record)
+  const difficulty = Math.max(0, prepared.difficulty - getAttackTaskSpec(weapon).baseDifficulty + objectDifficulty + range.modifier)
   const base = {
     weapon,
     record,
@@ -126,7 +127,7 @@ export function previewObjectAttack(state, attackerId, objectId, weaponId, fromP
     damage: objectDamage(record, weapon.severity),
     explosion: record.explosion,
     difficultyLines: [
-      { label: 'Object', change: OBJECT_ATTACK_DIFFICULTY },
+      { label: 'Object', change: objectDifficulty },
       ...prepared.difficultyLines.slice(1),
       ...(range.modifier ? [{ label: `Range: ${band.name}`, change: range.modifier }] : []),
     ],

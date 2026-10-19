@@ -37,9 +37,6 @@ import { getTile, isRotated } from '../../maps/mapFormat.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 
-// The character a newly placed NPC starts as (changed in its inspector).
-const FIRST_CHARACTER_ID = listAuthoredCharacters()[0]?.id ?? null
-
 // The map editor's tools: which tool is held, the board's click / drag / right-click behaviour for each, and what is
 // selected for its inspector (an NPC, a player start or enemy spawn, a challenge object). It edits through edit(map) and
 // never touches files or popups.
@@ -48,6 +45,8 @@ const FIRST_CHARACTER_ID = listAuthoredCharacters()[0]?.id ?? null
 // aside. onObjectivePlaced(index): an objective sent here by the Objective Editor was placed (or cancelled), so it reopens.
 export default function useEditorTools({ map, edit, setStatus, askText, boardKey, suspended, onObjectivePlaced }) {
   const [tool, setTool] = useState('tile:bulkhead')
+  // Character Library "Use for placement": next Place NPC uses this id (otherwise the first catalogue entry).
+  const [pendingCharacterId, setPendingCharacterId] = useState(null)
   // Place Tiles: the board only paints the chosen tile while this is on; off, the pointer is just a cursor.
   const [placing, setPlacing] = useState(false)
   // Move: dragging a tile swaps it with the one it is dropped on. moveFrom: the tile being carried (null = none).
@@ -105,6 +104,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setMoveFrom(null)
     setSelectedGroundItemId(null)
     setMovingGroundItem(false)
+    setPendingCharacterId(null)
   }
 
   const selectedNpc = (map.npcs ?? []).find((npc) => npc.id === selectedNpcId) ?? null
@@ -259,10 +259,12 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       return
     }
     if (editingPatrol) return
-    const placed = placeNpc(map, position, FIRST_CHARACTER_ID)
+    const characterId = pendingCharacterId || listAuthoredCharacters()[0]?.id || null
+    const placed = placeNpc(map, position, characterId)
     if (!placed) return setStatus('NPCs stand on free floor tiles.')
     edit(placed.map)
     setSelectedNpcId(placed.npc.id)
+    setPendingCharacterId(null)
     setEditingPatrol(false)
     setSelectedWaypointIndex(null)
   }
@@ -483,6 +485,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     moving,
     moveFrom,
     rotated,
+    pendingCharacterId,
+    setPendingCharacterId,
     placingObjective,
     // The Objective Editor's Place on Map: wait for a tile click, then reopen the editor.
     placeObjectiveFromEditor: (index) => {

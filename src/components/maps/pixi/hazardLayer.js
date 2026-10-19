@@ -74,7 +74,7 @@ export class HazardLayer {
         stripFrames(hazardStrip(region.type), HAZARD_FRAMES)
         stripFrames(characterHazardStrip(region.type), HAZARD_FRAMES)
       }
-      const air = HAZARD_TYPES[region.type]?.layer === 'air'
+      const air = (region.layer ?? HAZARD_TYPES[region.type]?.layer) === 'air'
       for (const key in region.tiles) {
         const id = `${region.id}|${key}`
         seen.add(id)

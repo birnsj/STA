@@ -16,6 +16,8 @@ import {
   whileUnseen,
 } from '../exploration/awareness.js'
 import { distance, planRoute, RADIUS, slide } from '../exploration/navigation.js'
+import { getSpriteAnimation } from '../rules/appearance.js'
+import { tickWaypointAnim } from '../maps/waypointAnimRuntime.js'
 import { CharacterController, headingTo, wrapAngle } from './CharacterController.js'
 import { isDown } from './controllers.js'
 
@@ -196,6 +198,8 @@ export class NPCController extends CharacterController {
     const focus = focusId ? awareness[focusId] : null
     const focusVisible = focusId !== null && visibleIds.includes(focusId)
     let { investigation, glance, suspicion, patrol } = npc
+    // Waypoint idle fidgets only run while the NPC is free to wait on its patrol; higher-priority behaviour clears them.
+    let waypointAnim = null
 
     let look = null
     let goal = null
@@ -237,8 +241,10 @@ export class NPCController extends CharacterController {
           goal = point.position
           speed = MOVE.patrolSpeed
         } else {
-          const waitLeft = (patrol.waitLeft ?? point.wait) - seconds
+          const starting = patrol.waitLeft == null
+          const waitLeft = (starting ? point.wait : patrol.waitLeft) - seconds
           if (point.facing !== null) look = point.facing
+          waypointAnim = waitLeft > 0 ? tickWaypointAnim(npc.waypointAnim, point, starting, seconds) : null
           patrol = waitLeft > 0 ? { ...patrol, waitLeft } : { ...patrol, index: (patrol.index + 1) % patrol.points.length, waitLeft: null }
         }
       } else if (distance(npc.position, npc.home.position) > MOVE.arriveDistance) {
@@ -266,7 +272,17 @@ export class NPCController extends CharacterController {
     }
     if (look !== null) heading = turnToward(heading, look, seconds)
     position = keepClear(map, position, [...members, ...others.filter((other) => !isDown(other))])
-    return { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, suspicion, investigation }
+    return { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, suspicion, investigation, waypointAnim }
+  }
+
+  // Exploration board: optional pose while a patrol waypoint animation is active (falls back to idle fidgets / gait).
+  animationState(actor) {
+    const base = super.animationState(actor)
+    const name = actor.waypointAnim?.name
+    if (name && getSpriteAnimation(name)) {
+      return { ...base, pose: { animation: name, playKey: actor.waypointAnim.playKey } }
+    }
+    return base
   }
 
   canTalk(npc) {

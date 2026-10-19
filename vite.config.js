@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import {
+  listAuthoredCharacters,
+  putAuthoredCharacter,
+  removeAuthoredCharacter,
+} from './tools/authoredCharacterStore.cjs'
 import { listCharacters, putCharacter, removeCharacter } from './tools/characterStore.cjs'
 import { listConversations, putConversation, removeConversation } from './tools/conversationStore.cjs'
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
@@ -13,6 +18,9 @@ const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
 const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.meta.url))
 const TILES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tiles.json', import.meta.url))
 const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploration/missionLog.json', import.meta.url))
+const AUTHORED_CHARACTERS_FILE = fileURLToPath(
+  new URL('./src/data/adaptation/characters.json', import.meta.url),
+)
 const EPISODE_ART_FOLDER = fileURLToPath(new URL('./public/art/episodes', import.meta.url))
 const EPISODE_CARDS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/episodeCards.json', import.meta.url))
 const catalogueCardIds = () => JSON.parse(readFileSync(EPISODE_CARDS_FILE, 'utf8')).cards.map((card) => card.id)
@@ -97,9 +105,39 @@ const tileFilesEndpoint = () => quietDataEndpoint('tile-files-endpoint', '/__til
 // The map editor's Story Wording saves the outro's story templates into missionLog.json.
 const storyEndpoint = () => quietDataEndpoint('story-endpoint', '/__story', MISSION_LOG_FILE, (file, body) => setStoryTemplates(file, body?.story))
 
+// Character Library: CRUD on the authored NPC pool. Quiet hotUpdate so Save doesn't wipe an open map.
+const authoredCharactersEndpoint = () => {
+  let savedAt = 0
+  const endpoint = jsonEndpoint('authored-characters-endpoint', '/__authored-characters', {
+    GET: () => listAuthoredCharacters(AUTHORED_CHARACTERS_FILE),
+    PUT: (entry) => {
+      savedAt = Date.now()
+      return putAuthoredCharacter(AUTHORED_CHARACTERS_FILE, entry)
+    },
+    DELETE: (body) => {
+      savedAt = Date.now()
+      return removeAuthoredCharacter(AUTHORED_CHARACTERS_FILE, body.id)
+    },
+  })
+  return {
+    ...endpoint,
+    hotUpdate({ file }) {
+      if (toSlashes(file) === toSlashes(AUTHORED_CHARACTERS_FILE) && Date.now() - savedAt < 2000) return []
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), characterFilesEndpoint(), mapFilesEndpoint(), conversationFilesEndpoint(), tileFilesEndpoint(), storyEndpoint()],
+  plugins: [
+    react(),
+    characterFilesEndpoint(),
+    mapFilesEndpoint(),
+    conversationFilesEndpoint(),
+    tileFilesEndpoint(),
+    storyEndpoint(),
+    authoredCharactersEndpoint(),
+  ],
   // Relative asset paths so the built app also loads from disk inside the Electron .exe.
   base: './',
   server: {

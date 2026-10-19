@@ -122,7 +122,18 @@ export function createNpc(config, character = null) {
   const position = toPoint(config.position)
   const heading = toRadians(config.facing ?? 0)
   const patrol = config.patrol?.length
-    ? { points: config.patrol.map((point) => ({ position: toPoint(point.at), wait: point.wait ?? 0, facing: point.facing == null ? null : toRadians(point.facing) })), index: 0, waitLeft: null }
+    ? {
+        points: config.patrol.map((point) => ({
+          position: toPoint(point.at),
+          wait: point.wait ?? 0,
+          facing: point.facing == null ? null : toRadians(point.facing),
+          animation: point.animation || null,
+          animationDuration: Number.isFinite(point.animationDuration) ? point.animationDuration : null,
+          animationLoop: point.animationLoop === true,
+        })),
+        index: 0,
+        waitLeft: null,
+      }
     : null
   return {
     id: config.id,
@@ -144,6 +155,8 @@ export function createNpc(config, character = null) {
     heading,
     home: { position, heading },
     patrol,
+    // Presentation: optional idle fidget while waiting at a patrol waypoint (NPCController / waypointAnimations.js).
+    waypointAnim: null,
     moving: false,
     path: [],
     pathGoal: null,

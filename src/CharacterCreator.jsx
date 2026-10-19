@@ -40,14 +40,22 @@ const SCREENS = {
 
 const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
-export default function CharacterCreator({ onExit, onConfirmed, showGuide }) {
+// mode: 'player' (default Main Menu creator) | 'authored' (Dev Edit Character Library; nested provider, pool Save).
+// authored: { isNew, previousFinal, onSave(character) } when mode is 'authored'.
+export default function CharacterCreator({ onExit, onConfirmed, showGuide, mode = 'player', authored = null }) {
+  const isAuthored = mode === 'authored'
   const { character, dispatch } = useCharacter()
   const [currentStepId, setCurrentStepId] = useState(() => {
+    if (isAuthored) return steps[0].id
     const { stepId } = loadLocation()
     return isKnownStep(stepId) ? stepId : steps[0].id
   })
 
-  useEffect(() => saveLocation({ ...loadLocation(), stepId: currentStepId }), [currentStepId])
+  useEffect(() => {
+    if (isAuthored) return undefined
+    saveLocation({ ...loadLocation(), stepId: currentStepId })
+    return undefined
+  }, [currentStepId, isAuthored])
 
   const index = steps.findIndex((step) => step.id === currentStepId)
   const step = steps[index]
@@ -60,13 +68,19 @@ export default function CharacterCreator({ onExit, onConfirmed, showGuide }) {
   const requestQuit = () => (hasUnsavedProgress(character) ? setQuitConfirmOpen(true) : onExit())
   const quitConfirm = quitConfirmOpen && <QuitConfirm onQuit={onExit} onCancel={() => setQuitConfirmOpen(false)} />
 
+  const authoredCanSave = isAuthored
+    ? authored?.isNew
+      ? isCharacterValid(character)
+      : Boolean(authored?.canSave?.(character))
+    : false
+
   const navigation = {
-    // Back on the first screen leaves character creation for the Main Menu.
+    // Back on the first screen leaves character creation for the Main Menu (or the Character Library).
     canGoBack: true,
     canGoNext: Boolean(nextStep),
     nextLabel: nextStep ? `Next: ${nextStep.title}` : 'Next',
     onBack: () => (previousStep ? setCurrentStepId(previousStep.id) : requestQuit()),
-    // The first screen's Back already returns to the Main Menu, so it has no Quit.
+    // The first screen's Back already returns, so it has no Quit.
     onQuit: previousStep ? requestQuit : undefined,
     onNext: () => nextStep && setCurrentStepId(nextStep.id),
     onGoToStep: (stepId) => isKnownStep(stepId) && setCurrentStepId(stepId),
@@ -81,9 +95,17 @@ export default function CharacterCreator({ onExit, onConfirmed, showGuide }) {
     onAuto: () => dispatch({ type: 'autoChooseStep', stepId: step.id, seed: Math.random() }),
     canShowSummary: summaryPopup.canShow,
     onShowSummary: summaryPopup.show,
-    // Saves the confirmed character (again, if it already was), then returns to the Main Menu. savedCharacterId (UI state) remembers which saved
-    // entry this draft is, so going back to edit and confirming again updates it rather than adding a copy.
+    authoredMode: isAuthored,
+    confirmLabel: isAuthored ? 'Save to Character Pool →' : null,
+    confirmDisabled: isAuthored ? !authoredCanSave : null,
+    // Player: saves the confirmed character then returns to the Main Menu.
+    // Authored: writes characters.json via the library callback (never the player save list).
     onConfirm: () => {
+      if (isAuthored) {
+        if (!authoredCanSave) return
+        authored.onSave(character)
+        return
+      }
       if (!isCharacterValid(character)) return
       // An already-confirmed character (e.g. just imported) keeps its original confirmation time.
       const confirmedAt = character.confirmedAt ?? new Date().toISOString()
@@ -94,23 +116,26 @@ export default function CharacterCreator({ onExit, onConfirmed, showGuide }) {
     },
   }
 
+  const headerSubtitle = isAuthored ? 'Character Library' : step.id === 'review' ? 'Character Complete' : undefined
+  const headerHelp = step.id === 'review' ? 'reviewScreen' : undefined
+
   // Review is the finished character sheet: full width, without the step list or the running summary.
   if (step.id === 'review') {
     return (
       <div className="frame">
-        <Header subtitle="Character Complete" subtitleHelpId="reviewScreen" />
+        <Header subtitle={headerSubtitle ?? 'Character Complete'} subtitleHelpId={headerHelp} />
         <div className="frame-body frame-body-review" inert={quitConfirmOpen}>
           <Screen step={step} navigation={navigation} />
         </div>
         {quitConfirm}
-        {showGuide && <GuideHighlight enterFromFull />}
+        {showGuide && !isAuthored && <GuideHighlight enterFromFull />}
       </div>
     )
   }
 
   return (
     <div className="frame">
-      <Header />
+      <Header subtitle={headerSubtitle} />
       <div className="frame-body" inert={summaryPopup.open || quitConfirmOpen}>
         <StepNav
           steps={steps}
@@ -123,7 +148,7 @@ export default function CharacterCreator({ onExit, onConfirmed, showGuide }) {
       </div>
       {summaryPopup.open && <CharacterStepSummaryModal summary={buildStepSummary(step.id, character)} onClose={summaryPopup.close} />}
       {quitConfirm}
-      {showGuide && <GuideHighlight />}
+      {showGuide && !isAuthored && <GuideHighlight />}
     </div>
   )
 }

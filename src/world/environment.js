@@ -58,11 +58,26 @@ const startingStructure = (maxStructure, state) => (state === 'destroyed' ? 0 : 
 
 // placement: the map's { id, type, position, name?, structure?, resistance?, initialState?, attackable?, explosion?,
 // linkedTiles? } (mapFormat.js); the optional fields override the type's.
+function resolveDamagedHazard(placement, info) {
+  if (placement.damagedHazard === 'none') return null
+  if (typeof placement.damagedHazard === 'string' && placement.damagedHazard) return placement.damagedHazard
+  return info.damagedHazard ?? null
+}
+
+function resolveDebrisSpec(placement, info) {
+  if (!placement.debris || typeof placement.debris !== 'object') return info.debris ?? null
+  const merged = { ...(info.debris ?? {}), ...placement.debris }
+  if (!merged.tile || !Number.isFinite(merged.radius) || !Number.isFinite(merged.count)) return info.debris ?? null
+  return merged
+}
+
 export function createDestructibleRecord(placement) {
   const info = DESTRUCTIBLE_TYPES[placement.type]
   const maxStructure = placement.structure ?? info.structure
   const state = DESTRUCTIBLE_STATES.includes(placement.initialState) ? placement.initialState : 'intact'
-  return {
+  const debrisSpec = resolveDebrisSpec(placement, info)
+  const damagedHazard = resolveDamagedHazard(placement, info)
+  const record = {
     id: placement.id,
     type: placement.type,
     name: placement.name ?? info.name,
@@ -72,12 +87,20 @@ export function createDestructibleRecord(placement) {
     resistance: placement.resistance ?? info.resistance,
     state,
     attackable: placement.attackable ?? true,
-    explosion: info.explosion ? { ...info.explosion, ...placement.explosion } : null,
+    explosion: placement.noExplosion ? null : info.explosion ? { ...info.explosion, ...placement.explosion } : null,
     linkedTiles: (placement.linkedTiles ?? []).map(asPosition),
     debris: [],
     leakSealed: false,
   }
+  if (damagedHazard) record.damagedHazard = damagedHazard
+  if (debrisSpec) record.debrisSpec = debrisSpec
+  if (Number.isFinite(placement.attackDifficulty)) record.attackDifficulty = placement.attackDifficulty
+  return record
 }
+
+/** Attack Difficulty for shooting this object (placement override or catalogue global). */
+export const objectAttackDifficulty = (record) =>
+  Number.isFinite(record?.attackDifficulty) ? record.attackDifficulty : OBJECT_ATTACK_DIFFICULTY
 
 // A map's hazard region as it starts play: active, spreading and neutralizable unless the map says otherwise.
 export function createHazardRegion(hazard, source = 'map') {
@@ -104,13 +127,15 @@ export const destructibleAt = (environment, position) =>
 // Whether anything still needs hazard rounds: an active hazard, or a damaged object leaking one.
 export const needsHazardRounds = (environment) =>
   hazardList(environment).some((region) => region.active) ||
-  destructibleList(environment).some((record) => record.state === 'damaged' && !record.leakSealed && DESTRUCTIBLE_TYPES[record.type].damagedHazard)
+  destructibleList(environment).some((record) => record.state === 'damaged' && !record.leakSealed && record.damagedHazard)
 
 // A region's value for a type field it may override (mapFormat.js HAZARD_OVERRIDES).
 export const hazardValue = (region, field) => region[field] ?? HAZARD_TYPES[region.type][field]
 export const hazardSeverity = (region) => hazardValue(region, 'severity')
-export const neutralizeDifficulty = (region) => region.neutralizeDifficulty ?? HAZARD_TYPES[region.type].neutralize.difficulty
-export const blocksSightAt = (region, intensity) => Boolean(HAZARD_TYPES[region.type].blocksSight) && intensity >= THICK_INTENSITY
+export const neutralizeDifficulty = (region) =>
+  region.neutralize?.difficulty ?? region.neutralizeDifficulty ?? HAZARD_TYPES[region.type].neutralize.difficulty
+export const hazardBlocksSight = (region) => Boolean(hazardValue(region, 'blocksSight'))
+export const blocksSightAt = (region, intensity) => hazardBlocksSight(region) && intensity >= THICK_INTENSITY
 
 // The worst active hazard on a tile: { region, type, intensity, severity, injuryType, name }, or null. A region set to
 // severity 0 hurts nobody but still counts here for sight.
@@ -123,7 +148,14 @@ export function hazardAt(environment, position) {
     const info = HAZARD_TYPES[region.type]
     const severity = hazardSeverity(region)
     if (!worst || severity > worst.severity || (severity === worst.severity && intensity > worst.intensity)) {
-      worst = { region, type: region.type, intensity, severity, injuryType: info.injuryType, name: info.name }
+      worst = {
+        region,
+        type: region.type,
+        intensity,
+        severity,
+        injuryType: hazardValue(region, 'injuryType') ?? info.injuryType,
+        name: info.name,
+      }
     }
   })
   return worst
@@ -147,8 +179,8 @@ function environmentTileChanges(map, environment) {
   destructibleList(environment).forEach((record) => {
     put(record.position, destructibleTileId(record.type, record.state))
     record.linkedTiles.forEach((tile) => put(tile, isStanding(record) ? FORCE_FIELD_TILES.up : FORCE_FIELD_TILES.down))
-    const debris = DESTRUCTIBLE_TYPES[record.type].debris
-    record.debris.forEach((tile) => put(tile, debris.tile))
+    const debris = record.debrisSpec
+    if (debris?.tile) record.debris.forEach((tile) => put(tile, debris.tile))
   })
   return changes
 }
@@ -166,10 +198,9 @@ export function applyEnvironmentTiles(map, environment) {
   const cover = new Set()
   const slow = new Set()
   activeHazards(environment).forEach((region) => {
-    const info = HAZARD_TYPES[region.type]
     Object.entries(region.tiles).forEach(([key, intensity]) => {
-      if (info.blocksSight) (blocksSightAt(region, intensity) ? blockers : cover).add(key)
-      if (info.movement === 'slow') slow.add(key)
+      if (hazardBlocksSight(region)) (blocksSightAt(region, intensity) ? blockers : cover).add(key)
+      if (hazardValue(region, 'movement') === 'slow') slow.add(key)
     })
   })
   blockers.forEach((key) => cover.delete(key))
@@ -275,7 +306,7 @@ function withWallScars(environment, additions) {
 
 // Walls Chebyshev-adjacent to a scarTile hazard tile get a permanent face scar.
 function recordAdjacentWallScars(environment, map, region) {
-  const scarTile = HAZARD_TYPES[region.type]?.scarTile
+  const scarTile = hazardValue(region, 'scarTile')
   if (!scarTile || !region.active) return environment
   const additions = {}
   Object.keys(region.tiles).forEach((key) => {
@@ -293,7 +324,7 @@ function recordAdjacentWallScars(environment, map, region) {
 // Record permanent floor scars for types with scarTile (fire / plasmaFire → scorched). Skips walls and object tiles.
 // Also scars wall faces next to those hazard tiles.
 function recordHazardScars(environment, map, region) {
-  const scarTile = HAZARD_TYPES[region.type]?.scarTile
+  const scarTile = hazardValue(region, 'scarTile')
   if (!scarTile || !region.active) return environment
   const scars = { ...(environment.scars ?? {}) }
   let changed = false
@@ -359,7 +390,7 @@ export function spawnHazard(environment, map, { type, position, radius = 0, cent
 // A damaged object leaking its damagedHazard onto the open tiles round it (topped up each hazard round until it is
 // destroyed or the leak is sealed).
 function leak(environment, map, record) {
-  const type = DESTRUCTIBLE_TYPES[record.type].damagedHazard
+  const type = record.damagedHazard
   if (!type || record.leakSealed || record.state !== 'damaged') return environment
   const id = `leak:${record.id}`
   const existing = environment.hazards[id]
@@ -375,10 +406,10 @@ function leak(environment, map, record) {
   return region ? recordHazardScars(next, map, region) : next
 }
 
-// Where a fallen structure's debris lands: the open tiles within the type's debris radius the blast reaches, never one
+// Where a fallen structure's debris lands: the open tiles within the debris radius the blast reaches, never one
 // with anyone on it. Sorted, so the same fall always leaves the same debris.
 function debrisTiles(map, environment, record, actors) {
-  const debris = DESTRUCTIBLE_TYPES[record.type].debris
+  const debris = record.debrisSpec
   if (!debris) return []
   const occupied = new Set(actors.map((actor) => tileKey(actor.position)))
   const tiles = []
@@ -595,7 +626,7 @@ export function hazardRound(environment, map, actors = []) {
         0,
         ...NEIGHBOUR_OFFSETS.map(([dx, dy]) => {
           const hazard = hazardAt(next, { x: record.position.x + dx, y: record.position.y + dy })
-          return hazard ? (HAZARD_TYPES[hazard.type].damagesObjects ?? 0) : 0
+          return hazard ? (hazardValue(hazard.region, 'damagesObjects') ?? 0) : 0
         }),
       )
       if (!damage || !isStanding(next.destructibles[record.id])) return

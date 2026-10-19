@@ -23,6 +23,7 @@ Implementation note: how the code is organised. No rules change here; the rules 
   - the hunt for unseen enemies in a fight started in the world.
 - **`NPCController`** is for any world NPC:
   - each frame: `perceive` (sight, memory, footsteps), then `react` (alarm, group alert, response, overall state), then `behave` (watch, investigate, patrol or keep its post, then walk);
+  - while waiting on a patrol waypoint, optional authored idle fidget (`waypointAnim` → `animationState.pose`); cleared when a higher-priority behaviour takes over;
   - `canTalk`.
 - **`EnemyController`** extends `NPCController`:
   - the enemy combat AI;

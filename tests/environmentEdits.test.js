@@ -105,4 +105,39 @@ describe('hazard regions', () => {
     assert.deepEqual(back.hazards, map.hazards)
     assert.deepEqual(back.destructibles, map.destructibles)
   })
+
+  it('round-trips migrateChance, injuryType, neutralize overrides, and destructible gaps', () => {
+    let map = paintAll(blank(), 'fire', [[2, 2]], 2)
+    const hazardId = map.hazards[0].id
+    map = updateHazard(map, hazardId, {
+      migrateChance: 40,
+      injuryType: 'stun',
+      damagesObjects: 2,
+      blocksSight: true,
+      movement: 'slow',
+      layer: 'air',
+      scarTile: 'scorched',
+      neutralize: { label: 'Douse', attribute: 'daring', department: 'security', difficulty: 2, focuses: ['Firearms'] },
+      neutralizeDifficulty: null,
+    })
+    const placed = placeDestructible(map, { x: 6, y: 6 }, 'epsConduit')
+    map = placed.map
+    map = updateDestructible(map, placed.object.id, {
+      damagedHazard: 'smoke',
+      attackDifficulty: 3,
+      noExplosion: true,
+      debris: { tile: 'debris', radius: 2, count: 2 },
+    })
+    const saved = serializeMap(map)
+    assert.equal(saved.hazards[0].migrateChance, 40)
+    assert.equal(saved.hazards[0].injuryType, 'stun')
+    assert.equal(saved.hazards[0].neutralize.attribute, 'daring')
+    assert.equal(saved.destructibles[0].damagedHazard, 'smoke')
+    assert.equal(saved.destructibles[0].noExplosion, true)
+    assert.equal(saved.destructibles[0].attackDifficulty, 3)
+    const back = parseMapFile(JSON.parse(JSON.stringify(saved)), 'edits')
+    assert.equal(back.hazards[0].migrateChance, 40)
+    assert.equal(back.hazards[0].neutralize.label, 'Douse')
+    assert.equal(back.destructibles[0].debris.count, 2)
+  })
 })
