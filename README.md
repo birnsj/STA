@@ -12,6 +12,7 @@ npm run dev        # Vite dev server at http://localhost:5173/
 npm test           # node --test, ~1370 tests (tests/**/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
+npm run check      # lint, then the tests, then a build: run this before committing (needs Node 22.15+)
 npm run app        # build, then open it in Electron
 npm run dist:win   # portable Windows .exe (electron-builder)
 ```
