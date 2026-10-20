@@ -4,6 +4,7 @@ import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettings
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import usePendingObjectHit from '../components/usePendingObjectHit.js'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
@@ -462,13 +463,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   useEffect(() => {
     if (lastTargetScanKey != null) playScanSound()
   }, [lastTargetScanKey])
-  // Object shot: laser first, then Structure / explosion after the beam lands.
-  const pendingObjectHit = state.pendingObjectHit
-  useEffect(() => {
-    if (!pendingObjectHit || inCombat) return undefined
-    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs)
-    return () => clearTimeout(timer)
-  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, inCombat, dispatch])
+  usePendingObjectHit(state.pendingObjectHit, dispatch, { enabled: !inCombat })
   const lastSocialKey = state.lastSocial?.key
   const lastSocialKind = state.lastSocial?.kind
   const lastSocialPassed = state.lastSocial?.passed

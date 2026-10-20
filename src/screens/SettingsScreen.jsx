@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ENEMY_AIS, PARTY_AIS } from '../combat/autoCombat.js'
 import { AUDIO_CATEGORIES } from '../settings/audioSettings.js'
 import { SCALE_MODE_OPTIONS } from '../settings/displaySettings.js'
 
 export default function SettingsScreen({ displaySettings, onChangeDisplay, audioSettings, onChangeAudio, onSave, onBack }) {
   const [saved, setSaved] = useState(false)
-  useEffect(() => setSaved(false), [displaySettings, audioSettings])
+  // Any change to a setting clears the "Saved" mark. Compared during render (React's pattern for state that follows a
+  // prop) so there is no extra render pass after the change.
+  const [shown, setShown] = useState({ displaySettings, audioSettings })
+  if (shown.displaySettings !== displaySettings || shown.audioSettings !== audioSettings) {
+    setShown({ displaySettings, audioSettings })
+    setSaved(false)
+  }
   return (
     <div className="settings-screen">
       <div className="settings-panel">

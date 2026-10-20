@@ -64,7 +64,13 @@ function Views() {
   }
 
   useEffect(() => saveLocation({ ...loadLocation(), view, episode }), [view, episode])
-  useEffect(() => setSettingsOpen(false), [view])
+  // The settings overlay closes whenever the view changes. Compared during render rather than in an effect, so the
+  // overlay never shows for a frame over the new view.
+  const [viewWithSettings, setViewWithSettings] = useState(view)
+  if (viewWithSettings !== view) {
+    setViewWithSettings(view)
+    setSettingsOpen(false)
+  }
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 

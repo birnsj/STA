@@ -28,6 +28,7 @@ import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import usePendingObjectHit from '../components/usePendingObjectHit.js'
 import Battlefield from '../components/combat/PixiBattlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
@@ -457,13 +458,7 @@ export function Battle({
     return () => window.removeEventListener('keydown', onKey)
   }, [mode])
 
-  // Object shot: laser first, then Structure / explosion after the beam lands.
-  const pendingObjectHit = state.pendingObjectHit
-  useEffect(() => {
-    if (!pendingObjectHit) return undefined
-    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs / speed)
-    return () => clearTimeout(timer)
-  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, speed, dispatch])
+  usePendingObjectHit(state.pendingObjectHit, dispatch, { speed })
 
   const cycleWeapon = () => {
     const index = active.weaponIds.indexOf(weapon.id)
