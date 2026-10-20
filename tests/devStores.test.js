@@ -14,6 +14,7 @@ const { listConversations, putConversation, removeConversation } = require('../t
 const { listAuthoredCharacters, putAuthoredCharacter, removeAuthoredCharacter } = require('../tools/authoredCharacterStore.cjs')
 const { setTileFlag } = require('../tools/tileStore.cjs')
 const { setStoryTemplates } = require('../tools/storyStore.cjs')
+const { writeFileAtomic } = require('../tools/atomicWrite.cjs')
 
 let root
 const at = (...parts) => path.join(root, ...parts)
@@ -24,6 +25,21 @@ beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'dev-stores-'))
 })
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }))
+
+describe('atomic write', () => {
+  it('writes exactly the given bytes, replaces an existing file and leaves no temp file behind', () => {
+    const file = at('out.json')
+    writeFileAtomic(file, 'first')
+    writeFileAtomic(file, Buffer.from([0, 255, 10]))
+    assert.deepEqual([...fs.readFileSync(file)], [0, 255, 10])
+    assert.deepEqual(fs.readdirSync(root), ['out.json'])
+  })
+
+  it('fails without leaving a temp file when the folder is missing', () => {
+    assert.throws(() => writeFileAtomic(at('missing', 'out.json'), 'x'), { code: 'ENOENT' })
+    assert.deepEqual(fs.readdirSync(root), [])
+  })
+})
 
 describe('character store', () => {
   const record = (name, species = 'Human') => ({ character: { identity: { name }, species: { name: species } }, final: {} })

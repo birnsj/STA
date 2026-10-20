@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Each confirmed character is its own .json file (the same record Export JSON downloads), named after the
 // character and species: "Aaron Kowalski - Human.json", then "Aaron Kowalski - Human (2).json" for a repeat.
@@ -87,7 +88,7 @@ function putCharacter(folder, entry) {
   const exists = fs.existsSync(fileFor(folder, entry.id))
   const id = availableId(folder, entry, exists ? entry.id : null)
   if (exists && id !== entry.id) fs.renameSync(fileFor(folder, entry.id), fileFor(folder, id))
-  fs.writeFileSync(fileFor(folder, id), JSON.stringify(entry.record, null, 2))
+  writeFileAtomic(fileFor(folder, id), JSON.stringify(entry.record, null, 2))
   return id
 }
 

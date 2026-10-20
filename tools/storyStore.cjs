@@ -1,4 +1,5 @@
 const fs = require('fs')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Dev map editor's Story Wording: replaces the story templates in src/data/adaptation/exploration/missionLog.json.
 // Used only by the dev server endpoint in vite.config.js. Only templates the file already has can be changed, and each
@@ -12,7 +13,7 @@ function setStoryTemplates(file, story) {
     if (typeof text !== 'string' || !text.trim()) throw new Error(`The ${key} template needs some text`)
     next[key] = text.trim()
   })
-  fs.writeFileSync(file, `${JSON.stringify({ ...data, story: next }, null, 2)}\n`)
+  writeFileAtomic(file, `${JSON.stringify({ ...data, story: next }, null, 2)}\n`)
   return next
 }
 
