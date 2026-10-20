@@ -25,7 +25,9 @@ const EXPECTED = {
   brigClosed: 'cd42d43e28abe188',
   brigCleared: '3d9ef7c518e4b6f0',
   brigLockout: '661ef06fe3c46aca',
-  vault: '49dbff9fe7ace5a2',
+  // Re-baselined 2026-10-20 (designer decision): only equipped items count for task bonuses, so Alpha's bagged Engineering
+  // Toolkit no longer lowers Difficulty (Bypass Controls is 3, was 2). A quickbar for used items is planned. Was '49dbff9fe7ace5a2'.
+  vault: '90c33e29a6b50ffb',
   combat: 'dc25d1817baf3a41',
   conversation: 'bfd05a1ebe84b649',
 }
