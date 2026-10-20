@@ -303,8 +303,8 @@ describe('blast throw direction and facing (Prototype presentation)', () => {
     assert.ok(kb)
     assert.equal(land.x + kb.x * -1, from.x)
     assert.equal(land.y + kb.y * -1, from.y)
-    assert.equal(land.x + kb.x * 0, land.x)
-    assert.equal(land.y + kb.y * 0, land.y)
+    // At t = 0 the slide offset is zero, so the figure rests on its landing tile; this only holds for a finite offset.
+    assert.ok(Number.isFinite(kb.x) && Number.isFinite(kb.y))
   })
 })
 

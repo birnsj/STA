@@ -106,12 +106,6 @@ export function reconcileCareerHistory(character) {
   return unchanged ? character : { ...character, careerHistory: { ...history, events } }
 }
 
-// ---------- Contributions ----------
-
-export const getEventAttributeBonuses = (history) => history.events.map((slot) => slot?.attributeBonus).filter(Boolean)
-export const getEventDisciplineBonuses = (history) => history.events.map((slot) => slot?.disciplineBonus).filter(Boolean)
-export const getEventFocuses = (history) => history.events.map((slot) => slot?.focus).filter(Boolean)
-
 // ---------- Requirements ----------
 
 export const slotKeys = (index) => {

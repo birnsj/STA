@@ -333,7 +333,7 @@ function AiTurnTask({ aiTurn }) {
 // Readout only: Confirm and Assist picks live on the ring (Roll arc / party band). End Turn stays under the minimap.
 // assist: { allies, allyId, helper }; ambush: Ambush preview; dicePurchase: for debug rows and attack math.
 // combatTask: Guard / First Aid / Direct / object / scan task; attackMode: firing mode from the self ring.
-export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, assist, ambush, confirm, dicePurchase, combatTask = null, confirmLabel = null, attackMode = null, dev = null, rolling = false, aiTurn = null }) {
+export function TaskPanel({ mode, isPlayerTurn, autoTurn, preview, movePath, routeInCover, assist, ambush, dicePurchase, combatTask = null, attackMode = null, dev = null, rolling = false, aiTurn = null }) {
   let body
   let devTask = null
   if (!isPlayerTurn && aiTurn) body = <AiTurnTask aiTurn={aiTurn} />

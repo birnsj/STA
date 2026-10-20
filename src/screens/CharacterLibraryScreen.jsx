@@ -20,6 +20,7 @@ import {
   canSaveAuthoredEdit,
   canSaveNewAuthoredCharacter,
   duplicateAuthoredEntry,
+  newAuthoredCharacterId,
 } from '../character/authoredPool.js'
 import {
   findAuthoredCharacterReferencesAsync,
@@ -378,7 +379,6 @@ function AuthoredCreatorOverlay({ session, onClose, onStatus }) {
       return
     }
 
-    const { newAuthoredCharacterId } = await import('../character/authoredPool.js')
     const entryId = isCreate
       ? newAuthoredCharacterId(character.identity?.name || 'character')
       : session.mode === 'duplicate'

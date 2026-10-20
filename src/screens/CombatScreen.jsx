@@ -479,7 +479,7 @@ export function Battle({
   const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo } = createRingButtons({
     state, dispatch, active, weapon, mode, ringInfo, attackMode, attackBlock, targetAttack, ringAttackRoll, preview, purchase, purchaseCheck,
     availability, unavailableReasons, extraMinorReason, secondMajorReason, directReason, isCommander, firstAidOptions, objectList,
-    canSwitchTo, closeRing, openTask, selectAction, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
+    canSwitchTo, closeRing, openTask, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
   })
 
   const ringObject = ringId?.startsWith('object:') ? objects?.marks?.find((mark) => `object:${mark.id}` === ringId && mark.inReach) : null
@@ -841,10 +841,8 @@ export function Battle({
             routeInCover={routeInCover}
             assist={{ allies: assistAllies, allyId: assistAlly?.id ?? null, onAlly: setAssistAllyId, helper: assistHelper }}
             ambush={ambushPreview}
-            confirm={confirm}
             dicePurchase={{ resources: state.resources, value: purchase, onChange: setDicePurchase }}
             combatTask={combatTask}
-            confirmLabel={taskConfirmLabel}
             attackMode={attackMode}
             dev={debugOpen ? { actorName: active.character.name, purchase: purchaseCheck } : null}
             rolling={Boolean(state.pending)}

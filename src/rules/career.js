@@ -32,7 +32,6 @@ export const getCareerLengths = () =>
 export const getCareerLengthById = (lengthId) => lengthsById.get(lengthId) ?? null
 export const getAssignments = () => assignmentSource.assignments
 export const getAssignmentById = (assignmentId) => assignmentsById.get(assignmentId) ?? null
-export const getRanks = () => rankSource.ranks
 export const getRankById = (rankId) => rankSource.ranks.find((rank) => rank.id === rankId) ?? null
 export const getDepartmentById = (departmentId) => disciplinesById.get(departmentId) ?? null
 export const getValueMatrix = () => getSampleValues()

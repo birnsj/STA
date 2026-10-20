@@ -59,7 +59,6 @@ export default function createRingButtons({
   canSwitchTo,
   closeRing,
   openTask,
-  selectAction,
   selectPartyMember,
   fireAttack,
   setAttackChoice,

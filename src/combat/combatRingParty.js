@@ -241,7 +241,6 @@ export function combatRingPartyBand(view, { pickedId, onPick, helperId = null, b
         : `Best at ${buttonLabel}`
   const helperName = helperId ? view.members.find((m) => m.id === helperId)?.character.name : null
   const slices = view.members.map((entry) => {
-    const assisting = helperId && pickedId && (entry.id === helperId || (entry.id === pickedId && helperId))
     const odds = !view.hasTask
       ? entry.reason
       : entry.reason ?? (entry.possible ? `TN ${entry.targetNumber}, Difficulty ${entry.difficulty}, ${Math.round(entry.chance * 100)}% chance` : "Can't succeed.")

@@ -69,8 +69,6 @@ export function withMap(state) {
   return withRetiledMap(state)
 }
 
-export const getDefinition = (scenario, objectId) => scenario.definitions.find((definition) => definition.id === objectId) ?? null
-
 // [{ id, name, type, position, state, stateLabel, description, changed }] for drawing and listing.
 export const getChallengeViews = (scenario) => objectsOf(scenario).map((object) => object.view(scenario))
 

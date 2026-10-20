@@ -75,8 +75,3 @@ export function findPath(map, start, destination, maxSteps, blockers = {}) {
   }
   return path
 }
-
-// Steps along a path with no step limit: used by the AI to head toward a target it cannot reach this turn.
-export function findPathUnlimited(map, start, destination, blockers = {}) {
-  return findPath(map, start, destination, map.width * map.height, blockers)
-}

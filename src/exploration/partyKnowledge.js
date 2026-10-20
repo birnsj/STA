@@ -70,5 +70,3 @@ export const addKnowledgeFact = (knowledge, id, fact) => ({ ...knowledge, facts:
 
 export const getEntityKnowledge = (knowledge, id) => knowledge.entities[id] ?? UNKNOWN_ENTRY
 export const isVisibleToParty = (knowledge, id) => getEntityKnowledge(knowledge, id).state === KNOWLEDGE.VISIBLE
-// Whether a party member perceives this NPC themselves (not only through the party).
-export const isDirectObserver = (knowledge, memberId, id) => Boolean(knowledge.sightings[memberId]?.includes(id))
