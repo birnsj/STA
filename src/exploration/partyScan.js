@@ -14,6 +14,7 @@ import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { getNpcs, isDown } from './awareness.js'
 import { challengeFor, TASK_SEED_OFFSET } from './challengeObjects.js'
 import { locationReport } from './locationReport.js'
+import { distance } from './navigation.js'
 import { revealEntity } from './partyKnowledge.js'
 import { groundItemFor } from '../world/GroundItem.js'
 
@@ -46,8 +47,6 @@ export function canScan(state, memberId) {
   if (wait > 0) return { possible: false, reason: `Scan again in ${Math.ceil(wait)}s.` }
   return { possible: true, reason: null }
 }
-
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
 
 // North is up on the minimap (smaller y), east is right (designer decision, 2026-10-09).
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']

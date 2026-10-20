@@ -1,5 +1,6 @@
 import { createEmptyCharacter } from './characterModel.js'
 import { devCharacterFiles } from './devCharacterFiles.js'
+import { isPlainObject } from './isPlainObject.js'
 import { getSpeciesById, reconcileSpeciesSelection } from '../rules/species.js'
 
 // Bump when a saved character can no longer be read by the current code; older saves are then discarded.
@@ -10,8 +11,6 @@ const LOCATION_KEY = 'st-adventures.location'
 const SETTINGS_KEY = 'st-adventures.settings'
 const SAVED_CHARACTERS_KEY = 'st-adventures.savedCharacters'
 const SAVED_CHARACTERS_VERSION = 1
-
-const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 
 function read(key) {
   try {

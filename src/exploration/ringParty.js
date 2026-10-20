@@ -9,12 +9,11 @@ import { prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { challengeFor, INTERACT_RANGE } from './challengeObjects.js'
 import { previewObjectShot } from './explorationEnvironment.js'
+import { distance } from './navigation.js'
 import { getMembers } from './partyControl.js'
 import { canScanChallenge, canScanDestructible, canScanGroundItem, canScanNpc, SCAN_TASK } from './partyScan.js'
 import { canAskNpc, SOCIAL_KINDS } from './partySocial.js'
 import { groundItemFor } from '../world/GroundItem.js'
-
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
 
 // Party members close enough to appear on this target's ring band (up, and within interact range for objects / NPCs /
 // ground props). Destructibles list every up member.
