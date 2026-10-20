@@ -3,8 +3,6 @@ import { createPortal } from 'react-dom'
 import { loadInventoryWindow, saveInventoryWindow } from '../../character/persistence.js'
 import { getPortraitById } from '../../rules/appearance.js'
 import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
-import { TILE_H, tileImageBox } from '../../maps/iso.js'
-import { TILE_IMAGE } from '../../maps/mapFormat.js'
 import {
   BAG_CAPACITY,
   BAG_COLS,
@@ -17,6 +15,7 @@ import {
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import InfoTipBubble from '../InfoTipBubble.jsx'
 import { useStageSize } from '../stageSize.js'
+import { INVENTORY_GHOST_ID, syncInventoryGhostPosition, worldGhostScreenSize } from './inventoryDrag.js'
 
 const SLOT_LABELS = {
   body: 'Body',
@@ -140,56 +139,6 @@ function SlotCell({ slot, memberId, instanceId, state, drag, onStartDrag }) {
   )
 }
 
-// Screen-space size of a world prop at the current board zoom (same as GroundLootView / tileImageBox).
-export function worldGhostScreenSize(scale, toClient) {
-  const design = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
-  const floorRatio = (TILE_H / 2) / design.height
-  const box = tileImageBox({ x: 0, y: 0 }, design)
-  if (!toClient) return { width: design.width, height: design.height, floorFromBottom: design.height * floorRatio }
-  const topLeft = toClient(box.x, box.y)
-  const bottomRight = toClient(box.x + box.width, box.y + box.height)
-  if (!topLeft || !bottomRight) return { width: design.width, height: design.height, floorFromBottom: design.height * floorRatio }
-  const width = Math.max(1, bottomRight.x - topLeft.x)
-  const height = Math.max(1, bottomRight.y - topLeft.y)
-  return { width, height, floorFromBottom: height * floorRatio }
-}
-
-export const INVENTORY_GHOST_ID = 'inventory-item-ghost'
-
-// Pin the portaled ghost to the pointer without a React render (avoids lag / drift under stage scale + camera).
-let ghostEl = null
-export function syncInventoryGhostPosition(clientX, clientY) {
-  const el = ghostEl?.isConnected ? ghostEl : (ghostEl = document.getElementById(INVENTORY_GHOST_ID))
-  if (!el) return
-  el.style.left = `${clientX}px`
-  el.style.top = `${clientY}px`
-}
-
-// Hit-test inventory drop zones (works when the drag started on the board — React target pointerUp is unreliable then).
-// Only explicit slot / bag / party targets count — not the whole panel (that made bag items look immovable:
-// release still over the window was treated as a bag drop and became a no-op).
-export function inventoryDropAt(clientX, clientY) {
-  const el = document.elementFromPoint(clientX, clientY)
-  if (!el) return null
-  const slot = el.closest('[data-inventory-drop="slot"]')
-  if (slot?.dataset.memberId && slot.dataset.slot) {
-    return { kind: 'slot', memberId: slot.dataset.memberId, slot: slot.dataset.slot }
-  }
-  const party = el.closest('[data-inventory-drop="party"]')
-  if (party?.dataset.memberId) return { kind: 'bag', memberId: party.dataset.memberId }
-  const bag = el.closest('[data-inventory-drop="bag"]')
-  if (bag?.dataset.memberId) {
-    const raw = bag.dataset.bagIndex
-    const bagIndex = raw == null || raw === '' ? null : Number(raw)
-    return {
-      kind: 'bag',
-      memberId: bag.dataset.memberId,
-      bagIndex: Number.isInteger(bagIndex) ? bagIndex : null,
-    }
-  }
-  return null
-}
-
 // Floating inventory over exploration. Screen owns the drag lifecycle so world ↔ UI stays one continuous grab.
 export default function InventoryPanel({
   state,
@@ -215,9 +164,13 @@ export default function InventoryPanel({
     return () => window.removeEventListener('resize', onResize)
   }, [stage.width, stage.height])
 
-  useEffect(() => {
+  // A new stage size pulls the window back inside it. Compared during render (React's pattern for state that follows
+  // a value) rather than in an effect, so the window never shows outside the stage for a frame.
+  const [clampedFor, setClampedFor] = useState({ width: stage.width, height: stage.height })
+  if (clampedFor.width !== stage.width || clampedFor.height !== stage.height) {
+    setClampedFor({ width: stage.width, height: stage.height })
     setPosition((current) => clampPosition(current.left, current.top, stage.width, stage.height))
-  }, [stage.width, stage.height])
+  }
 
   // Panel-level tip by item id (not useInfoTip / TitleTips): exploration re-renders every world tick and recreates
   // cell DOM; matching the catalogue id keeps the delay and tip alive, and retargets the anchor when the node changes.
@@ -288,8 +241,9 @@ export default function InventoryPanel({
     if (windowDraggingRef.current) return
     const panel = panelRef?.current
     if (!panel) return
-    panel.style.left = `${position.left}px`
-    panel.style.top = `${position.top}px`
+    // setProperty rather than assigning to panel.style: the panel element comes in through the panelRef prop.
+    panel.style.setProperty('left', `${position.left}px`)
+    panel.style.setProperty('top', `${position.top}px`)
   }, [position, panelRef])
 
   const startWindowDrag = (event) => {
@@ -455,6 +409,9 @@ export function InventoryDragGhost({ drag, state, placeHelpersRef = null }) {
   const overWorld = Boolean(drag.overWorld)
   const scale = Math.max(0.15, Math.min(1, resolved.def.worldScale ?? 0.4))
   const src = overWorld ? resolved.def.worldImage || resolved.def.icon : resolved.def.icon
+  // The board publishes its current board-to-screen converter into this ref as it moves, so the size is read fresh on
+  // each render; passing it as a prop would show the previous frame's zoom.
+  // eslint-disable-next-line react/refs -- deliberate read of the board's latest helpers
   const sized = overWorld ? worldGhostScreenSize(scale, placeHelpersRef?.current?.toClient) : null
   const style = overWorld
     ? {

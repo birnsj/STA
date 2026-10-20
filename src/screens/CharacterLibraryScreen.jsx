@@ -100,6 +100,9 @@ export default function CharacterLibraryScreen({
 
   useEffect(() => subscribeAuthoredCatalogue(setCatalogueVersion), [])
 
+  // The catalogue lives outside React, so these lists are rebuilt whenever its version changes (the memo bodies don't
+  // read the version, which is why the lint rule calls it unnecessary).
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- catalogueVersion is the cache key
   const entries = useMemo(() => listAuthoredCharacters(), [catalogueVersion])
   const recordsById = useMemo(() => {
     const map = new Map()
@@ -107,6 +110,7 @@ export default function CharacterLibraryScreen({
       map.set(entry.id, getAuthoredRecord(entry.id))
     })
     return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- catalogueVersion is the cache key
   }, [catalogueVersion])
 
   const filterOptions = useMemo(() => {
@@ -139,9 +143,9 @@ export default function CharacterLibraryScreen({
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [entries, recordsById, query, faction, species, rank, department])
 
-  useEffect(() => {
-    if (selectedId && !recordsById.has(selectedId)) setSelectedId(null)
-  }, [selectedId, recordsById])
+  // A selection whose character is gone (deleted, or the catalogue reloaded without it) is cleared. Done while rendering,
+  // so the detail pane never shows a missing character for a frame.
+  if (selectedId && !recordsById.has(selectedId)) setSelectedId(null)
 
   const selected = selectedId ? recordsById.get(selectedId) : null
 
