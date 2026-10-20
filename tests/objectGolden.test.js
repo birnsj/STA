@@ -2,10 +2,12 @@
 // action on the Deck 10 Brig and the Vault of the Ancients, an object task in combat, and a conversation's object state
 // change must play out exactly as recorded. A refactor that changes any of them changed gameplay.
 // GOLDEN_PRINT=1 npm test prints the current fingerprints instead of checking them.
+// The Brig is a frozen copy (tests/fixtures/deck10Brig.json, the map as of commit d011948): maps/Deck 10 Brig.json is a
+// live authoring file that the map editor changes, and fingerprints must not move when the designer edits it.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
-import brigFile from '../maps/Deck 10 Brig.json'
+import brigFile from './fixtures/deck10Brig.json'
 import { getAssistableAllies } from '../src/combat/combatAttacks.js'
 import { getActiveCombatant } from '../src/combat/combatState.js'
 import { getDirectableAllies } from '../src/combat/combatTasks.js'
@@ -43,6 +45,13 @@ const team = () => [
   makeCharacter({ id: 'gamma', name: 'Gamma', attributes: { insight: 11, reason: 11 }, disciplines: { science: 4, medicine: 3 } }),
 ]
 
+// Fields that only drive what the board draws (patrol waypoint idle animations, added 2026-10-18). Left out of the
+// fingerprint so a presentation-only addition to an NPC record cannot read as a gameplay change.
+const withoutPresentation = ({ waypointAnim: _waypointAnim, ...npc }) =>
+  npc.patrol
+    ? { ...npc, patrol: { ...npc.patrol, points: npc.patrol.points.map(({ animation: _a, animationDuration: _d, animationLoop: _l, ...point }) => point) } }
+    : npc
+
 const view = (state) => ({
   objects: state.scenario.objects,
   flags: state.scenario.flags,
@@ -51,7 +60,7 @@ const view = (state) => ({
   taskCount: state.scenario.taskCount,
   resources: state.resources,
   partyKnowledge: state.partyKnowledge,
-  npcs: getNpcs(state.world),
+  npcs: getNpcs(state.world).map(withoutPresentation),
   noises: state.world.noises,
   tiles: state.party.map.tiles.map((row) => row.join(',')),
   views: getChallengeViews(state.scenario),
