@@ -9,6 +9,7 @@ import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import InventoryPanel, { InventoryDragGhost } from '../components/exploration/InventoryPanel.jsx'
+import useChallengeInteraction from '../components/exploration/useChallengeInteraction.js'
 import useItemDrag from '../components/exploration/useItemDrag.js'
 import useRingMenus from '../components/exploration/useRingMenus.js'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
@@ -121,29 +122,21 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
-  // UI state: { objectId, actionId, performerId } the challenge object whose interaction panel is open, the approach
-  // picked on its ring (null: the panel lists them) and the member picked on the ring's party band (null: the selection
-  // decides). The party can still move while it's open (designer decision: never pause the players); walking out of
-  // reach closes it.
-  const [interaction, setInteraction] = useState(null)
-  const interactionId = interaction?.objectId ?? null
-  // UI state: the approach the open interaction panel is on (lit on the object's ring), and the element of the slot
-  // above that ring where the panel puts its Roll button and dice (null: they stay in the panel).
-  const [panelActionId, setPanelActionId] = useState(null)
-  const [rollSlot, setRollSlot] = useState(null)
-  // UI state: the open panel's Roll for the object's ring (ChallengePanel onRollChange), or null.
-  const [objectRoll, setObjectRoll] = useState(null)
-  const setInteractionId = useCallback(
-    (objectId, actionId = null, performerId = null) => setInteraction(objectId ? { objectId, actionId, performerId } : null),
-    [],
-  )
-  // UI state: who is best at the approach being considered in the interaction panel (party card highlight).
-  const [recommendation, setRecommendation] = useState(null)
-  // The panel recomputes on every world tick (most animation frames); keeping the old object when nothing changed
-  // stops each tick from forcing a second render of the whole screen.
-  const updateRecommendation = useCallback((next) => {
-    setRecommendation((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
-  }, [])
+  // UI state: the challenge object whose interaction panel is open, and the panel's own state (see useChallengeInteraction).
+  const {
+    interaction,
+    interactionId,
+    openInteraction,
+    closeInteraction,
+    panelActionId,
+    setPanelActionId,
+    rollSlot,
+    setRollSlot,
+    objectRoll,
+    setObjectRoll,
+    recommendation,
+    updateRecommendation,
+  } = useChallengeInteraction()
   // UI state: the action button being considered (the party cards show who is best at it).
   const [consideredActionId, setConsideredActionId] = useState(null)
   // UI state: whether the action buttons are showing (the Actions button opens and closes them).
@@ -220,7 +213,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       loadConversation(npc.conversationId)
         .then((definition) => {
           setTalkError(null)
-          setInteraction(null)
+          closeInteraction()
           setPendingTalk(null)
           dispatch({ type: 'talk', npcId: npc.id, definition })
         })
@@ -229,7 +222,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           setTalkError(`${npc.name}: ${error.message}`)
         })
     },
-    [dispatch],
+    [closeInteraction, dispatch],
   )
   const knownObjectives = (party.map.objectives ?? [])
     .map((objective) => ({ ...objective, position: objectivePosition(party.map, objective), status: objectiveStatus(state.scenario.flags, objective.id) }))
@@ -459,7 +452,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         clearItemDrag()
         return
       }
-      setInteraction(null)
+      closeInteraction()
       closeAllMenus()
       setPendingTalk(null)
       setPendingPickup(null)
@@ -612,7 +605,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         open: (actionId) => {
           closeMenu('object')
           setRingPick(null)
-          setInteractionId(menuObject, actionId)
+          openInteraction(menuObject, actionId)
         },
         scan: (memberId) => dispatch({ type: 'scanChallenge', memberId, objectId: menuObject }),
       },
@@ -880,7 +873,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onRollChange={setObjectRoll}
           onActionChange={setPanelActionId}
           dispatch={dispatch}
-          onClose={() => setInteraction(null)}
+          onClose={closeInteraction}
           onRecommend={updateRecommendation}
           dev={debugOpen}
         />
