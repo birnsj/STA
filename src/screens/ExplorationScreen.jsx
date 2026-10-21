@@ -43,7 +43,7 @@ import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
-import { dispositionName, isHostile } from '../exploration/awareness.js'
+import { dispositionName, getNpcs, isHostile, partyHearsWalker } from '../exploration/awareness.js'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import { challengeFor, getChallengeViews, INTERACT_RANGE, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
 import { MODE } from '../exploration/combatLink.js'
@@ -349,6 +349,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
+  useExplorationFootsteps(getNpcs(world).filter((npc) => partyHearsWalker(party.map, members, npc)), !inCombat)
   // The away team beams in as the mission starts; move orders wait until they are all here.
   const beamPhase = useBeamIn()
   const challengeViews = getChallengeViews(state.scenario)
