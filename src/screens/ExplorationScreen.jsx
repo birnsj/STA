@@ -9,7 +9,7 @@ import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import InventoryPanel, { InventoryDragGhost } from '../components/exploration/InventoryPanel.jsx'
-import { inventoryDropAt, syncInventoryGhostPosition } from '../components/exploration/inventoryDrag.js'
+import useItemDrag from '../components/exploration/useItemDrag.js'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
@@ -56,14 +56,14 @@ import { activeHazards, isStanding } from '../world/environment.js'
 import { hazardChallengeId, isHazardChallengeId } from '../world/EnvironmentalHazard.js'
 import { canAct, getMembers } from '../exploration/partyControl.js'
 import { isVisibleToParty } from '../exploration/partyKnowledge.js'
-import { bagFreeSlots, canPlaceAt, groundItemViews, resolveItem } from '../rules/inventory.js'
+import { bagFreeSlots, groundItemViews } from '../rules/inventory.js'
 import { groundItemFor } from '../world/GroundItem.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import { npcButtonPerformer } from '../exploration/ringParty.js'
 import ScanReport from '../components/exploration/ScanReport.jsx'
 import { CHARACTER_SCAN_RADIUS, OBJECT_SCAN_RADIUS } from '../components/exploration/scanSweep.js'
 import useFadeAfter from '../components/useFadeAfter.js'
-import { playItemPickup, playRequestSound, playScanSound } from '../audio/uiSounds.js'
+import { playRequestSound, playScanSound } from '../audio/uiSounds.js'
 import { MAX_SEED } from '../rules/seededRandom.js'
 import WorldCombat from './WorldCombat.jsx'
 import PerfProfiler from '../dev/PerfProfiler.jsx'
@@ -157,191 +157,20 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // UI state: floating inventory (I, also B); position remembered in localStorage.
   const [inventoryOpen, setInventoryOpen] = useState(false)
   const [inventoryViewId, setInventoryViewId] = useState(null)
-  const [itemDrag, setItemDrag] = useState(null)
-  const [placeHover, setPlaceHover] = useState(null)
-  const placeHoverRef = useRef(null)
-  const placeHelpersRef = useRef(null)
-  const inventoryPanelRef = useRef(null)
-  const itemDragRef = useRef(null)
-  const stopItemDragListenersRef = useRef(null)
-  const exploreStateRef = useRef(state)
+  // UI state: dragging an item between the inventory panel and the world (see useItemDrag).
+  const {
+    itemDrag,
+    placeHover,
+    itemDragRef,
+    placeHelpersRef,
+    inventoryPanelRef,
+    beginItemDrag,
+    clearItemDrag,
+    onBoardPlaceHover,
+  } = useItemDrag({ state, dispatch })
   // UI state: whether the Captain's Log panel is open.
   const [logOpen, setLogOpen] = useState(false)
 
-  useEffect(() => {
-    exploreStateRef.current = state
-  }, [state])
-
-  useEffect(() => {
-    itemDragRef.current = itemDrag
-    document.body.classList.toggle('is-item-dragging', Boolean(itemDrag))
-    return () => document.body.classList.remove('is-item-dragging')
-  }, [itemDrag])
-
-  const pointerOverInventory = useCallback((clientX, clientY) => {
-    const panel = inventoryPanelRef.current?.getBoundingClientRect()
-    if (!panel) return false
-    return clientX >= panel.left && clientX <= panel.right && clientY >= panel.top && clientY <= panel.bottom
-  }, [])
-
-  const updatePlaceHover = useCallback((clientX, clientY, overWorld) => {
-    if (!overWorld) {
-      if (placeHoverRef.current) {
-        placeHoverRef.current = null
-        setPlaceHover(null)
-      }
-      return
-    }
-    const helpers = placeHelpersRef.current
-    const point = helpers?.toTiles?.(clientX, clientY)
-    if (!point) {
-      if (placeHoverRef.current) {
-        placeHoverRef.current = null
-        setPlaceHover(null)
-      }
-      return
-    }
-    const dragging = itemDragRef.current
-    const check = canPlaceAt(exploreStateRef.current, point, {
-      excludeInstanceId: dragging?.from?.location === 'ground' ? dragging.instanceId : null,
-    })
-    // Prefer giving the item to a party member under the pointer (green ring) when their bag has room.
-    let dropMemberId = null
-    const memberId = helpers?.memberAt?.(clientX, clientY) ?? null
-    if (memberId) {
-      const member = exploreStateRef.current.party?.members?.[memberId]
-      if (member?.character?.inventory && bagFreeSlots(member.character) > 0) dropMemberId = memberId
-    }
-    const hover = { position: check.position ?? point, valid: check.ok, dropMemberId }
-    const prev = placeHoverRef.current
-    if (
-      prev &&
-      prev.valid === hover.valid &&
-      prev.dropMemberId === hover.dropMemberId &&
-      prev.position.x === hover.position.x &&
-      prev.position.y === hover.position.y
-    ) {
-      return
-    }
-    placeHoverRef.current = hover
-    setPlaceHover(hover)
-  }, [])
-
-  const clearItemDrag = useCallback(() => {
-    stopItemDragListenersRef.current?.()
-    stopItemDragListenersRef.current = null
-    setItemDrag(null)
-    setPlaceHover(null)
-    placeHoverRef.current = null
-    itemDragRef.current = null
-  }, [])
-
-  // One drag controller for inventory ↔ world: the item follows the pointer until release or Escape.
-  const beginItemDrag = useCallback(
-    (start) => {
-      if (itemDragRef.current) return
-      const drag = { ...start, overWorld: !pointerOverInventory(start.clientX, start.clientY) }
-      itemDragRef.current = drag
-      setItemDrag(drag)
-      updatePlaceHover(start.clientX, start.clientY, drag.overWorld)
-      syncInventoryGhostPosition(start.clientX, start.clientY)
-      // Category grab chirp when lifting from bag, slot, or ground (click pickup plays via the reducer).
-      const lifted = resolveItem(state, start.instanceId)
-      if (lifted) playItemPickup(lifted.def.category)
-
-      // Re-project place preview every frame so a moving camera cannot leave the diamond behind the cursor.
-      let rafId = 0
-      const tick = () => {
-        const current = itemDragRef.current
-        if (!current) return
-        if (current.overWorld) updatePlaceHover(current.clientX, current.clientY, true)
-        rafId = requestAnimationFrame(tick)
-      }
-      rafId = requestAnimationFrame(tick)
-
-      const move = (moveEvent) => {
-        if (start.pointerId != null && moveEvent.pointerId !== start.pointerId) return
-        if (!itemDragRef.current) return
-        const overWorld = !pointerOverInventory(moveEvent.clientX, moveEvent.clientY)
-        const overChanged = overWorld !== itemDragRef.current.overWorld
-        const next = { ...itemDragRef.current, clientX: moveEvent.clientX, clientY: moveEvent.clientY, overWorld }
-        itemDragRef.current = next
-        // Screen position without a React render — setState every move lagged behind the pointer on a scaled stage.
-        syncInventoryGhostPosition(moveEvent.clientX, moveEvent.clientY)
-        if (overChanged) setItemDrag(next)
-        updatePlaceHover(moveEvent.clientX, moveEvent.clientY, overWorld)
-      }
-
-      const teardown = () => {
-        cancelAnimationFrame(rafId)
-        window.removeEventListener('pointermove', move)
-        window.removeEventListener('pointerup', end)
-        window.removeEventListener('pointercancel', end)
-        stopItemDragListenersRef.current = null
-      }
-
-      const end = (endEvent) => {
-        if (start.pointerId != null && endEvent.pointerId !== start.pointerId) return
-        const current = itemDragRef.current
-        teardown()
-        if (!current) return
-        const cancelled = endEvent.type === 'pointercancel'
-        const overWorld = !pointerOverInventory(endEvent.clientX, endEvent.clientY)
-        if (overWorld && !cancelled) updatePlaceHover(endEvent.clientX, endEvent.clientY, true)
-        const hover = placeHoverRef.current
-        const instanceId = current.instanceId
-        // Hit-test inventory here: board-started drags never deliver React pointerUp to bag/slot targets.
-        const invDrop = !cancelled && !overWorld ? inventoryDropAt(endEvent.clientX, endEvent.clientY) : null
-        setItemDrag(null)
-        setPlaceHover(null)
-        placeHoverRef.current = null
-        itemDragRef.current = null
-        if (!instanceId || cancelled) return
-        if (invDrop) {
-          // Same bag → same bag is a no-op; ignore so a tiny drag on the medkit does not feel "stuck".
-          const from = current.from
-          const sameBag =
-            invDrop.kind === 'bag' &&
-            from?.location === 'bag' &&
-            from.memberId === invDrop.memberId &&
-            (invDrop.bagIndex == null || from.bagIndex === invDrop.bagIndex)
-          const sameSlot =
-            invDrop.kind === 'slot' && from?.location === 'slot' && from.memberId === invDrop.memberId && from.slot === invDrop.slot
-          if (!sameBag && !sameSlot) {
-            dispatch({
-              type: 'transferItem',
-              instanceId,
-              toMemberId: invDrop.memberId,
-              toSlot: invDrop.kind === 'slot' ? invDrop.slot : null,
-              toBagIndex: invDrop.kind === 'bag' ? (invDrop.bagIndex ?? null) : null,
-              // Grab chirp already played when the drag began; drop plays on successful place.
-              skipPickupSound: true,
-              playDropSound: true,
-            })
-          }
-          return
-        }
-        // World drag released over a party figure → that member's bag (same path as inventory party-card drops).
-        if (overWorld && hover?.dropMemberId) {
-          dispatch({
-            type: 'transferItem',
-            instanceId,
-            toMemberId: hover.dropMemberId,
-            skipPickupSound: true,
-            playDropSound: true,
-          })
-          return
-        }
-        if (overWorld && hover?.valid) dispatch({ type: 'dropItem', instanceId, position: hover.position })
-      }
-
-      stopItemDragListenersRef.current = teardown
-      window.addEventListener('pointermove', move, { passive: true })
-      window.addEventListener('pointerup', end)
-      window.addEventListener('pointercancel', end)
-    },
-    [dispatch, pointerOverInventory, state, updatePlaceHover],
-  )
   // UI state: walk-then-pick-up for a ground item (same idea as pendingTalk for NPCs).
   const [pendingPickup, setPendingPickup] = useState(null)
   // UI state: ground-item ring.
@@ -583,7 +412,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       dispatch({ type: 'moveTo', target: ground.position, fresh: true })
       setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
     },
-    [beamPhase, dispatch, groundPickupMemberId, party.members, state.groundItems, state.lastCombat?.id],
+    [beamPhase, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
   )
 
   const startGroundItemDrag = useCallback(
@@ -965,12 +794,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onGroundItemDragStart={startGroundItemDrag}
           placingItem={itemDrag?.overWorld ? itemDrag : null}
           placeHover={placeHover}
-          onPlaceHover={(hover) => {
-            const prev = placeHoverRef.current
-            const next = { dropMemberId: prev?.dropMemberId ?? null, ...hover }
-            placeHoverRef.current = next
-            setPlaceHover(next)
-          }}
+          onPlaceHover={onBoardPlaceHover}
           placeHelpersRef={placeHelpersRef}
           exploreState={state}
           itemDropMemberId={itemDrag?.overWorld ? placeHover?.dropMemberId ?? null : null}
