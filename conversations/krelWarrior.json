@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "K'Rel: warrior",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "I came for a fight. Give me one, or get out of my way.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "We're not here for you.", "conditions": [], "next": "notYou" },
+        { "id": "o2", "text": "You'll get your fight soon enough.", "conditions": [], "next": "soon" },
+        { "id": "o3", "text": "We're moving on.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "notYou",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "Then you waste my time. The Empire does not clear a path for the timid.",
+      "next": "end"
+    },
+    {
+      "id": "soon",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Good. I will be waiting. Do not disappoint me.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

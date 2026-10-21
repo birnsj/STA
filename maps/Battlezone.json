@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "name": "Battlezone",
+  "episodeName": "Battlezone",
+  "card": "ruinsDay",
+  "mapType": "surfaceSite",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 100,
+  "rows": [
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,r,x,,,,,,,,,,,,,,,,,",
+    ",,,,rr,,,,,,,c,,,,,,,,,,,,,x,,,,",
+    ",,,,,,x,,,,,,,,,,,,,rr,,,,,,r,,,",
+    ",,,c,,,,,,,,,,,,,,,,,,c,,,c,,,,,",
+    ",,,,,,,,,,www,,,,,,x,,,,,,,,,,,,",
+    ",,,,,,,,,,,w,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,ww,,",
+    ",,,,,,c,x,,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,r,,,,,,r,,,,,,,,,,,,,c,,,",
+    ",,,,,r,,,,,,,,,r,,,,,,x,r,,r,,,,",
+    ",,,,,,,,,,,,,x,,,,,,,,,c,,,,,x,,",
+    ",,,,,,,,,,,,,,,,,,,,,r,,,,,,,,,,",
+    ",,,,,,,,,w,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,x,r,,w,,,,,,,,c,x,,,,,,,,,,,",
+    ",,,,,c,,,,,r,c,,,,,r,,,,,r,c,,,,",
+    ",,,,,,,,,,,,x,,,,r,,,,,,,,r,,,,,",
+    ",,,,,,,,,,r,,,,,,,w,,,,,x,,,,,,,",
+    ",,,,,,,,c,,,,,,x,,,,w,r,,,,,,c,,",
+    ",,,,,,,,,,,,,,,,,,,,w,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,",
+    ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+  ],
+  "rotated": [],
+  "areas": [
+    {
+      "name": "Ruined Plaza",
+      "position": [
+        10,
+        7
+      ]
+    },
+    {
+      "name": "Broken Court",
+      "position": [
+        22,
+        15
+      ]
+    },
+    {
+      "name": "West Approach",
+      "position": [
+        6,
+        18
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        2,
+        18,
+        315
+      ],
+      [
+        3,
+        19,
+        315
+      ],
+      [
+        4,
+        20,
+        315
+      ],
+      [
+        5,
+        19,
+        315
+      ],
+      [
+        2,
+        20,
+        315
+      ],
+      [
+        3,
+        21,
+        315
+      ],
+      [
+        5,
+        21,
+        315
+      ],
+      [
+        6,
+        20,
+        315
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        10,
+        180
+      ],
+      [
+        26,
+        15,
+        225
+      ],
+      [
+        24,
+        9,
+        180
+      ],
+      [
+        22,
+        10,
+        180
+      ],
+      [
+        18,
+        12,
+        180
+      ],
+      [
+        24,
+        13,
+        225
+      ],
+      [
+        27,
+        13,
+        180
+      ],
+      [
+        19,
+        14,
+        180
+      ]
+    ]
+  },
+  "npcs": [
+    {
+      "id": "k1",
+      "characterId": "klingonWarrior1",
+      "position": [
+        19,
+        10
+      ],
+      "facing": 180,
+      "disposition": "hostile",
+      "conversationId": "klingonBark",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "male",
+      "portraitId": "klingon-male-1"
+    },
+    {
+      "id": "k2",
+      "characterId": "klingonWarrior2",
+      "position": [
+        26,
+        15
+      ],
+      "facing": 225,
+      "disposition": "hostile",
+      "conversationId": "klingonBark",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "female",
+      "portraitId": "klingon-female-1"
+    },
+    {
+      "id": "k3",
+      "characterId": "klingonWarrior3",
+      "position": [
+        24,
+        9
+      ],
+      "facing": 180,
+      "disposition": "hostile",
+      "conversationId": "klingonBark",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "male",
+      "portraitId": "klingon-male-2"
+    },
+    {
+      "id": "k4",
+      "characterId": "klingonWarrior4",
+      "position": [
+        22,
+        10
+      ],
+      "facing": 180,
+      "disposition": "hostile",
+      "conversationId": "klingonBark",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "female",
+      "portraitId": "klingon-female-2"
+    },
+    {
+      "id": "k5",
+      "characterId": "klingonGuardKorath",
+      "position": [
+        18,
+        12
+      ],
+      "facing": 180,
+      "disposition": "hostile",
+      "conversationId": "korathCheckpoint",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "male",
+      "portraitId": "klingon-male-3"
+    },
+    {
+      "id": "k6",
+      "characterId": "klingonSentryTorak",
+      "position": [
+        24,
+        13
+      ],
+      "facing": 225,
+      "disposition": "hostile",
+      "conversationId": "torakSentry",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "female",
+      "portraitId": "klingon-female-3"
+    },
+    {
+      "id": "k7",
+      "characterId": "klingonWarriorKrel",
+      "position": [
+        27,
+        13
+      ],
+      "facing": 180,
+      "disposition": "hostile",
+      "conversationId": "krelWarrior",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "male",
+      "portraitId": "klingon-male-4"
+    },
+    {
+      "id": "k8",
+      "characterId": "klingonWarrior1",
+      "position": [
+        19,
+        14
+      ],
+      "facing": 180,
+      "name": "Klingon Warrior",
+      "disposition": "hostile",
+      "conversationId": "klingonBark",
+      "npcRules": "supporting",
+      "responseType": "combat",
+      "gender": "female",
+      "portraitId": "klingon-female-5"
+    }
+  ],
+  "briefing": "A ruined plaza held by a Klingon warband. Use the rocks, wreckage and crates for cover — there are no walls left standing to hide behind."
+}

@@ -20,16 +20,24 @@ const UNKNOWN_ENTRY = { state: KNOWLEDGE.UNKNOWN, observerIds: [], source: null,
 // a scan), from the same knowledge the rest of the game reads.
 export const createPartyKnowledge = () => ({ entities: {}, sightings: {}, facts: {} })
 
-// Plain sight: in range and in line of sight, all around (party members are actively looking about).
-// Later perception (concealment, sensors, Talents) adds detection sources beside this one rather than changing it.
-export const seesVisually = (map, from, to) => distance(from, to) <= VISION_RANGE && hasLineOfSight(map, from, to)
+// Plain sight: in range, all around (party members are actively looking about). Non-hostile NPCs skip LOS when
+// partyPerception.json requireLineOfSight is false (designer 2026-10-20) so crew stay on the board through cover.
+// Hostile NPCs always need LOS — the party should not see enemies through walls. NPCs still use LOS for their own
+// awareness. Later perception (concealment, sensors, Talents) adds detection sources beside this one.
+export const seesVisually = (map, from, to, { hostile = false } = {}) => {
+  if (distance(from, to) > VISION_RANGE) return false
+  const needLos = hostile || data.requireLineOfSight !== false
+  return !needLos || hasLineOfSight(map, from, to)
+}
 
-// observers: [{ id, position }] party members able to perceive; entities: [{ id, position }] NPCs; time: world seconds.
+// observers: [{ id, position }] party members able to perceive; entities: [{ id, position, hostile? }] NPCs; time: world seconds.
 export function updatePartyKnowledge(knowledge, map, observers, entities, time) {
   const sightings = Object.fromEntries(observers.map((observer) => [observer.id, []]))
   const entries = { ...knowledge.entities }
   entities.forEach((entity) => {
-    const observerIds = observers.filter((observer) => seesVisually(map, observer.position, entity.position)).map((observer) => observer.id)
+    const observerIds = observers
+      .filter((observer) => seesVisually(map, observer.position, entity.position, { hostile: Boolean(entity.hostile) }))
+      .map((observer) => observer.id)
     observerIds.forEach((id) => sightings[id].push(entity.id))
     const entry = entries[entity.id]
     if (observerIds.length) {

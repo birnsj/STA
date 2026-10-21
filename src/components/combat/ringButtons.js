@@ -23,6 +23,8 @@ import {
   visibleCondition,
 } from '../../combat/combatState.js'
 import { combatActionFor } from '../../combat/actions/registry.js'
+import { isProne } from '../../combat/combatProne.js'
+import { offeredUnarmedAttacks } from '../../combat/combatUnarmed.js'
 import { previewObjectAttack } from '../../combat/combatEnvironment.js'
 import { getSprintTiles } from '../../combat/movementSystem.js'
 import { getInjuryMode } from '../../combat/weaponSystem.js'
@@ -61,6 +63,7 @@ export default function createRingButtons({
   openTask,
   selectPartyMember,
   fireAttack,
+  fireUnarmed,
   setAttackChoice,
   setDestination,
   setMode,
@@ -170,6 +173,17 @@ export default function createRingButtons({
         onClick: () => fireAttack(enemy.id, button.id),
       }),
     }))
+    // Punch (and Kick) sit among the attacks, only while the enemy is in Reach (combatUnarmed.js).
+    const unarmed = offeredUnarmedAttacks(state, active.id, enemy.id, weapon.id).map(({ attack, preview: unarmedShot, available, reason }) => ({
+      id: attack.id,
+      label: attack.name,
+      icon: attack.icon,
+      enabled: available,
+      details: [`${unarmedShot.task.attribute.name} + ${unarmedShot.task.department.name}`, `TN ${unarmedShot.task.targetNumber} · D${unarmedShot.task.difficulty}`, `Severity ${unarmedShot.weapon.severity}`],
+      title: reason ?? `${attack.name} (${typeName('attack')} action): ${attack.description}.`,
+      onClick: () => fireUnarmed(enemy.id, attack.id),
+    }))
+    buttons.splice(buttons.findIndex((button) => button.id === 'aim'), 0, ...unarmed)
     // The opening Ambush lives on this ring while the chance lasts (designer request, 2026-10-17).
     if (canAmbush(state)) buttons.unshift(...ambushRingButtons(enemy))
     return buttons
@@ -270,6 +284,11 @@ export default function createRingButtons({
         title: aimTitle,
         onClick: () => dispatch({ type: 'aim' }),
       },
+      stand: {
+        enabled: canAfford(state, active, 'stand'),
+        title: canAfford(state, active, 'stand') ? 'Stand (Minor action): get up from being prone.' : 'No Minor action left.',
+        onClick: () => dispatch({ type: 'stand' }),
+      },
       assist: {
         enabled: availability.assist,
         active: mode === 'assist' && !taskPick,
@@ -323,7 +342,7 @@ export default function createRingButtons({
     }
     // Contextual actions appear only when there is something to do: someone within Reach to treat, the authority to
     // Direct, an object in reach, an extra action that can be bought now.
-    const notNow = { firstAid: !firstAidOptions.length, direct: !isCommander, interact: !objectList.length, extraMinor: Boolean(extraMinorReason), secondMajor: Boolean(secondMajorReason) }
+    const notNow = { stand: !isProne(active), firstAid: !firstAidOptions.length, direct: !isCommander, interact: !objectList.length, extraMinor: Boolean(extraMinorReason), secondMajor: Boolean(secondMajorReason) }
     // Attack: one button per firing mode the weapon's data allows (Stun, Deadly or both). Picking one only chooses the
     // mode; the attack is fired at the target from the task panel (or the enemy's own buttons).
     const attackButtons = () => {

@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
-import { diamond, project } from '../../../maps/iso.js'
+import { diamond, project, TILE_W } from '../../../maps/iso.js'
 import { drawLoneTiles } from '../canvasTiles.js'
 import { EASE } from './cssTiming.js'
 import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
@@ -9,6 +9,8 @@ import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 // Presentation only.
 
 const MARKER_FILLS = { player: 0x3fb6e8, enemy: 0xe5483a, npc: 0xb07ee8, objective: 0xe0a800, object: 0x1fa59a, patrol: 0xe8c44a }
+// Guide grid over the floor (world pixels; 64 = one tile). Drawn under markers so figures stay readable.
+const GRID_STROKE = { color: 0xb7dde4, width: 1, alpha: 0.45 }
 const HIGHLIGHT = 0xffb347
 const OUTLINE = 0x03060e
 // Erase Marker: what a click would remove pulses between full and this opacity, 0.8 s each way.
@@ -75,6 +77,46 @@ export class EditorMarkerView {
 
   destroy() {
     this.container.destroy({ children: true })
+  }
+}
+
+// Optional authoring guide: iso lines every size world-pixels (TILE_W = one tile). board: { show, size, width, height }.
+// Drawn on a layer just above the floor so walls and figures stay on top. Each segment is stroked on its own (Pixi v8
+// stroke applies to the current path only).
+export class EditorGridView {
+  constructor(layer) {
+    this.graphics = new Graphics()
+    layer.addChild(this.graphics)
+    this.drawn = null
+  }
+
+  update(board) {
+    const show = Boolean(board?.show)
+    const size = Number(board?.size) || 0
+    const width = board?.width ?? 0
+    const height = board?.height ?? 0
+    const key = show ? `${size},${width},${height}` : 'off'
+    if (key === this.drawn) return
+    this.drawn = key
+    this.graphics.clear()
+    if (!show || size <= 0 || width <= 0 || height <= 0) return
+    const step = size / TILE_W
+    if (!(step > 0)) return
+    const x0 = -0.5
+    const y0 = -0.5
+    const x1 = width - 0.5
+    const y1 = height - 0.5
+    const line = (ax, ay, bx, by) => {
+      const a = project({ x: ax, y: ay })
+      const b = project({ x: bx, y: by })
+      this.graphics.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke(GRID_STROKE)
+    }
+    for (let i = 0, x = x0; x <= x1 + 1e-9; i++, x = x0 + i * step) line(x, y0, x, y1)
+    for (let i = 0, y = y0; y <= y1 + 1e-9; i++, y = y0 + i * step) line(x0, y, x1, y)
+  }
+
+  destroy() {
+    this.graphics.destroy()
   }
 }
 

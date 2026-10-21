@@ -14,6 +14,7 @@ import {
 } from '../combatAttacks.js'
 import { defenderWins } from '../combatCounterattack.js'
 import { affordAddedSeverity, inflictInjury, injuryFor } from '../combatInjuries.js'
+import { knockdownAfterHit, unarmedVariantFor } from '../combatUnarmed.js'
 import { addLog, assistLine, bonusMomentumLine, diceText, focusText, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from '../combatLog.js'
 import { canAfford, facingToward, isActive } from '../combatSelectors.js'
 import { withOutcome } from '../combatTurnOrder.js'
@@ -61,6 +62,8 @@ export class AttackAction extends CombatAction {
       targetId: target.id,
       weaponId: preview.weapon.id,
       injuryMode: action.injuryMode,
+      // Kick (combatUnarmed.js): the unarmed attack the ring offered, which adds its knockdown on a hit. Absent otherwise.
+      ...(unarmedVariantFor(action) ? { variant: action.variant } : {}),
       band: preview.band,
       distance: preview.distance,
       baseDifficulty: preview.baseDifficulty,

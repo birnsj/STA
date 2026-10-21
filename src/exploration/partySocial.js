@@ -57,6 +57,48 @@ function shiftDisposition(disposition, steps) {
 // Calms the NPC: no fight pending, no confrontation, no search under way. responseType 'combat' (left standing after a
 // fight) is cleared too, so its new disposition decides what it does.
 const calm = (npc) => ({ ...npc, responseType: null, combatReady: null, response: null, investigation: null })
+export const calmNpc = calm
+
+// What a conversation's outcomes do to the same per-NPC social record the ring's Persuade and Intimidate keep
+// (npcSocial[npcId]: intimidated, checkDifficulty), so a Task Check later in any conversation with this NPC reads it
+// (checksSkipped, checkDifficultyChange) however it got there. All return the state unchanged for an unknown NPC.
+function withSocial(state, npcId, change) {
+  if (!state.world.npcs[npcId]) return state
+  const previous = state.npcSocial?.[npcId] ?? {}
+  return { ...state, npcSocial: { ...state.npcSocial, [npcId]: { ...previous, ...change(previous) } } }
+}
+export const setNpcIntimidated = (state, npcId, intimidated) => withSocial(state, npcId, () => ({ intimidated: Boolean(intimidated) }))
+export const adjustNpcChecks = (state, npcId, amount) => withSocial(state, npcId, (previous) => ({ checkDifficulty: clampChecks((previous.checkDifficulty ?? 0) + (Number(amount) || 0)) }))
+
+// The NPC stops fighting or confronting: the disposition given (neutral by default), no fight pending or search under
+// way, and, if leaveGroup, no longer in its alert group or on its patrol (as an Intimidate win on a hostile NPC does).
+export function standNpcDown(state, npcId, { disposition = 'neutral', leaveGroup = false } = {}) {
+  const npc = state.world.npcs[npcId]
+  if (!npc || !ORDER.includes(disposition)) return state
+  const calmed = calm({ ...npc, disposition, ...(leaveGroup ? { alertGroupId: null, patrol: null } : {}) })
+  return { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npcId]: calmed } } }
+}
+
+// The NPC's resisting roll against a request (Book Core pp.256, 279-280): the asker's successes, less its own Difficulty
+// changes, set the Difficulty of the NPC's Control + Command roll (+ intimidatedDifficulty while Intimidated); no
+// successes set means nothing was asked that needs resisting (a loss for the asker). The asker wins when the NPC fails.
+// The Momentum the asker wins is the Difficulty it set less the NPC's successes; the NPC's own Momentum becomes Threat.
+// random: the roll's dice stream (the asker's dice were drawn from it first). Returns { set, difficulty, resisted
+// (the NPC's result, null if nothing was set), passed, momentum, threat }.
+export function resistRequest(state, npc, { successes, askerDifficulty = 0, autoFail = false, random }) {
+  const resist = prepareTask(npc.character, RESIST_TASK, {
+    traits: state.scenario.traits,
+    side: 'enemy',
+    condition: npc.condition ?? undefined,
+    difficultyMod: state.npcSocial?.[npc.id]?.intimidated ? socialData.intimidatedDifficulty : 0,
+    difficultyModLabel: 'Intimidated',
+  })
+  const set = autoFail ? 0 : Math.max(0, successes - askerDifficulty)
+  const difficulty = set + resist.difficulty
+  const resisted = set > 0 ? resolveStaTask({ leader: { task: resist.task, dice: rollDice(random) }, difficulty }) : null
+  const passed = Boolean(resisted) && !resisted.success
+  return { set, difficulty, resisted, passed, momentum: passed ? difficulty - resisted.successes : 0, threat: resisted?.success ? resisted.momentumGenerated : 0 }
+}
 
 // The member asks the NPC. Returns the state with the roll's Momentum saved (and the NPC's as Threat), the cooldown
 // started, the NPC's disposition changed, npcSocial[npcId] ({ intimidated, checkDifficulty, last }) updated,
@@ -71,13 +113,6 @@ export function askNpc(state, memberId, npcId, kind) {
   if (!asker.possible) return state
   const previous = state.npcSocial?.[npcId] ?? {}
   const intimidated = Boolean(previous.intimidated)
-  const resist = prepareTask(npc.character, RESIST_TASK, {
-    ...context,
-    side: 'enemy',
-    condition: npc.condition ?? undefined,
-    difficultyMod: intimidated ? socialData.intimidatedDifficulty : 0,
-    difficultyModLabel: 'Intimidated',
-  })
 
   const key = state.scenario.taskCount
   const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + key))
@@ -86,15 +121,8 @@ export function askNpc(state, memberId, npcId, kind) {
     difficulty: 0,
     ignoreComplications: asker.ignoreComplications,
   })
-  // Book p.256: the asker's own Difficulty changes lower the Difficulty it sets.
-  const set = asker.task.autoFail ? 0 : Math.max(0, asked.successes - asker.difficulty)
-  const difficulty = set + resist.difficulty
-  const resisted = set > 0 ? resolveStaTask({ leader: { task: resist.task, dice: rollDice(random) }, difficulty }) : null
-  const passed = Boolean(resisted) && !resisted.success
-
-  const momentum = passed ? difficulty - resisted.successes : 0
+  const { set, resisted, passed, momentum, threat } = resistRequest(state, npc, { successes: asked.successes, askerDifficulty: asker.difficulty, autoFail: asker.task.autoFail, random })
   const saved = saveMomentum(state.resources, momentum)
-  const threat = resisted?.success ? resisted.momentumGenerated : 0
   const resources = threat ? npcMomentumToThreat(saved.resources, threat) : saved.resources
 
   const before = npc.disposition

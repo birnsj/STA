@@ -18,7 +18,7 @@ import { getAttackTaskSpec, getCharacterWeapons, getRangeModifier } from '../com
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import { countHazards } from '../dev/hazardPerf.js'
 import { perfEnd, perfOff, perfStart } from '../dev/perfProbe.js'
-import { avoidInjury, chooseFatiguedAttribute, getAvoidOption, injuryText, injuryTypeName, normalizeCondition, takeHit } from '../rules/personalCondition.js'
+import { avoidInjury, chooseFatiguedAttribute, getAvoidOption, injuryText, injuryTypeName, normalizeCondition, payAvoidThreat, takeHit } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { damageObject, hazardRound, HAZARD_ROUND_SECONDS, hitText, injuryFromHit, isStanding, needsHazardRounds, objectAttackDifficulty, objectDamage } from '../world/environment.js'
 import { withEnvironment } from '../world/environmentState.js'
@@ -92,7 +92,7 @@ function thrownByBlast(state, id, injury) {
 }
 
 const avoidOption = (state, actor, injury) =>
-  getAvoidOption(actor.character, normalizeCondition(actor.condition), injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene ?? [] })
+  getAvoidOption(actor.character, normalizeCondition(actor.condition), injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene ?? [], personalThreatSpent: state.personalThreatSpent ?? {} })
 
 // The answer to an Injury: avoided (Stress, or Threat for a notable NPC) or suffered. Returns { state, lines }.
 // PROTOTYPE: outside combat, a character who becomes Fatigued has the attribute chosen by injuryPolicy.js's rule
@@ -110,8 +110,8 @@ function settleInjury(state, id, injury, avoid) {
     if (isExplosionInjury(injury)) next = withActor(next, id, thrownByBlast(next, id, injury))
     const lines = []
     if (option.kind === 'threat') {
-      next = { ...next, resources: { ...next.resources, threat: next.resources.threat - option.cost }, avoidedThisScene: [...(next.avoidedThisScene ?? []), actor.character.id] }
-      lines.push(`${name} avoids the Injury (${option.cost} Threat).`)
+      next = payAvoidThreat(next, actor.character, option)
+      lines.push(`${name} avoids the Injury (${option.cost} Threat${option.personal ? `, ${option.personal} of it Personal Threat` : ''}).`)
     } else {
       lines.push(`${name} avoids the Injury: takes ${avoided.taken} Stress.`)
     }

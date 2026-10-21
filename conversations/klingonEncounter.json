@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "name": "Klingon encounter (any Klingon)",
+  "start": "metCheck",
+  "nodes": [
+    {
+      "id": "metCheck",
+      "type": "condition",
+      "position": [40, 260],
+      "conditions": [{ "flag": "{npc}.met", "op": "isTrue" }],
+      "match": "all",
+      "pass": "returnLine",
+      "fail": "markMet"
+    },
+    {
+      "id": "markMet",
+      "type": "action",
+      "position": [300, 340],
+      "actions": [{ "type": "changeFlag", "flag": "{npc}.met", "op": "set", "value": true }],
+      "next": "intro"
+    },
+    {
+      "id": "intro",
+      "type": "npc",
+      "position": [560, 340],
+      "speaker": "",
+      "text": "Starfleet. You walk where the Empire holds the ground. State your purpose, or draw your blade.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "returnLine",
+      "type": "npc",
+      "position": [560, 180],
+      "speaker": "",
+      "text": "You again. Speak, or be gone.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "mainChoice",
+      "type": "choice",
+      "position": [820, 260],
+      "options": [
+        {
+          "id": "persuade",
+          "text": "We came in peace, and we can leave in peace. Hear us out.",
+          "conditions": [
+            { "npc": "disposition", "op": "notEquals", "value": "friendly" },
+            { "flag": "{npc}.persuaded", "op": "isFalse" }
+          ],
+          "next": "markPersuaded"
+        },
+        {
+          "id": "intimidate",
+          "text": "Stand aside. You do not want to learn what we can do.",
+          "conditions": [
+            { "npc": "intimidated", "op": "isFalse" },
+            { "flag": "{npc}.threatened", "op": "isFalse" }
+          ],
+          "next": "markThreatened"
+        },
+        { "id": "fight", "text": "Then we settle this the Klingon way.", "conditions": [], "next": "startFight" },
+        { "id": "leave", "text": "We will go.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "markPersuaded",
+      "type": "action",
+      "position": [1080, 20],
+      "actions": [{ "type": "changeFlag", "flag": "{npc}.persuaded", "op": "set", "value": true }],
+      "next": "persuadeCheck"
+    },
+    {
+      "id": "persuadeCheck",
+      "type": "check",
+      "position": [1340, 20],
+      "label": "Persuade the Klingon",
+      "attribute": "presence",
+      "department": "command",
+      "difficulty": 2,
+      "focuses": ["Persuasion", "Diplomacy", "Negotiation", "Composure"],
+      "complicationRange": 1,
+      "onComplication": [],
+      "opposed": true,
+      "success": "persuadeWin",
+      "failure": "persuadeLoss"
+    },
+    {
+      "id": "persuadeWin",
+      "type": "action",
+      "position": [1600, -40],
+      "actions": [
+        { "type": "adjustCheckDifficulty", "amount": -1 },
+        { "type": "standDown", "disposition": "neutral", "leaveGroup": false },
+        { "type": "influenceNearby", "effect": "standDown", "filter": "sameGroup", "filterId": "", "radius": null, "origin": "speaker", "tileX": 0, "tileY": 0, "needsSight": true, "includeSpeaker": false }
+      ],
+      "next": "persuadeWinLine"
+    },
+    {
+      "id": "persuadeWinLine",
+      "type": "npc",
+      "position": [1860, -40],
+      "speaker": "",
+      "text": "Hmph. You speak with more honour than I expected from a Starfleet. I will not strike first.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "persuadeLoss",
+      "type": "npc",
+      "position": [1600, 100],
+      "speaker": "",
+      "text": "Words are wind. Do not waste mine.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "markThreatened",
+      "type": "action",
+      "position": [1080, 360],
+      "actions": [{ "type": "changeFlag", "flag": "{npc}.threatened", "op": "set", "value": true }],
+      "next": "intimidateCheck"
+    },
+    {
+      "id": "intimidateCheck",
+      "type": "check",
+      "position": [1340, 360],
+      "label": "Intimidate the Klingon",
+      "attribute": "control",
+      "department": "security",
+      "difficulty": 2,
+      "focuses": ["Intimidation", "Interrogation", "Hand Phasers", "Tactics"],
+      "complicationRange": 1,
+      "onComplication": [],
+      "opposed": true,
+      "success": "intimidateWin",
+      "failure": "intimidateLoss"
+    },
+    {
+      "id": "intimidateWin",
+      "type": "action",
+      "position": [1600, 300],
+      "actions": [
+        { "type": "setIntimidated", "intimidated": true },
+        { "type": "standDown", "disposition": "neutral", "leaveGroup": false },
+        { "type": "influenceNearby", "effect": "hesitate", "filter": "sameGroup", "filterId": "", "radius": null, "origin": "speaker", "tileX": 0, "tileY": 0, "needsSight": true, "includeSpeaker": false }
+      ],
+      "next": "intimidateWinLine"
+    },
+    {
+      "id": "intimidateWinLine",
+      "type": "npc",
+      "position": [1860, 300],
+      "speaker": "",
+      "text": "Tcha! Enough. I will not stand against you today. Do not mistake that for fear.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "intimidateLoss",
+      "type": "action",
+      "position": [1600, 460],
+      "actions": [{ "type": "adjustCheckDifficulty", "amount": 1 }],
+      "next": "provokedCheck"
+    },
+    {
+      "id": "provokedCheck",
+      "type": "condition",
+      "position": [1860, 460],
+      "conditions": [{ "npc": "hostility", "op": "atLeast", "value": 4 }],
+      "match": "all",
+      "pass": "provokedLine",
+      "fail": "angeredLine"
+    },
+    {
+      "id": "angeredLine",
+      "type": "action",
+      "position": [2120, 520],
+      "actions": [{ "type": "setDisposition", "disposition": "hostile" }],
+      "next": "angeredText"
+    },
+    {
+      "id": "angeredText",
+      "type": "npc",
+      "position": [2380, 520],
+      "speaker": "",
+      "text": "You threaten a warrior of the Empire? Be careful, little one. My patience is not long.",
+      "next": "mainChoice"
+    },
+    {
+      "id": "provokedLine",
+      "type": "npc",
+      "position": [2120, 400],
+      "speaker": "",
+      "text": "You dare! Then it is a good day to die!",
+      "next": "startFight"
+    },
+    {
+      "id": "startFight",
+      "type": "action",
+      "position": [1080, 600],
+      "actions": [
+        { "type": "influenceNearby", "effect": "escalate", "filter": "sameGroup", "filterId": "", "radius": null, "origin": "speaker", "tileX": 0, "tileY": 0, "needsSight": false, "includeSpeaker": false },
+        { "type": "startCombat" }
+      ],
+      "next": "end"
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "position": [1080, 740]
+    }
+  ]
+}

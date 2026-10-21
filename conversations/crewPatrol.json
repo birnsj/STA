@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "Crew: patrol rounds",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "Just making my rounds. If you need the EPS junction, talk to Lt. Okafor.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [320, 80] }
+  ]
+}

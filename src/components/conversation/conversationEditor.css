@@ -191,6 +191,7 @@
 .ce-row.is-action { padding: 3px; border: 1px solid #1a3136; border-radius: 2px; }
 .ce-row.is-action { padding: 2px; border: var(--ui-border) solid #1a3136; border-radius: var(--ui-radius); }
 .ce-value { width: 80px; }
+.ce-check { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
 
 .ce-option {
   display: flex;

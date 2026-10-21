@@ -23,7 +23,7 @@ import { buildCombatView } from '../combat/combatView.js'
 import { standingObjects } from '../combat/combatEnvironment.js'
 import { DEFAULT_ENCOUNTER_ID } from '../combat/encounters.js'
 import { autoCombatReducer } from '../combat/autoCombat.js'
-import { getCombatantWeapon } from '../combat/weaponSystem.js'
+import { getCombatantWeapon, getUnarmedAttack } from '../combat/weaponSystem.js'
 import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
@@ -455,10 +455,18 @@ export function Battle({
     setAttackChoice(null)
   }
 
+  // Punch / Kick: the Unarmed Strike, fired whatever weapon is in hand (combat/combatUnarmed.js).
+  const fireUnarmed = (enemyId, attackId) => {
+    const attack = getUnarmedAttack(attackId)
+    dispatch({ type: 'attack', targetId: enemyId, weaponId: attack.weaponId, injuryMode: attack.injuryMode, variant: attack.id, purchase })
+    setDicePurchase({ bonusDice: 0, momentum: 0 })
+    setAttackChoice(null)
+  }
+
   const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo } = createRingButtons({
     state, dispatch, active, weapon, mode, ringInfo, attackMode, attackBlock, targetAttack, ringAttackRoll, preview, purchase, purchaseCheck,
     availability, unavailableReasons, extraMinorReason, secondMajorReason, directReason, isCommander, firstAidOptions, objectList,
-    canSwitchTo, closeRing, openTask, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
+    canSwitchTo, closeRing, openTask, selectPartyMember, fireAttack, fireUnarmed, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
   })
 
   const ringObject = ringId?.startsWith('object:') ? objects?.marks?.find((mark) => `object:${mark.id}` === ringId && mark.inReach) : null
@@ -703,6 +711,7 @@ export function Battle({
           speed={auto === 'off' || partyBeamingOut ? 1 : speed}
           focus={focus}
           followCamera={followCamera}
+          onCameraPan={() => setFollowCamera(false)}
           onCameraFollow={() => setFollowCamera(true)}
           bystanders={bystanders}
           snapMarks={snapMarks}

@@ -21,6 +21,9 @@ import {
   needsFatigueAttribute,
   normalizeCondition,
   npcCategoryOf,
+  payAvoidThreat,
+  personalThreatLeft,
+  personalThreatPool,
   recoverStress,
   reviveCondition,
   sufferStress,
@@ -213,12 +216,32 @@ describe('Avoid Injury', () => {
 
   it('Book p.277: Notable and Major NPCs pay Threat equal to the severity', () => {
     const notable = makeCharacter({ npcRules: 'notable' })
+    // With its Personal Threat spent, only the pool is left to pay from.
+    const spent = { [notable.id]: 99 }
     assert.deepEqual(
-      [getAvoidOption(notable, createCondition(), injury, { threat: 3 }).possible, getAvoidOption(notable, createCondition(), injury, { threat: 2 }).possible],
+      [getAvoidOption(notable, createCondition(), injury, { threat: 3, personalThreatSpent: spent }).possible, getAvoidOption(notable, createCondition(), injury, { threat: 2, personalThreatSpent: spent }).possible],
       [true, false],
       'needs Threat equal to the severity',
     )
     assert.equal(getAvoidOption(notable, createCondition(), injury, { threat: 9 }).kind, 'threat')
+  })
+
+  it('Book p.346: Notable and Major NPCs spend their own Personal Threat first, then the pool; it is not replenished', () => {
+    const notable = makeCharacter({ npcRules: 'notable' })
+    const major = makeCharacter({ id: 'major', npcRules: 'major' })
+    assert.equal(personalThreatPool(notable), 3, 'typical Notable pool')
+    assert.equal(personalThreatPool(major), 6, 'typical Major pool')
+    assert.equal(personalThreatPool(makeCharacter({ npcRules: 'minor' })), 0)
+    assert.equal(personalThreatPool(makeCharacter({ npcRules: 'notable', sourceClassification: { personalThreat: 4 } })), 4, 'the stat block figure wins')
+    const bigInjury = { ...injury, severity: 4 }
+    const first = getAvoidOption(notable, createCondition(), bigInjury, { threat: 1 })
+    assert.deepEqual([first.possible, first.personal, first.shared], [true, 3, 1], 'Personal Threat covers 3, the pool the other 1')
+    const state = payAvoidThreat({ resources: { threat: 1 }, avoidedThisScene: [] }, notable, first)
+    assert.equal(state.resources.threat, 0)
+    assert.equal(personalThreatLeft(notable, state.personalThreatSpent), 0)
+    const again = getAvoidOption(major, createCondition(), injury, { threat: 0, personalThreatSpent: state.personalThreatSpent })
+    assert.equal(again.possible, true, 'a Major NPC has its own, separate pool')
+    assert.equal(getAvoidOption(major, createCondition(), injury, { threat: 0, personalThreatSpent: { [major.id]: 6 } }).possible, false)
   })
 
   it('Book p.277: a Notable NPC may only avoid once per scene', () => {

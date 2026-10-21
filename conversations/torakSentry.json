@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "Torak: sentry",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "You are seen. One wrong step and I raise the alarm.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "We don't want a fight.", "conditions": [], "next": "peace" },
+        { "id": "o2", "text": "Try it.", "conditions": [], "next": "threat" },
+        { "id": "o3", "text": "We're leaving.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "peace",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "Then leave. Peace is for those who know when they are beaten.",
+      "next": "end"
+    },
+    {
+      "id": "threat",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Bold words. My shout will bring warriors before your phaser clears its holster.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

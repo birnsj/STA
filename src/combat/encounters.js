@@ -5,7 +5,9 @@ import { withStandardIssue } from './weaponSystem.js'
 
 export const getEncounter = (encounterId) => encounterData.encounters.find((encounter) => encounter.id === encounterId) ?? null
 export const DEFAULT_ENCOUNTER_ID = encounterData.encounters[0].id
-export const ENEMY_SPAWNS_NEEDED = encounterData.encounters[0].roster.length
+// Soft editor / Combat-setup hint: maps should have at least this many enemy spawns. The default roster may be longer
+// (Battlezone places eight); maps with fewer spawns still play, using only as many enemies as they have markers.
+export const ENEMY_SPAWNS_NEEDED = 4
 
 // Combat started in the exploration world (src/exploration/combatLink.js).
 export const WORLD_ENCOUNTER_ID = 'explorationContact'

@@ -57,7 +57,8 @@ function furnishCells(tiles, keep, cells, random, { floor }) {
   })
 }
 
-export const generateDetention = makeStationGenerator({ door: 'forceField', span: 3, furnishRooms: furnishCells })
+// Full bulkheads: detention has no half-wall art of its own (starship thin walls are the Ultima-8 set).
+export const generateDetention = makeStationGenerator({ wall: 'bulkhead', door: 'forceField', span: 3, furnishRooms: furnishCells })
 
 // Two rows of pillars down the nave and an altar on glyph stones at one end; side chapels hold a glyph and an offering.
 function furnishNave(tiles, keep, hall, random, { floor }) {

@@ -148,7 +148,7 @@ export function placeNpc(map, position, characterId) {
   const used = new Set(npcs.map((npc) => npc.id))
   let index = npcs.length + 1
   while (used.has(`npc${index}`)) index += 1
-  const npc = { id: `npc${index}`, characterId, name: null, position, facing: 90, faction: null, disposition: 'neutral', conversationId: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null, mustSurvive: false }
+  const npc = { id: `npc${index}`, characterId, name: null, position, facing: 90, faction: null, disposition: 'neutral', conversationId: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null, mustSurvive: false, influenceRadius: null }
   return { map: { ...map, npcs: [...npcs, npc] }, npc }
 }
 

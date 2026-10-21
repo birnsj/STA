@@ -152,6 +152,9 @@
       "name": "Guard A",
       "disposition": "wary",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "male",
+      "portraitId": "klingon-male-1",
       "alertGroupId": "security-a",
       "alertMethod": "shout"
     },
@@ -166,6 +169,9 @@
       "name": "Guard B",
       "disposition": "hostile",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "female",
+      "portraitId": "klingon-female-1",
       "alertGroupId": "security-a",
       "alertMethod": "shout",
       "responseType": "alarm"
@@ -181,18 +187,22 @@
       "name": "Guard C",
       "disposition": "aggressive",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "male",
+      "portraitId": "klingon-male-2",
       "alertGroupId": "security-b",
       "alertMethod": "shout"
     },
     {
       "id": "npc5",
-      "characterId": "stationEngineer",
+      "characterId": "redshirtMallory",
       "position": [
         5,
         5
       ],
       "facing": 90,
       "disposition": "neutral",
+      "conversationId": "crewPatrol",
       "patrol": [
         {
           "at": [
@@ -233,6 +243,7 @@
       ],
       "facing": 270,
       "disposition": "friendly",
+      "conversationId": "reyesCorridor",
       "patrol": [
         {
           "at": [
@@ -285,6 +296,7 @@
       ],
       "facing": 225,
       "disposition": "friendly",
+      "conversationId": "chenMaintenance",
       "patrol": [
         {
           "at": [
@@ -309,6 +321,7 @@
       "facing": 0,
       "disposition": "neutral",
       "responseType": "observe",
+      "conversationId": "vossSensors",
       "patrol": [
         {
           "at": [
@@ -353,6 +366,9 @@
       "disposition": "wary",
       "responseType": "confront",
       "npcRules": "supporting",
+      "conversationId": "korathCheckpoint",
+      "gender": "male",
+      "portraitId": "klingon-male-3",
       "perception": {
         "visionRange": 10,
         "fieldOfView": 100,
@@ -383,6 +399,9 @@
       "disposition": "hostile",
       "responseType": "alarm",
       "npcRules": "supporting",
+      "conversationId": "torakSentry",
+      "gender": "female",
+      "portraitId": "klingon-female-3",
       "alertGroupId": "brig-east-alert",
       "alertMethod": "shout",
       "patrol": [
@@ -419,6 +438,9 @@
       "disposition": "hostile",
       "responseType": "combat",
       "npcRules": "supporting",
+      "conversationId": "krelWarrior",
+      "gender": "female",
+      "portraitId": "klingon-female-5",
       "alertGroupId": "brig-east-alert",
       "alertMethod": "shout",
       "patrol": [

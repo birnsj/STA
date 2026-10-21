@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "Klingon guard: one line",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "Move. This deck belongs to the Empire.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [320, 80] }
+  ]
+}

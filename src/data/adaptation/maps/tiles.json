@@ -1,10 +1,10 @@
 {
   "notes": [
-    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: ğ (allocation order in docs/tiles.md)."
+    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: ġ (allocation order in docs/tiles.md)."
   ],
   "imageSize": { "width": 64, "height": 96 },
   "paletteGroups": [
-    { "id": "starship", "section": "Locations", "label": "Starship & Station", "tiles": ["floor", "doorway", "bulkhead", "plainBulkhead", "lcarsWall", "conduitWall", "hatchWall", "computerWall", "lcarsPanel", "conduitPanel", "hatchPanel", "computerPanel", "machinery", "crate", "grating", "epsControl"] },
+    { "id": "starship", "section": "Locations", "label": "Starship & Station", "tiles": ["floor", "doorway", "bulkhead", "plainBulkhead", "halfBulkhead", "halfBulkheadCorner", "lcarsWall", "conduitWall", "hatchWall", "computerWall", "lcarsPanel", "conduitPanel", "hatchPanel", "computerPanel", "machinery", "crate", "grating", "epsControl"] },
     { "id": "tosBridge", "section": "Locations", "label": "Bridge (TOS)", "tiles": ["tosDeck", "tosWell", "tosWall", "tosViewscreen", "tosTurbolift", "tosChair", "tosHelm", "tosStation", "tosScience", "tosRail", "tosHull", "tosVoid"] },
     { "id": "klingon", "section": "Locations", "label": "Klingon Ship & Station", "tiles": ["klingonDeck", "klingonGrate", "klingonBulkhead", "klingonDisplayWall", "klingonConduitWall", "klingonDoor", "klingonStrut", "klingonChair", "klingonConsole", "klingonWarpCore", "klingonCrate"] },
     { "id": "derelict", "section": "Locations", "label": "Derelict Ship", "tiles": ["derelictDeck", "breachedBulkhead", "debris", "scorched"] },
@@ -59,6 +59,25 @@
       "role": null
     },
     { "id": "plainBulkhead", "symbol": "ē", "label": "Bulkhead (No Windows)", "image": "/art/sprites/environment/starship/bulkhead.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "panels": true, "windows": false, "height": 92, "imageHeight": 128, "role": null },
+    {
+      "id": "halfBulkhead",
+      "symbol": "ğ",
+      "label": "Half Bulkhead",
+      "image": "/art/sprites/environment/starship/halfBulkhead.png",
+      "runImages": {
+        "x": "/art/sprites/environment/starship/halfBulkhead.png",
+        "y": "/art/sprites/environment/starship/halfBulkhead-y.png"
+      },
+      "solid": true,
+      "blocksSight": true,
+      "cover": false,
+      "fade": true,
+      "wall": true,
+      "height": 92,
+      "imageHeight": 128,
+      "role": null
+    },
+    { "id": "halfBulkheadCorner", "symbol": "Ġ", "label": "Half Bulkhead Corner", "image": "/art/sprites/environment/starship/halfBulkheadCorner.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
     { "id": "lcarsWall", "symbol": "ë", "label": "LCARS Wall Display", "image": "/art/sprites/environment/starship/bulkhead-lcars.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
     { "id": "conduitWall", "symbol": "ì", "label": "EPS Conduit Wall", "image": "/art/sprites/environment/starship/bulkhead-conduit.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
     { "id": "hatchWall", "symbol": "í", "label": "Jefferies Tube Hatch", "image": "/art/sprites/environment/starship/bulkhead-hatch.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },

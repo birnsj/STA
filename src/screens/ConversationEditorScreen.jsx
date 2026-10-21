@@ -4,6 +4,7 @@ import NodeInspector from '../components/conversation/NodeInspector.jsx'
 import '../components/conversation/conversationEditor.css'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import { canSaveConversations, conversationFileId, deleteConversation, listConversations, loadConversation, saveConversation } from '../conversation/conversationFiles.js'
+import { dialogueTierWarnings } from '../conversation/dialogueTier.js'
 import { createConversation, createNode, getNode, nextId, NODE_TYPES, removeNode, validateConversation, withLink } from '../conversation/conversationFormat.js'
 
 // Dev conversation editor (opened from the map editor): authors the node graphs NPCs open in exploration and saves
@@ -61,7 +62,10 @@ export default function ConversationEditorScreen({ initialId = null, map = null,
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  const warnings = useMemo(() => (conversation ? validateConversation(conversation) : []), [conversation])
+  const warnings = useMemo(
+    () => (conversation ? [...dialogueTierWarnings(conversation), ...validateConversation(conversation)] : []),
+    [conversation],
+  )
 
   const askConfirm = (details) => new Promise((resolve) => setQuestion({ ...details, resolve }))
   const answer = (confirmed) => {

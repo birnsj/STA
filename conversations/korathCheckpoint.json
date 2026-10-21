@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "Korath: checkpoint",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "Halt. This post is mine. State your business, or step into my blade.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "We're Starfleet. Stand aside.", "conditions": [], "next": "starfleet" },
+        { "id": "o2", "text": "We're only passing through.", "conditions": [], "next": "pass" },
+        { "id": "o3", "text": "We'll go another way.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "starfleet",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "Then you have already chosen poorly. Leave my sight, Federation.",
+      "next": "end"
+    },
+    {
+      "id": "pass",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Passing through a Klingon post without leave is how cowards die. Turn around.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

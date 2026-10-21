@@ -1,6 +1,6 @@
 {
   "notes": [
-    "Prototype test encounter: the party against 4 Klingons. Played on whichever map file in the project's maps/ folder is picked in Load Episode; there is no default map.",
+    "Prototype test encounter: the party against Klingons (up to 8). Played on whichever map file in the project's maps/ folder is picked in Load Episode; there is no default map. Only as many enemies as the map has enemy spawns are placed.",
     "Tiles come from the shared catalogue (src/data/adaptation/maps/tiles.json): solid tiles block movement, tiles that block sight block line of fire, and standing next to a cover tile gives cover automatically. Hazard tiles are ordinary floor in this mode.",
     "The party stands on the map's player starts in party order (so the map's player start count is the party size limit). roster: the enemies placed on the map's enemy spawns, in order, as character ids (full characters in src/data/adaptation/characters.json, the same records the exploration actors use); extra spawns stay empty.",
     "The objective text is placeholder content.",
@@ -16,7 +16,16 @@
       "autoCombat": { "playerInjuryMode": "stun" },
       "standardIssueWeapon": "phaserType2",
       "npcRules": "supporting",
-      "roster": ["klingonWarrior1", "klingonWarrior2", "klingonWarrior3", "klingonWarrior4"]
+      "roster": [
+        "klingonWarrior1",
+        "klingonWarrior2",
+        "klingonWarrior3",
+        "klingonWarrior4",
+        "klingonGuardKorath",
+        "klingonSentryTorak",
+        "klingonWarriorKrel",
+        "klingonWarrior1"
+      ]
     },
     {
       "id": "explorationContact",

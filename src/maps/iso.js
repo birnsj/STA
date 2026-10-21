@@ -1,4 +1,5 @@
 // Isometric projection shared by every map view (the map editor and combat boards): 64x64 world tiles drawn as 64x32 diamonds.
+import { wallRunImage } from './generators/halfWalls.js'
 import { getTile, TILE_IMAGE } from './mapFormat.js'
 
 export const TILE_W = 64
@@ -33,9 +34,12 @@ export const mapBounds = (map, margin) => ({
 
 export const isBlock = (tileId) => getTile(tileId).height > 0
 
-// A tile's image at a position: floors with an alternate image alternate in a checkerboard.
+// A tile's image at a position: floors with an alternate image alternate in a checkerboard; thin walls pick their run
+// image from neighbours (halfWalls.js).
 export function tileImage(map, { x, y }) {
   const tile = getTile(map.tiles[y][x])
+  const run = wallRunImage(map, { x, y })
+  if (run) return run
   if (tile.altImage && (x + y) % 2) return tile.altImage
   return tile.image
 }

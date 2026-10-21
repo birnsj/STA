@@ -150,6 +150,9 @@ function InventoryObjectTools({ tool, onTool, open, onToggle }) {
   )
 }
 
+// Guide grid spacing in world pixels (iso.js TILE_W = 64 = one tile; 8 = the inventory snap grid).
+export const EDITOR_GRID_SIZES = [8, 16, 32, 64, 128, 256]
+
 // The tile list only chooses which tile the brush holds; the toolbar's Place Tiles turns painting on.
 export default function EditorPalette({
   tool,
@@ -160,6 +163,10 @@ export default function EditorPalette({
   onAnimateTiles,
   showLighting,
   onShowLighting,
+  showGrid = false,
+  onShowGrid = () => {},
+  gridSize = 64,
+  onGridSize = () => {},
   onStatus,
   hazardIntensity = 2,
   onHazardIntensity = () => {},
@@ -243,6 +250,19 @@ export default function EditorPalette({
         <input type="checkbox" checked={showLighting} onChange={(event) => onShowLighting(event.target.checked)} />
         Lighting
       </label>
+      <div className="me-grid-controls" title="Iso guide grid on the floor. Spacing in world pixels: 64 = one tile, 8 = inventory snap.">
+        <label className="me-check">
+          <input type="checkbox" checked={showGrid} onChange={(event) => onShowGrid(event.target.checked)} />
+          Grid
+        </label>
+        <select className="me-select me-grid-size" value={gridSize} aria-label="Grid size" onChange={(event) => onGridSize(Number(event.target.value))}>
+          {EDITOR_GRID_SIZES.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }

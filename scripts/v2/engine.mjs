@@ -96,6 +96,8 @@ export const FRAMES = {
   top: { n: [0, 0, 1], t1: [1, 0, 0], t2: [0, 1, 0] },
   left: { n: [0, 1, 0], t1: [1, 0, 0], t2: [0, 0, 1] },
   right: { n: [1, 0, 0], t1: [0, -1, 0], t2: [0, 0, 1] },
+  // Short end-cap of a thin wall (makeTilesV2 half bulkheads); lit like a left face.
+  end: { n: [0, 1, 0], t1: [1, 0, 0], t2: [0, 0, 1] },
 }
 
 // material: { height(u, v, face), surface(u, v, face) -> { albedo, spec, shininess, emit, ao } }

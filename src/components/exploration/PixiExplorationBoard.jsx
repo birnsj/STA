@@ -101,6 +101,7 @@ export default function PixiExplorationBoard(props) {
     onSelect,
     onSelectBox,
     onOpenMenu,
+    onToggleMenu = null,
     onOpenNpcMenu,
     onStaggerDone = null,
     menu = null,
@@ -654,7 +655,10 @@ export default function PixiExplorationBoard(props) {
       // A right press goes on to the board (a drag still draws the selection box); remember whose it was.
       if (mouse && event.button === 2) rightPressedRef.current = target.id
       if (mouse && event.button !== 0) return false
+      // Left click selects and toggles their ring. Right-click without a drag still opens via onOpenMenu (and adds them
+      // to the selection without clearing anyone else).
       onSelect(target.id, isAdditive(event))
+      ;(onToggleMenu ?? onOpenMenu)?.(target.id)
       return true
     }
     if (target.kind === 'npc') {
@@ -689,8 +693,8 @@ export default function PixiExplorationBoard(props) {
       return
     }
     const target = targetAt(event)
-    // Ground item: left-click walks over and picks up; left-drag past BOX_MIN_DRAG lifts it as the cursor;
-    // right-click opens the Pick Up / Go To ring.
+    // Ground item: a quick left-click walks over and picks up; hold past CLICK_MAX_MS opens the Pick Up / Go To ring;
+    // left-drag past BOX_MIN_DRAG lifts it as the cursor. Right-click still opens the ring (no drag-lift on the right button).
     if (target?.kind === 'groundItem' && event.pointerType === 'mouse' && event.button === 2) {
       event.preventDefault()
       ;(onGroundItemMenu ?? onGroundItem)(target.id)
@@ -703,13 +707,20 @@ export default function PixiExplorationBoard(props) {
       const originX = event.clientX
       const originY = event.clientY
       let dragging = false
+      let openedMenu = false
+      const holdTimer = window.setTimeout(() => {
+        if (dragging || openedMenu) return
+        openedMenu = true
+        ;(onGroundItemMenu ?? onGroundItem)(instanceId)
+      }, CLICK_MAX_MS)
       const stop = () => {
+        window.clearTimeout(holdTimer)
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
         window.removeEventListener('pointercancel', onUp)
       }
       const onMove = (moveEvent) => {
-        if (moveEvent.pointerId !== pointerId || dragging) return
+        if (moveEvent.pointerId !== pointerId || dragging || openedMenu) return
         if (Math.hypot(moveEvent.clientX - originX, moveEvent.clientY - originY) < BOX_MIN_DRAG) return
         dragging = true
         stop()
@@ -718,7 +729,8 @@ export default function PixiExplorationBoard(props) {
       const onUp = (upEvent) => {
         if (upEvent.pointerId !== pointerId) return
         stop()
-        if (!dragging && upEvent.type === 'pointerup') onGroundItem(instanceId)
+        if (dragging || openedMenu || upEvent.type !== 'pointerup') return
+        onGroundItem(instanceId)
       }
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)

@@ -225,6 +225,7 @@ function listImages(map) {
       if (variant) hrefs.add(variant.href)
       if (tile.big) hrefs.add(tile.big.image)
       Object.values(tile.panelImages ?? {}).forEach((href) => hrefs.add(href))
+      Object.values(tile.runImages ?? {}).forEach((href) => hrefs.add(href))
       for (const book of blockFlipbooks(tile)) {
         book?.sprites.forEach((sprite) => [sprite.href, sprite.emission].forEach((href) => href && hrefs.add(href)))
       }
@@ -445,12 +446,14 @@ function strokeLine(context, a, b, stroke, lineWidth) {
 
 // A wall tile: the wall's image, its variant (if any) or its animation, or this tile's slot of its panel art
 // (tileArt.js panelArt, cut out at the tile's own image size) or of its animation's sprites. scarTile: permanent
-// hazard face overlay (environment.wallScars) drawn over the wall art at the tile's image box.
-function drawWall(context, tile, position, panel, pass, scarTile) {
+// hazard face overlay (environment.wallScars) drawn over the wall art at the tile's image box. map: so thin walls can
+// pick their run image from neighbours (iso.js tileImage).
+function drawWall(context, map, tile, position, panel, pass, scarTile) {
   const art = panelArt(tile, panel, position)
   const variant = art || panel?.window ? null : wallVariant(tile, position)
   const size = imageSize(tile)
   const box = tileImageBox(position, size)
+  const own = tileImage(map, position)
   const draw = (key) => {
     if (!art) return drawImage(context, key, box.x, box.y, box.width, box.height)
     const image = sourceOf(key)
@@ -461,8 +464,8 @@ function drawWall(context, tile, position, panel, pass, scarTile) {
     context.drawImage(image, art.offset.x * sx, art.offset.y * sy, size.width * sx, size.height * sy, box.x, box.y, size.width, size.height)
   }
   const book = art ? art.flipbook : variant ? null : tileFlipbook(tile)
-  if (book) animated(context, pass, book, animationOffset(art?.timing ?? position), draw, art?.href ?? tile.image)
-  else solid(context, pass, () => draw(art?.href ?? variant?.href ?? tile.image))
+  if (book) animated(context, pass, book, animationOffset(art?.timing ?? position), draw, art?.href ?? own)
+  else solid(context, pass, () => draw(art?.href ?? variant?.href ?? own))
   // Board only: on an animation pass destination-out would punch the scar out of the wall/lights frame.
   if (scarTile && !pass) drawImage(context, wallScarImage(scarTile), box.x, box.y, box.width, box.height)
   // A whole-sprite animated wall's panel lines belong on its frames layer with it; an overlay wall's stay on the board.
@@ -592,7 +595,7 @@ function drawBlockAt(context, layout, position, opacity, pass) {
   const box = tileImageBox(position, imageSize(tile))
   const boxArgs = [box.x, box.y, box.width, box.height]
   const book = tile.wall || joined ? null : tileFlipbook(tile)
-  if (tile.wall) drawWall(context, tile, position, panel, pass, map.wallScars?.[at] ?? null)
+  if (tile.wall) drawWall(context, map, tile, position, panel, pass, map.wallScars?.[at] ?? null)
   else if (book) animated(context, pass, book, animationOffset(position), (key) => drawImage(context, key, ...boxArgs))
   else solid(context, pass, () => drawImage(context, href, ...boxArgs))
   context.restore()

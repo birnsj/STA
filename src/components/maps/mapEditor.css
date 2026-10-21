@@ -352,6 +352,20 @@
 
 .me-size .me-check { margin-top: 0; gap: 3px; }
 
+/* Guide grid toggle + size (world pixels) under the palette view checks. */
+.me-grid-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.me-grid-controls .me-check { margin-top: 0; }
+.me-grid-controls .me-grid-size {
+  max-width: none;
+  width: 4.5em;
+  flex-shrink: 0;
+}
+
 .me-ambient {
   display: flex;
   align-items: center;

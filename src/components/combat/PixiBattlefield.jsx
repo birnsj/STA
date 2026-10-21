@@ -68,6 +68,7 @@ export default function PixiBattlefield(props) {
     focus,
     followCamera = true,
     onCameraFollow = null,
+    onCameraPan = null,
     bystanders = [],
     snapMarks = null,
     hiddenIds = null,
@@ -88,7 +89,7 @@ export default function PixiBattlefield(props) {
   } = props
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick, true, null, onCameraFollow)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick, true, onCameraPan, onCameraFollow)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])
@@ -119,7 +120,7 @@ export default function PixiBattlefield(props) {
     const centre = tileCentre(position)
     const depth = position.x + position.y + (combatant.condition.defeated ? 0.1 : 0.5)
     const sideColour = SIDE[sideKey]
-    const statusLabel = down ? null : combatant.surrendered ? 'Surrendered' : combatant.retreating ? 'Retreating' : null
+    const statusLabel = down ? null : combatant.surrendered ? 'Surrendered' : combatant.retreating ? 'Retreating' : combatant.prone ? 'Prone' : null
     const maxStress = getMaxStress(combatant.character).value
     const showCondition = !isBystander && combatant.condition
     const conditionY = down ? -20 : BAR_Y

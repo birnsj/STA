@@ -10,7 +10,7 @@ import fs from 'node:fs'
 import { encodePng } from './png.mjs'
 import { fittingFeature, onPanelFace, panelScene, renderPanel, renderPanelLights, windowFeature } from './v2/panels.mjs'
 
-import { RESOLUTION, OUT_W, OUT_H, outFile, layerFile, FORCE, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, imageHeightFor, render, renderBig, renderBigLights, renderLights, renderTile, renderTileLights } from './v2/engine.mjs'
+import { RESOLUTION, OUT_W, OUT_H, outFile, layerFile, FORCE, CX, CY, shade, rgb, mix, scale, clamp01, smoothstep, hash, noise, bevel, groove, dome, inside, iso, inUnit, floorScene, blockScene, imageHeightFor, render, renderBig, renderBigLights, renderLights, renderTile, renderTileLights } from './v2/engine.mjs'
 
 // ---------- materials ----------
 const STEEL = rgb('#9aa3aa')
@@ -443,6 +443,160 @@ const wallScene = (fitting = null) => blockScene(WALL_H, bulkheadMaterial(WALL_H
 // A full-height bulkhead panel along axis with a feature (v2/panels.mjs) built into the face it runs along.
 const bulkheadPanel = (axis, feature) => panelScene(axis, (half) => wallScene(onPanelFace(axis, half, feature)), WALL_IMAGE)
 
+// Half bulkheads (tiles.json halfBulkhead / halfBulkheadCorner): Ultima-8 edge strip on our 64×32 floor diamond — about 1/8
+// of a tile thick (U8's ~5–6 px wall on a 32 px tile, same ratio), full-tile run, starship bulkhead faces, symmetric joint
+// grooves. Straight sits on the a=0 edge (R / rotate mirrors it). Corner is an L of the same thickness. Designer request,
+// 2026-10-20.
+const HALF_THICK = 1 / 8
+// Material for a thin wall face: same trim lights and panels as a bulkhead, but seams are symmetric at both tile joints
+// (u = 0 and u = 32) so abutting pieces meet flush instead of one rounded "front" corner.
+function thinWallMaterial(drawnHeight) {
+  const H = drawnHeight
+  return {
+    height(u, v, face) {
+      if (face === 'top') {
+        // Thin cap: bevel both long edges; soft ends so a run's top reads continuous.
+        const edge = Math.min(u, 32 - u)
+        return bevel(edge, 1.4, 1.1) + groove(edge - 0.9, 0.35, 0.25)
+      }
+      if (face === 'end') {
+        const e = Math.min(u, 32 - u, v, H - v)
+        return bevel(e, 1.2, 0.9)
+      }
+      let h = 0
+      if (v < 7) h += 0.6 + groove(v - 7, 0.6, 0.6)
+      if (v > H - 6) h += 0.5 + groove(v - (H - 6), 0.6, 0.5)
+      const panel = inside(u, v, 2.5, 11, 29.5, H - 10)
+      if (panel > 0) h -= 0.6 * smoothstep(0, 1.2, panel)
+      if (H > 40) h += groove(v - H * 0.52, 0.5, 0.35)
+      // Matching joint grooves at both ends of the run (no asymmetric front bevel).
+      h += groove(u, 0.35, 0.3) + groove(32 - u, 0.35, 0.3)
+      return h
+    },
+    surface(u, v, face) {
+      if (face === 'top') return { albedo: scale(rgb('#7d8a94'), 0.92 + noise(u / 6, v / 6, 71) * 0.1), spec: 0.25, shininess: 22 }
+      if (face === 'end') return { albedo: scale(rgb('#6a767f'), 0.9 + brushed(u, v, 74, 'v') * 0.1), spec: 0.28, shininess: 26 }
+      const z = v
+      const ao = 0.62 + 0.38 * smoothstep(0, 16, z)
+      if (H > 40 && Math.abs(z - (H - 3.4)) < 0.9) return { albedo: rgb('#dff0ff'), emit: scale(rgb('#bfe2ff'), 0.55) }
+      if (H > 40 && Math.abs(z - 8.6) < 0.55) return { albedo: rgb('#9fd0ff'), emit: scale(rgb('#7fc0ff'), 0.4) }
+      if (z < 7) return { albedo: rgb('#3c444b'), spec: 0.3, shininess: 30, ao }
+      if (z > H - 6) return { albedo: rgb('#8d99a2'), spec: 0.35, shininess: 30, ao }
+      if (H > 40 && Math.abs(z - (H - 8.5)) < 1) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 20, ao }
+      const base = inside(u, z, 2.5, 11, 29.5, H - 10) > 0 ? rgb('#66747f') : rgb('#717f8a')
+      return { albedo: scale(base, 0.9 + brushed(u, z, face === 'left' ? 72 : 73, 'v') * 0.12), spec: 0.3, shininess: 28, ao }
+    },
+  }
+}
+// Inverse of iso(): a - b = (px - CX) / 32, z = 16 * (a + b - 1) - py + CY.
+const alongRange = (t, t0, t1) => (t < t0 - 1e-6 || t > t1 + 1e-6 ? null : ((t - t0) / (t1 - t0)) * 32)
+// Ray against an axis-aligned prism. runAlongB: the long axis is b (straight half-bulkhead).
+function prismFace(px, py, h, a0, a1, b0, b1) {
+  const runAlongB = b1 - b0 >= a1 - a0
+  const top = iso(px, py, h)
+  if (top.a >= a0 && top.a <= a1 && top.b >= b0 && top.b <= b1) {
+    // u across thickness, v along the run — a thin strip top, not a squashed bulkhead lid.
+    return runAlongB
+      ? { face: 'top', u: ((top.a - a0) / (a1 - a0)) * 32, v: ((top.b - b0) / (b1 - b0)) * 32, z: h }
+      : { face: 'top', u: ((top.b - b0) / (b1 - b0)) * 32, v: ((top.a - a0) / (a1 - a0)) * 32, z: h }
+  }
+  const side = px < CX ? 'left' : 'right'
+  let best = null
+  for (const aFace of [a0, a1]) {
+    const b = aFace - (px - CX) / 32
+    const z = 16 * (aFace + b - 1) - py + CY
+    if (b < b0 - 1e-6 || b > b1 + 1e-6 || z < 0 || z > h) continue
+    // Along b: a=const are the long faces. Along a: a=const are the short ends (u across thickness in b).
+    const chosen = runAlongB
+      ? { face: side, u: ((b - b0) / (b1 - b0)) * 32, v: z, z }
+      : { face: 'end', u: ((b - b0) / (b1 - b0)) * 32, v: z, z }
+    if (!best || chosen.z > best.z) best = chosen
+  }
+  for (const bFace of [b0, b1]) {
+    const a = bFace + (px - CX) / 32
+    const z = 16 * (a + bFace - 1) - py + CY
+    if (a < a0 - 1e-6 || a > a1 + 1e-6 || z < 0 || z > h) continue
+    const chosen = runAlongB
+      ? { face: 'end', u: ((a - a0) / (a1 - a0)) * 32, v: z, z }
+      : { face: side, u: ((a - a0) / (a1 - a0)) * 32, v: z, z }
+    if (!best || chosen.z > best.z) best = chosen
+  }
+  return best
+}
+// Corner L: solid on either arm; exterior faces listed explicitly so the inner corner is clean.
+function thinPrismHit(px, py, h, solid, faces) {
+  const top = iso(px, py, h)
+  if (solid(top.a, top.b)) {
+    const onA = top.a <= HALF_THICK
+    const onB = top.b <= HALF_THICK
+    let u
+    let v
+    if (onA && onB) {
+      u = (Math.min(top.a, top.b) / HALF_THICK) * 32
+      v = Math.max(top.a, top.b) * 32
+    } else if (onA) {
+      u = (top.a / HALF_THICK) * 32
+      v = top.b * 32
+    } else {
+      u = (top.b / HALF_THICK) * 32
+      v = top.a * 32
+    }
+    return { face: 'top', u, v, z: h }
+  }
+  const side = px < CX ? 'left' : 'right'
+  let best = null
+  for (const { kind, aFace, bFace, uOf, end } of faces) {
+    let hit = null
+    if (kind === 'a') {
+      const b = aFace - (px - CX) / 32
+      const z = 16 * (aFace + b - 1) - py + CY
+      if (z < 0 || z > h) continue
+      const u = uOf(b)
+      if (u == null) continue
+      hit = { face: end ? 'end' : side, u, v: z, z }
+    } else {
+      const a = bFace + (px - CX) / 32
+      const z = 16 * (a + bFace - 1) - py + CY
+      if (z < 0 || z > h) continue
+      const u = uOf(a)
+      if (u == null) continue
+      hit = { face: end ? 'end' : side, u, v: z, z }
+    }
+    if (!best || hit.z > best.z) best = hit
+  }
+  return best
+}
+const thinBulkheadScene = (a0, a1, b0, b1) => {
+  const material = thinWallMaterial(WALL_H)
+  return (px, py) => {
+    const face = prismFace(px, py, WALL_H, a0, a1, b0, b1)
+    return face ? shade(material, face.u, face.v, face.face) : null
+  }
+}
+// Straight: half-thick wall along b, on the a=0 edge of the tile (tiles.json runImages.x).
+const halfBulkheadScene = () => thinBulkheadScene(0, HALF_THICK, 0, 1)
+// The other run direction: half-thick along a, on the b=0 edge (tiles.json runImages.y). Drawn when the wall continues
+// along y; R / rotate still mirrors onto the opposite edge.
+const halfBulkheadYScene = () => thinBulkheadScene(0, 1, 0, HALF_THICK)
+// Corner: L on the a=0 and b=0 edges (same thickness), so it meets two straight pieces flush.
+const halfBulkheadCornerScene = () => {
+  const material = thinWallMaterial(WALL_H)
+  const T = HALF_THICK
+  const solid = (a, b) => (a >= 0 && a <= T && b >= 0 && b <= 1) || (a >= 0 && a <= 1 && b >= 0 && b <= T)
+  const faces = [
+    { kind: 'a', aFace: 0, uOf: (b) => alongRange(b, 0, 1), end: false },
+    { kind: 'b', bFace: 0, uOf: (a) => alongRange(a, 0, 1), end: false },
+    { kind: 'a', aFace: T, uOf: (b) => alongRange(b, T, 1), end: false },
+    { kind: 'b', bFace: T, uOf: (a) => alongRange(a, T, 1), end: false },
+    { kind: 'b', bFace: 1, uOf: (a) => alongRange(a, 0, T), end: true },
+    { kind: 'a', aFace: 1, uOf: (b) => alongRange(b, 0, T), end: true },
+  ]
+  return (px, py) => {
+    const face = thinPrismHit(px, py, WALL_H, solid, faces)
+    return face ? shade(material, face.u, face.v, face.face) : null
+  }
+}
+
 // Machinery is a big object (tiles.json big): a 2x2 square of it is drawn from its -big images.
 const machinery = (options) => blockScene(40, machineryMaterial(options))
 
@@ -453,6 +607,9 @@ const TILES = {
   grating: () => render(floorScene(gratingPlate({ live: false }))),
   'grating-live': () => render(floorScene(gratingPlate({ live: true })), { bloom: 1.2 }),
   bulkhead: () => renderTile(wallScene(), WALL_IMAGE),
+  halfBulkhead: () => renderTile(halfBulkheadScene(), WALL_IMAGE),
+  'halfBulkhead-y': () => renderTile(halfBulkheadYScene(), WALL_IMAGE),
+  halfBulkheadCorner: () => renderTile(halfBulkheadCornerScene(), WALL_IMAGE),
   machinery: () => render(machinery()),
   'machinery-big': () => renderBig(machinery()),
   crate: () => render(blockScene(16, crateMaterial())),

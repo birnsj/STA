@@ -7,6 +7,9 @@ export const getWeapon = (weaponId) => weaponData.weapons.find((weapon) => weapo
 export const getWeaponForItem = (itemId) => weaponData.weapons.find((weapon) => weapon.itemId && weapon.itemId === itemId) ?? null
 export const getInjuryMode = (modeId) => weaponData.injuryModes.find((mode) => mode.id === modeId) ?? null
 export const getAttackTaskSpec = (weapon) => weaponData.attackTasks[weapon.type]
+// The contextual unarmed attacks on an adjacent enemy's ring (Punch; weapons.json unarmedAttacks).
+export const UNARMED_ATTACKS = weaponData.unarmedAttacks
+export const getUnarmedAttack = (attackId) => UNARMED_ATTACKS.find((attack) => attack.id === attackId) ?? null
 
 // The weapon as this combatant wields it (talents can change it: combatTalents.js).
 export const getCombatantWeapon = (combatant, weaponId) => wieldWeapon(combatant.character, getWeapon(weaponId))

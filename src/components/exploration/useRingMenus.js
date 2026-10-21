@@ -18,7 +18,9 @@ export default function useRingMenus() {
   const closeAllMenus = useCallback(() => setMenu(null), [])
 
   const showMemberMenu = useCallback((id) => show('member', id), [show])
+  const toggleMemberMenu = useCallback((id) => toggle('member', id), [toggle])
   const showNpcMenu = useCallback((id) => show('npc', id), [show])
+  const toggleNpcMenu = useCallback((id) => toggle('npc', id), [toggle])
   const toggleObjectMenu = useCallback((id) => toggle('object', id), [toggle])
   const toggleDestructibleMenu = useCallback((id) => toggle('destructible', id), [toggle])
   const toggleGroundItemMenu = useCallback((id) => toggle('groundItem', id), [toggle])
@@ -32,7 +34,9 @@ export default function useRingMenus() {
     menuDestructibleId: idFor('destructible'),
     menuGroundItemId: idFor('groundItem'),
     showMemberMenu,
+    toggleMemberMenu,
     showNpcMenu,
+    toggleNpcMenu,
     toggleObjectMenu,
     toggleDestructibleMenu,
     toggleGroundItemMenu,

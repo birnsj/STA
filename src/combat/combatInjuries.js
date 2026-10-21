@@ -16,11 +16,14 @@ import {
   injuryTypeName,
   MAX_ADDED_SEVERITY,
   npcCategoryName,
+  payAvoidThreat,
+  personalThreatLeft,
   takeHit,
 } from '../rules/personalCondition.js'
 import { tileKey } from './battleMap.js'
 import { blastFaceOrigin, blastThrow, isExplosionInjury } from '../rules/appearance.js'
 import { updateCombatant, withStats } from './combatLog.js'
+import { proneCoverProtection } from './combatProne.js'
 import { getTurnOf, knowsAbout, statusText } from './combatSelectors.js'
 import { talentSeverityLines } from './combatTalents.js'
 import { chooseFatigueAttribute } from './injuryPolicy.js'
@@ -43,7 +46,10 @@ export function clearBlastReact(state, id) {
 // situation: { aimed, targetUnaware } as the attack was made; by default, as things stand now (previews, the AI).
 export function injuryFor(state, attacker, target, weapon, injuryModeId, addedSeverity = 0, situation = {}) {
   const { aimed = getTurnOf(state, attacker.id).aimReroll, targetUnaware = !knowsAbout(state, target, attacker) } = situation
-  const protection = getProtection(target.character, { injuryType: injuryModeId, inCover: target.inCover })
+  const worn = getProtection(target.character, { injuryType: injuryModeId, inCover: target.inCover })
+  // Book p.288: a prone target in Cover has +1 Protection.
+  const proneCover = proneCoverProtection(target)
+  const protection = proneCover ? { value: worn.value + proneCover, lines: [...worn.lines, { label: 'Prone in cover', change: proneCover }] } : worn
   const talentSeverity = talentSeverityLines(attacker.character, weapon, { aimed, targetUnaware })
   return buildInjury({ id: `${state.seed}-${state.log.length}-${target.id}`, type: injuryModeId, weapon, attacker, addedSeverity, protection, talentSeverity })
 }
@@ -91,6 +97,13 @@ function thrownCombatant(state, combatant, injury) {
   return { position: { ...throw_.land }, facing, blastReact: react }
 }
 
+// Where a Threat avoid was paid from, for the log: "pool now 3" or "2 Personal Threat and 1 from the pool, now 3; 1 Personal left".
+function threatSpendText(option, character, after) {
+  if (!option.personal) return `pool now ${after.resources.threat}`
+  const shared = option.shared ? ` and ${option.shared} from the pool, now ${after.resources.threat}` : ''
+  return `${option.personal} Personal Threat${shared}; ${personalThreatLeft(character, after.personalThreatSpent)} Personal left`
+}
+
 function resolveOneInjury(state, incoming, avoid) {
   const { targetId, injury, option } = incoming
   const target = state.combatants[targetId]
@@ -103,13 +116,7 @@ function resolveOneInjury(state, incoming, avoid) {
       condition: avoided.condition,
       ...(isExplosionInjury(injury) ? thrownCombatant(next, target, injury) : {}),
     })
-    if (option.kind === 'threat') {
-      next = {
-        ...next,
-        resources: { ...next.resources, threat: next.resources.threat - option.cost },
-        avoidedThisScene: [...next.avoidedThisScene, target.character.id],
-      }
-    }
+    if (option.kind === 'threat') next = payAvoidThreat(next, target.character, option)
     next = withStats(next, (stats) => {
       stats.injuries.avoided += 1
       stats.byCombatant[targetId].injuriesAvoided += 1
@@ -120,13 +127,13 @@ function resolveOneInjury(state, incoming, avoid) {
         if (avoided.becameFatigued) stats.injuries.fatigued += 1
       } else {
         stats.injuries.threatSpent += option.cost
-        stats.threat.spentByNpcs += option.cost
+        stats.threat.spentByNpcs += option.shared
       }
     })
     const paid =
       option.kind === 'stress'
         ? `takes ${avoided.taken} Stress${avoided.overflow ? ` (needed ${option.cost}; the track is full)` : ''} (${statusText(next.combatants[targetId])})`
-        : `spends ${option.cost} Threat (pool now ${next.resources.threat})`
+        : `spends ${option.cost} Threat (${threatSpendText(option, target.character, next)})`
     const lines = [`${name} avoids the Injury: ${paid}. Not Defeated.`]
     if (avoided.complication) lines.push(`${name} suffers a complication: ${avoided.complication.name} (${avoided.overflow} Stress over the maximum, Book p.277).`)
     if (avoided.becameFatigued) {
@@ -167,7 +174,7 @@ export function startFatigueChoice(state, combatantId, lines) {
 // Book p.291-292 Avoid Injury: whether (and at what cost) this target could avoid this Injury now: Stress for a main or
 // supporting character, Threat for a notable NPC (once a scene), never for a minor NPC.
 export const avoidOptionFor = (state, target, injury) =>
-  getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene })
+  getAvoidOption(target.character, target.condition, injury, { threat: state.resources.threat, avoidedThisScene: state.avoidedThisScene, personalThreatSpent: state.personalThreatSpent })
 
 // The Injury would Defeat this target: they couldn't avoid it. What the AI weighs a shot by.
 export const injuryDefeats = (state, target, injury) => !avoidOptionFor(state, target, injury).possible

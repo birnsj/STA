@@ -326,5 +326,26 @@
       "sourceType": "book",
       "note": "Book (STA 2e Core p.243 weapons table): Unarmed Strike = Melee, Stun, Severity 2, 1H. Always available to everyone."
     }
+  ],
+  "unarmedAttacks": [
+    {
+      "id": "punch",
+      "name": "Punch",
+      "icon": "punch",
+      "weaponId": "unarmedStrike",
+      "injuryMode": "stun",
+      "description": "an Unarmed Strike at someone in Reach, whatever weapon is in hand",
+      "note": "Book (Core p.243): the Unarmed Strike is the only unarmed attack: Melee, Stun, Severity 2. PROTOTYPE (implementer pick, awaiting designer review): Punch is that Unarmed Strike offered as its own contextual button on an adjacent enemy's ring, so the player need not cycle weapons first. No rules change: same task, Difficulty, severity and action cost (a Major action, like any Attack)."
+    },
+    {
+      "id": "kick",
+      "name": "Kick",
+      "icon": "kick",
+      "weaponId": "unarmedStrike",
+      "injuryMode": "stun",
+      "knockdown": { "cost": 2 },
+      "description": "an Unarmed Strike at someone in Reach; on a hit, spend 2 Momentum (the group's pool; an enemy spends Threat) to knock them prone",
+      "note": "Book (Core p.243): there is no Kick and no Knockdown quality or knockdown rule for personal combat; the Unarmed Strike is the only unarmed attack. PROTOTYPE ADAPTATION (implementer pick, awaiting designer review): Kick is the same Unarmed Strike (same task, severity 2, Stun, Major action) with one addition: when it hits and the target is still up and not prone, 2 Momentum is spent automatically (no prompt, as Avoid Injury) to knock the target prone, if the pool holds it. The cost is a placeholder, chosen to match the book's 2 Momentum per +1 severity (p.292). Prone itself is the book's trait (Core p.288): see actions.json notes."
+    }
   ]
 }

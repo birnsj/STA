@@ -1,6 +1,6 @@
 // Building a combat: the combatants from the party and the encounter's roster (or from where everyone stands in the
 // world), initiative, the stats block and the opening log. addCombatant lets a late arrival join a running fight.
-import { getAuthoredCharacter } from '../character/authoredCharacters.js'
+import { getAuthoredCharacter, npcRulesFor } from '../character/authoredCharacters.js'
 import { assignNpcAppearances } from '../character/npcAppearance.js'
 import { placeAwayTeam } from '../exploration/awayTeam.js'
 import { gridFacing } from '../maps/facing.js'
@@ -53,7 +53,7 @@ function createEnemyCharacters(encounter, mapFile) {
   return roster.map((characterId, index) => {
     const { x, y, facing } = mapFile.markers.enemySpawns[index]
     return {
-      character: getAuthoredCharacter(characterId, { npcRules: encounter.npcRules ?? null, appearance: appearances[index] }),
+      character: getAuthoredCharacter(characterId, { npcRules: npcRulesFor(characterId, encounter.npcRules), appearance: appearances[index] }),
       position: { x, y },
       ...(facing == null ? {} : { facing: gridFacing(facing) }),
     }
@@ -166,8 +166,7 @@ export function createCombat({
     // cost } (combatCounterattack.js).
     pendingCounterattack: null,
     // Notable NPCs that have spent Threat to Avoid Injury this scene (Book p.291: once per scene).
-    avoidedThisScene: [],
-    // Communication conditions for Direct (rules/communication.js): { remoteBlocked, reason }. null = nothing blocks comms.
+    avoidedThisScene: [],    // Communication conditions for Direct (rules/communication.js): { remoteBlocked, reason }. null = nothing blocks comms.
     comms: null,
     // null until the party ambushes or is spotted first (see canAmbush); then { ambusherId, targetId, success } or { passed: true }.
     ambush: null,

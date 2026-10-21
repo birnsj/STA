@@ -45,6 +45,8 @@ export function normalStep(state, self, ai) {
   // Leave damaging hazards before any other plan (suits with immunity treat those tiles as safe).
   const escape = escapeHazardStep(state, self)
   if (escape) return escape
+  const stand = standUpStep(state, self)
+  if (stand) return stand
   if (ai === 'random') return randomStep(state, self)
   // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
   const support = supportStep(state, self)

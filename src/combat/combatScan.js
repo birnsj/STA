@@ -1,7 +1,7 @@
 // Scanning an enemy in combat (PROTOTYPE, designer decision Oct 2026): before a scan the party sees only what is in plain
 // view; a successful Scan (combatTasks.js previewScan, actions.json tasks.scan) adds its Protection, weapons and
 // tactical tips for the rest of the fight (state.scanned). The tips are worked out from the rules, never authored per enemy.
-import { conditionSummary, getAvoidOption, getMaxStress, getProtection, npcCategoryName, npcCategoryOf } from '../rules/personalCondition.js'
+import { conditionSummary, getAvoidOption, getMaxStress, getProtection, npcCategoryName, npcCategoryOf, personalThreatLeft } from '../rules/personalCondition.js'
 import { getBandIndex, getRangeBand, tileDistance } from './rangeSystem.js'
 import { describeRange, getCombatantWeapon, getInjuryMode } from './weaponSystem.js'
 import actionData from '../data/adaptation/combat/actions.json'
@@ -49,12 +49,12 @@ function scanTips(state, viewer, enemy, weapons, protection) {
   const { character, condition } = enemy
   const threat = state.resources.threat
   // Avoid Injury (Book p.291-292) for the smallest Injury: whether the next hit Defeats it.
-  const avoid = getAvoidOption(character, condition, { severity: 1 }, { threat, avoidedThisScene: state.avoidedThisScene ?? [] })
+  const avoid = getAvoidOption(character, condition, { severity: 1 }, { threat, avoidedThisScene: state.avoidedThisScene ?? [], personalThreatSpent: state.personalThreatSpent ?? {} })
   if (npcCategoryOf(character) === 'minor') tips.push('Minor NPC: any hit Defeats it.')
   else if (avoid.kind === 'threat') {
     tips.push(
       avoid.possible
-        ? `Avoids an Injury by spending Threat equal to its Severity (pool ${threat}).`
+        ? `Avoids an Injury by spending Threat equal to its Severity (Personal Threat ${personalThreatLeft(character, state.personalThreatSpent)}, pool ${threat}).`
         : `Can't avoid an Injury now (${avoid.reason.replace(/\.$/, '')}): the next hit Defeats it.`,
     )
   } else if (!avoid.possible) tips.push('Fatigued: it can\'t avoid an Injury; the next hit Defeats it.')

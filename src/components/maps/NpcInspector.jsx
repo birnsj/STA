@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import {
   getAuthoredCatalogueVersion,
   listAuthoredCharacters,
+  npcRulesFor,
   subscribeAuthoredCatalogue,
 } from '../../character/authoredCharacters.js'
 import { npcPortraitOptions } from '../../character/npcAppearance.js'
 import { getGenders, getNpcBackdropById } from '../../rules/appearance.js'
+import { dialogueMismatchWarning, dialogueTierLabel, dialogueTierOf } from '../../conversation/dialogueTier.js'
+import { conversationIdFor } from '../../conversation/defaultConversations.js'
+import { loadConversation } from '../../conversation/conversationFiles.js'
+import { defaultInfluenceRadius } from '../../exploration/influence.js'
 import awareness from '../../data/adaptation/exploration/awareness.json'
 import factionData from '../../data/adaptation/factions.json'
 import { FACINGS, snapFacing } from '../../maps/facing.js'
@@ -21,7 +26,8 @@ function useAuthoredCharacterOptions() {
   return listAuthoredCharacters()
 }
 const NPC_RULES = [
-  { id: '', label: 'Full character rules' },
+  { id: '', label: 'Stat block default' },
+  { id: 'main', label: 'Full character rules' },
   { id: 'supporting', label: 'Supporting (Core p.278)' },
   { id: 'minor', label: 'Minor NPC (Core p.291)' },
   { id: 'notable', label: 'Notable NPC (Core p.291)' },
@@ -342,6 +348,37 @@ export default function NpcInspector({
 }) {
   const characters = useAuthoredCharacterOptions()
   const character = characters.find((entry) => entry.id === npc.characterId)
+  // What Talk opens when no conversation is chosen (defaultConversations.json), and the book category of the stat block
+  // (the NPC plays under it unless 'NPC rules' below chooses another).
+  const factionConversation = conversationIdFor({ faction: npc.faction || character?.faction })
+  const effectiveNpcRules = npcRulesFor(npc.characterId, npc.npcRules) ?? 'main'
+  const dialogueTier = dialogueTierOf(effectiveNpcRules)
+  const talkConversationId = npc.conversationId || factionConversation
+  const [talkDefinition, setTalkDefinition] = useState(null)
+  useEffect(() => {
+    if (!talkConversationId) {
+      setTalkDefinition(null)
+      return undefined
+    }
+    let cancelled = false
+    loadConversation(talkConversationId)
+      .then((definition) => {
+        if (!cancelled) setTalkDefinition(definition)
+      })
+      .catch(() => {
+        if (!cancelled) setTalkDefinition(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [talkConversationId])
+  const dialogueWarning = talkDefinition
+    ? dialogueMismatchWarning(talkDefinition, effectiveNpcRules, { conversationId: talkConversationId })
+    : null
+  const statBlockCategory = (() => {
+    const category = npcRulesFor(npc.characterId, null)
+    return category ? `${category} NPC` : null
+  })()
   const text = (key) => (event) => onChange({ [key]: event.target.value.trim() ? event.target.value : null })
   const select = (key) => (event) => onChange({ [key]: event.target.value || null })
   const defaultResponse = dispositionResponse(npc.disposition ?? 'neutral')
@@ -405,7 +442,7 @@ export default function NpcInspector({
       </Field>
       <Field label="Conversation">
         <select className="me-select me-wide" value={npc.conversationId ?? ''} onChange={select('conversationId')}>
-          <option value="">None</option>
+          <option value="">{factionConversation ? `Faction default (${factionConversation})` : 'None'}</option>
           {npc.conversationId && !conversations.some((entry) => entry.id === npc.conversationId) && <option value={npc.conversationId}>{npc.conversationId} (missing)</option>}
           {conversations.map((entry) => (
             <option key={entry.id} value={entry.id}>
@@ -419,6 +456,7 @@ export default function NpcInspector({
           Edit Conversation
         </button>
       )}
+      {dialogueWarning && <p className="me-text is-warning">{dialogueWarning}</p>}
       <Field label="Facing">
         <select className="me-select me-wide" value={snapFacing(npc.facing ?? 0)} onChange={(event) => onFacing(Number(event.target.value))}>
           {FACINGS.map((entry) => (
@@ -432,14 +470,33 @@ export default function NpcInspector({
         <select className="me-select me-wide" value={npc.npcRules ?? ''} onChange={select('npcRules')}>
           {NPC_RULES.map((entry) => (
             <option key={entry.id} value={entry.id}>
-              {entry.label}
+              {entry.id === '' ? `${entry.label} (${statBlockCategory ?? 'full character rules'})` : entry.label}
             </option>
           ))}
         </select>
       </Field>
+      <p className="me-text">
+        Dialogue depth from NPC rules: {dialogueTierLabel(dialogueTier)}
+        {dialogueTier === 'minor' && ' (one line)'}
+        {dialogueTier === 'notable' && ' (branched choices)'}
+        {dialogueTier === 'major' && ' (full graph)'}
+        . Soft guideline only.
+      </p>
       <label className="me-check" title="If this NPC is killed (dead, or Dying with an untreated Deadly Injury when a fight ends), the mission fails.">
         <input type="checkbox" checked={Boolean(npc.mustSurvive)} onChange={(event) => onChange({ mustSurvive: event.target.checked })} /> Must survive (mission fails if the away team fights them)
       </label>
+      <Field label="Influence radius (tiles)">
+        <input
+          className="me-name me-wide"
+          type="number"
+          min="0"
+          step="1"
+          value={npc.influenceRadius ?? ''}
+          placeholder={`Default ${defaultInfluenceRadius}`}
+          title="How far this NPC's conversation reaches when it influences nearby NPCs (stand down, hesitate, escalate), unless the conversation action sets its own radius."
+          onChange={(event) => onChange({ influenceRadius: event.target.value === '' || !(Number(event.target.value) > 0) ? null : Number(event.target.value) })}
+        />
+      </Field>
       <Field label="Alert group">
         <input className="me-name me-wide" value={npc.alertGroupId ?? ''} placeholder="None" onChange={text('alertGroupId')} />
       </Field>

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "P.O. Chen: maintenance",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "I'm holding what's left of the local grid together. Don't lean on any panel that still looks warm.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "Where's the fault?", "conditions": [], "next": "fault" },
+        { "id": "o2", "text": "Need a hand?", "conditions": [], "next": "hand" },
+        { "id": "o3", "text": "Carry on.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "fault",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "EPS Power Junction by Lt. Okafor. Coupling's shot. She'll walk you through it — if you ask nicely.",
+      "next": "end"
+    },
+    {
+      "id": "hand",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Appreciate it, but I'm babysitting live conduits. Talk to Okafor; she's running the restore.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

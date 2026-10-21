@@ -58,8 +58,11 @@ function CheckFields({ node, map, update }) {
       </div>
       <div className="ce-row">
         <Field label="Difficulty">
-          <input className="ce-input ce-number" type="number" min="0" max="5" value={node.difficulty} onChange={(event) => update({ difficulty: Math.max(0, Number(event.target.value) || 0) })} />
+          <input className="ce-input ce-number" type="number" min="0" max="5" value={node.difficulty} disabled={Boolean(node.opposed)} onChange={(event) => update({ difficulty: Math.max(0, Number(event.target.value) || 0) })} />
         </Field>
+        <label className="ce-check" title="The NPC resists with Control + Command: the roll's successes set the Difficulty of its roll, and the check succeeds if it fails (Book Core pp.256, 279-280). The Difficulty above is not used.">
+          <input type="checkbox" checked={Boolean(node.opposed)} onChange={(event) => update({ opposed: event.target.checked })} /> Opposed (the NPC resists)
+        </label>
         <Field label="Complication range">
           <input
             className="ce-input ce-number"

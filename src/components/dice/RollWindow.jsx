@@ -62,7 +62,8 @@ function Stepper({ label, value, min, max, onChange, children = null }) {
 // title. assistOptions: [{ id, member, assist (the prepared assist), assistIndex }] for who may assist (empty: no
 // Assist row). resources: the mission's { momentum, threat }. onRoll({ assistantId, assistIndex, purchase }).
 // onCancel: omit when the roll can't be backed out of (a conversation's check).
-export function PreRollWindow({ title, performer, prepared, assistOptions = [], resources, onRoll, onCancel = null }) {
+// opposedBy: set for a request the other side resists (a conversation's opposed check): its name, and what it rolls.
+export function PreRollWindow({ title, performer, prepared, assistOptions = [], resources, onRoll, onCancel = null, opposedBy = null }) {
   const [assistantId, setAssistantId] = useState(null)
   const [bonusDice, setBonusDice] = useState(0)
   const option = assistOptions.find((entry) => entry.id === assistantId) ?? null
@@ -73,10 +74,10 @@ export function PreRollWindow({ title, performer, prepared, assistOptions = [], 
   const bonusTip = `Bought d20s cost ${BONUS_DIE_COSTS.join(', then ')}, paid from the group's Momentum (${resources.momentum}/${MAX_MOMENTUM}). Whatever Momentum can't cover gives the enemy that much Threat (now ${resources.threat}).\n\n${THREAT_EXPLAINED}`
   const canRoll = prepared.possible && check.valid
   return (
-    <RollWindow title={`${title} · Difficulty ${prepared.difficulty}`} tip={taskTipText(prepared, option?.assist, option && option.member.character.name)}>
+    <RollWindow title={opposedBy ? `${title} · opposed by ${opposedBy.name}` : `${title} · Difficulty ${prepared.difficulty}`} tip={taskTipText(prepared, option?.assist, option && option.member.character.name)}>
       <PendingDice count={check.dice} owner={firstName(performer)} assistOwner={option && firstName(option.member)} />
       {prepared.possible ? (
-        <p className="roll-window-need">{needText(prepared.task, prepared.difficulty)}</p>
+        <p className="roll-window-need">{opposedBy ? `Each success sets the Difficulty of ${opposedBy.name}'s ${opposedBy.roll} roll to resist.` : needText(prepared.task, prepared.difficulty)}</p>
       ) : (
         <p className="roll-window-warning">{prepared.blockers[0] ?? "Can't be attempted."}</p>
       )}
@@ -139,8 +140,8 @@ function resultTipText(lastTask, assistantName) {
 // After the roll: the dice landing, Success or Failure, a one-line summary (its breakdown as a hover tip), any authored
 // messages, and Continue. lastTask: a conversation's lastCheck or an object's lastTask (the same fields).
 export function ResultWindow({ title, lastTask, performer, assistant = null, onContinue }) {
-  const { result, prepared } = lastTask
-  const tally = `${successesText(result.successes)}${result.difficulty > 0 ? ` (${result.difficulty} needed)` : ''}`
+  const { result, prepared, opposed } = lastTask
+  const tally = opposed ? successesText(result.successes) : `${successesText(result.successes)}${result.difficulty > 0 ? ` (${result.difficulty} needed)` : ''}`
   const summary = [
     tally,
     result.success && result.momentumGenerated ? `+${result.momentumGenerated} Momentum` : null,
@@ -149,10 +150,17 @@ export function ResultWindow({ title, lastTask, performer, assistant = null, onC
     .filter(Boolean)
     .join(' · ')
   return (
-    <RollWindow title={`${title} · Difficulty ${result.difficulty}`} tip={taskTipText(prepared)}>
+    <RollWindow title={opposed ? `${title} · opposed by ${opposed.npcName}` : `${title} · Difficulty ${result.difficulty}`} tip={taskTipText(prepared)}>
       <div className="roll-window-dice">
         <RolledDice result={result} performer={performer} assistant={assistant} dieSize={DIE_SIZE} shortTags={result.dice.length + (result.assist ? 1 : 0) > 2} />
       </div>
+      {opposed && (
+        <p className="roll-window-message">
+          {opposed.set > 0
+            ? `${opposed.npcName} resists at Difficulty ${opposed.difficulty} and scores ${successesText(opposed.resistSuccesses)}.`
+            : `No successes set a Difficulty: ${opposed.npcName} has nothing to resist.`}
+        </p>
+      )}
       <p className={`roll-window-outcome ${result.success ? 'is-success' : 'is-failure'}`}>{result.success ? 'Success' : 'Failure'}</p>
       <p className="roll-window-summary" title={resultTipText(lastTask, assistant ? firstName(assistant) : '')}>
         {summary}

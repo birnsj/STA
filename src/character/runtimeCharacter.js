@@ -120,8 +120,9 @@ export function normalizeCharacterRecord(record, { id } = {}) {
       // Data only for now; exports before schema 0.7.0 have none.
       talents: items(record.final.talents).filter((talent) => talent.id).map(readTalent),
       equipment: items(record.final.equipment).map((item) => ({ itemId: item.itemId, name: item.name ?? item.itemId })),
-      // Metadata only, never read by the rules: the book stat block an authored character was based on
-      // ({ book, page, statBlock, npcCategory, personalThreat, protection }), or null.
+      // The book stat block an authored character was based on ({ book, page, statBlock, npcCategory, personalThreat,
+      // protection }), or null. Read for a placed NPC's default NPC rules (authoredCharacters.js npcRulesFor) and its
+      // Personal Threat pool (rules/personalCondition.js); nothing else.
       sourceClassification: isPlainObject(record.sourceClassification) ? { ...record.sourceClassification } : null,
       source: { schemaVersion: record.schemaVersion ?? null, sourceType: record.sourceType ?? 'export' },
     },

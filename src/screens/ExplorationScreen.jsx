@@ -237,16 +237,16 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const openTransporter = useCallback(() => setTransporterFor(fightId), [fightId, setTransporterFor])
 
   // UI state: the one radial menu that is open, as the id for each kind (null when another kind is open): a party member
-  // (right-click on them), an NPC (left click), a challenge object (left click while in reach), a destructible (its Fire
-  // ring) or a ground item.
+  // (left-click, or right-click without a drag), an NPC, a challenge object (while in reach), a destructible (its Fire
+  // ring) or a ground item — all on left click.
   const {
     menuMemberId,
     menuNpcId,
     menuObjectId,
     menuDestructibleId,
     menuGroundItemId,
-    showMemberMenu,
-    showNpcMenu,
+    toggleMemberMenu,
+    toggleNpcMenu,
     toggleObjectMenu,
     toggleDestructibleMenu,
     toggleGroundItemMenu,
@@ -313,14 +313,15 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         : null
   const select = useCallback((id, additive) => dispatch({ type: additive ? 'toggleSelect' : 'select', id }), [dispatch])
   const selectBox = useCallback((ids, additive) => dispatch({ type: 'selectBox', ids, additive }), [dispatch])
-  // Right-click opens a member's menu and adds them to the selection; whoever else is selected stays selected.
+  // Left-click (or a right-click without a drag) opens a member's menu. Right-click also adds them to the selection
+  // without clearing anyone else; left-click selects first (PixiExplorationBoard), then opens the ring.
   const selectedIds = state.party.selectedIds
   const openMenu = (id) => {
     if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
-    showMemberMenu(id)
+    toggleMemberMenu(id)
   }
-  // Left-click a ground item: walk the selected party over and pick it up when in reach (pendingPickup).
-  // Right-click still opens the Pick Up / Go To ring (PixiExplorationBoard).
+  // A quick left-click on a ground item walks over and picks it up (pendingPickup). Holding the left button opens the
+  // Pick Up / Go To ring; right-click opens the same ring. Left-drag lifts the item as the cursor.
   const openGroundItemMenu = (id) => {
     if (itemDragRef.current) return
     toggleGroundItemMenu(id)
@@ -504,14 +505,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       dispatch({ type: 'scanNpc', memberId, npcId: menuNpc.id })
       setNpcInfoOpen(true)
     },
-    persuade: (memberId) => {
-      dispatch({ type: 'askNpc', memberId, npcId: menuNpc.id, kind: 'persuade' })
-      setNpcInfoOpen(true)
-    },
-    intimidate: (memberId) => {
-      dispatch({ type: 'askNpc', memberId, npcId: menuNpc.id, kind: 'intimidate' })
-      setNpcInfoOpen(true)
-    },
     info: () => setNpcInfoOpen((open) => !open),
     // Attacking someone who wouldn't fight anyway asks first.
     attack: () => {
@@ -527,8 +520,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     npcMenuButtons(state, menuNpc, talkable.some((npc) => npc.id === menuNpc.id), npcInfoOpen, npcActions, pickedId).map((button) => ({
       ...button,
       onClick: () => {
-        // Scan, Persuade and Intimidate keep the ring up so the card beside it shows the result.
-        if (!button.keepOpen && !['scan', 'persuade', 'intimidate'].includes(button.id)) closeMenu('npc')
+        // Scan keeps the ring up so the card beside it shows the result.
+        if (!button.keepOpen && button.id !== 'scan') closeMenu('npc')
         button.onClick?.()
       },
     }))
@@ -695,7 +688,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     ? 'Interacting: Escape closes the panel; walking out of reach closes it too. The world keeps moving.'
     : noiseTool
       ? 'Noise tool: click the floor to make a noise there.'
-      : `Click or hold the left button to move. Click a ground item to walk over and pick it up; drag it to carry it. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Right-click a character for their actions; click someone else to talk to them.`
+      : `Click or hold the left button to move. Click a ground item to walk over and pick it up; hold for Pick Up / Go To; drag it to carry it. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
@@ -739,7 +732,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onSelect={select}
           onSelectBox={selectBox}
           onOpenMenu={openMenu}
-          onOpenNpcMenu={showNpcMenu}
+          onToggleMenu={toggleMemberMenu}
+          onOpenNpcMenu={toggleNpcMenu}
           onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
           menu={memberMenu || npcMenu || objectMenu || destructibleMenu || groundItemMenu}
           beamIn={beamPhase}

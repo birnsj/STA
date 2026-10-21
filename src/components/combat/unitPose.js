@@ -31,7 +31,7 @@ export function poseInput(combatant, { lastAction = null, hitDelayMs = 0, speed 
   // Prefer injury.id; fall back so a hand-off react without an id still plays fall → getUp.
   const blastKey =
     !combatant.condition?.defeated && combatant.blastReact
-      ? (injury?.id ?? `react:${combatant.id}`)
+      ? (injury?.id ?? combatant.blastReact.key ?? `react:${combatant.id}`)
       : null
   return {
     down: Boolean(combatant.condition?.defeated),

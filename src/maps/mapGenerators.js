@@ -30,6 +30,7 @@ import { generateSpaceStation } from './generators/spaceStation.js'
 import { generateStarshipDeck } from './generators/starshipDeck.js'
 import { generateSurfaceSite } from './generators/surfaceSite.js'
 import { generateWilderness } from './generators/wilderness.js'
+import { finishHalfWalls } from './generators/halfWalls.js'
 import { withLayoutScale } from './generators/shared.js'
 import { applyWallVariants } from './generators/wallVariants.js'
 import hazardData from '../data/adaptation/world/hazards.json'
@@ -142,8 +143,10 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
+  // Thin starship walls: corners and edge facing (halfWalls.js). Then fittings on full bulkheads only.
+  const oriented = finishHalfWalls(layout)
   // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
-  return { ...applyWallVariants(layout, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
+  return { ...applyWallVariants(oriented, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
 }
 
 // Open floor tiles a generated hazard may cover (not solid, not a player start or enemy spawn).

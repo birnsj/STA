@@ -14,7 +14,7 @@ const GRID = 10
 const MARGIN = 400
 
 const portY = (node, index) => node.position.y + HEADER + BODY + ROW * index + ROW / 2
-const conditionText = (condition) => `${condition.flag || '?'} ${condition.op}${condition.value !== undefined && !['isTrue', 'isFalse'].includes(condition.op) ? ` ${condition.value}` : ''}`
+const conditionText = (condition) => `${condition.npc ? `NPC ${condition.npc}` : condition.flag || '?'} ${condition.op}${condition.value !== undefined && !['isTrue', 'isFalse'].includes(condition.op) ? ` ${condition.value}` : ''}`
 
 function summary(node) {
   switch (node.type) {
@@ -23,7 +23,7 @@ function summary(node) {
     case 'choice':
       return `${node.options.length} option${node.options.length === 1 ? '' : 's'}`
     case 'check':
-      return `${node.label ? `${node.label}: ` : ''}${getAttributeName(node.attribute)} + ${getDisciplineName(node.department)}, Difficulty ${node.difficulty}`
+      return `${node.label ? `${node.label}: ` : ''}${getAttributeName(node.attribute)} + ${getDisciplineName(node.department)}, ${node.opposed ? 'opposed by the NPC' : `Difficulty ${node.difficulty}`}`
     case 'condition':
       return node.conditions.length ? node.conditions.map(conditionText).join(node.match === 'any' ? ' or ' : ' and ') : '(no conditions: always true)'
     case 'action':

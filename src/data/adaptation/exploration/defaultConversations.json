@@ -1,0 +1,6 @@
+{
+  "note": "VIDEOGAME ADAPTATION (designer approved, Oct 2026): the conversation an NPC has when none is authored on the map (conversationId blank). byFaction maps an NPC's faction id (factions.json) to a conversation file in conversations/. An authored conversationId always wins; an NPC with neither has nothing to say.",
+  "byFaction": {
+    "klingonEmpire": "klingonEncounter"
+  }
+}

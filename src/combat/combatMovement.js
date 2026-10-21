@@ -2,6 +2,7 @@
 // far, which tiles it can reach and the path to one. The grid rules themselves live in movementSystem.js.
 import { tileKey } from './battleMap.js'
 import { canAfford, getOpponents, getTurnOf, occupiesTile } from './combatSelectors.js'
+import { proneMovementBlock } from './combatProne.js'
 import { findPath, getMovementTiles, getReachableTiles, getSprintTiles } from './movementSystem.js'
 import { tileDistance } from './rangeSystem.js'
 import { actionTypeOf } from './turnActions.js'
@@ -14,6 +15,9 @@ export function getMovementBlock(state, combatant, kind = 'move') {
   const turn = getTurnOf(state, combatant.id)
   if (turn[actionTypeOf(kind)] <= 0) return `No ${actionTypeOf(kind)} action left.`
   if (kind === 'sprint') {
+    // Book p.288: a prone character can't attempt movement-related major actions.
+    const prone = proneMovementBlock(combatant, kind)
+    if (prone) return prone
     if (turn.sprinted) return 'Already sprinted this turn.'
     if (turn.moved) return 'Moved this turn: Move and Sprint cannot both be taken in one turn.'
     return null

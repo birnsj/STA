@@ -4,7 +4,7 @@ import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { previewObjectAttack } from './combatEnvironment.js'
 import { previewAmbush, previewAttack, previewFirstAid, previewGuard, previewScan, previewScanObject, previewSocial } from './combatState.js'
 import { getCombatantList, getTurnGroup, isActive, isTurnFinished } from './combatSelectors.js'
-import { getCombatantWeapon } from './weaponSystem.js'
+import { getCombatantWeapon, getUnarmedAttack } from './weaponSystem.js'
 
 // Odds helper: attack / object previews expose task fields flat; task previews nest under .prepared.
 function asPrepared(preview) {
@@ -133,6 +133,17 @@ export function combatRingPartyView(state, context) {
           },
         ])
       }
+    } else if (getUnarmedAttack(buttonId)) {
+      // Punch / Kick: everyone's Unarmed Strike, whatever they hold (combatUnarmed.js).
+      const { weaponId } = getUnarmedAttack(buttonId)
+      for (const member of members) {
+        if (blocked[member.id]) continue
+        const preview = previewAttack(state, member.id, enemyId, weaponId)
+        blocked[member.id] = preview.available ? null : preview.reason ?? 'No shot.'
+      }
+      recommendation = recommendPerformers(
+        members.filter((m) => !blocked[m.id]).map((m) => ({ id: m.id, prepared: asPrepared(previewAttack(state, m.id, enemyId, weaponId)) })),
+      )
     } else if (buttonId === 'stun' || buttonId === 'deadly' || buttonId?.startsWith('attack')) {
       const modeId = buttonId === 'stun' || buttonId === 'deadly' ? buttonId : buttonId.replace(/^attack-/, '')
       for (const member of members) {

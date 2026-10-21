@@ -32,7 +32,7 @@ function OptionButton({ state, option, pickedPerformerId, defaultPerformerId, on
           {check && <span className="conversation-option-check">[{usesText(check)}] </span>}
           {option.text}
         </strong>
-        {check && <span className="challenge-approach-detail">Task Check &middot; Difficulty {check.difficulty}</span>}
+        {check && <span className="challenge-approach-detail">Task Check &middot; {check.opposed ? 'opposed' : `Difficulty ${check.difficulty}`}</span>}
         {recommendation?.bestIds.length > 0 && <span className="challenge-approach-best">&#9733; Best: {bestText(recommendation, (id) => firstName(state.party.members[id]))}</span>}
       </span>
       {speaker && (

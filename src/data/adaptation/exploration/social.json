@@ -5,7 +5,8 @@
     "Designer decisions (2026-10-12), effects on the NPC's disposition (dispositionOrder, awareness.json) and on the Task Checks in its conversation: Persuade win: persuadeWinSteps friendlier, and its conversation checks get conversationDifficulty.persuadeWin (implementer recommendation, awaiting approval: easier rather than skipped, so Intimidate stays the way to skip them). Persuade loss: nothing changes. Intimidate win: an NPC that would fight stands down (neutral, never joins a fight), otherwise intimidateWinSteps friendlier; it is Intimidated: its conversation's Task Checks pass without a roll (every check, technical ones included; designer decision 2026-10-14), and it resists later requests at +intimidatedDifficulty. Intimidate loss: intimidateLossSteps more hostile, alerted to the asker, no longer Intimidated, and its conversation checks get conversationDifficulty.intimidateLoss; an NPC already at the hostile end (aggressive) attacks (designer decision 2026-10-14). Intimidated does not carry into a fight (designer decision 2026-10-14). The NPC's Momentum when it resists becomes Threat in exploration too (designer decision 2026-10-14).",
     "Book support for those effects (Core pp.279-282): a resisted request can't be made again unchanged (p.279; the Prototype uses a cooldown instead). Evidence lowers a Persuade task's Difficulty by 1 (p.281), the precedent for Persuade making checks easier. Successful Intimidation imposes a trait representing fear (p.282; the Prototype's Intimidated). Failed Intimidation makes further attempts in the scene harder, and Intimidation is inherently hostile: it can worsen other interactions, cause lingering resentment, or provoke a target to aggression (p.282; the Prototype's angrier NPC, harder checks and an aggressive NPC attacking). Prototype only, not in the book: disposition steps, skipping conversation checks, the cooldown, and the conversationDifficulty limits.",
     "conversationDifficulty: the running total of those changes is kept between min and max and added to every Task Check in that NPC's conversation (never below Difficulty 0).",
-    "Prototype: only an NPC that is up, not friendly, has a character to roll for, and is within earshot (combat/actions.json communication audibleRangeTiles) can be asked. cooldownSeconds (designer decision 2026-10-14: 10, in place of the book's no-repeat rule): world seconds before the same character can Persuade or Intimidate again (shared by both)."
+    "Prototype: only an NPC that is up, not friendly, has a character to roll for, and is within earshot (combat/actions.json communication audibleRangeTiles) can be asked. cooldownSeconds (designer decision 2026-10-14: 10, in place of the book's no-repeat rule): world seconds before the same character can Persuade or Intimidate again (shared by both).",
+    "influenceRadiusTiles (implementer pick, Oct 2026, awaiting designer review): how far a conversation's 'influence nearby' action reaches by default, in tiles from its origin. It is separate from talk range, and an action can set its own."
   ],
   "dispositionOrder": ["friendly", "neutral", "wary", "hostile", "aggressive"],
   "persuadeWinSteps": 1,
@@ -13,5 +14,6 @@
   "intimidateLossSteps": 1,
   "intimidatedDifficulty": 1,
   "conversationDifficulty": { "persuadeWin": -1, "intimidateLoss": 1, "min": -2, "max": 3 },
-  "cooldownSeconds": 10
+  "cooldownSeconds": 10,
+  "influenceRadiusTiles": 8
 }

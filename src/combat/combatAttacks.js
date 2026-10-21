@@ -6,6 +6,7 @@ import { resolveStaTask, rollDice, staSuccessOdds, staTaskChance, TASK_DICE } fr
 import { getCombatantList, getOpponents, getTurnGroup, getTurnOf, isActive, isTurnFinished, knowsAbout, reachLines, secondMajorLines } from './combatSelectors.js'
 import { getRangeBand, hasLineOfFire, tileDistance } from './rangeSystem.js'
 import { ADAPTATION_MOMENTUM_SPENDS, COMBAT_TASKS } from './turnActions.js'
+import { proneAttackEffects } from './combatProne.js'
 import { assistTalents, attackAttribute, defenceLines } from './combatTalents.js'
 import { getAttackTaskSpec, getCombatantWeapon, getRangeModifier } from './weaponSystem.js'
 import { scanTraitLines } from './combatScan.js'
@@ -135,7 +136,8 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
   // A bought second major action's +1, the target's Defensive Training and an enemy within Reach of a ranged attacker
   // (Book p.286): all apply after any opposed roll, like Guard (Book p.258: the active side's other factors).
   const reach = weapon.type === 'melee' ? [] : reachLines(state, attacker, position)
-  const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon), ...reach]
+  const prone = proneAttackEffects(target, weapon, band)
+  const extraLines = [...secondMajorLines(state, attackerId), ...defenceLines(target, weapon), ...reach, ...prone.difficultyLines]
   const extraModifier = extraLines.reduce((total, line) => total + line.change, 0)
   // The scan trait counts as one of the attacker's own Difficulty changes, like a scene trait (before any opposed roll).
   const difficultyBefore = prepared.difficulty + range.modifier + guardModifier + extraModifier
@@ -167,7 +169,7 @@ export function previewAttack(state, attackerId, targetId, weaponId, fromPositio
     task,
     effects: prepared.effects,
     ignoreComplications: prepared.ignoreComplications,
-    bonusMomentum: prepared.bonusMomentum,
+    bonusMomentum: (prepared.bonusMomentum ?? 0) + prone.bonusMomentum,
     opposition,
     targetInCover: target.inCover,
     // Ambush Tactics (combatTalents.js): whether the target is unaware of the attacker as the shot is taken.

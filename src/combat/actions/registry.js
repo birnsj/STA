@@ -12,6 +12,7 @@ import { DirectAction } from './DirectAction.js'
 import { FleeAction } from './FleeAction.js'
 import { MoveAction } from './MoveAction.js'
 import { SocialAction } from './SocialAction.js'
+import { StandAction } from './StandAction.js'
 import { FirstAidAction, GuardAction, ScanAction } from './TaskAction.js'
 import { EndTurnAction, SelectCombatantAction } from './TurnControlActions.js'
 
@@ -21,6 +22,7 @@ const ACTIONS = [
   new MoveAction('move'),
   new MoveAction('sprint'),
   new AimAction(),
+  new StandAction(),
   new AssistAction(),
   new BuyExtraMinorAction(),
   new BuySecondMajorAction(),

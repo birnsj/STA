@@ -11,8 +11,10 @@
 // closes the conversation.
 import { isDown, isUp } from '../actors/controllers.js'
 import { getMembers } from '../exploration/partyControl.js'
-import { checkCondition } from '../exploration/missionFlags.js'
-import { checkDifficultyChange, checksSkipped } from '../exploration/partySocial.js'
+import { checkDifficultyChange, checksSkipped, resistRequest } from '../exploration/partySocial.js'
+import { rollPartyTask, TASK_SEED_OFFSET } from '../exploration/partyTaskRoll.js'
+import { npcMomentumToThreat, saveMomentum } from '../rules/missionResources.js'
+import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
@@ -50,7 +52,7 @@ function advance(state, nodeId, hooks) {
     const node = id ? getNode(conversation.definition, id) : null
     if (!node || node.type === 'end') return close(current, hooks, signals.startCombat)
     if (node.type === 'condition') {
-      const results = node.conditions.map((condition) => checkCondition(current.scenario.flags, condition))
+      const results = node.conditions.map((condition) => checkScopedCondition(current, conversation.npcId, condition))
       id = (node.match === 'any' ? results.some(Boolean) : results.every(Boolean)) ? node.pass : node.fail
       continue
     }
@@ -118,7 +120,11 @@ export function currentCheck(state) {
 }
 
 // The task spec a check node asks for (taskPreparation.js), so a check reads characters exactly like a challenge does.
-export const checkSpec = (node) => ({ attribute: node.attribute, department: node.department, difficulty: node.difficulty, focuses: node.focuses, complicationRange: node.complicationRange })
+// An opposed check has no Difficulty of its own: its roll sets the NPC's (partySocial.js resistRequest).
+export const checkSpec = (node) => ({ attribute: node.attribute, department: node.department, difficulty: node.opposed ? 0 : node.difficulty, focuses: node.focuses, complicationRange: node.complicationRange })
+
+// What the NPC resists with, for the roll window's text.
+export const OPPOSED_BY = 'Control + Command'
 
 // Who may answer a check: every away team member able to act.
 export const checkCandidates = (state) => getMembers(state.party).filter(isUp)
@@ -151,6 +157,38 @@ export function previewCheckAssist(state, node, assistantId) {
   return { ...prepareAssist(member.character, checkSpec(node), member.condition), approach: { label: node.label || 'Task Check' } }
 }
 
+const UNREACHABLE_DIFFICULTY = 99
+// The NPC's resisting dice come from their own stream, apart from the asker's.
+const OPPOSED_SEED_OFFSET = 50000
+
+// An opposed check after the asker's roll: its successes, less its own Difficulty changes, set the NPC's Difficulty and the
+// NPC rolls Control + Command against it (partySocial.js resistRequest). The check succeeds when the NPC fails. The asker's
+// won Momentum is saved to the group pool and the NPC's own becomes Threat. An NPC with no character to roll for can't
+// resist: it fails whenever the roll set any Difficulty.
+// Returns { result (the asker's, as the roll window shows it), opposition (the NPC's side), state, saving }.
+function resolveOpposedCheck(state, npc, { prepared, result, key }) {
+  const random = seededRandomInt(deriveSeed(state.seed, TASK_SEED_OFFSET + OPPOSED_SEED_OFFSET + key))
+  const resolved = npc?.character
+    ? resistRequest(state, npc, { successes: result.successes, askerDifficulty: prepared.difficulty, autoFail: prepared.task.autoFail, random })
+    : { set: prepared.task.autoFail ? 0 : Math.max(0, result.successes - prepared.difficulty), difficulty: 0, resisted: null, passed: result.successes > prepared.difficulty, momentum: 0, threat: 0 }
+  const saving = saveMomentum(state.resources, resolved.momentum)
+  const resources = resolved.threat ? npcMomentumToThreat(saving.resources, resolved.threat) : saving.resources
+  return {
+    state: { ...state, resources },
+    saving,
+    opposition: {
+      set: resolved.set,
+      difficulty: resolved.difficulty,
+      resistSuccesses: resolved.resisted?.successes ?? 0,
+      resistDice: resolved.resisted?.dice ?? [],
+      resistTargetNumber: resolved.resisted?.targetNumber ?? null,
+      threat: resolved.threat,
+      npcName: npc?.name ?? 'The NPC',
+    },
+    result: { ...result, difficulty: resolved.set, success: resolved.passed, momentumGenerated: resolved.momentum, bonusMomentum: 0 },
+  }
+}
+
 // Rolls the waiting check for performerId: purchase (optional) { bonusDice, momentum } buys bonus d20s like any task;
 // assistantId (optional) adds that member's assist die. Applies the complication consequences if any complication
 // remains, then follows Success or Failure.
@@ -160,11 +198,24 @@ export function rollCheck(state, { performerId, assistantId = null, purchase = {
   if (assistantId && !assistCandidates(state, performerId).some((member) => member.id === assistantId)) return state
   const prepared = previewCheck(state, node, performerId)
   const assist = assistantId ? previewCheckAssist(state, node, assistantId) : null
-  const roll = rollPartyTask(state, { prepared, assist, purchase })
+  // An opposed check is rolled against a Difficulty nobody reaches, so the roll banks no Momentum of its own; what it wins
+  // is worked out against the NPC's resisting roll below.
+  const npc = state.world.npcs[state.conversation.npcId]
+  const opposed = Boolean(node.opposed)
+  const roll = rollPartyTask(state, { prepared: opposed ? { ...prepared, difficulty: UNREACHABLE_DIFFICULTY } : prepared, assist, purchase })
   if (!roll) return state
-  const { result } = roll
+  let { result } = roll
   const key = state.scenario.taskCount
   let next = roll.state
+  let saving = roll.saving
+  let opposition = null
+  if (opposed) {
+    const resolved = resolveOpposedCheck(next, npc, { prepared, result, key })
+    result = resolved.result
+    opposition = resolved.opposition
+    next = resolved.state
+    saving = resolved.saving
+  }
   const signals = {}
   if (result.complications) next = applyActions(next, node.onComplication, hooks, state.conversation.npcId, signals)
   const lastCheck = {
@@ -180,8 +231,9 @@ export function rollCheck(state, { performerId, assistantId = null, purchase = {
     bonusDice: roll.purchase.bonusDice,
     momentumSpentOnDice: roll.purchase.momentum ?? 0,
     threatAddedForDice: roll.purchase.threatAdded ?? 0,
-    momentumSaved: roll.saving.saved,
-    momentumLost: roll.saving.lost,
+    momentumSaved: saving.saved,
+    momentumLost: saving.lost,
+    ...(opposition ? { opposed: opposition } : {}),
   }
   next = { ...next, conversation: { ...next.conversation, lastCheck } }
   if (signals.startCombat) return close(next, hooks, true)

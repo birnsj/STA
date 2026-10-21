@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadConversation } from '../../conversation/conversationFiles.js'
+import { conversationIdFor } from '../../conversation/defaultConversations.js'
 
 // Talking to an NPC from the exploration board: open the conversation now when they are in talk range, or walk over first
 // and open it once they are.
@@ -21,7 +22,7 @@ export default function useTalkTo({ state, dispatch, talkable, onOpened }) {
 
   const talkTo = useCallback(
     (npc) => {
-      loadConversation(npc.conversationId)
+      loadConversation(conversationIdFor(npc))
         .then((definition) => {
           setTalkError(null)
           onOpened?.()

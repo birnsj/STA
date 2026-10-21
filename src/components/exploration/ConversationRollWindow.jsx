@@ -1,4 +1,4 @@
-import { assistCandidates, previewCheck, previewCheckAssist } from '../../conversation/conversationRuntime.js'
+import { assistCandidates, OPPOSED_BY, previewCheck, previewCheckAssist } from '../../conversation/conversationRuntime.js'
 import { PreRollWindow, ResultWindow } from '../dice/RollWindow.jsx'
 
 // A conversation's Task Check before the roll, in the roll window: who answers is picked before Talk (see
@@ -11,6 +11,7 @@ export function CheckRollWindow({ state, node, performer, dispatch }) {
       title={node.label || 'Task Check'}
       performer={performer}
       prepared={previewCheck(state, node, performer.id)}
+      opposedBy={node.opposed ? { name: state.world.npcs[state.conversation.npcId]?.name ?? 'the NPC', roll: OPPOSED_BY } : null}
       assistOptions={assistOptions}
       resources={state.resources}
       onRoll={({ assistantId, purchase }) => dispatch({ type: 'conversationRoll', performerId: performer.id, assistantId, purchase })}

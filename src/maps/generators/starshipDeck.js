@@ -1,7 +1,9 @@
-// Starship Deck: a bulkhead hull split into a grid of rooms joined by doorways.
+// Starship Deck: a half-bulkhead hull (Ultima-8 thin walls) split into a grid of rooms joined by doorways.
 // Built in the order a deck is drawn by hand: hull, rooms, doorways, props, hazard, markers, labels.
 // makeDeckGenerator builds the same layout from other tiles (a research lab, an alien vessel).
-import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
+// finishHalfWalls (mapGenerators.js) turns junctions into halfBulkheadCorner and orients each piece.
+import { FLOOR_TILE } from '../mapFormat.js'
+import { HALF_WALL } from './halfWalls.js'
 import {
   CRATE_TILE,
   cutDoorway,
@@ -54,7 +56,8 @@ function placeMarkers(tiles, playerRoom, enemyRoom, random) {
 // furnishRooms(tiles, keep, rooms, random, style) instead of the default crates and consoles }.
 export function makeDeckGenerator({
   floor = FLOOR_TILE,
-  wall = WALL_TILE,
+  // Starship decks use Ultima-8-style half bulkheads (designer request, 2026-10-20); other decks pass their own wall.
+  wall = HALF_WALL,
   door = DOOR_TILE,
   crate = CRATE_TILE,
   machinery = MACHINERY_TILE,

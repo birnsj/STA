@@ -4,13 +4,17 @@
 import awareness from '../data/adaptation/exploration/awareness.json'
 import { addThreat } from '../rules/missionResources.js'
 import { applyFlagChange, objectiveFlag } from '../exploration/missionFlags.js'
+import { defaultInfluenceRadius, INFLUENCE_EFFECTS, INFLUENCE_FILTERS, INFLUENCE_ORIGINS, influenceNearby } from '../exploration/influence.js'
+import { adjustNpcChecks, setNpcIntimidated, standNpcDown } from '../exploration/partySocial.js'
+import { scopedFlag } from './conversationScope.js'
 import { addLogEntry } from '../exploration/missionLog.js'
 import { objectFor } from '../world/objects.js'
 
 export const DISPOSITION_IDS = awareness.dispositions.map((disposition) => disposition.id)
 
-// field kinds: text, number, flagOp (missionFlags.js CHANGE_OPS), value (true / false / number / text),
-// disposition, objective (an id from the map's objectives), objectiveStatus, challengeObject, challengeState.
+// field kinds: text, number, optionalNumber (blank = null), boolean, select (field.options: [{ id, label }]), flagOp (missionFlags.js CHANGE_OPS),
+// value (true / false / number / text), disposition, objective (an id from the map's objectives), objectiveStatus,
+// challengeObject, challengeState.
 export const ACTION_TYPES = [
   {
     id: 'changeFlag',
@@ -22,7 +26,11 @@ export const ACTION_TYPES = [
     ],
     create: () => ({ type: 'changeFlag', flag: '', op: 'set', value: true }),
     describe: (action) => (action.op === 'clear' ? `Clear ${action.flag}` : action.op === 'add' ? `${action.flag} + ${action.value}` : `${action.flag} = ${action.value}`),
-    apply: (state, action) => ({ ...state, scenario: { ...state.scenario, flags: applyFlagChange(state.scenario.flags, action) } }),
+    // {npc} and {group} in the flag name resolve to the NPC being talked to (conversationScope.js).
+    apply: (state, action, ctx) => ({
+      ...state,
+      scenario: { ...state.scenario, flags: applyFlagChange(state.scenario.flags, { ...action, flag: scopedFlag(action.flag, ctx?.npcId, state.world.npcs[ctx?.npcId]) }) },
+    }),
   },
   {
     id: 'setDisposition',
@@ -35,6 +43,56 @@ export const ACTION_TYPES = [
       if (!npc || !DISPOSITION_IDS.includes(action.disposition)) return state
       return { ...state, world: { ...state.world, npcs: { ...state.world.npcs, [npc.id]: { ...npc, disposition: action.disposition, responseType: null } } } }
     },
+  },
+  {
+    id: 'standDown',
+    label: 'NPC stands down',
+    fields: [
+      { key: 'disposition', label: 'Becomes', kind: 'disposition' },
+      { key: 'leaveGroup', label: 'Leaves its alert group', kind: 'boolean' },
+    ],
+    create: () => ({ type: 'standDown', disposition: 'neutral', leaveGroup: false }),
+    describe: (action) => `This NPC stands down and becomes ${action.disposition}${action.leaveGroup ? ' and leaves its group' : ''}`,
+    // Like an Intimidate win on a hostile NPC (partySocial.js): no fight pending, no search under way.
+    apply: (state, action, ctx) => standNpcDown(state, ctx.npcId, { disposition: action.disposition, leaveGroup: Boolean(action.leaveGroup) }),
+  },
+  {
+    id: 'setIntimidated',
+    label: 'NPC Intimidated',
+    fields: [{ key: 'intimidated', label: 'Intimidated', kind: 'boolean' }],
+    create: () => ({ type: 'setIntimidated', intimidated: true }),
+    describe: (action) => (action.intimidated ? 'This NPC is Intimidated: its Task Checks pass without a roll' : 'This NPC is no longer Intimidated'),
+    apply: (state, action, ctx) => setNpcIntimidated(state, ctx.npcId, action.intimidated),
+  },
+  {
+    id: 'adjustCheckDifficulty',
+    label: 'NPC check Difficulty',
+    fields: [{ key: 'amount', label: 'Change', kind: 'number' }],
+    create: () => ({ type: 'adjustCheckDifficulty', amount: 1 }),
+    describe: (action) => `Task Checks with this NPC ${action.amount < 0 ? 'easier' : 'harder'} by ${Math.abs(action.amount)}`,
+    apply: (state, action, ctx) => adjustNpcChecks(state, ctx.npcId, action.amount),
+  },
+  {
+    id: 'influenceNearby',
+    label: 'Influence nearby NPCs',
+    fields: [
+      { key: 'effect', label: 'Effect', kind: 'select', options: INFLUENCE_EFFECTS },
+      { key: 'filter', label: 'Who (required)', kind: 'select', options: INFLUENCE_FILTERS },
+      { key: 'filterId', label: 'Group or faction id (for a named group or faction)', kind: 'text' },
+      { key: 'radius', label: "Radius in tiles (blank: this NPC's own, else the default)", kind: 'optionalNumber' },
+      { key: 'origin', label: 'Measured from', kind: 'select', options: INFLUENCE_ORIGINS },
+      { key: 'tileX', label: 'Tile x (for a tile origin)', kind: 'number' },
+      { key: 'tileY', label: 'Tile y (for a tile origin)', kind: 'number' },
+      { key: 'needsSight', label: 'Only those who can see the origin', kind: 'boolean' },
+      { key: 'includeSpeaker', label: 'Includes this NPC', kind: 'boolean' },
+    ],
+    create: () => ({ type: 'influenceNearby', effect: 'standDown', filter: 'sameGroup', filterId: '', radius: null, origin: 'speaker', tileX: 0, tileY: 0, needsSight: false, includeSpeaker: false }),
+    describe: (action) => {
+      const who = action.filter === 'sameGroup' ? "this NPC's group" : action.filter === 'group' ? `group ${action.filterId || '?'}` : `faction ${action.filterId || '?'}`
+      const effect = INFLUENCE_EFFECTS.find((entry) => entry.id === action.effect)
+      return `${effect?.label ?? action.effect}: ${who} within ${action.radius > 0 ? `${action.radius} tiles` : `${defaultInfluenceRadius} tiles (or this NPC's own radius)`}`
+    },
+    apply: (state, action, ctx) => influenceNearby(state, ctx.npcId, { ...action, tile: action.origin === 'tile' ? { x: Number(action.tileX), y: Number(action.tileY) } : null }),
   },
   {
     id: 'setObjective',

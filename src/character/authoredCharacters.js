@@ -143,6 +143,17 @@ export function getAuthoredCharacter(characterId, { npcRules = null, appearance 
   return npcRules ? { ...character, npcRules } : character
 }
 
+// The NPC rules a placed NPC or enemy plays under (VIDEOGAME ADAPTATION, designer decision 2026-10-20): the one the map
+// or encounter authors ('main' = the full character rules), else the book category of the stat block the character was
+// transcribed from (sourceClassification.npcCategory), else none (full character rules). Only placements use this: a
+// character in the away team never does, whatever stat block it came from.
+const NPC_CATEGORIES = ['supporting', 'minor', 'notable', 'major']
+export function npcRulesFor(characterId, authored = null) {
+  if (authored) return authored
+  const category = entriesById.get(characterId)?.sourceClassification?.npcCategory
+  return NPC_CATEGORIES.includes(category) ? category : null
+}
+
 export function hasAuthoredCharacter(id) {
   return entriesById.has(id)
 }

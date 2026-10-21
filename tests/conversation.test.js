@@ -126,7 +126,7 @@ describe('NPCs placed on a map', () => {
   it('are saved with the map and replace the test NPCs', () => {
     const map = roomWithEngineer()
     const again = parseMapFile(JSON.parse(JSON.stringify(serializeMap(map))), map.id)
-    assert.deepEqual(again.npcs[0], { ...map.npcs[0], faction: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null, mustSurvive: false })
+    assert.deepEqual(again.npcs[0], { ...map.npcs[0], faction: null, npcRules: null, alertGroupId: null, alertMethod: null, responseType: null, mustSurvive: false, influenceRadius: null })
     assert.deepEqual(again.objectives, map.objectives.map((objective) => ({ ...objective, objectId: null, startsActive: false, activeWhen: [], completeWhen: [] })))
     assert.deepEqual(npcConfigsFor(again).map((config) => config.id), ['eng'])
     const [npc] = getNpcs(createExplorationState(again, team()).world)

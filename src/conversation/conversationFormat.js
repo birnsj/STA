@@ -6,7 +6,9 @@
 //   npc        NPC Dialogue: { speaker (blank: the NPC's name), text, next }
 //   choice     Player Choice: { options: [{ id, text, conditions, next }] }; an option whose conditions fail is not shown
 //   check      Task Check: { label, attribute, department, difficulty, focuses: [names], complicationRange,
-//              onComplication: [actions], success, failure }, resolved with the shared STA task (partyTaskRoll.js)
+//              onComplication: [actions], opposed, success, failure }, resolved with the shared STA task (partyTaskRoll.js).
+//              opposed: a request the NPC resists (Book Core pp.256, 279-280): the roll's successes set the Difficulty of
+//              the NPC's own Control + Command roll, and the check succeeds when the NPC fails it; difficulty is not used.
 //   condition  Condition: { conditions, match: 'all' | 'any', pass, fail }
 //   action     Action: { actions: [conversationActions.js actions], next }
 //   end        End
@@ -36,7 +38,7 @@ export function createNode(type, id, position = { x: 0, y: 0 }) {
     case 'choice':
       return { ...base, options: [] }
     case 'check':
-      return { ...base, label: '', attribute: 'presence', department: 'command', difficulty: 1, focuses: [], complicationRange: 1, onComplication: [], success: null, failure: null }
+      return { ...base, label: '', attribute: 'presence', department: 'command', difficulty: 1, focuses: [], complicationRange: 1, onComplication: [], opposed: false, success: null, failure: null }
     case 'condition':
       return { ...base, conditions: [], match: 'all', pass: null, fail: null }
     case 'action':
@@ -137,6 +139,7 @@ function parseNode(raw) {
         focuses: list(raw.focuses),
         complicationRange: Number.isFinite(raw.complicationRange) ? raw.complicationRange : 1,
         onComplication: list(raw.onComplication),
+        opposed: Boolean(raw.opposed),
         success: link(raw.success),
         failure: link(raw.failure),
       }

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "Lt. Voss: sensors",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "Internal sensors are a mess after that boarding hit. I'm trying to get a clean picture of the sealed section.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "Any contacts east of here?", "conditions": [], "next": "contacts" },
+        { "id": "o2", "text": "What's wrong with the sensors?", "conditions": [], "next": "sensors" },
+        { "id": "o3", "text": "We'll leave you to it.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "contacts",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "Intermittent Klingon signatures beyond the bulkheads. Nothing I'd trust for targeting — only for caution.",
+      "next": "end"
+    },
+    {
+      "id": "sensors",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Power spike fried a relay chain. Until the EPS junction is back, half this deck's readings are ghosts.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

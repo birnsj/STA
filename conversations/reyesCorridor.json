@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "Lt. Cmdr. Reyes: corridor patrol",
+  "start": "n1",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "npc",
+      "position": [40, 80],
+      "speaker": "",
+      "text": "Deck's on lockdown. Klingons took the east section when the grid failed. Stay sharp.",
+      "next": "c1"
+    },
+    {
+      "id": "c1",
+      "type": "choice",
+      "position": [320, 80],
+      "options": [
+        { "id": "o1", "text": "Where's the engineer?", "conditions": [], "next": "okafor" },
+        { "id": "o2", "text": "Any word on the power?", "conditions": [], "next": "power" },
+        { "id": "o3", "text": "We'll keep moving.", "conditions": [], "next": "end" }
+      ]
+    },
+    {
+      "id": "okafor",
+      "type": "npc",
+      "position": [600, 0],
+      "speaker": "",
+      "text": "Lt. Okafor's by the EPS junction, near the sealed bulkheads. She knows this deck better than anyone.",
+      "next": "end"
+    },
+    {
+      "id": "power",
+      "type": "npc",
+      "position": [600, 140],
+      "speaker": "",
+      "text": "Still dark east of here. If anyone can bring that junction back, it's Okafor — or your away team.",
+      "next": "end"
+    },
+    { "id": "end", "type": "end", "position": [880, 80] }
+  ]
+}

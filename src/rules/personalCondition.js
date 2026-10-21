@@ -222,19 +222,52 @@ export function buildInjury({ id, type, weapon, attacker, addedSeverity = 0, pro
   }
 }
 
+// ---------- Personal Threat ----------
+
+// Book (Core p.346): Notable and Major NPCs have Personal Threat, a separate pool for options and abilities affecting
+// that NPC directly (such as Avoid Injury). Whenever the NPC spends Threat it may spend from the gamemaster's pool, its
+// own Personal Threat, or both. The pool is not replenished during a scene and is full at the start of each scene.
+// A Notable NPC "typically" has 3 and a Major NPC "6 or more" (p.346).
+// Prototype (designer decision 2026-10-20: model it): the pool is the record's sourceClassification.personalThreat when it
+// has one (the book stat block's figure), else the typical figure for the NPC's category (implementer pick, below); an NPC
+// spends its own first, then the shared pool; a combat (or the exploration scene) starts with every pool full. Only Avoid
+// Injury draws on it so far; other NPC Threat spends (bonus dice, Kick knockdown) still use the shared pool.
+const TYPICAL_PERSONAL_THREAT = { notable: 3, major: 6 }
+export function personalThreatPool(character) {
+  const category = npcCategoryOf(character)
+  if (!TYPICAL_PERSONAL_THREAT[category]) return 0
+  const authored = character.sourceClassification?.personalThreat
+  return authored > 0 ? authored : TYPICAL_PERSONAL_THREAT[category]
+}
+export const personalThreatLeft = (character, spent = {}) => Math.max(0, personalThreatPool(character) - (spent[character.id] ?? 0))
+
+// Pays a Threat avoid ({ kind: 'threat', personal, shared } from getAvoidOption) in a state with resources, avoidedThisScene
+// and personalThreatSpent (combat state, exploration state).
+export function payAvoidThreat(state, character, option) {
+  return {
+    ...state,
+    resources: { ...state.resources, threat: state.resources.threat - option.shared },
+    avoidedThisScene: [...(state.avoidedThisScene ?? []), character.id],
+    personalThreatSpent: { ...state.personalThreatSpent, [character.id]: (state.personalThreatSpent?.[character.id] ?? 0) + option.personal },
+  }
+}
+
 // ---------- Avoid Injury ----------
 
 // Whether this character could Avoid this Injury, and what it costs: { possible, kind: 'stress' | 'threat' | null, cost,
 // reason }; a Stress avoid also gives { taken, overflow } (overflow > 0: the track fills and a complication follows,
 // Book p.277). scene: { threat (the Threat pool), avoidedThisScene (character ids of Notable NPCs that already avoided once) }.
-export function getAvoidOption(character, condition, injury, { threat = 0, avoidedThisScene = [] } = {}) {
+export function getAvoidOption(character, condition, injury, { threat = 0, avoidedThisScene = [], personalThreatSpent = {} } = {}) {
   const category = npcCategoryOf(character)
   const cost = injury.severity
   if (category === 'minor') return { possible: false, kind: null, cost, reason: 'Minor NPC: cannot Avoid; any successful attack Defeats it (Book p.291).' }
   if (category === 'notable' || category === 'major') {
     if (category === 'notable' && avoidedThisScene.includes(character.id)) return { possible: false, kind: 'threat', cost, reason: 'A Notable NPC avoids an Injury once per scene.' }
-    if (threat < cost) return { possible: false, kind: 'threat', cost, reason: `Needs ${cost} Threat (pool ${threat}).` }
-    return { possible: true, kind: 'threat', cost, reason: null }
+    // Book p.346: the NPC may spend from its own Personal Threat, the Threat pool, or both. Prototype: its own first.
+    const personal = Math.min(personalThreatLeft(character, personalThreatSpent), cost)
+    const shared = cost - personal
+    if (threat < shared) return { possible: false, kind: 'threat', cost, personal, shared, reason: `Needs ${cost} Threat (Personal Threat ${personal}, pool ${threat}).` }
+    return { possible: true, kind: 'threat', cost, personal, shared, reason: null }
   }
   if (isFatigued(condition)) return { possible: false, kind: 'stress', cost, reason: 'Fatigued: cannot suffer more Stress (Book p.278).' }
   const room = Math.max(0, getMaxStress(character).value - condition.stress)

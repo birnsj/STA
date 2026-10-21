@@ -12,7 +12,8 @@
 // this instance behaves: { id, characterId, name (blank: the character's), position, facing (degrees, 0 = +x),
 // faction (blank: the character's), disposition (awareness.json), conversationId (conversations/{id}.json or null),
 // npcRules, alertGroupId, alertMethod, responseType (awareness response: none|observe|confront|alarm|combat, or null:
-// the disposition's), mustSurvive (the mission fails if they are killed; left out on disk when false), gender and
+// the disposition's), mustSurvive (the mission fails if they are killed; left out on disk when false), influenceRadius (tiles a conversation's
+// "influence nearby" action reaches from this NPC when the action sets no radius; null: social.json's default), gender and
 // portraitId (npcPortraits.json; null: Auto, see character/npcAppearance.js), patrol (waypoints walked in order,
 // looping: [{ at, wait, facing?, animation?, animationDuration?, animationLoop? }], same schema as npcs.json; left out
 // when empty; animation fields are optional idle fidgets — see waypointAnimations.js), perception (optional overrides of
@@ -247,6 +248,7 @@ function parseNpc(raw, inside) {
   })
   if (npc.responseType && !RESPONSE_IDS.has(npc.responseType)) npc.responseType = null
   npc.mustSurvive = raw.mustSurvive === true
+  npc.influenceRadius = Number.isFinite(raw.influenceRadius) && raw.influenceRadius > 0 ? Number(raw.influenceRadius) : null
   NPC_APPEARANCE_FIELDS.forEach((field) => {
     if (typeof raw[field] === 'string' && raw[field]) npc[field] = raw[field]
   })
@@ -262,6 +264,7 @@ function serializeNpc(npc) {
     if (npc[field] != null && npc[field] !== '') record[field] = npc[field]
   })
   if (npc.mustSurvive) record.mustSurvive = true
+  if (npc.influenceRadius > 0) record.influenceRadius = npc.influenceRadius
   if (npc.patrol?.length) record.patrol = serializePatrol(npc.patrol)
   const perception = npc.perception ? serializePerception(npc.perception) : null
   if (perception) record.perception = perception

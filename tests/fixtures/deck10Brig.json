@@ -152,6 +152,9 @@
       "name": "Guard A",
       "disposition": "wary",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "male",
+      "portraitId": "klingon-male-1",
       "alertGroupId": "security-a",
       "alertMethod": "shout"
     },
@@ -166,6 +169,9 @@
       "name": "Guard B",
       "disposition": "hostile",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "female",
+      "portraitId": "klingon-female-1",
       "alertGroupId": "security-a",
       "alertMethod": "shout",
       "responseType": "alarm"
@@ -181,6 +187,9 @@
       "name": "Guard C",
       "disposition": "aggressive",
       "npcRules": "supporting",
+      "conversationId": "klingonBark",
+      "gender": "male",
+      "portraitId": "klingon-male-2",
       "alertGroupId": "security-b",
       "alertMethod": "shout"
     }

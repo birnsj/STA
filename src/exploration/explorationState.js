@@ -3,13 +3,13 @@
 // mode is the authority on what is running: EXPLORATION (real time) or COMBAT (a fight on the same world, which
 // stays frozen until the fight ends; see combatLink.js).
 import { controllerFor, isUp } from '../actors/controllers.js'
-import { getAuthoredCharacter } from '../character/authoredCharacters.js'
+import { getAuthoredCharacter, npcRulesFor } from '../character/authoredCharacters.js'
 import { assignNpcAppearances } from '../character/npcAppearance.js'
 import npcData from '../data/adaptation/exploration/npcs.json'
 import { spawnFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { chooseOption, continueConversation, leaveConversation, rollCheck, startConversation } from '../conversation/conversationRuntime.js'
-import { createNpc, createWorld, emitNoise, getNpcs, tickWorld } from './awareness.js'
+import { createNpc, createWorld, emitNoise, getNpcs, isHostile, tickWorld } from './awareness.js'
 import { applyScenarioTiles, attemptChallenge, challengeFor, createScenario, INTERACT_RANGE, withMap } from './challengeObjects.js'
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
 import { createPartyState, getMembers, partyReducer } from './partyControl.js'
@@ -43,16 +43,17 @@ function perceive(state) {
   const observers = getMembers(state.party)
     .filter(isUp)
     .map((member) => ({ id: member.id, position: member.position }))
-  const entities = getNpcs(state.world).map((npc) => ({ id: npc.id, position: npc.position }))
+  const entities = getNpcs(state.world).map((npc) => ({ id: npc.id, position: npc.position, hostile: isHostile(npc) }))
   return { ...state, partyKnowledge: updatePartyKnowledge(state.partyKnowledge, state.party.map, observers, entities, state.world.time) }
 }
 
 // Each world actor uses an authored character (characterId) and keeps it as its own for the whole mission: the same
 // character fights as the same combatant (the actor's id) in any fight. npcRules: an explicit authored choice of the
-// book's streamlined NPC rules for this actor (rules/personalCondition.js npcCategoryOf); none by default.
+// book's streamlined NPC rules for this actor (rules/personalCondition.js npcCategoryOf); unset, the book category of
+// its stat block (authoredCharacters.js npcRulesFor).
 // appearance: the gender and portrait it is shown with (character/npcAppearance.js), or null.
 const actorCharacter = (config, appearance) =>
-  config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: config.npcRules ?? null, appearance }) : null
+  config.characterId ? getAuthoredCharacter(config.characterId, { npcRules: npcRulesFor(config.characterId, config.npcRules), appearance }) : null
 
 // Patrol points in memory use { at: { x, y } }; createNpc expects npcs.json's { at: [x, y] }.
 const patrolForRuntime = (patrol) =>

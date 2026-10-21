@@ -73,6 +73,21 @@ describe('map-owned challenge objects', () => {
     assert.equal('outroFailed' in serializeMap(createBlankMap()), false)
   })
 
+  it('saves and loads an NPC influence radius, leaving it out when unset or not positive', () => {
+    const map = createBlankMap({ width: 8, height: 8 })
+    map.npcs = [
+      { id: 'a', characterId: 'stationEngineer', position: { x: 1, y: 1 }, facing: 0, influenceRadius: 12 },
+      { id: 'b', characterId: 'stationEngineer', position: { x: 2, y: 1 }, facing: 0, influenceRadius: null },
+      { id: 'c', characterId: 'stationEngineer', position: { x: 3, y: 1 }, facing: 0, influenceRadius: 0 },
+    ]
+    const saved = serializeMap(map)
+    assert.equal(saved.npcs[0].influenceRadius, 12)
+    assert.equal('influenceRadius' in saved.npcs[1], false)
+    assert.equal('influenceRadius' in saved.npcs[2], false)
+    const loaded = parseMapFile(JSON.parse(JSON.stringify(saved)), 'test')
+    assert.deepEqual(loaded.npcs.map((npc) => npc.influenceRadius), [12, null, null])
+  })
+
   it('takes the map placements in when the editor first saves the objects', () => {
     const map = { ...brig(), objectPlacements: { powerJunction01: { x: 5, y: 6 } } }
     const edited = withObjects(map, editableObjects(map))

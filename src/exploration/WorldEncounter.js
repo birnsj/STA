@@ -138,7 +138,11 @@ function withPartyPerception(state, { perceive = true } = {}) {
     const observers = getCombatantList(combat)
       .filter((c) => c.side === 'player' && isActive(c))
       .map((c) => ({ id: c.id, position: gridToWorld(c.position) }))
-    const entities = getNpcs(world).map((npc) => ({ id: npc.id, position: combat.combatants[npc.id] ? gridToWorld(combat.combatants[npc.id].position) : npc.position }))
+    const entities = getNpcs(world).map((npc) => ({
+      id: npc.id,
+      position: combat.combatants[npc.id] ? gridToWorld(combat.combatants[npc.id].position) : npc.position,
+      hostile: isHostile(npc),
+    }))
     partyKnowledge = updatePartyKnowledge(partyKnowledge, combat.map, observers, entities, world.time)
   }
   const view = Object.fromEntries(

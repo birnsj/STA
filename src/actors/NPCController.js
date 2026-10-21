@@ -3,6 +3,7 @@
 // combat AI. The perception maths, awareness memory, noises and alert groups stay in exploration/awareness.js;
 // tuning in data/adaptation/exploration/awareness.json.
 import { isActive } from '../combat/combatSelectors.js'
+import { conversationIdFor } from '../conversation/defaultConversations.js'
 import data from '../data/adaptation/exploration/awareness.json'
 import {
   dispositionOf,
@@ -286,7 +287,7 @@ export class NPCController extends CharacterController {
   }
 
   canTalk(npc) {
-    return Boolean(npc.conversationId) && this.isUp(npc)
+    return Boolean(conversationIdFor(npc)) && this.isUp(npc)
   }
 
   // A combatant keeps the NPC's world id.

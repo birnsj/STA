@@ -161,6 +161,8 @@ export function createNpc(config, character = null) {
     responseType: config.responseType ?? null,
     alertGroupId: config.alertGroupId ?? null,
     alertMethod: ALERT_METHODS[config.alertMethod] ? config.alertMethod : data.defaultAlertMethod,
+    // Tiles a conversation's influence action reaches from this NPC when it sets no radius (null: the global default).
+    influenceRadius: config.influenceRadius > 0 ? config.influenceRadius : null,
     perception: { ...data.perceptionDefaults, ...config.perception },
     position,
     heading,
