@@ -49,6 +49,9 @@ export default function EditorInspectors({
   onEditConversation,
   objectPlacing,
   onToggleObjectPlace,
+  objectEditingCovers = false,
+  onToggleObjectCovers,
+  onOpenObjectEditor,
   onMarkerCleared,
   destructibleMoving = false,
   onToggleDestructibleMove,
@@ -149,9 +152,13 @@ export default function EditorInspectors({
       {object && (
         <ObjectInspector
           definition={object}
-          home={challengeDefinitionsFor({ ...map, objectPlacements: {} }).find((definition) => definition.id === object.id).position}
+          home={challengeDefinitionsFor({ ...map, objectPlacements: {} }).find((definition) => definition.id === object.id)?.position ?? object.position}
+          mapOwned={Array.isArray(map.objects)}
           placing={objectPlacing}
+          editingCovers={objectEditingCovers}
           onPlace={onToggleObjectPlace}
+          onEditCovers={onToggleObjectCovers}
+          onOpenEditor={() => onOpenObjectEditor?.(object.id)}
           onReset={() => {
             const { [object.id]: _reset, ...rest } = map.objectPlacements ?? {}
             edit({ ...map, objectPlacements: rest })

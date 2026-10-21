@@ -6,13 +6,36 @@ import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
 import { definitionProblemsFor } from '../exploration/challengeObjects.js'
 import { TILES } from '../maps/mapFormat.js'
-import { createAction, createObject, editableObjects, freshId, moveObject, objectWarnings, renameAction, removeState as removeObjectState, renameObjectInObjectives, renameState, withObjects } from '../world/objectAuthoring.js'
+import {
+  createAction,
+  createObject,
+  duplicateAction,
+  duplicateObject,
+  duplicateState,
+  editableObjects,
+  freshId,
+  moveObject,
+  objectWarnings,
+  renameAction,
+  removeState as removeObjectState,
+  renameObjectInObjectives,
+  renameState,
+  reorderObjects,
+  withObjects,
+} from '../world/objectAuthoring.js'
 
 // Dev challenge object editor (opened from the map editor): the open map's challenge objects listed on the left, the
 // selected one edited on the right with its states and actions. Edits go into the map (map.objects), so the map
 // editor's Save keeps them; a map that has none of its own starts from challenges.json's for its file name.
 // map, onChange(map): the map being edited. initialId: the object selected on opening. onBack(): back to the map.
 const clamp = (value, limit) => Math.min(limit - 1, Math.max(0, Math.round(Number(value) || 0)))
+
+const BUNDLED_CONVERSATIONS = import.meta.glob('/conversations/*.json', { eager: true, import: 'default' })
+const bundledConversationEntries = () =>
+  Object.entries(BUNDLED_CONVERSATIONS).map(([file, record]) => {
+    const id = file.slice('/conversations/'.length, -'.json'.length)
+    return { id, name: record.name || id, record }
+  })
 
 function StatesEditor({ object, onChange }) {
   const entries = Object.entries(object.states)
@@ -27,6 +50,9 @@ function StatesEditor({ object, onChange }) {
           <input className="ce-input" value={state.label ?? ''} placeholder="Label" onChange={(event) => setState(id, { label: event.target.value })} />
           <input className="ce-input oe-long" value={state.description ?? ''} placeholder="Description (the interaction panel)" onChange={(event) => setState(id, { description: event.target.value })} />
           <input className="ce-input ce-flag" list="oe-tiles" value={state.tile ?? ''} placeholder="tile (map's own)" onChange={(event) => setState(id, { tile: event.target.value.trim() || undefined })} />
+          <button type="button" className="ce-button is-small" aria-label="Duplicate state" onClick={() => onChange(duplicateState(object, id))}>
+            Dup
+          </button>
           <button type="button" className="ce-button is-small" aria-label="Remove state" disabled={entries.length < 2} onClick={() => removeState(id)}>
             ×
           </button>
@@ -46,7 +72,7 @@ function ObjectFields({ object, map, otherIds, onChange }) {
     <>
       <div className="ce-row">
         <label className="ce-field">
-          <span className="ce-field-label">Id (objectives marked on it follow a rename; conversations that name it don&apos;t)</span>
+          <span className="ce-field-label">Id (objectives marked on it follow a rename; conversations that still name the old id show in Warnings)</span>
           <IdInput value={object.id} label="Object id" taken={(next) => otherIds.includes(next)} onChange={(id) => set({ id })} />
         </label>
         <label className="ce-field">
@@ -72,7 +98,7 @@ function ObjectFields({ object, map, otherIds, onChange }) {
           <input
             className="ce-input ce-flag"
             value={(object.covers ?? []).map((tile) => tile.join(',')).join(' ')}
-            placeholder="x,y x,y"
+            placeholder="x,y x,y (or Edit Covers on the map)"
             onChange={(event) => {
               const covers = event.target.value
                 .split(/\s+/)
@@ -107,7 +133,7 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
   const [question, setQuestion] = useState(null)
   const selected = objects[selectedIndex] ?? null
   const action = selected?.actions[actionIndex] ?? null
-  const warnings = [...definitionProblemsFor(map), ...objectWarnings(objects, map)]
+  const warnings = [...definitionProblemsFor(map), ...objectWarnings(objects, map, { conversations: bundledConversationEntries() })]
   const fallback = data.maps[map.id] ?? data.maps[map.name] ?? null
 
   const commit = (next, changes = {}) => onChange({ ...withObjects(map, next), ...changes })
@@ -125,8 +151,25 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
     commit([...objects, object])
     select(objects.length)
   }
+  const duplicateSelected = () => {
+    if (!selected) return
+    const copy = duplicateObject(objects, selected)
+    commit([...objects, copy])
+    select(objects.length)
+  }
+  const moveSelected = (step) => {
+    const to = selectedIndex + step
+    commit(reorderObjects(objects, selectedIndex, to))
+    setSelectedIndex(to)
+  }
   const addAction = () => {
     updateObject({ ...selected, actions: [...selected.actions, createAction(selected)] })
+    setActionIndex(selected.actions.length)
+  }
+  const duplicateSelectedAction = () => {
+    if (!selected || !action) return
+    const copy = duplicateAction(selected, action)
+    updateObject({ ...selected, actions: [...selected.actions, copy] })
     setActionIndex(selected.actions.length)
   }
   const moveAction = (step) => {
@@ -162,6 +205,11 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
         <button type="button" className="ce-button" onClick={add}>
           Add Object
         </button>
+        {selected && (
+          <button type="button" className="ce-button" onClick={duplicateSelected}>
+            Duplicate Object
+          </button>
+        )}
         {map.objects && fallback && (
           <button type="button" className="ce-button" onClick={useFallback}>
             Use challenges.json
@@ -188,6 +236,16 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
             </button>
           ))}
           {!objects.length && <p className="ce-text">No challenge objects yet. Add Object makes one.</p>}
+          {selected && (
+            <div className="ce-row" style={{ padding: '4px 0' }}>
+              <button type="button" className="ce-button is-small" disabled={selectedIndex === 0} onClick={() => moveSelected(-1)}>
+                Move Up
+              </button>
+              <button type="button" className="ce-button is-small" disabled={selectedIndex >= objects.length - 1} onClick={() => moveSelected(1)}>
+                Move Down
+              </button>
+            </div>
+          )}
         </div>
         <div className="oe-detail oe-wide">
           {selected ? (
@@ -218,6 +276,9 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
                     </button>
                     <button type="button" className="ce-button is-small" disabled={actionIndex === selected.actions.length - 1} onClick={() => moveAction(1)}>
                       Move Right
+                    </button>
+                    <button type="button" className="ce-button is-small" onClick={duplicateSelectedAction}>
+                      Duplicate Action
                     </button>
                     <button type="button" className="ce-button is-small" onClick={removeAction}>
                       Remove Action

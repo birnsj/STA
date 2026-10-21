@@ -6,7 +6,7 @@ Implementation note: how the code is organised. No rules change here; the rules 
 
 ## The split
 
-- **Definitions are authored data.** `challenges.json` lists each map's challenge objects: states (label, description, optional replacement tile), actions (routine or a task, assists, requirements) and outcomes. The map's `objectPlacements` moves an object (`challengeDefinitionsFor`, `src/exploration/challengeObjects.js`).
+- **Definitions are authored data.** The Object Editor writes full definitions onto `map.objects` (adopt-on-first-edit from `challenges.json` when the map has none). Maps with `objects: null` still load `challenges.json` for their name; `objectPlacements` moves a library object (`challengeDefinitionsFor`, `src/exploration/challengeObjects.js`).
 - **Runtime is plain data.** `scenario.objects[id] = { state, locks, combatLocks, difficultyMods, originalTiles }`, next to the mission flags, scene traits, the object log and `taskCount` in the exploration state. Saves and maps are unchanged.
 - **Behaviour is in a class.** `src/world/` holds the object classes. An instance holds nothing but its definition. Each method takes the exploration state and returns a value or a new state, the same way the character controllers do (`character-controllers.md`).
 

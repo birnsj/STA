@@ -36,6 +36,7 @@ import {
 import { getTile, isRotated } from '../../maps/mapFormat.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
+import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
 
 // The map editor's tools: which tool is held, the board's click / drag / right-click behaviour for each, and what is
 // selected for its inspector (an NPC, a player start or enemy spawn, a challenge object). It edits through edit(map) and
@@ -72,6 +73,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   // The challenge object shown in its inspector (an id), and whether the next board click moves it.
   const [selectedObjectId, setSelectedObjectId] = useState(null)
   const [placingObject, setPlacingObject] = useState(false)
+  const [editingObjectCovers, setEditingObjectCovers] = useState(false)
   // Destructible objects and hazard regions (tools 'destructible:{type}', 'hazard:{type}', 'hazardErase'): the one in its
   // inspector, whether the next click moves the destructible, and the intensity the hazard brush paints.
   const [selectedDestructibleId, setSelectedDestructibleId] = useState(null)
@@ -97,6 +99,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setPlacingFromEditor(false)
     setSelectedObjectId(null)
     setPlacingObject(false)
+    setEditingObjectCovers(false)
     setMovingNpc(false)
     setEditingPatrol(false)
     setSelectedWaypointIndex(null)
@@ -186,6 +189,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       if (movingDestructible) return setMovingDestructible(false)
       if (movingGroundItem) return setMovingGroundItem(false)
       if (placingObject) return setPlacingObject(false)
+      if (editingObjectCovers) return setEditingObjectCovers(false)
       if (placingObjective !== null) {
         if (placingFromEditor) onObjectivePlaced(placingObjective)
         setPlacingObjective(null)
@@ -283,6 +287,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedHazardId(hazardRegionAt(map, position)?.id ?? null)
     setSelectedGroundItemId(groundItemAt(map, position)?.id ?? null)
     setPlacingObject(false)
+    setEditingObjectCovers(false)
     setMovingNpc(false)
     setMovingDestructible(false)
     setLinkingDestructible(false)
@@ -384,6 +389,16 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       edit({ ...map, objectPlacements: { ...(map.objectPlacements ?? {}), [selectedObject.id]: position } })
       setPlacingObject(false)
       setStatus(`Moved ${selectedObject.name} to (${position.x}, ${position.y}).`)
+      return
+    }
+    if (editingObjectCovers && selectedObject) {
+      if (!first) return
+      const [ox, oy] = selectedObject.position
+      if (position.x === ox && position.y === oy) {
+        setStatus('The object tile itself cannot be a cover.')
+        return
+      }
+      edit(updateMapObject(map, selectedObject.id, (object) => toggleCover(object, [position.x, position.y])))
       return
     }
     if (placingObjective !== null) {
@@ -575,7 +590,15 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       setMovingWaypoint(false)
     },
     placingObject,
-    toggleObjectPlace: () => setPlacingObject((value) => !value),
+    toggleObjectPlace: () => {
+      setEditingObjectCovers(false)
+      setPlacingObject((value) => !value)
+    },
+    editingObjectCovers,
+    toggleObjectCovers: () => {
+      setPlacingObject(false)
+      setEditingObjectCovers((value) => !value)
+    },
     clearMarker: () => setSelectedMarker(null),
     onPaint,
     onPaintEnd,

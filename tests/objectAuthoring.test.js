@@ -13,9 +13,15 @@ import { createBlankMap, parseMapFile, serializeMap } from '../src/maps/mapForma
 import { applyObjectEffect } from '../src/world/objectEffects.js'
 import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
+import { prepareTask } from '../src/rules/taskPreparation.js'
 import {
+  challengeMapWarnings,
+  challengeObjectIdsInConversation,
   createAction,
   createObject,
+  duplicateAction,
+  duplicateObject,
+  duplicateState,
   editableObjects,
   moveObject,
   objectWarnings,
@@ -23,6 +29,8 @@ import {
   renameAction,
   renameObjectInObjectives,
   renameState,
+  reorderObjects,
+  toggleCover,
   withObjects,
 } from '../src/world/objectAuthoring.js'
 
@@ -192,6 +200,73 @@ describe('object authoring helpers', () => {
     assert.ok(warnings.some((text) => text.includes('unknown state missing')))
     assert.ok(warnings.some((text) => text.includes('marked on gone')))
     assert.deepEqual(objectWarnings(editableObjects(brig()), brig()), [])
+  })
+
+  it('duplicates objects, actions and states with fresh ids', () => {
+    const map = createBlankMap({ width: 8, height: 8 })
+    const object = { ...createObject([], map), actions: [createAction({ actions: [] })] }
+    const copy = duplicateObject([object], object)
+    assert.notEqual(copy.id, object.id)
+    assert.match(copy.name, /\(copy\)$/)
+    const actionCopy = duplicateAction(object, object.actions[0])
+    assert.notEqual(actionCopy.id, object.actions[0].id)
+    const withState = duplicateState(object, 'idle')
+    assert.equal(Object.keys(withState.states).length, 2)
+    assert.deepEqual(reorderObjects([object, copy], 0, 1).map((entry) => entry.id), [copy.id, object.id])
+  })
+
+  it('toggles cover tiles and keeps structured equipment playable', () => {
+    const object = { position: [2, 2], covers: [[3, 2]] }
+    assert.deepEqual(toggleCover(object, [3, 2]).covers, undefined)
+    assert.deepEqual(toggleCover(object, [2, 2]), object)
+    assert.deepEqual(toggleCover({ position: [2, 2] }, [4, 2]).covers, [[4, 2]])
+    const task = {
+      attribute: 'reason',
+      department: 'engineering',
+      difficulty: 1,
+      focuses: [],
+      equipment: { label: 'a tricorder', tags: ['scanner'], without: 'impossible', bonus: [{ label: 'Engineering tricorder', itemIds: ['engineeringTricorder'], difficulty: -1 }] },
+      talentIds: ['maintenanceSpecialist'],
+      traitRules: [{ trait: 'Structural Weakness', difficulty: -1 }],
+    }
+    const prepared = prepareTask(makeCharacter({ id: 'alpha', name: 'Alpha' }), task, { side: 'player', traits: [] })
+    assert.equal(prepared.possible, false)
+    assert.ok(prepared.blockers.some((text) => /tricorder/i.test(text)))
+  })
+
+  it('warns on routine Always effects, bad attrs, and conversation object refs', () => {
+    const map = createBlankMap({ width: 8, height: 8 })
+    const object = createObject([], map)
+    const action = {
+      ...createAction(object),
+      routine: true,
+      task: undefined,
+      always: [{ type: 'message', text: 'hi' }],
+      onSuccess: [{ type: 'neutralizeHazard', mode: 'nope' }],
+    }
+    const badTask = { ...createAction(object), id: 'b', task: { attribute: 'nope', department: 'engineering', difficulty: 9 } }
+    const warnings = objectWarnings(
+      [{ ...object, actions: [action, badTask] }],
+      map,
+      { conversations: [{ id: 'c1', name: 'Talk', record: { nodes: [{ type: 'action', actions: [{ type: 'setChallengeState', objectId: 'missingObj', state: 'idle' }] }] } }] },
+    )
+    assert.ok(warnings.some((text) => text.includes('Routine ignores Always')))
+    assert.ok(warnings.some((text) => text.includes('unknown Attribute')))
+    assert.ok(warnings.some((text) => text.includes('out of range')))
+    assert.ok(warnings.some((text) => text.includes('unknown neutralize mode')))
+    assert.ok(warnings.some((text) => text.includes('Conversation Talk')))
+    assert.deepEqual(challengeObjectIdsInConversation({ nodes: [{ actions: [{ type: 'setChallengeState', objectId: 'door1' }], onComplication: [] }] }), ['door1'])
+  })
+
+  it('challengeMapWarnings reports broken outcomes (editor Validate uses this beside validateMap)', () => {
+    const map = {
+      ...createBlankMap({ width: 8, height: 8 }),
+      name: 'Validate Objects',
+      objects: [{ ...createObject([], { width: 8, height: 8 }), actions: [{ ...createAction({ actions: [] }), onSuccess: [{ type: 'setState', state: 'gone' }] }] }],
+    }
+    const warnings = challengeMapWarnings(map)
+    assert.ok(warnings.some((text) => text.includes('unknown state gone')))
+    assert.deepEqual(challengeMapWarnings(brig()).filter((text) => text.includes('used twice')), [])
   })
 })
 

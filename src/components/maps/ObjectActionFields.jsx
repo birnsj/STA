@@ -4,6 +4,7 @@ import { ConditionsEditor } from '../conversation/ConversationFields.jsx'
 import attributeData from '../../data/source/attributes.json'
 import disciplineData from '../../data/source/disciplines.json'
 import { CHANGE_OPS, flagValueText, parseFlagValue } from '../../exploration/missionFlags.js'
+import { RESPONSE_TYPES } from '../../maps/mapFormat.js'
 import { EFFECT_TYPES, getEffectType, OUTCOME_LISTS } from '../../world/objectAuthoring.js'
 import IdInput from './IdInput.jsx'
 
@@ -63,10 +64,179 @@ function ValueInput({ value, onChange }) {
   return <input className="ce-input ce-value" value={flagValueText(value)} placeholder="true, 3, text" onChange={(event) => onChange(parseFlagValue(event.target.value))} />
 }
 
-// The task's less common parts, as JSON: equipment, talentIds, roleIds, traitRules (challenges.json notes).
 const ADVANCED_KEYS = ['equipment', 'talentIds', 'roleIds', 'traitRules']
-function AdvancedTask({ task, onChange }) {
+const WITHOUT_MODES = [
+  { id: 'impossible', label: 'Impossible without it' },
+  { id: 'difficulty', label: 'Harder without it' },
+]
+
+function EquipmentFields({ equipment, onChange }) {
+  const value = equipment ?? { label: '', tags: [], without: undefined, bonus: [] }
+  const set = (changes) => {
+    const next = withoutEmpty({ ...value, ...changes })
+    if (!next.label && !(next.tags?.length) && !(next.itemIds?.length) && next.without == null && !(next.bonus?.length)) {
+      onChange(undefined)
+      return
+    }
+    onChange(next)
+  }
+  const withoutMode = value.without === 'impossible' ? 'impossible' : value.without?.difficulty != null ? 'difficulty' : ''
+  const bonuses = value.bonus ?? []
+  return (
+    <div className="ce-list">
+      <span className="ce-field-label">Equipment (equipped items only)</span>
+      <div className="ce-row">
+        <Field label="Label">
+          <input className="ce-input" value={value.label ?? ''} placeholder="e.g. a tricorder" onChange={(event) => set({ label: event.target.value })} />
+        </Field>
+        <Field label="Tags (commas)">
+          <ListInput value={value.tags} onChange={(tags) => set({ tags: tags.length ? tags : undefined })} placeholder="scanner, engineering" />
+        </Field>
+        <Field label="Item ids (commas)">
+          <ListInput value={value.itemIds} onChange={(itemIds) => set({ itemIds: itemIds.length ? itemIds : undefined })} placeholder="engineeringTricorder" />
+        </Field>
+      </div>
+      <div className="ce-row">
+        <label className="ce-toolbar-field">
+          Without it
+          <Choice
+            label="Without it"
+            value={withoutMode || undefined}
+            options={WITHOUT_MODES}
+            blank="No penalty (optional tool)"
+            onChange={(mode) => {
+              if (!mode) set({ without: undefined })
+              else if (mode === 'impossible') set({ without: 'impossible' })
+              else set({ without: { difficulty: value.without?.difficulty ?? 1 } })
+            }}
+          />
+        </label>
+        {withoutMode === 'difficulty' && (
+          <label className="ce-toolbar-field">
+            Extra Difficulty
+            <input
+              className="ce-input ce-number"
+              type="number"
+              min={1}
+              max={5}
+              value={value.without?.difficulty ?? 1}
+              onChange={(event) => set({ without: { difficulty: Number(event.target.value) } })}
+            />
+          </label>
+        )}
+      </div>
+      <span className="ce-field-label">Bonus tools (optional, Difficulty change when present)</span>
+      {bonuses.map((bonus, index) => (
+        <div key={index} className="ce-row is-action">
+          <input
+            className="ce-input"
+            value={bonus.label ?? ''}
+            placeholder="Label"
+            onChange={(event) => onChange({ ...value, bonus: replaceAt(bonuses, index, { ...bonus, label: event.target.value }) })}
+          />
+          <ListInput
+            value={bonus.tags}
+            placeholder="tags"
+            onChange={(tags) => onChange({ ...value, bonus: replaceAt(bonuses, index, withoutEmpty({ ...bonus, tags: tags.length ? tags : undefined })) })}
+          />
+          <ListInput
+            value={bonus.itemIds}
+            placeholder="item ids"
+            onChange={(itemIds) => onChange({ ...value, bonus: replaceAt(bonuses, index, withoutEmpty({ ...bonus, itemIds: itemIds.length ? itemIds : undefined })) })}
+          />
+          <label className="ce-toolbar-field">
+            Diff
+            <input
+              className="ce-input ce-number"
+              type="number"
+              value={bonus.difficulty ?? 0}
+              onChange={(event) => onChange({ ...value, bonus: replaceAt(bonuses, index, { ...bonus, difficulty: Number(event.target.value) }) })}
+            />
+          </label>
+          <button
+            type="button"
+            className="ce-button is-small"
+            aria-label="Remove bonus"
+            onClick={() => {
+              const next = removeAt(bonuses, index)
+              set({ bonus: next.length ? next : undefined })
+            }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="ce-button is-small" onClick={() => set({ bonus: [...bonuses, { label: '', difficulty: -1 }] })}>
+        + Bonus tool
+      </button>
+      {(equipment || withoutMode || bonuses.length) && (
+        <button type="button" className="ce-button is-small" onClick={() => onChange(undefined)}>
+          Clear equipment
+        </button>
+      )}
+    </div>
+  )
+}
+
+function TraitRulesFields({ rules = [], onChange }) {
+  return (
+    <div className="ce-list">
+      <span className="ce-field-label">Trait rules (scene / character traits)</span>
+      {rules.map((rule, index) => (
+        <div key={index} className="ce-row is-action">
+          <input
+            className="ce-input"
+            value={rule.trait ?? ''}
+            placeholder="Trait name"
+            onChange={(event) => onChange(replaceAt(rules, index, { ...rule, trait: event.target.value }))}
+          />
+          <label className="ce-toolbar-field">
+            <input
+              type="checkbox"
+              checked={Boolean(rule.impossible)}
+              onChange={(event) =>
+                onChange(replaceAt(rules, index, withoutEmpty({ trait: rule.trait, side: rule.side, ...(event.target.checked ? { impossible: true } : { difficulty: rule.difficulty ?? -1 }) })))
+              }
+            />
+            Impossible
+          </label>
+          {!rule.impossible && (
+            <label className="ce-toolbar-field">
+              Diff
+              <input
+                className="ce-input ce-number"
+                type="number"
+                value={rule.difficulty ?? 0}
+                onChange={(event) => onChange(replaceAt(rules, index, { ...rule, difficulty: Number(event.target.value), impossible: undefined }))}
+              />
+            </label>
+          )}
+          <Choice
+            label="Side"
+            value={rule.side}
+            options={[
+              { id: 'player', label: 'Player' },
+              { id: 'enemy', label: 'Enemy' },
+            ]}
+            blank="Any side"
+            onChange={(side) => onChange(replaceAt(rules, index, withoutEmpty({ ...rule, side })))}
+          />
+          <button type="button" className="ce-button is-small" aria-label="Remove trait rule" onClick={() => onChange(removeAt(rules, index))}>
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="ce-button is-small" onClick={() => onChange([...rules, { trait: '', difficulty: -1 }])}>
+        + Trait rule
+      </button>
+    </div>
+  )
+}
+
+// Escape hatch for the four advanced task keys only.
+function AdvancedTaskJson({ task, onChange }) {
   const pick = () => Object.fromEntries(ADVANCED_KEYS.filter((key) => task[key] !== undefined).map((key) => [key, task[key]]))
+  const [open, setOpen] = useState(false)
   const [text, setText] = useState(() => (Object.keys(pick()).length ? JSON.stringify(pick(), null, 2) : ''))
   const [error, setError] = useState('')
   const apply = () => {
@@ -81,10 +251,42 @@ function AdvancedTask({ task, onChange }) {
     }
   }
   return (
-    <Field label="Equipment, talents, roles and trait rules (JSON; applied when you leave the box)">
-      <textarea className="ce-input" rows={4} value={text} spellCheck={false} onChange={(event) => setText(event.target.value)} onBlur={apply} />
-      {error && <span className="ce-text is-warning">{error}</span>}
-    </Field>
+    <div className="ce-list">
+      <button type="button" className="ce-button is-small" onClick={() => setOpen((value) => !value)}>
+        {open ? 'Hide raw JSON' : 'Raw JSON (equipment / talents / roles / trait rules)'}
+      </button>
+      {open && (
+        <Field label="Applied when you leave the box">
+          <textarea
+            className="ce-input"
+            rows={4}
+            value={text}
+            spellCheck={false}
+            onChange={(event) => setText(event.target.value)}
+            onFocus={() => setText(Object.keys(pick()).length ? JSON.stringify(pick(), null, 2) : '')}
+            onBlur={apply}
+          />
+          {error && <span className="ce-text is-warning">{error}</span>}
+        </Field>
+      )}
+    </div>
+  )
+}
+
+function AdvancedTask({ task, onChange }) {
+  const set = (changes) => onChange(withoutEmpty({ ...task, ...changes }))
+  return (
+    <>
+      <EquipmentFields equipment={task.equipment} onChange={(equipment) => set({ equipment })} />
+      <Field label="Talent ids (comma list; only listed talents apply)">
+        <ListInput value={task.talentIds} onChange={(talentIds) => set({ talentIds: talentIds.length ? talentIds : undefined })} placeholder="maintenanceSpecialist" />
+      </Field>
+      <Field label="Role ids (comma list)">
+        <ListInput value={task.roleIds} onChange={(roleIds) => set({ roleIds: roleIds.length ? roleIds : undefined })} placeholder="chiefEngineer" />
+      </Field>
+      <TraitRulesFields rules={task.traitRules} onChange={(traitRules) => set({ traitRules: traitRules.length ? traitRules : undefined })} />
+      <AdvancedTaskJson task={task} onChange={onChange} />
+    </>
   )
 }
 
@@ -204,6 +406,18 @@ function EffectField({ field, effect, object, onChange }) {
       return <Choice label="State" value={value} options={Object.entries(object.states).map(([id, state]) => ({ id, label: state.label || id }))} onChange={set} />
     case 'action':
       return <Choice label="Action" value={value} blank="This action" options={object.actions.map((action) => ({ id: action.id, label: action.label || action.id }))} onChange={set} />
+    case 'enum':
+      return <Choice label={field.label ?? field.key} value={value} options={field.options ?? []} onChange={set} />
+    case 'responseType':
+      return (
+        <Choice
+          label={field.label ?? field.key}
+          value={value ?? ''}
+          options={RESPONSE_TYPES}
+          blank="(clear / none)"
+          onChange={(next) => set(next || null)}
+        />
+      )
     case 'longText':
       return <input className="ce-input oe-long" value={value ?? ''} placeholder="Text" onChange={(event) => set(event.target.value)} />
     case 'flag':

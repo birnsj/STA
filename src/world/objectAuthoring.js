@@ -1,6 +1,9 @@
 // The map editor's Object Editor (screens/ObjectEditorScreen.jsx): pure helpers for authoring a map's challenge objects
 // (challenges.json notes describe the definition format). Effects are applied by objectEffects.js.
-import { challengeDefinitionsFor } from '../exploration/challengeObjects.js'
+import attributeData from '../data/source/attributes.json'
+import disciplineData from '../data/source/disciplines.json'
+import challengesData from '../data/adaptation/exploration/challenges.json'
+import { repairDefinitions } from './objectDefinitions.js'
 
 export const OUTCOME_LISTS = [
   { key: 'always', label: 'Always (before the others)' },
@@ -9,7 +12,17 @@ export const OUTCOME_LISTS = [
   { key: 'onComplication', label: 'On complication (once, pass or fail)' },
 ]
 
-// Each effect type and its fields (kind: text | longText | number | flag | value | flagOp | state | action | boolean).
+export const NEUTRALIZE_MODES = [
+  { id: 'remove', label: 'Remove' },
+  { id: 'reduce', label: 'Reduce' },
+  { id: 'stopSpread', label: 'Stop spread' },
+  { id: 'disableSource', label: 'Disable source' },
+]
+const NEUTRALIZE_MODE_IDS = new Set(NEUTRALIZE_MODES.map((entry) => entry.id))
+const ATTRIBUTE_IDS = new Set(attributeData.attributes.map((entry) => entry.id))
+const DEPARTMENT_IDS = new Set(disciplineData.disciplines.map((entry) => entry.id))
+
+// Each effect type and its fields (kind: text | longText | number | flag | value | flagOp | state | action | boolean | enum | responseType).
 export const EFFECT_TYPES = [
   { id: 'setState', label: 'Set state', fields: [{ key: 'state', kind: 'state' }], create: (object) => ({ type: 'setState', state: Object.keys(object.states ?? {})[0] ?? '' }) },
   { id: 'setFlag', label: 'Set flag', fields: [{ key: 'flag', kind: 'flag' }, { key: 'value', kind: 'value' }], create: () => ({ type: 'setFlag', flag: '', value: true }) },
@@ -34,8 +47,8 @@ export const EFFECT_TYPES = [
   {
     id: 'setNpcResponse',
     label: 'NPC response',
-    fields: [{ key: 'alertGroupId', kind: 'flag', label: 'alert group' }, { key: 'from', kind: 'text', label: 'from' }, { key: 'to', kind: 'text', label: 'to' }],
-    create: () => ({ type: 'setNpcResponse', alertGroupId: '', from: '', to: '' }),
+    fields: [{ key: 'alertGroupId', kind: 'flag', label: 'alert group' }, { key: 'from', kind: 'responseType', label: 'from' }, { key: 'to', kind: 'responseType', label: 'to' }],
+    create: () => ({ type: 'setNpcResponse', alertGroupId: '', from: '', to: null }),
   },
   {
     id: 'addTrait',
@@ -50,7 +63,7 @@ export const EFFECT_TYPES = [
     label: 'Neutralize hazard',
     fields: [
       { key: 'hazardId', kind: 'flag', label: 'hazard id (blank = this hazard)' },
-      { key: 'mode', kind: 'text', label: 'mode' },
+      { key: 'mode', kind: 'enum', label: 'mode', options: NEUTRALIZE_MODES },
       { key: 'amount', kind: 'number', label: 'amount' },
     ],
     create: () => ({ type: 'neutralizeHazard', mode: 'remove', amount: 1 }),
@@ -89,6 +102,75 @@ export function createAction(object) {
     onSuccess: [],
     onFailure: [],
   }
+}
+
+export function duplicateObject(objects, object) {
+  const copy = structuredClone(object)
+  copy.id = freshId(objects.map((entry) => entry.id), copy.id || 'object')
+  copy.name = `${copy.name || copy.id} (copy)`
+  return copy
+}
+
+export function duplicateAction(object, action) {
+  const copy = structuredClone(action)
+  copy.id = freshId(object.actions.map((entry) => entry.id), copy.id || 'action')
+  copy.label = `${copy.label || copy.id} (copy)`
+  return copy
+}
+
+export function duplicateState(object, stateId) {
+  const state = object.states[stateId]
+  if (!state) return object
+  const id = freshId(Object.keys(object.states), stateId || 'state')
+  return { ...object, states: { ...object.states, [id]: structuredClone(state) } }
+}
+
+export function reorderObjects(objects, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= objects.length || to >= objects.length) return objects
+  const next = [...objects]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
+// Toggle an extra cover tile (not the object's own position). Clicking again removes it.
+export function toggleCover(object, [x, y]) {
+  const [ox, oy] = object.position
+  if (x === ox && y === oy) return object
+  const covers = object.covers ?? []
+  const has = covers.some(([cx, cy]) => cx === x && cy === y)
+  const next = has ? covers.filter(([cx, cy]) => !(cx === x && cy === y)) : [...covers, [x, y]]
+  return { ...object, covers: next.length ? next : undefined }
+}
+
+// Adopt library defs if needed, then replace one object by id.
+export function updateMapObject(map, objectId, change) {
+  const objects = editableObjects(map)
+  const next = objects.map((object) => (object.id === objectId ? change(object) : object))
+  return withObjects(map, next)
+}
+
+// Challenge object ids named by conversation Action / Task Check nodes (setChallengeState).
+export function challengeObjectIdsInConversation(record) {
+  const ids = new Set()
+  for (const node of record?.nodes ?? []) {
+    for (const action of [...(node.actions ?? []), ...(node.onComplication ?? [])]) {
+      if (action?.type === 'setChallengeState' && action.objectId) ids.add(action.objectId)
+    }
+  }
+  return [...ids]
+}
+
+export function conversationObjectWarnings(objects, conversations = []) {
+  const ids = new Set(objects.map((object) => object.id).filter(Boolean))
+  const warnings = []
+  for (const conversation of conversations) {
+    const label = conversation.name || conversation.id
+    for (const objectId of challengeObjectIdsInConversation(conversation.record ?? conversation)) {
+      if (!ids.has(objectId)) warnings.push(`Conversation ${label} names challenge object ${objectId}, which isn't on this map.`)
+    }
+  }
+  return warnings
 }
 
 const mapEffects = (action, change) =>
@@ -143,13 +225,37 @@ export function moveObject(object, [x, y]) {
   return { ...object, position: [x, y], ...(object.covers ? { covers: object.covers.map(([cx, cy]) => [cx + dx, cy + dy]) } : {}) }
 }
 
+// Same resolution as challengeDefinitionsFor, kept here so mapFormat can import objectWarnings without a cycle
+// through exploration/challengeObjects → environment → mapFormat.
+function definitionsForEditor(map) {
+  const list = map.objects ?? challengesData.maps[map.id] ?? challengesData.maps[map.name] ?? []
+  const definitions = repairDefinitions(list).definitions
+  const placements = map.objectPlacements ?? {}
+  return definitions.map((definition) => {
+    const placed = placements[definition.id]
+    if (!placed) return definition
+    const [dx, dy] = [placed.x - definition.position[0], placed.y - definition.position[1]]
+    if (!dx && !dy) return definition
+    const inside = ([x, y]) => x >= 0 && y >= 0 && x < map.width && y < map.height
+    return {
+      ...definition,
+      position: [placed.x, placed.y],
+      ...(definition.covers ? { covers: definition.covers.map(([x, y]) => [x + dx, y + dy]).filter(inside) } : {}),
+    }
+  })
+}
+
 // The objects the editor works on: the map's own, else challenges.json's, each where the map places it. Saving them
 // into the map takes the placements in, so the map's objectPlacements are dropped (the move tool adds new ones).
-export const editableObjects = (map) => structuredClone(challengeDefinitionsFor(map))
+export const editableObjects = (map) => structuredClone(definitionsForEditor(map))
 export const withObjects = (map, objects) => ({ ...map, objects, objectPlacements: {} })
 
+export function challengeMapWarnings(map, options) {
+  return objectWarnings(definitionsForEditor(map), map, options)
+}
+
 // Problems the author should know about; none stop the map saving.
-export function objectWarnings(objects, map) {
+export function objectWarnings(objects, map, { conversations = [] } = {}) {
   const warnings = []
   const ids = new Set()
   objects.forEach((object) => {
@@ -157,24 +263,53 @@ export function objectWarnings(objects, map) {
     if (!object.id) warnings.push(`${label} has no id.`)
     else if (ids.has(object.id)) warnings.push(`The id ${object.id} is used twice.`)
     ids.add(object.id)
-    const [x, y] = object.position
-    if (x < 0 || y < 0 || x >= map.width || y >= map.height) warnings.push(`${label} is off the map.`)
-    if (!object.states[object.state]) warnings.push(`${label} starts in ${object.state || 'no state'}, which it doesn't have.`)
+    const [x, y] = object.position ?? []
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x >= map.width || y >= map.height) warnings.push(`${label} is off the map.`)
+    if (!object.states?.[object.state]) warnings.push(`${label} starts in ${object.state || 'no state'}, which it doesn't have.`)
     const actionIds = new Set()
-    object.actions.forEach((action) => {
+    ;(object.actions ?? []).forEach((action) => {
       const name = `${label}: ${action.label || action.id || 'an action'}`
       if (!action.id) warnings.push(`${name} has no id.`)
       else if (actionIds.has(action.id)) warnings.push(`${label}: the action id ${action.id} is used twice.`)
       actionIds.add(action.id)
       if (!action.label?.trim()) warnings.push(`${name} has no label.`)
-      if (!action.routine && (!action.task?.attribute || !action.task?.department)) warnings.push(`${name} needs an Attribute and a Department, or Routine; until then it is left out of play.`)
+      if (action.routine && (action.always?.length ?? 0) > 0) {
+        warnings.push(`${name}: Routine ignores Always effects at runtime.`)
+      }
+      if (!action.routine && (!action.task?.attribute || !action.task?.department)) {
+        warnings.push(`${name} needs an Attribute and a Department, or Routine; until then it is left out of play.`)
+      }
+      const task = action.task
+      if (task && !action.routine) {
+        if (task.attribute && !ATTRIBUTE_IDS.has(task.attribute)) warnings.push(`${name}: unknown Attribute “${task.attribute}”.`)
+        if (task.department && !DEPARTMENT_IDS.has(task.department)) warnings.push(`${name}: unknown Department “${task.department}”.`)
+        if (Number.isFinite(task.difficulty) && (task.difficulty < 0 || task.difficulty > 5)) {
+          warnings.push(`${name}: Difficulty ${task.difficulty} is out of range (0–5).`)
+        }
+        const equipment = task.equipment
+        if (equipment) {
+          if (!equipment.label?.trim()) warnings.push(`${name}: equipment needs a label.`)
+          const without = equipment.without
+          if (without != null && without !== 'impossible' && !Number.isFinite(without?.difficulty)) {
+            warnings.push(`${name}: equipment.without must be “impossible” or { difficulty }.`)
+          }
+        }
+        ;(task.traitRules ?? []).forEach((rule, index) => {
+          if (!rule?.trait) warnings.push(`${name}: trait rule ${index + 1} needs a trait name.`)
+          if (rule?.impossible && rule.difficulty != null) warnings.push(`${name}: trait rule “${rule.trait}” cannot be both impossible and a Difficulty change.`)
+        })
+      }
       ;(action.requires?.states ?? []).forEach((state) => !object.states[state] && warnings.push(`${name} requires the unknown state ${state}.`))
       OUTCOME_LISTS.forEach(({ key }) =>
         (action[key] ?? []).forEach((effect) => {
           if (!getEffectType(effect.type)) warnings.push(`${name}: unknown effect ${effect.type}.`)
           if (effect.type === 'setState' && !object.states[effect.state]) warnings.push(`${name} sets the unknown state ${effect.state || '(none)'}.`)
-          if (effect.type === 'adjustDifficulty' && effect.actionId && !object.actions.some((other) => other.id === effect.actionId))
+          if (effect.type === 'adjustDifficulty' && effect.actionId && !object.actions.some((other) => other.id === effect.actionId)) {
             warnings.push(`${name} adjusts the unknown action ${effect.actionId}.`)
+          }
+          if (effect.type === 'neutralizeHazard' && effect.mode && !NEUTRALIZE_MODE_IDS.has(effect.mode)) {
+            warnings.push(`${name}: unknown neutralize mode “${effect.mode}”.`)
+          }
         }),
       )
     })
@@ -182,5 +317,6 @@ export function objectWarnings(objects, map) {
   ;(map.objectives ?? []).forEach((objective) => {
     if (objective.objectId && !ids.has(objective.objectId)) warnings.push(`The objective ${objective.title || objective.id} is marked on ${objective.objectId}, which isn't on this map.`)
   })
+  warnings.push(...conversationObjectWarnings(objects, conversations))
   return warnings
 }

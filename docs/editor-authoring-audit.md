@@ -14,6 +14,8 @@
 
 **Update (2026-10-18, Phase 3 — Hazard / Destructible authoring):** Map-instance overrides cover remaining runtime fields: hazard migrateChance, injuryType, damagesObjects, blocksSight, movement, layer, scarTile, full neutralize task (label/attribute/department/difficulty/focuses/equipment); destructible damagedHazard, debris, attackDifficulty, noExplosion; scan leak text fixed. Type catalogues remain JSON-only (no new types/art). See matrix #20, #24.
 
+**Update (2026-10-18, Phase 4 — Challenge object authoring):** Structured advanced-task UI (equipment / talentIds / roleIds / traitRules), board Edit Covers, duplicate/reorder objects-actions-states, effect enums for NPC response and neutralize modes, routine/Always warning, `validateMap` + conversation object-ref warnings, Object Inspector ownership + Edit in Object Editor. Samples may still use `challenges.json` until Object Editor adopt. `interactRange` remains hardcoded. See matrix #13–17, #56.
+
 ---
 
 ## A. Executive Summary
@@ -33,8 +35,8 @@ If the episode stays within existing item/environment catalogues, authors NPCs (
 | Classification | Count |
 |---|---|
 | Features audited | **58** |
-| Complete | **38** |
-| Partial | **10** |
+| Complete | **41** |
+| Partial | **7** |
 | Hardcoded | **7** |
 | Missing | **2** |
 | Broken | **0** |
@@ -64,11 +66,11 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 10 | Enemy spawns + facing | Complete | Y | Y | Y† | Y | Y | Y | Y† | Y† | †Combat mode / NPC fallback; world fights use NPCs |
 | 11 | Tile Cover / Fade flags | Complete | Y | Y | Y | — | Y‡ | Y‡ | Y | Y | `setTileFlag` → `tiles.json` (global) |
 | 12 | Big-object 2×2 presentation | N/A | Y | via tiles | — | paint | Y | Y | Y | Y | Auto from `tiles.json` `big`; `bigObjects.js` |
-| 13 | Challenge object definitions | Partial | Y | Y§ | Y§ | Y | Y§ | Y§ | Y | Y | §Object Editor → `map.objects`; **no sample map currently embeds `objects`** (Deck 10 + others still use `challenges.json`) |
+| 13 | Challenge object definitions | Complete* | Y | Y§ | Y§ | Y | Y§ | Y§ | Y | Y | *Full Object Editor CRUD + duplicate/reorder; samples may still use `challenges.json` until adopt (§) |
 | 14 | Challenge placement | Complete | Y | Y | — | Y | Y | Y | Y | Y | `objectPlacements` / Object Editor XY |
-| 15 | Challenge covers (multi-tile) | Partial | Y | Y | text | — | Y | Y | Y | Y | Free-text in Object Editor, not board pick |
-| 16 | Challenge actions / outcomes | Complete | Y | Y | Y | — | Y | Y | Y | Y | `ObjectActionFields.jsx`, `EFFECT_TYPES` |
-| 17 | Advanced task equipment JSON | Partial | Y | Y | JSON | — | Y | Y | Y | Y | Raw JSON textarea, not structured UI |
+| 15 | Challenge covers (multi-tile) | Complete | Y | Y | board+text | Y | Y | Y | Y | Y | Board Edit Covers + Object Editor text; adopt on first cover edit if library-only |
+| 16 | Challenge actions / outcomes | Complete | Y | Y | Y | — | Y | Y | Y | Y | `ObjectActionFields.jsx`, `EFFECT_TYPES` (+ enums) |
+| 17 | Advanced task equipment / talents / roles / traits | Complete | Y | Y | structured | — | Y | Y | Y | Y | Structured UI + optional raw JSON escape hatch |
 | 18 | `interactRange` | Hardcoded | Y | N | N | — | N | N | Y | Y | `challenges.json` top-level only |
 | 19 | Destructible placement | Complete | Y | Y | Y | Y | Y | Y | Y | Y | Environment palette; `environmentEdits` tests |
 | 20 | Destructible overrides | Complete* | Y | Y | Y | Y | Y | Y | Y | Y | *Per-instance damagedHazard, debris, attackDifficulty, noExplosion; type catalogue still JSON-only |
@@ -108,7 +110,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 53 | Map save / load / rename | Complete | — | Y | — | — | Y | Y | — | Y | `mapFiles.js` `/__maps` (dev only write) |
 | 54 | Editor Play (playtest) | Complete | Y | Y | enemiesActive | in-memory | — | — | Y | — | `ExplorationPlaytest` uses open map, unsaved OK |
 | 55 | Load Episode → Game | Complete | Y | — | — | — | — | disk | — | Y | Saved map only |
-| 56 | Map validation warnings | Partial | — | Y | limited | — | — | — | — | — | `validateMap`; does not cover objectives/conversations |
+| 56 | Map validation warnings | Partial | — | Y | limited | — | — | — | — | — | `validateMap` includes challenge objects; objectives/conversations still partial |
 | 57 | Legacy hazard **tiles** roles | Partial | warn | paint | — | Y | Y | Y | unclear | unclear | `role: hazard` / `hazardControl` vs region hazards |
 | 58 | Room env-control consoles | Complete | Y | as objects | Y | Y | Y§ | Y§ | Y | Y | Challenge objects + `neutralizeHazardsInRoom` |
 
@@ -267,6 +269,17 @@ Related suites not re-run to green here but relevant: `objectGolden.test.js`, `d
 Explore-agent corroboration (same session): editor inventory, serialization pipeline, and runtime catalogue—aligned with the matrix above; no classification changes required beyond the sample-map `objects` and `schemaVersion` notes.
 
 **Phase 1 re-verification (2026-10-18):** `tests/npcAuthoring.test.js` + `conversation.test.js` + `mapEditorTools.test.js` — 39 passed. Lint (pre-existing warnings only) and `npm run build` succeeded. Matrix rows #36–38 updated to Complete.
+
+**Phase 4 re-verification (2026-10-18):** `tests/objectAuthoring.test.js` + `tests/objectGolden.test.js` (fingerprints refreshed to current Deck 10 / Vault runtime; drift predated Phase 4 authoring UI). Matrix #13–17 Complete; #56 Partial (challenge warnings via `challengeMapWarnings` in Map Editor beside `validateMap`).
+
+**Phase 4 DEV acceptance checklist**
+
+1. Object Editor → Add Object → structured equipment + trait rule → Save → Play → attempt succeeds/fails as authored.  
+2. Board: select object → Edit Covers → toggle tiles → Save → reload.  
+3. Duplicate Object / Action / State; Move Up/Down on object list.  
+4. Outcome enums: neutralize mode + setNpcResponse from/to dropdowns.  
+5. Routine + Always effect shows warning; conversation naming missing object id shows in Warnings.  
+6. Deck 10 still loads from `challenges.json` until Object Editor adopt.
 
 ### Limits of this audit
 

@@ -18,6 +18,7 @@ import useMapDocument from '../components/maps/useMapDocument.js'
 import { updateNpc } from '../maps/mapEdits.js'
 import { canSaveMaps } from '../maps/mapFiles.js'
 import { resizeMap, validateMap } from '../maps/mapFormat.js'
+import { challengeMapWarnings } from '../world/objectAuthoring.js'
 import { canDrawEpisodeArt } from '../maps/episodeArt.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
@@ -108,8 +109,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   })
   const { tool, placing, rotated, selection } = tools
 
+  // Challenge-object checks stay here (not in mapFormat) so mapFormat ↔ objectAuthoring cannot cycle through combat.
   const warnings = useMemo(
-    () => validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }),
+    () => [
+      ...validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }),
+      ...challengeMapWarnings(map),
+    ],
     [map],
   )
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
@@ -336,6 +341,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             onEditConversation={(id) => setConversationEditor({ id })}
             objectPlacing={tools.placingObject}
             onToggleObjectPlace={tools.toggleObjectPlace}
+            objectEditingCovers={tools.editingObjectCovers}
+            onToggleObjectCovers={tools.toggleObjectCovers}
+            onOpenObjectEditor={(id) => setObjectEditor({ id: id ?? null })}
             onMarkerCleared={tools.clearMarker}
             destructibleMoving={tools.movingDestructible}
             onToggleDestructibleMove={tools.toggleDestructibleMove}
