@@ -134,6 +134,3 @@ export function hazardChallengeFor(environment, objectId) {
   }
   return object
 }
-
-// The hazard a challenge id points at, for the effects ('hazard:h1' -> 'h1'), or null.
-export const hazardIdOf = (objectId) => (isHazardChallengeId(objectId) ? regionIdOf(objectId) : null)

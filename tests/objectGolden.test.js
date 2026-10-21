@@ -2,10 +2,12 @@
 // action on the Deck 10 Brig and the Vault of the Ancients, an object task in combat, and a conversation's object state
 // change must play out exactly as recorded. A refactor that changes any of them changed gameplay.
 // GOLDEN_PRINT=1 npm test prints the current fingerprints instead of checking them.
+// The Brig is a frozen copy (tests/fixtures/deck10Brig.json, the map as of commit d011948): maps/Deck 10 Brig.json is a
+// live authoring file that the map editor changes, and fingerprints must not move when the designer edits it.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
-import brigFile from '../maps/Deck 10 Brig.json'
+import brigFile from './fixtures/deck10Brig.json'
 import { getAssistableAllies } from '../src/combat/combatAttacks.js'
 import { getActiveCombatant } from '../src/combat/combatState.js'
 import { getDirectableAllies } from '../src/combat/combatTasks.js'
@@ -20,12 +22,14 @@ import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  brigClosed: 'cb54b25aef0b8a25',
-  brigCleared: '8c79df5129ce4560',
-  brigLockout: 'e49d1d7a2db4eee4',
-  vault: '194052aa923b424a',
-  combat: '75489adcd6d1020a',
-  conversation: '59e000f489f5d61a',
+  brigClosed: 'cd42d43e28abe188',
+  brigCleared: '3d9ef7c518e4b6f0',
+  brigLockout: '661ef06fe3c46aca',
+  // Re-baselined 2026-10-20 (designer decision): only equipped items count for task bonuses, so Alpha's bagged Engineering
+  // Toolkit no longer lowers Difficulty (Bypass Controls is 3, was 2). A quickbar for used items is planned. Was '49dbff9fe7ace5a2'.
+  vault: '90c33e29a6b50ffb',
+  combat: 'dc25d1817baf3a41',
+  conversation: 'bfd05a1ebe84b649',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)
@@ -43,6 +47,13 @@ const team = () => [
   makeCharacter({ id: 'gamma', name: 'Gamma', attributes: { insight: 11, reason: 11 }, disciplines: { science: 4, medicine: 3 } }),
 ]
 
+// Fields that only drive what the board draws (patrol waypoint idle animations, added 2026-10-18). Left out of the
+// fingerprint so a presentation-only addition to an NPC record cannot read as a gameplay change.
+const withoutPresentation = ({ waypointAnim: _waypointAnim, ...npc }) =>
+  npc.patrol
+    ? { ...npc, patrol: { ...npc.patrol, points: npc.patrol.points.map(({ animation: _a, animationDuration: _d, animationLoop: _l, ...point }) => point) } }
+    : npc
+
 const view = (state) => ({
   objects: state.scenario.objects,
   flags: state.scenario.flags,
@@ -51,7 +62,7 @@ const view = (state) => ({
   taskCount: state.scenario.taskCount,
   resources: state.resources,
   partyKnowledge: state.partyKnowledge,
-  npcs: getNpcs(state.world),
+  npcs: getNpcs(state.world).map(withoutPresentation),
   noises: state.world.noises,
   tiles: state.party.map.tiles.map((row) => row.join(',')),
   views: getChallengeViews(state.scenario),

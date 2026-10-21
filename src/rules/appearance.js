@@ -91,7 +91,7 @@ export function getSpriteSet(portraitId) {
 }
 
 // A set's PNG for one of characterSprites.json's sheets: the base sheet path with the sheet's suffix (and its uniform
-// mask beside it, or null when the set has none).
+// mask beside it, or null when the set has none). The base path already includes characters/{species}/{gender}/.
 const withSuffix = (file, suffix) => file.replace(/(-uniform)?\.png$/, `${suffix}$1.png`)
 export const spriteSheetFile = (set, sheetId) => withSuffix(set.sheet, spriteData.sheets[sheetId].suffix)
 export const spriteMaskFile = (set, sheetId) => (set.uniformMask ? withSuffix(set.uniformMask, spriteData.sheets[sheetId].suffix) : null)

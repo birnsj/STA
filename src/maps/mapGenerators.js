@@ -6,6 +6,7 @@ import biomeData from '../data/adaptation/maps/biomes.json'
 import locationNames from '../data/adaptation/maps/locationNames.json'
 import mapSizes from '../data/adaptation/maps/mapSizes.json'
 import { randomEpisodeName, randomLocationName, randomUnusedLocationName } from '../rules/locationNames.js'
+import { pick } from '../rules/seededRandom.js'
 import { generateCave } from './generators/cave.js'
 import { generateCity } from './generators/city.js'
 import { generateColony } from './generators/colony.js'
@@ -42,7 +43,6 @@ const ORTHO = [
   { x: 0, y: 1 },
   { x: 0, y: -1 },
 ]
-const pick = (list, random) => list[Math.floor(random() * list.length)]
 const keyOf = ({ x, y }) => `${x},${y}`
 
 const locationList = (categoryId) => locationNames.categories.find((category) => category.id === categoryId)?.names ?? []

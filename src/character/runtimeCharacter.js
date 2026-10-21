@@ -9,6 +9,7 @@ import { getCharacterBackdrop, getPortraitById, getSpriteSet } from '../rules/ap
 import { getCreatorFaction } from '../rules/factions.js'
 import { getSpeciesAbility, getSpeciesDisplayName } from '../rules/species.js'
 import { getUniformColour } from '../rules/uniform.js'
+import { isPlainObject } from './isPlainObject.js'
 
 export const ATTRIBUTE_IDS = attributeData.attributes.map((attribute) => attribute.id)
 export const DISCIPLINE_IDS = disciplineData.disciplines.map((discipline) => discipline.id)
@@ -16,7 +17,6 @@ export const DISCIPLINE_IDS = disciplineData.disciplines.map((discipline) => dis
 export const getAttributeName = (id) => attributeData.attributes.find((attribute) => attribute.id === id)?.name ?? id
 export const getDisciplineName = (id) => disciplineData.disciplines.find((discipline) => discipline.id === id)?.name ?? id
 
-const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const isScore = (value) => Number.isInteger(value) && value >= 0
 
 function readScores(scores, ids, label) {

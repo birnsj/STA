@@ -4,10 +4,12 @@ import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettings
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import usePendingObjectHit from '../components/usePendingObjectHit.js'
 import ChallengePanel from '../components/exploration/ChallengePanel.jsx'
 import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.jsx'
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
-import InventoryPanel, { InventoryDragGhost, inventoryDropAt, syncInventoryGhostPosition } from '../components/exploration/InventoryPanel.jsx'
+import InventoryPanel, { InventoryDragGhost } from '../components/exploration/InventoryPanel.jsx'
+import { inventoryDropAt, syncInventoryGhostPosition } from '../components/exploration/inventoryDrag.js'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
@@ -41,7 +43,7 @@ import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
 import WeatherFx from '../effects/WeatherFx.jsx'
-import { dispositionName, isHostile } from '../exploration/awareness.js'
+import { dispositionName, getNpcs, isHostile, partyHearsWalker } from '../exploration/awareness.js'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import { challengeFor, getChallengeViews, INTERACT_RANGE, objectivePosition, objectsInReach } from '../exploration/challengeObjects.js'
 import { MODE } from '../exploration/combatLink.js'
@@ -347,6 +349,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
+  useExplorationFootsteps(getNpcs(world).filter((npc) => partyHearsWalker(party.map, members, npc)), !inCombat)
   // The away team beams in as the mission starts; move orders wait until they are all here.
   const beamPhase = useBeamIn()
   const challengeViews = getChallengeViews(state.scenario)
@@ -462,13 +465,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   useEffect(() => {
     if (lastTargetScanKey != null) playScanSound()
   }, [lastTargetScanKey])
-  // Object shot: laser first, then Structure / explosion after the beam lands.
-  const pendingObjectHit = state.pendingObjectHit
-  useEffect(() => {
-    if (!pendingObjectHit || inCombat) return undefined
-    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs)
-    return () => clearTimeout(timer)
-  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, inCombat, dispatch])
+  usePendingObjectHit(state.pendingObjectHit, dispatch, { enabled: !inCombat })
   const lastSocialKey = state.lastSocial?.key
   const lastSocialKind = state.lastSocial?.kind
   const lastSocialPassed = state.lastSocial?.passed
@@ -615,6 +612,9 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   }, [pendingTalkNpc, pendingTalk, talkTo])
 
   // Pending pickup: once the chosen character reaches the item, put it in their bag. A fight since the request cancels it.
+  // The request is dropped here, once and for good, as soon as it can no longer be met. Deriving that while rendering
+  // would revive a cancelled pickup if the character recovers or the item reappears.
+  /* eslint-disable react/set-state-in-effect -- reacting to the walking party's position, which only changes over time */
   useEffect(() => {
     if (!pendingPickup) return
     if (pendingPickup.combatId !== (state.lastCombat?.id ?? null)) {
@@ -635,6 +635,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     setPendingPickup(null)
     dispatch({ type: 'pickupItem', instanceId: pendingPickup.instanceId, memberId: pendingPickup.memberId })
   }, [dispatch, party.members, pendingPickup, state.groundItems, state.lastCombat?.id])
+  /* eslint-enable react/set-state-in-effect */
   const setLeader = useCallback((id) => dispatch({ type: 'setLeader', id }), [dispatch])
   const setFormation = useCallback((formationId) => dispatch({ type: 'setFormation', formationId }), [dispatch])
   const regroup = useCallback(() => dispatch({ type: 'regroup' }), [dispatch])
@@ -886,6 +887,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     groundItemMenuButtons(
       state,
       menuGroundItem.id,
+      // These run only when a ring button is clicked; requestPickupGroundItem reads a ref then, never while rendering.
+      // eslint-disable-next-line react/refs -- click handlers, not render-time reads
       {
         scan: (memberId) => dispatch({ type: 'scanGroundItem', memberId, instanceId: menuGroundItem.id }),
         pickup: (memberId) => {

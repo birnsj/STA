@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Map files for the dev map editor: one maps/{id}.json per map, where the id (file name) is the map's name, and at most
 // one generated episode thumbnail per map, public/art/episodes/{id}.png. Saving, renaming and deleting a map keep the
@@ -106,10 +107,10 @@ function putMap(folder, artFolder, { id, previousId = null, record, png = null }
   const hadArt = fs.existsSync(artPath)
   if (thumbnail?.bytes) {
     fs.mkdirSync(artFolder, { recursive: true })
-    fs.writeFileSync(artPath, thumbnail.bytes)
+    writeFileAtomic(artPath, thumbnail.bytes)
   }
   try {
-    fs.writeFileSync(fileFor(folder, id), `${JSON.stringify(saved, null, 2)}\n`)
+    writeFileAtomic(fileFor(folder, id), `${JSON.stringify(saved, null, 2)}\n`)
   } catch (error) {
     // A picture written for a map file that doesn't exist would be an orphan.
     if (thumbnail?.bytes && !hadArt) fs.rmSync(artPath, { force: true })

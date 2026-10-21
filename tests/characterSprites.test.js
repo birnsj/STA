@@ -78,10 +78,47 @@ describe('character sprite sheets (Prototype)', () => {
 describe('sprite sheets and animations (Prototype)', () => {
   it('each sheet is the base sheet path with its suffix, and its mask beside it', () => {
     const set = getSpriteSetById('human-male')
-    assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human-male.png')
-    assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human-male-combat.png')
-    assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human-male-fall-uniform.png')
+    assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human/male/human-male.png')
+    assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human/male/human-male-combat.png')
+    assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human/male/human-male-fall-uniform.png')
     assert.equal(spriteMaskFile(getSpriteSetById('klingon-male'), 'combat'), null)
+  })
+
+  it('puts every species and gender in its own directory, and every sheet is on disk', () => {
+    const flat = fs.readdirSync('public/art/sprites/characters').filter((name) => name.endsWith('.png'))
+    assert.deepEqual(flat, [])
+    let files = 0
+    for (const set of spriteData.sets) {
+      const dir = `/art/sprites/characters/${set.species}/${set.gender}`
+      assert.equal(set.sheet, `${dir}/${set.id}.png`)
+      if (set.uniformMask) assert.equal(set.uniformMask, `${dir}/${set.id}-uniform.png`)
+      for (const sheetId of Object.keys(spriteData.sheets)) {
+        const sheet = spriteSheetFile(set, sheetId)
+        assert.ok(sheet.startsWith(`${dir}/`), sheet)
+        assert.equal(fs.existsSync(`public${sheet}`), true, sheet)
+        files++
+        const mask = spriteMaskFile(set, sheetId)
+        if (set.uniformMask) {
+          assert.equal(fs.existsSync(`public${mask}`), true, mask)
+          files++
+        } else {
+          assert.equal(mask, null)
+        }
+      }
+    }
+    assert.equal(files, 208)
+  })
+
+  it('keeps the old flat character-sprite paths out of the code', () => {
+    const obsolete = /\/art\/sprites\/characters\/[a-z]+-(?:male|female)/
+    for (const file of [
+      'src/data/adaptation/characterSprites.json',
+      'src/rules/appearance.js',
+      'scripts/makeCharacterSprites.mjs',
+      'tests/characterSprites.test.js',
+    ]) {
+      assert.equal(obsolete.test(fs.readFileSync(file, 'utf8')), false, file)
+    }
   })
 
   it('every animation name is unique across the sheets and found with its sheet', () => {
@@ -303,8 +340,8 @@ describe('blast throw direction and facing (Prototype presentation)', () => {
     assert.ok(kb)
     assert.equal(land.x + kb.x * -1, from.x)
     assert.equal(land.y + kb.y * -1, from.y)
-    assert.equal(land.x + kb.x * 0, land.x)
-    assert.equal(land.y + kb.y * 0, land.y)
+    // At t = 0 the slide offset is zero, so the figure rests on its landing tile; this only holds for a finite offset.
+    assert.ok(Number.isFinite(kb.x) && Number.isFinite(kb.y))
   })
 })
 

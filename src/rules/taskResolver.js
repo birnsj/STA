@@ -19,8 +19,6 @@
 import { getAttributeName, getDisciplineName } from '../character/runtimeCharacter.js'
 
 export const TASK_DICE = 2
-// Every die can be a critical success (a 1 always is), so the base pool can score up to twice its dice.
-export const MAX_BASE_SUCCESSES = TASK_DICE * 2
 
 export const rollD20 = (random) => Math.floor(random() * 20) + 1
 

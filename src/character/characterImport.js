@@ -1,7 +1,6 @@
 import { withSpeciesAbility } from '../rules/species.js'
 import { createEmptyCharacter } from './characterModel.js'
-
-const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+import { isPlainObject } from './isPlainObject.js'
 
 // The creator's default sections, with the entry's own on top (one level deep, as persistence.js upgrades saves).
 // empty: optional base from the caller (defaults to createEmptyCharacter()).

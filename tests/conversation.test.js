@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import engineerFile from '../conversations/engineerSealedSection.json'
-import brigFile from '../maps/Deck 10 Brig.json'
+// Frozen copy of the Brig (see objectGolden.test.js): the live map is edited in the map editor and gains NPCs.
+import brigFile from './fixtures/deck10Brig.json'
 import { checkAhead, createConversation, createNode, getNode, parseConversation, removeNode, serializeConversation, validateConversation, withLink } from '../src/conversation/conversationFormat.js'
 import { availableOptions, currentCheck, previewCheckAssist, recommendCheck } from '../src/conversation/conversationRuntime.js'
 import { getNpcs } from '../src/exploration/awareness.js'

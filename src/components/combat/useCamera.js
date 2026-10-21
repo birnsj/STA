@@ -72,6 +72,10 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const wasdCoastRef = useRef(wasdCoast)
   // True while WASD / arrows are held, so the first coast frame can scale after-glide by wasdCoast.
   const keyPanningRef = useRef(false)
+  // True while a glide, key-pan or drag is in flight (see writeViewBox).
+  const movingRef = useRef(false)
+  // World units per second from the last pan; decays with COAST_FRICTION after release.
+  const velocityRef = useRef({ x: 0, y: 0 })
   useEffect(() => {
     onPanRef.current = onPan
     onFollowRef.current = onFollow
@@ -99,10 +103,6 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     returningRef.current = true
     targetRef.current = { x: followRef.current.point.x, y: followRef.current.point.y }
   }
-  // True while a glide, key-pan or drag is in flight (see writeViewBox).
-  const movingRef = useRef(false)
-  // World units per second from the last pan; decays with COAST_FRICTION after release.
-  const velocityRef = useRef({ x: 0, y: 0 })
   const endFreePan = () => {
     velocityRef.current = { x: 0, y: 0 }
     freePanRef.current = false

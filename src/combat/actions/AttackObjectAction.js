@@ -1,7 +1,7 @@
 import { objectShotImpactMs } from '../../components/combat/battleHelpers.js'
 import { checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum } from '../../rules/missionResources.js'
 import { evaluateStaDie, resolveStaTask, rollDice } from '../../rules/taskResolver.js'
-import { damageObjectInCombat, previewObjectAttack } from '../combatEnvironment.js'
+import { previewObjectAttack } from '../combatEnvironment.js'
 import { addLog, diceText, focusText, markAction, momentumLine, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from '../combatLog.js'
 import { facingToward } from '../combatSelectors.js'
 import { withOutcome } from '../combatTurnOrder.js'

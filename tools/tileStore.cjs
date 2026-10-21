@@ -1,4 +1,5 @@
 const fs = require('fs')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Dev map editor: changes one tile's cover or fade flag in src/data/adaptation/maps/tiles.json.
 // Used only by the dev server endpoint in vite.config.js. The file is hand-formatted (one tile per line, walls spread
@@ -26,7 +27,7 @@ function setTileFlag(file, change) {
 
   // The value found must belong to this tile; anything else means the file isn't laid out as expected.
   if (JSON.parse(updated).tiles.find((other) => other.id === id)[flag] !== value) throw new Error(`Could not update tile ${id}`)
-  fs.writeFileSync(file, updated)
+  writeFileAtomic(file, updated)
   return { id, [flag]: value }
 }
 

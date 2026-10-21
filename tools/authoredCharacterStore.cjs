@@ -1,4 +1,5 @@
 const fs = require('node:fs')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Authored NPC pool (src/data/adaptation/characters.json): one file holding { notes, characters[] }.
 // Used only by the Vite DEV endpoint; builds bundle the JSON instead. Preserves notes on every rewrite.
@@ -21,7 +22,7 @@ function readFile(file) {
 }
 
 function writeFile(file, data) {
-  fs.writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`)
+  writeFileAtomic(file, `${JSON.stringify(data, null, 2)}\n`)
 }
 
 function load(file) {

@@ -3,9 +3,7 @@ import { serializeCharacter } from '../export/serializeCharacter.js'
 import { isCharacterValid } from '../rules/characterValidation.js'
 import { getFinalScores } from '../rules/finishingTouches.js'
 import { allocateAuthoredCharacterId } from './authoredCharacters.js'
-
-const ATTR_KEYS = ['control', 'daring', 'fitness', 'insight', 'presence', 'reason']
-const DISC_KEYS = ['command', 'conn', 'security', 'engineering', 'science', 'medicine']
+import { ATTRIBUTE_IDS as ATTR_KEYS, DISCIPLINE_IDS as DISC_KEYS } from './runtimeCharacter.js'
 
 function hasScoreBlock(block, keys) {
   if (!block || typeof block !== 'object') return false

@@ -41,7 +41,6 @@ export function createEmptyTalents() {
   return Object.fromEntries(TALENT_STEPS.map((stepId) => [stepId, null]))
 }
 
-export const getTalents = () => talents
 export const getTalentById = (id) => talentsById.get(id) ?? null
 export const getTalentStepTitle = (stepId) => stepTitles[stepId]
 

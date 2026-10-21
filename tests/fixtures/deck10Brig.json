@@ -1,0 +1,399 @@
+{
+  "schemaVersion": 1,
+  "name": "Deck 10 Brig",
+  "episodeName": "Shadows on Deck Twelve",
+  "card": "/art/episodes/Deck%2010%20Brig.png?v=1791517153051",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 50,
+  "rows": [
+    "####################òò##########òò##ðð##",
+    "ñc..ccc..ccc#c..cc..cc..#cc..ccc..c..MM#",
+    "ñ...........#...........D.............c#",
+    "#...........#...........D..............#",
+    "#c.........c#c.........c#c.............#",
+    "#..........cíc.........c#c.............ï",
+    "#...........D..........c#.............cï",
+    "#c..........D...........#.............c#",
+    "#..........c#c..........ïc.............#",
+    "ò..........c#c....Ehhh.cïc.............ò",
+    "òc..........#c.....hhh.c#c............cò",
+    "#...........#......hhh..#.............c#",
+    "#..........c#...........ò..............#",
+    "#c.........c#c.........còc.............#",
+    "#...........#...........#c............c#",
+    "ì...ccc..c..#..cc..MMM..#c..c..ccccc..c#",
+    "######ìDDðð##ññ##DD##########DD#########",
+    "ñ...ccc..cc.D..cc..ccc..ò..cc..c..cMM..#",
+    "ñ...........D...........ò..............#",
+    "#c..........ò..........cìc............c#",
+    "#c.........cò...........D.............c#",
+    "òc.........c#cM.........D..............ï",
+    "ò...........#c.........còc.............ï",
+    "#...........òc..........ò.............c#",
+    "#c.........cò..........M#.............c#",
+    "ò...........#...........#c.............#",
+    "ò..c..ccc...#cc..c..cc..íc..cc..ccc....#",
+    "####################ðð##########ïï######"
+  ],
+  "rotated": [],
+  "areas": [
+    {
+      "name": "Phaser Control Room",
+      "position": [
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Torpedo Bay",
+      "position": [
+        14,
+        1
+      ]
+    },
+    {
+      "name": "Shuttlebay 2",
+      "position": [
+        27,
+        1
+      ]
+    },
+    {
+      "name": "Main Bridge",
+      "position": [
+        1,
+        17
+      ]
+    },
+    {
+      "name": "Holodeck 3",
+      "position": [
+        13,
+        17
+      ]
+    },
+    {
+      "name": "Transporter Room 1",
+      "position": [
+        25,
+        17
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        4,
+        20,
+        0
+      ],
+      [
+        5,
+        21,
+        0
+      ],
+      [
+        6,
+        20,
+        0
+      ],
+      [
+        5,
+        19,
+        0
+      ]
+    ],
+    "enemySpawns": [
+      [
+        33,
+        7,
+        135
+      ],
+      [
+        33,
+        9,
+        225
+      ],
+      [
+        31,
+        7,
+        45
+      ],
+      [
+        31,
+        9,
+        0
+      ]
+    ]
+  },
+  "npcs": [
+    {
+      "id": "engineer",
+      "characterId": "stationEngineer",
+      "position": [
+        19,
+        22
+      ],
+      "facing": 225,
+      "disposition": "friendly",
+      "conversationId": "engineerSealedSection",
+      "mustSurvive": true
+    },
+    {
+      "id": "guardA",
+      "characterId": "klingonWarrior1",
+      "position": [
+        33,
+        7
+      ],
+      "facing": 135,
+      "name": "Guard A",
+      "disposition": "wary",
+      "npcRules": "supporting",
+      "alertGroupId": "security-a",
+      "alertMethod": "shout"
+    },
+    {
+      "id": "guardB",
+      "characterId": "klingonWarrior2",
+      "position": [
+        33,
+        9
+      ],
+      "facing": 225,
+      "name": "Guard B",
+      "disposition": "hostile",
+      "npcRules": "supporting",
+      "alertGroupId": "security-a",
+      "alertMethod": "shout",
+      "responseType": "alarm"
+    },
+    {
+      "id": "guardC",
+      "characterId": "klingonWarrior3",
+      "position": [
+        31,
+        7
+      ],
+      "facing": 45,
+      "name": "Guard C",
+      "disposition": "aggressive",
+      "npcRules": "supporting",
+      "alertGroupId": "security-b",
+      "alertMethod": "shout"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "restorePower",
+      "title": "Restore power to the section",
+      "description": "Bring the EPS power junction beside Lt. Okafor back online so the east bulkheads can cycle.",
+      "position": [
+        13,
+        20
+      ],
+      "objectId": "powerJunction01",
+      "startsActive": true
+    },
+    {
+      "id": "okaforClearance",
+      "title": "Get Lt. Okafor's clearance",
+      "description": "Lt. Okafor won't let anyone into the sealed east section without her say-so. Persuade her, or earn it by bringing the power back.",
+      "activeWhen": [
+        {
+          "flag": "engineerMet",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "sectionAccessGranted",
+          "op": "isTrue"
+        }
+      ]
+    },
+    {
+      "id": "enterEastSection",
+      "title": "Get into the east section",
+      "description": "With the power back, open one of the east bulkheads, with Lt. Okafor's clearance or by overriding the lockout.",
+      "position": [
+        14,
+        17
+      ],
+      "objectId": "eastBulkheadSouth",
+      "activeWhen": [
+        {
+          "flag": "stationPowerRestored",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "eastSectionOpen",
+          "op": "isTrue"
+        }
+      ]
+    },
+    {
+      "id": "klingonGuards",
+      "title": "Deal with the Klingon guards",
+      "description": "Klingon warriors hold the east section. Defeat them or force them to surrender.",
+      "activeWhen": [
+        {
+          "flag": "eastSectionOpen",
+          "op": "isTrue"
+        }
+      ],
+      "completeWhen": [
+        {
+          "flag": "defeated.guardA",
+          "op": "isTrue"
+        },
+        {
+          "flag": "defeated.guardB",
+          "op": "isTrue"
+        },
+        {
+          "flag": "defeated.guardC",
+          "op": "isTrue"
+        }
+      ]
+    }
+  ],
+  "objectPlacements": {
+    "eastBulkheadSouth": [
+      24,
+      20
+    ],
+    "powerJunction01": [
+      14,
+      21
+    ]
+  },
+  "destructibles": [
+    {
+      "id": "epsConduit1",
+      "type": "epsConduit",
+      "position": [
+        8,
+        1
+      ]
+    },
+    {
+      "id": "plasmaJunction1",
+      "type": "plasmaJunction",
+      "position": [
+        13,
+        3
+      ]
+    },
+    {
+      "id": "gasCylinder1",
+      "type": "gasCylinder",
+      "position": [
+        13,
+        11
+      ]
+    },
+    {
+      "id": "chemicalContainer1",
+      "type": "chemicalContainer",
+      "position": [
+        25,
+        11
+      ]
+    },
+    {
+      "id": "powerJunction1",
+      "type": "powerJunction",
+      "position": [
+        2,
+        17
+      ]
+    },
+    {
+      "id": "chemicalContainer2",
+      "type": "chemicalContainer",
+      "position": [
+        28,
+        5
+      ]
+    },
+    {
+      "id": "epsConduit2",
+      "type": "epsConduit",
+      "position": [
+        35,
+        4
+      ]
+    },
+    {
+      "id": "plasmaJunction2",
+      "type": "plasmaJunction",
+      "position": [
+        36,
+        11
+      ]
+    },
+    {
+      "id": "structuralSupport1",
+      "type": "structuralSupport",
+      "position": [
+        30,
+        13
+      ]
+    },
+    {
+      "id": "atmosphericProcessor1",
+      "type": "atmosphericProcessor",
+      "position": [
+        29,
+        22
+      ]
+    },
+    {
+      "id": "gasCylinder2",
+      "type": "gasCylinder",
+      "position": [
+        35,
+        19
+      ]
+    },
+    {
+      "id": "powerJunction2",
+      "type": "powerJunction",
+      "position": [
+        21,
+        19
+      ]
+    },
+    {
+      "id": "atmosphericProcessor2",
+      "type": "atmosphericProcessor",
+      "position": [
+        17,
+        24
+      ]
+    },
+    {
+      "id": "chemicalContainer3",
+      "type": "chemicalContainer",
+      "position": [
+        18,
+        7
+      ]
+    },
+    {
+      "id": "gasCylinder3",
+      "type": "gasCylinder",
+      "position": [
+        5,
+        9
+      ]
+    }
+  ],
+  "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
+  "stardate": 4523.3
+}

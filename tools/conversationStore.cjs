@@ -1,6 +1,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { checkId } = require('./mapStore.cjs')
+const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Conversation files for the dev conversation editor: one conversations/{id}.json each, where the id (file name) is
 // the conversation's id. Used only by the dev server endpoint in vite.config.js; builds bundle the folder instead.
@@ -36,7 +37,7 @@ function putConversation(folder, { id, previousId = null, record }) {
   checkId(id)
   if (previousId) checkId(previousId)
   fs.mkdirSync(folder, { recursive: true })
-  fs.writeFileSync(fileFor(folder, id), `${JSON.stringify(record, null, 2)}\n`)
+  writeFileAtomic(fileFor(folder, id), `${JSON.stringify(record, null, 2)}\n`)
   if (previousId && !sameId(previousId, id)) fs.rmSync(fileFor(folder, previousId), { force: true })
   return listConversations(folder)
 }

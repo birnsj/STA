@@ -1,4 +1,3 @@
-import { Rectangle, Texture } from 'pixi.js'
 import { loadImage } from '../canvasTiles.js'
 import { textureOf } from './pixiDraw.js'
 

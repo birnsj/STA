@@ -115,6 +115,17 @@ export function footstepNoise(map, npc, member) {
   return { rate: gait.rate, radius }
 }
 
+// Whether the away team can hear this walker (an NPC or an enemy on the map). The same walk distance and wall check as
+// footstepNoise, without the skill adjustment: a walking character is heard within the walk radius, and a wall blocks it.
+export function partyHearsWalker(map, members, walker) {
+  if (!map || !walker?.moving || !walker.position) return false
+  return members.some((member) => {
+    if (!member?.position || isDown(member)) return false
+    if (distance(member.position, walker.position) > STEPS.walk.radius) return false
+    return hasLineOfSight(map, member.position, walker.position)
+  })
+}
+
 // config: one NPC from npcs.json (position and patrol as [x, y]); character: its RuntimeCharacter, if any.
 // The NPC is the world actor: who controls it, how it feels about the away team, what it knows and where it is. Who the
 // person is (stats, species, faction, equipment) is only ever its character; nothing here copies or overrides it.

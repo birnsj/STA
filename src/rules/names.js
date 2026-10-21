@@ -1,12 +1,11 @@
 import names from '../data/adaptation/names.json'
+import { pick } from './seededRandom.js'
 
 export const NAME_GROUPS = [
   { id: 'male', label: 'Random Male Name' },
   { id: 'female', label: 'Random Female Name' },
   { id: 'any', label: 'Random Name' },
 ]
-
-const pick = (list, random) => list[Math.floor(random() * list.length)]
 
 const firstNamesFor = (groupId) => (groupId === 'any' ? [...names.male, ...names.female] : names[groupId] ?? [])
 

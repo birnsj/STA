@@ -28,6 +28,7 @@ import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import usePendingObjectHit from '../components/usePendingObjectHit.js'
 import Battlefield from '../components/combat/PixiBattlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
 import CombatSetup from '../components/combat/CombatSetup.jsx'
@@ -457,13 +458,7 @@ export function Battle({
     return () => window.removeEventListener('keydown', onKey)
   }, [mode])
 
-  // Object shot: laser first, then Structure / explosion after the beam lands.
-  const pendingObjectHit = state.pendingObjectHit
-  useEffect(() => {
-    if (!pendingObjectHit) return undefined
-    const timer = setTimeout(() => dispatch({ type: 'applyPendingObjectHit' }), pendingObjectHit.impactMs / speed)
-    return () => clearTimeout(timer)
-  }, [pendingObjectHit?.key, pendingObjectHit?.impactMs, speed, dispatch])
+  usePendingObjectHit(state.pendingObjectHit, dispatch, { speed })
 
   const cycleWeapon = () => {
     const index = active.weaponIds.indexOf(weapon.id)
@@ -479,7 +474,7 @@ export function Battle({
   const { ambushRingButtons, enemyRingButtons, enemyRingInfo, allyRingButtons, selfRingButtons, objectRingButtons, destructibleRingButtons, destructibleRingInfo } = createRingButtons({
     state, dispatch, active, weapon, mode, ringInfo, attackMode, attackBlock, targetAttack, ringAttackRoll, preview, purchase, purchaseCheck,
     availability, unavailableReasons, extraMinorReason, secondMajorReason, directReason, isCommander, firstAidOptions, objectList,
-    canSwitchTo, closeRing, openTask, selectAction, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
+    canSwitchTo, closeRing, openTask, selectPartyMember, fireAttack, setAttackChoice, setDestination, setMode, setRingInfo, setTaskPick, taskPick,
   })
 
   const ringObject = ringId?.startsWith('object:') ? objects?.marks?.find((mark) => `object:${mark.id}` === ringId && mark.inReach) : null
@@ -841,10 +836,8 @@ export function Battle({
             routeInCover={routeInCover}
             assist={{ allies: assistAllies, allyId: assistAlly?.id ?? null, onAlly: setAssistAllyId, helper: assistHelper }}
             ambush={ambushPreview}
-            confirm={confirm}
             dicePurchase={{ resources: state.resources, value: purchase, onChange: setDicePurchase }}
             combatTask={combatTask}
-            confirmLabel={taskConfirmLabel}
             attackMode={attackMode}
             dev={debugOpen ? { actorName: active.character.name, purchase: purchaseCheck } : null}
             rolling={Boolean(state.pending)}

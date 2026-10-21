@@ -20,3 +20,6 @@ export const seededRandomInt = (seed) => mulberry32(seed)
 export const deriveSeed = (seed, index) => (seed + Math.imul(index + 1, 0x9e3779b9)) >>> 0
 
 export const MAX_SEED = 2 ** 32 - 1
+
+// A random entry of a list, drawn from the given random source (so seeded callers stay repeatable).
+export const pick = (list, random) => list[Math.floor(random() * list.length)]

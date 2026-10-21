@@ -3,10 +3,9 @@
 // window panels are left alone. Corner tiles stay plain: a fitting there sits on the face into the corner and reads as
 // hanging off the wall (designer request, Oct 2026). Prototype presentation, not a source-book rule.
 import variantData from '../../data/adaptation/maps/generatedWallVariants.json'
+import { pick } from '../../rules/seededRandom.js'
 import { getTile } from '../mapFormat.js'
 import { getWallPanels } from '../wallPanels.js'
-
-const pick = (list, random) => list[Math.floor(random() * list.length)]
 
 const isWallAt = (map, x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && Boolean(getTile(map.tiles[y][x]).wall)
 

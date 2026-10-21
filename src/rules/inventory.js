@@ -12,7 +12,6 @@ export const BAG_CAPACITY = BAG_COLS * BAG_ROWS
 export const BAG_VISIBLE_ROWS = 4
 // Subdivisions of one map tile for dropped-item placement (designer request: 8×8 logical grid).
 export const ITEM_GRID = 8
-export const ITEM_GRID_STEP = 1 / ITEM_GRID
 
 export function snapItemPosition(point) {
   return {
