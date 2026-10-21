@@ -3,7 +3,8 @@
 // frames side by side, plus a uniform mask (opaque where the shirt is) for the department recolour. Rendered like the v2 tiles: the same isometric projection, light, fill and highlight
 // (scripts/v2/engine.mjs) at 4x, so the figures stand in the same light as the world. Each figure is a handful of
 // capsules and ellipsoids, ray-cast analytically. Never overwrites an existing PNG without --force: the designer may
-// have replaced it with real art.
+// have replaced it with real art. Each set is written under public/art/sprites/characters/{species}/{gender}/,
+// because that directory is part of the set's sheet path in characterSprites.json.
 // Run: node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup|panic] [--force]
 import fs from 'node:fs'
 import path from 'node:path'
