@@ -28,6 +28,7 @@ import buildTaskPanel from '../components/combat/buildTaskPanel.js'
 import createRingButtons from '../components/combat/ringButtons.js'
 import useBattlePacing from '../components/combat/useBattlePacing.js'
 import useBeamIn from '../components/combat/useBeamIn.js'
+import useCombatRing from '../components/combat/useCombatRing.js'
 import usePendingObjectHit from '../components/usePendingObjectHit.js'
 import Battlefield from '../components/combat/PixiBattlefield.jsx'
 import CombatResultModal from '../components/combat/CombatResultModal.jsx'
@@ -138,14 +139,8 @@ export function Battle({
   const mode = chosen === 'none' ? null : (chosen ?? defaultMode)
   const [targetId, setTargetId] = useState(null)
   const [weaponIds, setWeaponIds] = useState({})
-  // The unit whose action buttons are shown on the map (clicked enemy or party member; `object:<id>` for a challenge
-  // object), and whether its Info card is open.
-  const [ringId, setRingId] = useState(null)
-  const [ringInfo, setRingInfo] = useState(false)
-  // Party band on combat rings (like exploration): who is picked, which action button is hovered, slot for bonus dice.
-  const [ringPick, setRingPick] = useState(null)
-  const [ringHover, setRingHover] = useState(null)
-  const [rollSlot, setRollSlot] = useState(null)
+  // The action ring on the map: whose buttons show, its Info card, the party band's pick and hover, the bonus dice slot.
+  const { ringId, setRingId, ringInfo, setRingInfo, ringPick, setRingPick, ringHover, setRingHover, rollSlot, setRollSlot, closeRing } = useCombatRing()
   const [destination, setDestination] = useState(null)
   const [assistAllyId, setAssistAllyId] = useState(null)
   const [hoverTile, setHoverTile] = useState(null)
@@ -183,10 +178,7 @@ export function Battle({
     if (next) setBanner({ key: turnKey, ...next })
     setMode(null)
     setDestination(null)
-    setRingId(null)
-    setRingInfo(false)
-    setRingPick(null)
-    setRingHover(null)
+    closeRing()
     setDicePurchase({ bonusDice: 0, momentum: 0 })
     setTaskPick(null)
     if (isPlayerControlled(active)) setTargetId(nearestOpponentId(state, active))
@@ -232,14 +224,6 @@ export function Battle({
     else setRingPick(active.id)
     if (taskMode === 'assist') setAssistAllyId(pick ?? (assistAllies.length === 1 ? assistAllies[0].id : null))
   }
-  const closeRing = () => {
-    setRingId(null)
-    setRingInfo(false)
-    setRingPick(null)
-    setRingHover(null)
-    setRollSlot(null)
-  }
-
   const selectAction = (id) => {
     if (id === 'endTurn') {
       dispatch({ type: 'endTurn' })
@@ -456,7 +440,7 @@ export function Battle({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mode])
+  }, [mode, setRingId])
 
   usePendingObjectHit(state.pendingObjectHit, dispatch, { speed })
 
@@ -607,7 +591,7 @@ export function Battle({
     }
     if (mode === 'guard' || mode === 'firstAid' || mode === 'direct') return
     setRingPick(active.id)
-  }, [isPlayerTurn, ringId, ringPick, mode, ringUnit, active.id, active.side])
+  }, [isPlayerTurn, ringId, ringPick, mode, ringUnit, active.id, active.side, setRingPick])
   useEffect(() => {
     if (!isPlayerTurn || !ringPick) return
     if (mode === 'guard' || mode === 'firstAid' || mode === 'direct') {
@@ -620,7 +604,7 @@ export function Battle({
   }, [isPlayerTurn, ringPick, mode, taskPick, assistAllyId])
   useEffect(() => {
     if (!confirm.shown) setRollSlot(null)
-  }, [confirm.shown])
+  }, [confirm.shown, setRollSlot])
 
   // Party bar in the order the party was picked (combatants are stored players first, in pick order).
   const party = Object.values(state.combatants).filter((combatant) => combatant.side === 'player')
