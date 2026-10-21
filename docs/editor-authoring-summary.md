@@ -1,9 +1,58 @@
 # Dev Edit — Authoring Tools Overview
 
-Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-20)
+Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
-**UI shell (2026-10-21, editor-redesign):** Menu bar (File / Edit / View / Mission / Test) + slim toolbar; left Assets (tabs: Tiles, Environment, Items, Markers, NPCs + search); center Viewport with title and tile HUD; right Properties (Map / Selection — Selection shows the Assets thumbnail or a board entity; tile Cover/Fade and hazard intensity edit there); floating Overview / Layers / Levels. Full-screen Conversation / Object / Objective / Story / Character Library unchanged.
+--------------------------------------------------------------------------------
+UI SHELL (2026-10-21)
+--------------------------------------------------------------------------------
+
+Layout matches the Mission Editor mockup (chrome only; map schema and sub-editors unchanged).
+
+  Menu bar — File / Edit / View / Mission / Test
+    File: New, Load, Save, Save As, Delete, Back
+    Edit: Place Tiles, Move
+    View: See-through blocks, Tile animations, Lighting, Weather FX, Grid,
+          Grid options…, Overview / Layers / Levels windows
+    Mission: Generate Map / Name / Episode / Card; Objective / Object /
+             Conversation / Character Library / Story editors
+    Test: Play, Toggle Enemies Active
+
+  Slim toolbar — Animate, Grid (+ options), Overview, Layers, Levels
+                 (file ops and mission editors live in the menu only)
+
+  Left — Assets (EditorPalette)
+    Tabs: Tiles | Environment | Items | Markers | NPCs
+    Search; selecting a thumbnail drives the paint tool and Selection props
+
+  Center — Viewport
+    Map title, board (Pixi), tile coord HUD, notices
+    Weather FX overlay when View → Weather FX is on
+
+  Right — Properties (EditorPropertiesPanel)
+    Tabs: Map | Selection
+    Map → MapProperties: size, location/biome/weather, ambient light + colour,
+          generate, episode name/card, briefing/outros/stardate, open editors
+    Selection → asset thumbnail (AssetProperties) or board entity (inspectors)
+      Tile: preview, Cover / Fade, sprite info, Emission overlays
+            (Emissive strength + Colour for floor spill when the tile glows /
+             has emissions / overlay lights)
+      Ambient / ambient colour also editable from Selection when a lit wall
+            or glowing tile is selected (same map fields as Map tab)
+      Hazard: intensity when painting hazards
+      Board pick: NPC / Object / Marker / Destructible / Hazard / Ground item
+            inspectors (unchanged)
+
+  Floating windows — Overview (ghost / animate / lighting toggles),
+                     Layers, Levels (placeholders; elevation deferred)
+
+  Full-screen sub-editors — Conversation, Object, Objective, Story,
+                            Character Library (unchanged entry points)
+
+Lighting presentation (also View → Lighting): contact + cast shadows
+(`mapShadows.js`), darkness veil from map `ambient` / `ambientColour`,
+window/fitting/glow soft spill scaled by `animations[].emissive` and tinted
+by `emitColour` (Selection Colour; ground spill only). Details: `docs/tiles.md`.
 
 --------------------------------------------------------------------------------
 VERDICT
@@ -38,8 +87,9 @@ Play paths:
   - Editor Play → playtests the open in-memory map (unsaved OK)
   - Load Episode → Game → plays the saved map file only
 
-Writes (maps, conversations, story wording, tile flags) require the Vite DEV
-server. Production / Electron builds are read-only for those files.
+Writes (maps, conversations, story wording, tile flags, tileEffects emissive /
+emitColour / glows) require the Vite DEV server. Production / Electron builds
+are read-only for those files.
 
 Story wording is global (missionLog.json), not per episode.
 
@@ -47,7 +97,7 @@ Data path (Game mode):
 
   Dev Edit UI
     → in-memory map (+ conversations/*.json, optional missionLog story,
-      tiles.json flags)
+      tiles.json flags, tileEffects.json live edits)
     → serializeMap / saveConversation (dev /__maps, conversation store)
     → maps/{id}.json + conversations/
     → loadMap / parseMapFile (Episode Select or editor Load)
@@ -68,17 +118,20 @@ TOOLS
 1) MAP EDITOR (main board)
 --------------------------
 Tiles
-  - Palette paint, rotation (R)
-  - Cover / Fade flags in Properties → Selection (writes tiles.json globally)
+  - Assets palette paint, rotation (R)
+  - Cover / Fade in Properties → Selection (writes tiles.json globally)
+  - Emissive / emit Colour in Selection for glowing / overlay tiles
+    (writes tileEffects.json via /__effects in DEV)
 
-Map shell
+Map shell (Properties → Map)
   - Resize / size presets
   - Location, biome, weather
-  - Ambient light
+  - Ambient light (0–100) and ambient colour (darkness veil tint)
+  - Generate Map / Name / Card; generate-hazards toggle
 
-Episode
+Episode (Properties → Map)
   - Name, episode card
-  - Generate Map / Name / Card
+  - Briefing, outro, outro (abandoned / failed), stardate
 
 Markers
   - Area labels
@@ -108,7 +161,8 @@ Environment
   - Hazards: paint / erase / merge + region overrides
       (migrateChance, injuryType, damagesObjects, blocksSight, movement,
        layer, scarTile, neutralize task)
-  - Generate hazards with map (side-panel toggle)
+  - Hazard brush intensity in Selection
+  - Generate hazards with map (Map tab toggle)
 
 Ground items
   - Inventory Objects palette → groundItemPlacements
@@ -120,8 +174,9 @@ Challenge objects (board)
   - Edit Covers on board
   - Object Inspector is placement-focused; full edit in Object Editor
 
-Mission text (side panel)
-  - Briefing, outro, outro (failed), stardate
+View presentation
+  - See-through blocks, tile animations, lighting (shadows + darkness),
+    weather FX, grid / grid size
 
 
 2) CHARACTER LIBRARY (Vite DEV)
@@ -224,7 +279,7 @@ Complete
   2  Tile rotation
   3  Map resize / size presets
   4  Location / biome / weather
-  5  Ambient light
+  5  Ambient light (+ ambient colour; Selection emissive / emit colour)
   6  Episode name / card
   7  Generate Map / Name / Card
   8  Area labels
@@ -291,6 +346,7 @@ N/A
 Missing / blocking
   - New item / hazard / destructible TYPE definitions (not just placements)
   - Custom standalone Combat roster (encounters.json)
+  - Layers / elevation / gizmos (UI placeholders only)
 
 --------------------------------------------------------------------------------
 EASY-TO-MISREAD WORKFLOWS
@@ -313,6 +369,11 @@ EASY-TO-MISREAD WORKFLOWS
 4) Play vs Save
    - Unsaved Play does not update the episode list until Save
 
+5) Light → Colour on Map / Selection Ambient ≠ Emission Colour
+   - Ambient colour tints the darkness veil (map.ambientColour)
+   - Emission Colour tints soft floor/wall spill (animations[].emitColour)
+   - Scroll to Emission overlays for Emissive + Colour on lit tiles
+
 --------------------------------------------------------------------------------
 WHAT STILL NEEDS A CONTENT-FILE EDIT
 --------------------------------------------------------------------------------
@@ -325,14 +386,18 @@ WHAT STILL NEEDS A CONTENT-FILE EDIT
   - Default influence radius            → social.json (influenceRadiusTiles)
   - Shared challenge library (until adopt) → challenges.json
   - Fallback NPCs when map has none     → npcs.json
+  - New tile art / flipbook frames      → art + makeTileFrames / tileEffects.json
 
 --------------------------------------------------------------------------------
 PRIMARY SOURCE FILES
 --------------------------------------------------------------------------------
 
 Editor shell
-  MapEditorScreen.jsx, EditorToolbar.jsx, EditorSidePanel.jsx,
-  EditorPalette.jsx, useEditorTools.js, EditorInspectors.jsx
+  MapEditorScreen.jsx, EditorMenuBar.jsx, EditorToolbar.jsx,
+  EditorPalette.jsx, EditorPropertiesPanel.jsx, MapProperties.jsx,
+  AssetProperties.jsx, EditorFloatWindow.jsx, EditorOverviewWindow.jsx,
+  EditorLayersWindow.jsx, EditorLevelsWindow.jsx, EditorGridOptions.jsx,
+  useEditorTools.js, EditorInspectors.jsx, EditorBoard.jsx
 
 Inspectors
   NpcInspector.jsx, HazardInspector.jsx, DestructibleInspector.jsx,
@@ -343,7 +408,11 @@ Sub-editors
   ConversationEditorScreen.jsx, StoryEditorScreen.jsx
 
 Format I/O
-  mapFormat.js, mapFiles.js, mapEdits.js
+  mapFormat.js, mapFiles.js, mapEdits.js, effectsFiles.js, effectsStore.cjs
+
+Lighting / tiles
+  tileArt.js, mapShadows.js, tileSpriteInfo.js, tileEffects.json,
+  canvasTiles.js, pixi/mapLayers.js
 
 Runtime
   explorationState.js, challengeObjects.js, awareness.js, NPCController.js,
@@ -361,5 +430,5 @@ RELATED DOCS
   docs/editor-authoring-audit.md   — full status matrix and phase history
   docs/design-tracker.md           — design decisions (scattered editor notes)
   docs/prototype-rules.md          — Book vs Prototype rules (incl. authoring)
-  docs/tiles.md                    — tile catalogue / half bulkheads / panels
+  docs/tiles.md                    — tiles, animations, ambient / emissive lighting
   docs/world-objects.md            — world objects / environment

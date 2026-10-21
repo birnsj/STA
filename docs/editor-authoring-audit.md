@@ -18,7 +18,7 @@
 
 **Update (2026-10-18, Phase 4 — Challenge object authoring):** Structured advanced-task UI (equipment / talentIds / roleIds / traitRules), board Edit Covers, duplicate/reorder objects-actions-states, effect enums for NPC response and neutralize modes, routine/Always warning, `validateMap` + conversation object-ref warnings, Object Inspector ownership + Edit in Object Editor. Samples may still use `challenges.json` until Object Editor adopt. `interactRange` remains hardcoded. See matrix #13–17, #56.
 
-**Update (2026-10-21, editor UI redesign):** Map Editor chrome reorganized to the approved Mission Editor mockup layout without changing map schema or authoring behavior: `EditorMenuBar`, slim `EditorToolbar` (Animate / Grid / Overview / Layers / Levels), tabbed `EditorPalette` (Assets), `EditorPropertiesPanel` + `MapProperties`, floating Overview / Layers / Levels windows, `EditorGridOptions` popover. Full-screen sub-editors unchanged. Layers / elevation / gizmos deferred. See `docs/editor-authoring-summary.md`.
+**Update (2026-10-21, editor UI redesign):** Map Editor chrome reorganized to the approved Mission Editor mockup layout without changing map schema or authoring behavior: `EditorMenuBar`, slim `EditorToolbar` (Animate / Grid / Overview / Layers / Levels), tabbed `EditorPalette` (Assets), `EditorPropertiesPanel` + `MapProperties` + `AssetProperties`, floating Overview / Layers / Levels windows, `EditorGridOptions` popover. Selection authors Cover/Fade, hazard intensity, and (for lit tiles) emissive / emit colour; Map authors ambient + ambientColour. Full-screen sub-editors unchanged. Layers / elevation / gizmos deferred. Whole summary refreshed in `docs/editor-authoring-summary.md`; lighting model in `docs/tiles.md`.
 
 ---
 
