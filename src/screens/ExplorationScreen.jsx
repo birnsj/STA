@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { samePosition } from '../combat/battleMap.js'
 import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
@@ -11,6 +11,7 @@ import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import InventoryPanel, { InventoryDragGhost } from '../components/exploration/InventoryPanel.jsx'
 import useChallengeInteraction from '../components/exploration/useChallengeInteraction.js'
 import useItemDrag from '../components/exploration/useItemDrag.js'
+import useTalkTo from '../components/exploration/useTalkTo.js'
 import useRingMenus from '../components/exploration/useRingMenus.js'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
@@ -20,7 +21,6 @@ import useTransporter from '../components/exploration/useTransporter.js'
 import { getPlaytestParty } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import ConversationPanel from '../components/exploration/ConversationPanel.jsx'
-import { loadConversation } from '../conversation/conversationFiles.js'
 import Board from '../components/exploration/PixiExplorationBoard.jsx'
 import { AwarenessPanel, DebugPanel, ScenarioDebugPanel } from '../components/exploration/ExplorationDebugPanels.jsx'
 import { ActionsToggle, ExplorationActionButtons, ExplorationPartyBar, FormationPanel } from '../components/exploration/ExplorationPartyBar.jsx'
@@ -203,27 +203,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // An object's panel or a conversation is open: other rings and the action buttons stay closed meanwhile.
   const panelOpen = Boolean(openId) || talking
   const talkable = talking ? [] : npcsInTalkRange(state, party.memberIds)
-  // UI state: why the last conversation couldn't be opened (its file is missing or broken), or null.
-  const [talkError, setTalkError] = useState(null)
-  // UI state: { npcId, combatId } the NPC the party is walking over to talk to (and the last fight when asked); the
-  // conversation opens once one of them is in reach.
-  const [pendingTalk, setPendingTalk] = useState(null)
-  const talkTo = useCallback(
-    (npc) => {
-      loadConversation(npc.conversationId)
-        .then((definition) => {
-          setTalkError(null)
-          closeInteraction()
-          setPendingTalk(null)
-          dispatch({ type: 'talk', npcId: npc.id, definition })
-        })
-        .catch((error) => {
-          setPendingTalk(null)
-          setTalkError(`${npc.name}: ${error.message}`)
-        })
-    },
-    [closeInteraction, dispatch],
-  )
+  // UI state: talking to an NPC, now or once the party has walked over (see useTalkTo).
+  const { talkError, talkTo, talkWhenInReach, cancelPendingTalk } = useTalkTo({ state, dispatch, talkable, onOpened: closeInteraction })
   const knownObjectives = (party.map.objectives ?? [])
     .map((objective) => ({ ...objective, position: objectivePosition(party.map, objective), status: objectiveStatus(state.scenario.flags, objective.id) }))
     .filter(({ status }) => status)
@@ -370,7 +351,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       const ground = state.groundItems?.[instanceId]
       if (!ground) return
       closeAllMenus()
-      setPendingTalk(null)
+      cancelPendingTalk()
       const member = party.members[memberId]
       if (groundItemFor(instanceId).inPickupRange({ groundItems: state.groundItems }, member.position)) {
         setPendingPickup(null)
@@ -380,7 +361,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       dispatch({ type: 'moveTo', target: ground.position, fresh: true })
       setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
     },
-    [beamPhase, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
+    [beamPhase, cancelPendingTalk, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
   )
 
   const startGroundItemDrag = useCallback(
@@ -398,16 +379,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     },
     [beginItemDrag, closeMenu, state.groundItems],
   )
-  // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
-  // request cancels it.
-  const pendingTalkNpc = pendingTalk && pendingTalk.combatId === (state.lastCombat?.id ?? null) ? talkable.find((npc) => npc.id === pendingTalk.npcId) : null
-  const requestedTalkRef = useRef(null)
-  useEffect(() => {
-    if (!pendingTalkNpc || requestedTalkRef.current === pendingTalk) return
-    requestedTalkRef.current = pendingTalk
-    talkTo(pendingTalkNpc)
-  }, [pendingTalkNpc, pendingTalk, talkTo])
-
   // Pending pickup: once the chosen character reaches the item, put it in their bag. A fight since the request cancels it.
   // The request is dropped here, once and for good, as soon as it can no longer be met. Deriving that while rendering
   // would revive a cancelled pickup if the character recovers or the item reappears.
@@ -454,7 +425,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       }
       closeInteraction()
       closeAllMenus()
-      setPendingTalk(null)
+      cancelPendingTalk()
       setPendingPickup(null)
       setLogOpen(false)
       setInventoryOpen(false)
@@ -471,7 +442,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const move = (target, fresh) => {
     if (fresh) {
       closeAllMenus()
-      setPendingTalk(null)
+      cancelPendingTalk()
       setPendingPickup(null)
     }
     if (beamPhase !== 'done') return
@@ -526,7 +497,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       setTalkPickedId(pickedId)
       if (talkable.some((npc) => npc.id === menuNpc.id)) return talkTo(menuNpc)
       walkToNpc(menuNpc)
-      setPendingTalk({ npcId: menuNpc.id, combatId: state.lastCombat?.id ?? null })
+      talkWhenInReach(menuNpc.id)
     },
     // The card opens to show the result.
     scan: (memberId) => {
