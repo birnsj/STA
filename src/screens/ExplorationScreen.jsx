@@ -10,6 +10,7 @@ import CharacterSheetPanel from '../components/exploration/CharacterSheetPanel.j
 import CaptainsLogPanel from '../components/exploration/CaptainsLogPanel.jsx'
 import InventoryPanel, { InventoryDragGhost } from '../components/exploration/InventoryPanel.jsx'
 import useItemDrag from '../components/exploration/useItemDrag.js'
+import useRingMenus from '../components/exploration/useRingMenus.js'
 import { MissionIntro, MissionOutro } from '../components/exploration/MissionStory.jsx'
 import MissionEndDialogs from '../components/exploration/MissionEndDialogs.jsx'
 import useMissionEnding, { useWorldClock } from '../components/exploration/useMissionEnding.js'
@@ -173,8 +174,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
 
   // UI state: walk-then-pick-up for a ground item (same idea as pendingTalk for NPCs).
   const [pendingPickup, setPendingPickup] = useState(null)
-  // UI state: ground-item ring.
-  const [menuGroundItemId, setMenuGroundItemId] = useState(null)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
   useExplorationFootsteps(members, !inCombat)
@@ -263,15 +262,24 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const canBeamIn = beamPhase === 'done' && !beaming && !ending.paused
   const openTransporter = useCallback(() => setTransporterFor(fightId), [fightId, setTransporterFor])
 
-  // UI state: the party member whose radial menu is open (right-click on them), or null.
-  const [menuMemberId, setMenuMemberId] = useState(null)
-  // UI state: the NPC whose radial menu is open (left click on them), or null; whether its Info card shows; the NPC
-  // whose Attack is waiting for confirmation.
-  const [menuNpcId, setMenuNpcId] = useState(null)
-  // UI state: the challenge object whose radial menu is open (left click on it while in reach), or null.
-  const [menuObjectId, setMenuObjectId] = useState(null)
-  // UI state: the destructible object whose Fire ring is open (left click on it), or null.
-  const [menuDestructibleId, setMenuDestructibleId] = useState(null)
+  // UI state: the one radial menu that is open, as the id for each kind (null when another kind is open): a party member
+  // (right-click on them), an NPC (left click), a challenge object (left click while in reach), a destructible (its Fire
+  // ring) or a ground item.
+  const {
+    menuMemberId,
+    menuNpcId,
+    menuObjectId,
+    menuDestructibleId,
+    menuGroundItemId,
+    showMemberMenu,
+    showNpcMenu,
+    toggleObjectMenu,
+    toggleDestructibleMenu,
+    toggleGroundItemMenu,
+    closeMenu,
+    closeAllMenus,
+  } = useRingMenus()
+  // UI state: whether the open NPC's Info card shows; the NPC whose Attack is waiting for confirmation.
   const [npcInfoOpen, setNpcInfoOpen] = useState(false)
   const [confirmAttackId, setConfirmAttackId] = useState(null)
   // UI state, for the open NPC or object ring (ringKey): the button last hovered and the member picked on its party band.
@@ -335,42 +343,13 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const selectedIds = state.party.selectedIds
   const openMenu = (id) => {
     if (!selectedIds.includes(id)) dispatch({ type: 'toggleSelect', id })
-    setMenuMemberId(id)
-    setMenuNpcId(null)
-    setMenuObjectId(null)
-    setMenuDestructibleId(null)
-    setMenuGroundItemId(null)
-  }
-  const openNpcMenu = (id) => {
-    setMenuNpcId(id)
-    setMenuMemberId(null)
-    setMenuObjectId(null)
-    setMenuDestructibleId(null)
-    setMenuGroundItemId(null)
-  }
-  const openObjectMenu = (id) => {
-    setMenuObjectId((current) => (current === id ? null : id))
-    setMenuMemberId(null)
-    setMenuNpcId(null)
-    setMenuDestructibleId(null)
-    setMenuGroundItemId(null)
-  }
-  const openDestructibleMenu = (id) => {
-    setMenuDestructibleId((current) => (current === id ? null : id))
-    setMenuMemberId(null)
-    setMenuNpcId(null)
-    setMenuObjectId(null)
-    setMenuGroundItemId(null)
+    showMemberMenu(id)
   }
   // Left-click a ground item: walk the selected party over and pick it up when in reach (pendingPickup).
   // Right-click still opens the Pick Up / Go To ring (PixiExplorationBoard).
   const openGroundItemMenu = (id) => {
     if (itemDragRef.current) return
-    setMenuGroundItemId((current) => (current === id ? null : id))
-    setMenuMemberId(null)
-    setMenuNpcId(null)
-    setMenuObjectId(null)
-    setMenuDestructibleId(null)
+    toggleGroundItemMenu(id)
   }
 
   const groundPickupMemberId = useCallback(
@@ -397,11 +376,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       if (!memberId) return
       const ground = state.groundItems?.[instanceId]
       if (!ground) return
-      setMenuGroundItemId(null)
-      setMenuMemberId(null)
-      setMenuNpcId(null)
-      setMenuObjectId(null)
-      setMenuDestructibleId(null)
+      closeAllMenus()
       setPendingTalk(null)
       const member = party.members[memberId]
       if (groundItemFor(instanceId).inPickupRange({ groundItems: state.groundItems }, member.position)) {
@@ -412,13 +387,13 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       dispatch({ type: 'moveTo', target: ground.position, fresh: true })
       setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
     },
-    [beamPhase, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
+    [beamPhase, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
   )
 
   const startGroundItemDrag = useCallback(
     (instanceId, clientX, clientY, pointerId) => {
       if (state.groundItems?.[instanceId]?.pickable === false) return
-      setMenuGroundItemId(null)
+      closeMenu('groundItem')
       setPendingPickup(null)
       beginItemDrag({
         instanceId,
@@ -428,7 +403,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         pointerId,
       })
     },
-    [beginItemDrag, state.groundItems],
+    [beginItemDrag, closeMenu, state.groundItems],
   )
   // Pending talk: open the conversation as soon as the walking party brings the NPC within reach. A fight since the
   // request cancels it.
@@ -485,11 +460,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         return
       }
       setInteraction(null)
-      setMenuMemberId(null)
-      setMenuNpcId(null)
-      setMenuObjectId(null)
-      setMenuDestructibleId(null)
-      setMenuGroundItemId(null)
+      closeAllMenus()
       setPendingTalk(null)
       setPendingPickup(null)
       setLogOpen(false)
@@ -506,11 +477,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
 
   const move = (target, fresh) => {
     if (fresh) {
-      setMenuMemberId(null)
-      setMenuNpcId(null)
-      setMenuObjectId(null)
-      setMenuDestructibleId(null)
-      setMenuGroundItemId(null)
+      closeAllMenus()
       setPendingTalk(null)
       setPendingPickup(null)
     }
@@ -597,7 +564,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       ...button,
       onClick: () => {
         // Scan, Persuade and Intimidate keep the ring up so the card beside it shows the result.
-        if (!button.keepOpen && !['scan', 'persuade', 'intimidate'].includes(button.id)) setMenuNpcId(null)
+        if (!button.keepOpen && !['scan', 'persuade', 'intimidate'].includes(button.id)) closeMenu('npc')
         button.onClick?.()
       },
     }))
@@ -627,7 +594,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     }).map((button) => ({
       ...button,
       onClick: () => {
-        setMenuMemberId(null)
+        closeMenu('member')
         button.onClick?.()
       },
     })),
@@ -643,7 +610,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       menuObject,
       {
         open: (actionId) => {
-          setMenuObjectId(null)
+          closeMenu('object')
           setRingPick(null)
           setInteractionId(menuObject, actionId)
         },
@@ -721,7 +688,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       {
         scan: (memberId) => dispatch({ type: 'scanGroundItem', memberId, instanceId: menuGroundItem.id }),
         pickup: (memberId) => {
-          setMenuGroundItemId(null)
+          closeMenu('groundItem')
           if (memberId) {
             const member = party.members[memberId]
             if (member && groundItemFor(menuGroundItem.id).inPickupRange(state, member.position)) {
@@ -733,7 +700,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           requestPickupGroundItem(menuGroundItem.id)
         },
         goTo: () => {
-          setMenuGroundItemId(null)
+          closeMenu('groundItem')
           setPendingPickup(null)
           dispatch({ type: 'moveTo', target: menuGroundItem.position, fresh: true })
         },
@@ -781,12 +748,12 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           knowledge={state.partyKnowledge}
           challenges={challengeViews.map((view) => ({ ...view, tiles: objectFor(state.scenario, view.id).tiles(), objective: pulseObjectives && objectiveObjectIds.has(view.id) }))}
           reachableIds={reachableIds}
-          onInteract={openObjectMenu}
+          onInteract={toggleObjectMenu}
           hazards={hazardChallenges.filter((object) => hazardInReachIds.includes(object.id)).map((object) => ({ id: object.id, position: object.position() }))}
           destructibles={destructibleViews}
           environment={state.environment}
           lastObjectShot={state.lastObjectShot ?? null}
-          onDestructible={openDestructibleMenu}
+          onDestructible={toggleDestructibleMenu}
           groundItems={groundViews}
           groundReachableIds={groundReachableIds}
           onGroundItem={requestPickupGroundItem}
@@ -808,7 +775,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           onSelect={select}
           onSelectBox={selectBox}
           onOpenMenu={openMenu}
-          onOpenNpcMenu={openNpcMenu}
+          onOpenNpcMenu={showNpcMenu}
           onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
           menu={memberMenu || npcMenu || objectMenu || destructibleMenu || groundItemMenu}
           beamIn={beamPhase}
