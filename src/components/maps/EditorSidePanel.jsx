@@ -8,6 +8,8 @@ import { randomEpisodeName } from '../../rules/locationNames.js'
 import EditorControlsHelp from './EditorControlsHelp.jsx'
 import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 
+// Legacy right-hand panel (pre redesign). The shell now uses EditorPropertiesPanel + MapProperties.
+// Kept for reference; MapEditorScreen no longer mounts this component.
 // The map editor's right-hand panel: the inspectors (children), then the episode, generate, Captain's Log, objective,
 // challenge object and conversation sections, the file, the tile under the pointer, warnings and controls.
 // map and edit(map): the map being edited. cardTools: { canGenerate, busy, onGenerate } for the episode card.

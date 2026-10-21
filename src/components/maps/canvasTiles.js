@@ -1,27 +1,27 @@
 // Every map view's tiles drawn into canvases (the Pixi boards' map layers, pixi/mapLayers.js; the editor's tile
-// previews and palette thumbnails, drawLoneTiles): floor tiles, contact shadows and light pools, then every block in
-// painter's order (x + y) (walls with their panel faces, windows and fittings, tall objects, 2x2 big objects, joined
-// railings), every image at its own size; animated tiles (tileArt.js flipbooks) on an animation layer over them, and
-// the map's darkness. A change only repaints the area it touched. Light pools are drawn steady. Presentation only.
+// previews and palette thumbnails, drawLoneTiles): floor tiles, contact shadows, then every block in painter's order
+// (x + y) (walls with their panel faces, windows and fittings, tall objects, 2x2 big objects, joined railings), every
+// image at its own size; animated tiles (tileArt.js flipbooks) on an animation layer over them, and the map's darkness.
+// A change only repaints the area it touched. Presentation only.
 import { BIG_IMAGE, getBigObjects } from '../../maps/bigObjects.js'
-import { isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
+import { diamond, isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
+import { blockCastShadow } from '../../maps/mapShadows.js'
 import { joinedImage } from '../../maps/railJoins.js'
 import {
   animationOffset,
   bigFlipbook,
-  DARKNESS_COLOUR,
+  darknessColour,
   darknessLights,
   darknessOpacity,
+  effectsEpochOf,
   frameAt,
   OVERLAY_GLOW_BLUR,
   OVERLAY_GLOW_SPREAD,
+  overlayEmissive,
   panelArt,
   panelFlipbook,
   tileFlipbook,
-  tileGlow,
-  WALL_GLOW_SIZE,
-  wallGlow,
   wallVariant,
 } from '../../maps/tileArt.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
@@ -33,8 +33,6 @@ const IMAGE_H = TILE_IMAGE.height
 export const GHOST_OPACITY = 0.35
 export const FADED_OPACITY = 0.3
 const NONE = new Set()
-// The glow pools' steady opacity.
-const GLOW_OPACITY = 0.8
 
 const keyOf = ({ x, y }) => `${x},${y}`
 
@@ -72,7 +70,7 @@ function animated(context, pass, book, offset, draw, base) {
   const sprite = book.sprites[pass.time === null ? book.frames[0] : frameAt(book, pass.time + offset)]
   if (book.overlay) {
     solid(context, pass, () => draw(base))
-    if (pass.layer === 'frames') drawEmissive(context, () => draw(sprite.href))
+    if (pass.layer === 'frames') drawEmissive(context, () => draw(sprite.href), overlayEmissive(book.id))
     else draw(sprite.href)
     return
   }
@@ -84,13 +82,21 @@ function animated(context, pass, book, offset, draw, base) {
   if (sprite.emission) draw(sprite.emission)
 }
 
-// An overlay's lights, emissive (tileArt.js OVERLAY_GLOW_BLUR). A canvas filter's blur is in canvas pixels, so it is
-// scaled by the drawing's transform.
-function drawEmissive(context, draw) {
+// An overlay's lights, emissive (tileArt.js OVERLAY_GLOW_BLUR). strength: 0 = flat overlay only; 1 = default glow;
+// up to 2 = brighter (extra lighter passes). A canvas filter's blur is in canvas pixels, so it is scaled by the transform.
+function drawEmissive(context, draw, strength = 1) {
   draw()
+  if (!(strength > 0)) return
   context.save()
   context.globalCompositeOperation = 'lighter'
-  draw()
+  let left = strength
+  while (left > 0) {
+    context.globalAlpha = Math.min(1, left)
+    context.filter = 'none'
+    draw()
+    left -= 1
+  }
+  context.globalAlpha = Math.min(1, strength)
   const { a, b } = context.getTransform()
   context.filter = `blur(${OVERLAY_GLOW_BLUR * Math.hypot(a, b)}px)`
   draw()
@@ -375,7 +381,7 @@ export const blockAreaOf = (layout, key) => {
 }
 
 // The world rectangle that changed between two layouts of the same-sized map (tiles, rotations, panel pairings and big
-// objects), grown to cover what a change touches nearby (shadows, joins, light pools), or null when nothing did.
+// objects), grown to cover what a change touches nearby (shadows, joins), or null when nothing did.
 // Returns 'all' when so much changed that a full repaint is simpler.
 export function changedArea(before, after) {
   const cells = []
@@ -650,10 +656,10 @@ export function drawTileAt(context, layout, position) {
   context.restore()
 }
 
-// Tiles drawn on their own, as the board draws them, animated ones on their loop's first frame (the editor's brush
-// and Move previews, and its palette): a canvas of them at `resolution` pixels per world unit, and the world rectangle
-// it covers. Resolves once the map's images have loaded (a missing image is skipped, as on the board).
-export async function drawLoneTiles(layout, positions, resolution) {
+// Tiles drawn on their own, as the board draws them (the editor's brush and Move previews, and its palette): a canvas
+// of them at `resolution` pixels per world unit, and the world rectangle it covers. time: seconds into the flipbook
+// loop (null = every loop's first frame). Resolves once the map's images have loaded (a missing image is skipped).
+export async function drawLoneTiles(layout, positions, resolution, time = null) {
   const { map } = layout
   await Promise.all(imagesFor(map).map(loadImage))
   const area = positions.reduce((box, position) => union(box, isBlock(map.tiles[position.y][position.x]) ? drawnArea(layout, position) : tileImageBox(position)), null)
@@ -669,48 +675,45 @@ export async function drawLoneTiles(layout, positions, resolution) {
   }
   const canvas = canvasFor((context) => sorted.forEach((position) => drawTileAt(context, layout, position)))
   // Apart, as the board's animation layer is: that pass cuts out what is under it.
-  const frames = canvasFor((context) => sorted.forEach((position) => isBlock(map.tiles[position.y][position.x]) && drawBlockAt(context, layout, position, 1, { layer: 'frames', time: null })))
+  const frames = canvasFor((context) => sorted.forEach((position) => isBlock(map.tiles[position.y][position.x]) && drawBlockAt(context, layout, position, 1, { layer: 'frames', time })))
   const context = canvas.getContext('2d')
   context.setTransform(1, 0, 0, 1, 0, 0)
   context.drawImage(frames, 0, 0)
   return { canvas, area }
 }
 
-// Floor lighting: soft contact shadows along floor edges that meet a block, then light pools round glowing tiles.
-function hexToRgba(colour, alpha) {
-  const hex = colour.replace('#', '')
-  const full = hex.length === 3 ? [...hex].map((c) => c + c).join('') : hex
-  const n = parseInt(full, 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
-}
-// A map's shadow strips ({ band, quad, box }) and light pools, worked out once per map.
+// Floor lighting: contact shadows where floor meets a block, plus soft directional cast blobs from solid tiles
+// (mapShadows.js). Coloured glow pools from tileEffects are not drawn.
+// A map's shadow strips and cast blobs, worked out once per map.
 const lightingCache = new WeakMap()
 function lightingOf(map) {
-  if (lightingCache.has(map)) return lightingCache.get(map)
+  const cached = lightingCache.get(map)
+  const epoch = effectsEpochOf()
+  if (cached && cached.epoch === epoch) return cached.lighting
   const blockAt = (x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && isBlock(map.tiles[y][x])
   const strips = []
-  const glows = []
+  const casts = []
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
-      const colour = tileGlow(id)
-      if (colour) glows.push({ position, colour, size: 1.5 })
-      const fitting = wallGlow(map, position)
-      if (fitting) glows.push({ position: fitting.centre, colour: fitting.colour, size: WALL_GLOW_SIZE })
-      if (isBlock(id)) return
+      if (isBlock(id)) {
+        const cast = blockCastShadow(position, id)
+        if (cast) casts.push(cast)
+        return
+      }
       for (const side of SIDES) {
         if (!blockAt(x + side.dx, y + side.dy)) continue
         SHADE_BANDS.forEach(([from, to], band) => strips.push({ band, quad: edgeStrip(position, side, from, to), box: tileImageBox(position) }))
       }
     }),
   )
-  const lighting = { strips, glows }
-  lightingCache.set(map, lighting)
+  const lighting = { strips, casts }
+  lightingCache.set(map, { epoch, lighting })
   return lighting
 }
 
 function drawLighting(context, map, area) {
-  const { strips, glows } = lightingOf(map)
+  const { strips, casts } = lightingOf(map)
   const bands = SHADE_BANDS.map(() => [])
   for (const strip of strips) if (overlaps(strip.box, area)) bands[strip.band].push(strip.quad)
   bands.forEach((quads, i) => {
@@ -723,25 +726,21 @@ function drawLighting(context, map, area) {
     context.fillStyle = `rgba(0, 0, 0, ${SHADE_BANDS[i][2]})`
     context.fill()
   })
-  if (!glows.length) return
-  // Light pools stop at the map's outline instead of spilling into the empty space round it.
+  if (!casts.length) return
   context.save()
   const corner = (x, y) => project({ x, y })
   const outline = [corner(-0.5, -0.5), corner(map.width - 0.5, -0.5), corner(map.width - 0.5, map.height - 0.5), corner(-0.5, map.height - 0.5)]
   path(context, outline.map((point) => [point.x, point.y]))
   context.clip()
-  for (const { position, colour, size } of glows) {
-    const rx = TILE_W * size
-    const ry = TILE_H * size
-    const c = project(position)
-    if (!overlaps({ x: c.x - rx, y: c.y - ry, width: rx * 2, height: ry * 2 }, area)) continue
+  for (const { x, y, rx, ry, alpha } of casts) {
+    if (!overlaps({ x: x - rx, y: y - ry, width: rx * 2, height: ry * 2 }, area)) continue
     context.save()
-    context.translate(c.x, c.y)
+    context.translate(x, y)
     context.scale(1, ry / rx)
     const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
-    gradient.addColorStop(0, hexToRgba(colour, 0.55 * GLOW_OPACITY))
-    gradient.addColorStop(0.45, hexToRgba(colour, 0.2 * GLOW_OPACITY))
-    gradient.addColorStop(1, hexToRgba(colour, 0))
+    gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`)
+    gradient.addColorStop(0.55, `rgba(0, 0, 0, ${alpha * 0.45})`)
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
     context.fillStyle = gradient
     context.beginPath()
     context.arc(0, 0, rx, 0, Math.PI * 2)
@@ -754,7 +753,7 @@ function drawLighting(context, map, area) {
 // ---------------------------------------------------------------- the board
 
 // Repaints `area` (a world rect, or the whole board) of a canvas whose world-to-pixel transform is `transform`.
-// options: { ghost (See-through blocks), lighting (shadows and light pools), pass (null: the board, without animated
+// options: { ghost (See-through blocks), lighting (contact + cast shadows), pass (null: the board, without animated
 // tiles; or { layer (one of ANIMATION_LAYERS, or 'cut'), time }: only the animated tiles at that time, with the blocks
 // in front cut out of it), faded (blocks drawn see-through, as drawBlock takes it), holes ([{ area, depth }]: inside
 // each area the blocks deeper than depth (painter's x + y) are left out, as the play views draw them over their
@@ -825,28 +824,75 @@ export function drawDarkness(context, transform, layout, area, { faded = NONE, t
   context.clip()
   context.clearRect(area.x, area.y, area.width, area.height)
   context.globalAlpha = darknessOpacity(map)
-  context.fillStyle = DARKNESS_COLOUR
+  context.fillStyle = darknessColour(map)
   context.fillRect(area.x, area.y, area.width, area.height)
   context.globalAlpha = 1
-  context.globalCompositeOperation = 'destination-out'
-  for (const { position, radius, lift } of darknessLights(map)) {
-    const c = project(position)
-    const rx = TILE_W * radius
-    const ry = TILE_H * radius
-    if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
-    context.save()
-    context.translate(c.x, c.y - lift)
-    context.scale(1, ry / rx)
-    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
-    gradient.addColorStop(0.45, 'rgba(0, 0, 0, 0.75)')
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-    context.fillStyle = gradient
-    context.beginPath()
-    context.arc(0, 0, rx, 0, Math.PI * 2)
-    context.fill()
-    context.restore()
+  const lit = darknessLights(map)
+  const paintSoftLight = (floorOnly) => {
+    context.globalCompositeOperation = 'destination-out'
+    for (const { position, radius, lift = 0, strength = 1, floorOnly: onlyFloor } of lit) {
+      if (Boolean(onlyFloor) !== floorOnly || !(strength > 0) || !(radius > 0)) continue
+      const c = project(position)
+      const rx = TILE_W * radius
+      const ry = TILE_H * radius
+      if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
+      context.save()
+      context.globalAlpha = strength
+      context.translate(c.x, c.y - lift)
+      context.scale(1, ry / rx)
+      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
+      gradient.addColorStop(0.45, 'rgba(0, 0, 0, 0.75)')
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      context.fillStyle = gradient
+      context.beginPath()
+      context.arc(0, 0, rx, 0, Math.PI * 2)
+      context.fill()
+      context.restore()
+    }
+    context.globalCompositeOperation = 'lighter'
+    for (const { position, radius, lift = 0, strength = 1, colour, floorOnly: onlyFloor } of lit) {
+      if (Boolean(onlyFloor) !== floorOnly || !colour || !(strength > 0) || !(radius > 0)) continue
+      const c = project(position)
+      const rx = TILE_W * radius
+      const ry = TILE_H * radius
+      if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
+      const hex = colour.replace('#', '')
+      const full = hex.length === 3 ? [...hex].map((ch) => ch + ch).join('') : hex
+      const n = parseInt(full, 16)
+      const r = (n >> 16) & 255
+      const g = (n >> 8) & 255
+      const b = n & 255
+      const a = 0.22 * strength
+      context.save()
+      context.translate(c.x, c.y - lift)
+      context.scale(1, ry / rx)
+      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a})`)
+      gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${a * 0.4})`)
+      gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+      context.fillStyle = gradient
+      context.beginPath()
+      context.arc(0, 0, rx, 0, Math.PI * 2)
+      context.fill()
+      context.restore()
+    }
   }
+  // Floor spill on floor diamonds; wall faces still get emission cuts and any non-floor soft lights.
+  context.save()
+  context.beginPath()
+  map.tiles.forEach((row, y) =>
+    row.forEach((id, x) => {
+      if (isBlock(id)) return
+      diamond({ x, y }).forEach(([px, py], i) => (i ? context.lineTo(px, py) : context.moveTo(px, py)))
+      context.closePath()
+    }),
+  )
+  context.clip()
+  paintSoftLight(true)
+  context.restore()
+  paintSoftLight(false)
+  context.globalCompositeOperation = 'destination-out'
   if (emissiveTiles(layout).some((item) => overlaps(item.area, area))) {
     const scale = transform[0]
     const width = Math.max(1, Math.ceil(area.width * scale))

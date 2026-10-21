@@ -1,12 +1,13 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
-import { snapItemPosition } from '../rules/inventory.js'
+import { ITEM_CELL_PX, snapItemPosition } from '../rules/inventory.js'
 import { nextFacing, spawnFacing } from './facing.js'
+import { TILE_W } from './iso.js'
 import { getTile, HAZARD_OVERRIDES, HAZARD_TEXT_OVERRIDES, isRotated } from './mapFormat.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
-const itemGridKey = (position) => {
-  const snapped = snapItemPosition(position)
+const itemGridKey = (position, cellPx = ITEM_CELL_PX) => {
+  const snapped = snapItemPosition(position, cellPx)
   return `${snapped.x},${snapped.y}`
 }
 
@@ -278,41 +279,43 @@ export function updateDestructible(map, id, changes) {
 
 export const removeDestructible = (map, id) => ({ ...map, destructibles: (map.destructibles ?? []).filter((entry) => entry.id !== id) })
 
-// ---------- Ground inventory placements (mapFormat.js groundItemPlacements; 8×8 snap) ----------
+// ---------- Ground inventory placements (mapFormat.js groundItemPlacements; snap cellPx matches editor grid) ----------
 
-export const groundItemAt = (map, position, { excludeId = null } = {}) => {
-  const key = itemGridKey(position)
+export const groundItemAt = (map, position, { excludeId = null, cellPx = ITEM_CELL_PX } = {}) => {
+  const key = itemGridKey(position, cellPx)
   return (
     (map.groundItemPlacements ?? []).find((entry) => {
       if (excludeId && entry.id === excludeId) return false
-      return itemGridKey(entry.position) === key
+      return itemGridKey(entry.position, cellPx) === key
     }) ?? null
   )
 }
 
 const groundItemTile = (position) => ({ x: Math.round(position.x), y: Math.round(position.y) })
 
-const groundItemFits = (map, position, { excludeId = null } = {}) => {
-  const snapped = snapItemPosition(position)
+const groundItemFits = (map, position, { excludeId = null, cellPx = ITEM_CELL_PX } = {}) => {
+  const snapped = snapItemPosition(position, cellPx)
   const tile = groundItemTile(snapped)
   if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) return false
   if (getTile(map.tiles[tile.y][tile.x]).solid) return false
-  return !groundItemAt(map, snapped, { excludeId })
+  return !groundItemAt(map, snapped, { excludeId, cellPx })
 }
 
-// Returns { map, object } or null when the cell can't take it.
-export function placeGroundItem(map, position, itemId) {
-  const snapped = snapItemPosition(position)
-  if (!groundItemFits(map, snapped)) return null
+// Returns { map, object } or null when the cell can't take it. cellPx: world-pixel snap (toolbar grid size).
+export function placeGroundItem(map, position, itemId, cellPx = ITEM_CELL_PX) {
+  const snapped = snapItemPosition(position, cellPx)
+  if (!groundItemFits(map, snapped, { cellPx })) return null
   const list = map.groundItemPlacements ?? []
   const object = { id: freeId(itemId, new Set(list.map((entry) => entry.id))), itemId, position: snapped }
   return { map: { ...map, groundItemPlacements: [...list, object] }, object }
 }
 
-export function moveGroundItem(map, id, position) {
+export function moveGroundItem(map, id, position, cellPx = ITEM_CELL_PX) {
   const object = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
-  const snapped = snapItemPosition(position)
-  if (!object || itemGridKey(object.position) === itemGridKey(snapped) || !groundItemFits(map, snapped, { excludeId: id })) return map
+  const snapped = snapItemPosition(position, cellPx)
+  if (!object || itemGridKey(object.position, cellPx) === itemGridKey(snapped, cellPx) || !groundItemFits(map, snapped, { excludeId: id, cellPx })) {
+    return map
+  }
   return {
     ...map,
     groundItemPlacements: map.groundItemPlacements.map((entry) => (entry.id === id ? { ...entry, position: snapped } : entry)),
@@ -320,13 +323,13 @@ export function moveGroundItem(map, id, position) {
 }
 
 // changes: name, pickable, visible, position (null / '' / true defaults remove overrides).
-export function updateGroundItem(map, id, changes) {
+export function updateGroundItem(map, id, changes, cellPx = ITEM_CELL_PX) {
   return {
     ...map,
     groundItemPlacements: (map.groundItemPlacements ?? []).map((entry) => {
       if (entry.id !== id) return entry
       const next = { ...entry, ...changes }
-      if (changes.position) next.position = snapItemPosition(changes.position)
+      if (changes.position) next.position = snapItemPosition(changes.position, cellPx)
       if (next.name === null || next.name === '') delete next.name
       if (next.pickable === true || next.pickable == null) delete next.pickable
       if (next.visible === true || next.visible == null) delete next.visible
@@ -340,16 +343,18 @@ export const removeGroundItem = (map, id) => ({
   groundItemPlacements: (map.groundItemPlacements ?? []).filter((entry) => entry.id !== id),
 })
 
-// A copy (new id, same overrides) on the nearest free 8×8 cell within 4 tiles. Returns { map, object } or null.
-export function duplicateGroundItem(map, id) {
+// A copy (new id, same overrides) on the nearest free snap cell within 4 tiles. Returns { map, object } or null.
+export function duplicateGroundItem(map, id, cellPx = ITEM_CELL_PX) {
   const source = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
   if (!source) return null
-  for (let ring = 1; ring <= 4; ring++) {
+  const step = (Number(cellPx) > 0 ? Number(cellPx) : ITEM_CELL_PX) / TILE_W
+  const maxRing = Math.max(1, Math.ceil(4 / step))
+  for (let ring = 1; ring <= maxRing; ring++) {
     for (let dy = -ring; dy <= ring; dy++) {
       for (let dx = -ring; dx <= ring; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue
-        const position = snapItemPosition({ x: source.position.x + dx, y: source.position.y + dy })
-        if (!groundItemFits(map, position)) continue
+        const position = snapItemPosition({ x: source.position.x + dx * step, y: source.position.y + dy * step }, cellPx)
+        if (!groundItemFits(map, position, { cellPx })) continue
         const object = {
           ...source,
           id: freeId(source.itemId, new Set(map.groundItemPlacements.map((entry) => entry.id))),

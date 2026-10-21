@@ -1,34 +1,11 @@
 import { useState } from 'react'
-import { FULL_LIGHT, MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
-import { BIOME_WORLDS, BIOMES, LOCATION_GROUPS, MAP_GENERATORS, MAP_SIZES, sizeFor, sizeIdOf, usesBiome } from '../../maps/mapGenerators.js'
-import { isIndoors, weatherOptions } from '../../maps/mapWeather.js'
+import { MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
+import { EDITOR_GRID_SIZES } from './editorGrid.js'
 
-// Size presets for the map's type; Custom shows when the dimensions match none of them (set with the fields beside it).
-function SizePicker({ map, onSize }) {
-  const sizeId = sizeIdOf(map)
-  return (
-    <select className="me-select" value={sizeId} aria-label="Map size" title="Map size" onChange={(event) => onSize(event.target.value)}>
-      {MAP_SIZES.map((size) => {
-        const { width, height } = sizeFor(map.mapType, size.id)
-        return (
-          <option key={size.id} value={size.id}>
-            {size.label} ({width}x{height})
-          </option>
-        )
-      })}
-      {sizeId === 'custom' && (
-        <option value="custom" disabled>
-          Custom
-        </option>
-      )}
-    </select>
-  )
-}
+// Slim toolbar under the menu bar. File / Mission / window commands live in the menus only.
 
-// The map editor's top bar. Width / height are drafts until Resize is pressed, so typing doesn't reshape the map per keystroke.
 function SizeFields({ width, height, onResize }) {
   const [draft, setDraft] = useState({ width, height, from: `${width}x${height}` })
-  // A newly opened or resized map resets the drafts.
   if (draft.from !== `${width}x${height}`) setDraft({ width, height, from: `${width}x${height}` })
   const field = (key) => (
     <input
@@ -42,196 +19,111 @@ function SizeFields({ width, height, onResize }) {
   )
   const changed = Number(draft.width) !== width || Number(draft.height) !== height
   return (
-    <span className="me-size">
-      W {field('width')} H {field('height')}
+    <span className="ed-seg ed-size">
+      <span className="ed-size-label">Size</span>
+      {field('width')}
+      <span className="ed-size-x" aria-hidden="true">
+        ×
+      </span>
+      {field('height')}
       <button type="button" className="me-button" disabled={!changed} onClick={() => onResize(Number(draft.width), Number(draft.height))}>
-        Resize
+        Apply
       </button>
     </span>
   )
 }
 
-// The map's location and biome (both saved with it) decide what kind of name Generate Name gives and what Generate Map
-// builds. Ships and stations have no biome, so the biome list is disabled for them.
-function MapTypeControls({ map, onMapType, onBiome, onWeather, showWeather, onShowWeather, onSize }) {
-  const biomeless = !usesBiome(map)
-  return (
-    <span className="me-size">
-      <select className="me-select" value={map.mapType} aria-label="Location" title="Location" onChange={(event) => onMapType(event.target.value)}>
-        {LOCATION_GROUPS.map((group) => (
-          <optgroup key={group.id} label={group.label}>
-            {MAP_GENERATORS.filter((generator) => generator.group === group.id).map((generator) => (
-              <option key={generator.id} value={generator.id}>
-                {generator.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <select
-        className="me-select"
-        value={map.biome}
-        aria-label="Biome"
-        title={biomeless ? 'Ships, stations and indoor locations have no biome' : 'Biome'}
-        disabled={biomeless}
-        onChange={(event) => onBiome(event.target.value)}
-      >
-        {BIOME_WORLDS.map((world) => (
-          <optgroup key={world.id} label={world.label}>
-            {BIOMES.filter((biome) => biome.world === world.id).map((biome) => (
-              <option key={biome.id} value={biome.id}>
-                {biome.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <WeatherControls map={map} onWeather={onWeather} showWeather={showWeather} onShowWeather={onShowWeather} />
-      <SizePicker map={map} onSize={onSize} />
-    </span>
-  )
-}
-
-// Weather is saved with the map and limited to what its biome (or, indoors, its location) offers; the FX toggle only
-// hides the effect while editing.
-function WeatherControls({ map, onWeather, showWeather, onShowWeather }) {
-  const options = weatherOptions(map)
-  return (
-    <>
-      <select
-        className="me-select"
-        value={map.weather}
-        aria-label="Weather"
-        title={options.length === 1 ? 'No weather here' : isIndoors(map) ? 'Atmosphere (indoor weather)' : 'Weather'}
-        disabled={options.length === 1}
-        onChange={(event) => onWeather(event.target.value)}
-      >
-        {options.map((weather) => (
-          <option key={weather.id} value={weather.id}>
-            {weather.label}
-          </option>
-        ))}
-      </select>
-      <label className="me-check" title="Show the weather effect over the map">
-        <input type="checkbox" checked={showWeather} onChange={(event) => onShowWeather(event.target.checked)} /> FX
-      </label>
-    </>
-  )
-}
-
-// The map's light level, saved with it (mapFormat.js ambient): 0 is pitch dark, 100 normal.
-function AmbientSlider({ map, onAmbient }) {
-  return (
-    <label className="me-ambient" title="Ambient light: how dark the map is. Glowing tiles stay lit in the dark.">
-      Light
-      <input type="range" min="0" max={FULL_LIGHT} step="5" value={map.ambient ?? FULL_LIGHT} aria-label="Ambient light" onChange={(event) => onAmbient(Number(event.target.value))} />
-      <span className="me-ambient-value">{map.ambient ?? FULL_LIGHT}%</span>
-    </label>
-  )
-}
-
 export default function EditorToolbar({
   map,
-  canSave,
   dirty,
   onRename,
-  onMapType,
-  onBiome,
-  onWeather,
-  showWeather,
-  onShowWeather,
-  onAmbient,
-  onSize,
   onResize,
-  onNew,
-  onLoad,
-  onSave,
-  onSaveAs,
-  // canDelete: the open map has a file to delete (and the dev server can delete it).
-  canDelete,
-  onDelete,
   enemiesActive,
   onEnemiesActive,
   onPlay,
-  onBack,
-  // placing / onPlacing: the Place Tiles toggle (the board only paints the chosen tile while it is on).
   placing,
   onPlacing,
-  // moving / onMoving: the Move toggle (dragging a tile swaps it with the tile it is dropped on).
   moving,
   onMoving,
-  // Generate Map's Room size and Building size sliders, grouped with Light.
-  children,
+  showGrid,
+  onShowGrid,
+  gridSize,
+  onGridSize,
+  onGridOptions,
+  animateTiles,
+  onAnimateTiles,
 }) {
-  const saveNote = canSave ? undefined : 'Saving map files only works from the dev server (npm run dev).'
   return (
-    <div className="me-toolbar">
+    <div className="me-toolbar ed-toolbar">
       <div className="me-toolbar-row">
-        <button type="button" className="me-button" onClick={onBack}>
-          Back
-        </button>
-        <input className="me-name" value={map.name} aria-label="Map name" title="The map's name is also its file name" onChange={(event) => onRename(event.target.value)} />
-        <MapTypeControls
-          map={map}
-          onMapType={onMapType}
-          onBiome={onBiome}
-          onWeather={onWeather}
-          showWeather={showWeather}
-          onShowWeather={onShowWeather}
-          onSize={onSize}
-        />
-        <div className="me-sliders">
-          <AmbientSlider map={map} onAmbient={onAmbient} />
-          {children}
+        <input className="me-name ed-map-name" value={map.name} aria-label="Map name" title="The map's name is also its file name" onChange={(event) => onRename(event.target.value)} />
+        {dirty && <span className="ed-dirty" title="Unsaved changes">●</span>}
+        <div className="ed-seg" role="group" aria-label="Tools">
+          <button
+            type="button"
+            className={`me-button${placing ? ' is-on' : ''}`}
+            aria-pressed={placing}
+            title="Paint the tile chosen in Assets → Tiles"
+            onClick={() => onPlacing(!placing)}
+          >
+            Paint
+          </button>
+          <button
+            type="button"
+            className={`me-button${moving ? ' is-on' : ''}`}
+            aria-pressed={moving}
+            title="Swap tiles or move markers"
+            onClick={() => onMoving(!moving)}
+          >
+            Move
+          </button>
         </div>
-      </div>
-      <div className="me-toolbar-row">
-        <button
-          type="button"
-          className={`me-button me-place${placing ? ' is-on' : ''}`}
-          aria-pressed={placing}
-          title="On: left click or drag on the map paints the tile chosen in the Tiles list. Off: the pointer is just a cursor."
-          onClick={() => onPlacing(!placing)}
-        >
-          Place Tiles: {placing ? 'On' : 'Off'}
-        </button>
-        <button
-          type="button"
-          className={`me-button me-place${moving ? ' is-on' : ''}`}
-          aria-pressed={moving}
-          title="On: press on a tile and drag it onto another; the two tiles swap places. A tile with a player start, enemy spawn, NPC, area label or objective on it moves those instead."
-          onClick={() => onMoving(!moving)}
-        >
-          Move: {moving ? 'On' : 'Off'}
-        </button>
+        <div className="ed-seg" role="group" aria-label="View">
+          <button
+            type="button"
+            className={`me-button${animateTiles ? ' is-on' : ''}`}
+            aria-pressed={animateTiles}
+            title="Play animated tiles (LCARS, conduits, machinery, …)"
+            onClick={() => onAnimateTiles?.(!animateTiles)}
+          >
+            Animate
+          </button>
+          <button
+            type="button"
+            className={`me-button${showGrid ? ' is-on' : ''}`}
+            aria-pressed={showGrid}
+            title="Show the guide grid overlay"
+            onClick={() => onShowGrid?.(!showGrid)}
+          >
+            Grid
+          </button>
+          <select
+            className="me-select ed-grid-select"
+            value={gridSize}
+            aria-label="Grid size"
+            title="Grid spacing in world pixels"
+            disabled={!showGrid}
+            onChange={(event) => onGridSize?.(Number(event.target.value))}
+          >
+            {EDITOR_GRID_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}px
+              </option>
+            ))}
+          </select>
+          <button type="button" className="me-button" title="Grid options" onClick={() => onGridOptions?.()}>
+            …
+          </button>
+        </div>
         <SizeFields width={map.width} height={map.height} onResize={onResize} />
-        <button type="button" className="me-button" onClick={onNew}>
-          New
-        </button>
-        <button type="button" className="me-button" onClick={onLoad}>
-          Load
-        </button>
-        <button type="button" className="me-button is-primary" disabled={!canSave} title={saveNote} onClick={onSave}>
-          Save{dirty ? ' *' : ''}
-        </button>
-        <button type="button" className="me-button" disabled={!canSave} title={saveNote} onClick={onSaveAs}>
-          Save As
-        </button>
-        <button
-          type="button"
-          className="me-button"
-          disabled={!canDelete}
-          title={canSave ? (canDelete ? "Delete this map's file and its generated thumbnail" : 'Save the map first: only a saved map can be deleted') : saveNote}
-          onClick={onDelete}
-        >
-          Delete Map
-        </button>
-        <button type="button" className="me-button is-primary" title="Play this map in game mode with four random saved characters. The map doesn't need saving first." onClick={onPlay}>
-          Play
-        </button>
-        <label className="me-check" title="Off: enemies stand on their spawns and never notice the away team or start a fight.">
-          <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies active
-        </label>
+        <div className="ed-toolbar-end">
+          <label className="me-check" title="Off: enemies never notice the away team or start a fight.">
+            <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies
+          </label>
+          <button type="button" className="me-button is-primary" title="Play this map in game mode. The map doesn't need saving first." onClick={onPlay}>
+            Play
+          </button>
+        </div>
       </div>
     </div>
   )

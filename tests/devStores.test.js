@@ -13,6 +13,7 @@ const { listCharacters, putCharacter, removeCharacter } = require('../tools/char
 const { listConversations, putConversation, removeConversation } = require('../tools/conversationStore.cjs')
 const { listAuthoredCharacters, putAuthoredCharacter, removeAuthoredCharacter } = require('../tools/authoredCharacterStore.cjs')
 const { setTileFlag } = require('../tools/tileStore.cjs')
+const { setAnimationEmissive, setTileGlow } = require('../tools/effectsStore.cjs')
 const { setStoryTemplates } = require('../tools/storyStore.cjs')
 const { writeFileAtomic } = require('../tools/atomicWrite.cjs')
 
@@ -177,6 +178,68 @@ describe('tile store', () => {
     assert.throws(() => setTileFlag(file(), { id: 'crate', colour: true }), /Only cover or fade/)
     assert.throws(() => setTileFlag(file(), { id: 'crate', cover: 'yes' }), /true or false/)
     assert.equal(text('tiles.json'), original)
+  })
+})
+
+describe('effects store', () => {
+  const original = [
+    '{',
+    '  "animations": {',
+    '    "lcarsWall": {',
+    '      "overlay": true,',
+    '      "frameTime": 0.7,',
+    '      "frames": [0, 1],',
+    '      "images": [{ "emission": "/a.png" }, { "emission": "/b.png" }]',
+    '    },',
+    '    "machinery": {',
+    '      "frameTime": 0.2,',
+    '      "frames": [0],',
+    '      "images": [{ "image": "/m.png" }]',
+    '    }',
+    '  }',
+    '}',
+    '',
+  ].join('\n')
+  const file = () => at('tileEffects.json')
+
+  it('sets emissive on an overlay animation', () => {
+    fs.writeFileSync(file(), original)
+    assert.deepEqual(setAnimationEmissive(file(), { id: 'lcarsWall', emissive: 1.5 }), { id: 'lcarsWall', emissive: 1.5 })
+    assert.equal(JSON.parse(text('tileEffects.json')).animations.lcarsWall.emissive, 1.5)
+  })
+
+  it('removes emissive when reset to the default of 1', () => {
+    fs.writeFileSync(file(), original)
+    setAnimationEmissive(file(), { id: 'lcarsWall', emissive: 1.5 })
+    setAnimationEmissive(file(), { id: 'lcarsWall', emissive: 1 })
+    assert.equal(JSON.parse(text('tileEffects.json')).animations.lcarsWall.emissive, undefined)
+  })
+
+  it('refuses non-overlay animations and bad values', () => {
+    fs.writeFileSync(file(), original)
+    assert.throws(() => setAnimationEmissive(file(), { id: 'machinery', emissive: 1.2 }), /not an overlay/)
+    assert.throws(() => setAnimationEmissive(file(), { id: 'lcarsWall', emissive: 9 }), /between/)
+    assert.equal(text('tileEffects.json'), original)
+  })
+
+  it('sets light pool colour and brightness on wallGlows', () => {
+    const withGlow = [
+      '{',
+      '  "wallGlows": {',
+      '    "lcarsWall": "#a8c0ff"',
+      '  },',
+      '  "animations": {}',
+      '}',
+      '',
+    ].join('\n')
+    fs.writeFileSync(file(), withGlow)
+    assert.deepEqual(setTileGlow(file(), { id: 'lcarsWall', colour: '#ff0000', brightness: 1.5 }), {
+      id: 'lcarsWall',
+      kind: 'wall',
+      colour: '#ff0000',
+      brightness: 1.5,
+    })
+    assert.deepEqual(JSON.parse(text('tileEffects.json')).wallGlows.lcarsWall, { colour: '#ff0000', brightness: 1.5 })
   })
 })
 

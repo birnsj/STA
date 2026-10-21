@@ -2,6 +2,7 @@
 // Videogame adaptation — STA 2e has no slot/bag UI (Core p.141 lists issue gear without inventory rules).
 import { blocksMovement } from '../combat/battleMap.js'
 import { tileOf } from '../exploration/navigation.js'
+import { TILE_W } from '../maps/iso.js'
 import { getItemById } from './equipment.js'
 
 export const EQUIP_SLOTS = ['body', 'sidearm', 'scanner', 'communicator']
@@ -10,18 +11,22 @@ export const BAG_ROWS = 8
 export const BAG_CAPACITY = BAG_COLS * BAG_ROWS
 // How many bag rows stay visible in the inventory window; the rest scroll.
 export const BAG_VISIBLE_ROWS = 4
-// Subdivisions of one map tile for dropped-item placement (designer request: 8×8 logical grid).
+// Default play / legacy snap: 8 world-px cells (8×8 per tile when TILE_W is 64).
 export const ITEM_GRID = 8
+export const ITEM_CELL_PX = TILE_W / ITEM_GRID
 
-export function snapItemPosition(point) {
+// Snap a tile-space point to a world-pixel cell size (8, 16, 32, 64, …). Editor guide grid uses the same sizes.
+export function snapItemPosition(point, cellPx = ITEM_CELL_PX) {
+  const size = Number(cellPx) > 0 ? Number(cellPx) : ITEM_CELL_PX
+  const step = size / TILE_W
   return {
-    x: Math.round(point.x * ITEM_GRID) / ITEM_GRID,
-    y: Math.round(point.y * ITEM_GRID) / ITEM_GRID,
+    x: Math.round(point.x / step) * step,
+    y: Math.round(point.y / step) * step,
   }
 }
 
-function itemGridKey(position) {
-  const snapped = snapItemPosition(position)
+function itemGridKey(position, cellPx = ITEM_CELL_PX) {
+  const snapped = snapItemPosition(position, cellPx)
   return `${snapped.x},${snapped.y}`
 }
 

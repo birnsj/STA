@@ -5,6 +5,7 @@
 // biome: the terrain a ground location is built in (an id from biomes.json).
 // weather: the outdoor weather shown over the map (an id from weather.json); indoor locations are always clear.
 // ambient: the light level, 0 (pitch dark) to 100 (normal); glowing tiles stay lit in the dark. Presentation only.
+// ambientColour: the tint of that darkness veil (#rgb / #rrggbb); default near-black. Presentation only.
 // card: the episode's picture in Load Episode: an id from episodeCards.json, the path of a picture Generate Card drew, or null.
 // rotated: tiles turned with the editor's right click. A rotated wall with panels runs its panels along y; any other
 // rotated tile is drawn mirrored left to right (iso art has one viewing angle). Presentation only.
@@ -42,7 +43,7 @@
 // points for session ground inventory (rules/inventory.js seedGroundItemPlacements; map editor Inventory Objects tool).
 // Fractional x/y are allowed for the 8×8 drop grid. name overrides the hover label; pickable/visible default true and
 // are left out on disk when true. Entries missing id get one on parse. Runtime drops never write back into the map file.
-// In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, width, height, tiles: tile id grid [y][x],
+// In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, ambientColour, width, height, tiles: tile id grid [y][x],
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
 // map's middle);
@@ -78,6 +79,10 @@ const CLEAR_WEATHER = 'clear'
 // Maps saved before ambient light existed are fully lit.
 export const FULL_LIGHT = 100
 export const clampAmbient = (value) => (Number.isFinite(value) ? Math.min(FULL_LIGHT, Math.max(0, Math.round(value))) : FULL_LIGHT)
+// Same default as tileArt.js DARKNESS_COLOUR (maps without ambientColour keep the old veil).
+export const DEFAULT_AMBIENT_COLOUR = '#02040a'
+const isAmbientColour = (value) => typeof value === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value)
+export const clampAmbientColour = (value) => (isAmbientColour(value) ? value.toLowerCase() : DEFAULT_AMBIENT_COLOUR)
 // Map types from before the location / biome split that were really biomes: they load as Wilderness in that biome.
 const BIOME_MAP_TYPES = new Set(['forest', 'swamp', 'desert', 'iceField', 'volcanic'])
 
@@ -126,6 +131,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     biome: DEFAULT_BIOME,
     weather: CLEAR_WEATHER,
     ambient: FULL_LIGHT,
+    ambientColour: DEFAULT_AMBIENT_COLOUR,
     width,
     height,
     tiles,
@@ -447,6 +453,7 @@ export function parseMapFile(file, id) {
     biome: oldBiomeType ? file.mapType : (file.biome ?? DEFAULT_BIOME),
     weather: file.weather ?? CLEAR_WEATHER,
     ambient: clampAmbient(file.ambient),
+    ambientColour: clampAmbientColour(file.ambientColour),
     width,
     height: rows.length,
     tiles,
@@ -491,6 +498,7 @@ export function serializeMap(map) {
     biome: map.biome ?? DEFAULT_BIOME,
     weather: map.weather ?? CLEAR_WEATHER,
     ambient: clampAmbient(map.ambient),
+    ambientColour: clampAmbientColour(map.ambientColour),
     rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
     rotated: map.tiles.flatMap((row, y) => row.flatMap((_, x) => (isRotated(map, { x, y }) ? [[x, y]] : []))),
     areas: map.areas.map((area) => ({ name: area.name, position: fromPosition(area.position) })),

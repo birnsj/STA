@@ -9,6 +9,7 @@ export const toBattleMap = (mapFile) => ({
   tiles: mapFile.tiles,
   rotated: mapFile.rotated,
   ambient: mapFile.ambient,
+  ambientColour: mapFile.ambientColour,
   // Area names for the combat minimap (same readout as exploration).
   ...(mapFile.areas?.length ? { areas: mapFile.areas } : {}),
   ...(mapFile.sightBlockers ? { sightBlockers: mapFile.sightBlockers, coverKeys: mapFile.coverKeys, slowKeys: mapFile.slowKeys, environmentKey: mapFile.environmentKey } : {}),

@@ -2,7 +2,7 @@ import { Container } from 'pixi.js'
 import { GroundLootView } from '../../exploration/pixi/boardItems.js'
 import { AreaLabelView, EditorGridView, EditorMarkerView, EditorOutlineView, TilePreviewView } from './editorMarkers.js'
 import { HazardLayer } from './hazardLayer.js'
-import { reconcile, reducedMotion, startPixiStage } from './pixiStage.js'
+import { reconcile, startPixiStage } from './pixiStage.js'
 
 // A Pixi scene of the map alone (the map editor's board, EditorBoard): the map with nothing fading, its hazards, and
 // the editor's room labels, markers, authored ground inventory props and tile previews over it. Presentation only.
@@ -14,7 +14,6 @@ const NONE = new Set()
 export async function startMapScene(host, read, isCancelled) {
   const stage = await startPixiStage(host, isCancelled)
   if (!stage) return null
-  const still = reducedMotion()
   const labels = new Map()
   const markers = new Map()
   const groundLoot = new Map()
@@ -39,7 +38,8 @@ export async function startMapScene(host, read, isCancelled) {
     if (!board) return
     const now = performance.now()
     const view = stage.frame(board.svg)
-    const playing = board.animate && !still
+    // Editor Animate toggle is authoritative (OS prefers-reduced-motion must not freeze tile preview).
+    const playing = Boolean(board.animate)
     const map = stage.syncMap(board.layout, { playing, ghost: board.ghost, lighting: board.lighting }, now)
     map.update(NONE, now, view)
     hazards.update(board.environment, now, view, playing)

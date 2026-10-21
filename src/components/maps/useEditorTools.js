@@ -44,7 +44,8 @@ import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
 // map, edit(map), setStatus(text), askText(details): from the editor. boardKey: changes whenever a different map is put
 // in front of the user, which clears the selection. suspended: a popup or full-screen editor is open, so the keys stand
 // aside. onObjectivePlaced(index): an objective sent here by the Objective Editor was placed (or cancelled), so it reopens.
-export default function useEditorTools({ map, edit, setStatus, askText, boardKey, suspended, onObjectivePlaced }) {
+// itemGridSize: world-pixel snap for ground items (matches the toolbar guide grid; default 8).
+export default function useEditorTools({ map, edit, setStatus, askText, boardKey, suspended, onObjectivePlaced, itemGridSize = 8 }) {
   const [tool, setTool] = useState('tile:bulkhead')
   // Character Library "Use for placement": next Place NPC uses this id (otherwise the first catalogue entry).
   const [pendingCharacterId, setPendingCharacterId] = useState(null)
@@ -135,7 +136,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
   }
   const duplicateSelectedGroundItem = () => {
     if (!selectedGroundItem) return
-    const copy = duplicateGroundItem(map, selectedGroundItem.id)
+    const copy = duplicateGroundItem(map, selectedGroundItem.id, itemGridSize)
     if (!copy) return setStatus('No free cell near it for the copy.')
     edit(copy.map)
     setSelectedGroundItemId(copy.object.id)
@@ -285,7 +286,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedObjectId(object?.id ?? null)
     setSelectedDestructibleId(destructibleAt(map, position)?.id ?? null)
     setSelectedHazardId(hazardRegionAt(map, position)?.id ?? null)
-    setSelectedGroundItemId(groundItemAt(map, position)?.id ?? null)
+    setSelectedGroundItemId(groundItemAt(map, position, { cellPx: itemGridSize })?.id ?? null)
     setPlacingObject(false)
     setEditingObjectCovers(false)
     setMovingNpc(false)
@@ -311,9 +312,9 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setStatus(`Placed ${DESTRUCTIBLE_TYPES[type].name} (${placed.object.id}). Ctrl+D duplicates it.`)
   }
 
-  // Inventory tools: click an existing ground placement to select it, else place the held catalogue item (8×8 snap).
+  // Inventory tools: click an existing ground placement to select it, else place the held catalogue item (toolbar grid snap).
   const onInventoryTool = (position, itemId) => {
-    const existing = groundItemAt(map, position)
+    const existing = groundItemAt(map, position, { cellPx: itemGridSize })
     if (existing) {
       setSelectedGroundItemId(existing.id)
       setSelectedDestructibleId(null)
@@ -323,8 +324,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       setSelectedObjectId(null)
       return
     }
-    const placed = placeGroundItem(map, position, itemId)
-    if (!placed) return setStatus('Inventory objects need a free floor cell (8×8 grid).')
+    const placed = placeGroundItem(map, position, itemId, itemGridSize)
+    if (!placed) return setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
     edit(placed.map)
     setSelectedGroundItemId(placed.object.id)
     setSelectedDestructibleId(null)
@@ -357,8 +358,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     }
     if (movingGroundItem && selectedGroundItem) {
       if (!first) return
-      const moved = moveGroundItem(map, selectedGroundItem.id, position)
-      if (moved === map) setStatus('Inventory objects need a free floor cell (8×8 grid).')
+      const moved = moveGroundItem(map, selectedGroundItem.id, position, itemGridSize)
+      if (moved === map) setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
       else edit(moved)
       setMovingGroundItem(false)
       return
@@ -493,9 +494,35 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setMoveFrom(null)
   }
 
+  const clearBoardSelection = () => {
+    setSelectedDestructibleId(null)
+    setMovingDestructible(false)
+    setLinkingDestructible(false)
+    setSelectedHazardId(null)
+    setSelectedNpcId(null)
+    setSelectedMarker(null)
+    setSelectedObjectId(null)
+    setPlacingObject(false)
+    setEditingObjectCovers(false)
+    setMovingNpc(false)
+    setEditingPatrol(false)
+    setSelectedWaypointIndex(null)
+    setMovingWaypoint(false)
+    setSelectedGroundItemId(null)
+    setMovingGroundItem(false)
+  }
+
+  // Assets thumbnail pick: clear board selection so Properties shows the catalogue asset.
+  const selectTool = (next) => {
+    clearBoardSelection()
+    setTool(next)
+  }
+
   return {
     tool,
     setTool,
+    selectTool,
+    clearBoardSelection,
     placing,
     moving,
     moveFrom,

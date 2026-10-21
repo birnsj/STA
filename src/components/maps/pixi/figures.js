@@ -18,6 +18,7 @@ import { loadSheet } from '../useRecolouredSheet.js'
 import { exploreGetUpComplete, startExploreGetUp } from '../blastGetUpSync.js'
 import { HAZARD_FRAMES, characterHazardOverlayLook } from '../environmentArt.js'
 import { resolveHazardOverlayDisplay } from '../../../world/characterHazardOverlay.js'
+import { FIGURE_CAST } from '../../../maps/mapShadows.js'
 import { frameColumn, LOCOMOTION, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
 import { uniformImageUrl } from '../../useUniformImage.js'
 import { stripFrames } from './effectTextures.js'
@@ -192,14 +193,14 @@ export class SheetStore {
   }
 }
 
-// A soft dark ellipse under the feet, at SHADOW_RES pixels per unit.
+// A soft dark ellipse under the feet, at SHADOW_RES pixels per unit. Skewed/offset at draw time (FIGURE_CAST).
 const SHADOW_RES = 4
 const shadowCanvas = () =>
-  drawnCanvas({ x: -16, y: -10, width: 32, height: 20 }, SHADOW_RES, (context) => {
+  drawnCanvas({ x: -18, y: -12, width: 36, height: 24 }, SHADOW_RES, (context) => {
     context.filter = `blur(${1.5 * SHADOW_RES}px)`
-    context.fillStyle = 'rgba(0, 0, 0, 0.38)'
+    context.fillStyle = 'rgba(0, 0, 0, 0.46)'
     context.beginPath()
-    context.ellipse(0, 0, 11, 5, 0, 0, Math.PI * 2)
+    context.ellipse(0, 0, 13, 5.5, 0, 0, Math.PI * 2)
     context.fill()
   })
 
@@ -280,7 +281,9 @@ export class FigureView {
     this.body.scale.set(DISPLAY_SCALE)
     this.shadow = new Sprite(sheets.shadow)
     this.shadow.anchor.set(0.5)
-    this.shadow.scale.set(1 / SHADOW_RES)
+    this.shadow.position.set(FIGURE_CAST.x, FIGURE_CAST.y)
+    this.shadow.scale.set(FIGURE_CAST.scaleX / SHADOW_RES, FIGURE_CAST.scaleY / SHADOW_RES)
+    this.shadow.skew.x = FIGURE_CAST.skewX
     this.sheet = new Sprite()
     this.body.addChild(this.shadow, this.sheet)
     this.token = new Container()

@@ -88,17 +88,22 @@ export async function startPixiStage(host, isCancelled) {
       syncResolution()
       return syncCamera(svg)
     },
-    // The map's layers for layout: rebuilt when the map's size or the options change, else
-    // repainted where the layout changed. options: MapLayers's { playing, ghost, lighting }.
+    // The map's layers for layout: rebuilt when size / ghost / lighting change; playing toggles in place so tile
+    // animations are not torn down (an async build() race used to leave the board stuck on frame 0).
     syncMap(layout, options, now) {
-      const key = [layout.map.width, layout.map.height, options.playing, options.ghost, options.lighting].join('|')
+      const key = [layout.map.width, layout.map.height, options.ghost, options.lighting].join('|')
       if (!map || key !== mapOptions) {
         map?.destroy()
         map = new MapLayers({ floorLayer, depthLayer, darkLayer }, layout, options)
         mapOptions = key
         map.build()
-      } else if (map.target !== layout) {
-        map.setLayout(layout, now)
+      } else {
+        const playing = Boolean(options.playing)
+        if (map.playing !== playing) {
+          map.playing = playing
+          for (const item of map.animated) item.shown = null
+        }
+        if (map.target !== layout) map.setLayout(layout, now)
       }
       return map
     },

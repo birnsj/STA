@@ -81,8 +81,7 @@ export class EditorMarkerView {
 }
 
 // Optional authoring guide: iso lines every size world-pixels (TILE_W = one tile). board: { show, size, width, height }.
-// Drawn on a layer just above the floor so walls and figures stay on top. Each segment is stroked on its own (Pixi v8
-// stroke applies to the current path only).
+// Lines pass through the same tile-space points items snap to (multiples of size/TILE_W), covering the map footprint.
 export class EditorGridView {
   constructor(layer) {
     this.graphics = new Graphics()
@@ -102,17 +101,28 @@ export class EditorGridView {
     if (!show || size <= 0 || width <= 0 || height <= 0) return
     const step = size / TILE_W
     if (!(step > 0)) return
-    const x0 = -0.5
-    const y0 = -0.5
-    const x1 = width - 0.5
-    const y1 = height - 0.5
+    // Map floor diamonds sit on [-0.5, width-0.5] × [-0.5, height-0.5]; snap points are n*step.
+    const xMin = -0.5
+    const yMin = -0.5
+    const xMax = width - 0.5
+    const yMax = height - 0.5
+    const i0 = Math.ceil(xMin / step - 1e-9)
+    const i1 = Math.floor(xMax / step + 1e-9)
+    const j0 = Math.ceil(yMin / step - 1e-9)
+    const j1 = Math.floor(yMax / step + 1e-9)
     const line = (ax, ay, bx, by) => {
       const a = project({ x: ax, y: ay })
       const b = project({ x: bx, y: by })
       this.graphics.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke(GRID_STROKE)
     }
-    for (let i = 0, x = x0; x <= x1 + 1e-9; i++, x = x0 + i * step) line(x, y0, x, y1)
-    for (let i = 0, y = y0; y <= y1 + 1e-9; i++, y = y0 + i * step) line(x0, y, x1, y)
+    for (let i = i0; i <= i1; i++) {
+      const x = i * step
+      line(x, yMin, x, yMax)
+    }
+    for (let j = j0; j <= j1; j++) {
+      const y = j * step
+      line(xMin, y, xMax, y)
+    }
   }
 
   destroy() {

@@ -3,6 +3,8 @@
 Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-20)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
+**UI shell (2026-10-21, editor-redesign):** Menu bar (File / Edit / View / Mission / Test) + slim toolbar; left Assets (tabs: Tiles, Environment, Items, Markers, NPCs + search); center Viewport with title and tile HUD; right Properties (Map / Selection — Selection shows the Assets thumbnail or a board entity; tile Cover/Fade and hazard intensity edit there); floating Overview / Layers / Levels. Full-screen Conversation / Object / Objective / Story / Character Library unchanged.
+
 --------------------------------------------------------------------------------
 VERDICT
 --------------------------------------------------------------------------------
@@ -67,7 +69,7 @@ TOOLS
 --------------------------
 Tiles
   - Palette paint, rotation (R)
-  - Cover / Fade flags (writes tiles.json globally)
+  - Cover / Fade flags in Properties → Selection (writes tiles.json globally)
 
 Map shell
   - Resize / size presets

@@ -30,11 +30,11 @@ function tileAt(event, map) {
   return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
 }
 
-// Inventory tools: fractional board point snapped to the 8×8 item grid, or null off the map.
-function itemAt(event, map) {
+// Inventory tools: fractional board point snapped to the editor grid size (world px), or null off the map.
+function itemAt(event, map, gridSize) {
   const svg = event.currentTarget.ownerSVGElement
   const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse())
-  const position = snapItemPosition(unproject(point))
+  const position = snapItemPosition(unproject(point), gridSize)
   const tile = { x: Math.round(position.x), y: Math.round(position.y) }
   return tile.x >= 0 && tile.y >= 0 && tile.x < map.width && tile.y < map.height ? position : null
 }
@@ -131,7 +131,7 @@ function selectionOutlines(map, environment, destructibleId, hazardId, selectedN
 // dragging, over that tile. selectedMarker: the player start or enemy spawn in its inspector ({ kind, x, y }). selectedObjectId: the
 // challenge object in its inspector (challenge objects are drawn as C markers where the map places them). moveFrom: the tile the Move tool is carrying ({ x, y, markers: true when it carries the
 // tile's markers rather than the tile }), or null.
-// lighting: draw shadows, light pools and the map's darkness. animate: animated tiles play (off: each holds its first
+// lighting: draw contact/cast shadows and the map's darkness. animate: animated tiles play (off: each holds its first
 // frame). showGrid / gridSize: optional iso guide grid (world pixels; 64 = one tile). erasing: the Erase Marker tool is
 // held, so the markers and label on the hovered tile are highlighted as the ones a click removes. selectedNpcId: the
 // NPC the inspector shows. selectedWaypointIndex: patrol waypoint index while editing that NPC's route (null: none).
@@ -185,7 +185,7 @@ export default function EditorBoard({
     onHover(position)
   }
   const painting = useRef(false)
-  const pointerAt = (event) => (inventoryTool ? itemAt(event, map) : tileAt(event, map))
+  const pointerAt = (event) => (inventoryTool ? itemAt(event, map, gridSize) : tileAt(event, map))
 
   useEffect(() => {
     const stop = () => {

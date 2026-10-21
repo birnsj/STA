@@ -1,7 +1,8 @@
 import { Sprite } from 'pixi.js'
 import { textureOf } from './pixiDraw.js'
 import { isBlock, project } from '../../../maps/iso.js'
-import { DARK_MARGIN, darknessOpacity, frameAt } from '../../../maps/tileArt.js'
+import { FULL_LIGHT } from '../../../maps/mapFormat.js'
+import { DARK_MARGIN, darknessOpacity, effectsEpochOf, emissiveEpochOf, frameAt, overlayEmissive } from '../../../maps/tileArt.js'
 import {
   animatedArea,
   animatedTiles,
@@ -133,7 +134,7 @@ function drawBlocks(layout, positions, area, time, animated, opacity = 1) {
 // The map's layers: floor (under the ground items), blocks (into the depth-sorted container, beside the figures) and
 // darkness (over everything). Build with build() once its images have loaded.
 // Options: playing (animated tiles run; else each holds its loop's first frame), ghost (every
-// block see-through, the editor's See-through blocks), lighting (shadows, light pools and darkness drawn).
+// block see-through, the editor's See-through blocks), lighting (contact/cast shadows and darkness drawn).
 export class MapLayers {
   constructor({ floorLayer, depthLayer, darkLayer }, layout, { playing = true, ghost = false, lighting = true } = {}) {
     this.layout = layout
@@ -152,6 +153,8 @@ export class MapLayers {
     this.destroyed = false
     this.animated = animatedTiles(layout).map((item) => ({ ...item, shown: null }))
     this.emissive = new Set(emissiveTiles(layout).map((item) => item.key))
+    this.emissiveEpoch = emissiveEpochOf()
+    this.effectsEpoch = effectsEpochOf()
   }
 
   // Loads the map's images, then draws it. Resolves true once drawn (false if destroyed first).
@@ -209,7 +212,9 @@ export class MapLayers {
   blockTexture(record, now) {
     const { position, item } = record
     const index = item ? this.frameIndex(item, now) : null
-    const key = `${record.look}|${index ?? ''}`
+    // Overlay emissive strength is part of the bake (emit colour only tints ground spill, not this sprite).
+    const glow = item?.book?.overlay ? Math.round(overlayEmissive(item.book.id) * 10) : ''
+    const key = `${record.look}|${index ?? ''}|e${glow}`
     if (!this.textures.has(key)) {
       const centre = project(position)
       const area = blockDrawnArea(this.layout, position)
@@ -241,7 +246,8 @@ export class MapLayers {
     const farRecord = this.blocks.get(keyOf(far))
     const halves = [far, record.position]
     const indexes = [farRecord?.item, record.item].map((item) => (item ? this.frameIndex(item, now) : ''))
-    const key = `pair|${halves.map((half) => blockLookKey(this.layout, half)).join('|')}|${indexes.join(',')}`
+    const glows = [farRecord?.item, record.item].map((item) => (item?.book?.overlay ? Math.round(overlayEmissive(item.book.id) * 10) : ''))
+    const key = `pair|${halves.map((half) => blockLookKey(this.layout, half)).join('|')}|${indexes.join(',')}|e${glows.join(',')}`
     const centre = project(record.position)
     if (!this.textures.has(key)) {
       const area = union(blockDrawnArea(this.layout, far), blockDrawnArea(this.layout, record.position))
@@ -275,19 +281,48 @@ export class MapLayers {
     })
   }
 
+  ensureDarkness(map, now, faded) {
+    const wanted = this.lighting ? darknessOpacity(map) : 0
+    this.darkness = wanted
+    if (wanted <= 0) {
+      if (this.dark) {
+        this.dark.destroy()
+        this.dark = null
+        this.darkBounds = null
+      }
+      return
+    }
+    if (!this.dark) {
+      const bounds = boardBounds({ width: map.width, height: map.height })
+      const darkBounds = padded(bounds, DARK_MARGIN)
+      const darkScale = Math.min(1, Math.sqrt(DARK_PIXEL_BUDGET / (darkBounds.width * darkBounds.height)))
+      this.darkBounds = darkBounds
+      this.dark = new ChunkedLayer(this.darkContainer, darkBounds, darkScale, (context, transform, area, options) => drawDarkness(context, transform, this.layout, area, options))
+    }
+    this.dark.paintArea(this.darkBounds, { faded: faded ?? this.fade.target, time: this.time(now) })
+    this.dark.flush()
+  }
+
   applyLayout(layout, now) {
     const before = this.layout
+    const ambientBefore = before.map.ambient ?? FULL_LIGHT
+    const ambientAfter = layout.map.ambient ?? FULL_LIGHT
+    const colourBefore = before.map.ambientColour || ''
+    const colourAfter = layout.map.ambientColour || ''
+    const ambientChanged = ambientBefore !== ambientAfter || colourBefore !== colourAfter
     this.layout = layout
     this.animated = animatedTiles(layout).map((item) => ({ ...item, shown: null }))
     this.emissive = new Set(emissiveTiles(layout).map((item) => item.key))
     if (!this.ready) return
     const changed = changedArea(before, layout)
-    if (!changed) return
+    if (!changed && !ambientChanged) return
     const { map } = layout
+    if (ambientChanged) this.ensureDarkness(map, now, fadeLevels(this.fade, now))
+    if (!changed) return
     const area = changed === 'all' ? boardBounds({ width: map.width, height: map.height }) : changed
     this.floor.paintArea(area)
     this.floor.flush()
-    this.dark?.paintArea(changed === 'all' ? this.darkBounds : area, { faded: fadeLevels(this.fade, now), time: this.time(now) })
+    if (!ambientChanged) this.dark?.paintArea(changed === 'all' ? this.darkBounds : area, { faded: fadeLevels(this.fade, now), time: this.time(now) })
     const animatedByKey = new Map(this.animated.map((item) => [item.key, item]))
     map.tiles.forEach((row, y) =>
       row.forEach((id, x) => {
@@ -334,6 +369,38 @@ export class MapLayers {
   // faded: the Set of 'x,y' keys to show see-through (it eases there). view: the world area on screen.
   update(faded, now, view) {
     if (!this.ready) return
+    // tileEffects change: repaint floor shadows and darkness holes.
+    const lightEpoch = effectsEpochOf()
+    if (this.effectsEpoch !== lightEpoch) {
+      this.effectsEpoch = lightEpoch
+      if (this.floor) {
+        this.floor.paintArea(boardBounds({ width: this.layout.map.width, height: this.layout.map.height }))
+        this.floor.flush()
+      }
+      if (this.dark) this.dark.paintArea(view ?? this.darkBounds, { faded: fadeLevels(this.fade, now), time: this.time(now) })
+    }
+
+    // Overlay emissive / emit colour: rebake overlay tiles and refresh darkness (window spill scales with emissive).
+    const epoch = emissiveEpochOf()
+    if (this.emissiveEpoch !== epoch) {
+      this.emissiveEpoch = epoch
+      for (const item of this.animated) {
+        if (!item.book?.overlay) continue
+        item.shown = null
+        const record = this.blocks.get(item.key)
+        if (!record) continue
+        const { texture, offset } = this.blockTexture(record, now)
+        record.sprite.texture = texture
+        const centre = project(record.position)
+        record.sprite.position.set(centre.x + offset.x, centre.y + offset.y)
+        item.shown = this.frameIndex(item, now)
+        if (record.level < 1 && record.panel) this.applyLevel(record, record.level, now)
+      }
+      if (this.dark) {
+        this.dark.paintArea(view ?? this.darkBounds, { faded: fadeLevels(this.fade, now), time: this.time(now) })
+        this.dark.flush?.()
+      }
+    }
     if (faded !== this.fade.target) {
       const before = this.fade.target
       this.fade = retarget(this.fade, faded, now, this.playing)

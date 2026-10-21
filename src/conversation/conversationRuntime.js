@@ -15,11 +15,11 @@ import { checkDifficultyChange, checksSkipped, resistRequest } from '../explorat
 import { rollPartyTask, TASK_SEED_OFFSET } from '../exploration/partyTaskRoll.js'
 import { npcMomentumToThreat, saveMomentum } from '../rules/missionResources.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
-import { rollPartyTask } from '../exploration/partyTaskRoll.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { getActionType } from './conversationActions.js'
 import { getNode } from './conversationFormat.js'
+import { checkScopedCondition } from './conversationScope.js'
 
 // A graph that loops through Condition and Action nodes without stopping is cut off after this many steps.
 const MAX_STEPS = 200
@@ -93,7 +93,9 @@ export function availableOptions(state) {
   const conversation = state.conversation
   const choice = conversation?.choiceId ? getNode(conversation.definition, conversation.choiceId) : null
   if (!choice) return []
-  return choice.options.filter((option) => option.conditions.every((condition) => checkCondition(state.scenario.flags, condition)))
+  return choice.options.filter((option) =>
+    option.conditions.every((condition) => checkScopedCondition(state, conversation.npcId, condition)),
+  )
 }
 
 export function chooseOption(state, optionId, hooks = NO_HOOKS) {

@@ -4,11 +4,14 @@ import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
-import EditorMinimap from '../components/maps/EditorMinimap.jsx'
+import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
+import EditorLayersWindow from '../components/maps/EditorLayersWindow.jsx'
+import EditorLevelsWindow from '../components/maps/EditorLevelsWindow.jsx'
+import EditorOverviewWindow from '../components/maps/EditorOverviewWindow.jsx'
+import EditorMenuBar from '../components/maps/EditorMenuBar.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
+import EditorPropertiesPanel, { hasAssetSelection, hasBoardSelection } from '../components/maps/EditorPropertiesPanel.jsx'
 import EditorToolbar from '../components/maps/EditorToolbar.jsx'
-import EditorInspectors from '../components/maps/EditorInspectors.jsx'
-import EditorSidePanel from '../components/maps/EditorSidePanel.jsx'
 import useDialogs from '../components/maps/useDialogs.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
@@ -20,12 +23,13 @@ import { canSaveMaps } from '../maps/mapFiles.js'
 import { resizeMap, validateMap } from '../maps/mapFormat.js'
 import { challengeMapWarnings } from '../world/objectAuthoring.js'
 import { canDrawEpisodeArt } from '../maps/episodeArt.js'
+import { randomMapName } from '../maps/mapGenerators.js'
 import { weatherFor } from '../maps/mapWeather.js'
 import WeatherFx from '../effects/WeatherFx.jsx'
 import { npcPortraitOptions } from '../character/npcAppearance.js'
+import { randomEpisodeName } from '../rules/locationNames.js'
 
-// Dev map editor (opened from the Main Menu's Dev Edit). Edits combat-independent map files in the project's maps/ folder,
-// which both combat types play.
+// Dev map editor (Main Menu → Dev Edit). Shell: menu + slim toolbar, Assets | Viewport | Properties, floating windows.
 
 const ExplorationPlaytest = lazy(() => import('./ExplorationScreen.jsx').then((module) => ({ default: module.ExplorationPlaytest })))
 const ConversationEditorScreen = lazy(() => import('./ConversationEditorScreen.jsx'))
@@ -34,8 +38,6 @@ const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 const CharacterLibraryScreen = lazy(() => import('./CharacterLibraryScreen.jsx'))
 
-// Play's away team: saved characters first (the imported party), then redshirt ensigns, up to MAX_AWAY_TEAM.
-// Placement fills free tiles beside player starts when the map has fewer.
 function playAwayTeam(savedCharacters) {
   const saved = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
   const taken = new Set(saved.map((character) => character.id))
@@ -43,46 +45,45 @@ function playAwayTeam(savedCharacters) {
   return [...saved, ...authored].slice(0, MAX_AWAY_TEAM)
 }
 
-// A Generate Map size slider, in percent of the generators' own sizes.
-// min: below it the size minimums (shared.js MIN_ROOM / MIN_BUILDING) make the slider do nothing.
-function ScaleSlider({ label, title, min, value, onChange }) {
-  return (
-    <label className="me-scale" title={title}>
-      <span className="me-scale-label">{label}</span>
-      <input type="range" min={min} max="200" step="10" value={value} aria-label={label} onChange={(event) => onChange(Number(event.target.value))} />
-      <span className="me-ambient-value">{value}%</span>
-    </label>
-  )
-}
-
 export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [status, setStatus] = useState(null)
   const { askConfirm, askText, dialogs, open: dialogShowing } = useDialogs()
   const doc = useMapDocument({ askConfirm, askText, setStatus })
   const { map, edit } = doc
-  // UI state only.
   const [ghostBlocks, setGhostBlocks] = useState(false)
-  // The board's animated tiles and the palette's tile previews play (off: each holds its first frame).
   const [animateTiles, setAnimateTiles] = useState(true)
-  // Shadows, light pools and darkness are view only here; the map's ambient light is still saved.
   const [showLighting, setShowLighting] = useState(true)
   const [showWeather, setShowWeather] = useState(true)
-  // Iso guide grid over the board (world pixels; 64 = one tile). Not saved with the map.
   const [showGrid, setShowGrid] = useState(false)
   const [gridSize, setGridSize] = useState(64)
-  // Play: the away team exploring the open map (null = editing), and whether its enemies notice them.
+  const [showGridOptions, setShowGridOptions] = useState(false)
+  const [overviewOpen, setOverviewOpen] = useState(false)
+  const [layersOpen, setLayersOpen] = useState(false)
+  const [levelsOpen, setLevelsOpen] = useState(false)
+  const [floatBusyIds, setFloatBusyIds] = useState(() => new Set())
+  const [showMapTab, setShowMapTab] = useState(true)
+
+  const floatBusy = (id) => (busy) =>
+    setFloatBusyIds((current) => {
+      const next = new Set(current)
+      if (busy) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  const boardBlocked = floatBusyIds.size > 0
   const [playTeam, setPlayTeam] = useState(null)
   const [enemiesActive, setEnemiesActive] = useState(true)
   const [hover, setHover] = useState(null)
-  // The conversation files NPCs can open ([{ id, name }]), and the conversation editor while open ({ id } | null).
   const [conversations, setConversations] = useState([])
   const [conversationEditor, setConversationEditor] = useState(null)
-  // The objective editor while open ({ index }: the objective selected) | null.
   const [objectiveEditor, setObjectiveEditor] = useState(null)
-  // The challenge object editor ({ id }: the object selected) and the Story Wording editor while open.
   const [objectEditor, setObjectEditor] = useState(null)
   const [storyEditor, setStoryEditor] = useState(false)
   const [characterLibrary, setCharacterLibrary] = useState(false)
+
+  useEffect(() => {
+    if (boardBlocked) setHover(null)
+  }, [boardBlocked])
 
   const refreshConversations = () =>
     listConversations()
@@ -107,17 +108,19 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     setStatus,
     askText,
     boardKey: doc.boardKey,
-    suspended: dialogOpen,
+    suspended: dialogOpen || boardBlocked,
     onObjectivePlaced: (index) => setObjectiveEditor({ index }),
+    itemGridSize: gridSize,
   })
   const { tool, placing, rotated, selection } = tools
 
-  // Challenge-object checks stay here (not in mapFormat) so mapFormat ↔ objectAuthoring cannot cycle through combat.
+  useEffect(() => {
+    if (hasBoardSelection(selection) || hasAssetSelection(tool)) setShowMapTab(false)
+    else setShowMapTab(true)
+  }, [selection.npc, selection.object, selection.marker, selection.destructible, selection.hazard, selection.groundItem, tool])
+
   const warnings = useMemo(
-    () => [
-      ...validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }),
-      ...challengeMapWarnings(map),
-    ],
+    () => [...validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }), ...challengeMapWarnings(map)],
     [map],
   )
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
@@ -129,7 +132,69 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     setPlayTeam(team)
   }
 
-  // Like Play, the conversation editor replaces the map editor's screen while the map and its unsaved edits wait.
+  const onMenuAction = async (id) => {
+    switch (id) {
+      case 'new':
+        return doc.onNew()
+      case 'load':
+        return doc.onShowLoad()
+      case 'save':
+        return doc.onSave()
+      case 'saveAs':
+        return doc.onSaveAs()
+      case 'delete':
+        return doc.onDelete()
+      case 'back':
+        return (await doc.confirmDiscard()) && onBack()
+      case 'placeTiles':
+        return tools.onPlacingToggle(!placing)
+      case 'move':
+        return tools.onMovingToggle(!tools.moving)
+      case 'ghost':
+        return setGhostBlocks((value) => !value)
+      case 'animate':
+        return setAnimateTiles((value) => !value)
+      case 'lighting':
+        return setShowLighting((value) => !value)
+      case 'weatherFx':
+        return setShowWeather((value) => !value)
+      case 'grid':
+        return setShowGrid((value) => !value)
+      case 'gridOptions':
+        return setShowGridOptions(true)
+      case 'overview':
+        return setOverviewOpen((value) => !value)
+      case 'layers':
+        return setLayersOpen((value) => !value)
+      case 'levels':
+        return setLevelsOpen((value) => !value)
+      case 'generateMap':
+        return doc.onGenerate()
+      case 'generateName':
+        return edit({ ...map, name: randomMapName(map) })
+      case 'generateEpisode':
+        return edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })
+      case 'generateCard':
+        return doc.onGenerateCard()
+      case 'objectives':
+        return setObjectiveEditor({ index: 0 })
+      case 'objects':
+        return setObjectEditor({ id: tools.selectedObjectId ?? null })
+      case 'conversations':
+        return setConversationEditor({ id: null })
+      case 'characters':
+        return setCharacterLibrary(true)
+      case 'story':
+        return setStoryEditor(true)
+      case 'play':
+        return onPlay()
+      case 'enemies':
+        return setEnemiesActive((value) => !value)
+      default:
+        return undefined
+    }
+  }
+
   if (conversationEditor) {
     return (
       <Suspense fallback={null}>
@@ -170,12 +235,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   if (objectEditor) {
     return (
       <Suspense fallback={null}>
-        <ObjectEditorScreen
-          map={map}
-          onChange={edit}
-          initialId={objectEditor.id}
-          onBack={() => setObjectEditor(null)}
-        />
+        <ObjectEditorScreen map={map} onChange={edit} initialId={objectEditor.id} onBack={() => setObjectEditor(null)} />
       </Suspense>
     )
   }
@@ -216,7 +276,6 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     )
   }
 
-  // The editor stays mounted underneath, so Exit comes back to the same map, unsaved edits and all.
   if (playTeam) {
     return (
       <Suspense fallback={null}>
@@ -225,64 +284,116 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     )
   }
 
+  const mapProps = {
+    fileId: doc.fileId,
+    hoverTile,
+    placing,
+    rotated,
+    warnings,
+    status,
+    showWeather,
+    cardTools: { canGenerate: canDrawEpisodeArt, busy: doc.drawingCard, onGenerate: doc.onGenerateCard },
+    placingObjective: tools.placingObjective,
+    canSave: canSaveMaps,
+    onGenerateMap: () => doc.onGenerate(),
+    generateHazards: doc.generateHazards,
+    onGenerateHazards: doc.setGenerateHazards,
+    onOpenObjective: (index) => setObjectiveEditor({ index }),
+    onOpenConversations: () => setConversationEditor({ id: null }),
+    onOpenObjects: () => setObjectEditor({ id: tools.selectedObjectId ?? null }),
+    onOpenStory: () => setStoryEditor(true),
+    onOpenCharacterLibrary: () => setCharacterLibrary(true),
+    onMapType: doc.onMapType,
+    onBiome: doc.onBiome,
+    onWeather: (weather) => edit({ ...map, weather }),
+    onShowWeather: setShowWeather,
+    onAmbient: (ambient) => edit({ ...map, ambient }),
+    onAmbientColour: (ambientColour) => edit({ ...map, ambientColour }),
+    onSize: doc.onSize,
+    roomScale: doc.roomScale,
+    onRoomScale: doc.setRoomScale,
+    buildingScale: doc.buildingScale,
+    onBuildingScale: doc.setBuildingScale,
+  }
+
+  const inspectors = {
+    npcMoving: tools.movingNpc,
+    onToggleNpcMove: tools.toggleNpcMove,
+    onNpcCleared: tools.clearNpc,
+    onEditConversation: (id) => setConversationEditor({ id }),
+    objectPlacing: tools.placingObject,
+    onToggleObjectPlace: tools.toggleObjectPlace,
+    objectEditingCovers: tools.editingObjectCovers,
+    onToggleObjectCovers: tools.toggleObjectCovers,
+    onOpenObjectEditor: (id) => setObjectEditor({ id: id ?? null }),
+    onMarkerCleared: tools.clearMarker,
+    destructibleMoving: tools.movingDestructible,
+    onToggleDestructibleMove: tools.toggleDestructibleMove,
+    destructibleLinking: tools.linkingDestructible,
+    onToggleDestructibleLink: tools.toggleDestructibleLink,
+    onDuplicateDestructible: tools.duplicateDestructible,
+    onDestructibleCleared: tools.clearDestructible,
+    groundItemMoving: tools.movingGroundItem,
+    onToggleGroundItemMove: tools.toggleGroundItemMove,
+    onDuplicateGroundItem: tools.duplicateGroundItem,
+    onGroundItemCleared: tools.clearGroundItem,
+    onHazardCleared: tools.clearHazard,
+    editingPatrol: tools.editingPatrol,
+    movingWaypoint: tools.movingWaypoint,
+    selectedWaypointIndex: tools.selectedWaypointIndex,
+    onTogglePatrolEdit: tools.togglePatrolEdit,
+    onToggleMoveWaypoint: tools.toggleMoveWaypoint,
+    onSelectWaypoint: tools.selectWaypoint,
+    onWaypointCleared: tools.clearWaypoint,
+  }
+
   return (
-    <div className="me-screen">
+    <div className="me-screen ed-shell">
+      <EditorMenuBar
+        onAction={onMenuAction}
+        checks={{
+          placeTiles: placing,
+          move: tools.moving,
+          ghost: ghostBlocks,
+          animate: animateTiles,
+          lighting: showLighting,
+          weatherFx: showWeather,
+          grid: showGrid,
+          layers: layersOpen,
+          levels: levelsOpen,
+          overview: overviewOpen,
+          enemies: enemiesActive,
+        }}
+      />
       <EditorToolbar
         map={map}
-        canSave={canSaveMaps}
         dirty={doc.dirty}
         onRename={(name) => edit({ ...map, name })}
-        onMapType={doc.onMapType}
-        onBiome={doc.onBiome}
-        onWeather={(weather) => edit({ ...map, weather })}
-        showWeather={showWeather}
-        onShowWeather={setShowWeather}
-        onAmbient={(ambient) => edit({ ...map, ambient })}
-        onSize={doc.onSize}
         onResize={(width, height) => edit(resizeMap(map, width, height))}
-        onNew={doc.onNew}
-        onLoad={doc.onShowLoad}
-        onSave={doc.onSave}
-        onSaveAs={doc.onSaveAs}
-        canDelete={canSaveMaps && Boolean(doc.fileId)}
-        onDelete={doc.onDelete}
         enemiesActive={enemiesActive}
         onEnemiesActive={setEnemiesActive}
         onPlay={onPlay}
-        onBack={async () => (await doc.confirmDiscard()) && onBack()}
         placing={placing}
         onPlacing={tools.onPlacingToggle}
         moving={tools.moving}
         onMoving={tools.onMovingToggle}
-      >
-        <ScaleSlider label="Room size" title="How big Generate Map makes rooms (starship decks, stations, derelicts, labs, alien vessels, cantinas, detention blocks, temples)." min="70" value={doc.roomScale} onChange={doc.setRoomScale} />
-        <ScaleSlider
-          label="Building size"
-          title="How big Generate Map makes buildings and city blocks (colonies, outposts, cities, farms, mining sites, landing fields)."
-          min="100"
-          value={doc.buildingScale}
-          onChange={doc.setBuildingScale}
-        />
-      </EditorToolbar>
-      <div className="me-body">
+        showGrid={showGrid}
+        onShowGrid={setShowGrid}
+        gridSize={gridSize}
+        onGridSize={setGridSize}
+        onGridOptions={() => setShowGridOptions(true)}
+        animateTiles={animateTiles}
+        onAnimateTiles={setAnimateTiles}
+      />
+      <div className="ed-workspace">
         <EditorPalette
           tool={tool}
-          onTool={tools.setTool}
-          ghostBlocks={ghostBlocks}
-          onGhostBlocks={setGhostBlocks}
+          onTool={tools.selectTool}
+          onOpenCharacterLibrary={() => setCharacterLibrary(true)}
           animateTiles={animateTiles}
-          onAnimateTiles={setAnimateTiles}
-          showLighting={showLighting}
-          onShowLighting={setShowLighting}
-          showGrid={showGrid}
-          onShowGrid={setShowGrid}
-          gridSize={gridSize}
-          onGridSize={setGridSize}
-          onStatus={setStatus}
-          hazardIntensity={tools.hazardIntensity}
-          onHazardIntensity={tools.setHazardIntensity}
         />
-        <div className="me-board-area">
+        <div className={`ed-viewport me-board-area${boardBlocked ? ' is-float-busy' : ''}`}>
+          <div className="ed-viewport-title">{map.name || 'Untitled map'}</div>
           <EditorBoard
             key={doc.boardKey}
             map={map}
@@ -303,78 +414,61 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             selectedGroundItemId={tools.selectedGroundItemId}
             inventoryTool={tool?.startsWith('inventory:') ? tool.slice('inventory:'.length) : null}
             moveFrom={tools.moveFrom}
-            onPaint={tools.onPaint}
-            onPaintEnd={tools.onPaintEnd}
-            onHover={setHover}
-            onRightClick={tools.onRightClick}
+            onPaint={boardBlocked ? undefined : tools.onPaint}
+            onPaintEnd={boardBlocked ? undefined : tools.onPaintEnd}
+            onHover={boardBlocked ? undefined : setHover}
+            onRightClick={boardBlocked ? undefined : tools.onRightClick}
           />
           {showWeather && <WeatherFx fx={weatherFor(map.weather).fx} follow=".me-board" />}
-          <EditorMinimap map={map} />
+          <EditorGridOptions
+            show={showGridOptions}
+            onClose={() => setShowGridOptions(false)}
+            showGrid={showGrid}
+            onShowGrid={setShowGrid}
+            gridSize={gridSize}
+            onGridSize={setGridSize}
+          />
+          {hoverTile && !boardBlocked && (
+            <div className="ed-coord-hud" aria-live="polite">
+              Tile ({hoverTile.x}, {hoverTile.y})
+            </div>
+          )}
           {doc.notice && (
             <div key={doc.notice.id} className={`me-notice${doc.notice.failed ? ' is-failed' : ''}`} role="status">
               {doc.notice.text}
             </div>
           )}
         </div>
-        <EditorSidePanel
+        <EditorPropertiesPanel
           map={map}
           edit={edit}
-          fileId={doc.fileId}
-          hoverTile={hoverTile}
-          placing={placing}
-          rotated={rotated}
-          warnings={warnings}
-          status={status}
-          showWeather={showWeather}
-          cardTools={{ canGenerate: canDrawEpisodeArt, busy: doc.drawingCard, onGenerate: doc.onGenerateCard }}
-          placingObjective={tools.placingObjective}
-          canSave={canSaveMaps}
-          onGenerateMap={() => doc.onGenerate()}
-          generateHazards={doc.generateHazards}
-          onGenerateHazards={doc.setGenerateHazards}
-          onOpenObjective={(index) => setObjectiveEditor({ index })}
-          onOpenConversations={() => setConversationEditor({ id: null })}
-          onOpenObjects={() => setObjectEditor({ id: tools.selectedObjectId ?? null })}
-          onOpenStory={() => setStoryEditor(true)}
-          onOpenCharacterLibrary={() => setCharacterLibrary(true)}
-        >
-          <EditorInspectors
-            map={map}
-            edit={edit}
-            tool={tool}
-            conversations={conversations}
-            selection={selection}
-            npcMoving={tools.movingNpc}
-            onToggleNpcMove={tools.toggleNpcMove}
-            onNpcCleared={tools.clearNpc}
-            onEditConversation={(id) => setConversationEditor({ id })}
-            objectPlacing={tools.placingObject}
-            onToggleObjectPlace={tools.toggleObjectPlace}
-            objectEditingCovers={tools.editingObjectCovers}
-            onToggleObjectCovers={tools.toggleObjectCovers}
-            onOpenObjectEditor={(id) => setObjectEditor({ id: id ?? null })}
-            onMarkerCleared={tools.clearMarker}
-            destructibleMoving={tools.movingDestructible}
-            onToggleDestructibleMove={tools.toggleDestructibleMove}
-            destructibleLinking={tools.linkingDestructible}
-            onToggleDestructibleLink={tools.toggleDestructibleLink}
-            onDuplicateDestructible={tools.duplicateDestructible}
-            onDestructibleCleared={tools.clearDestructible}
-            groundItemMoving={tools.movingGroundItem}
-            onToggleGroundItemMove={tools.toggleGroundItemMove}
-            onDuplicateGroundItem={tools.duplicateGroundItem}
-            onGroundItemCleared={tools.clearGroundItem}
-            onHazardCleared={tools.clearHazard}
-            editingPatrol={tools.editingPatrol}
-            movingWaypoint={tools.movingWaypoint}
-            selectedWaypointIndex={tools.selectedWaypointIndex}
-            onTogglePatrolEdit={tools.togglePatrolEdit}
-            onToggleMoveWaypoint={tools.toggleMoveWaypoint}
-            onSelectWaypoint={tools.selectWaypoint}
-            onWaypointCleared={tools.clearWaypoint}
-          />
-        </EditorSidePanel>
+          tool={tool}
+          conversations={conversations}
+          selection={selection}
+          showMapTab={showMapTab}
+          onShowMapTab={setShowMapTab}
+          mapProps={mapProps}
+          inspectors={inspectors}
+          onStatus={setStatus}
+          hazardIntensity={tools.hazardIntensity}
+          onHazardIntensity={tools.setHazardIntensity}
+          animateTiles={animateTiles}
+        />
       </div>
+      <EditorOverviewWindow
+        open={overviewOpen}
+        onClose={() => setOverviewOpen(false)}
+        onBusyChange={floatBusy('overview')}
+        map={map}
+        ghostBlocks={ghostBlocks}
+        onGhostBlocks={setGhostBlocks}
+        animateTiles={animateTiles}
+        onAnimateTiles={setAnimateTiles}
+        showLighting={showLighting}
+        onShowLighting={setShowLighting}
+      />
+      <EditorLayersWindow open={layersOpen} onClose={() => setLayersOpen(false)} onBusyChange={floatBusy('layers')} />
+      <EditorLevelsWindow open={levelsOpen} onClose={() => setLevelsOpen(false)} onBusyChange={floatBusy('levels')} />
       {doc.showLoad && <LoadMapDialog maps={doc.maps} currentId={doc.fileId} onLoad={doc.onLoad} onCancel={() => doc.setShowLoad(false)} />}
       {dialogs}
     </div>
