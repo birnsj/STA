@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import '../components/conversation/conversationEditor.css'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
 import IdInput from '../components/maps/IdInput.jsx'
 import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
@@ -197,35 +197,42 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
     })
 
   return (
-    <div className="ce-screen">
-      <div className="ce-toolbar">
-        <button type="button" className="ce-button" onClick={onBack}>
-          Back to Map
-        </button>
-        <button type="button" className="ce-button" onClick={add}>
-          Add Object
-        </button>
-        {selected && (
-          <button type="button" className="ce-button" onClick={duplicateSelected}>
-            Duplicate Object
+    <EditorSubScreen
+      title="Object Editor"
+      toolbar={
+        <>
+          <button type="button" className="me-button" onClick={onBack}>
+            Back to Map
           </button>
-        )}
-        {map.objects && fallback && (
-          <button type="button" className="ce-button" onClick={useFallback}>
-            Use challenges.json
+          <button type="button" className="me-button" onClick={add}>
+            Add Object
           </button>
-        )}
-        <span className="ce-text">
-          Challenge objects of {map.name || 'the open map'}.{' '}
-          {map.objects ? 'They are part of the map: Save the map to keep them.' : fallback ? 'From challenges.json until you change something here; then they are saved with the map.' : 'Changes are part of the map: Save the map to keep them.'}
-        </span>
-      </div>
+          {selected && (
+            <button type="button" className="me-button" onClick={duplicateSelected}>
+              Duplicate Object
+            </button>
+          )}
+          {map.objects && fallback && (
+            <button type="button" className="me-button" onClick={useFallback}>
+              Use challenges.json
+            </button>
+          )}
+          <span className="me-text">
+            Challenge objects of {map.name || 'the open map'}.{' '}
+            {map.objects
+              ? 'They are part of the map: Save the map to keep them.'
+              : fallback
+                ? 'From challenges.json until you change something here; then they are saved with the map.'
+                : 'Changes are part of the map: Save the map to keep them.'}
+          </span>
+        </>
+      }
+    >
       <datalist id="oe-tiles">
         {TILES.map((tile) => (
           <option key={tile.id} value={tile.id} />
         ))}
       </datalist>
-      <div className="ce-body">
         <div className="oe-list">
           {objects.map((object, index) => (
             <button key={index} type="button" className={`oe-item${index === selectedIndex ? ' is-selected' : ''}`} onClick={() => select(index)}>
@@ -308,7 +315,6 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
             <p className="ce-text">None</p>
           )}
         </div>
-      </div>
       {question && (
         <ConfirmDialog
           title={question.title}
@@ -321,6 +327,6 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
           onCancel={() => setQuestion(null)}
         />
       )}
-    </div>
+    </EditorSubScreen>
   )
 }

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getPlaytestParty, hasAuthoredCharacter } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
@@ -13,6 +13,7 @@ import EditorPalette from '../components/maps/EditorPalette.jsx'
 import EditorPropertiesPanel from '../components/maps/EditorPropertiesPanel.jsx'
 import { hasAssetSelection, hasBoardSelection } from '../components/maps/editorSelection.js'
 import EditorToolbar from '../components/maps/EditorToolbar.jsx'
+import EditorTips from '../components/maps/EditorTips.jsx'
 import useDialogs from '../components/maps/useDialogs.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
@@ -38,6 +39,7 @@ const ObjectiveEditorScreen = lazy(() => import('./ObjectiveEditorScreen.jsx'))
 const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 const CharacterLibraryScreen = lazy(() => import('./CharacterLibraryScreen.jsx'))
+const GeneratorEditorScreen = lazy(() => import('./GeneratorEditorScreen.jsx'))
 
 function playAwayTeam(savedCharacters) {
   const saved = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
@@ -47,6 +49,7 @@ function playAwayTeam(savedCharacters) {
 }
 
 export default function MapEditorScreen({ savedCharacters = [], onBack }) {
+  const shellRef = useRef(null)
   const [status, setStatus] = useState(null)
   const { askConfirm, askText, dialogs, open: dialogShowing } = useDialogs()
   const doc = useMapDocument({ askConfirm, askText, setStatus })
@@ -80,6 +83,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [objectEditor, setObjectEditor] = useState(null)
   const [storyEditor, setStoryEditor] = useState(false)
   const [characterLibrary, setCharacterLibrary] = useState(false)
+  const [generatorEditor, setGeneratorEditor] = useState(false)
 
   // Hover clears the moment a floating window takes the pointer. Compared while rendering, so no stale frame shows.
   const [wasBlocked, setWasBlocked] = useState(boardBlocked)
@@ -123,9 +127,17 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const wantsMapTab = !(hasBoardSelection(selection) || hasAssetSelection(tool))
   const [showMapTab, setShowMapTab] = useState(wantsMapTab)
   const [selectionSeen, setSelectionSeen] = useState(selectionNow)
+  // Bumped when Generate Card runs so Properties → Map → Episode Card opens on the preview.
+  const [revealEpisodeCard, setRevealEpisodeCard] = useState(0)
   if (selectionNow.some((value, index) => !Object.is(value, selectionSeen[index]))) {
     setSelectionSeen(selectionNow)
     setShowMapTab(wantsMapTab)
+  }
+
+  const onGenerateCard = () => {
+    setShowMapTab(true)
+    setRevealEpisodeCard((tick) => tick + 1)
+    doc.onGenerateCard()
   }
 
   const warnings = useMemo(
@@ -184,7 +196,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
       case 'generateEpisode':
         return edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })
       case 'generateCard':
-        return doc.onGenerateCard()
+        return onGenerateCard()
       case 'objectives':
         return setObjectiveEditor({ index: 0 })
       case 'objects':
@@ -193,6 +205,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         return setConversationEditor({ id: null })
       case 'characters':
         return setCharacterLibrary(true)
+      case 'generators':
+        return setGeneratorEditor(true)
       case 'story':
         return setStoryEditor(true)
       case 'play':
@@ -285,6 +299,22 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     )
   }
 
+  if (generatorEditor) {
+    return (
+      <Suspense fallback={null}>
+        <GeneratorEditorScreen
+          map={map}
+          mapType={map.mapType}
+          onBack={() => setGeneratorEditor(false)}
+          onPreview={async () => {
+            setGeneratorEditor(false)
+            await doc.onGenerate()
+          }}
+        />
+      </Suspense>
+    )
+  }
+
   if (playTeam) {
     return (
       <Suspense fallback={null}>
@@ -301,7 +331,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     warnings,
     status,
     showWeather,
-    cardTools: { canGenerate: canDrawEpisodeArt, busy: doc.drawingCard, onGenerate: doc.onGenerateCard },
+    cardTools: { canGenerate: canDrawEpisodeArt, busy: doc.drawingCard, onGenerate: onGenerateCard },
+    revealEpisodeCard,
     placingObjective: tools.placingObjective,
     canSave: canSaveMaps,
     onGenerateMap: () => doc.onGenerate(),
@@ -353,7 +384,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   }
 
   return (
-    <div className="me-screen ed-shell">
+    <div ref={shellRef} className="me-screen ed-shell">
+      <EditorTips rootRef={shellRef} />
       <EditorMenuBar
         onAction={onMenuAction}
         checks={{
@@ -389,6 +421,11 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onGridOptions={() => setShowGridOptions(true)}
         animateTiles={animateTiles}
         onAnimateTiles={setAnimateTiles}
+        onGenerateMap={doc.onGenerate}
+        onGenerateName={() => edit({ ...map, name: randomMapName(map) })}
+        onGenerateEpisode={() => edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })}
+        onGenerateCard={onGenerateCard}
+        onGeneratorEditor={() => setGeneratorEditor(true)}
       />
       <div className="ed-workspace">
         <EditorPalette

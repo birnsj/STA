@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import ConversationCanvas, { NODE_WIDTH } from '../components/conversation/ConversationCanvas.jsx'
 import NodeInspector from '../components/conversation/NodeInspector.jsx'
-import '../components/conversation/conversationEditor.css'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
 import { canSaveConversations, conversationFileId, deleteConversation, listConversations, loadConversation, saveConversation } from '../conversation/conversationFiles.js'
 import { dialogueTierWarnings } from '../conversation/dialogueTier.js'
 import { createConversation, createNode, getNode, nextId, NODE_TYPES, removeNode, validateConversation, withLink } from '../conversation/conversationFormat.js'
@@ -141,8 +141,9 @@ export default function ConversationEditorScreen({ initialId = null, map = null,
   const selected = conversation && selectedId ? getNode(conversation, selectedId) : null
 
   return (
-    <div className="ce-screen">
+    <EditorSubScreen>
       <div className="ce-toolbar">
+        <strong className="ess-title">Conversation Editor</strong>
         <button type="button" className="ce-button" onClick={async () => (await confirmDiscard()) && onBack()}>
           Back to Map
         </button>
@@ -239,6 +240,6 @@ export default function ConversationEditorScreen({ initialId = null, map = null,
         </div>
       </div>
       {question && <ConfirmDialog title={question.title} message={question.message} confirmLabel={question.confirmLabel} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}
-    </div>
+    </EditorSubScreen>
   )
 }

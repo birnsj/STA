@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// File / Edit / View / Mission / Test menus. File ops, windows, and mission editors live here only
-// (not duplicated on the toolbar). Does not change document or tool behavior.
+// File / Edit / View / Mission / Test menus. Mission generate actions also have toolbar icons before Enemies.
 
 const MENUS = [
   {
@@ -54,6 +53,7 @@ const MENUS = [
       { id: 'objects', label: 'Object Editor' },
       { id: 'conversations', label: 'Conversation Editor' },
       { id: 'characters', label: 'Character Library' },
+      { id: 'generators', label: 'Generator Editor' },
       { id: 'story', label: 'Story Wording' },
     ],
   },

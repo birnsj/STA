@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import '../components/conversation/conversationEditor.css'
 import { ConditionsEditor } from '../components/conversation/ConversationFields.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
+import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
 
 // Dev objective editor (opened from the map editor): the open map's objectives (mapFormat.js objectives), listed on the
 // left, the selected one edited on the right. Edits go straight into the map, so the map editor's Save keeps them.
@@ -68,11 +68,11 @@ function LocationFields({ objective, width, height, onChange, onPick }) {
       ) : (
         <span className="ce-text">No minimap marker.</span>
       )}
-      <button type="button" className="ce-button is-small" onClick={onPick}>
+        <button type="button" className="me-button is-small" onClick={onPick}>
         {position ? 'Move on Map' : 'Place on Map'}
       </button>
       {position && (
-        <button type="button" className="ce-button is-small" onClick={() => onChange({ position: null })}>
+        <button type="button" className="me-button is-small" onClick={() => onChange({ position: null })}>
           Clear
         </button>
       )}
@@ -112,19 +112,22 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
   }
 
   return (
-    <div className="ce-screen">
-      <div className="ce-toolbar">
-        <button type="button" className="ce-button" onClick={onBack}>
-          Back to Map
-        </button>
-        <button type="button" className="ce-button" onClick={add}>
-          Add Objective
-        </button>
-        <span className="ce-text">
-          Objectives of {mapName || 'the open map'}. Changes are part of the map: Save the map to keep them.
-        </span>
-      </div>
-      <div className="ce-body">
+    <EditorSubScreen
+      title="Objective Editor"
+      toolbar={
+        <>
+          <button type="button" className="me-button" onClick={onBack}>
+            Back to Map
+          </button>
+          <button type="button" className="me-button" onClick={add}>
+            Add Objective
+          </button>
+          <span className="me-text">
+            Objectives of {mapName || 'the open map'}. Changes are part of the map: Save the map to keep them.
+          </span>
+        </>
+      }
+    >
         <div className="oe-list">
           {objectives.map((objective, index) => (
             <button key={index} type="button" className={`oe-item${index === selectedIndex ? ' is-selected' : ''}`} onClick={() => setSelectedIndex(index)}>
@@ -146,13 +149,13 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
             <div className="ce-inspector">
               <div className="ce-row">
                 <span className="ce-heading">Objective O{selectedIndex + 1}</span>
-                <button type="button" className="ce-button is-small" disabled={selectedIndex === 0} onClick={() => move(-1)}>
+                <button type="button" className="me-button is-small" disabled={selectedIndex === 0} onClick={() => move(-1)}>
                   Move Up
                 </button>
-                <button type="button" className="ce-button is-small" disabled={selectedIndex === objectives.length - 1} onClick={() => move(1)}>
+                <button type="button" className="me-button is-small" disabled={selectedIndex === objectives.length - 1} onClick={() => move(1)}>
                   Move Down
                 </button>
-                <button type="button" className="ce-button is-small" onClick={remove}>
+                <button type="button" className="me-button is-small" onClick={remove}>
                   Remove
                 </button>
               </div>
@@ -202,8 +205,7 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
             <p className="ce-text">None</p>
           )}
         </div>
-      </div>
       {question && <ConfirmDialog title={question.title} message={question.message} confirmLabel={question.confirmLabel} onConfirm={confirmRemove} onCancel={() => setQuestion(null)} />}
-    </div>
+    </EditorSubScreen>
   )
 }

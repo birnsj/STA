@@ -33,6 +33,7 @@ export default function MapProperties({
   status,
   showWeather,
   cardTools,
+  revealEpisodeCard = 0,
   placingObjective,
   canSave,
   onGenerateMap,
@@ -179,7 +180,7 @@ export default function MapProperties({
         </button>
       </PropertySection>
 
-      <PropertySection id="episode-card" title="Episode Card" defaultOpen={false}>
+      <PropertySection id="episode-card" title="Episode Card" defaultOpen={false} forceOpen={revealEpisodeCard > 0} key={`episode-card-${revealEpisodeCard}`}>
         <EpisodeCardPicker
           cardId={map.card}
           weatherFx={showWeather ? weatherFor(map.weather).fx : null}

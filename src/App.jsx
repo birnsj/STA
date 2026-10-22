@@ -183,7 +183,7 @@ function Views() {
         </ScaledStage>
       )}
       {view === 'mapEditor' && (
-        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
+        <ScaledStage {...MENU_STAGE} settings={displaySettings} titleTips={false}>
           <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
           {settingsLayer}
         </ScaledStage>

@@ -15,6 +15,8 @@ const { listAuthoredCharacters, putAuthoredCharacter, removeAuthoredCharacter } 
 const { setTileFlag } = require('../tools/tileStore.cjs')
 const { setAnimationEmissive, setTileGlow } = require('../tools/effectsStore.cjs')
 const { setStoryTemplates } = require('../tools/storyStore.cjs')
+const { putDeckStyle } = require('../tools/deckGeneratorStore.cjs')
+const { putWallVariantSet } = require('../tools/wallVariantStore.cjs')
 const { writeFileAtomic } = require('../tools/atomicWrite.cjs')
 
 let root
@@ -267,5 +269,96 @@ describe('story store', () => {
     assert.throws(() => setStoryTemplates(file(), { intro: '   ' }), /needs some text/)
     assert.throws(() => setStoryTemplates(file(), null), /No story templates/)
     assert.equal(text('missionLog.json'), before)
+  })
+})
+
+describe('deck generator store', () => {
+  const file = () => at('deckGenerators.json')
+  const start = () =>
+    fs.writeFileSync(
+      file(),
+      `${JSON.stringify(
+        {
+          starshipDeck: { floor: 'floor', wall: 'bulkhead', door: 'doorway', crate: 'crate', machinery: 'machinery', hazard: true },
+          laboratory: { floor: 'labFloor', wall: 'labWall', door: 'doorway', crate: 'labBench', machinery: 'containmentPod', hazard: true },
+          alienVessel: { floor: 'alienDeck', wall: 'alienBulkhead', door: 'doorway', crate: 'bioPod', machinery: 'alienConsole', hazard: false },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+  it('updates one deck style and leaves the others', () => {
+    start()
+    assert.deepEqual(putDeckStyle(file(), { id: 'starshipDeck', wall: 'plainBulkhead', corner: 'halfBulkheadCorner', hazard: false }), {
+      id: 'starshipDeck',
+      floor: 'floor',
+      wall: 'plainBulkhead',
+      corner: 'halfBulkheadCorner',
+      door: 'doorway',
+      crate: 'crate',
+      machinery: 'machinery',
+      hazard: false,
+    })
+    const data = JSON.parse(text('deckGenerators.json'))
+    assert.equal(data.starshipDeck.wall, 'plainBulkhead')
+    assert.equal(data.starshipDeck.corner, 'halfBulkheadCorner')
+    assert.equal(data.laboratory.floor, 'labFloor')
+  })
+
+  it('refuses unknown ids and bad fields without writing', () => {
+    start()
+    const before = text('deckGenerators.json')
+    assert.throws(() => putDeckStyle(file(), { id: 'spaceStation', wall: 'bulkhead' }), /Unknown deck generator/)
+    assert.throws(() => putDeckStyle(file(), { id: 'starshipDeck', wall: '' }), /wall must be a tile id/)
+    assert.throws(() => putDeckStyle(file(), { id: 'starshipDeck', hazard: 'yes' }), /hazard must be true or false/)
+    assert.equal(text('deckGenerators.json'), before)
+  })
+})
+
+describe('wall variant store', () => {
+  const file = () => at('generatedWallVariants.json')
+  const start = () =>
+    fs.writeFileSync(
+      file(),
+      `${JSON.stringify(
+        {
+          notes: ['test'],
+          walls: {
+            bulkhead: {
+              share: 0.4,
+              panelVariants: ['lcarsPanel'],
+              tileVariants: ['lcarsWall'],
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+  it('updates one wall set and can clear it', () => {
+    start()
+    assert.deepEqual(
+      putWallVariantSet(file(), {
+        wallId: 'bulkhead',
+        share: 0.5,
+        panelVariants: ['conduitPanel'],
+        tileVariants: ['conduitWall'],
+      }),
+      {
+        wallId: 'bulkhead',
+        share: 0.5,
+        panelVariants: ['conduitPanel'],
+        tileVariants: ['conduitWall'],
+      },
+    )
+    assert.deepEqual(JSON.parse(text('generatedWallVariants.json')).walls.bulkhead, {
+      share: 0.5,
+      panelVariants: ['conduitPanel'],
+      tileVariants: ['conduitWall'],
+    })
+    assert.equal(putWallVariantSet(file(), { wallId: 'bulkhead', panelVariants: [], tileVariants: [] }).cleared, true)
+    assert.equal(JSON.parse(text('generatedWallVariants.json')).walls.bulkhead, undefined)
   })
 })

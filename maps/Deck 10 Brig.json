@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
   "name": "Deck 10 Brig",
-  "episodeName": "Shadows on Deck Twelve",
+  "episodeName": "Shadows on Deck Ten",
   "card": "/art/episodes/Deck%2010%20Brig.png?v=1791517153051",
   "mapType": "starshipDeck",
   "biome": "temperate",
   "weather": "clear",
   "ambient": 50,
+  "ambientColour": "#02040a",
   "rows": [
     "####################òò##########òò##ðð##",
     "ñc..ccc..ccc#c..cc..cc..#cc..ccc..c..MM#",
@@ -151,12 +152,12 @@
       "facing": 135,
       "name": "Guard A",
       "disposition": "wary",
-      "npcRules": "supporting",
       "conversationId": "klingonBark",
-      "gender": "male",
-      "portraitId": "klingon-male-1",
+      "npcRules": "supporting",
       "alertGroupId": "security-a",
-      "alertMethod": "shout"
+      "alertMethod": "shout",
+      "gender": "male",
+      "portraitId": "klingon-male-1"
     },
     {
       "id": "guardB",
@@ -168,13 +169,13 @@
       "facing": 225,
       "name": "Guard B",
       "disposition": "hostile",
-      "npcRules": "supporting",
       "conversationId": "klingonBark",
-      "gender": "female",
-      "portraitId": "klingon-female-1",
+      "npcRules": "supporting",
       "alertGroupId": "security-a",
       "alertMethod": "shout",
-      "responseType": "alarm"
+      "responseType": "alarm",
+      "gender": "female",
+      "portraitId": "klingon-female-1"
     },
     {
       "id": "guardC",
@@ -186,12 +187,12 @@
       "facing": 45,
       "name": "Guard C",
       "disposition": "aggressive",
-      "npcRules": "supporting",
       "conversationId": "klingonBark",
-      "gender": "male",
-      "portraitId": "klingon-male-2",
+      "npcRules": "supporting",
       "alertGroupId": "security-b",
-      "alertMethod": "shout"
+      "alertMethod": "shout",
+      "gender": "male",
+      "portraitId": "klingon-male-2"
     },
     {
       "id": "npc5",
@@ -320,8 +321,8 @@
       ],
       "facing": 0,
       "disposition": "neutral",
-      "responseType": "observe",
       "conversationId": "vossSensors",
+      "responseType": "observe",
       "patrol": [
         {
           "at": [
@@ -364,16 +365,11 @@
       ],
       "facing": 180,
       "disposition": "wary",
-      "responseType": "confront",
-      "npcRules": "supporting",
       "conversationId": "korathCheckpoint",
+      "npcRules": "supporting",
+      "responseType": "confront",
       "gender": "male",
       "portraitId": "klingon-male-3",
-      "perception": {
-        "visionRange": 10,
-        "fieldOfView": 100,
-        "hearingRange": 5
-      },
       "patrol": [
         {
           "at": [
@@ -386,7 +382,12 @@
           "animationDuration": 3.2,
           "animationLoop": true
         }
-      ]
+      ],
+      "perception": {
+        "visionRange": 10,
+        "fieldOfView": 100,
+        "hearingRange": 5
+      }
     },
     {
       "id": "klingonSentryTorak",
@@ -397,13 +398,13 @@
       ],
       "facing": 270,
       "disposition": "hostile",
-      "responseType": "alarm",
-      "npcRules": "supporting",
       "conversationId": "torakSentry",
-      "gender": "female",
-      "portraitId": "klingon-female-3",
+      "npcRules": "supporting",
       "alertGroupId": "brig-east-alert",
       "alertMethod": "shout",
+      "responseType": "alarm",
+      "gender": "female",
+      "portraitId": "klingon-female-3",
       "patrol": [
         {
           "at": [
@@ -436,13 +437,13 @@
       ],
       "facing": 225,
       "disposition": "hostile",
-      "responseType": "combat",
-      "npcRules": "supporting",
       "conversationId": "krelWarrior",
-      "gender": "female",
-      "portraitId": "klingon-female-5",
+      "npcRules": "supporting",
       "alertGroupId": "brig-east-alert",
       "alertMethod": "shout",
+      "responseType": "combat",
+      "gender": "female",
+      "portraitId": "klingon-female-5",
       "patrol": [
         {
           "at": [

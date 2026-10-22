@@ -648,6 +648,81 @@
   background: #070c0e;
 }
 
+/* Character Library under ed-shell */
+.ed-shell.cl-screen .cl-title {
+  color: var(--ed-text);
+}
+.ed-shell.cl-screen .me-toolbar,
+.ed-shell.cl-screen .ess-toolbar {
+  border-bottom: 1px solid var(--ed-border);
+  background: var(--ed-panel);
+}
+.ed-shell .cl-list-pane {
+  border-right-color: var(--ed-border);
+  background: var(--ed-panel);
+}
+.ed-shell .cl-filters {
+  border-bottom-color: var(--ed-border);
+}
+.ed-shell .cl-list-item:hover {
+  background: var(--ed-panel-2);
+}
+.ed-shell .cl-list-item.is-selected {
+  border-left-color: var(--ed-accent);
+  background: var(--ed-accent-soft);
+}
+.ed-shell .cl-list-name,
+.ed-shell .cl-preview-name {
+  color: var(--ed-text);
+}
+.ed-shell .cl-list-id {
+  color: var(--ed-muted);
+}
+.ed-shell .cl-portrait {
+  border-color: var(--ed-border);
+  background: var(--ed-panel-2);
+}
+.ed-shell .cl-portrait-empty {
+  background: #252b35;
+}
+.ed-shell .cl-summary {
+  color: var(--ed-text);
+}
+.ed-shell .cl-status {
+  color: var(--ed-warn);
+  background: var(--ed-panel-2);
+  border-color: var(--ed-border);
+}
+.ed-shell .cl-creator-overlay {
+  background: var(--ed-bg);
+}
+.ed-shell .ess-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--ed-border);
+  background: var(--ed-panel);
+}
+.ed-shell .ess-title {
+  margin-right: 6px;
+  color: var(--ed-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ed-shell .ess-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ed-shell .ess-toolbar .me-text {
+  display: inline;
+  margin: 0;
+  color: var(--ed-muted);
+}
+
 /* —— Editor redesign shell (ed-*) — dense charcoal IDE chrome —— */
 .ed-shell {
   --ed-bg: #12151a;
@@ -664,6 +739,24 @@
   font-family: "Segoe UI", "Helvetica Neue", sans-serif;
   font-size: 11px;
   line-height: 1.25;
+}
+
+/* Compact title= tips (EditorTips.jsx) — same charcoal chrome as the toolbar. */
+.ed-shell > .ed-tip-bubble {
+  position: absolute;
+  z-index: 200;
+  max-width: 220px;
+  padding: 3px 6px;
+  border: 1px solid var(--ed-border);
+  border-radius: 2px;
+  background: #1a1f27;
+  color: var(--ed-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 /* Shared control chrome: same height, radius, fill, and blue active/primary states. */
@@ -685,6 +778,13 @@
 
 .ed-shell .me-button {
   cursor: var(--cursor-pointer);
+}
+
+.ed-shell .me-button.is-small {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 18px;
 }
 
 .ed-shell .me-button:hover:not(:disabled),
@@ -952,8 +1052,12 @@
 .ed-toolbar-end {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-left: auto;
+}
+
+.ed-toolbar-end > .ed-seg {
+  margin-right: 2px;
 }
 
 .ed-panel-head {
@@ -1063,6 +1167,8 @@
 }
 
 .ed-toolbar.me-toolbar {
+  position: relative;
+  z-index: 50;
   min-height: 0;
   gap: 0;
   padding: 4px 6px;

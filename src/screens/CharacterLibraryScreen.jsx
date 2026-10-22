@@ -213,14 +213,14 @@ export default function CharacterLibraryScreen({
 
   if (session) {
     return (
-      <Suspense fallback={<div className="me-screen cl-screen">Loading creator…</div>}>
+      <Suspense fallback={<div className="me-screen ed-shell cl-screen">Loading creator…</div>}>
         <AuthoredCreatorOverlay session={session} map={map} onClose={closeSession} onStatus={setStatus} />
       </Suspense>
     )
   }
 
   return (
-    <div className="me-screen cl-screen">
+    <div className="me-screen ed-shell cl-screen">
       <div className="me-toolbar">
         <strong className="cl-title">Character Library</strong>
         <button type="button" className="me-button is-primary" onClick={onCreate} disabled={!canSaveAuthoredCharacters}>

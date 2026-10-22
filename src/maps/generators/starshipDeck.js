@@ -2,6 +2,7 @@
 // Built in the order a deck is drawn by hand: hull, rooms, doorways, props, hazard, markers, labels.
 // makeDeckGenerator builds the same layout from other tiles (a research lab, an alien vessel).
 import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
+import { getDeckStyle } from './deckStyles.js'
 import {
   CRATE_TILE,
   cutDoorway,
@@ -101,4 +102,7 @@ export function makeDeckGenerator({
   }
 }
 
-export const generateStarshipDeck = makeDeckGenerator()
+// Reads live style each call so Generator Editor / deckGenerators.json changes apply without a reload.
+export function generateStarshipDeck(map, random, areaNames) {
+  return makeDeckGenerator(getDeckStyle('starshipDeck'))(map, random, areaNames)
+}

@@ -35,15 +35,21 @@ export function PropertySectionsToolbar() {
   )
 }
 
-export function PropertySection({ id, title, defaultOpen = true, children }) {
+export function PropertySection({ id, title, defaultOpen = true, forceOpen = false, children }) {
   const api = useContext(PropertySectionsContext)
-  const [open, setOpen] = useState(defaultOpen)
+  const [open, setOpen] = useState(defaultOpen || forceOpen)
   const [seenTick, setSeenTick] = useState(api?.wave.tick ?? 0)
+  const [seenForce, setSeenForce] = useState(false)
   if (api && api.wave.tick !== seenTick) {
     setSeenTick(api.wave.tick)
     if (api.wave.mode === 'open') setOpen(true)
     else if (api.wave.mode === 'closed') setOpen(false)
   }
+  if (forceOpen && !seenForce) {
+    setSeenForce(true)
+    setOpen(true)
+  }
+  if (!forceOpen && seenForce) setSeenForce(false)
 
   return (
     <section className={`ed-prop-section${open ? ' is-open' : ''}`} data-section={id}>

@@ -1,0 +1,29 @@
+{
+  "starshipDeck": {
+    "floor": "floor",
+    "wall": "bulkhead",
+    "corner": null,
+    "door": "doorway",
+    "crate": "crate",
+    "machinery": "machinery",
+    "hazard": true
+  },
+  "laboratory": {
+    "floor": "labFloor",
+    "wall": "labWall",
+    "corner": null,
+    "door": "doorway",
+    "crate": "labBench",
+    "machinery": "containmentPod",
+    "hazard": true
+  },
+  "alienVessel": {
+    "floor": "alienDeck",
+    "wall": "alienBulkhead",
+    "corner": null,
+    "door": "doorway",
+    "crate": "bioPod",
+    "machinery": "alienConsole",
+    "hazard": false
+  }
+}

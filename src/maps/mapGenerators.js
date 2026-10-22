@@ -32,6 +32,7 @@ import { generateSurfaceSite } from './generators/surfaceSite.js'
 import { generateWilderness } from './generators/wilderness.js'
 import { finishHalfWalls } from './generators/halfWalls.js'
 import { withLayoutScale } from './generators/shared.js'
+import { finishWallCorners } from './generators/wallCorners.js'
 import { applyWallVariants } from './generators/wallVariants.js'
 import hazardData from '../data/adaptation/world/hazards.json'
 import { pickCard } from './episodeCards.js'
@@ -143,10 +144,12 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
-  // Half bulkheads (hand-placed or future Generate Map): corners and edge facing. Then fittings on full bulkheads.
+  // Half bulkheads (hand-placed): corners and edge facing. Then fittings. Then deck corner tile at wall junctions.
   const oriented = finishHalfWalls(layout)
+  const fitted = applyWallVariants(oriented, random)
+  const withCorners = finishWallCorners({ ...fitted, mapType: generator.id })
   // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
-  return { ...applyWallVariants(oriented, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
+  return { ...withCorners, mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
 }
 
 // Open floor tiles a generated hazard may cover (not solid, not a player start or enemy spawn).

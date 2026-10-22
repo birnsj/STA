@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import '../components/conversation/conversationEditor.css'
+import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
 import { STORY_TEMPLATES, storyParagraphs } from '../exploration/missionStory.js'
 import { canEditStory, saveStoryTemplates } from '../exploration/storyFiles.js'
 
@@ -58,55 +58,57 @@ export default function StoryEditorScreen({ onBack }) {
   }
 
   return (
-    <div className="ce-screen">
-      <div className="ce-toolbar">
-        <button type="button" className="ce-button" onClick={onBack}>
-          {dirty ? 'Back (discard changes)' : 'Back to Map'}
-        </button>
-        <button type="button" className="ce-button" disabled={!canEditStory || !dirty || empty.length > 0} onClick={save}>
-          Save Wording
-        </button>
-        <button type="button" className="ce-button" disabled={!dirty} onClick={() => setDraft({ ...saved })}>
-          Revert
-        </button>
-        <span className="ce-text">
-          {status || 'How the outro retells the Captain\u2019s Log, for every map. Authored log entries are told as written.'}
-          {!canEditStory && ' Saving needs the dev server.'}
-        </span>
-      </div>
-      <div className="ce-body">
-        <div className="oe-detail">
-          <div className="ce-inspector">
-            {FIELDS.map(({ key, label, hint }) => (
-              <label key={key} className="ce-field">
-                <span className="ce-field-label">
-                  {label}
-                  {hint && ` \u2014 ${hint}`}
-                </span>
-                <input className="ce-input" value={draft[key] ?? ''} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} />
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="oe-detail">
-          <p className="ce-heading">Sample outro</p>
-          {preview.map((paragraph) => (
-            <p key={paragraph} className="ce-text">
-              {paragraph}
-            </p>
+    <EditorSubScreen
+      title="Story Wording"
+      toolbar={
+        <>
+          <button type="button" className="me-button" onClick={onBack}>
+            {dirty ? 'Back (discard changes)' : 'Back to Map'}
+          </button>
+          <button type="button" className="me-button" disabled={!canEditStory || !dirty || empty.length > 0} onClick={save}>
+            Save Wording
+          </button>
+          <button type="button" className="me-button" disabled={!dirty} onClick={() => setDraft({ ...saved })}>
+            Revert
+          </button>
+          <span className="me-text">
+            {status || 'How the outro retells the Captain\u2019s Log, for every map. Authored log entries are told as written.'}
+            {!canEditStory && ' Saving needs the dev server.'}
+          </span>
+        </>
+      }
+    >
+      <div className="oe-detail">
+        <div className="ce-inspector">
+          {FIELDS.map(({ key, label, hint }) => (
+            <label key={key} className="ce-field">
+              <span className="ce-field-label">
+                {label}
+                {hint && ` \u2014 ${hint}`}
+              </span>
+              <input className="ce-input" value={draft[key] ?? ''} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} />
+            </label>
           ))}
-          <p className="ce-heading">Warnings</p>
-          {empty.length ? (
-            <ul className="ce-warnings">
-              {empty.map(({ key, label }) => (
-                <li key={key}>{label} has no wording.</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="ce-text">None</p>
-          )}
         </div>
       </div>
-    </div>
+      <div className="oe-detail">
+        <p className="ce-heading">Sample outro</p>
+        {preview.map((paragraph) => (
+          <p key={paragraph} className="ce-text">
+            {paragraph}
+          </p>
+        ))}
+        <p className="ce-heading">Warnings</p>
+        {empty.length ? (
+          <ul className="ce-warnings">
+            {empty.map(({ key, label }) => (
+              <li key={key}>{label} has no wording.</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="ce-text">None</p>
+        )}
+      </div>
+    </EditorSubScreen>
   )
 }

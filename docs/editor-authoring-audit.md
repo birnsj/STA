@@ -22,6 +22,10 @@
 
 **Update (2026-10-21, Generate Map walls):** Starship Deck, Space Station and Derelict Generate Map place full `bulkhead` again (Ultima-8 `halfBulkhead` generation paused after experiment). Half bulkheads stay hand-place palette tiles; `finishHalfWalls` still orients hand-placed thin walls. See matrix #7; `docs/tiles.md`; `docs/editor-authoring-summary.md`.
 
+**Update (2026-10-21, Generator Editor):** Mission → Generator Editor edits deck Generate Map styles (floor / wall / door / crate / machinery / hazard) for Starship Deck, Research Lab, and Alien Vessel; Save writes `deckGenerators.json` via `/__deck-generators` (Vite DEV). Variations (share / panelVariants / tileVariants) for the style’s Wall tile save to `generatedWallVariants.json` via `/__wall-variants`. Preview runs Generate Map when the open map’s Location matches. No New Location; station / Klingon / surface generators unchanged. See matrix #7b; `docs/editor-authoring-summary.md`.
+
+**Update (2026-10-21, Mission editor look):** All Mission full-screen editors (Conversation, Object, Objective, Story, Character Library, Generator) use the Map Editor `ed-shell` visual language via `EditorSubScreen` / CSS bridge. Functional layouts unchanged.
+
 ---
 
 ## A. Executive Summary
@@ -67,6 +71,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 5 | Ambient light | Complete | Y | Y | Y | — | Y | Y | Y | Y | `AmbientSlider`; `mapAmbient.test.js` |
 | 6 | Episode name / card | Complete | Y | Y | Y | — | Y | Y | — | Y | `EditorSidePanel`, `EpisodeCardPicker` |
 | 7 | Generate Map / Name / Card | Complete | Y | Y | Y | Y | Y* | Y* | Y | Y* | Generators (starship layouts = full bulkhead); *until Save |
+| 7b | Deck generator styles + wall variations | Complete | Y | Generator Editor | Y | — | Y‡ | Y‡ | Y | Y | Sprite pickers; corner at junctions; `deckGenerators.json` + `generatedWallVariants.json` |
 | 8 | Area labels | Complete | Y | Y | Y | Y | Y | Y | Y | Y | area tool + serialize |
 | 9 | Player starts (≤8) + facing | Complete | Y | Y | Y | Y | Y | Y | Y | Y | markers; `awayTeam.js` |
 | 10 | Enemy spawns + facing | Complete | Y | Y | Y† | Y | Y | Y | Y† | Y† | †Combat mode / NPC fallback; world fights use NPCs |
@@ -159,6 +164,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 
 | Area | Missing vs runtime |
 |---|---|
+| Generate Map catalogues | Deck styles editable; New Location ids and non-deck generators (station, cave, surface, Klingon furnish) still code-only. |
 | Challenge objects | Covers are a text field; Object Inspector on the board is placement-only (full edit in Object Editor). Advanced task fields are JSON. |
 | Challenge shared library | **No map under `maps/` currently embeds an `objects` array**—definitions live in `challenges.json` + per-map `objectPlacements` (Deck 10 Brig included). Object Editor can adopt them into the map on first edit. |
 | `schemaVersion` | Always written as `1` by `serializeMap`; parse never reads or validates it. |

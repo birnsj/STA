@@ -1,6 +1,6 @@
 # Dev Edit — Authoring Tools Overview
 
-Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21; Generate Map walls 2026-10-21)
+Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21; Generator Editor 2026-10-21)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
 --------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
     View: See-through blocks, Tile animations, Lighting, Weather FX, Grid,
           Grid options…, Overview / Layers / Levels windows
     Mission: Generate Map / Name / Episode / Card; Objective / Object /
-             Conversation / Character Library / Story editors
+             Conversation / Character Library / Generator Editor / Story
     Test: Play, Toggle Enemies Active
 
   Slim toolbar — Animate, Grid (+ options), Overview, Layers, Levels
@@ -47,7 +47,8 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
                      Layers, Levels (placeholders; elevation deferred)
 
   Full-screen sub-editors — Conversation, Object, Objective, Story,
-                            Character Library (unchanged entry points)
+                            Character Library, Generator Editor
+                            (shared ed-shell look; layouts unchanged)
 
 Lighting presentation (also View → Lighting): contact shadows,
 darkness veil from map `ambient` / `ambientColour`,
@@ -131,6 +132,7 @@ Map shell (Properties → Map)
       Starship Deck / Space Station / Derelict use full bulkheads
       (thin halfBulkhead generation paused; half walls remain palette
       hand-place tiles — see docs/tiles.md)
+      Deck tile styles: Mission → Generator Editor
 
 Episode (Properties → Map)
   - Name, episode card
@@ -273,6 +275,21 @@ Hardcoded
   - Sample mission preview as you type
   - Global, not per-episode
 
+
+7) GENERATOR EDITOR (Vite DEV)
+------------------------------
+  - Mission → Generator Editor
+  - Edits deck Generate Map styles for Starship Deck, Research Lab,
+    Alien Vessel via sprite pickers (floor / wall / corner / door / crate /
+    machinery / hazard)
+  - Corner: optional wall sprite placed at every L/T junction after generate
+  - Variations for the style’s Wall tile: share + multi-select panel/tile
+    fitting sprites (geometric corners stay plain, then Corner applies)
+  - Save → deckGenerators.json + generatedWallVariants.json
+  - Preview on open map when Location matches (same as Generate Map)
+  - Derelict inherits Starship Deck paint; station / Klingon / New Location
+    still code-only
+
 --------------------------------------------------------------------------------
 FEATURE MATRIX (compact)
 --------------------------------------------------------------------------------
@@ -285,6 +302,7 @@ Complete
   5  Ambient light (+ ambient colour; Selection emissive / emit colour)
   6  Episode name / card
   7  Generate Map / Name / Card
+  7b Deck generator styles (Generator Editor; three deck Locations)
   8  Area labels
   9  Player starts (≤8) + facing
   10 Enemy spawns + facing
@@ -349,6 +367,8 @@ N/A
 Missing / blocking
   - New item / hazard / destructible TYPE definitions (not just placements)
   - Custom standalone Combat roster (encounters.json)
+  - New Generate Map Location types / station-cave-surface generator params
+    (deck styles only in Generator Editor)
   - Layers / elevation / gizmos (UI placeholders only)
 
 --------------------------------------------------------------------------------

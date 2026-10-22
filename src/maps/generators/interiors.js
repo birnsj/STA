@@ -2,13 +2,19 @@
 // decks (a grid of rooms), a cantina, a detention block and an alien temple are stations (a central hall with rooms
 // opening onto it), and an alien hive is a cave. None of them uses a biome.
 import { generateCave } from './cave.js'
+import { getDeckStyle } from './deckStyles.js'
 import { furnishRoom, isFree, key, placeProp, placeSolid, randomInt, roomCells, shuffle } from './shared.js'
 import { makeStationGenerator } from './spaceStation.js'
 import { makeDeckGenerator } from './starshipDeck.js'
 
-export const generateLaboratory = makeDeckGenerator({ floor: 'labFloor', wall: 'labWall', crate: 'labBench', machinery: 'containmentPod' })
+// Reads live style each call (deckGenerators.json / Generator Editor).
+export function generateLaboratory(map, random, areaNames) {
+  return makeDeckGenerator(getDeckStyle('laboratory'))(map, random, areaNames)
+}
 
-export const generateAlienVessel = makeDeckGenerator({ floor: 'alienDeck', wall: 'alienBulkhead', crate: 'bioPod', machinery: 'alienConsole', hazard: false })
+export function generateAlienVessel(map, random, areaNames) {
+  return makeDeckGenerator(getDeckStyle('alienVessel'))(map, random, areaNames)
+}
 
 // Single solid tiles on free floor, none touching another, about one per `every` tiles of the rect.
 function spacedProps(tiles, keep, rect, random, floor, tileId, every) {
