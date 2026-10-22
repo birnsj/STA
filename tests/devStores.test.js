@@ -215,9 +215,16 @@ describe('effects store', () => {
     assert.equal(JSON.parse(text('tileEffects.json')).animations.lcarsWall.emissive, undefined)
   })
 
-  it('refuses non-overlay animations and bad values', () => {
+  // Machinery and window lights are non-overlay animations; the editor authors their emissive too (designer, 2026-10-21).
+  it('sets emissive on a non-overlay animation', () => {
     fs.writeFileSync(file(), original)
-    assert.throws(() => setAnimationEmissive(file(), { id: 'machinery', emissive: 1.2 }), /not an overlay/)
+    assert.deepEqual(setAnimationEmissive(file(), { id: 'machinery', emissive: 1.2 }), { id: 'machinery', emissive: 1.2 })
+    assert.equal(JSON.parse(text('tileEffects.json')).animations.machinery.emissive, 1.2)
+  })
+
+  it('refuses an unknown animation and bad values', () => {
+    fs.writeFileSync(file(), original)
+    assert.throws(() => setAnimationEmissive(file(), { id: 'nope', emissive: 1.2 }), /No animation for/)
     assert.throws(() => setAnimationEmissive(file(), { id: 'lcarsWall', emissive: 9 }), /between/)
     assert.equal(text('tileEffects.json'), original)
   })

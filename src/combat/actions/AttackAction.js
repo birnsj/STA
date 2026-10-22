@@ -223,6 +223,13 @@ export class ResolveAttackAction extends CombatAction {
       injuryLines = hit.lines
       injury = { ...injury, decided: hit.avoided ? 'avoided' : 'suffered' }
     }
+    // A Kick that hit and left the target up adds its knockdown, paid after the roll's Momentum is saved (combatUnarmed.js).
+    let knockdownLines = []
+    if (passed && pending.variant) {
+      const knocked = knockdownAfterHit(next, attacker, target.id, pending.variant)
+      next = knocked.state
+      knockdownLines = knocked.lines
+    }
     const after = next.combatants[target.id]
     next = withStats(next, (stats) => {
       if (passed) {
@@ -248,7 +255,7 @@ export class ResolveAttackAction extends CombatAction {
       `Successes: ${evaluation.successes} vs Difficulty ${pending.task.difficulty}`,
       `RESULT: ${passed ? 'SUCCESS' : 'FAILURE'}`,
       ...(added.cost ? [`Momentum spent: ${added.cost} for +${added.added} severity`] : []),
-      ...(passed ? [...injuryLines, momentumText] : []),
+      ...(passed ? [...injuryLines, ...knockdownLines, momentumText] : []),
       ...(playerSide && evaluation.bonusMomentum ? [bonusMomentumLine(evaluation.bonusMomentum)] : []),
       ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
       ...(deadlyThreat ? [`Threat +1 (Deadly attack), now ${resources.threat}`] : []),

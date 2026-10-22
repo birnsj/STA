@@ -16,6 +16,7 @@ import {
 import { canTakeCover } from './coverSystem.js'
 import { nextAIStep } from './combatAI.js'
 import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
+import { standUpStep } from './combatProne.js'
 import { retreatStep } from './combatRetreat.js'
 import { chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
 import { objectShotStep } from './objectAI.js'

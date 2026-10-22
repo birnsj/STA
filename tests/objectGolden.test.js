@@ -27,7 +27,9 @@ const EXPECTED = {
   brigCleared: 'eb7b15f906b20318',
   brigLockout: 'c1bbc30fc5862c62',
   vault: 'db68ed6fd6208ce1',
-  combat: 'bec5face863f5f7c',
+  // Re-baselined 2026-10-21: the Klingon expansion (95bbb71: stat-block default npcRules, personal Threat, prone) moved this
+  // from dc25d1817baf3a41; the value committed with it ('bec5face863f5f7c') never matched that commit's own code.
+  combat: '503471f01f625d95',
   conversation: '46582c89f5f33692',
 }
 
