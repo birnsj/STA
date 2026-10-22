@@ -354,24 +354,24 @@ export default function NpcInspector({
   const effectiveNpcRules = npcRulesFor(npc.characterId, npc.npcRules) ?? 'main'
   const dialogueTier = dialogueTierOf(effectiveNpcRules)
   const talkConversationId = npc.conversationId || factionConversation
-  const [talkDefinition, setTalkDefinition] = useState(null)
+  // The loaded conversation remembers which id it belongs to, so a different (or no) conversation never shows the old
+  // one's warning while the new one loads.
+  const [loadedTalk, setLoadedTalk] = useState({ id: null, definition: null })
   useEffect(() => {
-    if (!talkConversationId) {
-      setTalkDefinition(null)
-      return undefined
-    }
+    if (!talkConversationId) return undefined
     let cancelled = false
     loadConversation(talkConversationId)
       .then((definition) => {
-        if (!cancelled) setTalkDefinition(definition)
+        if (!cancelled) setLoadedTalk({ id: talkConversationId, definition })
       })
       .catch(() => {
-        if (!cancelled) setTalkDefinition(null)
+        if (!cancelled) setLoadedTalk({ id: talkConversationId, definition: null })
       })
     return () => {
       cancelled = true
     }
   }, [talkConversationId])
+  const talkDefinition = talkConversationId && loadedTalk.id === talkConversationId ? loadedTalk.definition : null
   const dialogueWarning = talkDefinition
     ? dialogueMismatchWarning(talkDefinition, effectiveNpcRules, { conversationId: talkConversationId })
     : null

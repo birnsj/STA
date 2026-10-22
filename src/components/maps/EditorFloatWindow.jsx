@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Draggable floating tool window for the map editor. Reports busy (hover/drag) so the board can ignore input.
 
@@ -15,17 +15,28 @@ export default function EditorFloatWindow({
   const [pos, setPos] = useState({ x, y })
   const drag = useRef(null)
   const busy = useRef(false)
+  // The parent's callback changes every render; a ref keeps setBusy stable so the effects below don't re-run for it.
+  const busyChange = useRef(onBusyChange)
+  useEffect(() => {
+    busyChange.current = onBusyChange
+  })
 
-  const setBusy = (next) => {
+  const setBusy = useCallback((next) => {
     if (busy.current === next) return
     busy.current = next
-    onBusyChange?.(next)
+    busyChange.current?.(next)
+  }, [])
+
+  // The window returns to its start position each time it opens (or its start moves). Worked out while rendering.
+  const [placement, setPlacement] = useState({ open, x, y })
+  if (placement.open !== open || placement.x !== x || placement.y !== y) {
+    setPlacement({ open, x, y })
+    if (open) setPos({ x, y })
   }
 
   useEffect(() => {
-    if (open) setPos({ x, y })
-    else setBusy(false)
-  }, [open, x, y])
+    if (!open) setBusy(false)
+  }, [open, setBusy])
 
   useEffect(() => {
     if (!open) return undefined
@@ -49,7 +60,7 @@ export default function EditorFloatWindow({
       window.removeEventListener('pointerup', onUp)
       setBusy(false)
     }
-  }, [open])
+  }, [open, setBusy])
 
   if (!open) return null
 

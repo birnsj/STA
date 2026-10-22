@@ -10,7 +10,8 @@ import EditorLevelsWindow from '../components/maps/EditorLevelsWindow.jsx'
 import EditorOverviewWindow from '../components/maps/EditorOverviewWindow.jsx'
 import EditorMenuBar from '../components/maps/EditorMenuBar.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
-import EditorPropertiesPanel, { hasAssetSelection, hasBoardSelection } from '../components/maps/EditorPropertiesPanel.jsx'
+import EditorPropertiesPanel from '../components/maps/EditorPropertiesPanel.jsx'
+import { hasAssetSelection, hasBoardSelection } from '../components/maps/editorSelection.js'
 import EditorToolbar from '../components/maps/EditorToolbar.jsx'
 import useDialogs from '../components/maps/useDialogs.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
@@ -61,7 +62,6 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [layersOpen, setLayersOpen] = useState(false)
   const [levelsOpen, setLevelsOpen] = useState(false)
   const [floatBusyIds, setFloatBusyIds] = useState(() => new Set())
-  const [showMapTab, setShowMapTab] = useState(true)
 
   const floatBusy = (id) => (busy) =>
     setFloatBusyIds((current) => {
@@ -81,9 +81,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [storyEditor, setStoryEditor] = useState(false)
   const [characterLibrary, setCharacterLibrary] = useState(false)
 
-  useEffect(() => {
+  // Hover clears the moment a floating window takes the pointer. Compared while rendering, so no stale frame shows.
+  const [wasBlocked, setWasBlocked] = useState(boardBlocked)
+  if (wasBlocked !== boardBlocked) {
+    setWasBlocked(boardBlocked)
     if (boardBlocked) setHover(null)
-  }, [boardBlocked])
+  }
 
   const refreshConversations = () =>
     listConversations()
@@ -114,10 +117,16 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   })
   const { tool, placing, rotated, selection } = tools
 
-  useEffect(() => {
-    if (hasBoardSelection(selection) || hasAssetSelection(tool)) setShowMapTab(false)
-    else setShowMapTab(true)
-  }, [selection.npc, selection.object, selection.marker, selection.destructible, selection.hazard, selection.groundItem, tool])
+  // Properties opens on Selection whenever something is selected or an Assets tool is active, and on Map otherwise; the
+  // Map tab can still be picked by hand until the selection or tool changes. Worked out while rendering.
+  const selectionNow = [selection.npc, selection.object, selection.marker, selection.destructible, selection.hazard, selection.groundItem, tool]
+  const wantsMapTab = !(hasBoardSelection(selection) || hasAssetSelection(tool))
+  const [showMapTab, setShowMapTab] = useState(wantsMapTab)
+  const [selectionSeen, setSelectionSeen] = useState(selectionNow)
+  if (selectionNow.some((value, index) => !Object.is(value, selectionSeen[index]))) {
+    setSelectionSeen(selectionNow)
+    setShowMapTab(wantsMapTab)
+  }
 
   const warnings = useMemo(
     () => [...validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }), ...challengeMapWarnings(map)],
@@ -299,10 +308,6 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     generateHazards: doc.generateHazards,
     onGenerateHazards: doc.setGenerateHazards,
     onOpenObjective: (index) => setObjectiveEditor({ index }),
-    onOpenConversations: () => setConversationEditor({ id: null }),
-    onOpenObjects: () => setObjectEditor({ id: tools.selectedObjectId ?? null }),
-    onOpenStory: () => setStoryEditor(true),
-    onOpenCharacterLibrary: () => setCharacterLibrary(true),
     onMapType: doc.onMapType,
     onBiome: doc.onBiome,
     onWeather: (weather) => edit({ ...map, weather }),

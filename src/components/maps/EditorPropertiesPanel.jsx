@@ -1,21 +1,9 @@
-import AssetProperties, { hasAssetSelection } from './AssetProperties.jsx'
+import AssetProperties from './AssetProperties.jsx'
 import EditorInspectors from './EditorInspectors.jsx'
+import { hasAssetSelection, hasBoardSelection } from './editorSelection.js'
 import MapProperties from './MapProperties.jsx'
 
 // Right Properties panel: Selection = board entity or Assets thumbnail; Map = episode / location props.
-
-function hasBoardSelection(selection) {
-  return Boolean(
-    selection?.npc ||
-      selection?.object ||
-      selection?.marker ||
-      selection?.destructible ||
-      selection?.hazard ||
-      selection?.groundItem,
-  )
-}
-
-export { hasBoardSelection, hasAssetSelection }
 
 export default function EditorPropertiesPanel({
   map,

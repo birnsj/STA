@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { canEditEffects, setOverlayEmissive, setOverlayEmitColour } from '../../maps/effectsFiles.js'
 import { DEFAULT_AMBIENT_COLOUR, FULL_LIGHT, getTile, imageSize } from '../../maps/mapFormat.js'
 import {
-  OVERLAY_EMISSIVE_DEFAULT,
   OVERLAY_EMISSIVE_MAX,
   OVERLAY_EMISSIVE_MIN,
   overlayEmissive,
@@ -15,6 +14,7 @@ import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
 import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
+import { MARKER_HELP, parseTool } from './editorSelection.js'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Properties for the Assets catalogue selection (active tool): large preview, sprite details, editable tile flags.
@@ -30,14 +30,6 @@ const INTENSITIES = [
   { value: 2, label: 'Thick' },
   { value: 3, label: 'Dense' },
 ]
-
-const MARKER_HELP = {
-  playerStarts: 'Click a floor tile to place or remove a player start.',
-  enemySpawns: 'Click a floor tile to place or remove an enemy spawn.',
-  npcs: 'Click a floor tile to place an NPC, or click an NPC to edit it in Selection.',
-  area: 'Click a floor tile to set or clear a room label.',
-  erase: 'Click a tile to erase markers on it.',
-}
 
 function FlagBox({ tile, box, onStatus }) {
   const [value, setValue] = useState(Boolean(tile[box.flag]))
@@ -118,9 +110,13 @@ function EmissiveControls({ tileId, value, onValue, colour, fallbackColour, onCo
   })
   const shown = colour || fallbackColour || '#ffffff'
   const [hex, setHex] = useState(shown)
-  useEffect(() => {
-    setHex(colour || fallbackColour || '#ffffff')
-  }, [colour, fallbackColour, tileId])
+  // The hex box follows the saved colour (or another tile), worked out while rendering so it never lags a frame.
+  const syncKey = `${tileId}|${shown}`
+  const [syncedKey, setSyncedKey] = useState(syncKey)
+  if (syncedKey !== syncKey) {
+    setSyncedKey(syncKey)
+    setHex(shown)
+  }
 
   const applyColour = (next) => {
     try {
@@ -200,9 +196,11 @@ function AmbientLightControl({ ambient, ambientColour, onAmbient, onAmbientColou
   const ambientValue = ambient ?? FULL_LIGHT
   const colour = ambientColour || DEFAULT_AMBIENT_COLOUR
   const [hex, setHex] = useState(colour)
-  useEffect(() => {
+  const [syncedColour, setSyncedColour] = useState(colour)
+  if (syncedColour !== colour) {
+    setSyncedColour(colour)
     setHex(colour)
-  }, [colour])
+  }
 
   return (
     <div className="ed-light-pool">
@@ -251,10 +249,6 @@ function SpriteDetails({ tile, onStatus, ambient, ambientColour, onAmbient, onAm
   const info = tileSpriteInfo(tile)
   const [emissive, setEmissive] = useState(() => overlayEmissive(tile.id))
   const [emitColour, setEmitColour] = useState(() => overlayEmitColour(tile.id))
-  useEffect(() => {
-    setEmissive(overlayEmissive(tile.id))
-    setEmitColour(overlayEmitColour(tile.id))
-  }, [tile.id])
   if (!info) return null
   const anim = info.animation
   const glowFallback =
@@ -360,21 +354,6 @@ function SpriteDetails({ tile, onStatus, ambient, ambientColour, onAmbient, onAm
   )
 }
 
-function parseTool(tool) {
-  if (!tool) return null
-  if (tool.startsWith('tile:')) return { kind: 'tile', id: tool.slice('tile:'.length) }
-  if (tool.startsWith('destructible:')) return { kind: 'destructible', id: tool.slice('destructible:'.length) }
-  if (tool.startsWith('inventory:')) return { kind: 'item', id: tool.slice('inventory:'.length) }
-  if (tool.startsWith('hazard:')) return { kind: 'hazard', id: tool.slice('hazard:'.length) }
-  if (tool === 'hazardErase') return { kind: 'hazardErase' }
-  if (MARKER_HELP[tool]) return { kind: 'marker', id: tool }
-  return null
-}
-
-export function hasAssetSelection(tool) {
-  return Boolean(parseTool(tool))
-}
-
 export default function AssetProperties({
   tool,
   onStatus,
@@ -406,6 +385,7 @@ export default function AssetProperties({
         </div>
         {!canEditTiles && <p className="me-text is-muted">Cover and Fade can only be changed in the dev build.</p>}
         <SpriteDetails
+          key={tile.id}
           tile={tile}
           onStatus={onStatus}
           ambient={ambient}
@@ -440,6 +420,7 @@ export default function AssetProperties({
           ]}
         />
         <SpriteDetails
+          key={tile.id}
           tile={tile}
           onStatus={onStatus}
           ambient={ambient}
