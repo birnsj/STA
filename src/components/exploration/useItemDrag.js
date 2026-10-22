@@ -51,8 +51,10 @@ export default function useItemDrag({ state, dispatch }) {
       return
     }
     const helpers = placeHelpersRef.current
-    const point = helpers?.toTiles?.(clientX, clientY)
-    if (!point) {
+    // Floor unproject for fallback; board point for iso-correct tabletop hits (placement.supportAtBoard).
+    const boardPoint = helpers?.toBoard?.(clientX, clientY) ?? null
+    const point = helpers?.toTiles?.(clientX, clientY) ?? null
+    if (!point && !boardPoint) {
       if (placeHoverRef.current) {
         placeHoverRef.current = null
         setPlaceHover(null)
@@ -60,8 +62,11 @@ export default function useItemDrag({ state, dispatch }) {
       return
     }
     const dragging = itemDragRef.current
-    const check = canPlaceAt(exploreStateRef.current, point, {
+    const resolved = dragging?.instanceId ? resolveItem(exploreStateRef.current, dragging.instanceId) : null
+    const check = canPlaceAt(exploreStateRef.current, point ?? { x: 0, y: 0 }, {
       excludeInstanceId: dragging?.from?.location === 'ground' ? dragging.instanceId : null,
+      category: resolved?.def.category ?? null,
+      boardPoint,
     })
     // Prefer giving the item to a party member under the pointer (green ring) when their bag has room.
     let dropMemberId = null
@@ -70,14 +75,26 @@ export default function useItemDrag({ state, dispatch }) {
       const member = exploreStateRef.current.party?.members?.[memberId]
       if (member?.character?.inventory && bagFreeSlots(member.character) > 0) dropMemberId = memberId
     }
-    const hover = { position: check.position ?? point, valid: check.ok, dropMemberId }
+    // support / z come from canPlaceAt (placement.js); floor drops leave them null / 0. end() still only reads
+    // hover.position + valid — dropItem re-resolves support from the position.
+    const hover = {
+      position: check.position ?? point,
+      valid: check.ok,
+      dropMemberId,
+      support: check.support ?? null,
+      z: check.z ?? 0,
+    }
     const prev = placeHoverRef.current
     if (
       prev &&
       prev.valid === hover.valid &&
       prev.dropMemberId === hover.dropMemberId &&
       prev.position.x === hover.position.x &&
-      prev.position.y === hover.position.y
+      prev.position.y === hover.position.y &&
+      (prev.z ?? 0) === hover.z &&
+      (prev.support?.kind ?? null) === (hover.support?.kind ?? null) &&
+      (prev.support?.kind !== 'tile' || (prev.support.tile.x === hover.support.tile.x && prev.support.tile.y === hover.support.tile.y)) &&
+      (prev.support?.kind !== 'item' || prev.support.instanceId === hover.support.instanceId)
     ) {
       return
     }
@@ -86,7 +103,13 @@ export default function useItemDrag({ state, dispatch }) {
   }, [])
 
   const onBoardPlaceHover = useCallback((hover) => {
+    if (!hover) {
+      placeHoverRef.current = null
+      setPlaceHover(null)
+      return
+    }
     const prev = placeHoverRef.current
+    // Board hover is authoritative for position/valid/support/z; keep only dropMemberId from the drag path.
     const next = { dropMemberId: prev?.dropMemberId ?? null, ...hover }
     placeHoverRef.current = next
     setPlaceHover(next)
@@ -196,7 +219,15 @@ export default function useItemDrag({ state, dispatch }) {
           })
           return
         }
-        if (overWorld && hover?.valid) dispatch({ type: 'dropItem', instanceId, position: hover.position })
+        if (overWorld && hover?.valid) {
+          dispatch({
+            type: 'dropItem',
+            instanceId,
+            position: hover.position,
+            // Optional: floor omits support; elevated passes the hover's support (same as canPlaceAt).
+            ...(hover.support ? { support: hover.support } : {}),
+          })
+        }
       }
 
       stopItemDragListenersRef.current = teardown

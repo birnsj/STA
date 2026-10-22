@@ -6,6 +6,7 @@ import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
 import { getItemById } from '../../rules/equipment.js'
 import { snapItemPosition } from '../../rules/inventory.js'
+import { groundItemDepth, pointInSurfaceFootprint, tileSurfaceAt, zOf } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from './canvasTiles.js'
@@ -41,19 +42,42 @@ function itemAt(event, map, gridSize) {
 
 const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
 
+// Derive support/z for an authored placement (map.groundItemPlacements) for preview depth/lift.
+function placementSupportState(map, entry) {
+  const support = entry.on?.tile
+    ? { kind: 'tile', tile: { x: entry.on.tile[0] ?? entry.on.tile.x, y: entry.on.tile[1] ?? entry.on.tile.y } }
+    : entry.on?.placement
+      ? { kind: 'item', instanceId: entry.on.placement }
+      : null
+  if (support) {
+    const fake = { party: { map }, groundItems: { [entry.id]: { instanceId: entry.id, position: entry.position, support } }, itemInstances: {} }
+    return { support, z: zOf(fake, fake.groundItems[entry.id]), depth: groundItemDepth(fake, fake.groundItems[entry.id]) }
+  }
+  const tile = { x: Math.round(entry.position.x), y: Math.round(entry.position.y) }
+  const surface = tileSurfaceAt(map, tile)
+  if (surface && pointInSurfaceFootprint(entry.position, tile, surface.inset)) {
+    const supportTile = { kind: 'tile', tile }
+    const fake = { party: { map }, groundItems: { [entry.id]: { instanceId: entry.id, position: entry.position, support: supportTile } }, itemInstances: {} }
+    return { support: supportTile, z: surface.topZ, depth: groundItemDepth(fake, fake.groundItems[entry.id]) }
+  }
+  return { support: null, z: 0, depth: entry.position.x + entry.position.y }
+}
+
 function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
   const list = (map.groundItemPlacements ?? []).flatMap((entry) => {
     const def = getItemById(entry.itemId)
     if (!def) return []
+    const placed = placementSupportState(map, entry)
     return [
       {
         id: entry.id,
         position: entry.position,
+        z: placed.z,
         worldImage: def.worldImage,
         worldTile: def.worldTile ?? 'crate',
         worldScale: def.worldScale ?? 0.4,
         category: def.category,
-        depth: entry.position.x + entry.position.y,
+        depth: placed.depth,
         hovered: entry.id === selectedGroundItemId,
         inReach: true,
       },
@@ -62,14 +86,16 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
   if (inventoryTool && hover) {
     const def = getItemById(inventoryTool)
     if (def) {
+      const live = placementSupportState(map, { position: hover })
       list.push({
         id: '__ghost',
         position: hover,
+        z: live.z,
         worldImage: def.worldImage,
         worldTile: def.worldTile ?? 'crate',
         worldScale: def.worldScale ?? 0.4,
         category: def.category,
-        depth: hover.x + hover.y + 0.001,
+        depth: (live.depth ?? hover.x + hover.y) + 0.001,
         hovered: false,
         inReach: true,
       })

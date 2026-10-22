@@ -354,15 +354,16 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       closeAllMenus()
       cancelPendingTalk()
       const member = party.members[memberId]
-      if (groundItemFor(instanceId).inPickupRange({ groundItems: state.groundItems }, member.position)) {
+      const item = groundItemFor(instanceId)
+      if (item.inPickupRange(state, member.position)) {
         setPendingPickup(null)
         dispatch({ type: 'pickupItem', instanceId, memberId })
         return
       }
-      dispatch({ type: 'moveTo', target: ground.position, fresh: true })
+      dispatch({ type: 'moveTo', target: item.approachPosition(state) ?? ground.position, fresh: true })
       setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
     },
-    [beamPhase, cancelPendingTalk, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state.groundItems, state.lastCombat?.id],
+    [beamPhase, cancelPendingTalk, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state, state.groundItems, state.lastCombat?.id],
   )
 
   const startGroundItemDrag = useCallback(
@@ -659,7 +660,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         goTo: () => {
           closeMenu('groundItem')
           setPendingPickup(null)
-          dispatch({ type: 'moveTo', target: menuGroundItem.position, fresh: true })
+          const target = groundItemFor(menuGroundItem.id).approachPosition(state) ?? menuGroundItem.position
+          dispatch({ type: 'moveTo', target, fresh: true })
         },
       },
       pickedId,

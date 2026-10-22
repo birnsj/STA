@@ -39,10 +39,13 @@
 // hazards: [{ id, type (hazards.json), tiles: { 'x,y': intensity 1-3 }, severity?, spreadChance?, dissipateChance?,
 // neutralizeDifficulty? }] — hazard regions present when the mission starts (the optional fields override the type's);
 // on disk tiles is [[x, y, intensity]]. Both are left out on disk when empty.
-// groundItemPlacements: [{ id, itemId (items.json), position: [x, y], name?, pickable?, visible? }] — authored spawn
+// groundItemPlacements: [{ id, itemId (items.json), position: [x, y], name?, pickable?, visible?, on? }] — authored spawn
 // points for session ground inventory (rules/inventory.js seedGroundItemPlacements; map editor Inventory Objects tool).
-// Fractional x/y are allowed for the 8×8 drop grid. name overrides the hover label; pickable/visible default true and
-// are left out on disk when true. Entries missing id get one on parse. Runtime drops never write back into the map file.
+// Fractional x/y are allowed for the 32×32 drop grid. name overrides the hover label; pickable/visible default true and
+// are left out on disk when true. on: { tile: [x, y] } or { placement: id } when elevated on a support surface; omitted
+// on the floor. Entries missing id get one on parse. Runtime drops never write back into the map file.
+// stackOver: sparse { "x,y": [tileId, ...] } — furniture stacked on a surface tile (bottom → top), same pattern as
+// floorUnder. Written only when non-empty; bumps schema to 2.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, ambientColour, width, height, tiles: tile id grid [y][x],
 // rotated: boolean grid [y][x] (may be missing: nothing rotated), areas, markers, npcs, objectives, briefing, outro, stardate }
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
@@ -100,9 +103,10 @@ export const parseCellKey = (key) => {
   const [x, y] = String(key).split(',').map(Number)
   return { x, y }
 }
-// Maps that use Null cells or remember floors under blocks write schema 2; everything else stays schema 1.
+// Maps that use Null cells, floorUnder, or stackOver write schema 2; everything else stays schema 1.
 export function schemaVersionFor(map) {
   if (map.floorUnder && Object.keys(map.floorUnder).length) return MAP_SCHEMA_VERSION_LAYERS
+  if (map.stackOver && Object.keys(map.stackOver).length) return MAP_SCHEMA_VERSION_LAYERS
   if (map.tiles?.some((row) => row.some((id) => id === NULL_TILE))) return MAP_SCHEMA_VERSION_LAYERS
   return MAP_SCHEMA_VERSION
 }
@@ -149,6 +153,7 @@ function blankFields(name, width, height, tiles) {
     height,
     tiles,
     floorUnder: {},
+    stackOver: {},
     areas: [],
     markers: { playerStarts: [], enemySpawns: [] },
     npcs: [],
@@ -199,6 +204,41 @@ function serializeFloorUnder(floorUnder) {
   return { ...floorUnder }
 }
 
+function parseStackOver(raw, inside) {
+  if (!raw || typeof raw !== 'object') return {}
+  const stackOver = {}
+  for (const [key, layers] of Object.entries(raw)) {
+    const position = parseCellKey(key)
+    if (!inside(position) || !Array.isArray(layers)) continue
+    const cleaned = layers.filter((id) => typeof id === 'string' && TILE_IDS.has(id))
+    if (cleaned.length) stackOver[key] = cleaned
+  }
+  return stackOver
+}
+
+function serializeStackOver(stackOver) {
+  if (!stackOver || !Object.keys(stackOver).length) return null
+  const out = {}
+  for (const [key, layers] of Object.entries(stackOver)) {
+    if (Array.isArray(layers) && layers.length) out[key] = [...layers]
+  }
+  return Object.keys(out).length ? out : null
+}
+
+function parsePlacementOn(raw, inside, _usedIds) {
+  if (!raw || typeof raw !== 'object') return null
+  if (Array.isArray(raw.tile) && raw.tile.length >= 2) {
+    const tile = toPosition(raw.tile)
+    if (!inside(tile)) return null
+    return { tile: [tile.x, tile.y] }
+  }
+  if (typeof raw.placement === 'string' && raw.placement) {
+    // Referenced placement may be parsed later; keep the id even if not yet in usedIds.
+    return { placement: raw.placement }
+  }
+  return null
+}
+
 export const mapHasNullCells = (map) => Boolean(map.tiles?.some((row) => row.some((id) => id === NULL_TILE)))
 
 
@@ -220,6 +260,8 @@ function parseGroundItemPlacement(raw, inside, usedIds) {
   if (typeof raw.name === 'string' && raw.name.trim()) entry.name = raw.name.trim()
   if (raw.pickable === false) entry.pickable = false
   if (raw.visible === false) entry.visible = false
+  const on = parsePlacementOn(raw.on, inside, usedIds)
+  if (on) entry.on = on
   return entry
 }
 
@@ -228,6 +270,8 @@ function serializeGroundItemPlacement(entry) {
   if (entry.name) record.name = entry.name
   if (entry.pickable === false) record.pickable = false
   if (entry.visible === false) record.visible = false
+  if (entry.on?.tile) record.on = { tile: entry.on.tile }
+  else if (entry.on?.placement) record.on = { placement: entry.on.placement }
   return record
 }
 
@@ -508,6 +552,7 @@ export function parseMapFile(file, id) {
     height: rows.length,
     tiles,
     floorUnder: parseFloorUnder(file.floorUnder, inside),
+    stackOver: parseStackOver(file.stackOver, inside),
     rotated: rotationGrid(width, rows.length, (x, y) => rotatedKeys.has(`${x},${y}`)),
     areas: (file.areas ?? []).map((area) => ({ name: area.name, position: toPosition(area.position) })).filter((area) => inside(area.position)),
     markers: {
@@ -541,6 +586,7 @@ export function parseMapFile(file, id) {
 
 export function serializeMap(map) {
   const floorUnder = serializeFloorUnder(map.floorUnder)
+  const stackOver = serializeStackOver(map.stackOver)
   return {
     schemaVersion: schemaVersionFor(map),
     name: map.name,
@@ -554,6 +600,7 @@ export function serializeMap(map) {
     rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
     rotated: map.tiles.flatMap((row, y) => row.flatMap((_, x) => (isRotated(map, { x, y }) ? [[x, y]] : []))),
     ...(floorUnder ? { floorUnder } : {}),
+    ...(stackOver ? { stackOver } : {}),
     areas: map.areas.map((area) => ({ name: area.name, position: fromPosition(area.position) })),
     markers: {
       playerStarts: map.markers.playerStarts.map(fromSpawn),
@@ -586,6 +633,7 @@ export function resizeMap(map, width, height, { fill } = {}) {
   const inside = (position) => isInside(w, h, position)
   const fillTile = fill ?? (mapHasNullCells(map) ? NULL_TILE : FLOOR_TILE)
   const floorUnder = Object.fromEntries(Object.entries(map.floorUnder ?? {}).filter(([key]) => inside(parseCellKey(key))))
+  const stackOver = Object.fromEntries(Object.entries(map.stackOver ?? {}).filter(([key]) => inside(parseCellKey(key))))
   return {
     ...map,
     width: w,
@@ -593,6 +641,7 @@ export function resizeMap(map, width, height, { fill } = {}) {
     tiles: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => map.tiles[y]?.[x] ?? fillTile)),
     rotated: rotationGrid(w, h, (x, y) => isRotated(map, { x, y })),
     floorUnder,
+    stackOver,
     areas: map.areas.filter((area) => inside(area.position)),
     markers: { playerStarts: map.markers.playerStarts.filter(inside), enemySpawns: map.markers.enemySpawns.filter(inside) },
     npcs: (map.npcs ?? [])
@@ -681,10 +730,32 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
     if (!inside(position)) warnings.push(`floorUnder entry ${key} is outside the map.`)
     else if (id !== NULL_TILE && !TILE_IDS.has(id)) warnings.push(`floorUnder at ${key} references unknown tile “${id}”.`)
   })
+  Object.entries(map.stackOver ?? {}).forEach(([key, layers]) => {
+    const position = parseCellKey(key)
+    if (!inside(position)) {
+      warnings.push(`stackOver entry ${key} is outside the map.`)
+      return
+    }
+    if (!Array.isArray(layers) || !layers.length) return
+    const base = getTile(map.tiles[position.y][position.x])
+    if (!base.surface) warnings.push(`stackOver at ${key} sits on a tile without a support surface.`)
+    layers.forEach((id) => {
+      if (!TILE_IDS.has(id)) warnings.push(`stackOver at ${key} references unknown tile “${id}”.`)
+    })
+  })
+  const placementIds = new Set((map.groundItemPlacements ?? []).map((entry) => entry.id))
   ;(map.groundItemPlacements ?? []).forEach((entry) => {
     const tile = { x: Math.round(entry.position.x), y: Math.round(entry.position.y) }
-    if (inside(tile) && isEmptyTile(map.tiles[tile.y][tile.x])) {
+    if (inside(tile) && isEmptyTile(map.tiles[tile.y][tile.x]) && !entry.on) {
       warnings.push(`Ground item ${entry.id} is on an empty cell.`)
+    }
+    if (entry.on?.tile) {
+      const [tx, ty] = entry.on.tile
+      if (!inside({ x: tx, y: ty })) warnings.push(`Ground item ${entry.id} support tile is outside the map.`)
+      else if (!getTile(map.tiles[ty][tx]).surface) warnings.push(`Ground item ${entry.id} rests on a tile without a support surface.`)
+    }
+    if (entry.on?.placement && !placementIds.has(entry.on.placement)) {
+      warnings.push(`Ground item ${entry.id} rests on missing placement “${entry.on.placement}”.`)
     }
   })
   Object.values(map.objectPlacements ?? {}).forEach((position) => {

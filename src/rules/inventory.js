@@ -1,9 +1,8 @@
 // Play inventory for exploration: item instances, equipment slots, bag, and ground drops.
 // Videogame adaptation — STA 2e has no slot/bag UI (Core p.141 lists issue gear without inventory rules).
-import { blocksMovement } from '../combat/battleMap.js'
-import { tileOf } from '../exploration/navigation.js'
 import { TILE_W } from '../maps/iso.js'
 import { getItemById } from './equipment.js'
+import { canPlaceOn, groundItemDepth, zOf } from './placement.js'
 
 export const EQUIP_SLOTS = ['body', 'sidearm', 'scanner', 'communicator']
 export const BAG_COLS = 6
@@ -11,11 +10,11 @@ export const BAG_ROWS = 8
 export const BAG_CAPACITY = BAG_COLS * BAG_ROWS
 // How many bag rows stay visible in the inventory window; the rest scroll.
 export const BAG_VISIBLE_ROWS = 4
-// Default play / legacy snap: 8 world-px cells (8×8 per tile when TILE_W is 64).
-export const ITEM_GRID = 8
+// Default play snap: 2 world-px cells (32×32 per tile when TILE_W is 64).
+export const ITEM_GRID = 32
 export const ITEM_CELL_PX = TILE_W / ITEM_GRID
 
-// Snap a tile-space point to a world-pixel cell size (8, 16, 32, 64, …). Editor guide grid uses the same sizes.
+// Snap a tile-space point to a world-pixel cell size (2, 4, 8, 16, 32, 64, …). Editor guide grid uses the same sizes.
 export function snapItemPosition(point, cellPx = ITEM_CELL_PX) {
   const size = Number(cellPx) > 0 ? Number(cellPx) : ITEM_CELL_PX
   const step = size / TILE_W
@@ -23,11 +22,6 @@ export function snapItemPosition(point, cellPx = ITEM_CELL_PX) {
     x: Math.round(point.x / step) * step,
     y: Math.round(point.y / step) * step,
   }
-}
-
-function itemGridKey(position, cellPx = ITEM_CELL_PX) {
-  const snapped = snapItemPosition(position, cellPx)
-  return `${snapped.x},${snapped.y}`
 }
 
 let nextInstanceSeq = 1
@@ -148,23 +142,12 @@ export function canEquipToSlot(state, instanceId, slot) {
   return { ok: true }
 }
 
-// Walkable floor under a point, snapped to the 8×8 item grid. Small drops never block movement/pathfinding.
+// Walkable floor or an accepting support surface under a point, snapped to the 32×32 item grid.
+// Small floor drops never block movement/pathfinding. Elevated drops sit on tile/item surfaces (placement.js).
 // excludeInstanceId: when repositioning a ground item, ignore its current cell.
-export function canPlaceAt(state, position, { excludeInstanceId = null } = {}) {
-  const map = state.party.map
-  const snapped = snapItemPosition(position)
-  const tile = tileOf(snapped)
-  if (tile.x < 0 || tile.y < 0 || tile.y >= map.height || tile.x >= map.width) {
-    return { ok: false, reason: 'Off the map.', position: snapped, tile }
-  }
-  if (blocksMovement(map, tile)) return { ok: false, reason: 'Blocked.', position: snapped, tile }
-  const key = itemGridKey(snapped)
-  const occupied = Object.values(state.groundItems ?? {}).some((entry) => {
-    if (excludeInstanceId && entry.instanceId === excludeInstanceId) return false
-    return itemGridKey(entry.position) === key
-  })
-  if (occupied) return { ok: false, reason: 'Already an item here.', position: snapped, tile }
-  return { ok: true, position: snapped, tile }
+// Optional category: when set, surface.accepts is checked (drag path passes the dragged item's category).
+export function canPlaceAt(state, position, { excludeInstanceId = null, category = null, boardPoint = null } = {}) {
+  return canPlaceOn(state, position, { excludeInstanceId, category, boardPoint })
 }
 
 // Expand one member's flat equipment list into instances/slots/bag (used for transporter beam-in mid-mission).
@@ -194,27 +177,50 @@ export function seedMemberInventory(state, memberId, { grantMissionObject = fals
 // Place authored map groundItemPlacements into session groundItems (mapFormat.js). Skips unknown itemIds and blocked cells.
 // Uses the placement's authored id as the instance id when free; otherwise allocates a fresh one. Optional name /
 // pickable / visible ride on the ground entry for views and pickup gating.
+function supportFromPlacementOn(on) {
+  if (!on) return null
+  if (on.tile) {
+    const tile = Array.isArray(on.tile) ? { x: on.tile[0], y: on.tile[1] } : on.tile
+    return { kind: 'tile', tile }
+  }
+  if (on.placement) return { kind: 'item', instanceId: on.placement }
+  return null
+}
+
 export function seedGroundItemPlacements(state, placements = []) {
   if (!placements?.length) return state
   let itemInstances = { ...(state.itemInstances ?? {}) }
   let groundItems = { ...(state.groundItems ?? {}) }
   let next = { ...state, itemInstances, groundItems }
-  for (const placement of placements) {
+  // First pass: create instances so item-on-item supports can resolve later.
+  const ordered = [...placements]
+  for (const placement of ordered) {
     const def = getItemById(placement.itemId)
     if (!def) continue
-    const place = canPlaceAt(next, placement.position)
+    const place = canPlaceAt(next, placement.position, { category: def.category })
     if (!place.ok) continue
     const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
     const id = authored ? placement.id : freshInstanceId()
     itemInstances = { ...itemInstances, [id]: { id, itemId: def.id, quantity: 1 } }
     const ground = { instanceId: id, position: { x: place.position.x, y: place.position.y } }
+    // Prefer authored `on`; otherwise use what canPlaceAt found under the point.
+    const support = supportFromPlacementOn(placement.on) ?? place.support
+    if (support) ground.support = support
     if (placement.name) ground.name = placement.name
     if (placement.pickable === false) ground.pickable = false
     if (placement.visible === false) ground.visible = false
     groundItems = { ...groundItems, [id]: ground }
     next = { ...next, itemInstances, groundItems }
   }
-  return next
+  // Second pass: rewrite placement-id supports that used authored placement ids (same as instance ids when authored).
+  for (const [id, entry] of Object.entries(groundItems)) {
+    if (entry.support?.kind !== 'item') continue
+    if (groundItems[entry.support.instanceId]) continue
+    // Orphan support → floor.
+    const { support: _s, ...rest } = entry
+    groundItems = { ...groundItems, [id]: rest }
+  }
+  return { ...next, itemInstances, groundItems }
 }
 
 // Expand each party member's flat equipment into instances, slots, and bag. Adds one missionObject to the lead bag.
@@ -440,16 +446,85 @@ export function transferItem(state, { instanceId, toMemberId, toSlot = null, toB
   return moveToBag(state, { memberId: toMemberId, instanceId, toIndex: toBagIndex })
 }
 
-export function dropItem(state, { instanceId, position }) {
-  const place = canPlaceAt(state, position, { excludeInstanceId: instanceId })
-  if (!place.ok) return state
+// After map tiles change (destructibles, environment), re-derive support for every ground item at its X/Y.
+// Orphaned supports fall to the next surface or the floor; occupancy conflicts leave the item where it was without support.
+export function resolveGroundSupports(state) {
+  let groundItems = state.groundItems ?? {}
+  let changed = false
+  for (const entry of Object.values(groundItems)) {
+    const resolved = resolveItem(state, entry.instanceId)
+    const place = canPlaceAt(
+      { ...state, groundItems },
+      entry.position,
+      { excludeInstanceId: entry.instanceId, category: resolved?.def.category ?? null },
+    )
+    if (!place.ok) {
+      if (!entry.support) continue
+      changed = true
+      const { support: _s, ...rest } = entry
+      groundItems = { ...groundItems, [entry.instanceId]: rest }
+      continue
+    }
+    const nextSupport = place.support ?? null
+    const same =
+      (!entry.support && !nextSupport) ||
+      (entry.support?.kind === 'tile' &&
+        nextSupport?.kind === 'tile' &&
+        entry.support.tile.x === nextSupport.tile.x &&
+        entry.support.tile.y === nextSupport.tile.y) ||
+      (entry.support?.kind === 'item' && nextSupport?.kind === 'item' && entry.support.instanceId === nextSupport.instanceId)
+    if (same && place.position.x === entry.position.x && place.position.y === entry.position.y) continue
+    changed = true
+    const next = { ...entry, position: { x: place.position.x, y: place.position.y } }
+    if (nextSupport) next.support = nextSupport
+    else delete next.support
+    groundItems = { ...groundItems, [entry.instanceId]: next }
+  }
+  return changed ? { ...state, groundItems } : state
+}
+
+export function dropItem(state, { instanceId, position, support = undefined, boardPoint = null }) {
+  const resolved = resolveItem(state, instanceId)
+  const place = canPlaceAt(state, position, {
+    excludeInstanceId: instanceId,
+    category: resolved?.def.category ?? null,
+    boardPoint,
+  })
+  // Drag hover may pass support explicitly; otherwise use what canPlaceAt found (floor → omitted).
+  const nextSupport = support !== undefined ? support : place.support
+  if (!place.ok) {
+    // Elevated hover already validated; floor-only re-check can say Blocked on a solid table cell.
+    if (!nextSupport) return state
+    const snapped = snapItemPosition(position)
+    const occupied = Object.values(state.groundItems ?? {}).some((entry) => {
+      if (entry.instanceId === instanceId) return false
+      if (snapItemPosition(entry.position).x !== snapped.x || snapItemPosition(entry.position).y !== snapped.y) return false
+      const a = entry.support
+      const b = nextSupport
+      if (!a || !b || a.kind !== b.kind) return false
+      if (a.kind === 'tile') return a.tile.x === b.tile.x && a.tile.y === b.tile.y
+      return a.instanceId === b.instanceId
+    })
+    if (occupied) return state
+    const taken = takeInstance(state, instanceId)
+    if (!taken) return state
+    return {
+      ...taken.state,
+      groundItems: {
+        ...taken.state.groundItems,
+        [instanceId]: { instanceId, position: { x: snapped.x, y: snapped.y }, support: nextSupport },
+      },
+    }
+  }
   const taken = takeInstance(state, instanceId)
   if (!taken) return state
+  const entry = { instanceId, position: { x: place.position.x, y: place.position.y } }
+  if (nextSupport) entry.support = nextSupport
   return {
     ...taken.state,
     groundItems: {
       ...taken.state.groundItems,
-      [instanceId]: { instanceId, position: { x: place.position.x, y: place.position.y } },
+      [instanceId]: entry,
     },
   }
 }
@@ -482,6 +557,9 @@ export function groundItemViews(state, { hideInstanceId = null } = {}) {
         id: entry.instanceId,
         instanceId: entry.instanceId,
         position: entry.position,
+        support: entry.support ?? null,
+        z: zOf(state, entry),
+        depth: groundItemDepth(state, entry),
         name: entry.name || resolved?.def.name || 'Item',
         itemId: resolved?.instance.itemId ?? null,
         category: resolved?.def.category ?? null,

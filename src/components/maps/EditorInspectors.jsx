@@ -93,6 +93,7 @@ export default function EditorInspectors({
       {groundItem && (
         <GroundItemInspector
           object={groundItem}
+          map={map}
           moving={groundItemMoving}
           onChange={(changes) => edit(updateGroundItem(map, groundItem.id, changes))}
           onMove={onToggleGroundItemMove}

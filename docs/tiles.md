@@ -23,7 +23,8 @@ Allocation order: the printable ASCII characters first (`"` and `\` are avoided;
 ## Null cells and floorUnder (map layers, 2026-10-21)
 
 - **Null** (`null` / `ġ`): empty cell inside the map rectangle. Solid for movement and placement; clear for sight. Editor New Map starts as all Null. Erasing a floor writes Null.
-- **`floorUnder`**: optional sparse `{ "x,y": tileId }` on the map file. Remembers the floor (or Null) under a wall or prop so erase restores it. Schema version stays **1** for legacy maps; maps that use Null or `floorUnder` write **2**.
+- **`floorUnder`**: optional sparse `{ "x,y": tileId }` on the map file. Remembers the floor (or Null) under a wall or prop so erase restores it. Schema version stays **1** for legacy maps; maps that use Null, `floorUnder`, or `stackOver` write **2**.
+- **`stackOver`**: optional sparse `{ "x,y": [tileId, ...] }` — furniture stacked on a surface cell (bottom → top). Painting a prop onto a tile that already has `surface` appends here instead of replacing the base; erase pops the top layer first. See `src/maps/mapEdits.js` `stackTileOn`.
 - Editor layers (Ground, Walls, Furniture, Characters, Markers) are UI state only — never saved. See `src/maps/layers.js`.
 
 ## Tile fields
@@ -33,7 +34,8 @@ Allocation order: the printable ASCII characters first (`"` and `\` are avoided;
 | `solid` | Blocks movement. |
 | `blocksSight` | Blocks line of sight. |
 | `cover` | Standing next to it can give cover. The editor's palette Cover checkbox edits it (saved back to the JSON by the dev server). |
-| `height` | Block height in pixels as drawn; 0 is a floor tile. Presentation only (fade, previews). |
+| `height` | Block height in art pixels as drawn; 0 is a floor tile. Also the default surface `topZ` when `surface` is set without an explicit `topZ`. |
+| `surface` | Opt-in support top for inventory / stacked props (`{}` or `{ topZ?, inset?, accepts?, maxStack? }`). Absent = not a placement surface. Catalogue only; see `rules/placement.js`. |
 | `imageHeight` | The image's height when it is taller than 96 (walls and tall objects): 96 plus however far the block's top rises above 60. The image is 64 wide and stands on the tile's floor diamond. |
 | `image`, `altImage` | The tile's PNG; `altImage` is drawn on alternate (checkerboard) tiles for variety. Tile art lives in `public/art/sprites/environment/<palette group id>/`, rendered at 4x (256 x 384 for a 64 x 96 image) and drawn at its design size. |
 | `fade` | Drawn see-through while it hides a party member standing behind it (exploration and combat; the editor's Fade checkbox edits it). Designer decision (Oct 2026): walls fade by default. |
@@ -76,7 +78,8 @@ Map rotation (tiles turned with the editor's right click) is described in `src/m
 
 | Concern | Code |
 |---|---|
-| Loading, symbols, rotation, ambient / ambientColour | `src/maps/mapFormat.js` |
+| Loading, symbols, rotation, ambient / ambientColour, stackOver, placement `on` | `src/maps/mapFormat.js` |
+| Support surfaces / elevated drops | `src/rules/placement.js`; tile `surface` in this catalogue |
 | Tile glows, flipbooks, darkness spill, emissive | `src/maps/tileArt.js`, `src/data/adaptation/maps/tileEffects.json` |
 | Character foot-shadow direction | `src/maps/mapShadows.js` |
 | Dev Edit save of emissive / emitColour / glows | `src/maps/effectsFiles.js`, `tools/effectsStore.cjs` |

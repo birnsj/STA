@@ -28,6 +28,8 @@
 
 **Update (2026-10-21, Mission editor look):** All Mission full-screen editors (Conversation, Object, Objective, Story, Character Library, Generator) use the Map Editor `ed-shell` visual language via `EditorSubScreen` / CSS bridge. Functional layouts unchanged.
 
+**Update (2026-10-22, elevated world placement):** Inventory Objects placements may rest on opt-in tile/item surfaces. Placing or moving onto a surface cell writes `groundItemPlacements[].on` (`{ tile: [x, y] }` or `{ placement: id }`); world Z is derived at runtime (`rules/placement.js`) and shown read-only in `GroundItemInspector`. Painting a furniture prop onto an existing surface cell appends sparse `stackOver` (schema 2 when used). Tile `surface` / item `surface` catalogues remain JSON-only. Session inventory drops use the same placement rules but never rewrite the map. See matrix #27 / #27b; `docs/editor-authoring-summary.md`; `docs/tiles.md`; `docs/world-objects.md`.
+
 ---
 
 ## A. Executive Summary
@@ -93,9 +95,10 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 24 | Hazard region overrides | Complete* | Y | Y | Y | Y | Y | Y | Y | Y | *migrateChance, injury, damagesObjects, sight/movement/layer/scar, neutralize task; type catalogue still JSON-only |
 | 25 | Hazard type catalogue | Hardcoded | Y | place only | N | — | N | N | Y | Y | `hazards.json` |
 | 26 | Generate hazards with map | Complete | Y | Y | toggle | Y | Y* | Y* | Y | Y* | Side panel checkbox |
-| 27 | Ground item placements | Complete | Y | Y | Y | Y | Y | Y | Y | Y | Inventory palette; `groundItemPlacements.test.js` |
-| 28 | Item type catalogue / behaviors | Hardcoded | Y | place only | N | — | N | N | Y | Y | `items.json` + `src/items/*` |
-| 29 | Session drop/pickup | N/A | Y | N | — | runtime | N | N | Y | Y | Intentionally not map-authored |
+| 27 | Ground item placements | Complete | Y | Y | Y | Y | Y | Y | Y | Y | Inventory palette; optional `on` for elevated; inspector Z; `groundItemPlacements.test.js` / `placement.test.js` |
+| 27b | Furniture `stackOver` | Complete | Y | Y | paint | Y | Y | Y | Y | Y | Paint prop onto surface cell; erase pops top; schema 2 when used |
+| 28 | Item type catalogue / behaviors | Hardcoded | Y | place only | N | — | N | N | Y | Y | `items.json` + `src/items/*` (incl. opt-in `surface`) |
+| 29 | Session drop/pickup | N/A | Y | N | — | runtime | N | N | Y | Y | Floor or surface via `placement.js`; never map-authored |
 | 30 | NPC place / move / delete | Complete | Y | Y | Y | Y | Y | Y | Y | Y | NPC tool + inspector |
 | 31 | NPC character / appearance | Complete* | Y | pick+Library | pick | Y | Y | Y | Y | Y | *Pool CRUD via Character Library (DEV); instance appearance unchanged |
 | 32 | NPC faction / disposition / rules | Complete | Y | Y | Y | — | Y | Y | Y | Y | `NpcInspector.jsx` |

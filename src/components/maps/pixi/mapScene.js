@@ -19,17 +19,16 @@ export async function startMapScene(host, read, isCancelled) {
   const groundLoot = new Map()
   const outlines = new Map()
   // Guide grid sits on the floor (above floor tiles, under ground props / walls / darkness). Markers always over
-  // labels; ground inventory props sit with markers so they depth-sort among themselves (GroundLootView zIndex).
+  // labels. Ground inventory props share the block depth layer so elevated loot occludes correctly with walls
+  // (same as exploration boardScene.js).
   const gridLayer = new Container()
   const floorIndex = stage.layers.world.getChildIndex(stage.layers.floorLayer)
   stage.layers.world.addChildAt(gridLayer, floorIndex + 1)
   const outlineLayer = new Container()
   const labelLayer = new Container()
-  const lootLayer = new Container()
-  lootLayer.sortableChildren = true
   const markerLayer = new Container()
   const previewLayer = new Container()
-  stage.layers.fxLayer.addChild(outlineLayer, labelLayer, lootLayer, markerLayer, previewLayer)
+  stage.layers.fxLayer.addChild(outlineLayer, labelLayer, markerLayer, previewLayer)
   const grid = new EditorGridView(gridLayer)
   const bounds = new EditorBoundsView(gridLayer)
   const preview = new TilePreviewView(previewLayer)
@@ -51,7 +50,7 @@ export async function startMapScene(host, read, isCancelled) {
     bounds.update(board.bounds)
     reconcile(outlines, board.outlines ?? [], outlineLayer, () => new EditorOutlineView(), (outline, item) => outline.update(item))
     reconcile(labels, board.labels, labelLayer, () => new AreaLabelView(), (label, item) => label.update(item, now, playing))
-    reconcile(groundLoot, board.groundLoot ?? [], lootLayer, () => new GroundLootView(), (loot, item) => loot.update(item))
+    reconcile(groundLoot, board.groundLoot ?? [], stage.layers.depthLayer, () => new GroundLootView(), (loot, item) => loot.update(item))
     reconcile(markers, board.markers, markerLayer, () => new EditorMarkerView(), (marker, item) => marker.update(item, now, playing))
     preview.update(board.preview)
   })

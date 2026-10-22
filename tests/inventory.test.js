@@ -191,17 +191,17 @@ describe('ground drop and pickup', () => {
     assert.ok(state.party.members.b.character.inventory.bag.includes(medkitId))
   })
 
-  it('snaps placement to the 8×8 item grid and allows multiple items on one map tile', () => {
-    assert.deepEqual(snapItemPosition({ x: 2.04, y: 2.11 }), { x: 2, y: 2.125 })
+  it('snaps placement to the 32×32 item grid and allows multiple items on one map tile', () => {
+    assert.deepEqual(snapItemPosition({ x: 2.04, y: 2.11 }), { x: 2.03125, y: 2.125 })
     let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'missionObject' }] })])
     const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
     const missionId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'missionObject')
     state = dropItem(state, { instanceId: medkitId, position: { x: 2.04, y: 2.11 } })
-    assert.deepEqual(state.groundItems[medkitId].position, { x: 2, y: 2.125 })
-    assert.ok(canPlaceAt(state, { x: 2.2, y: 2.1 }).ok, 'neighbouring 8×8 cell on the same tile')
+    assert.deepEqual(state.groundItems[medkitId].position, { x: 2.03125, y: 2.125 })
+    assert.ok(canPlaceAt(state, { x: 2.2, y: 2.1 }).ok, 'neighbouring 32×32 cell on the same tile')
     state = dropItem(state, { instanceId: missionId, position: { x: 2.2, y: 2.1 } })
     assert.deepEqual(state.groundItems[missionId].position, snapItemPosition({ x: 2.2, y: 2.1 }))
-    assert.ok(!canPlaceAt(state, { x: 2.04, y: 2.11 }).ok, 'same 8×8 cell blocked')
+    assert.ok(!canPlaceAt(state, { x: 2.04, y: 2.11 }).ok, 'same 32×32 cell blocked')
     // Reposition the medkit without treating its own cell as occupied.
     assert.ok(canPlaceAt(state, { x: 3, y: 3 }, { excludeInstanceId: medkitId }).ok)
     state = dropItem(state, { instanceId: medkitId, position: { x: 3.01, y: 2.99 } })

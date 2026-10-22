@@ -47,7 +47,7 @@ import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
 // map, edit(map), setStatus(text), askText(details): from the editor. boardKey: changes whenever a different map is put
 // in front of the user, which clears the selection. suspended: a popup or full-screen editor is open, so the keys stand
 // aside. onObjectivePlaced(index): an objective sent here by the Objective Editor was placed (or cancelled), so it reopens.
-// itemGridSize: world-pixel snap for ground items (matches the toolbar guide grid; default 8).
+// itemGridSize: world-pixel snap for ground items (matches the toolbar guide grid; default 2 = play 32×32).
 // layers: editor layer state from useEditorLayers (visibility / lock / active). beginStroke / endStroke: undo coalescing.
 export default function useEditorTools({
   map,
@@ -57,7 +57,7 @@ export default function useEditorTools({
   boardKey,
   suspended,
   onObjectivePlaced,
-  itemGridSize = 8,
+  itemGridSize = 2,
   layers = null,
   beginStroke = null,
   endStroke = null,

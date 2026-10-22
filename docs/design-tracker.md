@@ -12,7 +12,7 @@ Built per the approved architecture plan. Defaults chosen in the plan (change if
 
 - Null blocks movement, not sight. Walls may stand on Null. Erasing floor under dependents is blocked (message), not auto-cleared.
 - Resize fills with Null if the map already has Null cells, else floor. Spawn markers sit on the Characters layer. Hazards follow Furniture for visibility/lock.
-- Diagonal walls and Null-aware generators are out of scope. Levels / elevation still a placeholder.
+- Diagonal walls and Null-aware generators are out of scope. Multi-deck Levels remain a placeholder; single-deck elevated placement (tables/crates) is implemented (2026-10-22).
 
 Where: `src/maps/layers.js`, `mapFormat.js` (`null`, `floorUnder`, schema 2), `mapEdits.js`, `useEditorLayers.js`, `useMapDocument.js` (undo/redo), Layers window.
 
@@ -39,14 +39,17 @@ The expansion was built from the approved plan before the designer answered its 
 
 ### Exploration inventory UI (implemented 2026-10-17; follow-ups open)
 
-**Decided for this phase:** floating inventory over exploration (not full-screen); STA-aligned slots `body`, `sidearm`, `scanner`, `communicator` plus a carried bag (not a ten-slot fantasy layout); one continuous cursor-as-item drag across inventory, equipment slots, characters, and the world; 8×8 sub-tile placement grid for drops; session-only inventory/ground state; window position in localStorage. Open with B or the Formation panel button. Where: `src/rules/inventory.js`, `InventoryPanel.jsx`, `docs/prototype-rules.md` (Equipment).
+**Decided for this phase:** floating inventory over exploration (not full-screen); STA-aligned slots `body`, `sidearm`, `scanner`, `communicator` plus a carried bag (not a ten-slot fantasy layout); one continuous cursor-as-item drag across inventory, equipment slots, characters, and the world; 32×32 sub-tile placement grid for drops (designer 2026-10-22); session-only inventory/ground state; window position in localStorage. Open with B or the Formation panel button. Where: `src/rules/inventory.js`, `InventoryPanel.jsx`, `docs/prototype-rules.md` (Equipment).
 
 **Implementer picks, for review:** bag capacity 24; bag weapons unusable until equipped; one playtest `missionObject` seeded on the lead character; world props use `worldImage` + `worldScale` (inventory uses `icon`); ground items and challenge objects show name tags only on mouseover (designer request 2026-10-17); ground items keep a larger grab hit area; Pick Up ring remains as a secondary path (left-drag grabs directly).
+
+**Elevated surfaces (implemented 2026-10-22):** same drag lifecycle places items on opt-in tile/item surfaces with derived Z; `stackOver` for crate-on-crate; no free elevation field; shelves/racks deferred until art exists. Where: `src/rules/placement.js`, `docs/world-objects.md`.
 
 **Questions / follow-ups:**
 - When should mission save/load include inventory and ground items?
 - Should bag weapons remain usable without equipping?
 - Full mission-object / loot content beyond the test item?
+- Shelf / rack tiles (need art + `surface.topZ`)?
 - **Decided 2026-10-20 (designer): quickbar.** Only equipped and used items in the inventory count for task bonuses; used items will eventually sit in a quickbar. Until it exists, bag-only tools (Engineering Toolkit, Medkit, Hypospray and the other no-slot items) give no task bonus in exploration (the Vault golden fingerprint was re-baselined for this). Open: what the quickbar holds, and which items go in it.
 
 ### Rank should matter in the game (opened 2026-10-02)

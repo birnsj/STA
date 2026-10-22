@@ -2,7 +2,7 @@ import { Sprite } from 'pixi.js'
 import { textureOf } from './pixiDraw.js'
 import { isBlock, project } from '../../../maps/iso.js'
 import { layerOfTile } from '../../../maps/layers.js'
-import { FULL_LIGHT } from '../../../maps/mapFormat.js'
+import { FULL_LIGHT, getTile } from '../../../maps/mapFormat.js'
 import { DARK_MARGIN, darknessOpacity, effectsEpochOf, emissiveEpochOf, frameAt, overlayEmissive } from '../../../maps/tileArt.js'
 import {
   animatedArea,
@@ -148,6 +148,8 @@ export class MapLayers {
     this.floorContainer = floorLayer
     this.textures = new Map()
     this.blocks = new Map()
+    // Furniture stacked on a surface tile (map.stackOver): extra sprites lifted by the heights below them.
+    this.stacks = new Map()
     this.fade = { target: new Set(), changes: new Map() }
     this.fading = new Set()
     this.ready = false
@@ -181,6 +183,10 @@ export class MapLayers {
     for (const record of this.blocks.values()) {
       this.applyLevel(record, record.level, now)
     }
+    const furnitureOn = this.layerIsVisible('furniture')
+    for (const record of this.stacks.values()) {
+      if (record.sprite) record.sprite.visible = furnitureOn
+    }
   }
 
   // Loads the map's images, then draws it. Resolves true once drawn (false if destroyed first).
@@ -204,6 +210,7 @@ export class MapLayers {
       this.dark.flush()
     }
     this.buildBlocks()
+    this.syncStacks()
     this.ready = true
     return true
   }
@@ -258,12 +265,69 @@ export class MapLayers {
   blockSprite(record, now) {
     const { texture, offset } = this.blockTexture(record, now)
     const centre = project(record.position)
+    const lift = record.lift ?? 0
     const sprite = new Sprite(texture)
-    sprite.position.set(centre.x + offset.x, centre.y + offset.y)
+    sprite.position.set(centre.x + offset.x, centre.y + offset.y - lift)
     sprite.scale.set(1 / BLOCK_RES)
-    sprite.zIndex = record.position.x + record.position.y
+    sprite.zIndex = record.position.x + record.position.y + 0.001 * (record.stackLevel ?? 0)
     if (record.item) record.item.shown = this.frameIndex(record.item, now)
     return sprite
+  }
+
+  // A layout whose cell at `position` reads as `tileId` (for drawing stackOver layers without mutating the map).
+  layoutWithTile(position, tileId) {
+    const { map } = this.layout
+    const tiles = map.tiles.map((row, y) => (y === position.y ? row.map((id, x) => (x === position.x ? tileId : id)) : row))
+    return { ...this.layout, map: { ...map, tiles } }
+  }
+
+  // Rebuild stacked prop sprites from map.stackOver (bottom → top). Only furniture-height tiles are drawn.
+  syncStacks() {
+    const { map } = this.layout
+    const now = performance.now()
+    const nextKeys = new Set()
+    for (const [cell, layers] of Object.entries(map.stackOver ?? {})) {
+      if (!Array.isArray(layers) || !layers.length) continue
+      const [sx, sy] = cell.split(',').map(Number)
+      if (!Number.isFinite(sx) || !Number.isFinite(sy)) continue
+      if (sy < 0 || sx < 0 || sy >= map.height || sx >= map.width) continue
+      const position = { x: sx, y: sy }
+      let lift = getTile(map.tiles[sy][sx]).height ?? 0
+      layers.forEach((tileId, index) => {
+        const key = `${cell}#${index}`
+        nextKeys.add(key)
+        const stackLevel = index + 1
+        const look = `${tileId}|stack|${lift}`
+        const existing = this.stacks.get(key)
+        if (existing && existing.look === look) {
+          existing.lift = lift
+          existing.stackLevel = stackLevel
+          if (existing.sprite) {
+            existing.sprite.zIndex = position.x + position.y + 0.001 * stackLevel
+          }
+          lift += getTile(tileId).height ?? 0
+          return
+        }
+        if (existing?.sprite) existing.sprite.destroy()
+        const layout = this.layoutWithTile(position, tileId)
+        const area = blockDrawnArea(layout, position)
+        const centre = project(position)
+        const canvas = drawBlocks(layout, [position], area, this.time(now), false, this.opacity)
+        const texture = textureOf(canvas)
+        const sprite = new Sprite(texture)
+        sprite.scale.set(1 / BLOCK_RES)
+        sprite.position.set(centre.x + (area.x - centre.x), centre.y + (area.y - centre.y) - lift)
+        sprite.zIndex = position.x + position.y + 0.001 * stackLevel
+        this.depthLayer.addChild(sprite)
+        this.stacks.set(key, { key, look, position, tileId, lift, stackLevel, sprite })
+        lift += getTile(tileId).height ?? 0
+      })
+    }
+    for (const [key, record] of [...this.stacks.entries()]) {
+      if (nextKeys.has(key)) continue
+      record.sprite?.destroy()
+      this.stacks.delete(key)
+    }
   }
 
   // A faded panel's two halves drawn as one (canvasTiles.js drawBlock), at the near half's depth.
@@ -374,6 +438,7 @@ export class MapLayers {
         this.applyLevel(record, fadeLevelAt(this.fade, key, now), now)
       }),
     )
+    this.syncStacks()
   }
 
   // Shows a block at an opacity: a faded panel draws whole from its near half (its far half draws nothing).
@@ -504,8 +569,10 @@ export class MapLayers {
       record.sprite.destroy()
       record.pair?.destroy()
     }
+    for (const record of this.stacks.values()) record.sprite?.destroy()
     for (const { texture } of this.textures.values()) texture.destroy(true)
     this.blocks.clear()
+    this.stacks.clear()
     this.textures.clear()
   }
 }

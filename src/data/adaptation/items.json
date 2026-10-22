@@ -247,6 +247,20 @@
       "statsSourceType": "adaptation"
     },
     {
+      "id": "equipmentCase",
+      "name": "Equipment Case",
+      "category": "utility",
+      "icon": "/art/items/medkit.png",
+      "worldImage": "/art/sprites/environment/items/missionObject.png",
+      "worldScale": 0.55,
+      "surface": { "topZ": 10, "maxStack": 1 },
+      "description": "A hard case that can rest on a crate or table and hold small gear on its lid.",
+      "tags": ["container", "case"],
+      "equipSlot": null,
+      "sourceType": "original",
+      "statsSourceType": "adaptation"
+    },
+    {
       "id": "starfleetPadd",
       "name": "Starfleet PADD",
       "category": "utility",

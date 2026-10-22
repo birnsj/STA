@@ -1,6 +1,6 @@
 # Dev Edit — Authoring Tools Overview
 
-Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21; Generator Editor 2026-10-21)
+Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-22; elevated placement 2026-10-22)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
 --------------------------------------------------------------------------------
@@ -169,8 +169,16 @@ Environment
   - Hazard brush intensity in Selection
   - Generate hazards with map (Map tab toggle)
 
-Ground items
-  - Inventory Objects palette → groundItemPlacements
+Ground items / elevated surfaces
+  - Inventory Objects palette → groundItemPlacements (32×32 item grid)
+  - Place or Move onto a tile with `surface` (crate, table, barCounter,
+    epsControl, cellBunk) writes optional `on: { tile: [x, y] }`; onto an
+    item with `surface` (e.g. equipmentCase) writes `on: { placement: id }`
+  - GroundItemInspector shows derived Elevation Z and support label
+    (Z is never authored)
+  - Painting a prop onto an existing surface cell appends `stackOver`
+    (crate-on-crate); erase pops the top layer first
+  - `surface` / item `surface` catalogues stay in tiles.json / items.json
   - Session drop/pickup is runtime-only (not map-authored)
 
 Challenge objects (board)
@@ -319,7 +327,8 @@ Complete
   23 Hazard paint / erase / merge
   24 Hazard region overrides (catalogue still JSON-only)
   26 Generate hazards with map
-  27 Ground item placements
+  27 Ground item placements (incl. elevated `on` + inspector Z)
+  27b Furniture stackOver (paint prop onto surface cell)
   30 NPC place / move / delete
   31 NPC character / appearance (pool CRUD via Character Library in DEV)
   32 NPC faction / disposition / rules

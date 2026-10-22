@@ -129,7 +129,7 @@ describe('groundItemPlacements schema', () => {
 })
 
 describe('mapEdits ground items', () => {
-  it('places, moves, and removes with 8×8 snap; rejects solid tiles', () => {
+  it('places, moves, and removes with 32×32 snap; rejects solid tiles', () => {
     let map = parseMapFile(
       {
         name: 'Edit',
@@ -236,7 +236,7 @@ describe('pickup and drop round-trip', () => {
       assert.ok(!state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
       // Cargo row (y=13) stays clear of authored catalogue placements.
-      const park = { x: 4 + before.indexOf(view) * 0.125, y: 13 }
+      const park = { x: 4 + before.indexOf(view) * 0.03125, y: 13 }
       state = dropItem(state, { instanceId, position: park })
       assert.ok(state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)

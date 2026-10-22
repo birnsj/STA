@@ -7,7 +7,7 @@ import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { figureShapes, hitTest, rectOnGround } from '../../maps/boardHitTest.js'
 import { diamond, project, pts, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
 import { TILE_IMAGE } from '../../maps/mapFormat.js'
-import { canPlaceAt } from '../../rules/inventory.js'
+import { canPlaceAt, resolveItem } from '../../rules/inventory.js'
 import { isDestructibleScanned } from '../../world/destructibleScan.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playBoardHover, playWeaponSound } from '../../audio/uiSounds.js'
@@ -351,20 +351,23 @@ export default function PixiExplorationBoard(props) {
     targets.push({ kind: 'object', id: view.id, depth: atDepth(view.position, -0.4), shapes: [{ type: 'diamond', cx: centre.x, cy: centre.y, rx: TILE_W / 2, ry: TILE_H / 2 }] })
   }
   // Runtime inventory drops (rules/inventory.js): isometric tile props + challenge-style name markers.
+  // Elevated drops carry z (art pixels) and depth from placement.js so they sit on / sort with their support.
   const groundLoot = []
   for (const view of groundItems) {
     const inReach = groundReachableIds.includes(view.id)
-    // Markers/depth use the containing map tile; the prop itself sits on the 8×8 sub-grid position.
-    const floorTile = { x: Math.round(view.position.x), y: Math.round(view.position.y) }
+    // Markers/depth use the containing map tile; the prop itself sits on the 32×32 sub-grid position.
+    const floorTile = view.support?.kind === 'tile' ? view.support.tile : { x: Math.round(view.position.x), y: Math.round(view.position.y) }
     const tiles = highlightTiles([floorTile], bigGroups)
     const nearest = Math.max(...tiles.map((tile) => tile.x + tile.y))
     const area = highlightBox(map, bigGroups, tiles)
-    const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area)
-    const depth = view.position.x + view.position.y + 0.35
+    const z = view.z ?? 0
+    const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area) - z
+    const depth = view.depth ?? view.position.x + view.position.y + 0.35
     const worldScale = view.worldScale ?? 0.4
     groundLoot.push({
       id: view.id,
       position: view.position,
+      z,
       worldImage: view.worldImage,
       worldTile: view.worldTile,
       worldScale,
@@ -379,7 +382,7 @@ export default function PixiExplorationBoard(props) {
       position: view.position,
       artTop,
       name: view.name,
-      stateLabel: 'On ground',
+      stateLabel: z > 0 ? 'Placed' : 'On ground',
       typeLabel: groundScanned ? view.category : null,
       description: groundScanned && view.description ? view.description : null,
       changed: false,
@@ -387,13 +390,14 @@ export default function PixiExplorationBoard(props) {
       inReach,
       depth: nearest + 0.4,
     })
-    // Match the drawn prop, but not the name tag floating above it.
+    // Match the drawn prop (lifted by z), but not the name tag floating above it.
     const scale = Math.max(0.15, Math.min(1, worldScale))
     const size = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
     const box = tileImageBox(view.position, size)
+    const lifted = { ...box, y: box.y - z }
     const pad = 10
-    const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND
-    const art = rectOnGround({ x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }, floor)
+    const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND - z
+    const art = rectOnGround({ x: lifted.x - pad, y: lifted.y - pad, width: lifted.width + pad * 2, height: lifted.height + pad * 2 }, floor)
     if (art) targets.push({ kind: 'groundItem', id: view.id, depth, shapes: [{ type: 'rect', ...art }] })
   }
   const lastKnown = getNpcs(world)
@@ -487,6 +491,7 @@ export default function PixiExplorationBoard(props) {
     if (placeHelpersRef) {
       placeHelpersRef.current = {
         toTiles,
+        toBoard,
         toClient,
         // Party member under the pointer (for item-drag → bag). Uses the same hit list as clicks.
         memberAt: (clientX, clientY) => {
@@ -675,15 +680,25 @@ export default function PixiExplorationBoard(props) {
 
   const reportPlaceHover = (clientX, clientY) => {
     if (!placingItem || !onPlaceHover || !exploreState) return
-    const point = toTiles(clientX, clientY)
-    if (!point) {
+    // Must use board (SVG) coords for raised tops — floor unproject alone rejects solid crates/tables as Blocked.
+    const boardPoint = toBoard(clientX, clientY)
+    const point = boardPoint ? unproject(boardPoint) : null
+    if (!point && !boardPoint) {
       onPlaceHover(null)
       return
     }
-    const check = canPlaceAt(exploreState, point, {
+    const resolved = placingItem.instanceId ? resolveItem(exploreState, placingItem.instanceId) : null
+    const check = canPlaceAt(exploreState, point ?? { x: 0, y: 0 }, {
       excludeInstanceId: placingItem.from?.location === 'ground' ? placingItem.instanceId : null,
+      category: resolved?.def.category ?? null,
+      boardPoint,
     })
-    onPlaceHover({ position: check.position ?? point, valid: check.ok })
+    onPlaceHover({
+      position: check.position ?? point,
+      valid: check.ok,
+      support: check.support ?? null,
+      z: check.z ?? 0,
+    })
   }
 
   const handlePointerDown = (event) => {
@@ -819,7 +834,7 @@ export default function PixiExplorationBoard(props) {
         {debug && placingItem && placeHover && (
           <polygon
             className={`explore-place-preview${placeHover.valid ? '' : ' is-invalid'}`}
-            points={pts(diamond(placeHover.position, 0, 1 / 8))}
+            points={pts(diamond(placeHover.position, placeHover.z ?? 0, 1 / 32))}
           />
         )}
       </svg>

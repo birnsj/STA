@@ -1,5 +1,7 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
+import { getItemById } from '../rules/equipment.js'
 import { ITEM_CELL_PX, snapItemPosition } from '../rules/inventory.js'
+import { canPlaceOn, canStackTileOn, surfaceOfTile } from '../rules/placement.js'
 import { nextFacing, spawnFacing } from './facing.js'
 import { TILE_W } from './iso.js'
 import { layerOfSelection, layerOfTile } from './layers.js'
@@ -89,16 +91,57 @@ export function brushPositions(map, { x, y }, tileId, rotated) {
   return positions
 }
 
+const stackOverOf = (map) => map.stackOver ?? {}
+const withStackOver = (map, stackOver) => {
+  const keys = Object.keys(stackOver)
+  if (!keys.length && !map.stackOver) return { ...map, stackOver: {} }
+  return { ...map, stackOver }
+}
+
+// Append a furniture prop onto an existing surface cell (map.stackOver). Returns null when stacking is not allowed.
+export function stackTileOn(map, position, tileId) {
+  const check = canStackTileOn(map, position, tileId)
+  if (!check.ok) return null
+  const key = cellKey(position)
+  const layers = [...(stackOverOf(map)[key] ?? []), tileId]
+  return withStackOver(map, { ...stackOverOf(map), [key]: layers })
+}
+
+// Pop the top stacked prop, or clear the stack key when empty. Returns { map, popped } or null.
+export function popStackOver(map, position) {
+  const key = cellKey(position)
+  const layers = stackOverOf(map)[key]
+  if (!layers?.length) return null
+  const popped = layers[layers.length - 1]
+  const next = layers.slice(0, -1)
+  const stackOver = { ...stackOverOf(map) }
+  if (next.length) stackOver[key] = next
+  else delete stackOver[key]
+  return { map: withStackOver(map, stackOver), popped }
+}
+
 // rotated: the tile is painted turned (mapFormat.js rotated).
 // When painting a wall or prop over a floor/Null cell, the previous id is stored in floorUnder so erase can restore it.
+// Painting a prop onto a cell that already has a support surface appends to stackOver instead of replacing the base.
 export function paintTile(map, { x, y }, tileId, rotated = false) {
-  if (map.tiles[y][x] === tileId && isRotated(map, { x, y }) === rotated) return map
   const previousId = map.tiles[y][x]
   const previous = getTile(previousId)
   const next = getTile(tileId)
+  const placingProp = Boolean(next.height > 0 && !next.wall)
+  // Stack onto an existing surface rather than replacing the base tile.
+  if (placingProp && surfaceOfTile(previousId) && canStackTileOn(map, { x, y }, tileId).ok) {
+    return stackTileOn(map, { x, y }, tileId) ?? map
+  }
+  if (map.tiles[y][x] === tileId && isRotated(map, { x, y }) === rotated) return map
   const tiles = map.tiles.map((row, rowY) => (rowY === y ? row.map((id, colX) => (colX === x ? tileId : id)) : row))
   const rotation = map.tiles.map((row, rowY) => row.map((_, colX) => (rowY === y && colX === x ? rotated : isRotated(map, { x: colX, y: rowY }))))
   let result = { ...map, tiles, rotated: rotation }
+  // Replacing a base prop clears its stack.
+  if (stackOverOf(map)[cellKey({ x, y })]) {
+    const stackOver = { ...stackOverOf(map) }
+    delete stackOver[cellKey({ x, y })]
+    result = withStackOver(result, stackOver)
+  }
   // Remember the floor under a newly placed wall or prop (height > 0). Do not overwrite an existing memory when
   // replacing one wall/prop with another.
   const placingBlock = Boolean(next.wall || next.height > 0)
@@ -118,13 +161,17 @@ export const paintBrush = (map, position, tileId, rotated = false) =>
   brushPositions(map, position, tileId, rotated).reduce((next, at) => paintTile(next, at, tileId, rotated), map)
 
 // Erase a wall or prop back to its remembered floor (or FLOOR_TILE). Returns { map } or { error }.
+// When the cell has stacked props, pops the top of stackOver first.
 export function eraseStructure(map, position) {
   const { x, y } = position
+  const stacked = popStackOver(map, position)
+  if (stacked) return { map: dropItemsFromRemovedSupport(stacked.map, { kind: 'tile', tile: { x, y } }) }
   const current = getTile(map.tiles[y][x])
   if (current.empty) return { map }
   if (!current.wall && !(current.height > 0)) return { error: 'Nothing to erase on this cell.' }
   const { map: cleared, floorId } = takeFloorUnder(map, position)
-  return { map: paintTile(cleared, position, floorId, false) }
+  const next = paintTile(cleared, position, floorId, false)
+  return { map: dropItemsFromRemovedSupport(next, { kind: 'tile', tile: { x, y } }) }
 }
 
 // Paint a floor tile, or erase to Null. Blocked when dependents need the floor (unless only a wall sits there).
@@ -433,43 +480,129 @@ export const groundItemAt = (map, position, { excludeId = null, cellPx = ITEM_CE
 
 const groundItemTile = (position) => ({ x: Math.round(position.x), y: Math.round(position.y) })
 
-const groundItemFits = (map, position, { excludeId = null, cellPx = ITEM_CELL_PX } = {}) => {
+function onFromSupport(support) {
+  if (!support) return null
+  if (support.kind === 'tile') return { tile: [support.tile.x, support.tile.y] }
+  if (support.kind === 'item') return { placement: support.instanceId }
+  return null
+}
+
+function supportFromOn(on) {
+  if (!on) return null
+  if (on.tile) {
+    const tile = Array.isArray(on.tile) ? { x: on.tile[0], y: on.tile[1] } : on.tile
+    return { kind: 'tile', tile }
+  }
+  if (on.placement) return { kind: 'item', instanceId: on.placement }
+  return null
+}
+
+// Minimal exploration-shaped state so supportAt / canPlaceOn can run against authored placements.
+function placementProbeState(map, { excludeId = null } = {}) {
+  const groundItems = {}
+  const itemInstances = {}
+  for (const entry of map.groundItemPlacements ?? []) {
+    if (excludeId && entry.id === excludeId) continue
+    itemInstances[entry.id] = { id: entry.id, itemId: entry.itemId, quantity: 1 }
+    const ground = { instanceId: entry.id, position: entry.position }
+    const support = supportFromOn(entry.on)
+    if (support) ground.support = support
+    groundItems[entry.id] = ground
+  }
+  return { party: { map }, groundItems, itemInstances }
+}
+
+function groundItemPlaceCheck(map, position, { excludeId = null, cellPx = ITEM_CELL_PX, itemId = null } = {}) {
   const snapped = snapItemPosition(position, cellPx)
   const tile = groundItemTile(snapped)
-  if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) return false
-  if (getTile(map.tiles[tile.y][tile.x]).solid) return false
-  return !groundItemAt(map, snapped, { excludeId, cellPx })
+  if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) {
+    return { ok: false, position: snapped, support: null }
+  }
+  const def = itemId ? getItemById(itemId) : null
+  const state = placementProbeState(map, { excludeId })
+  return canPlaceOn(state, snapped, { excludeInstanceId: excludeId, category: def?.category ?? null })
+}
+
+// When a support is removed or shortened, dependents re-resolve at the same X/Y (next surface below, else floor).
+export function dropItemsFromRemovedSupport(map, supportRef) {
+  if (!supportRef) return map
+  const list = map.groundItemPlacements ?? []
+  let working = map
+  let changed = false
+  const next = []
+  for (const entry of list) {
+    const support = supportFromOn(entry.on)
+    const lost =
+      support &&
+      ((supportRef.kind === 'tile' && support.kind === 'tile' && same(support.tile, supportRef.tile)) ||
+        (supportRef.kind === 'item' && support.kind === 'item' && support.instanceId === supportRef.instanceId))
+    if (!lost) {
+      next.push(entry)
+      continue
+    }
+    changed = true
+    const { on: _on, ...rest } = entry
+    // Probe without this entry's old support so canPlaceOn can find the next surface or floor.
+    const probeMap = { ...working, groundItemPlacements: [...next, rest, ...list.slice(next.length + 1)].filter((e) => e.id !== entry.id) }
+    const check = groundItemPlaceCheck(probeMap, rest.position, { excludeId: entry.id, itemId: entry.itemId })
+    if (check.ok) {
+      const replaced = { ...rest, position: check.position }
+      const on = onFromSupport(check.support)
+      if (on) replaced.on = on
+      next.push(replaced)
+    } else {
+      next.push(rest)
+    }
+  }
+  return changed ? { ...working, groundItemPlacements: next } : map
 }
 
 // Returns { map, object } or null when the cell can't take it. cellPx: world-pixel snap (toolbar grid size).
 export function placeGroundItem(map, position, itemId, cellPx = ITEM_CELL_PX) {
-  const snapped = snapItemPosition(position, cellPx)
-  if (!groundItemFits(map, snapped, { cellPx })) return null
+  const check = groundItemPlaceCheck(map, position, { cellPx, itemId })
+  if (!check.ok) return null
   const list = map.groundItemPlacements ?? []
-  const object = { id: freeId(itemId, new Set(list.map((entry) => entry.id))), itemId, position: snapped }
+  const object = { id: freeId(itemId, new Set(list.map((entry) => entry.id))), itemId, position: check.position }
+  const on = onFromSupport(check.support)
+  if (on) object.on = on
   return { map: { ...map, groundItemPlacements: [...list, object] }, object }
 }
 
 export function moveGroundItem(map, id, position, cellPx = ITEM_CELL_PX) {
   const object = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
-  const snapped = snapItemPosition(position, cellPx)
-  if (!object || itemGridKey(object.position, cellPx) === itemGridKey(snapped, cellPx) || !groundItemFits(map, snapped, { excludeId: id, cellPx })) {
-    return map
-  }
+  if (!object) return map
+  const check = groundItemPlaceCheck(map, position, { excludeId: id, cellPx, itemId: object.itemId })
+  if (!check.ok) return map
   return {
     ...map,
-    groundItemPlacements: map.groundItemPlacements.map((entry) => (entry.id === id ? { ...entry, position: snapped } : entry)),
+    groundItemPlacements: map.groundItemPlacements.map((entry) => {
+      if (entry.id !== id) return entry
+      const next = { ...entry, position: check.position }
+      const on = onFromSupport(check.support)
+      if (on) next.on = on
+      else delete next.on
+      return next
+    }),
   }
 }
 
-// changes: name, pickable, visible, position (null / '' / true defaults remove overrides).
+// changes: name, pickable, visible, position, on (null clears support).
 export function updateGroundItem(map, id, changes, cellPx = ITEM_CELL_PX) {
   return {
     ...map,
     groundItemPlacements: (map.groundItemPlacements ?? []).map((entry) => {
       if (entry.id !== id) return entry
       const next = { ...entry, ...changes }
-      if (changes.position) next.position = snapItemPosition(changes.position, cellPx)
+      if (changes.position) {
+        const check = groundItemPlaceCheck(map, changes.position, { excludeId: id, cellPx, itemId: entry.itemId })
+        if (check.ok) {
+          next.position = check.position
+          const on = onFromSupport(check.support)
+          if (on) next.on = on
+          else delete next.on
+        }
+      }
+      if (changes.on === null) delete next.on
       if (next.name === null || next.name === '') delete next.name
       if (next.pickable === true || next.pickable == null) delete next.pickable
       if (next.visible === true || next.visible == null) delete next.visible
@@ -478,10 +611,13 @@ export function updateGroundItem(map, id, changes, cellPx = ITEM_CELL_PX) {
   }
 }
 
-export const removeGroundItem = (map, id) => ({
-  ...map,
-  groundItemPlacements: (map.groundItemPlacements ?? []).filter((entry) => entry.id !== id),
-})
+export const removeGroundItem = (map, id) => {
+  const cleared = dropItemsFromRemovedSupport(map, { kind: 'item', instanceId: id })
+  return {
+    ...cleared,
+    groundItemPlacements: (cleared.groundItemPlacements ?? []).filter((entry) => entry.id !== id),
+  }
+}
 
 // A copy (new id, same overrides) on the nearest free snap cell within 4 tiles. Returns { map, object } or null.
 export function duplicateGroundItem(map, id, cellPx = ITEM_CELL_PX) {
@@ -494,13 +630,21 @@ export function duplicateGroundItem(map, id, cellPx = ITEM_CELL_PX) {
       for (let dx = -ring; dx <= ring; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue
         const position = snapItemPosition({ x: source.position.x + dx * step, y: source.position.y + dy * step }, cellPx)
-        if (!groundItemFits(map, position, { cellPx })) continue
+        const placed = placeGroundItem(map, position, source.itemId, cellPx)
+        if (!placed) continue
         const object = {
-          ...source,
-          id: freeId(source.itemId, new Set(map.groundItemPlacements.map((entry) => entry.id))),
-          position,
+          ...placed.object,
+          ...(source.name ? { name: source.name } : {}),
+          ...(source.pickable === false ? { pickable: false } : {}),
+          ...(source.visible === false ? { visible: false } : {}),
         }
-        return { map: { ...map, groundItemPlacements: [...map.groundItemPlacements, object] }, object }
+        return {
+          map: {
+            ...placed.map,
+            groundItemPlacements: placed.map.groundItemPlacements.map((entry) => (entry.id === object.id ? object : entry)),
+          },
+          object,
+        }
       }
     }
   }
