@@ -6,6 +6,16 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 ## Open
 
+### Map editor layers (implemented 2026-10-21 on `map-layers`; defaults awaiting designer review)
+
+Built per the approved architecture plan. Defaults chosen in the plan (change if wanted):
+
+- Null blocks movement, not sight. Walls may stand on Null. Erasing floor under dependents is blocked (message), not auto-cleared.
+- Resize fills with Null if the map already has Null cells, else floor. Spawn markers sit on the Characters layer. Hazards follow Furniture for visibility/lock.
+- Diagonal walls and Null-aware generators are out of scope. Levels / elevation still a placeholder.
+
+Where: `src/maps/layers.js`, `mapFormat.js` (`null`, `floorUnder`, schema 2), `mapEdits.js`, `useEditorLayers.js`, `useMapDocument.js` (undo/redo), Layers window.
+
 ### Klingon combat and dialogue expansion (branch `persuade-intimidate`, started 2026-10-20; implementer picks awaiting designer review)
 
 The expansion was built from the approved plan before the designer answered its section 9 questions. The designer answered them on 2026-10-20; those answers are recorded below as **designer decisions**. Any item still marked open is an implementer pick awaiting review, and each is cheap to reverse.

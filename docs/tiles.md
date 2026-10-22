@@ -18,7 +18,13 @@ This page holds the notes that used to sit in the JSON's `notes` array. When a f
 
 `symbol` is the character a tile is saved as in a map file's rows. Unknown symbols load as floor.
 
-Allocation order: the printable ASCII characters first (`"` and `\` are avoided; only `'` is left), then single Latin-1 letters from `À` (skipping `×` and `÷`), then Latin Extended-A from `Ā`. The next free symbol is recorded in the JSON's `notes` line.
+Allocation order: the printable ASCII characters first (`"` and `\` are avoided; only `'` is left), then single Latin-1 letters from `À` (skipping `×` and `÷`), then Latin Extended-A from `Ā`. The next free symbol is recorded in the JSON's `notes` line (currently `Ģ` after Null took `ġ`).
+
+## Null cells and floorUnder (map layers, 2026-10-21)
+
+- **Null** (`null` / `ġ`): empty cell inside the map rectangle. Solid for movement and placement; clear for sight. Editor New Map starts as all Null. Erasing a floor writes Null.
+- **`floorUnder`**: optional sparse `{ "x,y": tileId }` on the map file. Remembers the floor (or Null) under a wall or prop so erase restores it. Schema version stays **1** for legacy maps; maps that use Null or `floorUnder` write **2**.
+- Editor layers (Ground, Walls, Furniture, Characters, Markers) are UI state only — never saved. See `src/maps/layers.js`.
 
 ## Tile fields
 
@@ -39,6 +45,7 @@ Allocation order: the printable ASCII characters first (`"` and `\` are avoided;
 | `tall` | A large object (trees, spires, pillars, silos, masts) whose single-tile art is modelled at wall scale (taller trunks, columns and masts; crowns and tops keep their shape), with a matching `imageHeight`. Designer decision (Oct 2026): tall objects redesigned rather than stretched. The heights are a prototype proposal (`scripts/makeTilesV2World.mjs` `TALL`). |
 | `big` | `{ image, height }`: a 2x2 square of the same object is drawn as one object from its own 128 x 192 image (the original model at twice the size, rendered at 512 x 768), `height` being its drawn height; objects left over stay single (`src/maps/bigObjects.js`). Tall and big objects fade, except objects 32 high or lower (boulders, ice blocks, ore veins, cacti, fountains, fuel tanks, parked shuttles; designer decision Oct 2026). Presentation only: movement, sight and cover still read the single tiles. Which tiles are tall or big is a prototype proposal following the designer request "large objects such as trees should be 2x high... some boulders or large land features 2x or 2x2". |
 | `role` | `'hazard'` (a floor tile a hazard control can make dangerous), `'hazardControl'` (the interactable that sets it off), or `null`. |
+| `empty` | Authoring Null cell (`id: null`, symbol `ġ`): not drawn, blocks movement, does not block sight. Used for irregular footprints. Legacy maps never contain this symbol. |
 | `panelFitting` | On the long wall fittings: the fitting (`lcars`, `conduit`, `hatch`, `computer`) each two-tile panel shows instead of a window. Its art is the tile's `panelImages`; there is no code-drawn fallback. |
 | `joinImages` | A path template with `{joins}`: the tile is drawn as the piece joining it to up to two neighbouring tiles of the same kind (`{joins}` = their directions, e.g. `N-SE`; `src/maps/railJoins.js`), so curved runs read as one railing. |
 

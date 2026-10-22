@@ -1,6 +1,7 @@
 import { Sprite } from 'pixi.js'
 import { textureOf } from './pixiDraw.js'
 import { isBlock, project } from '../../../maps/iso.js'
+import { layerOfTile } from '../../../maps/layers.js'
 import { FULL_LIGHT } from '../../../maps/mapFormat.js'
 import { DARK_MARGIN, darknessOpacity, effectsEpochOf, emissiveEpochOf, frameAt, overlayEmissive } from '../../../maps/tileArt.js'
 import {
@@ -155,6 +156,31 @@ export class MapLayers {
     this.emissive = new Set(emissiveTiles(layout).map((item) => item.key))
     this.emissiveEpoch = emissiveEpochOf()
     this.effectsEpoch = effectsEpochOf()
+    // Editor layer visibility (optional): { ground, walls, furniture, … }. Missing / null = all visible.
+    this.layerVisibility = null
+  }
+
+  // Editor Layers window: hide floors / wall blocks / furniture blocks without changing map data.
+  setLayerVisibility(visible) {
+    const key = visible ? JSON.stringify(visible) : ''
+    if (key === this.layerVisibilityKey) return
+    this.layerVisibilityKey = key
+    this.layerVisibility = visible
+    this.applyLayerVisibility()
+  }
+
+  layerIsVisible(layerId) {
+    if (!this.layerVisibility) return true
+    return this.layerVisibility[layerId] !== false
+  }
+
+  applyLayerVisibility() {
+    if (this.floorContainer) this.floorContainer.visible = this.layerIsVisible('ground')
+    if (!this.ready) return
+    const now = performance.now()
+    for (const record of this.blocks.values()) {
+      this.applyLevel(record, record.level, now)
+    }
   }
 
   // Loads the map's images, then draws it. Resolves true once drawn (false if destroyed first).
@@ -351,8 +377,16 @@ export class MapLayers {
   }
 
   // Shows a block at an opacity: a faded panel draws whole from its near half (its far half draws nothing).
+  // Editor layer visibility can hide walls / furniture regardless of fade.
   applyLevel(record, level, now) {
     record.level = level
+    const tileId = this.layout.map.tiles[record.position.y]?.[record.position.x]
+    const layer = tileId != null ? layerOfTile(tileId) : 'furniture'
+    if (!this.layerIsVisible(layer)) {
+      record.sprite.visible = false
+      if (record.pair) record.pair.visible = false
+      return
+    }
     if (!record.panel || level === 1) {
       record.sprite.visible = true
       record.sprite.alpha = level
@@ -369,6 +403,7 @@ export class MapLayers {
   // faded: the Set of 'x,y' keys to show see-through (it eases there). view: the world area on screen.
   update(faded, now, view) {
     if (!this.ready) return
+    if (this.floorContainer) this.floorContainer.visible = this.layerIsVisible('ground')
     // tileEffects change: repaint floor shadows and darkness holes.
     const lightEpoch = effectsEpochOf()
     if (this.effectsEpoch !== lightEpoch) {

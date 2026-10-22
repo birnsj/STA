@@ -10,6 +10,7 @@ import {
   duplicateGroundItem,
   eraseHazardTile,
   eraseMarkers,
+  eraseStructure,
   groundItemAt,
   hasMarkers,
   hazardRegionAt,
@@ -18,13 +19,14 @@ import {
   moveMarkers,
   npcAt,
   paintBrush,
+  paintFloor,
   paintHazardTile,
   placeDestructible,
   placeGroundItem,
   placeNpc,
   removeGroundItem,
   removePatrolWaypoint,
-  selectionAt,
+  selectionCandidates,
   setAreaLabel,
   swapTilesWithObjects,
   toggleMarker,
@@ -33,7 +35,8 @@ import {
   updatePatrolWaypoint,
   updateNpc,
 } from '../../maps/mapEdits.js'
-import { getTile, isRotated } from '../../maps/mapFormat.js'
+import { canEditLayer, layerOfTile, selectionPriority } from '../../maps/layers.js'
+import { getTile, isRotated, NULL_TILE } from '../../maps/mapFormat.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
@@ -45,7 +48,20 @@ import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
 // in front of the user, which clears the selection. suspended: a popup or full-screen editor is open, so the keys stand
 // aside. onObjectivePlaced(index): an objective sent here by the Objective Editor was placed (or cancelled), so it reopens.
 // itemGridSize: world-pixel snap for ground items (matches the toolbar guide grid; default 8).
-export default function useEditorTools({ map, edit, setStatus, askText, boardKey, suspended, onObjectivePlaced, itemGridSize = 8 }) {
+// layers: editor layer state from useEditorLayers (visibility / lock / active). beginStroke / endStroke: undo coalescing.
+export default function useEditorTools({
+  map,
+  edit,
+  setStatus,
+  askText,
+  boardKey,
+  suspended,
+  onObjectivePlaced,
+  itemGridSize = 8,
+  layers = null,
+  beginStroke = null,
+  endStroke = null,
+}) {
   const [tool, setTool] = useState('tile:bulkhead')
   // Character Library "Use for placement": next Place NPC uses this id (otherwise the first catalogue entry).
   const [pendingCharacterId, setPendingCharacterId] = useState(null)
@@ -274,31 +290,72 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setSelectedWaypointIndex(null)
   }
 
-  // A click with no marker tool held (Place Tiles and Move off): select what stands on the tile for editing (the NPC
-  // and the player start or enemy spawn under it, each in its own inspector); an empty tile closes the inspectors.
-  const selectAt = (position) => {
-    if (editingPatrol || movingWaypoint) {
-      if (onPatrolEdit(position)) return
-    }
-    const { npc, markerKind, object } = selectionAt(map, objectDefinitions, position)
-    setSelectedNpcId(npc?.id ?? null)
-    setSelectedMarker(markerKind ? { kind: markerKind, x: position.x, y: position.y } : null)
-    setSelectedObjectId(object?.id ?? null)
-    setSelectedDestructibleId(destructibleAt(map, position)?.id ?? null)
-    setSelectedHazardId(hazardRegionAt(map, position)?.id ?? null)
-    setSelectedGroundItemId(groundItemAt(map, position, { cellPx: itemGridSize })?.id ?? null)
+  const clearSelectionModes = () => {
     setPlacingObject(false)
     setEditingObjectCovers(false)
     setMovingNpc(false)
     setMovingDestructible(false)
     setLinkingDestructible(false)
     setMovingGroundItem(false)
-    if (!npc) {
+  }
+
+  const applyCandidate = (candidate, position) => {
+    setSelectedNpcId(candidate?.kind === 'npc' ? candidate.npc.id : null)
+    setSelectedMarker(
+      candidate?.kind === 'playerStarts' || candidate?.kind === 'enemySpawns'
+        ? { kind: candidate.kind, x: position.x, y: position.y }
+        : null,
+    )
+    setSelectedObjectId(candidate?.kind === 'object' ? candidate.object.id : null)
+    setSelectedDestructibleId(candidate?.kind === 'destructible' ? candidate.destructible.id : null)
+    setSelectedHazardId(candidate?.kind === 'hazard' ? candidate.hazard.id : null)
+    setSelectedGroundItemId(candidate?.kind === 'groundItem' ? candidate.groundItem.id : null)
+    if (candidate?.kind !== 'npc') {
       setEditingPatrol(false)
       setSelectedWaypointIndex(null)
       setMovingWaypoint(false)
     }
   }
+
+  // A click with no marker tool held (Place Tiles and Move off): select what stands on the tile for editing.
+  // Layer-aware: hidden/locked layers are skipped; active layer is preferred; repeat clicks cycle candidates.
+  const selectAt = (position) => {
+    if (editingPatrol || movingWaypoint) {
+      if (onPatrolEdit(position)) return
+    }
+    clearSelectionModes()
+    const all = selectionCandidates(map, objectDefinitions, position, { cellPx: itemGridSize })
+    const editable = all.filter((candidate) => {
+      if (!candidate.layer) return true
+      return canEditLayer(layers, candidate.layer)
+    })
+    if (!editable.length) {
+      applyCandidate(null, position)
+      return
+    }
+    const priority = selectionPriority(layers?.active)
+    const ranked = [...editable].sort((a, b) => {
+      const ai = priority.indexOf(a.layer)
+      const bi = priority.indexOf(b.layer)
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi)
+    })
+    // Cycle when the click is on the same tile as the current selection.
+    const currentIndex = ranked.findIndex((candidate) => {
+      if (candidate.kind === 'npc') return candidate.npc.id === selectedNpcId
+      if (candidate.kind === 'object') return candidate.object.id === selectedObjectId
+      if (candidate.kind === 'destructible') return candidate.destructible.id === selectedDestructibleId
+      if (candidate.kind === 'hazard') return candidate.hazard.id === selectedHazardId
+      if (candidate.kind === 'groundItem') return candidate.groundItem.id === selectedGroundItemId
+      if (candidate.kind === 'playerStarts' || candidate.kind === 'enemySpawns') {
+        return selectedMarker?.kind === candidate.kind && selectedMarker.x === position.x && selectedMarker.y === position.y
+      }
+      return false
+    })
+    const next = ranked[(currentIndex + 1) % ranked.length]
+    applyCandidate(next, position)
+  }
+
+  const layerAllowsTool = (layerId) => canEditLayer(layers, layerId)
 
   // The destructible tools: click a destructible to select it, a free floor tile to place one of the held type.
   const onDestructibleTool = (position, type) => {
@@ -334,7 +391,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
     setStatus(`Placed ${def?.name ?? itemId} (${placed.object.id}).`)
   }
 
-    const onPaint = (position, { first }) => {
+  const onPaint = (position, { first }) => {
+    if (first) beginStroke?.()
     if ((editingPatrol || movingWaypoint) && selectedNpc && first) {
       if (onPatrolEdit(position)) return
     }
@@ -365,15 +423,18 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       return
     }
     if (tool?.startsWith('inventory:')) {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       if (first) onInventoryTool(position, tool.slice('inventory:'.length))
       return
     }
     if (tool?.startsWith('destructible:')) {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       if (first) onDestructibleTool(position, tool.slice('destructible:'.length))
       return
     }
-    // The hazard brushes paint (or erase) every tile dragged over.
+    // The hazard brushes paint (or erase) every tile dragged over. Visibility/lock follows Furniture.
     if (tool?.startsWith('hazard:')) {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const painted = paintHazardTile(map, position, tool.slice('hazard:'.length), hazardIntensity)
       if (painted !== map) edit(painted)
       setSelectedHazardId(hazardRegionAt(painted, position)?.id ?? null)
@@ -381,6 +442,7 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       return
     }
     if (tool === 'hazardErase') {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const erased = eraseHazardTile(map, position)
       if (erased !== map) edit(erased)
       return
@@ -414,16 +476,51 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
       if (first) setMoveFrom({ ...position, markers: hasMarkers(map, position), destructible: destructibleAt(map, position)?.id ?? null })
       return
     }
+    if (tool === 'eraseFloor') {
+      if (!layerAllowsTool('ground')) return setStatus('Ground / Floors layer is locked or hidden.')
+      const result = paintFloor(map, position, NULL_TILE, objectDefinitions)
+      if (result.error) setStatus(result.error)
+      else if (result.map !== map) edit(result.map)
+      return
+    }
+    if (tool === 'eraseStructure') {
+      const tileLayer = layerOfTile(map.tiles[position.y][position.x])
+      if (!layerAllowsTool(tileLayer === 'furniture' ? 'furniture' : 'walls')) {
+        return setStatus('That layer is locked or hidden.')
+      }
+      const result = eraseStructure(map, position)
+      if (result.error) setStatus(result.error)
+      else if (result.map !== map) edit(result.map)
+      return
+    }
     if (!tool || tool.startsWith('tile:')) {
-      if (tool && placing) edit(paintBrush(map, position, tool.slice('tile:'.length), rotated))
-      else if (first) selectAt(position)
+      if (tool && placing) {
+        const tileId = tool.slice('tile:'.length)
+        const tileLayer = layerOfTile(tileId)
+        if (!layerAllowsTool(tileLayer)) return setStatus(`${tileLayer} layer is locked or hidden.`)
+        // Ground-layer tiles use paintFloor so walls keep their floorUnder memory.
+        if (tileLayer === 'ground') {
+          const result = paintFloor(map, position, tileId, objectDefinitions)
+          if (result.error) setStatus(result.error)
+          else if (result.map !== map) edit(result.map)
+        } else {
+          edit(paintBrush(map, position, tileId, rotated))
+        }
+      } else if (first) selectAt(position)
       return
     }
     // Marker tools act on the pressed tile only, not on every tile dragged over.
     if (!first) return
-    if (tool === 'npcs') onNpcTool(position)
-    else if (tool === 'erase') edit(eraseMarkers(map, position))
-    else if (tool === 'area') {
+    if (tool === 'npcs') {
+      if (!layerAllowsTool('characters')) return setStatus('NPCs / Characters layer is locked or hidden.')
+      onNpcTool(position)
+    } else if (tool === 'erase') {
+      if (!layerAllowsTool('characters') && !layerAllowsTool('markers')) {
+        return setStatus('Characters and Markers layers are locked or hidden.')
+      }
+      edit(eraseMarkers(map, position))
+    } else if (tool === 'area') {
+      if (!layerAllowsTool('markers')) return setStatus('Markers / Triggers layer is locked or hidden.')
       const current = areaAt(map, position)?.name ?? ''
       askText({
         title: current ? 'Edit Area Label' : 'New Area Label',
@@ -431,7 +528,8 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         placeholder: 'e.g. Tool Shed',
         removeLabel: current ? 'Remove' : null,
       }).then((name) => name !== null && edit(setAreaLabel(map, position, name)))
-    } else {
+    } else if (tool === 'playerStarts' || tool === 'enemySpawns') {
+      if (!layerAllowsTool('characters')) return setStatus('NPCs / Characters layer is locked or hidden.')
       const list = map.markers[tool] ?? []
       const exists = list.some((marker) => marker.x === position.x && marker.y === position.y)
       if (tool === 'playerStarts' && !exists && list.length >= MAX_AWAY_TEAM) {
@@ -439,12 +537,15 @@ export default function useEditorTools({ map, edit, setStatus, askText, boardKey
         return
       }
       edit(toggleMarker(map, tool, position))
+    } else {
+      edit(toggleMarker(map, tool, position))
     }
   }
 
   // Move: what was picked up is dropped where the button is released (off the map: nothing moves). A tile with markers
   // on it moves its markers; any other tile swaps with the drop tile.
   const onPaintEnd = (position) => {
+    endStroke?.()
     if (!moving || !moveFrom) return
     setMoveFrom(null)
     if (!position || (position.x === moveFrom.x && position.y === moveFrom.y)) return

@@ -61,12 +61,15 @@ function fadingBlocks(map, bigGroups) {
 // ---------- spaces and sections ----------
 
 const isWall = (map, x, y) => x < 0 || y < 0 || x >= map.width || y >= map.height || Boolean(getTile(map.tiles[y][x]).wall)
+// Empty (Null) cells are not walkable space for cutaway analysis — treat them like walls for flood-fill.
+const isEmpty = (map, x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && Boolean(getTile(map.tiles[y][x]).empty)
 const isFadingWall = (map, x, y) => {
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return false
   const tile = getTile(map.tiles[y][x])
   return Boolean(tile.wall && tile.fade && tile.height > 0)
 }
 const isDoorway = (map, x, y) => map.tiles[y][x] === 'doorway'
+const isSpaceBarrier = (map, x, y) => isWall(map, x, y) || isDoorway(map, x, y) || isEmpty(map, x, y)
 
 // The map's spaces and wall sections, worked out once per map: { spaceAt (Int32Array, -1 for walls and doorways),
 // spaces: [{ kind: 'room' | 'corridor' | 'open', frontWalls: [keys], frontGroups (rooms): [side] }] (roomSides),
@@ -80,7 +83,7 @@ export function analyseWalls(map) {
   const spaces = []
   for (let y0 = 0; y0 < height; y0++) {
     for (let x0 = 0; x0 < width; x0++) {
-      if (spaceAt[y0 * width + x0] !== -1 || isWall(map, x0, y0) || isDoorway(map, x0, y0)) continue
+      if (spaceAt[y0 * width + x0] !== -1 || isSpaceBarrier(map, x0, y0)) continue
       const id = spaces.length
       const tiles = []
       let touchesEdge = false
@@ -92,7 +95,7 @@ export function analyseWalls(map) {
         if (x === 0 || y === 0 || x === width - 1 || y === height - 1) touchesEdge = true
         for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
           if (nx < 0 || ny < 0 || nx >= width || ny >= height || spaceAt[ny * width + nx] !== -1) continue
-          if (isWall(map, nx, ny) || isDoorway(map, nx, ny)) continue
+          if (isSpaceBarrier(map, nx, ny)) continue
           spaceAt[ny * width + nx] = id
           stack.push([nx, ny])
         }

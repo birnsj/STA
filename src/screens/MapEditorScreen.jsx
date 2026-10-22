@@ -18,6 +18,7 @@ import useDialogs from '../components/maps/useDialogs.jsx'
 import LoadMapDialog from '../components/maps/LoadMapDialog.jsx'
 import '../components/maps/mapEditor.css'
 import { listConversations } from '../conversation/conversationFiles.js'
+import useEditorLayers from '../components/maps/useEditorLayers.js'
 import useEditorTools from '../components/maps/useEditorTools.js'
 import useMapDocument from '../components/maps/useMapDocument.js'
 import { updateNpc } from '../maps/mapEdits.js'
@@ -54,12 +55,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const { askConfirm, askText, dialogs, open: dialogShowing } = useDialogs()
   const doc = useMapDocument({ askConfirm, askText, setStatus })
   const { map, edit } = doc
+  const editorLayers = useEditorLayers()
   const [ghostBlocks, setGhostBlocks] = useState(false)
   const [animateTiles, setAnimateTiles] = useState(true)
   const [showLighting, setShowLighting] = useState(true)
   const [showWeather, setShowWeather] = useState(true)
   const [showGrid, setShowGrid] = useState(false)
   const [gridSize, setGridSize] = useState(64)
+  const [showBounds, setShowBounds] = useState(true)
+  const [showCentre, setShowCentre] = useState(false)
   const [showGridOptions, setShowGridOptions] = useState(false)
   const [overviewOpen, setOverviewOpen] = useState(false)
   const [layersOpen, setLayersOpen] = useState(false)
@@ -109,6 +113,29 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     Boolean(objectEditor) ||
     storyEditor ||
     characterLibrary
+
+  // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo. Skipped while a dialog or sub-editor is open.
+  useEffect(() => {
+    if (dialogOpen || boardBlocked) return undefined
+    const onKey = (event) => {
+      if (event.target.closest?.('input, textarea, select')) return
+      const mod = event.ctrlKey || event.metaKey
+      if (!mod) return
+      if (event.key === 'z' || event.key === 'Z') {
+        event.preventDefault()
+        if (event.shiftKey) doc.canRedo && doc.redo()
+        else doc.canUndo && doc.undo()
+        return
+      }
+      if (event.key === 'y' || event.key === 'Y') {
+        event.preventDefault()
+        doc.canRedo && doc.redo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dialogOpen, boardBlocked, doc])
+
   const tools = useEditorTools({
     map,
     edit,
@@ -116,6 +143,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     askText,
     boardKey: doc.boardKey,
     suspended: dialogOpen || boardBlocked,
+    layers: editorLayers.layers,
+    beginStroke: doc.beginStroke,
+    endStroke: doc.endStroke,
     onObjectivePlaced: (index) => setObjectiveEditor({ index }),
     itemGridSize: gridSize,
   })
@@ -167,6 +197,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         return doc.onDelete()
       case 'back':
         return (await doc.confirmDiscard()) && onBack()
+      case 'undo':
+        return doc.canUndo && doc.undo()
+      case 'redo':
+        return doc.canRedo && doc.redo()
       case 'placeTiles':
         return tools.onPlacingToggle(!placing)
       case 'move':
@@ -426,6 +460,12 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onGenerateEpisode={() => edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })}
         onGenerateCard={onGenerateCard}
         onGeneratorEditor={() => setGeneratorEditor(true)}
+        overviewOpen={overviewOpen}
+        onOverview={() => setOverviewOpen((value) => !value)}
+        layersOpen={layersOpen}
+        onLayers={() => setLayersOpen((value) => !value)}
+        levelsOpen={levelsOpen}
+        onLevels={() => setLevelsOpen((value) => !value)}
       />
       <div className="ed-workspace">
         <EditorPalette
@@ -433,6 +473,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           onTool={tools.selectTool}
           onOpenCharacterLibrary={() => setCharacterLibrary(true)}
           animateTiles={animateTiles}
+          activeLayer={editorLayers.layers.active}
         />
         <div className={`ed-viewport me-board-area${boardBlocked ? ' is-float-busy' : ''}`}>
           <div className="ed-viewport-title">{map.name || 'Untitled map'}</div>
@@ -444,6 +485,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             animate={animateTiles}
             showGrid={showGrid}
             gridSize={gridSize}
+            showBounds={showBounds}
+            showCentre={showCentre}
+            layerVisibility={editorLayers.layers.visible}
             brush={placing && tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
             rotated={rotated}
             erasing={tool === 'erase'}
@@ -469,6 +513,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             onShowGrid={setShowGrid}
             gridSize={gridSize}
             onGridSize={setGridSize}
+            showBounds={showBounds}
+            onShowBounds={setShowBounds}
+            showCentre={showCentre}
+            onShowCentre={setShowCentre}
           />
           {hoverTile && !boardBlocked && (
             <div className="ed-coord-hud" aria-live="polite">
@@ -509,7 +557,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         showLighting={showLighting}
         onShowLighting={setShowLighting}
       />
-      <EditorLayersWindow open={layersOpen} onClose={() => setLayersOpen(false)} onBusyChange={floatBusy('layers')} />
+      <EditorLayersWindow
+        open={layersOpen}
+        onClose={() => setLayersOpen(false)}
+        onBusyChange={floatBusy('layers')}
+        layers={editorLayers.layers}
+        setActive={editorLayers.setActive}
+        toggleVisible={editorLayers.toggleVisible}
+        toggleLocked={editorLayers.toggleLocked}
+      />
       <EditorLevelsWindow open={levelsOpen} onClose={() => setLevelsOpen(false)} onBusyChange={floatBusy('levels')} />
       {doc.showLoad && <LoadMapDialog maps={doc.maps} currentId={doc.fileId} onLoad={doc.onLoad} onCancel={() => doc.setShowLoad(false)} />}
       {dialogs}

@@ -20,6 +20,9 @@ const MENUS = [
     id: 'edit',
     label: 'Edit',
     items: [
+      { id: 'undo', label: 'Undo' },
+      { id: 'redo', label: 'Redo' },
+      { sep: true },
       { id: 'placeTiles', label: 'Toggle Place Tiles' },
       { id: 'move', label: 'Toggle Move' },
     ],

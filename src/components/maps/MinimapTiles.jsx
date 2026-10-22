@@ -43,7 +43,12 @@ export default function MinimapTiles({ tiles }) {
       canvas.width = columns * size
       canvas.height = rows * size
       const context = canvas.getContext('2d')
-      tiles.forEach((row, y) => row.forEach((id, x) => context.drawImage(faces.get(id), x * size, y * size)))
+      tiles.forEach((row, y) =>
+        row.forEach((id, x) => {
+          if (getTile(id).empty) return
+          context.drawImage(faces.get(id), x * size, y * size)
+        }),
+      )
     })
     return () => {
       cancelled = true

@@ -2,13 +2,81 @@
 import { ITEM_CELL_PX, snapItemPosition } from '../rules/inventory.js'
 import { nextFacing, spawnFacing } from './facing.js'
 import { TILE_W } from './iso.js'
-import { getTile, HAZARD_OVERRIDES, HAZARD_TEXT_OVERRIDES, isRotated } from './mapFormat.js'
+import { layerOfSelection, layerOfTile } from './layers.js'
+import {
+  cellKey,
+  FLOOR_TILE,
+  getTile,
+  HAZARD_OVERRIDES,
+  HAZARD_TEXT_OVERRIDES,
+  isEmptyTile,
+  isRotated,
+  NULL_TILE,
+} from './mapFormat.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
 const itemGridKey = (position, cellPx = ITEM_CELL_PX) => {
   const snapped = snapItemPosition(position, cellPx)
   return `${snapped.x},${snapped.y}`
+}
+
+const floorUnderOf = (map) => map.floorUnder ?? {}
+const withFloorUnder = (map, floorUnder) => {
+  const keys = Object.keys(floorUnder)
+  if (!keys.length && !map.floorUnder) return { ...map, floorUnder: {} }
+  return { ...map, floorUnder }
+}
+
+// Remember the floor (or Null) under a wall/prop when painting one over it; restore on erase.
+export function rememberFloorUnder(map, position, previousId) {
+  const key = cellKey(position)
+  const floorUnder = { ...floorUnderOf(map), [key]: previousId }
+  return withFloorUnder(map, floorUnder)
+}
+
+export function takeFloorUnder(map, position) {
+  const key = cellKey(position)
+  const remembered = floorUnderOf(map)[key]
+  if (remembered == null) return { map, floorId: FLOOR_TILE }
+  const floorUnder = { ...floorUnderOf(map) }
+  delete floorUnder[key]
+  return { map: withFloorUnder(map, floorUnder), floorId: remembered }
+}
+
+// Things that require a floor cell at `position` (block erasing that floor to Null).
+export function dependentsAt(map, position, objectDefinitions = []) {
+  const found = []
+  if (npcAt(map, position)) found.push({ kind: 'npc', label: 'NPC' })
+  if (map.markers.playerStarts.some((marker) => same(marker, position))) found.push({ kind: 'playerStarts', label: 'player start' })
+  if (map.markers.enemySpawns.some((marker) => same(marker, position))) found.push({ kind: 'enemySpawns', label: 'enemy spawn' })
+  if (destructibleAt(map, position)) found.push({ kind: 'destructible', label: 'destructible' })
+  if (hazardRegionAt(map, position)) found.push({ kind: 'hazard', label: 'hazard' })
+  if (objectDefinitions.some((definition) => definition.position[0] === position.x && definition.position[1] === position.y)) {
+    found.push({ kind: 'object', label: 'challenge object' })
+  }
+  if ((map.groundItemPlacements ?? []).some((entry) => Math.round(entry.position.x) === position.x && Math.round(entry.position.y) === position.y)) {
+    found.push({ kind: 'groundItem', label: 'ground item' })
+  }
+  if (areaAt(map, position)) found.push({ kind: 'area', label: 'area label' })
+  if ((map.objectives ?? []).some((objective) => objective.position && same(objective.position, position))) {
+    found.push({ kind: 'objective', label: 'objective' })
+  }
+  // Prop tiles (furniture) and walls sitting on this cell — walls are allowed on Null, props are not.
+  const tile = getTile(map.tiles[position.y]?.[position.x])
+  if (tile && !tile.empty && !tile.wall && tile.height > 0) found.push({ kind: 'prop', label: 'scenery' })
+  return found
+}
+
+// Whether erasing the floor at `position` to Null is allowed. Walls may remain on Null; everything else blocks.
+export function canEraseFloor(map, position, objectDefinitions = []) {
+  const blockers = dependentsAt(map, position, objectDefinitions).filter((entry) => entry.kind !== 'wall')
+  // A wall tile itself is fine on Null — only non-wall dependents block.
+  const tile = getTile(map.tiles[position.y]?.[position.x])
+  if (tile?.wall) {
+    return { ok: true, blockers: blockers.filter((entry) => entry.kind !== 'prop') }
+  }
+  return blockers.length ? { ok: false, blockers } : { ok: true, blockers: [] }
 }
 
 // The tiles one brush press covers: a wall with panels is laid as a whole two-tile panel, along x (or along y when
@@ -22,14 +90,24 @@ export function brushPositions(map, { x, y }, tileId, rotated) {
 }
 
 // rotated: the tile is painted turned (mapFormat.js rotated).
+// When painting a wall or prop over a floor/Null cell, the previous id is stored in floorUnder so erase can restore it.
 export function paintTile(map, { x, y }, tileId, rotated = false) {
   if (map.tiles[y][x] === tileId && isRotated(map, { x, y }) === rotated) return map
+  const previousId = map.tiles[y][x]
+  const previous = getTile(previousId)
+  const next = getTile(tileId)
   const tiles = map.tiles.map((row, rowY) => (rowY === y ? row.map((id, colX) => (colX === x ? tileId : id)) : row))
   const rotation = map.tiles.map((row, rowY) => row.map((_, colX) => (rowY === y && colX === x ? rotated : isRotated(map, { x: colX, y: rowY }))))
+  let result = { ...map, tiles, rotated: rotation }
+  // Remember the floor under a newly placed wall or prop (height > 0). Do not overwrite an existing memory when
+  // replacing one wall/prop with another.
+  const placingBlock = Boolean(next.wall || next.height > 0)
+  const leavingFloor = Boolean(previous.empty || (!previous.wall && previous.height === 0))
+  if (placingBlock && leavingFloor) result = rememberFloorUnder(result, { x, y }, previousId)
   // Markers, destructible objects and hazards can't be inside solid tiles.
-  if (!getTile(tileId).solid) return { ...map, tiles, rotated: rotation }
-  const markers = { playerStarts: without(map.markers.playerStarts, { x, y }), enemySpawns: without(map.markers.enemySpawns, { x, y }) }
-  const cleared = { ...map, tiles, rotated: rotation, markers }
+  if (!next.solid) return result
+  const markers = { playerStarts: without(result.markers.playerStarts, { x, y }), enemySpawns: without(result.markers.enemySpawns, { x, y }) }
+  const cleared = { ...result, markers }
   if (destructibleAt(map, { x, y })) cleared.destructibles = map.destructibles.filter((object) => !same(object.position, { x, y }))
   if (hazardRegionAt(map, { x, y })) cleared.hazards = withoutHazardTile(map.hazards, { x, y })
   return cleared
@@ -38,6 +116,41 @@ export function paintTile(map, { x, y }, tileId, rotated = false) {
 // One brush press: every tile brushPositions covers.
 export const paintBrush = (map, position, tileId, rotated = false) =>
   brushPositions(map, position, tileId, rotated).reduce((next, at) => paintTile(next, at, tileId, rotated), map)
+
+// Erase a wall or prop back to its remembered floor (or FLOOR_TILE). Returns { map } or { error }.
+export function eraseStructure(map, position) {
+  const { x, y } = position
+  const current = getTile(map.tiles[y][x])
+  if (current.empty) return { map }
+  if (!current.wall && !(current.height > 0)) return { error: 'Nothing to erase on this cell.' }
+  const { map: cleared, floorId } = takeFloorUnder(map, position)
+  return { map: paintTile(cleared, position, floorId, false) }
+}
+
+// Paint a floor tile, or erase to Null. Blocked when dependents need the floor (unless only a wall sits there).
+// Returns { map } or { error }.
+export function paintFloor(map, position, tileId, objectDefinitions = []) {
+  const { x, y } = position
+  if (tileId === NULL_TILE) {
+    const check = canEraseFloor(map, position, objectDefinitions)
+    if (!check.ok) {
+      const first = check.blockers[0]
+      return { error: `Cannot erase floor: ${first.label} depends on it.` }
+    }
+    const current = getTile(map.tiles[y][x])
+    // Erasing floor under a wall: leave the wall, record Null in floorUnder.
+    if (current.wall || current.height > 0) {
+      return { map: rememberFloorUnder(map, position, NULL_TILE) }
+    }
+    return { map: paintTile(map, position, NULL_TILE, false) }
+  }
+  const current = getTile(map.tiles[y][x])
+  // Painting floor onto a wall/prop updates floorUnder rather than replacing the structure.
+  if (current.wall || current.height > 0) {
+    return { map: rememberFloorUnder(map, position, tileId) }
+  }
+  return { map: paintTile(map, position, tileId, false) }
+}
 
 // The Move tool: the tiles at a and b trade places, each keeping its rotation. Markers stay where they are (and are
 // dropped from a tile that becomes solid, as painting does).
@@ -65,6 +178,33 @@ export function selectionAt(map, objectDefinitions, position) {
   const markerKind = ['playerStarts', 'enemySpawns'].find((kind) => map.markers[kind].some((marker) => same(marker, position))) ?? null
   const object = objectDefinitions.find((definition) => definition.position[0] === position.x && definition.position[1] === position.y) ?? null
   return { npc: npcAt(map, position), markerKind, object }
+}
+
+// Every selectable thing at a tile, tagged with its editor layer, for layer-aware hit tests and cycling.
+export function selectionCandidates(map, objectDefinitions, position, { cellPx = ITEM_CELL_PX } = {}) {
+  const candidates = []
+  const tileId = map.tiles[position.y]?.[position.x]
+  if (tileId != null && !isEmptyTile(tileId)) {
+    const layer = layerOfTile(tileId)
+    if (layer === 'walls' || layer === 'furniture' || layer === 'ground') {
+      candidates.push({ kind: layer === 'walls' ? 'wall' : layer === 'furniture' ? 'prop' : 'tile', layer, tileId })
+    }
+  }
+  const { npc, markerKind, object } = selectionAt(map, objectDefinitions, position)
+  if (npc) candidates.push({ kind: 'npc', layer: layerOfSelection('npc'), npc })
+  if (markerKind) candidates.push({ kind: markerKind, layer: layerOfSelection(markerKind), markerKind })
+  if (object) candidates.push({ kind: 'object', layer: layerOfSelection('object'), object })
+  const destructible = destructibleAt(map, position)
+  if (destructible) candidates.push({ kind: 'destructible', layer: layerOfSelection('destructible'), destructible })
+  const hazard = hazardRegionAt(map, position)
+  if (hazard) candidates.push({ kind: 'hazard', layer: layerOfSelection('hazard'), hazard })
+  const groundItem = groundItemAt(map, position, { cellPx })
+  if (groundItem) candidates.push({ kind: 'groundItem', layer: layerOfSelection('groundItem'), groundItem })
+  const area = areaAt(map, position)
+  if (area) candidates.push({ kind: 'area', layer: layerOfSelection('area'), area })
+  const objective = (map.objectives ?? []).find((entry) => entry.position && same(entry.position, position))
+  if (objective) candidates.push({ kind: 'objective', layer: layerOfSelection('objective'), objective })
+  return candidates
 }
 
 // Whether anything the Move tool carries instead of the tile stands here: a player start, enemy spawn, NPC, area label

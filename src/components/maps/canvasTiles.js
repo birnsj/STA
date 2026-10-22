@@ -4,7 +4,7 @@
 // image at its own size; animated tiles (tileArt.js flipbooks) on an animation layer over them, and the map's darkness.
 // A change only repaints the area it touched. Presentation only.
 import { BIG_IMAGE, getBigObjects } from '../../maps/bigObjects.js'
-import { isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
+import { diamond, isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
 import { joinedImage } from '../../maps/railJoins.js'
 import {
@@ -362,6 +362,8 @@ function indexOf(layout) {
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
+      // Null cells are neither floors nor blocks: nothing drawn, nothing lit.
+      if (getTile(id).empty) return
       if (isBlock(id)) blocks.push({ position, key: keyOf(position), depth: x + y, area: blockArea(layout, position) })
       else floors.push({ position, area: tileImageBox(position) })
     }),
@@ -696,7 +698,7 @@ function lightingOf(map) {
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
-      if (isBlock(id)) return
+      if (getTile(id).empty || isBlock(id)) return
       for (const side of SIDES) {
         if (!blockAt(x + side.dx, y + side.dy)) continue
         SHADE_BANDS.forEach(([from, to], band) => strips.push({ band, quad: edgeStrip(position, side, from, to), box: tileImageBox(position) }))
@@ -706,6 +708,43 @@ function lightingOf(map) {
   const lighting = { strips }
   lightingCache.set(map, { epoch, lighting })
   return lighting
+}
+
+// Camera-facing sides of a floor cell that meet Null (or out-of-map) get a short lip. Walls and doorways suppress it.
+const EDGE_SIDES = [
+  { dx: 1, dy: 0 },
+  { dx: 0, dy: 1 },
+]
+function neighbourTile(map, x, y) {
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return null
+  return getTile(map.tiles[y][x])
+}
+function drawFloorEdges(context, map, area) {
+  const lips = []
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      const tile = getTile(map.tiles[y][x])
+      if (tile.empty || tile.height > 0 || tile.wall) continue
+      const position = { x, y }
+      const box = tileImageBox(position)
+      if (!overlaps(box, area)) continue
+      for (const side of EDGE_SIDES) {
+        const neighbour = neighbourTile(map, x + side.dx, y + side.dy)
+        if (neighbour && !neighbour.empty) continue
+        // neighbour null = out of map; also treat as exposed. Wall/door on that side would have height/wall/doorway.
+        if (neighbour?.wall || neighbour?.id === 'doorway') continue
+        lips.push(edgeStrip(position, side, 0, 0.12))
+      }
+    }
+  }
+  if (!lips.length) return
+  context.beginPath()
+  for (const quad of lips) {
+    quad.forEach((point, j) => (j ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y)))
+    context.closePath()
+  }
+  context.fillStyle = 'rgba(0, 0, 0, 0.35)'
+  context.fill()
 }
 
 function drawLighting(context, map, area) {
@@ -723,6 +762,7 @@ function drawLighting(context, map, area) {
     context.fill()
   })
   // Soft tint on the floor under walls (Selection Colour / glow colour). Floor layer only — walls cover it.
+  // Clipped to real floor diamonds so the spill does not wash into Null / empty cells.
   context.save()
   context.globalCompositeOperation = 'lighter'
   for (const { position, radius, strength = 1, colour } of darknessLights(map)) {
@@ -731,19 +771,42 @@ function drawLighting(context, map, area) {
     const rx = TILE_W * radius
     const ry = TILE_H * radius
     if (!overlaps({ x: c.x - rx, y: c.y - ry, width: rx * 2, height: ry * 2 }, area)) continue
+    const reach = Math.ceil(radius) + 1
+    const cx = Math.round(position.x)
+    const cy = Math.round(position.y)
+    const floors = []
+    for (let y = Math.max(0, cy - reach); y <= Math.min(map.height - 1, cy + reach); y++) {
+      const row = map.tiles[y]
+      if (!row) continue
+      for (let x = Math.max(0, cx - reach); x <= Math.min(map.width - 1, cx + reach); x++) {
+        const id = row[x]
+        if (id == null) continue
+        const tile = getTile(id)
+        if (tile.empty || tile.height > 0) continue
+        floors.push({ x, y })
+      }
+    }
+    if (!floors.length) continue
     const hex = colour.replace('#', '')
     const full = hex.length === 3 ? [...hex].map((ch) => ch + ch).join('') : hex
     const n = parseInt(full, 16)
     const r = (n >> 16) & 255
     const g = (n >> 8) & 255
     const b = n & 255
-    const a = 0.22 * strength
+    const a = 0.12 * strength
     context.save()
+    context.beginPath()
+    for (const floor of floors) {
+      const pts = diamond(floor)
+      pts.forEach(([px, py], i) => (i ? context.lineTo(px, py) : context.moveTo(px, py)))
+      context.closePath()
+    }
+    context.clip()
     context.translate(c.x, c.y)
     context.scale(1, ry / rx)
     const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
     gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a})`)
-    gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${a * 0.4})`)
+    gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${a * 0.35})`)
     gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
     context.fillStyle = gradient
     context.beginPath()
@@ -785,6 +848,8 @@ export function drawBoard(context, transform, layout, area, { ghost = false, lig
       drawImage(context, href, box.x, box.y, box.width, box.height)
       context.restore()
     }
+    // Exposed floor lips where a floor meets Null toward the camera (+x / +y). Not walls — presentation only.
+    drawFloorEdges(context, map, area)
     if (lighting) drawLighting(context, map, area)
   }
   if (part === 'floor') {

@@ -153,6 +153,48 @@ export class EditorGridView {
   }
 }
 
+// Map rectangle outline and optional centre cross. board: { showBounds, showCentre, width, height }.
+export class EditorBoundsView {
+  constructor(layer) {
+    this.graphics = new Graphics()
+    layer.addChild(this.graphics)
+    this.drawn = null
+  }
+
+  update(board) {
+    const showBounds = Boolean(board?.showBounds)
+    const showCentre = Boolean(board?.showCentre)
+    const width = board?.width ?? 0
+    const height = board?.height ?? 0
+    const key = `${showBounds},${showCentre},${width},${height}`
+    if (key === this.drawn) return
+    this.drawn = key
+    this.graphics.clear()
+    if ((!showBounds && !showCentre) || width <= 0 || height <= 0) return
+    if (showBounds) {
+      const corners = [
+        project({ x: -0.5, y: -0.5 }),
+        project({ x: width - 0.5, y: -0.5 }),
+        project({ x: width - 0.5, y: height - 0.5 }),
+        project({ x: -0.5, y: height - 0.5 }),
+      ]
+      this.graphics
+        .poly(corners.flatMap((p) => [p.x, p.y]), true)
+        .stroke({ color: 0x7ec8e3, width: 1.5, alpha: 0.85 })
+    }
+    if (showCentre) {
+      const centre = project({ x: (width - 1) / 2, y: (height - 1) / 2 })
+      const arm = 10
+      this.graphics.moveTo(centre.x - arm, centre.y).lineTo(centre.x + arm, centre.y).stroke({ color: 0xffb347, width: 1.5, alpha: 0.9 })
+      this.graphics.moveTo(centre.x, centre.y - arm).lineTo(centre.x, centre.y + arm).stroke({ color: 0xffb347, width: 1.5, alpha: 0.9 })
+    }
+  }
+
+  destroy() {
+    this.graphics.destroy()
+  }
+}
+
 // The selected destructible's or hazard region's footprint, outlined on the floor. item: { id, tiles [{ x, y }], square
 // ({ position, radius }: the square an explosion reaches, walls aside) or null, colour, fillAlpha, route (draw a
 // looping polyline through tiles in order — NPC patrol preview) }.

@@ -1,6 +1,6 @@
 {
   "notes": [
-    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: ġ (allocation order in docs/tiles.md)."
+    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: Ģ (allocation order in docs/tiles.md)."
   ],
   "imageSize": { "width": 64, "height": 96 },
   "paletteGroups": [
@@ -417,6 +417,7 @@
     { "id": "dsStructuralSupportDestroyed", "symbol": "Ɣ", "label": "Structural Support (Destroyed)", "image": "/art/sprites/environment/destructibles/structuralSupport-destroyed.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 4, "role": "destructible" },
     { "id": "dsAtmosphericProcessor", "symbol": "ƕ", "label": "Atmospheric Processor", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-intact.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "imageHeight": 128, "height": 60, "role": "destructible" },
     { "id": "dsAtmosphericProcessorDamaged", "symbol": "Ɩ", "label": "Atmospheric Processor (Damaged)", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-damaged.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "imageHeight": 128, "height": 60, "role": "destructible" },
-    { "id": "dsAtmosphericProcessorDestroyed", "symbol": "Ɨ", "label": "Atmospheric Processor (Destroyed)", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-destroyed.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 4, "role": "destructible" }
+    { "id": "dsAtmosphericProcessorDestroyed", "symbol": "Ɨ", "label": "Atmospheric Processor (Destroyed)", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-destroyed.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 4, "role": "destructible" },
+    { "id": "null", "symbol": "ġ", "label": "Empty (Null)", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null, "empty": true }
   ]
 }

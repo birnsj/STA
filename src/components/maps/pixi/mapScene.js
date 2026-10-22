@@ -1,6 +1,6 @@
 import { Container } from 'pixi.js'
 import { GroundLootView } from '../../exploration/pixi/boardItems.js'
-import { AreaLabelView, EditorGridView, EditorMarkerView, EditorOutlineView, TilePreviewView } from './editorMarkers.js'
+import { AreaLabelView, EditorBoundsView, EditorGridView, EditorMarkerView, EditorOutlineView, TilePreviewView } from './editorMarkers.js'
 import { HazardLayer } from './hazardLayer.js'
 import { reconcile, startPixiStage } from './pixiStage.js'
 
@@ -31,6 +31,7 @@ export async function startMapScene(host, read, isCancelled) {
   const previewLayer = new Container()
   stage.layers.fxLayer.addChild(outlineLayer, labelLayer, lootLayer, markerLayer, previewLayer)
   const grid = new EditorGridView(gridLayer)
+  const bounds = new EditorBoundsView(gridLayer)
   const preview = new TilePreviewView(previewLayer)
   const hazards = new HazardLayer(stage.layers)
   stage.onFrame(() => {
@@ -41,9 +42,13 @@ export async function startMapScene(host, read, isCancelled) {
     // Editor Animate toggle is authoritative (OS prefers-reduced-motion must not freeze tile preview).
     const playing = Boolean(board.animate)
     const map = stage.syncMap(board.layout, { playing, ghost: board.ghost, lighting: board.lighting }, now)
+    map.setLayerVisibility?.(board.layerVisibility ?? null)
     map.update(NONE, now, view)
-    hazards.update(board.environment, now, view, playing)
+    // Hazards follow Furniture for editor visibility (authored next to destructibles).
+    const furnitureOn = !board.layerVisibility || board.layerVisibility.furniture !== false
+    hazards.update(furnitureOn ? board.environment : { hazards: {} }, now, view, playing)
     grid.update(board.grid, view)
+    bounds.update(board.bounds)
     reconcile(outlines, board.outlines ?? [], outlineLayer, () => new EditorOutlineView(), (outline, item) => outline.update(item))
     reconcile(labels, board.labels, labelLayer, () => new AreaLabelView(), (label, item) => label.update(item, now, playing))
     reconcile(groundLoot, board.groundLoot ?? [], lootLayer, () => new GroundLootView(), (loot, item) => loot.update(item))
@@ -53,6 +58,7 @@ export async function startMapScene(host, read, isCancelled) {
   return {
     destroy: () => {
       grid.destroy()
+      bounds.destroy()
       preview.destroy()
       hazards.destroy()
       for (const views of [outlines, labels, markers, groundLoot]) for (const view of views.values()) view.destroy()

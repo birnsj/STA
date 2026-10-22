@@ -1,13 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { isDrawnCard } from '../../maps/episodeCards.js'
 import { canDrawEpisodeArt, drawEpisodeArt } from '../../maps/episodeArt.js'
 import { canSaveMaps, deleteMap, listMaps, loadMap, saveMap } from '../../maps/mapFiles.js'
-import { createBlankMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, mapFileId, resizeMap } from '../../maps/mapFormat.js'
+import { createBlankMap, createNullMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, mapFileId, resizeMap } from '../../maps/mapFormat.js'
 import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, sizeFor, sizeIdOf, withGeneratedHazards } from '../../maps/mapGenerators.js'
 import { randomWeather, settleWeather } from '../../maps/mapWeather.js'
 
-// A new map keeps the current location and biome and starts at the location's Medium size.
-const blankMap = (mapType, biome = DEFAULT_BIOME) => ({ ...createBlankMap(sizeFor(mapType, DEFAULT_SIZE)), mapType, biome })
+// Phase 0 keeps the legacy blank (perimeter walls + floor). Phase 1 switches New Map to createNullMap.
+const USE_NULL_NEW_MAP = true
+const blankMap = (mapType, biome = DEFAULT_BIOME) => {
+  const size = sizeFor(mapType, DEFAULT_SIZE)
+  const base = USE_NULL_NEW_MAP ? createNullMap(size) : createBlankMap(size)
+  return { ...base, mapType, biome }
+}
+// Bounded undo stack: each edit(next) pushes one snapshot; drag strokes coalesce via beginStroke/endStroke.
+const HISTORY_LIMIT = 100
 
 // The map editor's document: the map being edited and the file it came from, with New, Load, Save, Save As, Delete,
 // Generate Map and the location / biome / size changes that go with them. Nothing here knows about tools or selection:
@@ -37,6 +44,11 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
   const [notice, setNotice] = useState(null)
   // Remounts the board (re-centring the camera) whenever a different map is loaded.
   const [boardKey, setBoardKey] = useState(0)
+  // Undo / redo stacks of whole map snapshots. Cleared whenever a different map is put in front of the user.
+  const [undoStack, setUndoStack] = useState([])
+  const [redoStack, setRedoStack] = useState([])
+  // While a pointer stroke is open, further edit() calls share one undo step (the map before the stroke began).
+  const strokeRef = useRef(null)
 
   useEffect(() => {
     listMaps()
@@ -51,8 +63,46 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
 
   const edit = (next) => {
     if (next === map) return
+    if (strokeRef.current) {
+      // First change in this stroke records the pre-stroke map once; later changes in the stroke do not push again.
+      if (!strokeRef.current.pushed) {
+        setUndoStack((stack) => [...stack.slice(-(HISTORY_LIMIT - 1)), strokeRef.current.before])
+        strokeRef.current.pushed = true
+        setRedoStack([])
+      }
+    } else {
+      setUndoStack((stack) => [...stack.slice(-(HISTORY_LIMIT - 1)), map])
+      setRedoStack([])
+    }
     setMap(next)
     setDirty(true)
+  }
+  const beginStroke = () => {
+    if (strokeRef.current) return
+    strokeRef.current = { before: map, pushed: false }
+  }
+  const endStroke = () => {
+    strokeRef.current = null
+  }
+  const canUndo = undoStack.length > 0
+  const canRedo = redoStack.length > 0
+  const undo = () => {
+    if (!undoStack.length) return
+    const previous = undoStack[undoStack.length - 1]
+    setUndoStack((stack) => stack.slice(0, -1))
+    setRedoStack((stack) => [...stack, map])
+    setMap(previous)
+    setDirty(true)
+    strokeRef.current = null
+  }
+  const redo = () => {
+    if (!redoStack.length) return
+    const next = redoStack[redoStack.length - 1]
+    setRedoStack((stack) => stack.slice(0, -1))
+    setUndoStack((stack) => [...stack, map])
+    setMap(next)
+    setDirty(true)
+    strokeRef.current = null
   }
   const confirmDiscard = async (message = 'This map has unsaved changes. Discard them?', confirmLabel = 'Discard') =>
     !dirty || askConfirm({ title: 'Unsaved Changes', message, confirmLabel })
@@ -62,6 +112,9 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
     setCleanMap(unsaved ? null : next)
     setFileId(nextFileId)
     setDirty(unsaved)
+    setUndoStack([])
+    setRedoStack([])
+    strokeRef.current = null
     setStatus(message)
     setBoardKey((key) => key + 1)
   }
@@ -217,6 +270,12 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
   return {
     map,
     edit,
+    beginStroke,
+    endStroke,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     fileId,
     dirty,
     maps,

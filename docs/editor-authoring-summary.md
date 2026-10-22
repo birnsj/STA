@@ -44,7 +44,7 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
             inspectors (unchanged)
 
   Floating windows — Overview (ghost / animate / lighting toggles),
-                     Layers, Levels (placeholders; elevation deferred)
+                     Layers (active / visibility / lock), Levels (elevation deferred)
 
   Full-screen sub-editors — Conversation, Object, Objective, Story,
                             Character Library, Generator Editor
@@ -369,7 +369,8 @@ Missing / blocking
   - Custom standalone Combat roster (encounters.json)
   - New Generate Map Location types / station-cave-surface generator params
     (deck styles only in Generator Editor)
-  - Layers / elevation / gizmos (UI placeholders only)
+  - Elevation / gizmos (Levels window still a placeholder)
+  - Map editor layers (2026-10-21): Ground / Walls / Furniture / Characters / Markers — UI visibility & lock; Null cells; floorUnder; undo/redo
 
 --------------------------------------------------------------------------------
 EASY-TO-MISREAD WORKFLOWS

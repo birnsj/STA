@@ -32,6 +32,8 @@ const MARKER_TOOLS = [
   { id: 'npcs', label: 'NPC', swatch: 'npc' },
   { id: 'area', label: 'Area Label', swatch: 'area' },
   { id: 'erase', label: 'Erase Marker', swatch: 'erase' },
+  { id: 'eraseFloor', label: 'Erase Floor (Null)', swatch: 'erase' },
+  { id: 'eraseStructure', label: 'Erase Wall / Prop', swatch: 'erase' },
 ]
 
 const ASSET_TABS = [
@@ -46,7 +48,12 @@ const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const GROUPED = new Set(PALETTE_GROUPS.flatMap((group) => group.tiles))
 const GROUPS = [
   ...PALETTE_GROUPS.map((group) => ({ ...group, tiles: group.tiles.map((id) => BY_ID.get(id)).filter(Boolean) })),
-  { id: 'other', label: 'Other', tiles: TILES.filter((tile) => !GROUPED.has(tile.id) && tile.role !== 'destructible') },
+  {
+    id: 'other',
+    label: 'Other',
+    // Null/empty cells are authoring-only (erase-to-Null); they are not a palette brush.
+    tiles: TILES.filter((tile) => !GROUPED.has(tile.id) && tile.role !== 'destructible' && !tile.empty),
+  },
 ]
 
 function ToolButton({ selected, onClick, title, children }) {
@@ -78,7 +85,16 @@ function matchesQuery(text, query) {
   return String(text).toLowerCase().includes(query)
 }
 
-export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, animateTiles = true }) {
+// Active editor layer → Assets tab. Ground/Walls stay on Tiles; Furniture → Environment; Characters → NPCs; Markers → Markers.
+const TAB_FOR_LAYER = {
+  ground: 'tiles',
+  walls: 'tiles',
+  furniture: 'environment',
+  characters: 'npcs',
+  markers: 'markers',
+}
+
+export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, animateTiles = true, activeLayer = null }) {
   const [tab, setTab] = useState('tiles')
   const [query, setQuery] = useState('')
   const [thumbScale, setThumbScale] = useState(loadThumbScale)
@@ -93,6 +109,14 @@ export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, an
       /* ignore */
     }
   }, [thumbScale])
+
+  // Layers window active layer steers the Assets tab (does not override a hand-picked tab until the layer changes).
+  const [seenLayer, setSeenLayer] = useState(activeLayer)
+  if (activeLayer && activeLayer !== seenLayer) {
+    setSeenLayer(activeLayer)
+    const next = TAB_FOR_LAYER[activeLayer]
+    if (next) setTab(next)
+  }
 
   const toggle = (id) =>
     setOpen((current) => {

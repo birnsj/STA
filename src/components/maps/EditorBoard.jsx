@@ -142,6 +142,10 @@ export default function EditorBoard({
   animate = true,
   showGrid = false,
   gridSize = 64,
+  showBounds = true,
+  showCentre = false,
+  // Editor layer visibility (UI only). Hidden layers omit their markers/labels from the board.
+  layerVisibility = null,
   brush,
   rotated,
   erasing = false,
@@ -162,10 +166,14 @@ export default function EditorBoard({
   // Destructible objects show in the state they start the mission in, force fields up, as play will draw them.
   const environment = useMemo(() => createEnvironment(map), [map])
   const layout = useMemo(() => boardLayout(applyEnvironmentTiles(map, environment)), [map, environment])
-  const outlines = useMemo(
-    () => selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId),
-    [map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId],
-  )
+  const outlines = useMemo(() => {
+    const list = selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId)
+    return list.filter((entry) => {
+      if (entry.id.startsWith('d:') || entry.id.startsWith('l:') || entry.id.startsWith('h:')) return layerShown('furniture')
+      if (entry.id.startsWith('p:')) return layerShown('characters')
+      return true
+    })
+  }, [map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId, layerVisibility])
   // Every painted hazard shows while authoring, including one that only starts when something sets it off.
   const shownEnvironment = useMemo(
     () => ({ ...environment, hazards: Object.fromEntries(Object.entries(environment.hazards).map(([id, region]) => [id, { ...region, active: true }])) }),
@@ -201,46 +209,57 @@ export default function EditorBoard({
   const erasesSomething =
     erasing && hover && [...map.markers.playerStarts, ...map.markers.enemySpawns, ...map.areas.map((area) => area.position), ...(map.npcs ?? []).map((npc) => npc.position)].some(doomed)
 
+  const layerShown = (id) => !layerVisibility || layerVisibility[id] !== false
   // What the scene draws over the map: the room labels, then the markers.
-  const labels = map.areas.map((area) => ({ id: `${area.position.x},${area.position.y}`, position: area.position, name: area.name, doomed: doomed(area.position) }))
+  const labels = layerShown('markers')
+    ? map.areas.map((area) => ({ id: `${area.position.x},${area.position.y}`, position: area.position, name: area.name, doomed: doomed(area.position) }))
+    : []
   const spawnFacingAt = (position) => (npcAt(map, position) ? null : snapFacing(spawnFacing(map, position)))
   const markers = [
-    ...challengeDefinitionsFor(map).map((definition) => ({
-      id: `c${definition.id}`,
-      position: { x: definition.position[0], y: definition.position[1] },
-      kind: 'object',
-      label: 'C',
-      facing: null,
-      selected: definition.id === selectedObjectId,
-      doomed: false,
-    })),
-    ...map.markers.playerStarts.map((start, index) => ({
-      id: `p${start.x},${start.y}`,
-      position: start,
-      kind: 'player',
-      label: `P${index + 1}`,
-      facing: spawnFacingAt(start),
-      selected: isSelected('playerStarts', start),
-      doomed: doomed(start),
-    })),
-    ...map.markers.enemySpawns.map((spawn, index) => ({
-      id: `e${spawn.x},${spawn.y}`,
-      position: spawn,
-      kind: 'enemy',
-      label: `E${index + 1}`,
-      facing: spawnFacingAt(spawn),
-      selected: isSelected('enemySpawns', spawn),
-      doomed: doomed(spawn),
-    })),
-    ...(map.npcs ?? []).map((npc) => ({
-      id: `n${npc.id}`,
-      position: npc.position,
-      kind: isHostile(npc) ? 'enemy' : 'npc',
-      label: npc.conversationId ? 'N…' : 'N',
-      facing: npc.facing ?? 0,
-      selected: npc.id === selectedNpcId,
-      doomed: doomed(npc.position),
-    })),
+    ...(layerShown('furniture')
+      ? challengeDefinitionsFor(map).map((definition) => ({
+          id: `c${definition.id}`,
+          position: { x: definition.position[0], y: definition.position[1] },
+          kind: 'object',
+          label: 'C',
+          facing: null,
+          selected: definition.id === selectedObjectId,
+          doomed: false,
+        }))
+      : []),
+    ...(layerShown('characters')
+      ? map.markers.playerStarts.map((start, index) => ({
+          id: `p${start.x},${start.y}`,
+          position: start,
+          kind: 'player',
+          label: `P${index + 1}`,
+          facing: spawnFacingAt(start),
+          selected: isSelected('playerStarts', start),
+          doomed: doomed(start),
+        }))
+      : []),
+    ...(layerShown('characters')
+      ? map.markers.enemySpawns.map((spawn, index) => ({
+          id: `e${spawn.x},${spawn.y}`,
+          position: spawn,
+          kind: 'enemy',
+          label: `E${index + 1}`,
+          facing: spawnFacingAt(spawn),
+          selected: isSelected('enemySpawns', spawn),
+          doomed: doomed(spawn),
+        }))
+      : []),
+    ...(layerShown('characters')
+      ? (map.npcs ?? []).map((npc) => ({
+          id: `n${npc.id}`,
+          position: npc.position,
+          kind: isHostile(npc) ? 'enemy' : 'npc',
+          label: npc.conversationId ? 'N…' : 'N',
+          facing: npc.facing ?? 0,
+          selected: npc.id === selectedNpcId,
+          doomed: doomed(npc.position),
+        }))
+      : []),
     ...((map.npcs ?? []).find((npc) => npc.id === selectedNpcId)?.patrol ?? []).map((point, index) => ({
       id: `w${selectedNpcId}:${index}`,
       position: point.at,
@@ -250,15 +269,17 @@ export default function EditorBoard({
       selected: index === selectedWaypointIndex,
       doomed: false,
     })),
-    ...(map.objectives ?? []).flatMap((objective, index) => {
-      const position = objectivePosition(map, objective)
-      return position ? [{ id: `o${index}`, position, kind: 'objective', label: `O${index + 1}`, facing: null, selected: false, doomed: false }] : []
-    }),
+    ...(layerShown('markers')
+      ? (map.objectives ?? []).flatMap((objective, index) => {
+          const position = objectivePosition(map, objective)
+          return position ? [{ id: `o${index}`, position, kind: 'objective', label: `O${index + 1}`, facing: null, selected: false, doomed: false }] : []
+        })
+      : []),
   ]
   const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
   const groundLoot = useMemo(
-    () => groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null),
-    [map, selectedGroundItemId, inventoryTool, hover],
+    () => (layerShown('furniture') ? groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null) : []),
+    [map, selectedGroundItemId, inventoryTool, hover, layerVisibility],
   )
   useLayoutEffect(() => {
     sceneRef.current = {
@@ -273,6 +294,8 @@ export default function EditorBoard({
       outlines,
       preview,
       grid: { show: showGrid, size: gridSize, width: map.width, height: map.height },
+      bounds: { showBounds, showCentre, width: map.width, height: map.height },
+      layerVisibility,
       svg: dragHandlers.ref.current,
     }
   })

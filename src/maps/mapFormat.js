@@ -60,6 +60,8 @@ const DEPARTMENT_IDS = new Set(disciplineData.disciplines.map((entry) => entry.i
 const TILE_IDS = new Set((catalogue.tiles ?? []).map((tile) => tile.id))
 
 export const MAP_SCHEMA_VERSION = 1
+// Written when the map has Null cells or a floorUnder record (authoring memory under walls/props). Readers accept 1 and 2.
+export const MAP_SCHEMA_VERSION_LAYERS = 2
 export const TILES = catalogue.tiles
 export const TILE_IMAGE = catalogue.imageSize
 // A tile's image size in design pixels. Walls and tall objects reach higher than TILE_IMAGE holds, so theirs are taller
@@ -68,6 +70,8 @@ export const imageSize = (tile) => (tile.imageHeight ? { width: TILE_IMAGE.width
 export const PALETTE_GROUPS = catalogue.paletteGroups ?? []
 export const FLOOR_TILE = 'floor'
 export const WALL_TILE = 'bulkhead'
+// Empty cell: solid (blocks movement and placement), does not block sight, not drawn. Symbol ġ; never appears in legacy maps.
+export const NULL_TILE = 'null'
 export const MIN_SIZE = 4
 export const MAX_SIZE = 96
 // Maps saved before map types existed are starship decks.
@@ -90,6 +94,18 @@ const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const BY_SYMBOL = new Map(TILES.map((tile) => [tile.symbol, tile]))
 export const getTile = (id) => BY_ID.get(id) ?? BY_ID.get(FLOOR_TILE)
 export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id ?? FLOOR_TILE
+export const isEmptyTile = (id) => Boolean(getTile(id).empty)
+export const cellKey = ({ x, y }) => `${x},${y}`
+export const parseCellKey = (key) => {
+  const [x, y] = String(key).split(',').map(Number)
+  return { x, y }
+}
+// Maps that use Null cells or remember floors under blocks write schema 2; everything else stays schema 1.
+export function schemaVersionFor(map) {
+  if (map.floorUnder && Object.keys(map.floorUnder).length) return MAP_SCHEMA_VERSION_LAYERS
+  if (map.tiles?.some((row) => row.some((id) => id === NULL_TILE))) return MAP_SCHEMA_VERSION_LAYERS
+  return MAP_SCHEMA_VERSION
+}
 
 const toPosition = ([x, y]) => ({ x, y })
 const fromPosition = ({ x, y }) => [x, y]
@@ -118,10 +134,7 @@ export function mapFileId(name) {
 
 export const episodeTitle = (map) => map.episodeName?.trim() || 'Untitled Episode'
 
-export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 } = {}) {
-  const tiles = Array.from({ length: height }, (_, y) =>
-    Array.from({ length: width }, (_, x) => (x === 0 || y === 0 || x === width - 1 || y === height - 1 ? WALL_TILE : FLOOR_TILE)),
-  )
+function blankFields(name, width, height, tiles) {
   return {
     id: mapFileId(name),
     name,
@@ -135,6 +148,7 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     width,
     height,
     tiles,
+    floorUnder: {},
     areas: [],
     markers: { playerStarts: [], enemySpawns: [] },
     npcs: [],
@@ -151,6 +165,42 @@ export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 
     stardate: null,
   }
 }
+
+export function createBlankMap({ name = 'Untitled Map', width = 16, height = 12 } = {}) {
+  const tiles = Array.from({ length: height }, (_, y) =>
+    Array.from({ length: width }, (_, x) => (x === 0 || y === 0 || x === width - 1 || y === height - 1 ? WALL_TILE : FLOOR_TILE)),
+  )
+  return blankFields(name, width, height, tiles)
+}
+
+// Editor New Map: every cell starts Null inside the chosen bounds (authoring layers Phase 1).
+export function createNullMap({ name = 'Untitled Map', width = 16, height = 12 } = {}) {
+  const tiles = Array.from({ length: height }, () => Array.from({ length: width }, () => NULL_TILE))
+  return blankFields(name, width, height, tiles)
+}
+
+function parseFloorUnder(raw, inside) {
+  if (!raw || typeof raw !== 'object') return {}
+  const floorUnder = {}
+  for (const [key, id] of Object.entries(raw)) {
+    const position = parseCellKey(key)
+    if (!inside(position)) continue
+    if (id === NULL_TILE || id === null) {
+      floorUnder[key] = NULL_TILE
+      continue
+    }
+    if (typeof id === 'string' && TILE_IDS.has(id)) floorUnder[key] = id
+  }
+  return floorUnder
+}
+
+function serializeFloorUnder(floorUnder) {
+  if (!floorUnder || !Object.keys(floorUnder).length) return null
+  return { ...floorUnder }
+}
+
+export const mapHasNullCells = (map) => Boolean(map.tiles?.some((row) => row.some((id) => id === NULL_TILE)))
+
 
 function freeGroundItemId(itemId, used) {
   let index = 1
@@ -457,6 +507,7 @@ export function parseMapFile(file, id) {
     width,
     height: rows.length,
     tiles,
+    floorUnder: parseFloorUnder(file.floorUnder, inside),
     rotated: rotationGrid(width, rows.length, (x, y) => rotatedKeys.has(`${x},${y}`)),
     areas: (file.areas ?? []).map((area) => ({ name: area.name, position: toPosition(area.position) })).filter((area) => inside(area.position)),
     markers: {
@@ -489,8 +540,9 @@ export function parseMapFile(file, id) {
 }
 
 export function serializeMap(map) {
+  const floorUnder = serializeFloorUnder(map.floorUnder)
   return {
-    schemaVersion: MAP_SCHEMA_VERSION,
+    schemaVersion: schemaVersionFor(map),
     name: map.name,
     episodeName: map.episodeName.trim(),
     card: map.card ?? null,
@@ -501,6 +553,7 @@ export function serializeMap(map) {
     ambientColour: clampAmbientColour(map.ambientColour),
     rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
     rotated: map.tiles.flatMap((row, y) => row.flatMap((_, x) => (isRotated(map, { x, y }) ? [[x, y]] : []))),
+    ...(floorUnder ? { floorUnder } : {}),
     areas: map.areas.map((area) => ({ name: area.name, position: fromPosition(area.position) })),
     markers: {
       playerStarts: map.markers.playerStarts.map(fromSpawn),
@@ -525,17 +578,21 @@ export function serializeMap(map) {
   }
 }
 
-// Keeps the top-left corner; new tiles are floor and anything that falls outside is dropped.
-export function resizeMap(map, width, height) {
+// Keeps the top-left corner; new tiles use `fill` (default: Null if the map already has Null cells, else floor).
+// Anything that falls outside is dropped, including floorUnder keys.
+export function resizeMap(map, width, height, { fill } = {}) {
   const w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(width)))
   const h = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(height)))
   const inside = (position) => isInside(w, h, position)
+  const fillTile = fill ?? (mapHasNullCells(map) ? NULL_TILE : FLOOR_TILE)
+  const floorUnder = Object.fromEntries(Object.entries(map.floorUnder ?? {}).filter(([key]) => inside(parseCellKey(key))))
   return {
     ...map,
     width: w,
     height: h,
-    tiles: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => map.tiles[y]?.[x] ?? FLOOR_TILE)),
+    tiles: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => map.tiles[y]?.[x] ?? fillTile)),
     rotated: rotationGrid(w, h, (x, y) => isRotated(map, { x, y })),
+    floorUnder,
     areas: map.areas.filter((area) => inside(area.position)),
     markers: { playerStarts: map.markers.playerStarts.filter(inside), enemySpawns: map.markers.enemySpawns.filter(inside) },
     npcs: (map.npcs ?? [])
@@ -618,5 +675,32 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
   const roles = new Set(map.tiles.flat().map((id) => getTile(id).role))
   if (roles.has('hazard') && !roles.has('hazardControl')) warnings.push('Hazard tiles but no hazard control, so the hazard can never be set off.')
   if (roles.has('hazardControl') && !roles.has('hazard')) warnings.push('A hazard control but no hazard tiles.')
+  const inside = (position) => isInside(map.width, map.height, position)
+  Object.entries(map.floorUnder ?? {}).forEach(([key, id]) => {
+    const position = parseCellKey(key)
+    if (!inside(position)) warnings.push(`floorUnder entry ${key} is outside the map.`)
+    else if (id !== NULL_TILE && !TILE_IDS.has(id)) warnings.push(`floorUnder at ${key} references unknown tile “${id}”.`)
+  })
+  ;(map.groundItemPlacements ?? []).forEach((entry) => {
+    const tile = { x: Math.round(entry.position.x), y: Math.round(entry.position.y) }
+    if (inside(tile) && isEmptyTile(map.tiles[tile.y][tile.x])) {
+      warnings.push(`Ground item ${entry.id} is on an empty cell.`)
+    }
+  })
+  Object.values(map.objectPlacements ?? {}).forEach((position) => {
+    if (inside(position) && isEmptyTile(map.tiles[position.y][position.x])) {
+      warnings.push(`A challenge object at ${position.x}, ${position.y} is on an empty cell.`)
+    }
+  })
+  ;(map.objectives ?? []).forEach((objective) => {
+    if (objective.position && inside(objective.position) && isEmptyTile(map.tiles[objective.position.y][objective.position.x])) {
+      warnings.push(`Objective ${objective.id} is marked on an empty cell.`)
+    }
+  })
+  map.areas.forEach((area) => {
+    if (isEmptyTile(map.tiles[area.position.y][area.position.x])) {
+      warnings.push(`Area label “${area.name || '(unnamed)'}” is on an empty cell.`)
+    }
+  })
   return warnings
 }
