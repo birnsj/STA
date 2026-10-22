@@ -19,6 +19,7 @@ export const FIGURE_CAST = {
 }
 
 // Soft floor blob for one solid block. heightScale 0..1 from tile.height.
+// Kept small and light: neighbouring walls share floor, and stacked source-over blobs must not become a black plane.
 export function blockCastShadow(position, tileId) {
   const height = getTile(tileId).height || 0
   if (!(height > 0)) return null
@@ -27,8 +28,8 @@ export function blockCastShadow(position, tileId) {
   return {
     x: base.x + CAST_WORLD.x,
     y: base.y + CAST_WORLD.y,
-    rx: TILE_W * (0.42 + 0.18 * heightScale),
-    ry: TILE_H * (0.42 + 0.18 * heightScale),
-    alpha: 0.16 + 0.14 * heightScale,
+    rx: TILE_W * (0.3 + 0.1 * heightScale),
+    ry: TILE_H * (0.3 + 0.1 * heightScale),
+    alpha: 0.045 + 0.04 * heightScale,
   }
 }

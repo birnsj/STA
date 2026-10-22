@@ -49,8 +49,8 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
   Full-screen sub-editors — Conversation, Object, Objective, Story,
                             Character Library (unchanged entry points)
 
-Lighting presentation (also View → Lighting): contact + cast shadows
-(`mapShadows.js`), darkness veil from map `ambient` / `ambientColour`,
+Lighting presentation (also View → Lighting): contact shadows,
+darkness veil from map `ambient` / `ambientColour`,
 window/fitting/glow soft spill scaled by `animations[].emissive` and tinted
 by `emitColour` (Selection Colour; ground spill only). Details: `docs/tiles.md`.
 

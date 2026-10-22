@@ -4,9 +4,8 @@
 // image at its own size; animated tiles (tileArt.js flipbooks) on an animation layer over them, and the map's darkness.
 // A change only repaints the area it touched. Presentation only.
 import { BIG_IMAGE, getBigObjects } from '../../maps/bigObjects.js'
-import { diamond, isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
+import { isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
 import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
-import { blockCastShadow } from '../../maps/mapShadows.js'
 import { joinedImage } from '../../maps/railJoins.js'
 import {
   animationOffset,
@@ -682,9 +681,9 @@ export async function drawLoneTiles(layout, positions, resolution, time = null) 
   return { canvas, area }
 }
 
-// Floor lighting: contact shadows where floor meets a block, plus soft directional cast blobs from solid tiles
-// (mapShadows.js). Coloured glow pools from tileEffects are not drawn.
-// A map's shadow strips and cast blobs, worked out once per map.
+// Floor lighting: soft contact shadows along floor edges that meet a block. (Directional cast blobs were tried and
+// pulled — they stacked into hard dark planes through corridors. Character foot shadows still use mapShadows.js.)
+// A map's shadow strips, worked out once per map.
 const lightingCache = new WeakMap()
 function lightingOf(map) {
   const cached = lightingCache.get(map)
@@ -692,28 +691,23 @@ function lightingOf(map) {
   if (cached && cached.epoch === epoch) return cached.lighting
   const blockAt = (x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && isBlock(map.tiles[y][x])
   const strips = []
-  const casts = []
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
-      if (isBlock(id)) {
-        const cast = blockCastShadow(position, id)
-        if (cast) casts.push(cast)
-        return
-      }
+      if (isBlock(id)) return
       for (const side of SIDES) {
         if (!blockAt(x + side.dx, y + side.dy)) continue
         SHADE_BANDS.forEach(([from, to], band) => strips.push({ band, quad: edgeStrip(position, side, from, to), box: tileImageBox(position) }))
       }
     }),
   )
-  const lighting = { strips, casts }
+  const lighting = { strips }
   lightingCache.set(map, { epoch, lighting })
   return lighting
 }
 
 function drawLighting(context, map, area) {
-  const { strips, casts } = lightingOf(map)
+  const { strips } = lightingOf(map)
   const bands = SHADE_BANDS.map(() => [])
   for (const strip of strips) if (overlaps(strip.box, area)) bands[strip.band].push(strip.quad)
   bands.forEach((quads, i) => {
@@ -726,34 +720,12 @@ function drawLighting(context, map, area) {
     context.fillStyle = `rgba(0, 0, 0, ${SHADE_BANDS[i][2]})`
     context.fill()
   })
-  if (!casts.length) return
-  context.save()
-  const corner = (x, y) => project({ x, y })
-  const outline = [corner(-0.5, -0.5), corner(map.width - 0.5, -0.5), corner(map.width - 0.5, map.height - 0.5), corner(-0.5, map.height - 0.5)]
-  path(context, outline.map((point) => [point.x, point.y]))
-  context.clip()
-  for (const { x, y, rx, ry, alpha } of casts) {
-    if (!overlaps({ x: x - rx, y: y - ry, width: rx * 2, height: ry * 2 }, area)) continue
-    context.save()
-    context.translate(x, y)
-    context.scale(1, ry / rx)
-    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
-    gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`)
-    gradient.addColorStop(0.55, `rgba(0, 0, 0, ${alpha * 0.45})`)
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-    context.fillStyle = gradient
-    context.beginPath()
-    context.arc(0, 0, rx, 0, Math.PI * 2)
-    context.fill()
-    context.restore()
-  }
-  context.restore()
 }
 
 // ---------------------------------------------------------------- the board
 
 // Repaints `area` (a world rect, or the whole board) of a canvas whose world-to-pixel transform is `transform`.
-// options: { ghost (See-through blocks), lighting (contact + cast shadows), pass (null: the board, without animated
+// options: { ghost (See-through blocks), lighting (contact shadows), pass (null: the board, without animated
 // tiles; or { layer (one of ANIMATION_LAYERS, or 'cut'), time }: only the animated tiles at that time, with the blocks
 // in front cut out of it), faded (blocks drawn see-through, as drawBlock takes it), holes ([{ area, depth }]: inside
 // each area the blocks deeper than depth (painter's x + y) are left out, as the play views draw them over their
@@ -827,72 +799,29 @@ export function drawDarkness(context, transform, layout, area, { faded = NONE, t
   context.fillStyle = darknessColour(map)
   context.fillRect(area.x, area.y, area.width, area.height)
   context.globalAlpha = 1
-  const lit = darknessLights(map)
-  const paintSoftLight = (floorOnly) => {
-    context.globalCompositeOperation = 'destination-out'
-    for (const { position, radius, lift = 0, strength = 1, floorOnly: onlyFloor } of lit) {
-      if (Boolean(onlyFloor) !== floorOnly || !(strength > 0) || !(radius > 0)) continue
-      const c = project(position)
-      const rx = TILE_W * radius
-      const ry = TILE_H * radius
-      if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
-      context.save()
-      context.globalAlpha = strength
-      context.translate(c.x, c.y - lift)
-      context.scale(1, ry / rx)
-      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
-      gradient.addColorStop(0.45, 'rgba(0, 0, 0, 0.75)')
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-      context.fillStyle = gradient
-      context.beginPath()
-      context.arc(0, 0, rx, 0, Math.PI * 2)
-      context.fill()
-      context.restore()
-    }
-    context.globalCompositeOperation = 'lighter'
-    for (const { position, radius, lift = 0, strength = 1, colour, floorOnly: onlyFloor } of lit) {
-      if (Boolean(onlyFloor) !== floorOnly || !colour || !(strength > 0) || !(radius > 0)) continue
-      const c = project(position)
-      const rx = TILE_W * radius
-      const ry = TILE_H * radius
-      if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
-      const hex = colour.replace('#', '')
-      const full = hex.length === 3 ? [...hex].map((ch) => ch + ch).join('') : hex
-      const n = parseInt(full, 16)
-      const r = (n >> 16) & 255
-      const g = (n >> 8) & 255
-      const b = n & 255
-      const a = 0.22 * strength
-      context.save()
-      context.translate(c.x, c.y - lift)
-      context.scale(1, ry / rx)
-      const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a})`)
-      gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${a * 0.4})`)
-      gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
-      context.fillStyle = gradient
-      context.beginPath()
-      context.arc(0, 0, rx, 0, Math.PI * 2)
-      context.fill()
-      context.restore()
-    }
-  }
-  // Floor spill on floor diamonds; wall faces still get emission cuts and any non-floor soft lights.
-  context.save()
-  context.beginPath()
-  map.tiles.forEach((row, y) =>
-    row.forEach((id, x) => {
-      if (isBlock(id)) return
-      diamond({ x, y }).forEach(([px, py], i) => (i ? context.lineTo(px, py) : context.moveTo(px, py)))
-      context.closePath()
-    }),
-  )
-  context.clip()
-  paintSoftLight(true)
-  context.restore()
-  paintSoftLight(false)
+  // Soft holes round every light (strength scales the punch). No coloured floor pools on this layer — those caused
+  // floating slabs through walls when cast shadows were added.
   context.globalCompositeOperation = 'destination-out'
+  for (const { position, radius, lift = 0, strength = 1 } of darknessLights(map)) {
+    if (!(strength > 0) || !(radius > 0)) continue
+    const c = project(position)
+    const rx = TILE_W * radius
+    const ry = TILE_H * radius
+    if (!overlaps({ x: c.x - rx, y: c.y - lift - ry, width: rx * 2, height: ry * 2 }, area)) continue
+    context.save()
+    context.globalAlpha = strength
+    context.translate(c.x, c.y - lift)
+    context.scale(1, ry / rx)
+    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)')
+    gradient.addColorStop(0.45, 'rgba(0, 0, 0, 0.75)')
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    context.fillStyle = gradient
+    context.beginPath()
+    context.arc(0, 0, rx, 0, Math.PI * 2)
+    context.fill()
+    context.restore()
+  }
   if (emissiveTiles(layout).some((item) => overlaps(item.area, area))) {
     const scale = transform[0]
     const width = Math.max(1, Math.ceil(area.width * scale))
