@@ -1,5 +1,6 @@
-// Ultima-8-style thin walls (halfBulkhead / halfBulkheadCorner): Generate Map places them for starship layouts, then
-// this pass turns L and T junctions into corner pieces and sets rotated so each straight sits on the edge toward open
+// Ultima-8-style thin walls (halfBulkhead / halfBulkheadCorner): hand-placed in the editor; finishHalfWalls orients
+// junctions. Generate Map starship layouts use full bulkheads for now (thin-wall generation paused).
+// This pass turns L and T junctions into corner pieces and sets rotated so each straight sits on the edge toward open
 // floor (R / rotate mirrors onto the opposite edge). Which way a straight runs (x or y) is picked at draw time from
 // its wall neighbours (tiles.json runImages). Prototype presentation, not a source-book rule.
 import { getTile } from '../mapFormat.js'

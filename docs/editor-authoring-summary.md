@@ -1,6 +1,6 @@
 # Dev Edit — Authoring Tools Overview
 
-Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21)
+Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-21; Generate Map walls 2026-10-21)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
 --------------------------------------------------------------------------------
@@ -128,6 +128,9 @@ Map shell (Properties → Map)
   - Location, biome, weather
   - Ambient light (0–100) and ambient colour (darkness veil tint)
   - Generate Map / Name / Card; generate-hazards toggle
+      Starship Deck / Space Station / Derelict use full bulkheads
+      (thin halfBulkhead generation paused; half walls remain palette
+      hand-place tiles — see docs/tiles.md)
 
 Episode (Properties → Map)
   - Name, episode card

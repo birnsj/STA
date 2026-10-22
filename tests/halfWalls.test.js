@@ -1,5 +1,5 @@
-// Generate Map's Ultima-8 thin walls: starship layouts place halfBulkhead, then finishHalfWalls turns junctions into
-// corners and sets rotation toward open floor (maps/generators/halfWalls.js).
+// Half bulkheads: hand-placed Ultima-8 thin walls; finishHalfWalls turns junctions into corners and sets rotation
+// toward open floor (maps/generators/halfWalls.js). Generate Map starship layouts use full bulkheads again.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { finishHalfWalls, HALF_WALL, HALF_WALL_CORNER, wallRunAxis } from '../src/maps/generators/halfWalls.js'
@@ -42,18 +42,20 @@ describe('finishHalfWalls', () => {
   })
 })
 
-describe('starship Generate Map uses half bulkheads', () => {
+describe('starship Generate Map uses full bulkheads', () => {
   for (const id of ['starshipDeck', 'spaceStation', 'derelict']) {
-    it(`${id}: walls are half bulkheads or corners`, () => {
+    it(`${id}: walls are full bulkheads, not half bulkheads`, () => {
       const map = generateMap({ name: 'Test', mapType: id, biome: 'temperate', ...sizeFor(id, 'medium') }, seededRandomInt(3))
-      let half = 0
+      let bulkhead = 0
       map.tiles.forEach((row) =>
         row.forEach((tile) => {
-          if (tile === 'bulkhead') assert.fail(`${id} still placed a full bulkhead`)
-          if (tile === HALF_WALL || tile === HALF_WALL_CORNER) half++
+          if (tile === HALF_WALL || tile === HALF_WALL_CORNER) {
+            assert.fail(`${id} placed a half bulkhead`)
+          }
+          if (tile === 'bulkhead') bulkhead++
         }),
       )
-      assert.ok(half > 0, `${id} placed no half walls`)
+      assert.ok(bulkhead > 0, `${id} placed no bulkheads`)
     })
   }
 })

@@ -1,8 +1,7 @@
-// Space Station: a half-bulkhead hull (Ultima-8 thin walls) with a wide promenade across the middle and rooms above and
-// below it, each opening onto the promenade. Small maps drop the lower band of rooms, then the rooms altogether.
+// Space Station: a bulkhead hull with a wide promenade across the middle and rooms above and below it, each opening onto
+// the promenade. Small maps drop the lower band of rooms, then the rooms altogether.
 // makeStationGenerator builds the same layout from other tiles (a cantina's hall and back rooms, a cell block).
-import { FLOOR_TILE } from '../mapFormat.js'
-import { HALF_WALL } from './halfWalls.js'
+import { FLOOR_TILE, WALL_TILE } from '../mapFormat.js'
 import {
   CRATE_TILE,
   cutDoorway,
@@ -47,8 +46,8 @@ function bands(innerHeight, random) {
 // furnishHall(tiles, keep, hall, random, style) / furnishRooms(tiles, keep, rooms, random, style) instead of the default
 // crates and consoles }.
 export function makeStationGenerator(overrides = {}) {
-  // Starship stations use half bulkheads by default (same as Starship Deck); cantina / detention / temple pass their own.
-  const style = { floor: FLOOR_TILE, wall: HALF_WALL, door: DOOR_TILE, crate: CRATE_TILE, machinery: MACHINERY_TILE, hazard: true, span: 6, ...overrides }
+  // Full bulkheads by default (same as Starship Deck); cantina / detention / temple pass their own.
+  const style = { floor: FLOOR_TILE, wall: WALL_TILE, door: DOOR_TILE, crate: CRATE_TILE, machinery: MACHINERY_TILE, hazard: true, span: 6, ...overrides }
   return (map, random, areaNames) => buildStation(map, random, areaNames, style)
 }
 

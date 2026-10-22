@@ -143,7 +143,7 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const generator = generatorFor(map.mapType)
   const biome = biomeFor(map.biome)
   const layout = withLayoutScale(scale, () => generator.generate(map, random, areaNamesOf(map), biome))
-  // Thin starship walls: corners and edge facing (halfWalls.js). Then fittings on full bulkheads only.
+  // Half bulkheads (hand-placed or future Generate Map): corners and edge facing. Then fittings on full bulkheads.
   const oriented = finishHalfWalls(layout)
   // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
   return { ...applyWallVariants(oriented, random), mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }

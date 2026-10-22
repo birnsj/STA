@@ -20,6 +20,8 @@
 
 **Update (2026-10-21, editor UI redesign):** Map Editor chrome reorganized to the approved Mission Editor mockup layout without changing map schema or authoring behavior: `EditorMenuBar`, slim `EditorToolbar` (Animate / Grid / Overview / Layers / Levels), tabbed `EditorPalette` (Assets), `EditorPropertiesPanel` + `MapProperties` + `AssetProperties`, floating Overview / Layers / Levels windows, `EditorGridOptions` popover. Selection authors Cover/Fade, hazard intensity, and (for lit tiles) emissive / emit colour; Map authors ambient + ambientColour. Full-screen sub-editors unchanged. Layers / elevation / gizmos deferred. Whole summary refreshed in `docs/editor-authoring-summary.md`; lighting model in `docs/tiles.md`.
 
+**Update (2026-10-21, Generate Map walls):** Starship Deck, Space Station and Derelict Generate Map place full `bulkhead` again (Ultima-8 `halfBulkhead` generation paused after experiment). Half bulkheads stay hand-place palette tiles; `finishHalfWalls` still orients hand-placed thin walls. See matrix #7; `docs/tiles.md`; `docs/editor-authoring-summary.md`.
+
 ---
 
 ## A. Executive Summary
@@ -64,7 +66,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 4 | Location / biome / weather | Complete | Y | Y | Y | — | Y | Y | Y | Y | toolbar + `mapWeather.js` |
 | 5 | Ambient light | Complete | Y | Y | Y | — | Y | Y | Y | Y | `AmbientSlider`; `mapAmbient.test.js` |
 | 6 | Episode name / card | Complete | Y | Y | Y | — | Y | Y | — | Y | `EditorSidePanel`, `EpisodeCardPicker` |
-| 7 | Generate Map / Name / Card | Complete | Y | Y | Y | Y | Y* | Y* | Y | Y* | Generators; *until Save |
+| 7 | Generate Map / Name / Card | Complete | Y | Y | Y | Y | Y* | Y* | Y | Y* | Generators (starship layouts = full bulkhead); *until Save |
 | 8 | Area labels | Complete | Y | Y | Y | Y | Y | Y | Y | Y | area tool + serialize |
 | 9 | Player starts (≤8) + facing | Complete | Y | Y | Y | Y | Y | Y | Y | Y | markers; `awayTeam.js` |
 | 10 | Enemy spawns + facing | Complete | Y | Y | Y† | Y | Y | Y | Y† | Y† | †Combat mode / NPC fallback; world fights use NPCs |

@@ -1,8 +1,7 @@
 // Derelict Ship: a starship deck laid out as normal, then wrecked: holes blown through interior bulkheads, wreckage strewn
 // about and scorched plating where fires burned. The idea comes from the Captain's Log Habitat locations (abandoned and
 // disabled vessels); the damage pass is prototype. Markers, labels and the EPS hazard come from the deck underneath.
-import { FLOOR_TILE, getTile } from '../mapFormat.js'
-import { HALF_WALL } from './halfWalls.js'
+import { FLOOR_TILE, WALL_TILE, getTile } from '../mapFormat.js'
 import { generateStarshipDeck } from './starshipDeck.js'
 import { allCells, DOOR_TILE, growBlob, key, neighboursOf, randomInt, scatter, shuffle } from './shared.js'
 
@@ -26,7 +25,7 @@ export function generateDerelict(map, random, areaNames) {
   const touchesDeck = (cell) => neighboursOf(cell).some(({ x, y }) => !getTile(tiles[y][x]).solid)
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
-      if (tiles[y][x] !== HALF_WALL) continue
+      if (tiles[y][x] !== WALL_TILE) continue
       const roll = random()
       if (roll < 0.1 && touchesDeck({ x, y })) tiles[y][x] = FLOOR_TILE
       else if (roll < 0.22) tiles[y][x] = DEBRIS
