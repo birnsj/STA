@@ -5,9 +5,9 @@ import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { figureShapes, hitTest, rectOnGround } from '../../maps/boardHitTest.js'
-import { diamond, project, pts, TILE_H, TILE_W, tileImageBox, unproject } from '../../maps/iso.js'
-import { TILE_IMAGE } from '../../maps/mapFormat.js'
+import { footprintDiamond, project, propImageBox, pts, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
 import { canPlaceAt, resolveItem } from '../../rules/inventory.js'
+import { stackFootprint, stackSizeOf } from '../../rules/placement.js'
 import { isDestructibleScanned } from '../../world/destructibleScan.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playBoardHover, playWeaponSound } from '../../audio/uiSounds.js'
@@ -363,14 +363,15 @@ export default function PixiExplorationBoard(props) {
     const z = view.z ?? 0
     const artTop = project(view.position).y - artTopY(map, bigGroups, tiles, area) - z
     const depth = view.depth ?? view.position.x + view.position.y + 0.35
-    const worldScale = view.worldScale ?? 0.4
+    const spriteSize = view.spriteSize
     groundLoot.push({
       id: view.id,
       position: view.position,
       z,
       worldImage: view.worldImage,
       worldTile: view.worldTile,
-      worldScale,
+      worldScale: view.worldScale,
+      spriteSize,
       category: view.category,
       inReach,
       depth,
@@ -391,9 +392,8 @@ export default function PixiExplorationBoard(props) {
       depth: nearest + 0.4,
     })
     // Match the drawn prop (lifted by z), but not the name tag floating above it.
-    const scale = Math.max(0.15, Math.min(1, worldScale))
-    const size = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
-    const box = tileImageBox(view.position, size)
+    const size = view.spriteSize ?? { width: 32, height: 48 }
+    const box = propImageBox(view.position, size)
     const lifted = { ...box, y: box.y - z }
     const pad = 10
     const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND - z
@@ -691,6 +691,7 @@ export default function PixiExplorationBoard(props) {
     const check = canPlaceAt(exploreState, point ?? { x: 0, y: 0 }, {
       excludeInstanceId: placingItem.from?.location === 'ground' ? placingItem.instanceId : null,
       category: resolved?.def.category ?? null,
+      itemId: resolved?.def.id ?? null,
       boardPoint,
     })
     onPlaceHover({
@@ -698,6 +699,7 @@ export default function PixiExplorationBoard(props) {
       valid: check.ok,
       support: check.support ?? null,
       z: check.z ?? 0,
+      boardPoint,
     })
   }
 
@@ -830,11 +832,15 @@ export default function PixiExplorationBoard(props) {
             pointerEvents="none"
           />
         )}
-        {/* Drop tile under a dragged inventory item: debug only so normal play keeps the floor clear. */}
-        {debug && placingItem && placeHover && (
+        {/* The pack cell a drop will fill. Hidden while the item is going into a party member's bag. */}
+        {placingItem && placeHover && !placeHover.dropMemberId && (
           <polygon
             className={`explore-place-preview${placeHover.valid ? '' : ' is-invalid'}`}
-            points={pts(diamond(placeHover.position, placeHover.z ?? 0, 1 / 32))}
+            points={pts(footprintDiamond(
+              placeHover.position,
+              stackFootprint(stackSizeOf(placingItem.instanceId ? resolveItem(exploreState, placingItem.instanceId)?.def : null)),
+              placeHover.z ?? 0,
+            ))}
           />
         )}
       </svg>

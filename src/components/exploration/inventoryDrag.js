@@ -1,20 +1,17 @@
-import { TILE_H, tileImageBox } from '../../maps/iso.js'
-import { TILE_IMAGE } from '../../maps/mapFormat.js'
-
-// DOM helpers for dragging an inventory item. Kept apart from InventoryPanel.jsx, which holds only components.
-
-// Screen-space size of a world prop at the current board zoom (same as GroundLootView / tileImageBox).
-export function worldGhostScreenSize(scale, toClient) {
-  const design = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
-  const floorRatio = (TILE_H / 2) / design.height
-  const box = tileImageBox({ x: 0, y: 0 }, design)
-  if (!toClient) return { width: design.width, height: design.height, floorFromBottom: design.height * floorRatio }
-  const topLeft = toClient(box.x, box.y)
-  const bottomRight = toClient(box.x + box.width, box.y + box.height)
-  if (!topLeft || !bottomRight) return { width: design.width, height: design.height, floorFromBottom: design.height * floorRatio }
-  const width = Math.max(1, bottomRight.x - topLeft.x)
-  const height = Math.max(1, bottomRight.y - topLeft.y)
-  return { width, height, floorFromBottom: height * floorRatio }
+// Screen-space size of a world prop at the current board zoom (same box GroundLootView draws).
+// The pointer is the bottom corner of the iso graphic, so the ghost hangs up and back from the cursor.
+export function worldGhostScreenSize(design, toClient) {
+  const width0 = design?.width ?? 32
+  const height0 = design?.height ?? 48
+  if (!toClient) return { width: width0, height: height0, floorFromBottom: 0 }
+  const topLeft = toClient(0, 0)
+  const bottomRight = toClient(width0, height0)
+  if (!topLeft || !bottomRight) return { width: width0, height: height0, floorFromBottom: 0 }
+  return {
+    width: Math.max(1, bottomRight.x - topLeft.x),
+    height: Math.max(1, bottomRight.y - topLeft.y),
+    floorFromBottom: 0,
+  }
 }
 
 export const INVENTORY_GHOST_ID = 'inventory-item-ghost'

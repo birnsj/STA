@@ -170,7 +170,7 @@ Environment
   - Generate hazards with map (Map tab toggle)
 
 Ground items / elevated surfaces
-  - Inventory Objects palette → groundItemPlacements (32×32 item grid)
+  - Inventory Objects palette → groundItemPlacements (pack snap: 4 large or 16 small per tile)
   - Place or Move onto a tile with `surface` (crate, table, barCounter,
     epsControl, cellBunk) writes optional `on: { tile: [x, y] }`; onto an
     item with `surface` (e.g. equipmentCase) writes `on: { placement: id }`

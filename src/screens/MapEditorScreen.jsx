@@ -123,13 +123,14 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
       if (!mod) return
       if (event.key === 'z' || event.key === 'Z') {
         event.preventDefault()
-        if (event.shiftKey) doc.canRedo && doc.redo()
-        else doc.canUndo && doc.undo()
+        if (event.shiftKey) {
+          if (doc.canRedo) doc.redo()
+        } else if (doc.canUndo) doc.undo()
         return
       }
       if (event.key === 'y' || event.key === 'Y') {
         event.preventDefault()
-        doc.canRedo && doc.redo()
+        if (doc.canRedo) doc.redo()
       }
     }
     window.addEventListener('keydown', onKey)

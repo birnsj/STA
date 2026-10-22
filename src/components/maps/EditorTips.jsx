@@ -44,7 +44,7 @@ export default function EditorTips({ rootRef }) {
     }
     const showNow = () => {
       if (!hovered?.text) return setActive(null)
-      setActive({ text: hovered.text, anchor: hovered.element })
+      setActive({ text: hovered.text, anchor: hovered.element, root })
     }
     const schedule = () => {
       clearTimeout(timer)
@@ -88,7 +88,8 @@ export default function EditorTips({ rootRef }) {
   }, [rootRef])
 
   if (!active) return null
-  return <EditorTipBubble text={active.text} anchor={active.anchor} root={rootRef.current} />
+  // The root travels with the tip (captured in the effect) so render never reads the ref.
+  return <EditorTipBubble text={active.text} anchor={active.anchor} root={active.root} />
 }
 
 function EditorTipBubble({ text, anchor, root }) {

@@ -137,7 +137,36 @@ function communicatorMaterial() {
   }
 }
 
+// Stacking-test boxes. At worldScale 0.5 the floor diamond is 32px wide (four per tile).
+// The block is 8px tall — under the 16px step to the cell behind — so that cell stays visible.
+// stackSize.height matches that top.
+function stackBoxMaterial(colour, stripe, H) {
+  const body = rgb(colour)
+  const band = rgb(stripe)
+  return {
+    height(u, v, face) {
+      if (face === 'top') return bevel(inside(u, v, 0.4, 0.4, 31.6, 31.6), 1.4, 0.9)
+      return bevel(Math.min(u, 32 - u, v, H - v), 1.1, 0.85)
+    },
+    surface(u, v, face) {
+      if (face === 'top') {
+        const cross = Math.abs(u - 16) < 1.6 || Math.abs(v - 16) < 1.6
+        return { albedo: cross ? band : body, spec: 0.28, shininess: 20 }
+      }
+      const ao = 0.66 + 0.34 * smoothstep(0, 8, v)
+      const mid = v > H * 0.42 && v < H * 0.58
+      return { albedo: mid ? band : body, spec: 0.2, shininess: 16, ao }
+    },
+  }
+}
+
 const PROPS = {
+  stackBoxRed: () => render(blockScene(16, stackBoxMaterial('#c4382c', '#f0d070', 16))),
+  stackBoxBlue: () => render(blockScene(16, stackBoxMaterial('#2a6ec4', '#d8e8ff', 16))),
+  stackBoxGreen: () => render(blockScene(16, stackBoxMaterial('#2e8a48', '#d8f0c8', 16))),
+  stackBoxGold: () => render(blockScene(16, stackBoxMaterial('#d0a030', '#fff0c0', 16))),
+  stackSlabWhite: () => render(blockScene(16, stackBoxMaterial('#e4e8ee', '#8aa0b8', 16))),
+  stackSlabBlack: () => render(blockScene(16, stackBoxMaterial('#2a3038', '#c8a050', 16))),
   medkit: () =>
     render(
       blockScene(

@@ -14,6 +14,8 @@ import {
   transferItem,
   unequipItem,
 } from '../src/rules/inventory.js'
+import { project } from '../src/maps/iso.js'
+import { getTile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 function partyState(characters, map = { width: 8, height: 8, tiles: Array.from({ length: 8 }, () => Array(8).fill('floor')) }) {
@@ -191,21 +193,93 @@ describe('ground drop and pickup', () => {
     assert.ok(state.party.members.b.character.inventory.bag.includes(medkitId))
   })
 
-  it('snaps placement to the 32×32 item grid and allows multiple items on one map tile', () => {
+  it('fills the pack cell under the drop and fits more than one item on a tile', () => {
     assert.deepEqual(snapItemPosition({ x: 2.04, y: 2.11 }), { x: 2.03125, y: 2.125 })
     let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'missionObject' }] })])
     const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
     const missionId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'missionObject')
     state = dropItem(state, { instanceId: medkitId, position: { x: 2.04, y: 2.11 } })
-    assert.deepEqual(state.groundItems[medkitId].position, { x: 2.03125, y: 2.125 })
-    assert.ok(canPlaceAt(state, { x: 2.2, y: 2.1 }).ok, 'neighbouring 32×32 cell on the same tile')
-    state = dropItem(state, { instanceId: missionId, position: { x: 2.2, y: 2.1 } })
-    assert.deepEqual(state.groundItems[missionId].position, snapItemPosition({ x: 2.2, y: 2.1 }))
-    assert.ok(!canPlaceAt(state, { x: 2.04, y: 2.11 }).ok, 'same 32×32 cell blocked')
-    // Reposition the medkit without treating its own cell as occupied.
-    assert.ok(canPlaceAt(state, { x: 3, y: 3 }, { excludeInstanceId: medkitId }).ok)
+    assert.deepEqual(state.groundItems[medkitId].position, { x: 2.5, y: 2.5 })
+    state = dropItem(state, { instanceId: missionId, position: { x: 2.4, y: 1.8 } })
+    assert.deepEqual(state.groundItems[missionId].position, { x: 2.5, y: 2 })
+    assert.equal(state.groundItems[missionId].support, undefined)
     state = dropItem(state, { instanceId: medkitId, position: { x: 3.01, y: 2.99 } })
-    assert.deepEqual(state.groundItems[medkitId].position, { x: 3, y: 3 })
+    assert.deepEqual(state.groundItems[medkitId].position, { x: 3.5, y: 3 })
+  })
+
+  it('keeps an exploration drop in the cell under the cursor', () => {
+    const tiles = Array.from({ length: 8 }, () => Array(8).fill('floor'))
+    tiles[4][4] = 'crate'
+    const map = { width: 8, height: 8, tiles, stackOver: {} }
+    let state = partyState(
+      [makeCharacter({ id: 'a', equipment: [{ itemId: 'stackBoxRed' }, { itemId: 'stackBoxBlue' }, { itemId: 'stackBoxGreen' }, { itemId: 'stackBoxGold' }] })],
+      map,
+    )
+    const ids = Object.keys(state.itemInstances)
+    const lift = getTile('crate').height
+    const cells = [
+      { aim: { x: 3.6, y: 3.6 }, at: { x: 4, y: 4 } },
+      { aim: { x: 4.1, y: 3.6 }, at: { x: 4.5, y: 4 } },
+      { aim: { x: 3.6, y: 4.1 }, at: { x: 4, y: 4.5 } },
+      { aim: { x: 4.1, y: 4.1 }, at: { x: 4.5, y: 4.5 } },
+    ]
+    cells.forEach((cell, index) => {
+      const screen = project(cell.aim)
+      const boardPoint = { x: screen.x, y: screen.y - lift }
+      const hover = canPlaceAt(state, cell.aim, { itemId: state.itemInstances[ids[index]].itemId, boardPoint })
+      state = dropItem(state, { instanceId: ids[index], position: hover.position, support: hover.support, boardPoint })
+      assert.deepEqual(state.groundItems[ids[index]].position, cell.at)
+      assert.deepEqual(state.groundItems[ids[index]].support, { kind: 'tile', tile: { x: 4, y: 4 } })
+    })
+    const again = project(cells[3].aim)
+    const boardPoint = { x: again.x, y: again.y - lift }
+    const stacked = canPlaceAt(state, cells[3].aim, { itemId: 'stackBoxRed', boardPoint })
+    assert.equal(stacked.support.kind, 'item')
+    assert.deepEqual(stacked.position, cells[3].at)
+  })
+
+  it('places the next box in the empty cell behind the first', () => {
+    const tiles = Array.from({ length: 8 }, () => Array(8).fill('floor'))
+    tiles[4][4] = 'crate'
+    const map = { width: 8, height: 8, tiles, stackOver: {} }
+    let state = partyState(
+      [makeCharacter({ id: 'a', equipment: [{ itemId: 'stackBoxRed' }, { itemId: 'stackBoxBlue' }] })],
+      map,
+    )
+    const ids = Object.keys(state.itemInstances)
+    const lift = getTile('crate').height
+    const dropAt = (aim, index) => {
+      const screen = project(aim)
+      const boardPoint = { x: screen.x, y: screen.y - lift }
+      const hover = canPlaceAt(state, aim, { itemId: state.itemInstances[ids[index]].itemId, boardPoint })
+      state = dropItem(state, { instanceId: ids[index], position: hover.position, support: hover.support, boardPoint })
+      return state.groundItems[ids[index]]
+    }
+    const front = dropAt({ x: 4.25, y: 4.25 }, 0)
+    assert.deepEqual(front.position, { x: 4.5, y: 4.5 })
+    assert.deepEqual(front.support, { kind: 'tile', tile: { x: 4, y: 4 } })
+    const behind = dropAt({ x: 3.75, y: 3.75 }, 1)
+    assert.deepEqual(behind.position, { x: 4, y: 4 })
+    assert.deepEqual(behind.support, { kind: 'tile', tile: { x: 4, y: 4 } })
+  })
+
+  it('places the next box beside the first on the floor', () => {
+    let state = partyState(
+      [makeCharacter({ id: 'a', equipment: [{ itemId: 'stackBoxRed' }, { itemId: 'stackBoxBlue' }] })],
+    )
+    const ids = Object.keys(state.itemInstances)
+    const dropAt = (aim, index) => {
+      const boardPoint = project(aim)
+      const hover = canPlaceAt(state, aim, { itemId: state.itemInstances[ids[index]].itemId, boardPoint })
+      state = dropItem(state, { instanceId: ids[index], position: hover.position, support: hover.support, boardPoint })
+      return state.groundItems[ids[index]]
+    }
+    const front = dropAt({ x: 4.25, y: 4.25 }, 0)
+    assert.deepEqual(front.position, { x: 4.5, y: 4.5 })
+    assert.equal(front.support, undefined)
+    const behind = dropAt({ x: 3.75, y: 3.75 }, 1)
+    assert.deepEqual(behind.position, { x: 4, y: 4 })
+    assert.equal(behind.support, undefined)
   })
 
   it('cancel path: failed drop leaves ownership unchanged', () => {

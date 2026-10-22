@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
-import { isBlock, project, tileImageBox } from '../../../maps/iso.js'
+import { isBlock, project, propImageBox } from '../../../maps/iso.js'
 import { getTile, TILE_IMAGE } from '../../../maps/mapFormat.js'
 import { getCategoryHighlight } from '../../../rules/equipment.js'
 import { drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
@@ -237,9 +237,9 @@ function propOutlineCanvas(art, colour) {
 }
 
 // A dropped inventory item as a real isometric map prop (dedicated worldImage, else tiles.json worldTile — never the inventory icon).
-// Sized with worldScale (fraction of the 64×96 tile image) and anchored with tileImageBox so feet sit on the floor
-// (or on a support surface when object.z > 0 — world-space art pixels, same unit as tiles.json height).
-// object: { position, z?, worldImage?, worldTile?, worldScale?, category?, inReach, depth, hovered }.
+// Sized to the stack spot (spriteSize). The bottom corner of the iso graphic sits on
+// `position` (or on a support surface when object.z > 0 — world-space art pixels, same unit as tiles.json height).
+// object: { position, z?, worldImage?, worldTile?, spriteSize?, worldScale?, category?, inReach, depth, hovered }.
 export class GroundLootView {
   constructor() {
     this.container = new Container()
@@ -256,22 +256,25 @@ export class GroundLootView {
   }
 
   update(object) {
-    const scale = Math.max(0.15, Math.min(1, object.worldScale ?? 0.4))
-    const size = { width: TILE_IMAGE.width * scale, height: TILE_IMAGE.height * scale }
+    const fallback = Math.max(0.15, Math.min(1, object.worldScale ?? 0.5))
+    const size = object.spriteSize ?? {
+      width: TILE_IMAGE.width * fallback,
+      height: TILE_IMAGE.height * fallback,
+    }
     const z = Math.max(0, Number(object.z) || 0)
-    const box = this.liftBox(tileImageBox(object.position, size), z)
+    const box = this.liftBox(propImageBox(object.position, size), z)
     this.container.zIndex = object.depth
     this.container.alpha = 1
     const href = object.worldImage || propImageFor(object.worldTile ?? 'crate')
     const hovered = Boolean(object.hovered)
     const highlight = getCategoryHighlight(object.category)
-    const look = `${object.position.x},${object.position.y}|${z}|${href}|${scale}|${hovered ? 1 : 0}|${highlight}`
+    const look = `${object.position.x},${object.position.y}|${z}|${href}|${size.width}x${size.height}|${hovered ? 1 : 0}|${highlight}`
     if (this.look === look) {
       if (this.sprite) this.sprite.position.set(box.x - this.spritePad / PROP_RES, box.y - this.spritePad / PROP_RES)
       return
     }
     // Hover toggle only: reuse the cached prop art and rebuild the outline.
-    if (this.artCanvas && this.look?.startsWith(`${object.position.x},${object.position.y}|${z}|${href}|${scale}|`)) {
+    if (this.artCanvas && this.look?.startsWith(`${object.position.x},${object.position.y}|${z}|${href}|${size.width}x${size.height}|`)) {
       this.look = look
       if (hovered) {
         const outlined = propOutlineCanvas(this.artCanvas, highlight)

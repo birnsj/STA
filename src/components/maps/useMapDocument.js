@@ -64,10 +64,11 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
   const edit = (next) => {
     if (next === map) return
     if (strokeRef.current) {
-      // First change in this stroke records the pre-stroke map once; later changes in the stroke do not push again.
+      // Capture the snapshot now. The state updater runs later, after the stroke may already have ended.
       if (!strokeRef.current.pushed) {
-        setUndoStack((stack) => [...stack.slice(-(HISTORY_LIMIT - 1)), strokeRef.current.before])
+        const before = strokeRef.current.before
         strokeRef.current.pushed = true
+        setUndoStack((stack) => [...stack.slice(-(HISTORY_LIMIT - 1)), before])
         setRedoStack([])
       }
     } else {

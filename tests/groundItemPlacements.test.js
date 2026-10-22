@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { describe, it, beforeEach } from 'node:test'
 import { createExplorationState } from '../src/exploration/explorationState.js'
 import { groundItemAt, moveGroundItem, placeGroundItem, removeGroundItem } from '../src/maps/mapEdits.js'
-import { parseMapFile, serializeMap } from '../src/maps/mapFormat.js'
+import { parseMapFile, serializeMap, validateMap } from '../src/maps/mapFormat.js'
+import { zOf } from '../src/rules/placement.js'
 import {
   dropItem,
   groundItemViews,
@@ -140,13 +141,13 @@ describe('mapEdits ground items', () => {
     const placed = placeGroundItem(map, { x: 1.04, y: 1.11 }, 'hypospray')
     assert.ok(placed)
     map = placed.map
-    assert.deepEqual(placed.object.position, snapItemPosition({ x: 1.04, y: 1.11 }))
+    assert.deepEqual(placed.object.position, { x: 1.25, y: 1.25 })
     assert.equal(groundItemAt(map, placed.object.position)?.id, placed.object.id)
     assert.equal(placeGroundItem(map, { x: 0, y: 0 }, 'autosuture'), null)
     const moved = moveGroundItem(map, placed.object.id, { x: 2.2, y: 1.3 })
     assert.notEqual(moved, map)
     map = moved
-    assert.deepEqual(groundItemAt(map, { x: 2.2, y: 1.3 })?.position, snapItemPosition({ x: 2.2, y: 1.3 }))
+    assert.deepEqual(moved.groundItemPlacements[0].position, { x: 2.25, y: 1.5 })
     map = removeGroundItem(map, placed.object.id)
     assert.equal(map.groundItemPlacements.length, 0)
   })
@@ -235,14 +236,30 @@ describe('pickup and drop round-trip', () => {
       state = pickupItem(state, { instanceId, memberId })
       assert.ok(!state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
-      // Cargo row (y=13) stays clear of authored catalogue placements.
-      const park = { x: 4 + before.indexOf(view) * 0.03125, y: 13 }
+      // Empty floor rows, one tile apart so stack footprints do not overlap the catalogue layout.
+      const index = before.indexOf(view)
+      const rows = [1, 2, 5, 6, 9, 10, 13, 14]
+      const park = { x: 2 + (index % 10), y: rows[Math.floor(index / 10)] }
       state = dropItem(state, { instanceId, position: park })
       assert.ok(state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
+      assert.equal(state.groundItems[instanceId].support, undefined)
       assert.deepEqual(state.groundItems[instanceId].position, snapItemPosition(park))
     }
     assert.equal(groundItemViews(state).length, TM_IDS.length)
     assert.equal(new Set(groundItemViews(state).map((view) => view.itemId)).size, TM_IDS.length)
+  })
+})
+
+describe('Stacking Test map', () => {
+  it('seeds every authored box, including item-on-item stacks and the raised crates', () => {
+    const file = JSON.parse(fs.readFileSync(path.join(ROOT, 'maps', 'Stacking Test.json'), 'utf8'))
+    const map = parseMapFile(file, 'Stacking Test')
+    assert.deepEqual(validateMap(map), [])
+    const state = createExplorationState(map, [makeCharacter({ id: 'a', equipment: [] })], 1, { enemiesActive: false })
+    const items = Object.values(state.groundItems)
+    assert.equal(items.length, file.groundItemPlacements.length)
+    assert.equal(items.filter((entry) => entry.support?.kind === 'item').length, 10)
+    assert.ok(items.some((entry) => zOf(state, entry) >= 32))
   })
 })

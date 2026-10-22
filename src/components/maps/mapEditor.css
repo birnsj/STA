@@ -492,6 +492,8 @@
 .me-intensity .me-button { flex: 1; }
 .me-intensity .me-button.is-selected { outline: 2px solid #ffb347; }
 .me-hover.is-move-source { fill: rgba(102, 204, 255, 0.15); stroke: #66ccff; stroke-width: 3; stroke-dasharray: 6 4; }
+.me-hover.is-place { fill: rgba(90, 230, 140, 0.5); stroke: #8dffb0; stroke-width: 3; }
+.me-hover.is-place.is-invalid { fill: rgba(200, 70, 70, 0.38); stroke: #e07070; }
 
 .me-dialog-backdrop {
   position: absolute;

@@ -11,6 +11,11 @@ import { getItemById } from './equipment.js'
 export const DEFAULT_SURFACE_INSET = 0.05
 export const GLOBAL_STACK_CAP = 3
 export const ITEM_SUPPORT_DEPTH_CAP = 3
+// One map tile is the 64×64 placement spot (art pixels).
+// Large gear (worldScale 0.5) is a 32×32 square → 4 per tile. Small gear (0.25) is a 16×16 square → 16 per tile.
+// The picture is that same square, so the object sits in the spot it snaps to.
+export const STACK_SPOT_PX = 64
+const LARGE_STACK_SCALE = 0.4
 // Match inventory.ITEM_CELL_PX (TILE_W / 32) without importing inventory (avoids a cycle).
 const ITEM_CELL_PX = TILE_W / 32
 // Depth bias so an item on a support always sorts after that tile's block sprite (and its front face).
@@ -45,18 +50,106 @@ export function surfaceOfTile(tileOrId) {
   }
 }
 
-// Item catalogue surface (opt-in via items.json "surface"), or null.
+function finiteNum(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+// Footprint and stack height for a dropped item, in art pixels (64 = one tile).
+// The footprint is a square the size of the drawn diamond. stackSize overrides. surface.topZ overrides height.
+export function stackSizeOf(itemOrId) {
+  const def = typeof itemOrId === 'string' ? getItemById(itemOrId) : itemOrId
+  if (!def) return null
+  const scale = Math.max(0.15, Math.min(1, def.worldScale ?? LARGE_STACK_SCALE))
+  const authored = def.stackSize && typeof def.stackSize === 'object' ? def.stackSize : {}
+  const side = Math.round(scale * STACK_SPOT_PX)
+  const width = finiteNum(authored.width) ?? side
+  const depth = finiteNum(authored.depth) ?? side
+  const derivedH = Math.round(TILE_IMAGE.height * scale * 0.35)
+  const height = finiteNum(authored.height) ?? finiteNum(def.surface?.topZ) ?? derivedH
+  return { width, depth, height }
+}
+
+// Pixel size of the dropped sprite. Uniform scale, so the floor diamond stays square and matches the spot.
+export function propSpriteSize(itemOrId) {
+  const stack = stackSizeOf(itemOrId) ?? { width: 32, depth: 32, height: 0 }
+  const side = Math.min(stack.width, stack.depth) / STACK_SPOT_PX
+  return {
+    width: TILE_IMAGE.width * side,
+    height: TILE_IMAGE.height * side,
+  }
+}
+
+// Tile-space footprint (1 = one 64px side of the spot).
+export function stackFootprint(stack) {
+  if (!stack) return null
+  return { width: stack.width / STACK_SPOT_PX, depth: stack.depth / STACK_SPOT_PX }
+}
+
+// `anchor` is the bottom corner of the iso graphic (screen-south tip): the footprint extends back from it.
+export function footprintRect(anchor, footprint) {
+  return {
+    x: anchor.x - footprint.width,
+    y: anchor.y - footprint.depth,
+    width: footprint.width,
+    depth: footprint.depth,
+  }
+}
+
+export function pointInFootprint(point, center, footprint) {
+  if (!point || !center || !footprint) return false
+  const rect = footprintRect(center, footprint)
+  return (
+    point.x >= rect.x - 1e-9 &&
+    point.x <= rect.x + rect.width + 1e-9 &&
+    point.y >= rect.y - 1e-9 &&
+    point.y <= rect.y + rect.depth + 1e-9
+  )
+}
+
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.width - 1e-9 && b.x < a.x + a.width - 1e-9 && a.y < b.y + b.depth - 1e-9 && b.y < a.y + a.depth - 1e-9
+}
+
+// Full tile cell: the 64×64 spot, centred on the tile.
+function tileSpotRect(tile) {
+  return { x: tile.x - 0.5, y: tile.y - 0.5, width: 1, depth: 1 }
+}
+
+// Stack slots inside a spot. The cell under the pointer comes first. Empty when the footprint does not fit.
+function slotsInSpot(point, spot, footprint) {
+  const cols = Math.floor((spot.width + 1e-6) / footprint.width)
+  const rows = Math.floor((spot.depth + 1e-6) / footprint.depth)
+  if (cols < 1 || rows < 1) return []
+  const slots = []
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      // The slot's anchor is its bottom corner. The cell itself is the square behind that corner.
+      const x = spot.x + (col + 1) * footprint.width
+      const y = spot.y + (row + 1) * footprint.depth
+      slots.push({ x, y, dist: (x - point.x) ** 2 + (y - point.y) ** 2 })
+    }
+  }
+  // The cell that contains the pointer wins. Nearest-corner alone jumps a click in the back of a cell
+  // onto the cell behind it, because that cell's front corner is closer than this cell's front corner.
+  const inside = (slot) => (pointInFootprint(point, slot, footprint) ? 0 : 1)
+  slots.sort((a, b) => inside(a) - inside(b) || a.dist - b.dist)
+  return slots
+}
+
+// Every item has a top another item can rest on. Footprint comes from stack size, not a whole tile.
 export function surfaceOfItem(itemOrId) {
   const def = typeof itemOrId === 'string' ? getItemById(itemOrId) : itemOrId
-  if (!def?.surface || typeof def.surface !== 'object') return null
-  const authored = def.surface
-  const scale = Math.max(0.15, Math.min(1, def.worldScale ?? 0.4))
-  const derivedTop = Math.round(TILE_IMAGE.height * scale * 0.35)
+  if (!def) return null
+  const stack = stackSizeOf(def)
+  if (!stack) return null
+  const authored = def.surface && typeof def.surface === 'object' ? def.surface : {}
   return {
-    topZ: Number.isFinite(authored.topZ) ? authored.topZ : derivedTop,
-    inset: Number.isFinite(authored.inset) ? authored.inset : DEFAULT_SURFACE_INSET,
+    topZ: stack.height,
+    inset: finiteNum(authored.inset) ?? DEFAULT_SURFACE_INSET,
     accepts: Array.isArray(authored.accepts) ? authored.accepts : null,
     maxStack: Number.isFinite(authored.maxStack) ? authored.maxStack : 1,
+    footprint: stackFootprint(stack),
   }
 }
 
@@ -78,10 +171,10 @@ export function clampToSurfaceFootprint(point, tilePos, inset = DEFAULT_SURFACE_
 }
 
 // True when a board/SVG point lies on the raised iso diamond of a tile (lift = topZ art pixels).
-export function pointInRaisedTileDiamond(boardPoint, tilePos, lift = 0, scale = 1) {
+export function pointInRaisedTileDiamond(boardPoint, tilePos, lift = 0, scale = 1, scaleY = scale) {
   const c = project(tilePos)
   const halfW = (TILE_W / 2) * scale
-  const halfH = (TILE_H / 2) * scale
+  const halfH = (TILE_H / 2) * scaleY
   if (halfW <= 0 || halfH <= 0) return false
   const dx = (boardPoint.x - c.x) / halfW
   const dy = (boardPoint.y - (c.y - lift)) / halfH
@@ -226,9 +319,8 @@ function itemSupportCandidate(state, point, { excludeInstanceId = null } = {}) {
     if (excludeInstanceId && entry.instanceId === excludeInstanceId) continue
     const def = getItemById(state.itemInstances?.[entry.instanceId]?.itemId)
     const surface = surfaceOfItem(def)
-    if (!surface) continue
-    // Item footprint: diamond centred on the item's snapped position, sized like a tile inset.
-    if (!pointInSurfaceFootprint(point, entry.position, surface.inset)) continue
+    if (!surface?.footprint) continue
+    if (!pointInFootprint(point, entry.position, surface.footprint)) continue
     const chain = itemSupportChain(state, entry.instanceId, { excludeInstanceId })
     if (!chain) continue
     const z = zOf(state, entry) + surface.topZ
@@ -299,11 +391,23 @@ function boardHitItemSupport(state, boardPoint, { excludeInstanceId = null } = {
     if (!surface) continue
     const chain = itemSupportChain(state, entry.instanceId, { excludeInstanceId })
     if (!chain) continue
-    const z = zOf(state, entry) + surface.topZ
-    // Item tops use the same raised-diamond test centred on the item's world position.
-    if (!pointInRaisedTileDiamond(boardPoint, entry.position, z, 1 - 2 * surface.inset)) continue
-    const raw = unproject({ x: boardPoint.x, y: boardPoint.y + z })
-    const hitPoint = clampToSurfaceFootprint(raw, entry.position, surface.inset)
+    const standZ = zOf(state, entry)
+    const z = standZ + surface.topZ
+    const foot = surface.footprint
+    const center = { x: entry.position.x - foot.width / 2, y: entry.position.y - foot.depth / 2 }
+    if (!pointInRaisedTileDiamond(boardPoint, center, z, foot.width, foot.depth)) continue
+    // A half-tile box is as tall as the cell behind it, so its lid is the same screen pixels as that
+    // empty cell. Claim the pointer only when the point on the plane the item stands on is inside this
+    // item. The empty cell behind it then stays a beside drop instead of stacking onto this one.
+    const onStand = unproject({ x: boardPoint.x, y: boardPoint.y + standZ })
+    if (!pointInFootprint(onStand, entry.position, foot)) continue
+    const rect = footprintRect(entry.position, foot)
+    // Stay on the plane the item stands on. The lid plane slides a tall box's click onto its
+    // south corner, and that .5 corner rounds onto the next tile.
+    const hitPoint = {
+      x: Math.min(rect.x + rect.width, Math.max(rect.x, onStand.x)),
+      y: Math.min(rect.y + rect.depth, Math.max(rect.y, onStand.y)),
+    }
     const candidate = {
       kind: 'item',
       instanceId: entry.instanceId,
@@ -323,8 +427,11 @@ export function supportAtBoard(state, boardPoint, { excludeInstanceId = null } =
   if (!map || !boardPoint) return null
   const item = boardHitItemSupport(state, boardPoint, { excludeInstanceId })
   const tile = boardHitTileSupport(map, boardPoint, excludeInstanceId)
-  if (item && tile) return item.z >= tile.z ? item : tile
-  return item ?? tile
+  // The surface under the object decides the cell. The object's own top is only the target when
+  // nothing else is there (a box on the floor). On a crate, the crate-plane point stays in the
+  // cell: a full cell stacks, and the empty cell behind the box stays that cell.
+  if (tile) return tile
+  return item
 }
 
 // Whether a prop tile may be stacked onto the cell (editor / stackOver). Caps at surface.maxStack and GLOBAL_STACK_CAP.
@@ -346,56 +453,159 @@ export function canStackTileOn(map, tilePos, tileId) {
  * Optional boardPoint (SVG/board coords): uses iso-correct surface hit-testing so a pointer on a
  * tabletop lands on the table, not the floor tile the floor-unproject would pick.
  */
-export function canPlaceOn(state, position, { excludeInstanceId = null, category = null, boardPoint = null } = {}) {
+function spotForSupport(state, support) {
+  if (support.kind === 'tile') return tileSpotRect(support.tile)
+  const parent = state.groundItems?.[support.instanceId]
+  if (!parent || !support.surface?.footprint) return null
+  return footprintRect(parent.position, support.surface.footprint)
+}
+
+function footprintOccupied(state, slot, footprint, support, excludeInstanceId) {
+  const next = footprintRect(slot, footprint)
+  const ref = supportRef(support)
+  return Object.values(state.groundItems ?? {}).some((entry) => {
+    if (excludeInstanceId && entry.instanceId === excludeInstanceId) return false
+    if (!supportEquals(entry.support ?? null, ref)) return false
+    const otherId = state.itemInstances?.[entry.instanceId]?.itemId
+    const other = stackFootprint(stackSizeOf(otherId))
+    if (!other) return itemGridKey(entry.position) === itemGridKey(slot)
+    return rectsOverlap(next, footprintRect(entry.position, other))
+  })
+}
+
+function placeOnSupport(state, support, point, { excludeInstanceId, category, footprint }) {
+  if (!categoryAccepted(support.surface, category)) {
+    return { ok: false, reason: 'Surface does not accept this item.' }
+  }
+  if (support.kind === 'item') {
+    const chain = itemSupportChain(state, support.instanceId, { excludeInstanceId })
+    if (!chain) return { ok: false, reason: 'Invalid support stack.' }
+    if (excludeInstanceId) {
+      const selfChain = itemSupportChain(state, excludeInstanceId)
+      if (selfChain?.some((entry) => entry.instanceId === support.instanceId)) {
+        return { ok: false, reason: 'Cannot rest on a dependent item.' }
+      }
+    }
+  }
+  const spot = spotForSupport(state, support)
+  const slots = spot ? slotsInSpot(point, spot, footprint) : []
+  // The cell under the pointer. A free cell takes the item. A full cell stacks on the item in it.
+  for (const slot of slots) {
+    if (!footprintOccupied(state, slot, footprint, support, excludeInstanceId)) {
+      return {
+        ok: true,
+        position: { x: slot.x, y: slot.y },
+        tile: tileOf(slot),
+        support: supportRef(support),
+        z: support.z,
+      }
+    }
+    const occupant = occupantAtSlot(state, slot, footprint, support, excludeInstanceId)
+    const stacked = occupant && stackOnOccupant(state, occupant, point, { excludeInstanceId, category, footprint })
+    if (stacked) return stacked
+  }
+  return { ok: false, reason: 'No room on this surface.' }
+}
+
+export function canPlaceOn(state, position, { excludeInstanceId = null, category = null, boardPoint = null, itemId = null } = {}) {
   const map = state.party?.map ?? state.map
-  const floorSnapped = snapItemPosition(position)
+  // A drop sends the corner the hover already resolved. On a .5 boundary that corner tileOf-rounds
+  // onto the next tile, so a floor drop jumps. The pointer (boardPoint) is the cell the player aimed at.
+  const cursor = boardPoint ? unproject(boardPoint) : position
+  const floorSnapped = snapItemPosition(cursor)
   const floorTile = tileOf(floorSnapped)
   if (!map || floorTile.x < 0 || floorTile.y < 0 || floorTile.y >= map.height || floorTile.x >= map.width) {
     return { ok: false, reason: 'Off the map.', position: floorSnapped, tile: floorTile, support: null, z: 0 }
   }
 
-  const boardSupport = boardPoint ? supportAtBoard(state, boardPoint, { excludeInstanceId }) : null
-  const floorSupport = supportAt(state, floorSnapped, { excludeInstanceId })
-  // Prefer the board hit when it finds a surface (pointer is on the raised top).
-  const support = boardSupport ?? floorSupport
-  const snapped = support?.hitPoint ? snapItemPosition(support.hitPoint) : floorSnapped
-  const tile = tileOf(snapped)
-
-  if (support) {
-    if (!categoryAccepted(support.surface, category)) {
-      return { ok: false, reason: 'Surface does not accept this item.', position: snapped, tile, support: null, z: 0 }
-    }
-    if (support.kind === 'item') {
-      const chain = itemSupportChain(state, support.instanceId, { excludeInstanceId })
-      if (!chain) return { ok: false, reason: 'Invalid support stack.', position: snapped, tile, support: null, z: 0 }
-      if (excludeInstanceId) {
-        // Refuse cycles: dragged item must not become an ancestor of the chosen support.
-        const selfChain = itemSupportChain(state, excludeInstanceId)
-        if (selfChain?.some((entry) => entry.instanceId === support.instanceId)) {
-          return { ok: false, reason: 'Cannot rest on a dependent item.', position: snapped, tile, support: null, z: 0 }
-        }
+  const stack = stackSizeOf(itemId) ?? { width: 32, depth: 32, height: 0 }
+  const footprint = stackFootprint(stack)
+  // Tile and item are both kept. A higher item must not hide free slots on the crate under it.
+  const choices = []
+  if (boardPoint) {
+    const tileHit = boardHitTileSupport(map, boardPoint, excludeInstanceId)
+    const itemHit = boardHitItemSupport(state, boardPoint, { excludeInstanceId })
+    if (tileHit) choices.push(tileHit)
+    if (itemHit) choices.push(itemHit)
+  }
+  const tileHit = tileSupportCandidate(map, floorSnapped)
+  const itemHit = itemSupportCandidate(state, floorSnapped, { excludeInstanceId })
+  if (tileHit) choices.push(tileHit)
+  if (itemHit) choices.push(itemHit)
+  const point = choices.find((choice) => choice.hitPoint)?.hitPoint ?? floorSnapped
+      // The cell under the pointer first. If that cell is full, the item there is tried next so a drop on a box stacks.
+  const ordered = [...choices].sort((a, b) => (a.kind === 'item') - (b.kind === 'item') || b.z - a.z)
+  const seen = new Set()
+  for (const support of ordered) {
+    const key = support.kind === 'tile' ? `tile:${support.tile.x},${support.tile.y}` : `item:${support.instanceId}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (support.kind === 'tile') {
+      if (!categoryAccepted(support.surface, category)) {
+        return { ok: false, reason: 'Surface does not accept this item.', position: floorSnapped, tile: floorTile, support: null, z: 0 }
       }
+      const slots = slotsInSpot(point, tileSpotRect(support.tile), footprint)
+      for (const slot of slots) {
+        if (!footprintOccupied(state, slot, footprint, support, excludeInstanceId)) {
+          return {
+            ok: true,
+            position: { x: slot.x, y: slot.y },
+            tile: { x: support.tile.x, y: support.tile.y },
+            support: supportRef(support),
+            z: support.z,
+          }
+        }
+        // The nearest spot is full: stack on that item when it can hold this one, otherwise try the next spot.
+        const occupant = occupantAtSlot(state, slot, footprint, support, excludeInstanceId)
+        const stacked = occupant && stackOnOccupant(state, occupant, point, { excludeInstanceId, category, footprint })
+        if (stacked) return stacked
+      }
+      continue
     }
-    const key = itemGridKey(snapped)
-    const occupied = Object.values(state.groundItems ?? {}).some((entry) => {
-      if (excludeInstanceId && entry.instanceId === excludeInstanceId) return false
-      if (itemGridKey(entry.position) !== key) return false
-      return supportEquals(entry.support ?? null, supportRef(support))
-    })
-    if (occupied) return { ok: false, reason: 'Already an item here.', position: snapped, tile, support: null, z: 0 }
-    return { ok: true, position: snapped, tile, support: supportRef(support), z: support.z }
+    const placed = placeOnSupport(state, support, point, { excludeInstanceId, category, footprint })
+    if (placed.reason === 'Surface does not accept this item.' || placed.reason === 'Invalid support stack.' || placed.reason === 'Cannot rest on a dependent item.') {
+      return { ok: false, reason: placed.reason, position: floorSnapped, tile: floorTile, support: null, z: 0 }
+    }
   }
 
-  // Floor: same rules as the pre-elevation canPlaceAt.
+  // Floor uses the same pack points as a table: the bottom corner locks to the nearest spot on the tile.
   if (blocksMovement(map, floorTile)) return { ok: false, reason: 'Blocked.', position: floorSnapped, tile: floorTile, support: null, z: 0 }
-  const key = itemGridKey(floorSnapped)
-  const occupied = Object.values(state.groundItems ?? {}).some((entry) => {
-    if (excludeInstanceId && entry.instanceId === excludeInstanceId) return false
-    if (entry.support) return false
-    return itemGridKey(entry.position) === key
-  })
-  if (occupied) return { ok: false, reason: 'Already an item here.', position: floorSnapped, tile: floorTile, support: null, z: 0 }
-  return { ok: true, position: floorSnapped, tile: floorTile, support: null, z: 0 }
+  const floorSlots = slotsInSpot(cursor, tileSpotRect(floorTile), footprint)
+  for (const floorSlot of floorSlots) {
+    if (!footprintOccupied(state, floorSlot, footprint, null, excludeInstanceId)) {
+      return { ok: true, position: { x: floorSlot.x, y: floorSlot.y }, tile: floorTile, support: null, z: 0 }
+    }
+    const occupant = occupantAtSlot(state, floorSlot, footprint, null, excludeInstanceId)
+    const stacked = occupant && stackOnOccupant(state, occupant, cursor, { excludeInstanceId, category, footprint })
+    if (stacked) return stacked
+  }
+  return { ok: false, reason: 'Already an item here.', position: floorSnapped, tile: floorTile, support: null, z: 0 }
+}
+
+function occupantAtSlot(state, slot, footprint, support, excludeInstanceId) {
+  const next = footprintRect(slot, footprint)
+  const ref = supportRef(support)
+  let best = null
+  for (const entry of Object.values(state.groundItems ?? {})) {
+    if (excludeInstanceId && entry.instanceId === excludeInstanceId) continue
+    if (!supportEquals(entry.support ?? null, ref)) continue
+    const other = stackFootprint(stackSizeOf(state.itemInstances?.[entry.instanceId]?.itemId))
+    if (!other || !rectsOverlap(next, footprintRect(entry.position, other))) continue
+    if (!best || zOf(state, entry) >= zOf(state, best)) best = entry
+  }
+  return best
+}
+
+function stackOnOccupant(state, occupant, point, options) {
+  const surface = surfaceOfItem(state.itemInstances?.[occupant.instanceId]?.itemId)
+  if (!surface) return null
+  const placed = placeOnSupport(
+    state,
+    { kind: 'item', instanceId: occupant.instanceId, surface, z: zOf(state, occupant) + surface.topZ },
+    point,
+    options,
+  )
+  return placed.ok ? placed : null
 }
 
 function supportRef(support) {

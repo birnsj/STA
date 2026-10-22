@@ -363,7 +363,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       dispatch({ type: 'moveTo', target: item.approachPosition(state) ?? ground.position, fresh: true })
       setPendingPickup({ instanceId, memberId, combatId: state.lastCombat?.id ?? null })
     },
-    [beamPhase, cancelPendingTalk, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state, state.groundItems, state.lastCombat?.id],
+    [beamPhase, cancelPendingTalk, closeAllMenus, dispatch, groundPickupMemberId, itemDragRef, party.members, state],
   )
 
   const startGroundItemDrag = useCallback(

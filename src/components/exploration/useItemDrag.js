@@ -66,6 +66,7 @@ export default function useItemDrag({ state, dispatch }) {
     const check = canPlaceAt(exploreStateRef.current, point ?? { x: 0, y: 0 }, {
       excludeInstanceId: dragging?.from?.location === 'ground' ? dragging.instanceId : null,
       category: resolved?.def.category ?? null,
+      itemId: resolved?.def.id ?? null,
       boardPoint,
     })
     // Prefer giving the item to a party member under the pointer (green ring) when their bag has room.
@@ -75,14 +76,16 @@ export default function useItemDrag({ state, dispatch }) {
       const member = exploreStateRef.current.party?.members?.[memberId]
       if (member?.character?.inventory && bagFreeSlots(member.character) > 0) dropMemberId = memberId
     }
-    // support / z come from canPlaceAt (placement.js); floor drops leave them null / 0. end() still only reads
-    // hover.position + valid — dropItem re-resolves support from the position.
+    // support / z come from canPlaceAt (placement.js); floor drops leave them null / 0.
+    // boardPoint goes with the drop: the resolved corner sits on a tile edge, and a second snap without the
+    // cursor lands on the next tile.
     const hover = {
       position: check.position ?? point,
       valid: check.ok,
       dropMemberId,
       support: check.support ?? null,
       z: check.z ?? 0,
+      boardPoint,
     }
     const prev = placeHoverRef.current
     if (
@@ -224,7 +227,8 @@ export default function useItemDrag({ state, dispatch }) {
             type: 'dropItem',
             instanceId,
             position: hover.position,
-            // Optional: floor omits support; elevated passes the hover's support (same as canPlaceAt).
+            // The cursor, so the drop stays in the cell the ghost showed. Floor omits support.
+            ...(hover.boardPoint ? { boardPoint: hover.boardPoint } : {}),
             ...(hover.support ? { support: hover.support } : {}),
           })
         }

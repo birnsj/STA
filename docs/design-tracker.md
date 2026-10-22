@@ -45,6 +45,8 @@ The expansion was built from the approved plan before the designer answered its 
 
 **Elevated surfaces (implemented 2026-10-22):** same drag lifecycle places items on opt-in tile/item surfaces with derived Z; `stackOver` for crate-on-crate; no free elevation field; shelves/racks deferred until art exists. Where: `src/rules/placement.js`, `docs/world-objects.md`.
 
+**Stack size (designer request, 2026-10-22; pack snap 2026-10-22):** a tile holds 4 large items (32×32) or 16 small items (16×16). The picture is that same square, so it sits in the spot it snaps to. The cell under the pointer is the one that fills: its bottom corner locks to that cell, including a click in the back of the cell. A click on a full cell stacks on the item there. The raised top of an item does not take the empty cell behind it; that cell still fills. That cell is highlighted on the board while placing. Stack boxes are 8px tall, under the 16px step to the cell behind, so that cell stays visible. Where: `src/rules/placement.js`.
+
 **Questions / follow-ups:**
 - When should mission save/load include inventory and ground items?
 - Should bag weapons remain usable without equipping?

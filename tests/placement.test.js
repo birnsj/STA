@@ -16,6 +16,8 @@ import {
   canStackTileOn,
   groundItemDepth,
   pointInSurfaceFootprint,
+  stackSizeOf,
+  propSpriteSize,
   surfaceOfTile,
   supportAt,
   supportAtBoard,
@@ -138,11 +140,11 @@ describe('canPlaceAt on surfaces', () => {
     state = dropItem(state, { instanceId: ids[1], position: { x: 1.125, y: 1 } })
     assert.ok(state.groundItems[ids[0]])
     assert.ok(state.groundItems[ids[1]])
-    const same = canPlaceAt(state, { x: 1, y: 1 })
-    assert.equal(same.ok, false)
-    assert.equal(same.reason, 'Already an item here.')
-    // Repositioning the occupant is still allowed at its own cell.
-    assert.ok(canPlaceAt(state, { x: 1, y: 1 }, { excludeInstanceId: ids[0] }).ok)
+    assert.notDeepEqual(state.groundItems[ids[0]].position, state.groundItems[ids[1]].position)
+    assert.equal(state.groundItems[ids[0]].support.kind, 'tile')
+    assert.equal(state.groundItems[ids[1]].support.kind, 'tile')
+    // Repositioning the occupant is still allowed on the same spot.
+    assert.ok(canPlaceAt(state, { x: 1, y: 1 }, { excludeInstanceId: ids[0], itemId: state.itemInstances[ids[0]].itemId }).ok)
   })
 
   it('keeps floor placement identical when no surface is present', () => {
@@ -208,6 +210,101 @@ describe('groundItemDepth', () => {
   })
 })
 
+describe('item stack size on a 64×64 spot', () => {
+  function put(state, id, itemId, position) {
+    const placed = canPlaceOn(state, position, { itemId, category: 'utility' })
+    if (!placed.ok) return { state, placed }
+    return {
+      placed,
+      state: {
+        ...state,
+        itemInstances: { ...state.itemInstances, [id]: { id, itemId, quantity: 1 } },
+        groundItems: {
+          ...state.groundItems,
+          [id]: { instanceId: id, position: placed.position, ...(placed.support ? { support: placed.support } : {}) },
+        },
+      },
+    }
+  }
+
+  it('derives large and small footprints from worldScale', () => {
+    const medkit = stackSizeOf('medkit')
+    const communicator = stackSizeOf('communicator')
+    const kit = stackSizeOf('equipmentCase')
+    assert.deepEqual({ width: medkit.width, depth: medkit.depth }, { width: 32, depth: 32 })
+    assert.deepEqual({ width: communicator.width, depth: communicator.depth }, { width: 16, depth: 16 })
+    assert.equal(kit.height, 10)
+    assert.deepEqual(propSpriteSize('medkit'), { width: 32, height: 48 })
+    assert.deepEqual(propSpriteSize('communicator'), { width: 16, height: 24 })
+    assert.deepEqual(propSpriteSize('stackBoxRed'), { width: 32, height: 48 })
+    assert.equal(stackSizeOf('stackBoxRed').height, 8)
+  })
+
+  it('fits 4 large items on a crate and stacks the next one', () => {
+    const map = mapWith([
+      ['floor', 'floor'],
+      ['floor', 'crate'],
+    ])
+    let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
+    const drops = [
+      { aim: { x: 0.75, y: 0.75 }, at: { x: 1, y: 1 } },
+      { aim: { x: 1.25, y: 0.75 }, at: { x: 1.5, y: 1 } },
+      { aim: { x: 0.75, y: 1.25 }, at: { x: 1, y: 1.5 } },
+      { aim: { x: 1.25, y: 1.25 }, at: { x: 1.5, y: 1.5 } },
+    ]
+    drops.forEach((slot, i) => {
+      const step = put(state, `m${i}`, 'medkit', slot.aim)
+      assert.equal(step.placed.ok, true, step.placed.reason)
+      assert.equal(step.placed.support.kind, 'tile')
+      assert.deepEqual(step.placed.position, slot.at)
+      state = step.state
+    })
+    const fifth = put(state, 'm4', 'medkit', drops[0].aim)
+    assert.equal(fifth.placed.ok, true, fifth.placed.reason)
+    assert.equal(fifth.placed.support.kind, 'item')
+    assert.ok(fifth.placed.z > 16)
+  })
+
+  it('keeps a click in the back of a cell inside that cell', () => {
+    const map = mapWith([
+      ['floor', 'floor'],
+      ['floor', 'crate'],
+    ])
+    let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
+    // (1.1, 1.1) is inside the front cell. The cell behind has a nearer corner, and must not steal the drop.
+    const front = put(state, 'front', 'medkit', { x: 1.1, y: 1.1 })
+    assert.equal(front.placed.support.kind, 'tile')
+    assert.deepEqual(front.placed.position, { x: 1.5, y: 1.5 })
+    const behind = put(front.state, 'behind', 'medkit', { x: 0.6, y: 0.6 })
+    assert.equal(behind.placed.support.kind, 'tile')
+    assert.deepEqual(behind.placed.position, { x: 1, y: 1 })
+    const onFront = put(behind.state, 'stack', 'medkit', { x: 1.1, y: 1.1 })
+    assert.equal(onFront.placed.support.kind, 'item')
+    assert.deepEqual(onFront.placed.position, { x: 1.5, y: 1.5 })
+  })
+
+  it('fits 16 small items on a crate', () => {
+    const map = mapWith([
+      ['floor', 'floor'],
+      ['floor', 'crate'],
+    ])
+    let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
+    const slots = []
+    for (const x of [0.75, 1, 1.25, 1.5]) {
+      for (const y of [0.75, 1, 1.25, 1.5]) slots.push({ aim: { x: x - 0.125, y: y - 0.125 }, at: { x, y } })
+    }
+    slots.forEach((slot, i) => {
+      const step = put(state, `c${i}`, 'communicator', slot.aim)
+      assert.equal(step.placed.ok, true, step.placed.reason)
+      assert.equal(step.placed.support.kind, 'tile')
+      assert.deepEqual(step.placed.position, slot.at)
+      state = step.state
+    })
+    const extra = put(state, 'c16', 'communicator', slots[0].aim)
+    assert.equal(extra.placed.support.kind, 'item')
+  })
+})
+
 describe('item-on-item and editor stacking', () => {
   it('allows a phaser on an equipment case on a crate', () => {
     const map = mapWith([
@@ -222,26 +319,11 @@ describe('item-on-item and editor stacking', () => {
     const phaserId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'phaserType2')
     state = dropItem(state, { instanceId: caseId, position: { x: 1, y: 1 } })
     assert.deepEqual(state.groundItems[caseId].support, { kind: 'tile', tile: { x: 1, y: 1 } })
-    state = dropItem(state, { instanceId: phaserId, position: { x: 1, y: 1 } })
-    // Same cell as the case: occupancy is per support, so phaser must land on the case (item support) at a free cell
-    // on the case footprint — centre is occupied by the case itself as an item grid cell.
-    // Dropping at the case position with exclude would still see the case occupying the cell on the tile support.
-    // Place at a slight offset so both sit in the crate footprint; then move phaser onto the case.
-    assert.ok(state.groundItems[caseId])
-    // Free the centre by placing the phaser on the case via supportAt item preference at the case centre.
-    // canPlaceAt at case centre: item support wins when category accepted; occupancy is per-support, so the case's
-    // own cell on the tile does not block the phaser on the item surface.
-    const onCase = canPlaceAt(state, { x: 1, y: 1 }, { excludeInstanceId: phaserId, category: 'weapon' })
-    if (onCase.ok && onCase.support?.kind === 'item') {
-      state = dropItem(state, { instanceId: phaserId, position: { x: 1, y: 1 }, support: onCase.support })
-      assert.equal(state.groundItems[phaserId].support.kind, 'item')
-      assert.equal(state.groundItems[phaserId].support.instanceId, caseId)
-      assert.ok(zOf(state, state.groundItems[phaserId]) > zOf(state, state.groundItems[caseId]))
-    } else {
-      // If centre is considered occupied on both, place the phaser on an adjacent snap on the crate.
-      state = dropItem(state, { instanceId: phaserId, position: { x: 1.125, y: 1 } })
-      assert.ok(state.groundItems[phaserId].support)
-    }
+    const onCase = state.groundItems[caseId].position
+    state = dropItem(state, { instanceId: phaserId, position: onCase })
+    assert.equal(state.groundItems[phaserId].support.kind, 'item')
+    assert.equal(state.groundItems[phaserId].support.instanceId, caseId)
+    assert.ok(zOf(state, state.groundItems[phaserId]) > zOf(state, state.groundItems[caseId]))
   })
 })
 

@@ -16,6 +16,7 @@ import CombatPortrait from '../combat/CombatPortrait.jsx'
 import InfoTipBubble from '../InfoTipBubble.jsx'
 import { useStageSize } from '../stageSize.js'
 import { INVENTORY_GHOST_ID, syncInventoryGhostPosition, worldGhostScreenSize } from './inventoryDrag.js'
+import { propSpriteSize } from '../../rules/placement.js'
 
 const SLOT_LABELS = {
   body: 'Body',
@@ -407,12 +408,11 @@ export function InventoryDragGhost({ drag, state, placeHelpersRef = null }) {
   const resolved = resolveItem(state, drag.instanceId)
   if (!resolved) return null
   const overWorld = Boolean(drag.overWorld)
-  const scale = Math.max(0.15, Math.min(1, resolved.def.worldScale ?? 0.4))
   const src = overWorld ? resolved.def.worldImage || resolved.def.icon : resolved.def.icon
   // The board publishes its current board-to-screen converter into this ref as it moves, so the size is read fresh on
   // each render; passing it as a prop would show the previous frame's zoom.
   // eslint-disable-next-line react/refs -- deliberate read of the board's latest helpers
-  const sized = overWorld ? worldGhostScreenSize(scale, placeHelpersRef?.current?.toClient) : null
+  const sized = overWorld ? worldGhostScreenSize(propSpriteSize(resolved.def), placeHelpersRef?.current?.toClient) : null
   const style = overWorld
     ? {
         width: sized.width,

@@ -12,6 +12,7 @@ import {
   eraseMarkers,
   eraseStructure,
   groundItemAt,
+  groundItemAtBoard,
   hasMarkers,
   hazardRegionAt,
   moveDestructible,
@@ -319,12 +320,12 @@ export default function useEditorTools({
 
   // A click with no marker tool held (Place Tiles and Move off): select what stands on the tile for editing.
   // Layer-aware: hidden/locked layers are skipped; active layer is preferred; repeat clicks cycle candidates.
-  const selectAt = (position) => {
+  const selectAt = (position, boardPoint = null) => {
     if (editingPatrol || movingWaypoint) {
       if (onPatrolEdit(position)) return
     }
     clearSelectionModes()
-    const all = selectionCandidates(map, objectDefinitions, position, { cellPx: itemGridSize })
+    const all = selectionCandidates(map, objectDefinitions, position, { cellPx: itemGridSize, boardPoint })
     const editable = all.filter((candidate) => {
       if (!candidate.layer) return true
       return canEditLayer(layers, candidate.layer)
@@ -369,20 +370,25 @@ export default function useEditorTools({
     setStatus(`Placed ${DESTRUCTIBLE_TYPES[type].name} (${placed.object.id}). Ctrl+D duplicates it.`)
   }
 
-  // Inventory tools: click an existing ground placement to select it, else place the held catalogue item (toolbar grid snap).
-  const onInventoryTool = (position, itemId) => {
-    const existing = groundItemAt(map, position, { cellPx: itemGridSize })
-    if (existing) {
-      setSelectedGroundItemId(existing.id)
-      setSelectedDestructibleId(null)
-      setSelectedHazardId(null)
-      setSelectedNpcId(null)
-      setSelectedMarker(null)
-      setSelectedObjectId(null)
-      return
-    }
+  // Inventory tools: a click places where the pointer is, including on top of an item. A click that cannot place selects
+  // the item under the pointer so a full spot can still be inspected.
+  const onInventoryTool = (position, itemId, boardPoint = null) => {
     const placed = placeGroundItem(map, position, itemId, itemGridSize)
-    if (!placed) return setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
+    if (!placed) {
+      const existing = boardPoint
+        ? groundItemAtBoard(map, boardPoint)
+        : groundItemAt(map, position, { cellPx: itemGridSize })
+      if (existing) {
+        setSelectedGroundItemId(existing.id)
+        setSelectedDestructibleId(null)
+        setSelectedHazardId(null)
+        setSelectedNpcId(null)
+        setSelectedMarker(null)
+        setSelectedObjectId(null)
+        return
+      }
+      return setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
+    }
     edit(placed.map)
     setSelectedGroundItemId(placed.object.id)
     setSelectedDestructibleId(null)
@@ -391,7 +397,8 @@ export default function useEditorTools({
     setStatus(`Placed ${def?.name ?? itemId} (${placed.object.id}).`)
   }
 
-  const onPaint = (position, { first }) => {
+  // boardPoint: the pointer in board px (EditorBoard), for picking items drawn on raised surfaces.
+  const onPaint = (position, { first, boardPoint = null }) => {
     if (first) beginStroke?.()
     if ((editingPatrol || movingWaypoint) && selectedNpc && first) {
       if (onPatrolEdit(position)) return
@@ -424,7 +431,7 @@ export default function useEditorTools({
     }
     if (tool?.startsWith('inventory:')) {
       if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
-      if (first) onInventoryTool(position, tool.slice('inventory:'.length))
+      if (first) onInventoryTool(position, tool.slice('inventory:'.length), boardPoint)
       return
     }
     if (tool?.startsWith('destructible:')) {
@@ -506,7 +513,7 @@ export default function useEditorTools({
         } else {
           edit(paintBrush(map, position, tileId, rotated))
         }
-      } else if (first) selectAt(position)
+      } else if (first) selectAt(position, boardPoint)
       return
     }
     // Marker tools act on the pressed tile only, not on every tile dragged over.

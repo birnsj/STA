@@ -17,11 +17,25 @@ export function diamond(position, lift = 0, scale = 1) {
   return [[c.x, c.y - h - lift], [c.x + w, c.y - lift], [c.x, c.y + h - lift], [c.x - w, c.y - lift]]
 }
 
+// The pack cell a drop will fill. `anchor` is the south tip; the square sits behind that tip.
+export function footprintDiamond(anchor, footprint, lift = 0) {
+  const width = footprint?.width > 0 ? footprint.width : 1
+  const depth = footprint?.depth > 0 ? footprint.depth : width
+  const center = { x: anchor.x - width / 2, y: anchor.y - depth / 2 }
+  return diamond(center, lift, Math.min(width, depth))
+}
+
 // Where a tile PNG of this size (mapFormat.js imageSize) goes so its floor diamond (the bottom 64x32 of the image)
-// covers the tile.
+// covers the tile. `position` is the centre of that diamond.
 export function tileImageBox(position, size = TILE_IMAGE) {
   const c = project(position)
   return { x: c.x - size.width / 2, y: c.y + TILE_H / 2 - size.height, width: size.width, height: size.height }
+}
+
+// A dropped prop. `position` is the bottom corner of the iso graphic (the front tip, bottom centre of the PNG).
+export function propImageBox(position, size) {
+  const c = project(position)
+  return { x: c.x - size.width / 2, y: c.y - size.height, width: size.width, height: size.height }
 }
 
 // World rectangle around a map with some margin, for the camera.

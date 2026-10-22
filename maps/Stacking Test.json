@@ -1,0 +1,932 @@
+{
+  "schemaVersion": 2,
+  "name": "Stacking Test",
+  "episodeName": "Stacking Test",
+  "card": null,
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 95,
+  "rows": [
+    "######################",
+    "#....................#",
+    "#....................#",
+    "#..c...c...c...c.....#",
+    "#....................#",
+    "#....................#",
+    "#..c...c...c...c.....#",
+    "#....................#",
+    "#....................#",
+    "#....................#",
+    "#..c...c.............#",
+    "#....................#",
+    "#....................#",
+    "#....................#",
+    "#....................#",
+    "######################"
+  ],
+  "stackOver": {
+    "15,3": [
+      "crate"
+    ],
+    "7,10": [
+      "crate",
+      "crate"
+    ]
+  },
+  "areas": [
+    {
+      "name": "Four large",
+      "position": [
+        3,
+        2
+      ]
+    },
+    {
+      "name": "Eight small",
+      "position": [
+        7,
+        2
+      ]
+    },
+    {
+      "name": "Tower",
+      "position": [
+        11,
+        2
+      ]
+    },
+    {
+      "name": "Double crate",
+      "position": [
+        15,
+        2
+      ]
+    },
+    {
+      "name": "Gear",
+      "position": [
+        3,
+        5
+      ]
+    },
+    {
+      "name": "Floor stacks",
+      "position": [
+        8,
+        8
+      ]
+    },
+    {
+      "name": "Triple crate",
+      "position": [
+        7,
+        11
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        2,
+        13,
+        0
+      ],
+      [
+        3,
+        13,
+        0
+      ],
+      [
+        2,
+        12,
+        0
+      ],
+      [
+        4,
+        13,
+        0
+      ]
+    ],
+    "enemySpawns": []
+  },
+  "briefing": "Stacking bay. Coloured boxes are sized to the stack grid: four large boxes fill a crate, eight slabs fill a crate, and further drops sit on the box under them. The north-east crate has another crate on it; the south crate is three high. Pick up, drop, and restack.",
+  "stardate": 9999.3,
+  "groundItemPlacements": [
+    {
+      "id": "stackBoxRed-1",
+      "itemId": "stackBoxRed",
+      "position": [
+        2.75,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-2",
+      "itemId": "stackBoxBlue",
+      "position": [
+        3.25,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGreen-3",
+      "itemId": "stackBoxGreen",
+      "position": [
+        2.75,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGold-4",
+      "itemId": "stackBoxGold",
+      "position": [
+        3.25,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-5",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        2.875
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-6",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        2.875
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-7",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        3.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-8",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        3.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-9",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        2.625
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-10",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        2.625
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-11",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        3.375
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-12",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        3.375
+      ],
+      "on": {
+        "tile": [
+          7,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxRed-13",
+      "itemId": "stackBoxRed",
+      "position": [
+        10.75,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          11,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-14",
+      "itemId": "stackBoxBlue",
+      "position": [
+        11.25,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          11,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGreen-15",
+      "itemId": "stackBoxGreen",
+      "position": [
+        10.75,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          11,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGold-16",
+      "itemId": "stackBoxGold",
+      "position": [
+        11.25,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          11,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-17",
+      "itemId": "stackBoxBlue",
+      "position": [
+        10.75,
+        2.75
+      ],
+      "name": "Tower",
+      "on": {
+        "placement": "stackBoxRed-13"
+      }
+    },
+    {
+      "id": "stackBoxGreen-18",
+      "itemId": "stackBoxGreen",
+      "position": [
+        10.75,
+        2.75
+      ],
+      "on": {
+        "placement": "stackBoxBlue-17"
+      }
+    },
+    {
+      "id": "stackBoxRed-19",
+      "itemId": "stackBoxRed",
+      "position": [
+        14.75,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          15,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-20",
+      "itemId": "stackBoxBlue",
+      "position": [
+        15.25,
+        2.75
+      ],
+      "on": {
+        "tile": [
+          15,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGreen-21",
+      "itemId": "stackBoxGreen",
+      "position": [
+        14.75,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          15,
+          3
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGold-22",
+      "itemId": "stackBoxGold",
+      "position": [
+        15.25,
+        3.25
+      ],
+      "on": {
+        "tile": [
+          15,
+          3
+        ]
+      }
+    },
+    {
+      "id": "medkit-23",
+      "itemId": "medkit",
+      "position": [
+        2.75,
+        5.75
+      ],
+      "on": {
+        "tile": [
+          3,
+          6
+        ]
+      }
+    },
+    {
+      "id": "communicator-24",
+      "itemId": "communicator",
+      "position": [
+        3.25,
+        5.875
+      ],
+      "on": {
+        "tile": [
+          3,
+          6
+        ]
+      }
+    },
+    {
+      "id": "phaserType2-25",
+      "itemId": "phaserType2",
+      "position": [
+        2.75,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          3,
+          6
+        ]
+      }
+    },
+    {
+      "id": "standardTricorder-26",
+      "itemId": "standardTricorder",
+      "position": [
+        3.25,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          3,
+          6
+        ]
+      }
+    },
+    {
+      "id": "engineeringToolkit-27",
+      "itemId": "engineeringToolkit",
+      "position": [
+        6.75,
+        5.75
+      ],
+      "on": {
+        "tile": [
+          7,
+          6
+        ]
+      }
+    },
+    {
+      "id": "hypospray-28",
+      "itemId": "hypospray",
+      "position": [
+        7.25,
+        5.875
+      ],
+      "on": {
+        "tile": [
+          7,
+          6
+        ]
+      }
+    },
+    {
+      "id": "starfleetPadd-29",
+      "itemId": "starfleetPadd",
+      "position": [
+        6.75,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          6
+        ]
+      }
+    },
+    {
+      "id": "hyperspanner-30",
+      "itemId": "hyperspanner",
+      "position": [
+        7.25,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          6
+        ]
+      }
+    },
+    {
+      "id": "communicator-31",
+      "itemId": "communicator",
+      "position": [
+        10.75,
+        5.875
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "phaserType1-32",
+      "itemId": "phaserType1",
+      "position": [
+        11.25,
+        5.875
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "communicator-33",
+      "itemId": "communicator",
+      "position": [
+        10.75,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "phaserType1-34",
+      "itemId": "phaserType1",
+      "position": [
+        11.25,
+        6.125
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "communicator-35",
+      "itemId": "communicator",
+      "position": [
+        10.75,
+        5.625
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "phaserType1-36",
+      "itemId": "phaserType1",
+      "position": [
+        11.25,
+        5.625
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "communicator-37",
+      "itemId": "communicator",
+      "position": [
+        10.75,
+        6.375
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "phaserType1-38",
+      "itemId": "phaserType1",
+      "position": [
+        11.25,
+        6.375
+      ],
+      "on": {
+        "tile": [
+          11,
+          6
+        ]
+      }
+    },
+    {
+      "id": "stackBoxRed-39",
+      "itemId": "stackBoxRed",
+      "position": [
+        14.75,
+        5.75
+      ],
+      "on": {
+        "tile": [
+          15,
+          6
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-40",
+      "itemId": "stackBoxBlue",
+      "position": [
+        15.25,
+        5.75
+      ],
+      "on": {
+        "tile": [
+          15,
+          6
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGreen-41",
+      "itemId": "stackBoxGreen",
+      "position": [
+        14.75,
+        6.25
+      ],
+      "on": {
+        "tile": [
+          15,
+          6
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGold-42",
+      "itemId": "stackBoxGold",
+      "position": [
+        15.25,
+        6.25
+      ],
+      "on": {
+        "tile": [
+          15,
+          6
+        ]
+      }
+    },
+    {
+      "id": "stackBoxRed-43",
+      "itemId": "stackBoxRed",
+      "position": [
+        4,
+        9
+      ]
+    },
+    {
+      "id": "stackBoxRed-44",
+      "itemId": "stackBoxRed",
+      "position": [
+        4,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxRed-43"
+      }
+    },
+    {
+      "id": "stackBoxRed-45",
+      "itemId": "stackBoxRed",
+      "position": [
+        4,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxRed-44"
+      }
+    },
+    {
+      "id": "stackBoxBlue-46",
+      "itemId": "stackBoxBlue",
+      "position": [
+        8,
+        9
+      ]
+    },
+    {
+      "id": "stackBoxBlue-47",
+      "itemId": "stackBoxBlue",
+      "position": [
+        8,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxBlue-46"
+      }
+    },
+    {
+      "id": "stackBoxBlue-48",
+      "itemId": "stackBoxBlue",
+      "position": [
+        8,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxBlue-47"
+      }
+    },
+    {
+      "id": "stackBoxGold-49",
+      "itemId": "stackBoxGold",
+      "position": [
+        12,
+        9
+      ]
+    },
+    {
+      "id": "stackBoxGold-50",
+      "itemId": "stackBoxGold",
+      "position": [
+        12,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxGold-49"
+      }
+    },
+    {
+      "id": "stackBoxGold-51",
+      "itemId": "stackBoxGold",
+      "position": [
+        12,
+        9
+      ],
+      "on": {
+        "placement": "stackBoxGold-50"
+      }
+    },
+    {
+      "id": "stackBoxGreen-52",
+      "itemId": "stackBoxGreen",
+      "position": [
+        16,
+        9
+      ]
+    },
+    {
+      "id": "stackSlabWhite-53",
+      "itemId": "stackSlabWhite",
+      "position": [
+        16,
+        8.875
+      ],
+      "on": {
+        "placement": "stackBoxGreen-52"
+      }
+    },
+    {
+      "id": "stackSlabBlack-54",
+      "itemId": "stackSlabBlack",
+      "position": [
+        16,
+        8.875
+      ],
+      "on": {
+        "placement": "stackSlabWhite-53"
+      }
+    },
+    {
+      "id": "stackBoxRed-55",
+      "itemId": "stackBoxRed",
+      "position": [
+        2.75,
+        9.75
+      ],
+      "on": {
+        "tile": [
+          3,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackBoxBlue-56",
+      "itemId": "stackBoxBlue",
+      "position": [
+        3.25,
+        9.75
+      ],
+      "on": {
+        "tile": [
+          3,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGreen-57",
+      "itemId": "stackBoxGreen",
+      "position": [
+        2.75,
+        10.25
+      ],
+      "on": {
+        "tile": [
+          3,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackBoxGold-58",
+      "itemId": "stackBoxGold",
+      "position": [
+        3.25,
+        10.25
+      ],
+      "on": {
+        "tile": [
+          3,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-59",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        9.875
+      ],
+      "on": {
+        "tile": [
+          7,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-60",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        9.875
+      ],
+      "on": {
+        "tile": [
+          7,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackSlabWhite-61",
+      "itemId": "stackSlabWhite",
+      "position": [
+        6.75,
+        10.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          10
+        ]
+      }
+    },
+    {
+      "id": "stackSlabBlack-62",
+      "itemId": "stackSlabBlack",
+      "position": [
+        7.25,
+        10.125
+      ],
+      "on": {
+        "tile": [
+          7,
+          10
+        ]
+      }
+    }
+  ]
+}

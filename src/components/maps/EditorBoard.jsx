@@ -1,12 +1,20 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { diamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { diamond, footprintDiamond, mapBounds, project, pts, unproject } from '../../maps/iso.js'
 import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
-import { brushPositions, npcAt, paintBrush, swapTiles } from '../../maps/mapEdits.js'
+import {
+  brushPositions,
+  groundItemElevation,
+  groundItemTargetAt,
+  npcAt,
+  paintBrush,
+  placementProbeState,
+  previewGroundItem,
+  swapTiles,
+} from '../../maps/mapEdits.js'
 import { getItemById } from '../../rules/equipment.js'
-import { snapItemPosition } from '../../rules/inventory.js'
-import { groundItemDepth, pointInSurfaceFootprint, tileSurfaceAt, zOf } from '../../rules/placement.js'
+import { propSpriteSize, stackFootprint, stackSizeOf } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
 import { boardLayout } from './canvasTiles.js'
@@ -22,52 +30,36 @@ import WebglUnavailable from './pixi/WebglUnavailable.jsx'
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
 
-// The tile whose floor diamond is under a pointer event's position, or null off the map.
-function tileAt(event, map) {
+// A pointer event's position in board (SVG) coordinates.
+function boardPointOf(event) {
   const svg = event.currentTarget.ownerSVGElement
   const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse())
-  const tile = unproject(point)
+  return { x: point.x, y: point.y }
+}
+
+// The tile whose floor diamond is under a pointer event's position, or null off the map.
+function tileAt(event, map) {
+  const tile = unproject(boardPointOf(event))
   const position = { x: Math.round(tile.x), y: Math.round(tile.y) }
   return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
 }
 
-// Inventory tools: fractional board point snapped to the editor grid size (world px), or null off the map.
+// Inventory tools: the cell under the pointer snapped to the editor grid size (world px), or null off the map. A raised
+// top (crate, table) under the pointer wins over the floor behind it (mapEdits groundItemTargetAt).
 function itemAt(event, map, gridSize) {
-  const svg = event.currentTarget.ownerSVGElement
-  const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse())
-  const position = snapItemPosition(unproject(point), gridSize)
+  const position = groundItemTargetAt(map, boardPointOf(event), { cellPx: gridSize })
   const tile = { x: Math.round(position.x), y: Math.round(position.y) }
   return tile.x >= 0 && tile.y >= 0 && tile.x < map.width && tile.y < map.height ? position : null
 }
 
 const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
 
-// Derive support/z for an authored placement (map.groundItemPlacements) for preview depth/lift.
-function placementSupportState(map, entry) {
-  const support = entry.on?.tile
-    ? { kind: 'tile', tile: { x: entry.on.tile[0] ?? entry.on.tile.x, y: entry.on.tile[1] ?? entry.on.tile.y } }
-    : entry.on?.placement
-      ? { kind: 'item', instanceId: entry.on.placement }
-      : null
-  if (support) {
-    const fake = { party: { map }, groundItems: { [entry.id]: { instanceId: entry.id, position: entry.position, support } }, itemInstances: {} }
-    return { support, z: zOf(fake, fake.groundItems[entry.id]), depth: groundItemDepth(fake, fake.groundItems[entry.id]) }
-  }
-  const tile = { x: Math.round(entry.position.x), y: Math.round(entry.position.y) }
-  const surface = tileSurfaceAt(map, tile)
-  if (surface && pointInSurfaceFootprint(entry.position, tile, surface.inset)) {
-    const supportTile = { kind: 'tile', tile }
-    const fake = { party: { map }, groundItems: { [entry.id]: { instanceId: entry.id, position: entry.position, support: supportTile } }, itemInstances: {} }
-    return { support: supportTile, z: surface.topZ, depth: groundItemDepth(fake, fake.groundItems[entry.id]) }
-  }
-  return { support: null, z: 0, depth: entry.position.x + entry.position.y }
-}
-
 function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
+  const probe = placementProbeState(map)
   const list = (map.groundItemPlacements ?? []).flatMap((entry) => {
     const def = getItemById(entry.itemId)
     if (!def) return []
-    const placed = placementSupportState(map, entry)
+    const placed = groundItemElevation(map, entry, probe)
     return [
       {
         id: entry.id,
@@ -75,7 +67,8 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
         z: placed.z,
         worldImage: def.worldImage,
         worldTile: def.worldTile ?? 'crate',
-        worldScale: def.worldScale ?? 0.4,
+        worldScale: def.worldScale ?? 0.5,
+        spriteSize: propSpriteSize(def),
         category: def.category,
         depth: placed.depth,
         hovered: entry.id === selectedGroundItemId,
@@ -86,14 +79,18 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
   if (inventoryTool && hover) {
     const def = getItemById(inventoryTool)
     if (def) {
-      const live = placementSupportState(map, { position: hover })
+      // The ghost sits where a click would place it: on the surface under the pointer, or the floor.
+      const target = previewGroundItem(map, hover, inventoryTool)
+      const at = target.ok ? target.position : hover
+      const live = groundItemElevation(map, { position: at, on: target.on }, probe)
       list.push({
         id: '__ghost',
-        position: hover,
+        position: at,
         z: live.z,
         worldImage: def.worldImage,
         worldTile: def.worldTile ?? 'crate',
-        worldScale: def.worldScale ?? 0.4,
+        worldScale: def.worldScale ?? 0.5,
+        spriteSize: propSpriteSize(def),
         category: def.category,
         depth: (live.depth ?? hover.x + hover.y) + 0.001,
         hovered: false,
@@ -192,6 +189,9 @@ export default function EditorBoard({
   // Destructible objects show in the state they start the mission in, force fields up, as play will draw them.
   const environment = useMemo(() => createEnvironment(map), [map])
   const layout = useMemo(() => boardLayout(applyEnvironmentTiles(map, environment)), [map, environment])
+  // Defined before the memos that call it: a const read earlier in the same render is a ReferenceError (selecting a
+  // destructible, hazard or patrolling NPC used to crash the editor this way).
+  const layerShown = useCallback((id) => !layerVisibility || layerVisibility[id] !== false, [layerVisibility])
   const outlines = useMemo(() => {
     const list = selectionOutlines(map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId)
     return list.filter((entry) => {
@@ -199,7 +199,7 @@ export default function EditorBoard({
       if (entry.id.startsWith('p:')) return layerShown('characters')
       return true
     })
-  }, [map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId, layerVisibility])
+  }, [map, environment, selectedDestructibleId, selectedHazardId, selectedNpcId, layerShown])
   // Every painted hazard shows while authoring, including one that only starts when something sets it off.
   const shownEnvironment = useMemo(
     () => ({ ...environment, hazards: Object.fromEntries(Object.entries(environment.hazards).map(([id, region]) => [id, { ...region, active: true }])) }),
@@ -235,7 +235,6 @@ export default function EditorBoard({
   const erasesSomething =
     erasing && hover && [...map.markers.playerStarts, ...map.markers.enemySpawns, ...map.areas.map((area) => area.position), ...(map.npcs ?? []).map((npc) => npc.position)].some(doomed)
 
-  const layerShown = (id) => !layerVisibility || layerVisibility[id] !== false
   // What the scene draws over the map: the room labels, then the markers.
   const labels = layerShown('markers')
     ? map.areas.map((area) => ({ id: `${area.position.x},${area.position.y}`, position: area.position, name: area.name, doomed: doomed(area.position) }))
@@ -305,8 +304,19 @@ export default function EditorBoard({
   const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
   const groundLoot = useMemo(
     () => (layerShown('furniture') ? groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null) : []),
-    [map, selectedGroundItemId, inventoryTool, hover, layerVisibility],
+    [map, selectedGroundItemId, inventoryTool, hover, layerShown],
   )
+  // The cell a click would fill, drawn on the board while an inventory item is the tool.
+  const itemPlaceMark = useMemo(() => {
+    if (!inventoryTool || !hover) return null
+    const target = previewGroundItem(map, hover, inventoryTool)
+    const at = target.position ?? hover
+    const live = groundItemElevation(map, { position: at, on: target.on })
+    return {
+      ok: target.ok,
+      points: pts(footprintDiamond(at, stackFootprint(stackSizeOf(inventoryTool)), live.z)),
+    }
+  }, [inventoryTool, hover, map])
   useLayoutEffect(() => {
     sceneRef.current = {
       layout,
@@ -357,7 +367,7 @@ export default function EditorBoard({
             if (!position) return
             painting.current = true
             setHover(position)
-            onPaint(position, { first: true })
+            onPaint(position, { first: true, boardPoint: boardPointOf(event) })
           }}
           onPointerMove={(event) => {
             const position = pointerAt(event)
@@ -370,6 +380,9 @@ export default function EditorBoard({
         <g className="me-overlay">
           {moveFrom && !inventoryTool && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
           {hover && !inventoryTool && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
+          {inventoryTool && hover && itemPlaceMark && (
+            <polygon className={`me-hover is-place${itemPlaceMark.ok ? '' : ' is-invalid'}`} points={itemPlaceMark.points} />
+          )}
         </g>
       </svg>
     </>

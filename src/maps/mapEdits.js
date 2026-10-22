@@ -1,9 +1,20 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
 import { getItemById } from '../rules/equipment.js'
 import { ITEM_CELL_PX, snapItemPosition } from '../rules/inventory.js'
-import { canPlaceOn, canStackTileOn, surfaceOfTile } from '../rules/placement.js'
+import {
+  canPlaceOn,
+  canStackTileOn,
+  groundItemDepth,
+  pointInSurfaceFootprint,
+  stackFootprint,
+  stackSizeOf,
+  supportAtBoard,
+  surfaceOfTile,
+  tileSurfaceAt,
+  zOf,
+} from '../rules/placement.js'
 import { nextFacing, spawnFacing } from './facing.js'
-import { TILE_W } from './iso.js'
+import { project, TILE_W, unproject } from './iso.js'
 import { layerOfSelection, layerOfTile } from './layers.js'
 import {
   cellKey,
@@ -228,7 +239,8 @@ export function selectionAt(map, objectDefinitions, position) {
 }
 
 // Every selectable thing at a tile, tagged with its editor layer, for layer-aware hit tests and cycling.
-export function selectionCandidates(map, objectDefinitions, position, { cellPx = ITEM_CELL_PX } = {}) {
+// boardPoint (optional, the click in board px): picks a placed item where it is drawn, so one on a table is selectable.
+export function selectionCandidates(map, objectDefinitions, position, { cellPx = ITEM_CELL_PX, boardPoint = null } = {}) {
   const candidates = []
   const tileId = map.tiles[position.y]?.[position.x]
   if (tileId != null && !isEmptyTile(tileId)) {
@@ -245,7 +257,7 @@ export function selectionCandidates(map, objectDefinitions, position, { cellPx =
   if (destructible) candidates.push({ kind: 'destructible', layer: layerOfSelection('destructible'), destructible })
   const hazard = hazardRegionAt(map, position)
   if (hazard) candidates.push({ kind: 'hazard', layer: layerOfSelection('hazard'), hazard })
-  const groundItem = groundItemAt(map, position, { cellPx })
+  const groundItem = groundItemAtBoard(map, boardPoint) ?? groundItemAt(map, position, { cellPx })
   if (groundItem) candidates.push({ kind: 'groundItem', layer: layerOfSelection('groundItem'), groundItem })
   const area = areaAt(map, position)
   if (area) candidates.push({ kind: 'area', layer: layerOfSelection('area'), area })
@@ -498,7 +510,7 @@ function supportFromOn(on) {
 }
 
 // Minimal exploration-shaped state so supportAt / canPlaceOn can run against authored placements.
-function placementProbeState(map, { excludeId = null } = {}) {
+export function placementProbeState(map, { excludeId = null } = {}) {
   const groundItems = {}
   const itemInstances = {}
   for (const entry of map.groundItemPlacements ?? []) {
@@ -512,15 +524,80 @@ function placementProbeState(map, { excludeId = null } = {}) {
   return { party: { map }, groundItems, itemInstances }
 }
 
-function groundItemPlaceCheck(map, position, { excludeId = null, cellPx = ITEM_CELL_PX, itemId = null } = {}) {
-  const snapped = snapItemPosition(position, cellPx)
-  const tile = groundItemTile(snapped)
-  if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) {
+function groundItemPlaceCheck(map, position, { excludeId = null, itemId = null } = {}) {
+  const state = placementProbeState(map, { excludeId })
+  // Items lock to pack points inside canPlaceOn. The toolbar grid does not move them.
+  const snapped = snapItemPosition(position, ITEM_CELL_PX)
+  const at = groundItemTile(snapped)
+  if (at.x < 0 || at.y < 0 || at.x >= map.width || at.y >= map.height) {
     return { ok: false, position: snapped, support: null }
   }
   const def = itemId ? getItemById(itemId) : null
+  return canPlaceOn(state, snapped, { excludeInstanceId: excludeId, category: def?.category ?? null, itemId })
+}
+
+// What the board draws for an authored placement (or the tool's ghost): its support, derived world Z and depth sort key.
+// Uses the whole map's placements so an item resting on another item is lifted by that item too. `probe` lets a caller
+// drawing many placements build the state once.
+export function groundItemElevation(map, entry, probe = placementProbeState(map)) {
+  let support = supportFromOn(entry.on)
+  if (!support) {
+    // No authored `on`: play seeds the placement onto whatever surface its position lies on, so draw it the same way.
+    const tile = groundItemTile(entry.position)
+    const surface = tileSurfaceAt(map, tile)
+    if (surface && pointInSurfaceFootprint(entry.position, tile, surface.inset)) support = { kind: 'tile', tile }
+  }
+  const id = entry.id ?? '__ghost'
+  const ground = { instanceId: id, position: entry.position, ...(support ? { support } : {}) }
+  const state = { ...probe, groundItems: { ...probe.groundItems, [id]: ground } }
+  return {
+    support,
+    z: zOf(state, ground),
+    depth: support ? groundItemDepth(state, ground) : entry.position.x + entry.position.y,
+  }
+}
+
+// The snapped cell an item tool means for a pointer at a board (SVG) point. A raised top (crate, table, an item that
+// holds others) is tested in screen space like play does (rules/placement.js supportAtBoard); unprojecting to the floor
+// instead lands behind or beside the furniture and rejects or misplaces the drop. Falls back to the floor under the point.
+export function groundItemTargetAt(map, boardPoint, { excludeId = null } = {}) {
+  const support = supportAtBoard(placementProbeState(map, { excludeId }), boardPoint, { excludeInstanceId: excludeId })
+  return snapItemPosition(support?.hitPoint ?? unproject(boardPoint), ITEM_CELL_PX)
+}
+
+// Screen-space reach of a placed item for selecting it, in board px. Items are small props standing on their foot.
+const GROUND_ITEM_PICK_RADIUS = 14
+const GROUND_ITEM_PICK_LIFT = 6
+
+// The placement under a board point, drawn where it actually sits (lifted by its support), or null. Floor cell matching
+// (groundItemAt) cannot pick an item on a table: its floor cell is not where the pointer is.
+export function groundItemAtBoard(map, boardPoint, { excludeId = null } = {}) {
+  if (!boardPoint) return null
   const state = placementProbeState(map, { excludeId })
-  return canPlaceOn(state, snapped, { excludeInstanceId: excludeId, category: def?.category ?? null })
+  let best = null
+  let bestDistance = Infinity
+  for (const entry of map.groundItemPlacements ?? []) {
+    if (excludeId && entry.id === excludeId) continue
+    const foot = stackFootprint(stackSizeOf(entry.itemId))
+    const center = foot
+      ? { x: entry.position.x - foot.width / 2, y: entry.position.y - foot.depth / 2 }
+      : entry.position
+    const screen = project(center)
+    const lift = zOf(state, state.groundItems[entry.id]) + GROUND_ITEM_PICK_LIFT
+    const distance = Math.hypot(boardPoint.x - screen.x, boardPoint.y - (screen.y - lift))
+    if (distance <= GROUND_ITEM_PICK_RADIUS && distance < bestDistance) {
+      best = entry
+      bestDistance = distance
+    }
+  }
+  return best
+}
+
+// What placing `itemId` at `position` would do, for the editor's ghost: { ok, position, on } (on omitted on the floor).
+export function previewGroundItem(map, position, itemId, cellPx = ITEM_CELL_PX) {
+  const check = groundItemPlaceCheck(map, position, { cellPx, itemId })
+  const on = onFromSupport(check.support)
+  return { ok: check.ok, position: check.position ?? position, ...(on ? { on } : {}) }
 }
 
 // When a support is removed or shortened, dependents re-resolve at the same X/Y (next surface below, else floor).

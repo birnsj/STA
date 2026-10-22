@@ -2967,9 +2967,9 @@ body.is-window-dragging * {
 
 .explore-place-preview {
   pointer-events: none;
-  fill: rgba(80, 200, 120, 0.4);
-  stroke: #6fdf8a;
-  stroke-width: 1.25;
+  fill: rgba(90, 230, 140, 0.5);
+  stroke: #8dffb0;
+  stroke-width: 2.5;
 }
 
 .explore-place-preview.is-invalid {

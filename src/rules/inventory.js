@@ -2,7 +2,7 @@
 // Videogame adaptation — STA 2e has no slot/bag UI (Core p.141 lists issue gear without inventory rules).
 import { TILE_W } from '../maps/iso.js'
 import { getItemById } from './equipment.js'
-import { canPlaceOn, groundItemDepth, zOf } from './placement.js'
+import { canPlaceOn, groundItemDepth, propSpriteSize, zOf } from './placement.js'
 
 export const EQUIP_SLOTS = ['body', 'sidearm', 'scanner', 'communicator']
 export const BAG_COLS = 6
@@ -146,8 +146,8 @@ export function canEquipToSlot(state, instanceId, slot) {
 // Small floor drops never block movement/pathfinding. Elevated drops sit on tile/item surfaces (placement.js).
 // excludeInstanceId: when repositioning a ground item, ignore its current cell.
 // Optional category: when set, surface.accepts is checked (drag path passes the dragged item's category).
-export function canPlaceAt(state, position, { excludeInstanceId = null, category = null, boardPoint = null } = {}) {
-  return canPlaceOn(state, position, { excludeInstanceId, category, boardPoint })
+export function canPlaceAt(state, position, { excludeInstanceId = null, category = null, boardPoint = null, itemId = null } = {}) {
+  return canPlaceOn(state, position, { excludeInstanceId, category, boardPoint, itemId })
 }
 
 // Expand one member's flat equipment list into instances/slots/bag (used for transporter beam-in mid-mission).
@@ -197,7 +197,7 @@ export function seedGroundItemPlacements(state, placements = []) {
   for (const placement of ordered) {
     const def = getItemById(placement.itemId)
     if (!def) continue
-    const place = canPlaceAt(next, placement.position, { category: def.category })
+    const place = canPlaceAt(next, placement.position, { category: def.category, itemId: def.id })
     if (!place.ok) continue
     const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
     const id = authored ? placement.id : freshInstanceId()
@@ -456,7 +456,7 @@ export function resolveGroundSupports(state) {
     const place = canPlaceAt(
       { ...state, groundItems },
       entry.position,
-      { excludeInstanceId: entry.instanceId, category: resolved?.def.category ?? null },
+      { excludeInstanceId: entry.instanceId, category: resolved?.def.category ?? null, itemId: resolved?.def.id ?? null },
     )
     if (!place.ok) {
       if (!entry.support) continue
@@ -489,12 +489,14 @@ export function dropItem(state, { instanceId, position, support = undefined, boa
     excludeInstanceId: instanceId,
     category: resolved?.def.category ?? null,
     boardPoint,
+    itemId: resolved?.def.id ?? null,
   })
   // Drag hover may pass support explicitly; otherwise use what canPlaceAt found (floor → omitted).
   const nextSupport = support !== undefined ? support : place.support
   if (!place.ok) {
-    // Elevated hover already validated; floor-only re-check can say Blocked on a solid table cell.
-    if (!nextSupport) return state
+    // A full surface stays full. The fallback is only the solid-tile case: hover already found a support,
+    // but a floor-only re-check reports Blocked.
+    if (!nextSupport || place.reason !== 'Blocked.') return state
     const snapped = snapItemPosition(position)
     const occupied = Object.values(state.groundItems ?? {}).some((entry) => {
       if (entry.instanceId === instanceId) return false
@@ -568,7 +570,8 @@ export function groundItemViews(state, { hideInstanceId = null } = {}) {
         worldImage: resolved?.def.worldImage ?? null,
         worldTile: resolved?.def.worldTile ?? 'crate',
         // Fraction of a 64×96 tile image; handheld gear is much smaller than a character (40×64 frames).
-        worldScale: resolved?.def.worldScale ?? 0.4,
+        worldScale: resolved?.def.worldScale ?? 0.5,
+        spriteSize: propSpriteSize(resolved?.def),
         icon: resolved?.def.icon ?? null,
         pickable: entry.pickable !== false,
       }
