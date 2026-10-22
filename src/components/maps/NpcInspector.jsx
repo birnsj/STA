@@ -16,6 +16,7 @@ import factionData from '../../data/adaptation/factions.json'
 import { FACINGS, snapFacing } from '../../maps/facing.js'
 import { PERCEPTION_DEFAULTS, PERCEPTION_KEYS, RESPONSE_TYPES } from '../../maps/mapFormat.js'
 import { listWaypointAnimations, waypointAnimationsForCharacter } from '../../maps/waypointAnimations.js'
+import { PropertySection } from './PropertySections.jsx'
 import WaypointAnimPreview from './WaypointAnimPreview.jsx'
 
 // The map editor's inspector for the selected NPC (mapFormat.js npcs): who it is (an authored character, never a copy),
@@ -119,8 +120,7 @@ function PerceptionFields({ npc, onChange }) {
     onChange({ perception: { ...overrides, [key]: value } })
   }
   return (
-    <>
-      <p className="me-heading">Perception</p>
+    <PropertySection id="perception" title="Perception" defaultOpen={false}>
       <p className="me-text">Blank uses the global default from awareness.json. Reset clears every override.</p>
       {PERCEPTION_FIELDS.filter((field) => PERCEPTION_KEYS.includes(field.key)).map((field) => (
         <label key={field.key} className="me-field">
@@ -145,7 +145,7 @@ function PerceptionFields({ npc, onChange }) {
       <button type="button" className="me-button" disabled={!npc.perception} onClick={() => onChange({ perception: null })}>
         Reset perception
       </button>
-    </>
+    </PropertySection>
   )
 }
 
@@ -171,8 +171,7 @@ function PatrolFields({
     ? (allAnims.find((entry) => entry.id === selected.animation)?.seconds ?? '')
     : ''
   return (
-    <>
-      <p className="me-heading">Patrol</p>
+    <PropertySection id="patrol" title="Patrol" defaultOpen={false}>
       <p className="me-text">
         {patrol.length
           ? `${patrol.length} waypoint${patrol.length === 1 ? '' : 's'} (loops).`
@@ -318,7 +317,7 @@ function PatrolFields({
           </div>
         </>
       )}
-    </>
+    </PropertySection>
   )
 }
 
@@ -394,122 +393,129 @@ export default function NpcInspector({
   }
   return (
     <div className="me-inspector">
-      <p className="me-heading">
-        NPC {npc.id} &middot; {npc.position.x}, {npc.position.y}
-      </p>
-      <Field label="Character">
-        <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
-          {!character && <option value="">Choose a character</option>}
-          {characters.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <AppearanceFields npc={npc} appearance={appearance} onChange={onChange} />
-      <Field label="Name">
-        <input className="me-name me-wide" value={npc.name ?? ''} placeholder={character?.name ?? 'The character’s name'} onChange={text('name')} />
-      </Field>
-      <Field label="Faction">
-        <select className="me-select me-wide" value={npc.faction ?? ''} onChange={select('faction')}>
-          <option value="">The character’s</option>
-          {factionData.factions.map((faction) => (
-            <option key={faction.id} value={faction.id}>
-              {faction.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Disposition">
-        <select className="me-select me-wide" value={npc.disposition ?? 'neutral'} onChange={select('disposition')}>
-          {awareness.dispositions.map((disposition) => (
-            <option key={disposition.id} value={disposition.id}>
-              {disposition.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Response when identified">
-        <select className="me-select me-wide" value={npc.responseType ?? ''} onChange={select('responseType')}>
-          <option value="">Default ({RESPONSE_TYPES.find((entry) => entry.id === defaultResponse)?.label ?? defaultResponse})</option>
-          {RESPONSE_TYPES.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Conversation">
-        <select className="me-select me-wide" value={npc.conversationId ?? ''} onChange={select('conversationId')}>
-          <option value="">{factionConversation ? `Faction default (${factionConversation})` : 'None'}</option>
-          {npc.conversationId && !conversations.some((entry) => entry.id === npc.conversationId) && <option value={npc.conversationId}>{npc.conversationId} (missing)</option>}
-          {conversations.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </select>
-      </Field>
-      {npc.conversationId && (
-        <button type="button" className="me-button me-generate" onClick={() => onEditConversation(npc.conversationId)}>
-          Edit Conversation
-        </button>
-      )}
-      {dialogueWarning && <p className="me-text is-warning">{dialogueWarning}</p>}
-      <Field label="Facing">
-        <select className="me-select me-wide" value={snapFacing(npc.facing ?? 0)} onChange={(event) => onFacing(Number(event.target.value))}>
-          {FACINGS.map((entry) => (
-            <option key={entry.degrees} value={entry.degrees}>
-              {entry.degrees}° {entry.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="NPC rules">
-        <select className="me-select me-wide" value={npc.npcRules ?? ''} onChange={select('npcRules')}>
-          {NPC_RULES.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.id === '' ? `${entry.label} (${statBlockCategory ?? 'full character rules'})` : entry.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <p className="me-text">
-        Dialogue depth from NPC rules: {dialogueTierLabel(dialogueTier)}
-        {dialogueTier === 'minor' && ' (one line)'}
-        {dialogueTier === 'notable' && ' (branched choices)'}
-        {dialogueTier === 'major' && ' (full graph)'}
-        . Soft guideline only.
-      </p>
-      <label className="me-check" title="If this NPC is killed (dead, or Dying with an untreated Deadly Injury when a fight ends), the mission fails.">
-        <input type="checkbox" checked={Boolean(npc.mustSurvive)} onChange={(event) => onChange({ mustSurvive: event.target.checked })} /> Must survive (mission fails if the away team fights them)
-      </label>
-      <Field label="Influence radius (tiles)">
-        <input
-          className="me-name me-wide"
-          type="number"
-          min="0"
-          step="1"
-          value={npc.influenceRadius ?? ''}
-          placeholder={`Default ${defaultInfluenceRadius}`}
-          title="How far this NPC's conversation reaches when it influences nearby NPCs (stand down, hesitate, escalate), unless the conversation action sets its own radius."
-          onChange={(event) => onChange({ influenceRadius: event.target.value === '' || !(Number(event.target.value) > 0) ? null : Number(event.target.value) })}
-        />
-      </Field>
-      <Field label="Alert group">
-        <input className="me-name me-wide" value={npc.alertGroupId ?? ''} placeholder="None" onChange={text('alertGroupId')} />
-      </Field>
-      <Field label="Alert method">
-        <select className="me-select me-wide" value={npc.alertMethod ?? ''} onChange={select('alertMethod')}>
-          <option value="">Default ({awareness.defaultAlertMethod})</option>
-          {awareness.alertMethods.map((method) => (
-            <option key={method.id} value={method.id}>
-              {method.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <PropertySection id="npc" title={`NPC ${npc.id} · ${npc.position.x}, ${npc.position.y}`}>
+        <Field label="Character">
+          <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
+            {!character && <option value="">Choose a character</option>}
+            {characters.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <AppearanceFields npc={npc} appearance={appearance} onChange={onChange} />
+        <Field label="Name">
+          <input className="me-name me-wide" value={npc.name ?? ''} placeholder={character?.name ?? 'The character’s name'} onChange={text('name')} />
+        </Field>
+        <Field label="Faction">
+          <select className="me-select me-wide" value={npc.faction ?? ''} onChange={select('faction')}>
+            <option value="">The character’s</option>
+            {factionData.factions.map((faction) => (
+              <option key={faction.id} value={faction.id}>
+                {faction.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Disposition">
+          <select className="me-select me-wide" value={npc.disposition ?? 'neutral'} onChange={select('disposition')}>
+            {awareness.dispositions.map((disposition) => (
+              <option key={disposition.id} value={disposition.id}>
+                {disposition.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Response when identified">
+          <select className="me-select me-wide" value={npc.responseType ?? ''} onChange={select('responseType')}>
+            <option value="">Default ({RESPONSE_TYPES.find((entry) => entry.id === defaultResponse)?.label ?? defaultResponse})</option>
+            {RESPONSE_TYPES.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Conversation">
+          <select className="me-select me-wide" value={npc.conversationId ?? ''} onChange={select('conversationId')}>
+            <option value="">{factionConversation ? `Faction default (${factionConversation})` : 'None'}</option>
+            {npc.conversationId && !conversations.some((entry) => entry.id === npc.conversationId) && <option value={npc.conversationId}>{npc.conversationId} (missing)</option>}
+            {conversations.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {npc.conversationId && (
+          <button type="button" className="me-button me-generate" onClick={() => onEditConversation(npc.conversationId)}>
+            Edit Conversation
+          </button>
+        )}
+        {dialogueWarning && <p className="me-text is-warning">{dialogueWarning}</p>}
+        <Field label="Facing">
+          <select className="me-select me-wide" value={snapFacing(npc.facing ?? 0)} onChange={(event) => onFacing(Number(event.target.value))}>
+            {FACINGS.map((entry) => (
+              <option key={entry.degrees} value={entry.degrees}>
+                {entry.degrees}° {entry.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="NPC rules">
+          <select className="me-select me-wide" value={npc.npcRules ?? ''} onChange={select('npcRules')}>
+            {NPC_RULES.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.id === '' ? `${entry.label} (${statBlockCategory ?? 'full character rules'})` : entry.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <p className="me-text">
+          Dialogue depth from NPC rules: {dialogueTierLabel(dialogueTier)}
+          {dialogueTier === 'minor' && ' (one line)'}
+          {dialogueTier === 'notable' && ' (branched choices)'}
+          {dialogueTier === 'major' && ' (full graph)'}
+          . Soft guideline only.
+        </p>
+        <label className="me-check" title="If this NPC is killed (dead, or Dying with an untreated Deadly Injury when a fight ends), the mission fails.">
+          <input type="checkbox" checked={Boolean(npc.mustSurvive)} onChange={(event) => onChange({ mustSurvive: event.target.checked })} /> Must survive (mission fails if the away team fights them)
+        </label>
+        <Field label="Influence radius (tiles)">
+          <input
+            className="me-name me-wide"
+            type="number"
+            min="0"
+            step="1"
+            value={npc.influenceRadius ?? ''}
+            placeholder={`Default ${defaultInfluenceRadius}`}
+            title="How far this NPC's conversation reaches when it influences nearby NPCs (stand down, hesitate, escalate), unless the conversation action sets its own radius."
+            onChange={(event) => onChange({ influenceRadius: event.target.value === '' || !(Number(event.target.value) > 0) ? null : Number(event.target.value) })}
+          />
+        </Field>
+        <Field label="Alert group">
+          <input className="me-name me-wide" value={npc.alertGroupId ?? ''} placeholder="None" onChange={text('alertGroupId')} />
+        </Field>
+        <Field label="Alert method">
+          <select className="me-select me-wide" value={npc.alertMethod ?? ''} onChange={select('alertMethod')}>
+            <option value="">Default ({awareness.defaultAlertMethod})</option>
+            {awareness.alertMethods.map((method) => (
+              <option key={method.id} value={method.id}>
+                {method.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div className="me-inspector-actions">
+          <button type="button" className={`me-button${moving ? ' is-primary' : ''}`} aria-pressed={moving} onClick={onMove}>
+            {moving ? 'Click a tile…' : 'Move'}
+          </button>
+          <button type="button" className="me-button" onClick={onDelete}>
+            Delete
+          </button>
+        </div>
+      </PropertySection>
       <PerceptionFields npc={npc} onChange={onChange} />
       <PatrolFields
         npc={npc}
@@ -524,14 +530,6 @@ export default function NpcInspector({
         onDeleteWaypoint={onDeleteWaypoint}
         onClearPatrol={onClearPatrol}
       />
-      <div className="me-inspector-actions">
-        <button type="button" className={`me-button${moving ? ' is-primary' : ''}`} aria-pressed={moving} onClick={onMove}>
-          {moving ? 'Click a tile…' : 'Move'}
-        </button>
-        <button type="button" className="me-button" onClick={onDelete}>
-          Delete
-        </button>
-      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
-import { diamond, project, TILE_W } from '../../../maps/iso.js'
+import { diamond, project, TILE_W, unproject } from '../../../maps/iso.js'
 import { drawLoneTiles } from '../canvasTiles.js'
 import { EASE } from './cssTiming.js'
 import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
@@ -81,7 +81,8 @@ export class EditorMarkerView {
 }
 
 // Optional authoring guide: iso lines every size world-pixels (TILE_W = one tile). board: { show, size, width, height }.
-// Lines pass through the same tile-space points items snap to (multiples of size/TILE_W), covering the map footprint.
+// Lines pass through the same tile-space snap points (multiples of size/TILE_W). view: the camera's world rect — the
+// grid covers the whole map window (not only the map footprint), so empty margin around the tiles stays gridded.
 export class EditorGridView {
   constructor(layer) {
     this.graphics = new Graphics()
@@ -89,23 +90,45 @@ export class EditorGridView {
     this.drawn = null
   }
 
-  update(board) {
+  update(board, view = null) {
     const show = Boolean(board?.show)
     const size = Number(board?.size) || 0
     const width = board?.width ?? 0
     const height = board?.height ?? 0
-    const key = show ? `${size},${width},${height}` : 'off'
+    const step = size / TILE_W
+    // Quantize the camera to a grid step so pan/zoom only redraws when the visible cell set changes.
+    const viewKey =
+      view?.width > 0 && view?.height > 0 && step > 0
+        ? [
+            Math.floor(view.x / size),
+            Math.floor(view.y / size),
+            Math.ceil((view.x + view.width) / size),
+            Math.ceil((view.y + view.height) / size),
+          ].join(',')
+        : 'map'
+    const key = show ? `${size},${width},${height},${viewKey}` : 'off'
     if (key === this.drawn) return
     this.drawn = key
     this.graphics.clear()
-    if (!show || size <= 0 || width <= 0 || height <= 0) return
-    const step = size / TILE_W
-    if (!(step > 0)) return
-    // Map floor diamonds sit on [-0.5, width-0.5] × [-0.5, height-0.5]; snap points are n*step.
-    const xMin = -0.5
-    const yMin = -0.5
-    const xMax = width - 0.5
-    const yMax = height - 0.5
+    if (!show || size <= 0 || width <= 0 || height <= 0 || !(step > 0)) return
+    // Default: map floor diamonds on [-0.5, width-0.5] × [-0.5, height-0.5]. Prefer the visible camera so the grid
+    // fills the window (including margin past the map).
+    let xMin = -0.5
+    let yMin = -0.5
+    let xMax = width - 0.5
+    let yMax = height - 0.5
+    if (view?.width > 0 && view?.height > 0) {
+      const corners = [
+        unproject({ x: view.x, y: view.y }),
+        unproject({ x: view.x + view.width, y: view.y }),
+        unproject({ x: view.x, y: view.y + view.height }),
+        unproject({ x: view.x + view.width, y: view.y + view.height }),
+      ]
+      xMin = Math.min(...corners.map((c) => c.x))
+      yMin = Math.min(...corners.map((c) => c.y))
+      xMax = Math.max(...corners.map((c) => c.x))
+      yMax = Math.max(...corners.map((c) => c.y))
+    }
     const i0 = Math.ceil(xMin / step - 1e-9)
     const i1 = Math.floor(xMax / step + 1e-9)
     const j0 = Math.ceil(yMin / step - 1e-9)

@@ -380,7 +380,7 @@ export class MapLayers {
       if (this.dark) this.dark.paintArea(view ?? this.darkBounds, { faded: fadeLevels(this.fade, now), time: this.time(now) })
     }
 
-    // Overlay emissive / emit colour: rebake overlay tiles and refresh darkness (window spill scales with emissive).
+    // Overlay emissive / emit colour: rebake overlay tiles, refresh floor spill + darkness holes.
     const epoch = emissiveEpochOf()
     if (this.emissiveEpoch !== epoch) {
       this.emissiveEpoch = epoch
@@ -395,6 +395,10 @@ export class MapLayers {
         record.sprite.position.set(centre.x + offset.x, centre.y + offset.y)
         item.shown = this.frameIndex(item, now)
         if (record.level < 1 && record.panel) this.applyLevel(record, record.level, now)
+      }
+      if (this.floor) {
+        this.floor.paintArea(boardBounds({ width: this.layout.map.width, height: this.layout.map.height }))
+        this.floor.flush()
       }
       if (this.dark) {
         this.dark.paintArea(view ?? this.darkBounds, { faded: fadeLevels(this.fade, now), time: this.time(now) })

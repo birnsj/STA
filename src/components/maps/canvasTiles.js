@@ -14,6 +14,7 @@ import {
   darknessLights,
   darknessOpacity,
   effectsEpochOf,
+  emissiveEpochOf,
   frameAt,
   OVERLAY_GLOW_BLUR,
   OVERLAY_GLOW_SPREAD,
@@ -681,13 +682,14 @@ export async function drawLoneTiles(layout, positions, resolution, time = null) 
   return { canvas, area }
 }
 
-// Floor lighting: soft contact shadows along floor edges that meet a block. (Directional cast blobs were tried and
-// pulled — they stacked into hard dark planes through corridors. Character foot shadows still use mapShadows.js.)
+// Floor lighting: soft contact shadows along floor edges that meet a block, plus coloured ground spill from
+// emitColour / glow colour (drawn here under walls — not on the darkness veil, which stacked into slabs).
+// Directional cast blobs were pulled (hard dark planes). Character foot shadows still use mapShadows.js.
 // A map's shadow strips, worked out once per map.
 const lightingCache = new WeakMap()
 function lightingOf(map) {
   const cached = lightingCache.get(map)
-  const epoch = effectsEpochOf()
+  const epoch = `${effectsEpochOf()}|${emissiveEpochOf()}`
   if (cached && cached.epoch === epoch) return cached.lighting
   const blockAt = (x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && isBlock(map.tiles[y][x])
   const strips = []
@@ -720,6 +722,36 @@ function drawLighting(context, map, area) {
     context.fillStyle = `rgba(0, 0, 0, ${SHADE_BANDS[i][2]})`
     context.fill()
   })
+  // Soft tint on the floor under walls (Selection Colour / glow colour). Floor layer only — walls cover it.
+  context.save()
+  context.globalCompositeOperation = 'lighter'
+  for (const { position, radius, strength = 1, colour } of darknessLights(map)) {
+    if (!colour || !(strength > 0) || !(radius > 0)) continue
+    const c = project(position)
+    const rx = TILE_W * radius
+    const ry = TILE_H * radius
+    if (!overlaps({ x: c.x - rx, y: c.y - ry, width: rx * 2, height: ry * 2 }, area)) continue
+    const hex = colour.replace('#', '')
+    const full = hex.length === 3 ? [...hex].map((ch) => ch + ch).join('') : hex
+    const n = parseInt(full, 16)
+    const r = (n >> 16) & 255
+    const g = (n >> 8) & 255
+    const b = n & 255
+    const a = 0.22 * strength
+    context.save()
+    context.translate(c.x, c.y)
+    context.scale(1, ry / rx)
+    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, rx)
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a})`)
+    gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${a * 0.4})`)
+    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+    context.fillStyle = gradient
+    context.beginPath()
+    context.arc(0, 0, rx, 0, Math.PI * 2)
+    context.fill()
+    context.restore()
+  }
+  context.restore()
 }
 
 // ---------------------------------------------------------------- the board
@@ -799,8 +831,7 @@ export function drawDarkness(context, transform, layout, area, { faded = NONE, t
   context.fillStyle = darknessColour(map)
   context.fillRect(area.x, area.y, area.width, area.height)
   context.globalAlpha = 1
-  // Soft holes round every light (strength scales the punch). No coloured floor pools on this layer — those caused
-  // floating slabs through walls when cast shadows were added.
+  // Soft holes round every light (strength scales the punch). Coloured spill is on the floor lighting pass (drawLighting).
   context.globalCompositeOperation = 'destination-out'
   for (const { position, radius, lift = 0, strength = 1 } of darknessLights(map)) {
     if (!(strength > 0) || !(radius > 0)) continue

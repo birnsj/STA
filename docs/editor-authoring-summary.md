@@ -51,8 +51,8 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
 
 Lighting presentation (also View → Lighting): contact shadows,
 darkness veil from map `ambient` / `ambientColour`,
-window/fitting/glow soft spill scaled by `animations[].emissive` and tinted
-by `emitColour` (Selection Colour; ground spill only). Details: `docs/tiles.md`.
+soft veil holes scaled by `animations[].emissive`, floor spill tinted by
+`emitColour` (Selection Colour; floor layer under walls). Details: `docs/tiles.md`.
 
 --------------------------------------------------------------------------------
 VERDICT

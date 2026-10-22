@@ -713,9 +713,26 @@
 .ed-shell .me-button.is-on,
 .ed-shell .me-button.is-selected,
 .ed-shell .me-place.is-on {
-  border-color: var(--ed-accent);
-  background: var(--ed-accent-soft);
-  color: #d7e8ff;
+  border-color: #79b4ff;
+  background: linear-gradient(180deg, #3d74bc 0%, #2a5a9a 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(79, 156, 255, 0.28);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.ed-shell .me-button.is-on:hover:not(:disabled),
+.ed-shell .me-button.is-selected:hover:not(:disabled),
+.ed-shell .me-place.is-on:hover:not(:disabled) {
+  border-color: #9cc8ff;
+  background: linear-gradient(180deg, #4a86d0 0%, #3368ae 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(79, 156, 255, 0.4);
 }
 
 .ed-shell .me-number {
@@ -768,8 +785,11 @@
 
 .ed-shell .me-tool.is-selected,
 .ed-shell .ed-thumb-btn.is-selected {
-  border-color: var(--ed-accent);
-  background: var(--ed-accent-soft);
+  border-color: #79b4ff;
+  background: linear-gradient(180deg, rgba(61, 116, 188, 0.55) 0%, rgba(42, 90, 154, 0.4) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(79, 156, 255, 0.22);
 }
 
 .ed-shell .me-group-tag {
@@ -843,9 +863,6 @@
 
 .ed-shell .me-intensity .me-button.is-selected {
   outline: none;
-  border-color: var(--ed-accent);
-  background: var(--ed-accent-soft);
-  color: #d7e8ff;
 }
 
 .ed-shell .me-link:hover {
@@ -861,6 +878,7 @@
 
 .ed-seg > .me-button,
 .ed-seg > .me-number,
+.ed-seg > .me-select,
 .ed-seg > .ed-size-label,
 .ed-seg > .ed-size-x {
   border-radius: 0;
@@ -879,6 +897,33 @@
 .ed-seg > :only-child {
   border-radius: 2px;
   border-right-width: 1px;
+}
+
+/* Highlighted segment sits above neighbours so its full accent border reads cleanly. */
+.ed-seg > .me-button.is-on,
+.ed-seg > .me-button.is-selected {
+  position: relative;
+  z-index: 1;
+  border-right-width: 1px;
+  margin-right: -1px;
+}
+
+.ed-seg > .me-button.is-on:last-child,
+.ed-seg > .me-button.is-selected:last-child {
+  margin-right: 0;
+}
+
+.ed-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 5px;
+}
+
+.ed-icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .ed-size-label,
@@ -1395,14 +1440,15 @@
   cursor: pointer;
 }
 
+/* Colour rows: label | swatch | hex — same width for Ambient Colour and object emit Colour. */
+.ed-emissive:has(.ed-colour) {
+  grid-template-columns: 56px 28px 1fr;
+}
+
 .ed-colour-hex {
   width: 100%;
   min-width: 0;
-  grid-column: 2 / -1;
-}
-
-.ed-light-pool .ed-emissive:has(.ed-colour) {
-  grid-template-columns: 56px 28px 1fr;
+  grid-column: auto;
 }
 
 .ed-emit-cell figcaption {
@@ -1503,6 +1549,92 @@
   background: var(--ed-panel);
   border-left: 1px solid var(--ed-border);
   overflow: hidden;
+}
+
+.ed-prop-sections-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--ed-border);
+  background: #12161d;
+}
+
+.ed-prop-sections-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ed-muted);
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ed-prop-sections-btn:hover {
+  color: var(--ed-accent);
+}
+
+.ed-prop-sections-sep {
+  color: #3a4555;
+  font-size: 9px;
+}
+
+.ed-prop-section {
+  margin: 0 0 4px;
+  border: 1px solid var(--ed-border);
+  background: #10141a;
+}
+
+.ed-prop-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding: 4px 6px;
+  border: 0;
+  background: #161b24;
+  color: var(--ed-accent);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ed-prop-section-head:hover {
+  background: #1b2230;
+}
+
+.ed-prop-section-chevron {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--ed-muted);
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+
+.ed-prop-section.is-open .ed-prop-section-chevron {
+  transform: rotate(90deg);
+}
+
+.ed-prop-section-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-prop-section-body {
+  padding: 6px;
+  border-top: 1px solid var(--ed-border);
 }
 
 .ed-properties-body {

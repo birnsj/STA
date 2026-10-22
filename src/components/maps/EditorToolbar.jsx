@@ -111,8 +111,13 @@ export default function EditorToolbar({
               </option>
             ))}
           </select>
-          <button type="button" className="me-button" title="Grid options" onClick={() => onGridOptions?.()}>
-            …
+          <button type="button" className="me-button ed-icon-btn" title="Grid options" aria-label="Grid options" onClick={() => onGridOptions?.()}>
+            <svg className="ed-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M6.2 1.2h3.6l.3 1.6a4.8 4.8 0 0 1 1.2.7l1.5-.6 1.8 3.1-1.2 1.1c.1.4.1.7.1 1.1s0 .7-.1 1.1l1.2 1.1-1.8 3.1-1.5-.6a4.8 4.8 0 0 1-1.2.7l-.3 1.6H6.2l-.3-1.6a4.8 4.8 0 0 1-1.2-.7l-1.5.6L1.4 10l1.2-1.1A4.5 4.5 0 0 1 2.5 8c0-.4 0-.7.1-1.1L1.4 5.8l1.8-3.1 1.5.6a4.8 4.8 0 0 1 1.2-.7l.3-1.6ZM8 5.5A2.5 2.5 0 1 0 8 10.5 2.5 2.5 0 0 0 8 5.5Z"
+              />
+            </svg>
           </button>
         </div>
         <SizeFields width={map.width} height={map.height} onResize={onResize} />

@@ -15,6 +15,7 @@ import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equi
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import { MARKER_HELP, parseTool } from './editorSelection.js'
+import { PropertySection } from './PropertySections.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Properties for the Assets catalogue selection (active tool): large preview, sprite details, editable tile flags.
@@ -203,45 +204,46 @@ function AmbientLightControl({ ambient, ambientColour, onAmbient, onAmbientColou
   }
 
   return (
-    <div className="ed-light-pool">
-      <p className="ed-dock-title">Light</p>
-      <label className="ed-emissive" title="Ambient light: how bright the room is. Glowing tiles stay lit in the dark.">
-        <span className="ed-emissive-label">Ambient</span>
-        <input
-          type="range"
-          min="0"
-          max={FULL_LIGHT}
-          step="5"
-          value={ambientValue}
-          aria-label="Ambient light"
-          onChange={(event) => onAmbient?.(Number(event.target.value))}
-        />
-        <span className="ed-emissive-value">{ambientValue}%</span>
-      </label>
-      <label className="ed-emissive" title="Ambient light colour: the tint of the room when light is low.">
-        <span className="ed-emissive-label">Colour</span>
-        <input
-          className="ed-colour"
-          type="color"
-          value={toColourInput(hex)}
-          aria-label="Ambient light colour"
-          onChange={(event) => {
-            setHex(event.target.value)
-            onAmbientColour?.(event.target.value)
-          }}
-        />
-        <input
-          className="ed-colour-hex me-name"
-          value={hex}
-          aria-label="Ambient light colour hex"
-          onChange={(event) => {
-            const next = event.target.value.trim()
-            setHex(next)
-            if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next)) onAmbientColour?.(next)
-          }}
-        />
-      </label>
-    </div>
+    <PropertySection id="light" title="Light">
+      <div className="ed-light-pool">
+        <label className="ed-emissive" title="Ambient light: how bright the room is. Glowing tiles stay lit in the dark.">
+          <span className="ed-emissive-label">Ambient</span>
+          <input
+            type="range"
+            min="0"
+            max={FULL_LIGHT}
+            step="5"
+            value={ambientValue}
+            aria-label="Ambient light"
+            onChange={(event) => onAmbient?.(Number(event.target.value))}
+          />
+          <span className="ed-emissive-value">{ambientValue}%</span>
+        </label>
+        <label className="ed-emissive" title="Ambient light colour: the tint of the room when light is low.">
+          <span className="ed-emissive-label">Colour</span>
+          <input
+            className="ed-colour"
+            type="color"
+            value={toColourInput(hex)}
+            aria-label="Ambient light colour"
+            onChange={(event) => {
+              setHex(event.target.value)
+              onAmbientColour?.(event.target.value)
+            }}
+          />
+          <input
+            className="ed-colour-hex me-name"
+            value={hex}
+            aria-label="Ambient light colour hex"
+            onChange={(event) => {
+              const next = event.target.value.trim()
+              setHex(next)
+              if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next)) onAmbientColour?.(next)
+            }}
+          />
+        </label>
+      </div>
+    </PropertySection>
   )
 }
 
@@ -257,17 +259,18 @@ function SpriteDetails({ tile, onStatus, ambient, ambientColour, onAmbient, onAm
     info.activeGlow
   return (
     <div className="ed-sprite-details" style={{ '--ed-emit-strength': String(emissive) }}>
-      <p className="ed-dock-title">Sprite</p>
-      <PropRows
-        rows={[
-          ['Id', info.id],
-          ['Symbol', info.symbol],
-          ['Group', info.group ? `${info.group.label}${info.group.section ? ` · ${info.group.section}` : ''}` : null],
-          ['Design size', `${info.size.width}×${info.size.height} px`],
-          ['World height', info.height != null ? String(info.height) : null],
-          ['Traits', info.traits.length ? info.traits.join(', ') : 'None'],
-        ]}
-      />
+      <PropertySection id="sprite" title="Sprite">
+        <PropRows
+          rows={[
+            ['Id', info.id],
+            ['Symbol', info.symbol],
+            ['Group', info.group ? `${info.group.label}${info.group.section ? ` · ${info.group.section}` : ''}` : null],
+            ['Design size', `${info.size.width}×${info.size.height} px`],
+            ['World height', info.height != null ? String(info.height) : null],
+            ['Traits', info.traits.length ? info.traits.join(', ') : 'None'],
+          ]}
+        />
+      </PropertySection>
       {(info.glow || info.wallGlow || info.activeGlow || anim?.overlay || tile.wall) && (
         <AmbientLightControl
           ambient={ambient}
@@ -276,79 +279,81 @@ function SpriteDetails({ tile, onStatus, ambient, ambientColour, onAmbient, onAm
           onAmbientColour={onAmbientColour}
         />
       )}
-      <p className="ed-dock-title">Images</p>
-      <PropRows rows={info.images.map((entry) => [entry.label, entry.name, entry.href])} />
+      <PropertySection id="images" title="Images" defaultOpen={false}>
+        <PropRows rows={info.images.map((entry) => [entry.label, entry.name, entry.href])} />
+      </PropertySection>
       {anim ? (
         <>
-          <p className="ed-dock-title">Animation</p>
-          <PropRows
-            rows={[
-              ['Mode', anim.overlay ? 'Overlay lights' : anim.activeOnly ? 'Active only' : 'Whole sprite'],
-              ['Frame time', anim.frameTime != null ? `${anim.frameTime}s` : null],
-              ['Steps', String(anim.steps)],
-              ['Loop', anim.loop != null ? `${anim.loop.toFixed(2)}s` : null],
-              ['Sprites', String(anim.uniqueSprites)],
-              ['Sequence', anim.sequence.length ? anim.sequence.join(' ') : null],
-            ]}
-          />
-          <p className="ed-dock-title">Emission overlays</p>
-          {(anim.overlay || info.glow || info.wallGlow || anim.emissions.length > 0) && (
-            <EmissiveControls
-              tileId={tile.id}
-              value={emissive}
-              onValue={setEmissive}
-              colour={emitColour}
-              fallbackColour={glowFallback}
-              onColour={setEmitColour}
-              onStatus={onStatus}
+          <PropertySection id="animation" title="Animation" defaultOpen={false}>
+            <PropRows
+              rows={[
+                ['Mode', anim.overlay ? 'Overlay lights' : anim.activeOnly ? 'Active only' : 'Whole sprite'],
+                ['Frame time', anim.frameTime != null ? `${anim.frameTime}s` : null],
+                ['Steps', String(anim.steps)],
+                ['Loop', anim.loop != null ? `${anim.loop.toFixed(2)}s` : null],
+                ['Sprites', String(anim.uniqueSprites)],
+                ['Sequence', anim.sequence.length ? anim.sequence.join(' ') : null],
+              ]}
             />
-          )}
-          {anim.emissions.length > 0 ? (
-            <>
-              <p className="me-text is-muted">
-                {anim.overlay
-                  ? 'Lit overlay frames drawn over the wall. Emissive / Colour control floor spill.'
-                  : 'Lit parts kept bright in darkness. Emissive / Colour control floor spill.'}
-              </p>
-              <div className="ed-emit-grid" role="list">
-                {anim.emissions.map((item) => {
-                  const base =
-                    item.kind === 'panelEmission.x'
-                      ? tile.panelImages?.x || tile.image
-                      : item.kind === 'panelEmission.y'
-                        ? tile.panelImages?.y || tile.image
-                        : item.kind === 'bigEmission'
-                          ? tile.bigImage || tile.image
-                          : tile.image
-                  return (
-                    <figure
-                      key={`${item.frame}:${item.href}`}
-                      className="ed-emit-cell"
-                      role="listitem"
-                      title={`${item.kind} · frame ${item.frame}\n${item.href}`}
-                    >
-                      <div className="ed-emit-thumb">
-                        {base && <img className="ed-emit-base" src={base} alt="" />}
-                        <img className="ed-emit-layer" src={item.href} alt="" />
-                      </div>
-                      <figcaption>
-                        <span className="ed-sprite-frame-index">{item.frame}</span>
-                        <span className="ed-emit-name">{item.name}</span>
-                      </figcaption>
-                    </figure>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <p className="me-text is-muted">No emission layers on this flipbook.</p>
-          )}
+          </PropertySection>
+          <PropertySection id="emission" title="Emission overlays">
+            {(anim.overlay || info.glow || info.wallGlow || anim.emissions.length > 0) && (
+              <EmissiveControls
+                tileId={tile.id}
+                value={emissive}
+                onValue={setEmissive}
+                colour={emitColour}
+                fallbackColour={glowFallback}
+                onColour={setEmitColour}
+                onStatus={onStatus}
+              />
+            )}
+            {anim.emissions.length > 0 ? (
+              <>
+                <p className="me-text is-muted">
+                  {anim.overlay
+                    ? 'Lit overlay frames drawn over the wall. Emissive / Colour control floor spill.'
+                    : 'Lit parts kept bright in darkness. Emissive / Colour control floor spill.'}
+                </p>
+                <div className="ed-emit-grid" role="list">
+                  {anim.emissions.map((item) => {
+                    const base =
+                      item.kind === 'panelEmission.x'
+                        ? tile.panelImages?.x || tile.image
+                        : item.kind === 'panelEmission.y'
+                          ? tile.panelImages?.y || tile.image
+                          : item.kind === 'bigEmission'
+                            ? tile.bigImage || tile.image
+                            : tile.image
+                    return (
+                      <figure
+                        key={`${item.frame}:${item.href}`}
+                        className="ed-emit-cell"
+                        role="listitem"
+                        title={`${item.kind} · frame ${item.frame}\n${item.href}`}
+                      >
+                        <div className="ed-emit-thumb">
+                          {base && <img className="ed-emit-base" src={base} alt="" />}
+                          <img className="ed-emit-layer" src={item.href} alt="" />
+                        </div>
+                        <figcaption>
+                          <span className="ed-sprite-frame-index">{item.frame}</span>
+                          <span className="ed-emit-name">{item.name}</span>
+                        </figcaption>
+                      </figure>
+                    )
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="me-text is-muted">No emission layers on this flipbook.</p>
+            )}
+          </PropertySection>
         </>
       ) : (
-        <>
-          <p className="ed-dock-title">Animation</p>
+        <PropertySection id="animation" title="Animation" defaultOpen={false}>
           <p className="me-text is-muted">No flipbook (static sprite).</p>
-        </>
+        </PropertySection>
       )}
     </div>
   )
@@ -372,18 +377,19 @@ export default function AssetProperties({
     const tile = getTile(asset.id)
     return (
       <div className="ed-asset-props">
-        <p className="ed-dock-title">Tile</p>
-        <div className="ed-asset-preview">
-          <TileThumbnail tile={tile} className="ed-asset-preview-art" animate={animateTiles} />
-          {tile.big && <span className="me-thumb-badge">2×2</span>}
-        </div>
-        <p className="ed-asset-name">{tile.label}</p>
-        <div className="ed-prop-flags" role="group" aria-label="Tile flags">
-          {FLAG_BOXES.map((box) => (
-            <FlagBox key={`${tile.id}:${box.flag}`} tile={tile} box={box} onStatus={onStatus} />
-          ))}
-        </div>
-        {!canEditTiles && <p className="me-text is-muted">Cover and Fade can only be changed in the dev build.</p>}
+        <PropertySection id="tile" title="Tile">
+          <div className="ed-asset-preview">
+            <TileThumbnail tile={tile} className="ed-asset-preview-art" animate={animateTiles} />
+            {tile.big && <span className="me-thumb-badge">2×2</span>}
+          </div>
+          <p className="ed-asset-name">{tile.label}</p>
+          <div className="ed-prop-flags" role="group" aria-label="Tile flags">
+            {FLAG_BOXES.map((box) => (
+              <FlagBox key={`${tile.id}:${box.flag}`} tile={tile} box={box} onStatus={onStatus} />
+            ))}
+          </div>
+          {!canEditTiles && <p className="me-text is-muted">Cover and Fade can only be changed in the dev build.</p>}
+        </PropertySection>
         <SpriteDetails
           key={tile.id}
           tile={tile}
@@ -403,22 +409,23 @@ export default function AssetProperties({
     const size = imageSize(tile)
     return (
       <div className="ed-asset-props">
-        <p className="ed-dock-title">Destructible</p>
-        <div className="ed-asset-preview">
-          <TileThumbnail tile={tile} className="ed-asset-preview-art" animate={animateTiles} />
-        </div>
-        <p className="ed-asset-name">{info?.name ?? asset.id}</p>
-        <p className="me-text">{info?.description ?? 'Click the board to place.'}</p>
-        <PropRows
-          rows={[
-            ['Type', asset.id],
-            ['Tile', tile.id],
-            ['Structure', info?.structure != null ? String(info.structure) : null],
-            ['Resistance', info?.resistance != null ? String(info.resistance) : null],
-            ['Explosion', info?.explosion ? info.explosion.kind ?? 'yes' : 'None'],
-            ['Sprite', `${size.width}×${size.height} · ${tile.image?.split('/').pop() ?? '—'}`, tile.image],
-          ]}
-        />
+        <PropertySection id="destructible" title="Destructible">
+          <div className="ed-asset-preview">
+            <TileThumbnail tile={tile} className="ed-asset-preview-art" animate={animateTiles} />
+          </div>
+          <p className="ed-asset-name">{info?.name ?? asset.id}</p>
+          <p className="me-text">{info?.description ?? 'Click the board to place.'}</p>
+          <PropRows
+            rows={[
+              ['Type', asset.id],
+              ['Tile', tile.id],
+              ['Structure', info?.structure != null ? String(info.structure) : null],
+              ['Resistance', info?.resistance != null ? String(info.resistance) : null],
+              ['Explosion', info?.explosion ? info.explosion.kind ?? 'yes' : 'None'],
+              ['Sprite', `${size.width}×${size.height} · ${tile.image?.split('/').pop() ?? '—'}`, tile.image],
+            ]}
+          />
+        </PropertySection>
         <SpriteDetails
           key={tile.id}
           tile={tile}
@@ -437,28 +444,28 @@ export default function AssetProperties({
     const stats = item ? getItemStatLines(item) : []
     return (
       <div className="ed-asset-props">
-        <p className="ed-dock-title">Item</p>
-        <div className="ed-asset-preview">
-          {item?.icon ? <img className="ed-asset-preview-art" src={item.icon} alt="" /> : <span className="me-swatch is-area" aria-hidden="true" />}
-        </div>
-        <p className="ed-asset-name">{item?.name ?? asset.id}</p>
-        <PropRows
-          rows={[
-            ['Id', item?.id ?? asset.id],
-            ['Category', item ? getCategoryName(item.category) : null],
-            ['Slot', item?.equipSlot ?? 'Bag / ground'],
-            ['Icon', item?.icon?.split('/').pop() ?? null, item?.icon],
-            ['World', item?.worldImage?.split('/').pop() ?? null, item?.worldImage],
-            ['Scale', item?.worldScale != null ? String(item.worldScale) : null],
-          ]}
-        />
+        <PropertySection id="item" title="Item">
+          <div className="ed-asset-preview">
+            {item?.icon ? <img className="ed-asset-preview-art" src={item.icon} alt="" /> : <span className="me-swatch is-area" aria-hidden="true" />}
+          </div>
+          <p className="ed-asset-name">{item?.name ?? asset.id}</p>
+          <PropRows
+            rows={[
+              ['Id', item?.id ?? asset.id],
+              ['Category', item ? getCategoryName(item.category) : null],
+              ['Slot', item?.equipSlot ?? 'Bag / ground'],
+              ['Icon', item?.icon?.split('/').pop() ?? null, item?.icon],
+              ['World', item?.worldImage?.split('/').pop() ?? null, item?.worldImage],
+              ['Scale', item?.worldScale != null ? String(item.worldScale) : null],
+            ]}
+          />
+          <p className="me-text">Click the board to place this item on the ground.</p>
+        </PropertySection>
         {stats.length > 0 && (
-          <>
-            <p className="ed-dock-title">Stats</p>
+          <PropertySection id="item-stats" title="Stats" defaultOpen={false}>
             <PropRows rows={stats.map((line) => [line.label, String(line.value ?? '')])} />
-          </>
+          </PropertySection>
         )}
-        <p className="me-text">Click the board to place this item on the ground.</p>
       </div>
     )
   }
@@ -467,40 +474,41 @@ export default function AssetProperties({
     const info = HAZARD_TYPES[asset.id]
     return (
       <div className="ed-asset-props">
-        <p className="ed-dock-title">Hazard</p>
-        <div className="ed-asset-preview">
-          <span
-            className="me-swatch is-hazard ed-asset-preview-swatch"
-            style={{ backgroundColor: info?.colour, backgroundImage: `url(${hazardStrip(asset.id)})`, backgroundSize: `${HAZARD_FRAMES * 100}% 100%` }}
-            aria-hidden="true"
+        <PropertySection id="hazard" title="Hazard">
+          <div className="ed-asset-preview">
+            <span
+              className="me-swatch is-hazard ed-asset-preview-swatch"
+              style={{ backgroundColor: info?.colour, backgroundImage: `url(${hazardStrip(asset.id)})`, backgroundSize: `${HAZARD_FRAMES * 100}% 100%` }}
+              aria-hidden="true"
+            />
+          </div>
+          <p className="ed-asset-name">{info?.name ?? asset.id}</p>
+          <PropRows
+            rows={[
+              ['Type', asset.id],
+              ['Injury', info?.injuryType ?? null],
+              ['Severity', info?.severity != null ? String(info.severity) : null],
+              ['Blocks sight', info?.blocksSight ? 'From Thick up' : 'No'],
+              ['Colour', info?.colour ?? null],
+              ['Frames', String(HAZARD_FRAMES)],
+              ['Scar tile', info?.scarTile ?? null],
+            ]}
           />
-        </div>
-        <p className="ed-asset-name">{info?.name ?? asset.id}</p>
-        <PropRows
-          rows={[
-            ['Type', asset.id],
-            ['Injury', info?.injuryType ?? null],
-            ['Severity', info?.severity != null ? String(info.severity) : null],
-            ['Blocks sight', info?.blocksSight ? 'From Thick up' : 'No'],
-            ['Colour', info?.colour ?? null],
-            ['Frames', String(HAZARD_FRAMES)],
-            ['Scar tile', info?.scarTile ?? null],
-          ]}
-        />
-        <div className="me-intensity" role="group" aria-label="Hazard intensity">
-          {INTENSITIES.map((entry) => (
-            <button
-              key={entry.value}
-              type="button"
-              className={`me-button${hazardIntensity === entry.value ? ' is-selected' : ''}`}
-              aria-pressed={hazardIntensity === entry.value}
-              onClick={() => onHazardIntensity?.(entry.value)}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-        <p className="me-text">Smoke and Toxic Gas block sight from Thick up; Thin gives cover.</p>
+          <div className="me-intensity" role="group" aria-label="Hazard intensity">
+            {INTENSITIES.map((entry) => (
+              <button
+                key={entry.value}
+                type="button"
+                className={`me-button${hazardIntensity === entry.value ? ' is-selected' : ''}`}
+                aria-pressed={hazardIntensity === entry.value}
+                onClick={() => onHazardIntensity?.(entry.value)}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </div>
+          <p className="me-text">Smoke and Toxic Gas block sight from Thick up; Thin gives cover.</p>
+        </PropertySection>
       </div>
     )
   }
@@ -508,28 +516,30 @@ export default function AssetProperties({
   if (asset.kind === 'hazardErase') {
     return (
       <div className="ed-asset-props">
-        <p className="ed-dock-title">Hazard</p>
-        <p className="ed-asset-name">Erase Hazard</p>
-        <p className="me-text">Click hazard tiles on the board to erase them.</p>
+        <PropertySection id="hazard-erase" title="Hazard">
+          <p className="ed-asset-name">Erase Hazard</p>
+          <p className="me-text">Click hazard tiles on the board to erase them.</p>
+        </PropertySection>
       </div>
     )
   }
 
   return (
     <div className="ed-asset-props">
-      <p className="ed-dock-title">Marker</p>
-      <p className="ed-asset-name">
-        {asset.id === 'playerStarts'
-          ? 'Player Start'
-          : asset.id === 'enemySpawns'
-            ? 'Enemy Spawn'
-            : asset.id === 'npcs'
-              ? 'NPC'
-              : asset.id === 'area'
-                ? 'Area Label'
-                : 'Erase Marker'}
-      </p>
-      <p className="me-text">{MARKER_HELP[asset.id]}</p>
+      <PropertySection id="marker" title="Marker">
+        <p className="ed-asset-name">
+          {asset.id === 'playerStarts'
+            ? 'Player Start'
+            : asset.id === 'enemySpawns'
+              ? 'Enemy Spawn'
+              : asset.id === 'npcs'
+                ? 'NPC'
+                : asset.id === 'area'
+                  ? 'Area Label'
+                  : 'Erase Marker'}
+        </p>
+        <p className="me-text">{MARKER_HELP[asset.id]}</p>
+      </PropertySection>
     </div>
   )
 }

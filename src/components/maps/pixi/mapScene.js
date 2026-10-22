@@ -43,7 +43,7 @@ export async function startMapScene(host, read, isCancelled) {
     const map = stage.syncMap(board.layout, { playing, ghost: board.ghost, lighting: board.lighting }, now)
     map.update(NONE, now, view)
     hazards.update(board.environment, now, view, playing)
-    grid.update(board.grid)
+    grid.update(board.grid, view)
     reconcile(outlines, board.outlines ?? [], outlineLayer, () => new EditorOutlineView(), (outline, item) => outline.update(item))
     reconcile(labels, board.labels, labelLayer, () => new AreaLabelView(), (label, item) => label.update(item, now, playing))
     reconcile(groundLoot, board.groundLoot ?? [], lootLayer, () => new GroundLootView(), (loot, item) => loot.update(item))

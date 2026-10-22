@@ -1,5 +1,6 @@
 import { getItemById } from '../../rules/equipment.js'
 import { snapItemPosition } from '../../rules/inventory.js'
+import { PropertySection } from './PropertySections.jsx'
 
 // Map editor panel for an authored ground inventory placement (mapFormat.js groundItemPlacements).
 export default function GroundItemInspector({ object, moving, onChange, onMove, onDuplicate, onDelete }) {
@@ -13,9 +14,7 @@ export default function GroundItemInspector({ object, moving, onChange, onMove, 
   }
   return (
     <div className="me-inspector">
-      <p className="me-heading">
-        Inventory Object · {pos.x.toFixed(3)}, {pos.y.toFixed(3)}
-      </p>
+      <PropertySection id="ground-item" title={`Inventory Object · ${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}`}>
       <p className="me-text">
         Instance ID: <strong>{object.id}</strong>
       </p>
@@ -73,6 +72,7 @@ export default function GroundItemInspector({ object, moving, onChange, onMove, 
       <button type="button" className="me-button" onClick={onDelete}>
         Delete
       </button>
+      </PropertySection>
     </div>
   )
 }

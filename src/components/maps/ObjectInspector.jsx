@@ -1,3 +1,5 @@
+import { PropertySection } from './PropertySections.jsx'
+
 // The map editor's panel for a selected challenge object: placement, covers, and a link into the Object Editor.
 // definition: where this map puts it (after placements). home: [x, y] before objectPlacements. mapOwned: defs live on map.objects.
 export default function ObjectInspector({ definition, home, mapOwned, placing, editingCovers, onPlace, onEditCovers, onReset, onOpenEditor }) {
@@ -8,9 +10,7 @@ export default function ObjectInspector({ definition, home, mapOwned, placing, e
     : 'From challenges.json until you edit defs or covers; then they are saved with the map.'
   return (
     <div className="me-inspector">
-      <p className="me-heading">
-        Challenge Object · {x}, {y}
-      </p>
+      <PropertySection id="object" title={`Challenge Object · ${x}, ${y}`}>
       <p className="me-text">
         <strong>{definition.name}</strong> ({definition.id}, {definition.type})
       </p>
@@ -45,6 +45,7 @@ export default function ObjectInspector({ definition, home, mapOwned, placing, e
       <button type="button" className="me-button me-generate" onClick={onOpenEditor}>
         Edit in Object Editor
       </button>
+      </PropertySection>
     </div>
   )
 }

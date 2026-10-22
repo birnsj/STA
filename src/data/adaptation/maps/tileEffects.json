@@ -48,6 +48,7 @@
   },
   "animations": {
     "machinery": {
+      "emissive": 2,
       "frameTime": 0.2,
       "frames": [
         0,
@@ -295,6 +296,7 @@
     "computerWall": {
       "overlay": true,
       "emissive": 1.1,
+      "emitColour": "#d6000b",
       "frameTime": 0.7,
       "frames": [
         0,
@@ -430,7 +432,6 @@
     "bulkhead": {
       "overlay": true,
       "emitColour": "#2f3ca2",
-      "emissive": 0.8,
       "frameTime": 0.5,
       "frames": [
         0,
