@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Draggable floating tool window for the map editor. Reports busy (hover/drag) so the board can ignore input.
+// Coordinates are stage design pixels: ScaledStage applies CSS scale, so clientX/Y must be converted through the
+// stage's getBoundingClientRect (fixed positioning is relative to that transformed ancestor, not the viewport).
+
+function stagePoint(clientX, clientY, el) {
+  const stage = el?.closest?.('.stage')
+  if (!stage) return { x: clientX, y: clientY }
+  const rect = stage.getBoundingClientRect()
+  const scaleX = rect.width / (stage.offsetWidth || 1)
+  const scaleY = rect.height / (stage.offsetHeight || 1)
+  if (!(scaleX > 0) || !(scaleY > 0)) return { x: clientX, y: clientY }
+  return { x: (clientX - rect.left) / scaleX, y: (clientY - rect.top) / scaleY }
+}
 
 export default function EditorFloatWindow({
   title,
@@ -12,6 +24,7 @@ export default function EditorFloatWindow({
   onBusyChange,
   children,
 }) {
+  const root = useRef(null)
   const [pos, setPos] = useState({ x, y })
   const drag = useRef(null)
   const busy = useRef(false)
@@ -41,10 +54,11 @@ export default function EditorFloatWindow({
   useEffect(() => {
     if (!open) return undefined
     const onMove = (event) => {
-      if (!drag.current) return
+      if (!drag.current || !root.current) return
+      const point = stagePoint(event.clientX, event.clientY, root.current)
       setPos({
-        x: Math.max(0, event.clientX - drag.current.ox),
-        y: Math.max(0, event.clientY - drag.current.oy),
+        x: Math.max(0, point.x - drag.current.ox),
+        y: Math.max(0, point.y - drag.current.oy),
       })
     }
     const onUp = (event) => {
@@ -66,6 +80,7 @@ export default function EditorFloatWindow({
 
   return (
     <div
+      ref={root}
       className="ed-float"
       style={{ left: pos.x, top: pos.y, width }}
       role="dialog"
@@ -80,7 +95,8 @@ export default function EditorFloatWindow({
         onPointerDown={(event) => {
           if (event.button !== 0) return
           event.preventDefault()
-          drag.current = { ox: event.clientX - pos.x, oy: event.clientY - pos.y }
+          const point = stagePoint(event.clientX, event.clientY, root.current)
+          drag.current = { ox: point.x - pos.x, oy: point.y - pos.y }
           setBusy(true)
         }}
       >

@@ -1787,12 +1787,12 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  cursor: grab;
+  cursor: var(--cursor-grab);
   user-select: none;
 }
 
 .ed-float-title:active {
-  cursor: grabbing;
+  cursor: var(--cursor-grabbing);
 }
 
 .ed-float-close {
