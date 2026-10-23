@@ -14,6 +14,8 @@ export default function EditorOverviewWindow({
   onAnimateTiles,
   showLighting,
   onShowLighting,
+  showSurfaces = false,
+  onShowSurfaces,
 }) {
   return (
     <EditorFloatWindow title="Overview" open={open} onClose={onClose} onBusyChange={onBusyChange} x={24} y={360} width={260}>
@@ -33,6 +35,10 @@ export default function EditorOverviewWindow({
       <label className="me-check">
         <input type="checkbox" checked={showLighting} onChange={(event) => onShowLighting(event.target.checked)} />
         Lighting
+      </label>
+      <label className="me-check" title="Highlight tops that items and stacked props can rest on">
+        <input type="checkbox" checked={showSurfaces} onChange={(event) => onShowSurfaces?.(event.target.checked)} />
+        Placement surfaces
       </label>
     </EditorFloatWindow>
   )

@@ -1,0 +1,468 @@
+{
+  "note": "File pixels of each dropped-item picture, already fitted to its stacking cell. Board size is these pixels divided by pixelsPerDesign (4). Large gear is 128×192 (a 32×32 cell, four per tile). Small gear is 64×96 (a 16×16 cell, sixteen per tile). There is no further scale. Calibration pictures (cal*.png) are drawn on their own canvas; the opaque box is what the board measures.",
+  "pixelsPerDesign": 4,
+  "images": {
+    "/art/sprites/environment/items/armouredVest.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 82
+    },
+    "/art/sprites/environment/items/autosuture.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 38
+    },
+    "/art/sprites/environment/items/calBoxBlue.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calBoxGreen.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calBoxRed.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calBoxYellow.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calFoot16Blue.png": {
+      "width": 64,
+      "height": 64,
+      "opaqueWidth": 64,
+      "opaqueHeight": 64
+    },
+    "/art/sprites/environment/items/calFoot16Green.png": {
+      "width": 64,
+      "height": 64,
+      "opaqueWidth": 64,
+      "opaqueHeight": 64
+    },
+    "/art/sprites/environment/items/calFoot16Red.png": {
+      "width": 64,
+      "height": 64,
+      "opaqueWidth": 64,
+      "opaqueHeight": 64
+    },
+    "/art/sprites/environment/items/calFoot32Blue.png": {
+      "width": 128,
+      "height": 96,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/calFoot32Red.png": {
+      "width": 128,
+      "height": 96,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/calFoot64Gray.png": {
+      "width": 256,
+      "height": 160,
+      "opaqueWidth": 256,
+      "opaqueHeight": 160
+    },
+    "/art/sprites/environment/items/calFoot8Blue.png": {
+      "width": 32,
+      "height": 48,
+      "opaqueWidth": 32,
+      "opaqueHeight": 48
+    },
+    "/art/sprites/environment/items/calFoot8Green.png": {
+      "width": 32,
+      "height": 48,
+      "opaqueWidth": 32,
+      "opaqueHeight": 48
+    },
+    "/art/sprites/environment/items/calFoot8Red.png": {
+      "width": 32,
+      "height": 48,
+      "opaqueWidth": 32,
+      "opaqueHeight": 48
+    },
+    "/art/sprites/environment/items/calFoot8Yellow.png": {
+      "width": 32,
+      "height": 48,
+      "opaqueWidth": 32,
+      "opaqueHeight": 48
+    },
+    "/art/sprites/environment/items/calHollow.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calIrregular.png": {
+      "width": 128,
+      "height": 112,
+      "opaqueWidth": 128,
+      "opaqueHeight": 92
+    },
+    "/art/sprites/environment/items/calPartial.png": {
+      "width": 128,
+      "height": 128,
+      "opaqueWidth": 128,
+      "opaqueHeight": 128
+    },
+    "/art/sprites/environment/items/calTallNarrow.png": {
+      "width": 32,
+      "height": 208,
+      "opaqueWidth": 32,
+      "opaqueHeight": 208
+    },
+    "/art/sprites/environment/items/calWideLow.png": {
+      "width": 80,
+      "height": 56,
+      "opaqueWidth": 80,
+      "opaqueHeight": 56
+    },
+    "/art/sprites/environment/items/clothing.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 82
+    },
+    "/art/sprites/environment/items/communicator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 38
+    },
+    "/art/sprites/environment/items/corticalInhibitor.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 38
+    },
+    "/art/sprites/environment/items/corticalStimulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/cytoplasmicStimulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/dermalStimulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 38
+    },
+    "/art/sprites/environment/items/detronalScanner.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/disruptorPistol.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/dkTahg.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/dualiticInverter.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/environmentSuit.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/fluxCoupler.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/focalAdjustmentSpanner.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/gintak.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 86
+    },
+    "/art/sprites/environment/items/graviticCaliper.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/hyperspanner.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/hypospray.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/ionicFlowRegulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/isolinearOpticalChip.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 36
+    },
+    "/art/sprites/environment/items/klingonBatleth.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 82
+    },
+    "/art/sprites/environment/items/kurleth.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 82
+    },
+    "/art/sprites/environment/items/kutluch.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/laserPistol2250.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/magneticProbe.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/medicalShotgun.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/medkit.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/mekleth.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 80
+    },
+    "/art/sprites/environment/items/microResonator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/missionObject.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 88
+    },
+    "/art/sprites/environment/items/neuralCalipers.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/neuralStimulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 37
+    },
+    "/art/sprites/environment/items/neuralTransducer.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/odnRecoupler.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/osteogenicStimulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/parametricScanner.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/phaseModulator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/phaser.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/phaserRifle.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/phaserRifle2255.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/plasmaTorch.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 41
+    },
+    "/art/sprites/environment/items/selfSealingStemBolt.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 38
+    },
+    "/art/sprites/environment/items/sonicSeparator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/stackBoxBlue.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/stackBoxGold.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/stackBoxGreen.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/stackBoxRed.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/stackSlabBlack.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/stackSlabWhite.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 96
+    },
+    "/art/sprites/environment/items/starfleetPadd.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 37
+    },
+    "/art/sprites/environment/items/thermalSuit.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 84
+    },
+    "/art/sprites/environment/items/toolkit.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 86
+    },
+    "/art/sprites/environment/items/tricorder.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/tridentScanner.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 40
+    },
+    "/art/sprites/environment/items/ushaantor.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 80
+    },
+    "/art/sprites/environment/items/vascularRegenerator.png": {
+      "width": 64,
+      "height": 96,
+      "opaqueWidth": 64,
+      "opaqueHeight": 39
+    },
+    "/art/sprites/environment/items/vulcanLirpa.png": {
+      "width": 128,
+      "height": 192,
+      "opaqueWidth": 128,
+      "opaqueHeight": 86
+    }
+  }
+}

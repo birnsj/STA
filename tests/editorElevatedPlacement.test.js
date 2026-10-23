@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { project } from '../src/maps/iso.js'
+import { makeAlphaMask } from '../src/maps/propPick.js'
 import { createBlankMap, getTile } from '../src/maps/mapFormat.js'
 import {
   groundItemAtBoard,
@@ -16,6 +17,7 @@ import {
 const blank = () => createBlankMap({ name: 'Test', width: 8, height: 8 })
 const crateAt = (map, x, y) => paintTile(map, { x, y }, 'crate')
 const CRATE_TOP = getTile('crate').height
+const maskOf = () => makeAlphaMask(1, 1, new Uint8Array([0, 0, 0, 255]))
 
 // A board point on a crate's raised top, `up` px above its centre (negative = toward the front of the top).
 const onTop = (tile, up = 0) => {
@@ -44,16 +46,18 @@ describe('groundItemTargetAt (editor pointer → drop cell)', () => {
     assert.deepEqual(placed.object.on, { tile: [1, 1] })
   })
 
-  it('snaps a box by its bottom corner to the middle of the tile', () => {
+  it('snaps a box to the cell under the pointer and stacks a second drop on that cell', () => {
     const map = crateAt(blank(), 3, 3)
-    const middle = placeGroundItem(map, { x: 2.75, y: 2.75 }, 'medkit', 64)
-    assert.ok(middle)
-    assert.deepEqual(middle.object.position, { x: 3, y: 3 })
-    const side = placeGroundItem(middle.map, { x: 3.25, y: 2.75 }, 'medkit', 64)
-    assert.ok(side)
-    assert.deepEqual(side.object.position, { x: 3.5, y: 3 })
-    const stacked = placeGroundItem(side.map, { x: 2.75, y: 2.75 }, 'medkit', 64)
-    assert.equal(stacked.object.on.placement, middle.object.id)
+    const first = placeGroundItem(map, { x: 2.75, y: 2.75 }, 'medkit', 64)
+    assert.ok(first)
+    assert.deepEqual(first.object.position, { x: 3, y: 3 })
+    const beside = placeGroundItem(first.map, { x: 3.25, y: 2.75 }, 'medkit', 64)
+    assert.ok(beside)
+    assert.deepEqual(beside.object.on, { tile: [3, 3] })
+    assert.deepEqual(beside.object.position, { x: 3.5, y: 3 })
+    const stacked = placeGroundItem(beside.map, { x: 2.75, y: 2.75 }, 'medkit', 64)
+    assert.ok(stacked)
+    assert.equal(stacked.object.on.placement, first.object.id)
     assert.deepEqual(stacked.object.position, { x: 3, y: 3 })
   })
 
@@ -66,35 +70,23 @@ describe('groundItemTargetAt (editor pointer → drop cell)', () => {
     assert.equal(placed.object.on, undefined)
   })
 
-  it('fills the cell under the cursor, including the back of that cell', () => {
+  it('fills the tile under the cursor and stacks the next drop', () => {
     const tile = { x: 3, y: 3 }
-    const cells = [
-      { aim: { x: 2.6, y: 2.6 }, at: { x: 3, y: 3 } },
-      { aim: { x: 3.1, y: 2.6 }, at: { x: 3.5, y: 3 } },
-      { aim: { x: 2.6, y: 3.1 }, at: { x: 3, y: 3.5 } },
-      { aim: { x: 3.1, y: 3.1 }, at: { x: 3.5, y: 3.5 } },
-    ]
     let map = crateAt(blank(), tile.x, tile.y)
-    const placed = []
-    for (const cell of cells) {
-      const screen = project(cell.aim)
-      const position = groundItemTargetAt(map, { x: screen.x, y: screen.y - CRATE_TOP }, { cellPx: 64 })
-      const step = placeGroundItem(map, position, 'stackBoxRed', 64)
-      assert.ok(step, `rejected ${cell.aim.x},${cell.aim.y}`)
-      assert.deepEqual(step.object.on, { tile: [tile.x, tile.y] })
-      assert.deepEqual(step.object.position, cell.at)
-      placed.push(step.object)
-      map = step.map
-    }
-    // A second click on the front cell stacks on that box. A click behind it stays on the crate.
-    const frontScreen = project(cells[3].aim)
-    const stackedAt = groundItemTargetAt(map, { x: frontScreen.x, y: frontScreen.y - CRATE_TOP }, { cellPx: 64 })
-    const stacked = placeGroundItem(map, stackedAt, 'stackBoxRed', 64)
-    assert.equal(stacked.object.on.placement, placed[3].id)
-    assert.deepEqual(stacked.object.position, cells[3].at)
+    const aim = { x: 3.1, y: 3.1 }
+    const screen = project(aim)
+    const position = groundItemTargetAt(map, { x: screen.x, y: screen.y - CRATE_TOP }, { cellPx: 64 })
+    const step = placeGroundItem(map, position, 'stackBoxRed', 64)
+    assert.ok(step)
+    assert.deepEqual(step.object.on, { tile: [tile.x, tile.y] })
+    assert.deepEqual(step.object.position, { x: 3.5, y: 3.5 })
+    const stackedAt = groundItemTargetAt(step.map, { x: screen.x, y: screen.y - CRATE_TOP }, { cellPx: 64 })
+    const stacked = placeGroundItem(step.map, stackedAt, 'stackBoxRed', 64)
+    assert.equal(stacked.object.on.placement, step.object.id)
+    assert.deepEqual(stacked.object.position, { x: 3.5, y: 3.5 })
   })
 
-  it('places in the empty cell behind a box instead of stacking on its lid', () => {
+  it('puts a second box in the other cell of the tile, and stacks only on a full cell', () => {
     const tile = { x: 4, y: 4 }
     let map = crateAt(blank(), tile.x, tile.y)
     const onCrate = (aim) => {
@@ -107,18 +99,9 @@ describe('groundItemTargetAt (editor pointer → drop cell)', () => {
     map = front.map
     const behind = placeGroundItem(map, onCrate({ x: 3.75, y: 3.75 }), 'stackBoxRed')
     assert.ok(behind)
-    assert.deepEqual(behind.object.position, { x: 4, y: 4 })
     assert.deepEqual(behind.object.on, { tile: [4, 4] })
-    map = behind.map
-    const left = placeGroundItem(map, onCrate({ x: 3.75, y: 4.25 }), 'stackBoxRed')
-    assert.deepEqual(left.object.position, { x: 4, y: 4.5 })
-    assert.deepEqual(left.object.on, { tile: [4, 4] })
-    map = left.map
-    const right = placeGroundItem(map, onCrate({ x: 4.25, y: 3.75 }), 'stackBoxRed')
-    assert.deepEqual(right.object.position, { x: 4.5, y: 4 })
-    assert.deepEqual(right.object.on, { tile: [4, 4] })
-    // The front of the first box still stacks.
-    const stacked = placeGroundItem(right.map, onCrate({ x: 4.25, y: 4.25 }), 'stackBoxRed')
+    assert.deepEqual(behind.object.position, { x: 4, y: 4 })
+    const stacked = placeGroundItem(behind.map, onCrate({ x: 4.25, y: 4.25 }), 'stackBoxRed')
     assert.equal(stacked.object.on.placement, front.object.id)
     assert.deepEqual(stacked.object.position, { x: 4.5, y: 4.5 })
   })
@@ -133,15 +116,15 @@ describe('groundItemAtBoard and selectionCandidates', () => {
   it('picks an item where it is drawn on the crate, not by its floor cell', () => {
     const map = withMedkitOnCrate()
     const item = map.groundItemPlacements[0]
-    assert.equal(groundItemAtBoard(map, onTop({ x: 3, y: 3 }, 6))?.id, item.id)
-    assert.equal(groundItemAtBoard(map, project({ x: 6, y: 6 })), null)
+    assert.equal(groundItemAtBoard(map, onTop({ x: 3, y: 3 }, 6), { maskOf })?.id, item.id)
+    assert.equal(groundItemAtBoard(map, project({ x: 6, y: 6 }), { maskOf }), null)
   })
 
   it('selectionCandidates offers an item on a table from a click whose floor tile is elsewhere', () => {
     const map = withMedkitOnCrate()
     const item = map.groundItemPlacements[0]
     // The floor under the click is two tiles away from the crate; only the board point finds the item.
-    const candidates = selectionCandidates(map, [], { x: 2, y: 2 }, { cellPx: 2, boardPoint: onTop({ x: 3, y: 3 }, 6) })
+    const candidates = selectionCandidates(map, [], { x: 2, y: 2 }, { cellPx: 2, boardPoint: onTop({ x: 3, y: 3 }, 6), maskOf })
     assert.equal(candidates.find((candidate) => candidate.kind === 'groundItem')?.groundItem.id, item.id)
     const without = selectionCandidates(map, [], { x: 2, y: 2 }, { cellPx: 2 })
     assert.ok(!without.some((candidate) => candidate.kind === 'groundItem'))

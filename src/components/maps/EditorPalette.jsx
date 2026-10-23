@@ -44,6 +44,39 @@ const ASSET_TABS = [
   { id: 'npcs', label: 'NPCs' },
 ]
 
+const CALIBRATION_ITEM_GROUPS = [
+  { id: 'cal-footprints', label: 'Footprints', tag: 'footprint' },
+  { id: 'cal-selection', label: 'Selection', tag: 'selection' },
+]
+const itemMatches = (item, q) => matchesQuery(item.name, q) || matchesQuery(item.id, q) || matchesQuery(getCategoryName(item.category), q)
+const calibrationItems = () => getItems().filter((item) => item.category === 'calibration')
+
+function ItemGrid({ items, tool, onTool }) {
+  if (!items.length) return null
+  return (
+    <div className="ed-asset-grid">
+      {items.map((item) => (
+        <div key={item.id} className="ed-asset-cell">
+          <button
+            type="button"
+            className={`ed-thumb-btn${tool === `inventory:${item.id}` ? ' is-selected' : ''}`}
+            aria-pressed={tool === `inventory:${item.id}`}
+            title={getCategoryName(item.category)}
+            onClick={() => onTool(`inventory:${item.id}`)}
+          >
+            {item.worldImage || item.icon ? (
+              <img className="me-thumb-preview" src={item.worldImage || item.icon} alt="" />
+            ) : (
+              <span className="me-swatch is-area" aria-hidden="true" />
+            )}
+          </button>
+          <span className="ed-thumb-label">{item.name}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const GROUPED = new Set(PALETTE_GROUPS.flatMap((group) => group.tiles))
 const GROUPS = [
@@ -287,24 +320,24 @@ export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, an
         )}
 
         {tab === 'items' && (
-          <div className="ed-asset-grid">
-            {getItems()
-              .filter((item) => matchesQuery(item.name, q) || matchesQuery(item.id, q) || matchesQuery(getCategoryName(item.category), q))
-              .map((item) => (
-                <div key={item.id} className="ed-asset-cell">
-                  <button
-                    type="button"
-                    className={`ed-thumb-btn${tool === `inventory:${item.id}` ? ' is-selected' : ''}`}
-                    aria-pressed={tool === `inventory:${item.id}`}
-                    title={getCategoryName(item.category)}
-                    onClick={() => onTool(`inventory:${item.id}`)}
-                  >
-                    {item.icon ? <img className="me-thumb-preview" src={item.icon} alt="" /> : <span className="me-swatch is-area" aria-hidden="true" />}
-                  </button>
-                  <span className="ed-thumb-label">{item.name}</span>
+          <>
+            {CALIBRATION_ITEM_GROUPS.map((group, index) => {
+              const items = calibrationItems().filter((item) => item.tags?.includes(group.tag) && itemMatches(item, q))
+              if (!items.length) return null
+              const earlier = CALIBRATION_ITEM_GROUPS.slice(0, index).some((other) =>
+                calibrationItems().some((item) => item.tags?.includes(other.tag) && itemMatches(item, q)),
+              )
+              return (
+                <div key={group.id}>
+                  {!earlier && <p className="me-section">Calibration</p>}
+                  <ToolGroup id={group.id} label={group.label} count={items.length} open={q ? new Set([group.id]) : open} onToggle={toggle}>
+                    <ItemGrid items={items} tool={tool} onTool={onTool} />
+                  </ToolGroup>
                 </div>
-              ))}
-          </div>
+              )
+            })}
+            <ItemGrid items={getItems().filter((item) => item.category !== 'calibration' && itemMatches(item, q))} tool={tool} onTool={onTool} />
+          </>
         )}
 
         {tab === 'markers' &&

@@ -32,8 +32,9 @@ export default function TileThumbnail({ tile, className, animate = true }) {
 
     const paint = async (time) => {
       const gen = ++paintGen
-      const { canvas } = await drawLoneTiles(layout, positions, resolution, time)
+      const drawn = await drawLoneTiles(layout, positions, resolution, time)
       if (cancelled || gen !== paintGen) return
+      const canvas = drawn.canvas
       const target = ref.current
       if (!target) return
       if (target.width !== canvas.width || target.height !== canvas.height) {

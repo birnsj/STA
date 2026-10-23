@@ -1090,6 +1090,8 @@
 }
 
 .ed-menubar {
+  position: relative;
+  z-index: 60;
   display: flex;
   gap: 1px;
   padding: 1px 6px;
@@ -1127,7 +1129,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 20;
+  z-index: 1;
   min-width: 180px;
   margin: 0;
   padding: 2px 0;
@@ -1434,6 +1436,22 @@
   margin: 0;
   color: var(--ed-text);
   word-break: break-word;
+}
+
+.ed-prop-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ed-prop-thumb img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--ed-border);
 }
 
 .ed-prop-colours {

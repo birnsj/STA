@@ -1,7 +1,10 @@
+import { pickProp } from './propPick.js'
+
 // What a pointer is over on a board drawn without per-element hit testing (the Pixi exploration board): the frontmost
 // target whose shapes contain the board point. Targets are { kind, id, depth (painter's x + y, as drawn), shapes };
 // shapes are { type: 'rect', x, y, width, height }, { type: 'ellipse', cx, cy, rx, ry } or { type: 'diamond', cx, cy,
-// rx, ry } in board coordinates. Presentation only.
+// rx, ry } in board coordinates. Dropped props are not in this list: they are picked by the pixels they draw
+// (pickAt, maps/propPick.js), the same test the map editor uses.
 
 const inside = (point, shape) => {
   if (shape.type === 'rect') return point.x >= shape.x && point.x <= shape.x + shape.width && point.y >= shape.y && point.y <= shape.y + shape.height
@@ -12,6 +15,16 @@ const inside = (point, shape) => {
 }
 
 // The target drawn on top at `point`, or null. Of two at the same depth the later one is drawn on top.
+// `props` are the dropped items the board is drawing, in the order it was given them (the groundLoot list). A prop
+// whose drawn pixel is under the point beats a shape target behind it or tied with it: props are added to the depth
+// layer after figures and markers, so at the same depth the prop is the one on screen.
+export function pickAt(point, targets, props) {
+  const shape = hitTest(point, targets)
+  const prop = pickProp(props, point)
+  if (prop && (!shape || shape.depth <= prop.depth)) return { kind: 'groundItem', id: prop.id, depth: prop.depth }
+  return shape
+}
+
 export function hitTest(point, targets) {
   let found = null
   for (const target of targets) {

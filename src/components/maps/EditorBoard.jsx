@@ -3,9 +3,11 @@ import { diamond, footprintDiamond, mapBounds, project, pts, unproject } from '.
 import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
+import { surfaceOverlayMarks } from '../../maps/surfaceOverlay.js'
 import {
   brushPositions,
   groundItemElevation,
+  groundItemSprites,
   groundItemTargetAt,
   npcAt,
   paintBrush,
@@ -13,20 +15,21 @@ import {
   previewGroundItem,
   swapTiles,
 } from '../../maps/mapEdits.js'
+import { getTile } from '../../maps/mapFormat.js'
 import { getItemById } from '../../rules/equipment.js'
-import { propSpriteSize, stackFootprint, stackSizeOf } from '../../rules/placement.js'
+import { propSpriteSize, stackFootprint, stackSizeOf, surfaceTileAtBoard } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
+import './alphaMasks.js' // installs the alpha masks that ground-item picking reads
 import { boardLayout } from './canvasTiles.js'
 import { startMapScene } from './pixi/mapScene.js'
 import usePixiScene from './pixi/usePixiScene.js'
 import WebglUnavailable from './pixi/WebglUnavailable.jsx'
 
 // The map editor's board: the map drawn as exploration and combat draw it (with PixiJS behind the SVG, pixi/mapScene.js)
-// under one clickable floor-level outline of the whole map; the tile under the pointer is worked out from where its
-// floor would be (blocks never take clicks). The
-// room labels, markers and tile previews are drawn by the Pixi scene; the hover outline is SVG on top. Nothing fades
-// here; See-through blocks shows what is behind blocks.
+// under one clickable floor-level outline of the whole map. The tile under the pointer is the floor cell, except a
+// prop brush on a raised top, which uses that stack's cell. Room labels, markers and tile previews are drawn by the
+// Pixi scene; the hover outline is SVG on top. Nothing fades here; See-through blocks shows what is behind blocks.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
 
@@ -37,9 +40,16 @@ function boardPointOf(event) {
   return { x: point.x, y: point.y }
 }
 
-// The tile whose floor diamond is under a pointer event's position, or null off the map.
-function tileAt(event, map) {
-  const tile = unproject(boardPointOf(event))
+// The tile a paint or hover means. A prop brush aimed at a raised top uses that stack's cell: the floor
+// unproject of the same point is the cell behind the stack, and the piece was landing there.
+function tileAt(event, map, brush) {
+  const boardPoint = boardPointOf(event)
+  const painting = brush ? getTile(brush) : null
+  if (painting && painting.height > 0 && !painting.wall) {
+    const raised = surfaceTileAtBoard(map, boardPoint)
+    if (raised) return raised
+  }
+  const tile = unproject(boardPoint)
   const position = { x: Math.round(tile.x), y: Math.round(tile.y) }
   return position.x >= 0 && position.y >= 0 && position.x < map.width && position.y < map.height ? position : null
 }
@@ -55,33 +65,16 @@ function itemAt(event, map, gridSize) {
 const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
 
 function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
-  const probe = placementProbeState(map)
-  const list = (map.groundItemPlacements ?? []).flatMap((entry) => {
-    const def = getItemById(entry.itemId)
-    if (!def) return []
-    const placed = groundItemElevation(map, entry, probe)
-    return [
-      {
-        id: entry.id,
-        position: entry.position,
-        z: placed.z,
-        worldImage: def.worldImage,
-        worldTile: def.worldTile ?? 'crate',
-        worldScale: def.worldScale ?? 0.5,
-        spriteSize: propSpriteSize(def),
-        category: def.category,
-        depth: placed.depth,
-        hovered: entry.id === selectedGroundItemId,
-        inReach: true,
-      },
-    ]
-  })
+  // The same list the editor picks from (mapEdits groundItemSprites), so a click lands on what is drawn.
+  const list = groundItemSprites(map).map((sprite) => ({ ...sprite, hovered: sprite.id === selectedGroundItemId, inReach: true }))
   if (inventoryTool && hover) {
+    const probe = placementProbeState(map)
     const def = getItemById(inventoryTool)
     if (def) {
-      // The ghost sits where a click would place it: on the surface under the pointer, or the floor.
+      // The ghost sits on the cell the green (or red) square marks, so its bottom meets that guide
+      // even when the cell refuses the drop.
       const target = previewGroundItem(map, hover, inventoryTool)
-      const at = target.ok ? target.position : hover
+      const at = target.position ?? hover
       const live = groundItemElevation(map, { position: at, on: target.on }, probe)
       list.push({
         id: '__ghost',
@@ -89,7 +82,6 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
         z: live.z,
         worldImage: def.worldImage,
         worldTile: def.worldTile ?? 'crate',
-        worldScale: def.worldScale ?? 0.5,
         spriteSize: propSpriteSize(def),
         category: def.category,
         depth: (live.depth ?? hover.x + hover.y) + 0.001,
@@ -167,6 +159,7 @@ export default function EditorBoard({
   gridSize = 64,
   showBounds = true,
   showCentre = false,
+  showSurfaces = false,
   // Editor layer visibility (UI only). Hidden layers omit their markers/labels from the board.
   layerVisibility = null,
   brush,
@@ -219,7 +212,7 @@ export default function EditorBoard({
     onHover(position)
   }
   const painting = useRef(false)
-  const pointerAt = (event) => (inventoryTool ? itemAt(event, map, gridSize) : tileAt(event, map))
+  const pointerAt = (event) => (inventoryTool ? itemAt(event, map, gridSize) : tileAt(event, map, brush))
 
   useEffect(() => {
     const stop = () => {
@@ -302,6 +295,7 @@ export default function EditorBoard({
       : []),
   ]
   const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
+  const surfaces = useMemo(() => (showSurfaces ? surfaceOverlayMarks(map) : null), [map, showSurfaces])
   const groundLoot = useMemo(
     () => (layerShown('furniture') ? groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null) : []),
     [map, selectedGroundItemId, inventoryTool, hover, layerShown],
@@ -331,6 +325,7 @@ export default function EditorBoard({
       preview,
       grid: { show: showGrid, size: gridSize, width: map.width, height: map.height },
       bounds: { showBounds, showCentre, width: map.width, height: map.height },
+      surfaces,
       layerVisibility,
       svg: dragHandlers.ref.current,
     }

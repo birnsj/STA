@@ -59,6 +59,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [ghostBlocks, setGhostBlocks] = useState(false)
   const [animateTiles, setAnimateTiles] = useState(true)
   const [showLighting, setShowLighting] = useState(true)
+  const [showSurfaces, setShowSurfaces] = useState(false)
   const [showWeather, setShowWeather] = useState(true)
   const [showGrid, setShowGrid] = useState(false)
   const [gridSize, setGridSize] = useState(64)
@@ -212,6 +213,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         return setAnimateTiles((value) => !value)
       case 'lighting':
         return setShowLighting((value) => !value)
+      case 'surfaces':
+        return setShowSurfaces((value) => !value)
       case 'weatherFx':
         return setShowWeather((value) => !value)
       case 'grid':
@@ -429,6 +432,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           ghost: ghostBlocks,
           animate: animateTiles,
           lighting: showLighting,
+          surfaces: showSurfaces,
           weatherFx: showWeather,
           grid: showGrid,
           layers: layersOpen,
@@ -488,6 +492,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             gridSize={gridSize}
             showBounds={showBounds}
             showCentre={showCentre}
+            showSurfaces={showSurfaces}
             layerVisibility={editorLayers.layers.visible}
             brush={placing && tool?.startsWith('tile:') ? tool.slice('tile:'.length) : null}
             rotated={rotated}
@@ -557,6 +562,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onAnimateTiles={setAnimateTiles}
         showLighting={showLighting}
         onShowLighting={setShowLighting}
+        showSurfaces={showSurfaces}
+        onShowSurfaces={setShowSurfaces}
       />
       <EditorLayersWindow
         open={layersOpen}

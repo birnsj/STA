@@ -334,6 +334,14 @@ export default function useEditorTools({
       applyCandidate(null, position)
       return
     }
+    // A click on a drawn item selects that item. The floor tile or crate under the same pointer is a different layer
+    // entry and used to win when Ground was active, or tie with the item when Furniture was, so the box behind the
+    // pointer was selected instead. Lock and hide still apply: a locked furniture layer has already dropped the item.
+    const drawnItem = editable.find((candidate) => candidate.kind === 'groundItem')
+    if (boardPoint && drawnItem) {
+      applyCandidate(drawnItem, position)
+      return
+    }
     const priority = selectionPriority(layers?.active)
     const ranked = [...editable].sort((a, b) => {
       const ai = priority.indexOf(a.layer)
@@ -370,8 +378,9 @@ export default function useEditorTools({
     setStatus(`Placed ${DESTRUCTIBLE_TYPES[type].name} (${placed.object.id}). Ctrl+D duplicates it.`)
   }
 
-  // Inventory tools: a click places where the pointer is, including on top of an item. A click that cannot place selects
-  // the item under the pointer so a full spot can still be inspected.
+  // Inventory tools: a click places where the pointer is, including on top of an item. A successful place leaves the
+  // brush selected and does not outline the new item. A click that cannot place selects the item under the pointer
+  // so a full spot can still be inspected.
   const onInventoryTool = (position, itemId, boardPoint = null) => {
     const placed = placeGroundItem(map, position, itemId, itemGridSize)
     if (!placed) {
@@ -390,7 +399,7 @@ export default function useEditorTools({
       return setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
     }
     edit(placed.map)
-    setSelectedGroundItemId(placed.object.id)
+    setSelectedGroundItemId(null)
     setSelectedDestructibleId(null)
     setSelectedHazardId(null)
     const def = getItemById(itemId)

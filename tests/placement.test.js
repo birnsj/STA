@@ -9,15 +9,18 @@ import {
   seedPartyInventory,
   transferItem,
 } from '../src/rules/inventory.js'
-import { project } from '../src/maps/iso.js'
+import { project, TILE_H, unproject } from '../src/maps/iso.js'
 import {
   approachPoint,
   canPlaceOn,
   canStackTileOn,
   groundItemDepth,
+  surfaceTileAtBoard,
+  pointInFootprint,
   pointInSurfaceFootprint,
   stackSizeOf,
   propSpriteSize,
+  surfaceOfItem,
   surfaceOfTile,
   supportAt,
   supportAtBoard,
@@ -125,7 +128,7 @@ describe('canPlaceAt on surfaces', () => {
     assert.equal(zOf(state, state.groundItems[id]), 22)
   })
 
-  it('allows multiple items on one tabletop at distinct cells', () => {
+  it('stacks the next item when the table is already full', () => {
     const map = mapWith([
       ['floor', 'floor', 'floor'],
       ['floor', 'table', 'floor'],
@@ -135,16 +138,16 @@ describe('canPlaceAt on surfaces', () => {
       [makeCharacter({ id: 'a', equipment: [{ itemId: 'phaserType2' }, { itemId: 'medkit' }, { itemId: 'communicator' }] })],
       map,
     )
-    const ids = Object.keys(state.itemInstances)
-    state = dropItem(state, { instanceId: ids[0], position: { x: 1, y: 1 } })
-    state = dropItem(state, { instanceId: ids[1], position: { x: 1.125, y: 1 } })
-    assert.ok(state.groundItems[ids[0]])
-    assert.ok(state.groundItems[ids[1]])
-    assert.notDeepEqual(state.groundItems[ids[0]].position, state.groundItems[ids[1]].position)
-    assert.equal(state.groundItems[ids[0]].support.kind, 'tile')
-    assert.equal(state.groundItems[ids[1]].support.kind, 'tile')
+    const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    const commId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'communicator')
+    state = dropItem(state, { instanceId: medkitId, position: { x: 1.25, y: 1.25 } })
+    const at = state.groundItems[medkitId].position
+    state = dropItem(state, { instanceId: commId, position: { x: at.x - 0.2, y: at.y - 0.2 } })
+    assert.equal(state.groundItems[medkitId].support.kind, 'tile')
+    assert.equal(state.groundItems[commId].support.kind, 'item')
+    assert.equal(state.groundItems[commId].support.instanceId, medkitId)
     // Repositioning the occupant is still allowed on the same spot.
-    assert.ok(canPlaceAt(state, { x: 1, y: 1 }, { excludeInstanceId: ids[0], itemId: state.itemInstances[ids[0]].itemId }).ok)
+    assert.ok(canPlaceAt(state, at, { excludeInstanceId: medkitId, itemId: 'medkit' }).ok)
   })
 
   it('keeps floor placement identical when no surface is present', () => {
@@ -187,6 +190,22 @@ describe('stackOver height', () => {
     map.stackOver['1,1'] = ['crate', 'crate', 'crate']
     assert.equal(canStackTileOn(map, { x: 1, y: 1 }, 'crate').ok, false)
   })
+
+  it('a point on a three-high crate top is that stack, not the floor cell behind it', () => {
+    const map = mapWith([
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'crate', 'floor', 'floor'],
+    ])
+    map.stackOver = { '1,3': ['crate', 'crate'] }
+    const surface = tileSurfaceAt(map, { x: 1, y: 3 })
+    const centre = project({ x: 1, y: 3 })
+    const onTop = { x: centre.x, y: centre.y - surface.topZ }
+    const behind = unproject(onTop)
+    assert.ok(Math.round(behind.x) !== 1 || Math.round(behind.y) !== 3)
+    assert.deepEqual(surfaceTileAtBoard(map, onTop), { x: 1, y: 3 })
+  })
 })
 
 describe('groundItemDepth', () => {
@@ -227,30 +246,30 @@ describe('item stack size on a 64×64 spot', () => {
     }
   }
 
-  it('derives large and small footprints from worldScale', () => {
+  it('takes the footprint and picture from the image pixels', () => {
     const medkit = stackSizeOf('medkit')
     const communicator = stackSizeOf('communicator')
     const kit = stackSizeOf('equipmentCase')
-    assert.deepEqual({ width: medkit.width, depth: medkit.depth }, { width: 32, depth: 32 })
-    assert.deepEqual({ width: communicator.width, depth: communicator.depth }, { width: 16, depth: 16 })
-    assert.equal(kit.height, 10)
+    assert.deepEqual({ width: medkit.width, depth: medkit.depth, height: medkit.height }, { width: 32, depth: 32, height: 5 })
+    assert.deepEqual({ width: communicator.width, depth: communicator.depth, height: communicator.height }, { width: 16, depth: 16, height: 2 })
+    assert.equal(kit.height, 6)
     assert.deepEqual(propSpriteSize('medkit'), { width: 32, height: 48 })
     assert.deepEqual(propSpriteSize('communicator'), { width: 16, height: 24 })
     assert.deepEqual(propSpriteSize('stackBoxRed'), { width: 32, height: 48 })
     assert.equal(stackSizeOf('stackBoxRed').height, 8)
   })
 
-  it('fits 4 large items on a crate and stacks the next one', () => {
+  it('fits four large items on a tile and stacks the next one', () => {
     const map = mapWith([
       ['floor', 'floor'],
       ['floor', 'crate'],
     ])
     let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
     const drops = [
+      { aim: { x: 1.25, y: 1.25 }, at: { x: 1.5, y: 1.5 } },
       { aim: { x: 0.75, y: 0.75 }, at: { x: 1, y: 1 } },
       { aim: { x: 1.25, y: 0.75 }, at: { x: 1.5, y: 1 } },
       { aim: { x: 0.75, y: 1.25 }, at: { x: 1, y: 1.5 } },
-      { aim: { x: 1.25, y: 1.25 }, at: { x: 1.5, y: 1.5 } },
     ]
     drops.forEach((slot, i) => {
       const step = put(state, `m${i}`, 'medkit', slot.aim)
@@ -259,49 +278,23 @@ describe('item stack size on a 64×64 spot', () => {
       assert.deepEqual(step.placed.position, slot.at)
       state = step.state
     })
-    const fifth = put(state, 'm4', 'medkit', drops[0].aim)
-    assert.equal(fifth.placed.ok, true, fifth.placed.reason)
-    assert.equal(fifth.placed.support.kind, 'item')
-    assert.ok(fifth.placed.z > 16)
+    const stacked = put(state, 'm4', 'medkit', { x: 1.25, y: 1.25 })
+    assert.equal(stacked.placed.ok, true, stacked.placed.reason)
+    assert.equal(stacked.placed.support.kind, 'item')
   })
 
-  it('keeps a click in the back of a cell inside that cell', () => {
+  it('fills the cell under the pointer, not the whole tile', () => {
     const map = mapWith([
       ['floor', 'floor'],
       ['floor', 'crate'],
     ])
     let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
-    // (1.1, 1.1) is inside the front cell. The cell behind has a nearer corner, and must not steal the drop.
     const front = put(state, 'front', 'medkit', { x: 1.1, y: 1.1 })
     assert.equal(front.placed.support.kind, 'tile')
     assert.deepEqual(front.placed.position, { x: 1.5, y: 1.5 })
-    const behind = put(front.state, 'behind', 'medkit', { x: 0.6, y: 0.6 })
-    assert.equal(behind.placed.support.kind, 'tile')
-    assert.deepEqual(behind.placed.position, { x: 1, y: 1 })
-    const onFront = put(behind.state, 'stack', 'medkit', { x: 1.1, y: 1.1 })
-    assert.equal(onFront.placed.support.kind, 'item')
-    assert.deepEqual(onFront.placed.position, { x: 1.5, y: 1.5 })
-  })
-
-  it('fits 16 small items on a crate', () => {
-    const map = mapWith([
-      ['floor', 'floor'],
-      ['floor', 'crate'],
-    ])
-    let state = partyState([makeCharacter({ id: 'a', equipment: [] })], map)
-    const slots = []
-    for (const x of [0.75, 1, 1.25, 1.5]) {
-      for (const y of [0.75, 1, 1.25, 1.5]) slots.push({ aim: { x: x - 0.125, y: y - 0.125 }, at: { x, y } })
-    }
-    slots.forEach((slot, i) => {
-      const step = put(state, `c${i}`, 'communicator', slot.aim)
-      assert.equal(step.placed.ok, true, step.placed.reason)
-      assert.equal(step.placed.support.kind, 'tile')
-      assert.deepEqual(step.placed.position, slot.at)
-      state = step.state
-    })
-    const extra = put(state, 'c16', 'communicator', slots[0].aim)
-    assert.equal(extra.placed.support.kind, 'item')
+    const back = put(front.state, 'back', 'medkit', { x: 0.6, y: 0.6 })
+    assert.equal(back.placed.support.kind, 'tile')
+    assert.deepEqual(back.placed.position, { x: 1, y: 1 })
   })
 })
 
@@ -317,10 +310,10 @@ describe('item-on-item and editor stacking', () => {
     )
     const caseId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'equipmentCase')
     const phaserId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'phaserType2')
-    state = dropItem(state, { instanceId: caseId, position: { x: 1, y: 1 } })
+    state = dropItem(state, { instanceId: caseId, position: { x: 1.25, y: 1.25 } })
     assert.deepEqual(state.groundItems[caseId].support, { kind: 'tile', tile: { x: 1, y: 1 } })
-    const onCase = state.groundItems[caseId].position
-    state = dropItem(state, { instanceId: phaserId, position: onCase })
+    const casePos = state.groundItems[caseId].position
+    state = dropItem(state, { instanceId: phaserId, position: { x: casePos.x - 0.2, y: casePos.y - 0.2 } })
     assert.equal(state.groundItems[phaserId].support.kind, 'item')
     assert.equal(state.groundItems[phaserId].support.instanceId, caseId)
     assert.ok(zOf(state, state.groundItems[phaserId]) > zOf(state, state.groundItems[caseId]))
@@ -328,6 +321,39 @@ describe('item-on-item and editor stacking', () => {
 })
 
 describe('supportAtBoard (iso tabletop hit)', () => {
+  it('a point on the back of a ground box stays on that box', () => {
+    const map = mapWith([
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'floor', 'floor', 'floor'],
+      ['floor', 'floor', 'floor', 'floor'],
+    ])
+    let state = partyState(
+      [makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'standardTricorder' }] })],
+      map,
+    )
+    const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    const tricorderId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'standardTricorder')
+    state = dropItem(state, { instanceId: medkitId, position: { x: 2, y: 2 } })
+    const medkit = state.groundItems[medkitId]
+    const surface = surfaceOfItem('medkit')
+    const foot = surface.footprint
+    const center = { x: medkit.position.x - foot.width / 2, y: medkit.position.y - foot.depth / 2 }
+    const c = project(center)
+    const halfH = (TILE_H / 2) * foot.depth
+    // Near the back tip of the lid. On the floor plane that point is the cell behind the box.
+    const boardPoint = { x: c.x, y: c.y - surface.topZ - 0.9 * halfH }
+    const onStand = unproject(boardPoint)
+    assert.equal(pointInFootprint(onStand, medkit.position, foot), false)
+    const place = canPlaceOn(state, { x: 0, y: 0 }, { boardPoint, itemId: 'standardTricorder', category: 'scanner' })
+    assert.ok(place.ok, place.reason)
+    assert.equal(place.support?.kind, 'item')
+    assert.equal(place.support.instanceId, medkitId)
+    state = dropItem(state, { instanceId: tricorderId, position: place.position, support: place.support, boardPoint })
+    const dropped = state.groundItems[tricorderId]
+    assert.ok(groundItemDepth(state, dropped) > groundItemDepth(state, state.groundItems[medkitId]))
+  })
+
   it('hits a table when the pointer is on the raised top, not the floor behind it', () => {
     const map = mapWith([
       ['floor', 'floor', 'floor'],

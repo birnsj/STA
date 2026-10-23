@@ -12,13 +12,12 @@
     "maxStack": 1,
     "equipSlot": null,
     "worldImage": null,
-    "worldScale": 0.5,
     "stats": {},
     "sourceType": "captains-log",
     "statsSourceType": "adaptation"
   },
-  "worldImageNote": "Isometric prop PNG (64x96 tile grid) drawn when the item is dropped. The picture is a square diamond the size of its spot: worldScale 0.5 is 32x32 (four per tile), worldScale 0.25 is 16x16 (sixteen per tile). Inventory UI uses icon.",
-  "stackSizeNote": "Optional { width, depth, height } in art pixels (64 = one tile). Omitted: a square of worldScale x 64. The dropped sprite is that same square, so the picture sits in the spot it snaps to. Height defaults to surface.topZ or a fraction of the sprite.",
+  "worldImageNote": "Isometric prop PNG drawn when the item is dropped. The file is already the stacking cell: large gear is 128×192 (32×32, four per tile), small gear is 64×96 (16×16, sixteen per tile). The board draws file pixels ÷ 4. Inventory UI uses icon.",
+  "stackSizeNote": "Derived from the picture, not authored. Width and depth are the opaque picture in design pixels (the stacking cell). Height is the painted block above that picture's floor diamond.",
   "sourceTypeNote": "Provenance for development only, never shown to the player. sourceType is where the item itself comes from; statsSourceType is where its stats come from. Values: 'captains-log' (book rules or content), 'adaptation' (our videogame version of a book element), 'original' (our own system). Every item here is named in the book without stats (CL pp.39-40: communicators, standard and specialty tricorders, type-1 phaser sidearms, medical tricorder, medkit, engineering toolkit; Core p.141 (CL p.137): uniform, communicator, tricorder, type-1 or type-2 phaser). All stats, slots, and the automatic loadout are adaptation.",
   "categories": {
     "clothing": "Clothing",
@@ -26,7 +25,8 @@
     "scanner": "Scanner",
     "weapon": "Weapon",
     "medical": "Medical",
-    "engineering": "Engineering"
+    "engineering": "Engineering",
+    "calibration": "Calibration"
   },
   "categoryHighlightNote": "World hover outline colour for dropped items by category (exploration GroundLootView). Presentation only.",
   "categoryHighlights": {
@@ -35,7 +35,8 @@
     "scanner": "#5fd0ff",
     "weapon": "#ff6a4a",
     "medical": "#ff7a9a",
-    "engineering": "#f6b928"
+    "engineering": "#f6b928",
+    "calibration": "#7dffd1"
   },
   "equipSlotsNote": "Approved for the exploration inventory UI (2026-10-17): body, sidearm, scanner, communicator. null = carried in the bag, not equipped.",
   "statDisplay": {
@@ -65,7 +66,6 @@
       "category": "clothing",
       "icon": "/art/items/uniform.png",
       "worldImage": "/art/sprites/environment/items/clothing.png",
-      "worldScale": 0.5,
       "description": "Standard Starfleet duty uniform.",
       "tags": [
         "uniform"
@@ -78,7 +78,6 @@
       "category": "clothing",
       "icon": "/art/items/environment_suit.png",
       "worldImage": "/art/sprites/environment/items/environmentSuit.png",
-      "worldScale": 0.5,
       "description": "Sealed suit that ignores toxic gas, radiation and coolant. Prototype placeholder for equipment puzzles.",
       "tags": [
         "suit",
@@ -102,7 +101,6 @@
       "category": "clothing",
       "icon": "/art/items/thermal_suit.png",
       "worldImage": "/art/sprites/environment/items/thermalSuit.png",
-      "worldScale": 0.5,
       "description": "Insulated suit that ignores fire, plasma fire and steam. Prototype placeholder for equipment puzzles.",
       "tags": [
         "suit",
@@ -126,7 +124,6 @@
       "category": "clothing",
       "icon": "/art/items/armoured_vest.png",
       "worldImage": "/art/sprites/environment/items/armouredVest.png",
-      "worldScale": 0.5,
       "description": "Light armour. Protection stacks with other protective gear. Prototype placeholder.",
       "tags": [
         "armour",
@@ -145,7 +142,6 @@
       "category": "utility",
       "icon": "/art/items/communicator.png",
       "worldImage": "/art/sprites/environment/items/communicator.png",
-      "worldScale": 0.25,
       "description": "Personal communication with the ship and crew.",
       "tags": [
         "communication",
@@ -161,7 +157,6 @@
       "category": "scanner",
       "icon": "/art/items/tricorder_standard.png",
       "worldImage": "/art/sprites/environment/items/tricorder.png",
-      "worldScale": 0.25,
       "description": "General-purpose portable scanning and analysis device.",
       "tags": [
         "tricorder",
@@ -178,7 +173,6 @@
       "category": "scanner",
       "icon": "/art/items/tricorder_science.png",
       "worldImage": "/art/sprites/environment/items/tricorder.png",
-      "worldScale": 0.25,
       "description": "Scientific scanning and analysis.",
       "tags": [
         "tricorder",
@@ -196,7 +190,6 @@
       "category": "scanner",
       "icon": "/art/items/tricorder_medical.png",
       "worldImage": "/art/sprites/environment/items/tricorder.png",
-      "worldScale": 0.25,
       "description": "Medical diagnosis and biological scanning.",
       "tags": [
         "tricorder",
@@ -215,7 +208,6 @@
       "category": "scanner",
       "icon": "/art/items/tricorder_engineering.png",
       "worldImage": "/art/sprites/environment/items/tricorder.png",
-      "worldScale": 0.25,
       "description": "Technical diagnostics and engineering analysis.",
       "tags": [
         "tricorder",
@@ -234,7 +226,6 @@
       "category": "weapon",
       "icon": "/art/items/phaser_type1.png",
       "worldImage": "/art/sprites/environment/items/phaser.png",
-      "worldScale": 0.25,
       "description": "Compact Starfleet hand phaser.",
       "tags": [
         "phaser",
@@ -250,7 +241,6 @@
       "category": "weapon",
       "icon": "/art/items/phaser_type2.png",
       "worldImage": "/art/sprites/environment/items/phaser.png",
-      "worldScale": 0.25,
       "description": "Larger hand phaser for serious tactical situations.",
       "tags": [
         "phaser",
@@ -266,7 +256,6 @@
       "category": "medical",
       "icon": "/art/items/medkit.png",
       "worldImage": "/art/sprites/environment/items/medkit.png",
-      "worldScale": 0.5,
       "description": "Field medical supplies for treating injuries.",
       "tags": [
         "medical",
@@ -282,7 +271,6 @@
       "category": "engineering",
       "icon": "/art/items/engineering_toolkit.png",
       "worldImage": "/art/sprites/environment/items/toolkit.png",
-      "worldScale": 0.5,
       "description": "Tools for field repairs and technical work.",
       "tags": [
         "engineering",
@@ -298,7 +286,6 @@
       "category": "weapon",
       "icon": "/art/items/disruptor_pistol.png",
       "worldImage": "/art/sprites/environment/items/disruptorPistol.png",
-      "worldScale": 0.25,
       "description": "Klingon disruptor sidearm.",
       "faction": [
         "klingonEmpire"
@@ -319,7 +306,6 @@
       "category": "weapon",
       "icon": "/art/items/dk_tahg.png",
       "worldImage": "/art/sprites/environment/items/dkTahg.png",
-      "worldScale": 0.25,
       "description": "Klingon dagger.",
       "faction": [
         "klingonEmpire"
@@ -339,7 +325,6 @@
       "category": "utility",
       "icon": "/art/items/medkit.png",
       "worldImage": "/art/sprites/environment/items/missionObject.png",
-      "worldScale": 0.5,
       "description": "A keyed mission item for inventory and world-drop testing. Placeholder art.",
       "tags": [
         "mission"
@@ -354,7 +339,6 @@
       "category": "utility",
       "icon": "/art/items/medkit.png",
       "worldImage": "/art/sprites/environment/items/missionObject.png",
-      "worldScale": 0.5,
       "surface": {
         "topZ": 10,
         "maxStack": 1
@@ -374,7 +358,6 @@
       "category": "utility",
       "icon": "/art/items/starfleet_padd.png",
       "worldImage": "/art/sprites/environment/items/starfleetPadd.png",
-      "worldScale": 0.25,
       "description": "Personal Access Display Device for records and mission data.",
       "tags": [
         "padd",
@@ -399,7 +382,6 @@
       "category": "medical",
       "icon": "/art/items/hypospray.png",
       "worldImage": "/art/sprites/environment/items/hypospray.png",
-      "worldScale": 0.25,
       "description": "Subcutaneous injector for field treatment.",
       "tags": [
         "medical",
@@ -423,7 +405,6 @@
       "category": "engineering",
       "icon": "/art/items/hyperspanner.png",
       "worldImage": "/art/sprites/environment/items/hyperspanner.png",
-      "worldScale": 0.25,
       "description": "Engineering hand tool for bypassing and adjusting electronics.",
       "tags": [
         "engineering",
@@ -448,7 +429,6 @@
       "category": "engineering",
       "icon": "/art/items/plasma_torch.png",
       "worldImage": "/art/sprites/environment/items/plasmaTorch.png",
-      "worldScale": 0.25,
       "description": "Cutting torch for bulkheads and sealed panels.",
       "tags": [
         "engineering",
@@ -473,7 +453,6 @@
       "category": "engineering",
       "icon": "/art/items/trident_scanner.png",
       "worldImage": "/art/sprites/environment/items/tridentScanner.png",
-      "worldScale": 0.25,
       "description": "Handheld scanner for power relays and circuit diagnostics.",
       "tags": [
         "engineering",
@@ -498,7 +477,6 @@
       "category": "engineering",
       "icon": "/art/items/magnetic_probe.png",
       "worldImage": "/art/sprites/environment/items/magneticProbe.png",
-      "worldScale": 0.25,
       "description": "Probe for magnetic fields and sealed mechanisms.",
       "tags": [
         "engineering",
@@ -522,7 +500,6 @@
       "category": "engineering",
       "icon": "/art/items/odn_recoupler.png",
       "worldImage": "/art/sprites/environment/items/odnRecoupler.png",
-      "worldScale": 0.25,
       "description": "Tool for optical data network fibre repair.",
       "tags": [
         "engineering",
@@ -547,7 +524,6 @@
       "category": "engineering",
       "icon": "/art/items/flux_coupler.png",
       "worldImage": "/art/sprites/environment/items/fluxCoupler.png",
-      "worldScale": 0.25,
       "description": "Coupler for bridging power and flux conduits.",
       "tags": [
         "engineering",
@@ -572,7 +548,6 @@
       "category": "medical",
       "icon": "/art/items/autosuture.png",
       "worldImage": "/art/sprites/environment/items/autosuture.png",
-      "worldScale": 0.25,
       "description": "Field device for closing wounds.",
       "tags": [
         "medical",
@@ -597,7 +572,6 @@
       "category": "medical",
       "icon": "/art/items/osteogenic_stimulator.png",
       "worldImage": "/art/sprites/environment/items/osteogenicStimulator.png",
-      "worldScale": 0.25,
       "description": "Medical stimulator for bone repair.",
       "tags": [
         "medical",
@@ -621,7 +595,6 @@
       "category": "weapon",
       "icon": "/art/items/phaser_rifle.png",
       "worldImage": "/art/sprites/environment/items/phaserRifle.png",
-      "worldScale": 0.5,
       "description": "Starfleet phaser rifle circa 2264.",
       "tags": [
         "phaser",
@@ -647,7 +620,6 @@
       "category": "weapon",
       "icon": "/art/items/klingon_batleth.png",
       "worldImage": "/art/sprites/environment/items/klingonBatleth.png",
-      "worldScale": 0.5,
       "description": "Two-handed Klingon ceremonial and combat blade.",
       "tags": [
         "blade",
@@ -672,7 +644,6 @@
       "category": "medical",
       "icon": "/art/items/cortical_inhibitor.png",
       "worldImage": "/art/sprites/environment/items/corticalInhibitor.png",
-      "worldScale": 0.25,
       "description": "Blocks outer-cerebrum communication and manages theta-wave activity.",
       "tags": [
         "medical",
@@ -696,7 +667,6 @@
       "category": "medical",
       "icon": "/art/items/cortical_stimulator.png",
       "worldImage": "/art/sprites/environment/items/corticalStimulator.png",
-      "worldScale": 0.25,
       "description": "Revives dormant neural pathways with controlled electrical bursts.",
       "tags": [
         "medical",
@@ -720,7 +690,6 @@
       "category": "medical",
       "icon": "/art/items/cytoplasmic_stimulator.png",
       "worldImage": "/art/sprites/environment/items/cytoplasmicStimulator.png",
-      "worldScale": 0.25,
       "description": "Encourages cells to create new cytoplasm and reduce toxicity.",
       "tags": [
         "medical",
@@ -744,7 +713,6 @@
       "category": "medical",
       "icon": "/art/items/dermal_stimulator.png",
       "worldImage": "/art/sprites/environment/items/dermalStimulator.png",
-      "worldScale": 0.25,
       "description": "Ultrasonic tool that makes skin pliable for medical and cosmetic work.",
       "tags": [
         "medical",
@@ -768,7 +736,6 @@
       "category": "medical",
       "icon": "/art/items/detronal_scanner.png",
       "worldImage": "/art/sprites/environment/items/detronalScanner.png",
-      "worldScale": 0.25,
       "description": "Precision scanner that maps DNA in living tissue.",
       "tags": [
         "medical",
@@ -793,7 +760,6 @@
       "category": "medical",
       "icon": "/art/items/neural_calipers.png",
       "worldImage": "/art/sprites/environment/items/neuralCalipers.png",
-      "worldScale": 0.25,
       "description": "Remote device that induces unconsciousness before surgery.",
       "tags": [
         "medical",
@@ -818,7 +784,6 @@
       "category": "medical",
       "icon": "/art/items/neural_stimulator.png",
       "worldImage": "/art/sprites/environment/items/neuralStimulator.png",
-      "worldScale": 0.25,
       "description": "Headband stimulator that encourages damaged brain cells to fire.",
       "tags": [
         "medical",
@@ -842,7 +807,6 @@
       "category": "medical",
       "icon": "/art/items/neural_transducer.png",
       "worldImage": "/art/sprites/environment/items/neuralTransducer.png",
-      "worldScale": 0.25,
       "description": "Stimulates muscles when nerve pathways to a limb are non-functional.",
       "tags": [
         "medical",
@@ -867,7 +831,6 @@
       "category": "medical",
       "icon": "/art/items/sonic_separator.png",
       "worldImage": "/art/sprites/environment/items/sonicSeparator.png",
-      "worldScale": 0.25,
       "description": "Sonic tool for identifying nerves and neurons in brain surgery.",
       "tags": [
         "medical",
@@ -892,7 +855,6 @@
       "category": "medical",
       "icon": "/art/items/vascular_regenerator.png",
       "worldImage": "/art/sprites/environment/items/vascularRegenerator.png",
-      "worldScale": 0.25,
       "description": "Controls blood loss and reconnects severed vessels.",
       "tags": [
         "medical",
@@ -917,7 +879,6 @@
       "category": "medical",
       "icon": "/art/items/medical_shotgun.png",
       "worldImage": "/art/sprites/environment/items/medicalShotgun.png",
-      "worldScale": 0.5,
       "description": "Transdermal therapeutic projector for remote medicine delivery.",
       "tags": [
         "medical",
@@ -942,7 +903,6 @@
       "category": "engineering",
       "icon": "/art/items/dualitic_inverter.png",
       "worldImage": "/art/sprites/environment/items/dualiticInverter.png",
-      "worldScale": 0.25,
       "description": "Redirects plasma flow by flipping waveguide polarization.",
       "tags": [
         "engineering",
@@ -967,7 +927,6 @@
       "category": "engineering",
       "icon": "/art/items/focal_adjustment_spanner.png",
       "worldImage": "/art/sprites/environment/items/focalAdjustmentSpanner.png",
-      "worldScale": 0.25,
       "description": "Delicate spanner for adjusting photon flow in optical fibre.",
       "tags": [
         "engineering",
@@ -992,7 +951,6 @@
       "category": "engineering",
       "icon": "/art/items/gravitic_caliper.png",
       "worldImage": "/art/sprites/environment/items/graviticCaliper.png",
-      "worldScale": 0.25,
       "description": "Precision tool that manipulates electron voltage in plasma flow.",
       "tags": [
         "engineering",
@@ -1017,7 +975,6 @@
       "category": "engineering",
       "icon": "/art/items/ionic_flow_regulator.png",
       "worldImage": "/art/sprites/environment/items/ionicFlowRegulator.png",
-      "worldScale": 0.25,
       "description": "Increases or decreases ion travel speed in a system.",
       "tags": [
         "engineering",
@@ -1042,7 +999,6 @@
       "category": "engineering",
       "icon": "/art/items/micro_resonator.png",
       "worldImage": "/art/sprites/environment/items/microResonator.png",
-      "worldScale": 0.25,
       "description": "Degausses small devices and can mask them from EM scans.",
       "tags": [
         "engineering",
@@ -1067,7 +1023,6 @@
       "category": "engineering",
       "icon": "/art/items/parametric_scanner.png",
       "worldImage": "/art/sprites/environment/items/parametricScanner.png",
-      "worldScale": 0.25,
       "description": "High-frequency imaging scanner for phase-coil alignment and systems.",
       "tags": [
         "engineering",
@@ -1091,7 +1046,6 @@
       "category": "engineering",
       "icon": "/art/items/phase_modulator.png",
       "worldImage": "/art/sprites/environment/items/phaseModulator.png",
-      "worldScale": 0.25,
       "description": "Adjusts wavelength and frequency of optical data network light.",
       "tags": [
         "engineering",
@@ -1116,7 +1070,6 @@
       "category": "engineering",
       "icon": "/art/items/self_sealing_stem_bolt.png",
       "worldImage": "/art/sprites/environment/items/selfSealingStemBolt.png",
-      "worldScale": 0.25,
       "description": "Common self-sealing fastener used across starship systems.",
       "tags": [
         "engineering",
@@ -1141,7 +1094,6 @@
       "category": "weapon",
       "icon": "/art/items/laser_pistol_2250.png",
       "worldImage": "/art/sprites/environment/items/laserPistol2250.png",
-      "worldScale": 0.25,
       "description": "Early Starfleet sidearm with stun-to-lethal barrel settings.",
       "tags": [
         "laser",
@@ -1167,7 +1119,6 @@
       "category": "weapon",
       "icon": "/art/items/gintak.png",
       "worldImage": "/art/sprites/environment/items/gintak.png",
-      "worldScale": 0.5,
       "description": "Ancient Klingon spear for thrust combat or throwing.",
       "tags": [
         "blade",
@@ -1193,7 +1144,6 @@
       "category": "weapon",
       "icon": "/art/items/kurleth.png",
       "worldImage": "/art/sprites/environment/items/kurleth.png",
-      "worldScale": 0.5,
       "description": "Larger mek'leth variant with a second grip near the primary blade.",
       "tags": [
         "blade",
@@ -1218,7 +1168,6 @@
       "category": "weapon",
       "icon": "/art/items/kutluch.png",
       "worldImage": "/art/sprites/environment/items/kutluch.png",
-      "worldScale": 0.25,
       "description": "Compact serrated Klingon assassin's blade.",
       "tags": [
         "blade",
@@ -1244,7 +1193,6 @@
       "category": "weapon",
       "icon": "/art/items/mekleth.png",
       "worldImage": "/art/sprites/environment/items/mekleth.png",
-      "worldScale": 0.5,
       "description": "One-handed Klingon curved combat sword.",
       "tags": [
         "blade",
@@ -1269,7 +1217,6 @@
       "category": "weapon",
       "icon": "/art/items/ushaantor.png",
       "worldImage": "/art/sprites/environment/items/ushaantor.png",
-      "worldScale": 0.5,
       "description": "Andorian ice-miner's blade used in Ushaan honor duels.",
       "tags": [
         "blade",
@@ -1294,7 +1241,6 @@
       "category": "weapon",
       "icon": "/art/items/vulcan_lirpa.png",
       "worldImage": "/art/sprites/environment/items/vulcanLirpa.png",
-      "worldScale": 0.5,
       "description": "Ceremonial Vulcan polearm with blade and blunt fan ends.",
       "tags": [
         "blade",
@@ -1320,7 +1266,6 @@
       "category": "weapon",
       "icon": "/art/items/phaser_rifle_2255.png",
       "worldImage": "/art/sprites/environment/items/phaserRifle2255.png",
-      "worldScale": 0.5,
       "description": "Starfleet Type-3 phaser rifle circa 2255.",
       "tags": [
         "phaser",
@@ -1346,7 +1291,6 @@
       "category": "utility",
       "icon": "/art/items/isolinear_optical_chip.png",
       "worldImage": "/art/sprites/environment/items/isolinearOpticalChip.png",
-      "worldScale": 0.25,
       "description": "Optical crystal chip for software and data storage.",
       "tags": [
         "computer",
@@ -1371,13 +1315,7 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackBoxRed.png",
       "worldImage": "/art/sprites/environment/items/stackBoxRed.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A half-tile crate used to test object stacking. Four fit on one 64×64 spot. The top is 8px, under the step to the cell behind, so that cell stays visible.",
+      "description": "A stacking-test crate. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
@@ -1391,13 +1329,7 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackBoxBlue.png",
       "worldImage": "/art/sprites/environment/items/stackBoxBlue.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A half-tile crate used to test object stacking. Four fit on one 64×64 spot. The top is 8px, under the step to the cell behind, so that cell stays visible.",
+      "description": "A stacking-test crate. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
@@ -1411,13 +1343,7 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackBoxGreen.png",
       "worldImage": "/art/sprites/environment/items/stackBoxGreen.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A half-tile crate used to test object stacking. Four fit on one 64×64 spot. The top is 8px, under the step to the cell behind, so that cell stays visible.",
+      "description": "A stacking-test crate. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
@@ -1431,13 +1357,7 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackBoxGold.png",
       "worldImage": "/art/sprites/environment/items/stackBoxGold.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A half-tile crate used to test object stacking. Four fit on one 64×64 spot. The top is 8px, under the step to the cell behind, so that cell stays visible.",
+      "description": "A stacking-test crate. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
@@ -1451,13 +1371,7 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackSlabWhite.png",
       "worldImage": "/art/sprites/environment/items/stackSlabWhite.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A flat case used to test object stacking. Four fit on one 64×64 spot.",
+      "description": "A stacking-test slab. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
@@ -1471,19 +1385,32 @@
       "category": "utility",
       "icon": "/art/sprites/environment/items/stackSlabBlack.png",
       "worldImage": "/art/sprites/environment/items/stackSlabBlack.png",
-      "worldScale": 0.5,
-      "stackSize": {
-        "width": 32,
-        "depth": 32,
-        "height": 8
-      },
-      "description": "A flat case used to test object stacking. Four fit on one 64×64 spot.",
+      "description": "A stacking-test slab. The picture is a full tile (64×96); the painted top is 16px.",
       "tags": [
         "container"
       ],
       "equipSlot": null,
       "sourceType": "original",
       "statsSourceType": "adaptation"
-    }
+    },
+    {"id":"calFoot8Red","name":"Cal 8 Red","category":"calibration","icon":"/art/sprites/environment/items/calFoot8Red.png","worldImage":"/art/sprites/environment/items/calFoot8Red.png","description":"Calibration fixture. Intended world size 8×8×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot8Green","name":"Cal 8 Green","category":"calibration","icon":"/art/sprites/environment/items/calFoot8Green.png","worldImage":"/art/sprites/environment/items/calFoot8Green.png","description":"Calibration fixture. Intended world size 8×8×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot8Blue","name":"Cal 8 Blue","category":"calibration","icon":"/art/sprites/environment/items/calFoot8Blue.png","worldImage":"/art/sprites/environment/items/calFoot8Blue.png","description":"Calibration fixture. Intended world size 8×8×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot8Yellow","name":"Cal 8 Yellow","category":"calibration","icon":"/art/sprites/environment/items/calFoot8Yellow.png","worldImage":"/art/sprites/environment/items/calFoot8Yellow.png","description":"Calibration fixture. Intended world size 8×8×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot16Red","name":"Cal 16 Red","category":"calibration","icon":"/art/sprites/environment/items/calFoot16Red.png","worldImage":"/art/sprites/environment/items/calFoot16Red.png","description":"Calibration fixture. Intended world size 16×16×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot16Green","name":"Cal 16 Green","category":"calibration","icon":"/art/sprites/environment/items/calFoot16Green.png","worldImage":"/art/sprites/environment/items/calFoot16Green.png","description":"Calibration fixture. Intended world size 16×16×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot16Blue","name":"Cal 16 Blue","category":"calibration","icon":"/art/sprites/environment/items/calFoot16Blue.png","worldImage":"/art/sprites/environment/items/calFoot16Blue.png","description":"Calibration fixture. Intended world size 16×16×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot32Red","name":"Cal 32 Red","category":"calibration","icon":"/art/sprites/environment/items/calFoot32Red.png","worldImage":"/art/sprites/environment/items/calFoot32Red.png","description":"Calibration fixture. Intended world size 32×32×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot32Blue","name":"Cal 32 Blue","category":"calibration","icon":"/art/sprites/environment/items/calFoot32Blue.png","worldImage":"/art/sprites/environment/items/calFoot32Blue.png","description":"Calibration fixture. Intended world size 32×32×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calFoot64Gray","name":"Cal 64 Gray","category":"calibration","icon":"/art/sprites/environment/items/calFoot64Gray.png","worldImage":"/art/sprites/environment/items/calFoot64Gray.png","description":"Calibration fixture. Intended world size 64×64×8.","tags":["calibration","footprint"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calBoxRed","name":"Cal Box Red","category":"calibration","icon":"/art/sprites/environment/items/calBoxRed.png","worldImage":"/art/sprites/environment/items/calBoxRed.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calBoxGreen","name":"Cal Box Green","category":"calibration","icon":"/art/sprites/environment/items/calBoxGreen.png","worldImage":"/art/sprites/environment/items/calBoxGreen.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calBoxBlue","name":"Cal Box Blue","category":"calibration","icon":"/art/sprites/environment/items/calBoxBlue.png","worldImage":"/art/sprites/environment/items/calBoxBlue.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calBoxYellow","name":"Cal Box Yellow","category":"calibration","icon":"/art/sprites/environment/items/calBoxYellow.png","worldImage":"/art/sprites/environment/items/calBoxYellow.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calPartial","name":"Cal Partial","category":"calibration","icon":"/art/sprites/environment/items/calPartial.png","worldImage":"/art/sprites/environment/items/calPartial.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calHollow","name":"Cal Hollow","category":"calibration","icon":"/art/sprites/environment/items/calHollow.png","worldImage":"/art/sprites/environment/items/calHollow.png","description":"Calibration fixture. Intended world size 32×32×16.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calIrregular","name":"Cal Irregular","category":"calibration","icon":"/art/sprites/environment/items/calIrregular.png","worldImage":"/art/sprites/environment/items/calIrregular.png","description":"Calibration fixture. Intended world size 32×32×12.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calTallNarrow","name":"Cal Tall Narrow","category":"calibration","icon":"/art/sprites/environment/items/calTallNarrow.png","worldImage":"/art/sprites/environment/items/calTallNarrow.png","description":"Calibration fixture. Intended world size 8×8×48.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"},
+    {"id":"calWideLow","name":"Cal Wide Low","category":"calibration","icon":"/art/sprites/environment/items/calWideLow.png","worldImage":"/art/sprites/environment/items/calWideLow.png","description":"Calibration fixture. Intended world size 32×8×4.","tags":["calibration","selection"],"equipSlot":null,"sourceType":"original","statsSourceType":"adaptation"}
   ]
 }

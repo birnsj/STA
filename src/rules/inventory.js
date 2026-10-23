@@ -569,8 +569,6 @@ export function groundItemViews(state, { hideInstanceId = null } = {}) {
         // Isometric world prop PNG; never the inventory icon. Falls back to crate tile art.
         worldImage: resolved?.def.worldImage ?? null,
         worldTile: resolved?.def.worldTile ?? 'crate',
-        // Fraction of a 64×96 tile image; handheld gear is much smaller than a character (40×64 frames).
-        worldScale: resolved?.def.worldScale ?? 0.5,
         spriteSize: propSpriteSize(resolved?.def),
         icon: resolved?.def.icon ?? null,
         pickable: entry.pickable !== false,

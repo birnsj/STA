@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
-import { isBlock, project, propImageBox } from '../../../maps/iso.js'
-import { getTile, TILE_IMAGE } from '../../../maps/mapFormat.js'
+import { isBlock, project } from '../../../maps/iso.js'
+import { spriteGeometry, spriteHref } from '../../../maps/propPick.js'
 import { getCategoryHighlight } from '../../../rules/equipment.js'
 import { drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
 import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../boardGeometry.js'
@@ -8,8 +8,6 @@ import { dashedEllipse, drawnCanvas, makeLabel, placeLabel, textureOf } from '..
 import { perfOff } from '../../../dev/perfProbe.js'
 
 const PROP_RES = 2
-const propImageFor = (tileId) => getTile(tileId)?.image ?? getTile('crate')?.image ?? null
-
 // Challenge objects' outlines and markers, the last-known markers and the click rings on the Pixi boards.
 // Presentation only.
 
@@ -239,7 +237,7 @@ function propOutlineCanvas(art, colour) {
 // A dropped inventory item as a real isometric map prop (dedicated worldImage, else tiles.json worldTile — never the inventory icon).
 // Sized to the stack spot (spriteSize). The bottom corner of the iso graphic sits on
 // `position` (or on a support surface when object.z > 0 — world-space art pixels, same unit as tiles.json height).
-// object: { position, z?, worldImage?, worldTile?, spriteSize?, worldScale?, category?, inReach, depth, hovered }.
+// object: { position, z?, worldImage?, worldTile?, spriteSize?, category?, inReach, depth, hovered }.
 export class GroundLootView {
   constructor() {
     this.container = new Container()
@@ -250,22 +248,12 @@ export class GroundLootView {
     this.spritePad = 0
   }
 
-  liftBox(box, z) {
-    const lift = Math.max(0, Number(z) || 0)
-    return lift ? { ...box, y: box.y - lift } : box
-  }
-
   update(object) {
-    const fallback = Math.max(0.15, Math.min(1, object.worldScale ?? 0.5))
-    const size = object.spriteSize ?? {
-      width: TILE_IMAGE.width * fallback,
-      height: TILE_IMAGE.height * fallback,
-    }
-    const z = Math.max(0, Number(object.z) || 0)
-    const box = this.liftBox(propImageBox(object.position, size), z)
+    // Shared with the editor's click picking (maps/propPick.js) so what is drawn is what answers a click.
+    const { size, z, box } = spriteGeometry(object)
     this.container.zIndex = object.depth
     this.container.alpha = 1
-    const href = object.worldImage || propImageFor(object.worldTile ?? 'crate')
+    const href = spriteHref(object)
     const hovered = Boolean(object.hovered)
     const highlight = getCategoryHighlight(object.category)
     const look = `${object.position.x},${object.position.y}|${z}|${href}|${size.width}x${size.height}|${hovered ? 1 : 0}|${highlight}`

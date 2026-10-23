@@ -2,6 +2,7 @@ import { getItemById } from '../../rules/equipment.js'
 import { snapItemPosition } from '../../rules/inventory.js'
 import { tileSurfaceAt, zOf } from '../../rules/placement.js'
 import { getTile } from '../../maps/mapFormat.js'
+import ItemSummary, { ItemStatSection } from './ItemSummary.jsx'
 import { PropertySection } from './PropertySections.jsx'
 
 function supportLabel(map, entry) {
@@ -61,13 +62,14 @@ export default function GroundItemInspector({ object, map, moving, onChange, onM
     onChange({ position: next })
   }
   return (
-    <div className="me-inspector">
-      <PropertySection id="ground-item" title={`Inventory Object · ${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}`}>
+    <div className="ed-asset-props">
+      <PropertySection id="item" title="Item">
+        <ItemSummary itemId={object.itemId} />
+      </PropertySection>
+      <ItemStatSection itemId={object.itemId} />
+      <PropertySection id="ground-item" title="Placement">
       <p className="me-text">
         Instance ID: <strong>{object.id}</strong>
-      </p>
-      <p className="me-text">
-        Item type: <strong>{def?.name ?? object.itemId}</strong> ({object.itemId})
       </p>
       <label className="me-field">
         Display name

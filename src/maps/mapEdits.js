@@ -6,15 +6,15 @@ import {
   canStackTileOn,
   groundItemDepth,
   pointInSurfaceFootprint,
-  stackFootprint,
-  stackSizeOf,
+  propSpriteSize,
   supportAtBoard,
   surfaceOfTile,
   tileSurfaceAt,
   zOf,
 } from '../rules/placement.js'
 import { nextFacing, spawnFacing } from './facing.js'
-import { project, TILE_W, unproject } from './iso.js'
+import { TILE_W, unproject } from './iso.js'
+import { pickProp } from './propPick.js'
 import { layerOfSelection, layerOfTile } from './layers.js'
 import {
   cellKey,
@@ -240,7 +240,7 @@ export function selectionAt(map, objectDefinitions, position) {
 
 // Every selectable thing at a tile, tagged with its editor layer, for layer-aware hit tests and cycling.
 // boardPoint (optional, the click in board px): picks a placed item where it is drawn, so one on a table is selectable.
-export function selectionCandidates(map, objectDefinitions, position, { cellPx = ITEM_CELL_PX, boardPoint = null } = {}) {
+export function selectionCandidates(map, objectDefinitions, position, { cellPx = ITEM_CELL_PX, boardPoint = null, ...pickOptions } = {}) {
   const candidates = []
   const tileId = map.tiles[position.y]?.[position.x]
   if (tileId != null && !isEmptyTile(tileId)) {
@@ -257,7 +257,9 @@ export function selectionCandidates(map, objectDefinitions, position, { cellPx =
   if (destructible) candidates.push({ kind: 'destructible', layer: layerOfSelection('destructible'), destructible })
   const hazard = hazardRegionAt(map, position)
   if (hazard) candidates.push({ kind: 'hazard', layer: layerOfSelection('hazard'), hazard })
-  const groundItem = groundItemAtBoard(map, boardPoint) ?? groundItemAt(map, position, { cellPx })
+  // With a pointer the drawn art decides, and a click through transparent padding is not an item. The floor cell match is
+  // only for callers with no pointer position.
+  const groundItem = boardPoint ? groundItemAtBoard(map, boardPoint, pickOptions) : groundItemAt(map, position, { cellPx })
   if (groundItem) candidates.push({ kind: 'groundItem', layer: layerOfSelection('groundItem'), groundItem })
   const area = areaAt(map, position)
   if (area) candidates.push({ kind: 'area', layer: layerOfSelection('area'), area })
@@ -565,32 +567,42 @@ export function groundItemTargetAt(map, boardPoint, { excludeId = null } = {}) {
   return snapItemPosition(support?.hitPoint ?? unproject(boardPoint), ITEM_CELL_PX)
 }
 
-// Screen-space reach of a placed item for selecting it, in board px. Items are small props standing on their foot.
-const GROUND_ITEM_PICK_RADIUS = 14
-const GROUND_ITEM_PICK_LIFT = 6
+// The props the board draws for a map's placements, in placement order: what GroundLootView is given (position, world Z,
+// depth sort key, art and size). The editor draws these and picks from these, so a click answers to what is on screen.
+// Cached per map (edits make a new map), so repeated clicks on one map do not rebuild them.
+const spriteLists = new WeakMap()
+export function groundItemSprites(map, { excludeId = null } = {}) {
+  if (!excludeId && spriteLists.has(map)) return spriteLists.get(map)
+  const probe = placementProbeState(map, { excludeId })
+  const list = (map.groundItemPlacements ?? []).flatMap((entry) => {
+    if (excludeId && entry.id === excludeId) return []
+    const def = getItemById(entry.itemId)
+    if (!def) return []
+    const placed = groundItemElevation(map, entry, probe)
+    return [
+      {
+        id: entry.id,
+        position: entry.position,
+        z: placed.z,
+        worldImage: def.worldImage,
+        worldTile: def.worldTile ?? 'crate',
+        spriteSize: propSpriteSize(def),
+        category: def.category,
+        depth: placed.depth,
+      },
+    ]
+  })
+  if (!excludeId) spriteLists.set(map, list)
+  return list
+}
 
-// The placement under a board point, drawn where it actually sits (lifted by its support), or null. Floor cell matching
-// (groundItemAt) cannot pick an item on a table: its floor cell is not where the pointer is.
-export function groundItemAtBoard(map, boardPoint, { excludeId = null } = {}) {
-  if (!boardPoint) return null
-  const state = placementProbeState(map, { excludeId })
-  let best = null
-  let bestDistance = Infinity
-  for (const entry of map.groundItemPlacements ?? []) {
-    if (excludeId && entry.id === excludeId) continue
-    const foot = stackFootprint(stackSizeOf(entry.itemId))
-    const center = foot
-      ? { x: entry.position.x - foot.width / 2, y: entry.position.y - foot.depth / 2 }
-      : entry.position
-    const screen = project(center)
-    const lift = zOf(state, state.groundItems[entry.id]) + GROUND_ITEM_PICK_LIFT
-    const distance = Math.hypot(boardPoint.x - screen.x, boardPoint.y - (screen.y - lift))
-    if (distance <= GROUND_ITEM_PICK_RADIUS && distance < bestDistance) {
-      best = entry
-      bestDistance = distance
-    }
-  }
-  return best
+// The placement whose drawn pixels are under a board point (the frontmost one where they overlap, transparent padding
+// ignored), or null. A pixel test on the art rather than a distance to the item: sprites are tall and mostly padding, so
+// neighbours' boxes overlap far more than their artwork does, and floor-cell matching (groundItemAt) cannot pick an item
+// on a table at all.
+export function groundItemAtBoard(map, boardPoint, { excludeId = null, ...pickOptions } = {}) {
+  const hit = pickProp(groundItemSprites(map, { excludeId }), boardPoint, pickOptions)
+  return hit ? (map.groundItemPlacements ?? []).find((entry) => entry.id === hit.id) ?? null : null
 }
 
 // What placing `itemId` at `position` would do, for the editor's ghost: { ok, position, on } (on omitted on the floor).

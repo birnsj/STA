@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 2,
+  "name": "Object Systems Regression",
+  "episodeName": "Object Systems Regression",
+  "card": null,
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 100,
+  "ambientColour": "#02040a",
+  "objects": [],
+  "rows": [
+    "ġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģĦģħģĨģĩģĪģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĲĢĢĢĢĢĢĢġģģħģģĨģģĦģĪģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġĤĤĤĤĤĤĤĤĤĤĤĤġĢĢĢĢĢĢĢĢĢĢĢĢġģģģģģģģģģģģģġ",
+    "ġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĳĥĥĥĴĥĥĥİĥĥıĥĲĥġĢĢīīīīīīīĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĭĢĢĢįĢĢĢĮĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĵĥĥĥİĥĥĥİĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĬĬĬĬĬĬĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥĥġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġ",
+    "ġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĶĤķĤĸĤĹĤĺĤĻĤļĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢĢġĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤĤġ",
+    "ġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġġ"
+  ],
+  "stackOver": {
+    "29,6": [
+      "calBlock16"
+    ],
+    "32,6": [
+      "calBlock16",
+      "calBlock8"
+    ],
+    "35,6": [
+      "calBlock64"
+    ],
+    "8,17": [
+      "calPlatformMid"
+    ],
+    "12,17": [
+      "calPlatformMid",
+      "calPlatformTall"
+    ]
+  },
+  "areas": [
+    {
+      "name": "Zone A — Scale",
+      "position": [
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Zone B — Selection",
+      "position": [
+        15,
+        1
+      ]
+    },
+    {
+      "name": "Zone C — Stacking",
+      "position": [
+        28,
+        1
+      ]
+    },
+    {
+      "name": "Zone D — Surfaces",
+      "position": [
+        2,
+        11
+      ]
+    },
+    {
+      "name": "Zone E — Walls",
+      "position": [
+        21,
+        11
+      ]
+    },
+    {
+      "name": "Zone F — Inventory",
+      "position": [
+        2,
+        22
+      ]
+    },
+    {
+      "name": "Experiment",
+      "position": [
+        21,
+        22
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        3,
+        26,
+        90
+      ],
+      [
+        4,
+        26,
+        90
+      ],
+      [
+        5,
+        26,
+        90
+      ],
+      [
+        6,
+        26,
+        90
+      ]
+    ],
+    "enemySpawns": []
+  },
+  "groundItemPlacements": [
+    {
+      "id": "reg-a-64",
+      "itemId": "calFoot64Gray",
+      "position": [
+        3.5,
+        3.5
+      ]
+    },
+    {
+      "id": "reg-a-32a",
+      "itemId": "calFoot32Red",
+      "position": [
+        6,
+        3
+      ]
+    },
+    {
+      "id": "reg-a-32b",
+      "itemId": "calFoot32Blue",
+      "position": [
+        6.5,
+        3
+      ]
+    },
+    {
+      "id": "reg-a-32c",
+      "itemId": "calFoot32Red",
+      "position": [
+        6,
+        3.5
+      ]
+    },
+    {
+      "id": "reg-a-32d",
+      "itemId": "calFoot32Blue",
+      "position": [
+        6.5,
+        3.5
+      ]
+    },
+    {
+      "id": "reg-a-16a",
+      "itemId": "calFoot16Red",
+      "position": [
+        8.75,
+        2.75
+      ]
+    },
+    {
+      "id": "reg-a-16b",
+      "itemId": "calFoot16Green",
+      "position": [
+        9.25,
+        2.75
+      ]
+    },
+    {
+      "id": "reg-a-8a",
+      "itemId": "calFoot8Red",
+      "position": [
+        2.625,
+        5.625
+      ]
+    },
+    {
+      "id": "reg-a-8b",
+      "itemId": "calFoot8Green",
+      "position": [
+        2.75,
+        5.625
+      ]
+    },
+    {
+      "id": "reg-a-8c",
+      "itemId": "calFoot8Blue",
+      "position": [
+        2.875,
+        5.625
+      ]
+    },
+    {
+      "id": "reg-a-8d",
+      "itemId": "calFoot8Yellow",
+      "position": [
+        3,
+        5.625
+      ]
+    },
+    {
+      "id": "reg-b-side-a",
+      "itemId": "calBoxRed",
+      "position": [
+        16,
+        3
+      ]
+    },
+    {
+      "id": "reg-b-side-b",
+      "itemId": "calBoxGreen",
+      "position": [
+        16.5,
+        3
+      ]
+    },
+    {
+      "id": "reg-b-back",
+      "itemId": "calBoxBlue",
+      "position": [
+        20,
+        3
+      ]
+    },
+    {
+      "id": "reg-b-front",
+      "itemId": "calBoxYellow",
+      "position": [
+        21.5,
+        4.5
+      ]
+    },
+    {
+      "id": "reg-b-hidden",
+      "itemId": "calFoot8Red",
+      "position": [
+        22.625,
+        1.625
+      ]
+    },
+    {
+      "id": "reg-b-cover",
+      "itemId": "calFoot64Gray",
+      "position": [
+        23.5,
+        4.5
+      ]
+    },
+    {
+      "id": "reg-b-high",
+      "itemId": "calBoxRed",
+      "position": [
+        18,
+        6
+      ],
+      "on": {
+        "tile": [
+          18,
+          6
+        ]
+      }
+    },
+    {
+      "id": "reg-b-low",
+      "itemId": "calBoxBlue",
+      "position": [
+        19,
+        7
+      ]
+    },
+    {
+      "id": "reg-b-hollow",
+      "itemId": "calHollow",
+      "position": [
+        16,
+        6
+      ]
+    },
+    {
+      "id": "reg-b-partial",
+      "itemId": "calPartial",
+      "position": [
+        16.5,
+        6.5
+      ]
+    },
+    {
+      "id": "reg-b-solid",
+      "itemId": "calBoxGreen",
+      "position": [
+        16.5,
+        6
+      ]
+    },
+    {
+      "id": "reg-b-irregular",
+      "itemId": "calIrregular",
+      "position": [
+        22,
+        6
+      ]
+    },
+    {
+      "id": "reg-b-tall",
+      "itemId": "calTallNarrow",
+      "position": [
+        23.625,
+        5.625
+      ]
+    },
+    {
+      "id": "reg-b-wide",
+      "itemId": "calWideLow",
+      "position": [
+        24,
+        7
+      ]
+    },
+    {
+      "id": "reg-d-t1",
+      "itemId": "calFoot8Red",
+      "position": [
+        3.875,
+        12.875
+      ],
+      "on": {
+        "tile": [
+          4,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-t2",
+      "itemId": "calFoot8Green",
+      "position": [
+        4.125,
+        12.875
+      ],
+      "on": {
+        "tile": [
+          4,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-t3",
+      "itemId": "calFoot8Blue",
+      "position": [
+        3.875,
+        13.125
+      ],
+      "on": {
+        "tile": [
+          4,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-t4",
+      "itemId": "calFoot8Yellow",
+      "position": [
+        4.125,
+        13.125
+      ],
+      "on": {
+        "tile": [
+          4,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-c1",
+      "itemId": "calFoot16Red",
+      "position": [
+        7.75,
+        12.75
+      ],
+      "on": {
+        "tile": [
+          8,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-c2",
+      "itemId": "calFoot16Blue",
+      "position": [
+        8.25,
+        13.25
+      ],
+      "on": {
+        "tile": [
+          8,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-low",
+      "itemId": "calFoot16Green",
+      "position": [
+        12,
+        13
+      ],
+      "on": {
+        "tile": [
+          12,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-tall-a",
+      "itemId": "calFoot8Red",
+      "position": [
+        16.75,
+        12.75
+      ],
+      "on": {
+        "tile": [
+          17,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-tall-b",
+      "itemId": "calFoot8Blue",
+      "position": [
+        17.125,
+        13.125
+      ],
+      "on": {
+        "tile": [
+          17,
+          13
+        ]
+      }
+    },
+    {
+      "id": "reg-d-stack",
+      "itemId": "calFoot8Yellow",
+      "position": [
+        12,
+        17
+      ],
+      "on": {
+        "tile": [
+          12,
+          17
+        ]
+      }
+    },
+    {
+      "id": "reg-e-behind",
+      "itemId": "calBoxRed",
+      "position": [
+        25,
+        12
+      ]
+    },
+    {
+      "id": "reg-e-front",
+      "itemId": "calBoxGreen",
+      "position": [
+        25.5,
+        14.5
+      ]
+    },
+    {
+      "id": "reg-e-beside",
+      "itemId": "calBoxBlue",
+      "position": [
+        21.5,
+        13
+      ]
+    },
+    {
+      "id": "reg-e-corner",
+      "itemId": "calBoxYellow",
+      "position": [
+        23,
+        17
+      ]
+    },
+    {
+      "id": "reg-e-narrow",
+      "itemId": "calTallNarrow",
+      "position": [
+        25.875,
+        13.875
+      ]
+    },
+    {
+      "id": "reg-f-8",
+      "itemId": "calFoot8Red",
+      "position": [
+        3.625,
+        23.625
+      ]
+    },
+    {
+      "id": "reg-f-16",
+      "itemId": "calFoot16Green",
+      "position": [
+        5.75,
+        23.75
+      ]
+    },
+    {
+      "id": "reg-f-32",
+      "itemId": "calFoot32Blue",
+      "position": [
+        8,
+        24
+      ]
+    },
+    {
+      "id": "reg-f-tricorder",
+      "itemId": "standardTricorder",
+      "position": [
+        10.75,
+        23.75
+      ]
+    },
+    {
+      "id": "reg-f-phaser",
+      "itemId": "phaserType1",
+      "position": [
+        12.75,
+        23.75
+      ]
+    },
+    {
+      "id": "reg-f-box",
+      "itemId": "stackBoxRed",
+      "position": [
+        15,
+        24
+      ]
+    },
+    {
+      "id": "reg-exp-bed",
+      "itemId": "calFoot8Blue",
+      "position": [
+        27.875,
+        22.125
+      ],
+      "on": {
+        "tile": [
+          28,
+          22
+        ]
+      }
+    },
+    {
+      "id": "reg-exp-console",
+      "itemId": "calFoot8Yellow",
+      "position": [
+        29.875,
+        22
+      ],
+      "on": {
+        "tile": [
+          30,
+          22
+        ]
+      }
+    }
+  ],
+  "briefing": "Object Systems Regression. A is scale and footprints on the grid floor. B is selection: side by side, in front, behind a wide cover, on a tall platform, and through a hollow top. C is authored block heights 8, 16, 32, 64 and 92, including two- and three-high stacks (the prop stack cap is 3). D is tables, crates and platforms with small items on them. E is 92-tall calibration walls, a 46-tall wall, and items in front, behind and beside them. F is an open drop space with a few real inventory items. The south-east grid has a row of mock furniture along its north edge; the rest of it is empty.",
+  "stardate": 9999.4
+}

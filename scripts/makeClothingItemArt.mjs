@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fitBytes, stackScale, writeMeasuredPixels } from './itemSpriteFit.mjs'
 import { encodePng } from './png.mjs'
 import { FORCE, OUT_H, OUT_W, bevel, blockScene, dome, inside, noise, render, rgb, scale, smoothstep } from './v2/engine.mjs'
 
@@ -193,6 +194,8 @@ for (const [id, draw] of Object.entries(WORLD)) {
     console.log(`kept   sprites/items/${id}.png`)
     continue
   }
-  fs.writeFileSync(file, encodePng(OUT_W, OUT_H, draw()))
-  console.log(`wrote  sprites/items/${id}.png`)
+  const drawn = fitBytes(draw(), OUT_W, OUT_H, stackScale(id))
+  fs.writeFileSync(file, encodePng(drawn.width, drawn.height, drawn.bytes))
+  console.log(`wrote  sprites/items/${id}.png ${drawn.width}×${drawn.height}`)
 }
+writeMeasuredPixels()

@@ -5,7 +5,7 @@
 export const MARKER_HELP = {
   playerStarts: 'Click a floor tile to place or remove a player start.',
   enemySpawns: 'Click a floor tile to place or remove an enemy spawn.',
-  npcs: 'Click a floor tile to place an NPC, or click an NPC to edit it in Selection.',
+  npcs: 'Click a floor tile to place an NPC, or click an NPC to edit it in Properties.',
   area: 'Click a floor tile to set or clear a room label.',
   erase: 'Click a tile to erase markers on it.',
 }

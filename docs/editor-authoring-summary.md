@@ -12,7 +12,8 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
   Menu bar — File / Edit / View / Mission / Test
     File: New, Load, Save, Save As, Delete, Back
     Edit: Place Tiles, Move
-    View: See-through blocks, Tile animations, Lighting, Weather FX, Grid,
+    View: See-through blocks, Tile animations, Lighting, Placement surfaces,
+          Weather FX, Grid,
           Grid options…, Overview / Layers / Levels windows
     Mission: Generate Map / Name / Episode / Card; Objective / Object /
              Conversation / Character Library / Generator Editor / Story
@@ -30,20 +31,20 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
     Weather FX overlay when View → Weather FX is on
 
   Right — Properties (EditorPropertiesPanel)
-    Tabs: Map | Selection
+    Tabs: Map | Properties
     Map → MapProperties: size, location/biome/weather, ambient light + colour,
           generate, episode name/card, briefing/outros/stardate, open editors
-    Selection → asset thumbnail (AssetProperties) or board entity (inspectors)
+    Properties → asset thumbnail (AssetProperties) or board entity (inspectors)
       Tile: preview, Cover / Fade, sprite info, Emission overlays
             (Emissive strength + Colour for floor spill when the tile glows /
              has emissions / overlay lights)
-      Ambient / ambient colour also editable from Selection when a lit wall
+      Ambient / ambient colour also editable from Properties when a lit wall
             or glowing tile is selected (same map fields as Map tab)
       Hazard: intensity when painting hazards
       Board pick: NPC / Object / Marker / Destructible / Hazard / Ground item
             inspectors (unchanged)
 
-  Floating windows — Overview (ghost / animate / lighting toggles),
+  Floating windows — Overview (ghost / animate / lighting / placement surfaces),
                      Layers (active / visibility / lock), Levels (elevation deferred)
 
   Full-screen sub-editors — Conversation, Object, Objective, Story,
@@ -120,8 +121,8 @@ TOOLS
 --------------------------
 Tiles
   - Assets palette paint, rotation (R)
-  - Cover / Fade in Properties → Selection (writes tiles.json globally)
-  - Emissive / emit Colour in Selection for glowing / overlay tiles
+  - Cover / Fade in Properties → Properties (writes tiles.json globally)
+  - Emissive / emit Colour in Properties for glowing / overlay tiles
     (writes tileEffects.json via /__effects in DEV)
 
 Map shell (Properties → Map)
@@ -166,7 +167,7 @@ Environment
   - Hazards: paint / erase / merge + region overrides
       (migrateChance, injuryType, damagesObjects, blocksSight, movement,
        layer, scarTile, neutralize task)
-  - Hazard brush intensity in Selection
+  - Hazard brush intensity in Properties
   - Generate hazards with map (Map tab toggle)
 
 Ground items / elevated surfaces
@@ -175,6 +176,12 @@ Ground items / elevated surfaces
     epsControl, cellBunk) writes optional `on: { tile: [x, y] }`; onto an
     item with `surface` (e.g. equipmentCase) writes `on: { placement: id }`
   - GroundItemInspector shows derived Elevation Z and support label
+  - Clicking an item selects it by the pixels it draws (maps/propPick.js), in
+    Explore and the editor: the frontmost sprite with alpha above 16/255 under
+    the pointer wins, and clicks through transparent padding reach what is
+    behind. Same sprite list and draw order as the board. A hit on a drawn
+    item selects that item even when Ground is the active layer; a locked or
+    hidden Furniture layer still cannot be selected.
     (Z is never authored)
   - Painting a prop onto an existing surface cell appends `stackOver`
     (crate-on-crate); erase pops the top layer first
@@ -189,6 +196,7 @@ Challenge objects (board)
 
 View presentation
   - See-through blocks, tile animations, lighting (shadows + darkness),
+    placement surfaces (tile tops and item tops an object can rest on),
     weather FX, grid / grid size
 
 

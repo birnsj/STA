@@ -11,7 +11,7 @@ import {
 } from '../../maps/tileArt.js'
 import { tileSpriteInfo } from '../../maps/tileSpriteInfo.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
-import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
+import ItemSummary, { ItemStatSection } from './ItemSummary.jsx'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import { MARKER_HELP, parseTool } from './editorSelection.js'
@@ -440,32 +440,12 @@ export default function AssetProperties({
   }
 
   if (asset.kind === 'item') {
-    const item = getItemById(asset.id)
-    const stats = item ? getItemStatLines(item) : []
     return (
       <div className="ed-asset-props">
         <PropertySection id="item" title="Item">
-          <div className="ed-asset-preview">
-            {item?.icon ? <img className="ed-asset-preview-art" src={item.icon} alt="" /> : <span className="me-swatch is-area" aria-hidden="true" />}
-          </div>
-          <p className="ed-asset-name">{item?.name ?? asset.id}</p>
-          <PropRows
-            rows={[
-              ['Id', item?.id ?? asset.id],
-              ['Category', item ? getCategoryName(item.category) : null],
-              ['Slot', item?.equipSlot ?? 'Bag / ground'],
-              ['Icon', item?.icon?.split('/').pop() ?? null, item?.icon],
-              ['World', item?.worldImage?.split('/').pop() ?? null, item?.worldImage],
-              ['Scale', item?.worldScale != null ? String(item.worldScale) : null],
-            ]}
-          />
-          <p className="me-text">Click the board to place this item on the ground.</p>
+          <ItemSummary itemId={asset.id} footer={<p className="me-text">Click the board to place this item on the ground.</p>} />
         </PropertySection>
-        {stats.length > 0 && (
-          <PropertySection id="item-stats" title="Stats" defaultOpen={false}>
-            <PropRows rows={stats.map((line) => [line.label, String(line.value ?? '')])} />
-          </PropertySection>
-        )}
+        <ItemStatSection itemId={asset.id} />
       </div>
     )
   }

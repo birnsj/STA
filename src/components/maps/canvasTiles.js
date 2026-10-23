@@ -130,6 +130,8 @@ export function loadImage(href) {
   return pending.get(href)
 }
 export const isLoaded = (href) => loaded.has(href)
+// The loaded picture itself: undefined until it has loaded, null if it failed.
+export const loadedImage = (href) => loaded.get(href)
 
 // Mirrored images worked out from loaded ones, by key.
 const derived = new Map()
@@ -202,6 +204,15 @@ function spriteChange(book) {
 function drawImage(context, key, ...box) {
   const image = sourceOf(key)
   if (!image) return
+  // Calibration art is flat pixel geometry. Draw it nearest-neighbour so the scale marks stay on pixel edges.
+  const crisp = typeof key === 'string' && (key.includes('/calibration/') || key.includes('/items/cal'))
+  if (crisp && 'imageSmoothingEnabled' in context) {
+    const prev = context.imageSmoothingEnabled
+    context.imageSmoothingEnabled = false
+    context.drawImage(image, ...box)
+    context.imageSmoothingEnabled = prev
+    return
+  }
   context.drawImage(image, ...box)
 }
 
@@ -382,16 +393,18 @@ export const blockAreaOf = (layout, key) => {
   return blockArea(layout, { x, y })
 }
 
-// The world rectangle that changed between two layouts of the same-sized map (tiles, rotations, panel pairings and big
-// objects), grown to cover what a change touches nearby (shadows, joins), or null when nothing did.
-// Returns 'all' when so much changed that a full repaint is simpler.
+// The world rectangle that changed between two layouts of the same-sized map (tiles, rotations, panel pairings, big
+// objects, and props stacked on a surface), grown to cover what a change touches nearby (shadows, joins), or null when
+// nothing did. Returns 'all' when so much changed that a full repaint is simpler.
 export function changedArea(before, after) {
   const cells = []
   const { map } = after
   const describe = (layout, at, position) => {
     const panel = layout.panels.get(at)
     const origin = layout.bigGroups.get(at)
-    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}|${layout.map.wallScars?.[at] ?? ''}`
+    const stack = layout.map.stackOver?.[at]
+    const stacked = Array.isArray(stack) ? stack.join(',') : ''
+    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}|${layout.map.wallScars?.[at] ?? ''}|${stacked}`
   }
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {

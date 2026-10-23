@@ -1,5 +1,7 @@
+import { project } from '../../maps/iso.js'
+
 // Screen-space size of a world prop at the current board zoom (same box GroundLootView draws).
-// The pointer is the bottom corner of the iso graphic, so the ghost hangs up and back from the cursor.
+// Over the board the ghost's bottom corner is the front tip of the place square, not the pointer.
 export function worldGhostScreenSize(design, toClient) {
   const width0 = design?.width ?? 32
   const height0 = design?.height ?? 48
@@ -15,6 +17,15 @@ export function worldGhostScreenSize(design, toClient) {
 }
 
 export const INVENTORY_GHOST_ID = 'inventory-item-ghost'
+
+// Client point for the bottom corner of a world drag: the front tip of the green or red place square, lifted by z.
+// Null when that square is hidden (over the inventory window, or over a party member who can take the item).
+export function placeGhostClient(hover, toClient) {
+  if (!hover?.position || hover.dropMemberId || typeof toClient !== 'function') return null
+  const tip = project(hover.position)
+  const screen = toClient(tip.x, tip.y - (Number(hover.z) || 0))
+  return screen || null
+}
 
 // Pin the portaled ghost to the pointer without a React render (avoids lag / drift under stage scale + camera).
 let ghostEl = null

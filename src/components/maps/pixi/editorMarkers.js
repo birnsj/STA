@@ -153,6 +153,32 @@ export class EditorGridView {
   }
 }
 
+// Placement tops (tile surfaces and item tops), lifted onto the support. marks: surfaceOverlay.js.
+const SURFACE_FILL = { color: 0x2ee6a6, alpha: 0.34 }
+const SURFACE_STROKE = { color: 0xd8fff0, width: 1.5, alpha: 0.95 }
+
+export class EditorSurfaceView {
+  constructor(layer) {
+    this.graphics = new Graphics()
+    layer.addChild(this.graphics)
+    this.marks = null
+  }
+
+  update(marks) {
+    if (marks === this.marks) return
+    this.marks = marks
+    this.graphics.clear()
+    if (!marks?.length) return
+    for (const mark of marks) {
+      this.graphics.poly(mark.points.flat(), true).fill(SURFACE_FILL).stroke(SURFACE_STROKE)
+    }
+  }
+
+  destroy() {
+    this.graphics.destroy()
+  }
+}
+
 // Map rectangle outline and optional centre cross. board: { showBounds, showCentre, width, height }.
 export class EditorBoundsView {
   constructor(layer) {

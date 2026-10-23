@@ -4,8 +4,9 @@ import { getNpcs, isHostile } from '../../exploration/awareness.js'
 import { getMembers, isSelected } from '../../exploration/partyControl.js'
 import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../exploration/partyKnowledge.js'
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
-import { figureShapes, hitTest, rectOnGround } from '../../maps/boardHitTest.js'
-import { footprintDiamond, project, propImageBox, pts, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { figureShapes, pickAt, rectOnGround } from '../../maps/boardHitTest.js'
+import { footprintDiamond, project, pts, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import '../maps/alphaMasks.js'
 import { canPlaceAt, resolveItem } from '../../rules/inventory.js'
 import { stackFootprint, stackSizeOf } from '../../rules/placement.js'
 import { isDestructibleScanned } from '../../world/destructibleScan.js'
@@ -370,7 +371,6 @@ export default function PixiExplorationBoard(props) {
       z,
       worldImage: view.worldImage,
       worldTile: view.worldTile,
-      worldScale: view.worldScale,
       spriteSize,
       category: view.category,
       inReach,
@@ -391,14 +391,6 @@ export default function PixiExplorationBoard(props) {
       inReach,
       depth: nearest + 0.4,
     })
-    // Match the drawn prop (lifted by z), but not the name tag floating above it.
-    const size = view.spriteSize ?? { width: 32, height: 48 }
-    const box = propImageBox(view.position, size)
-    const lifted = { ...box, y: box.y - z }
-    const pad = 10
-    const floor = artTopY(map, bigGroups, tiles, area) - MARKER_DIAMOND - z
-    const art = rectOnGround({ x: lifted.x - pad, y: lifted.y - pad, width: lifted.width + pad * 2, height: lifted.height + pad * 2 }, floor)
-    if (art) targets.push({ kind: 'groundItem', id: view.id, depth, shapes: [{ type: 'rect', ...art }] })
   }
   const lastKnown = getNpcs(world)
     .map((npc) => ({ npc, entry: getEntityKnowledge(knowledge, npc.id) }))
@@ -466,6 +458,7 @@ export default function PixiExplorationBoard(props) {
   const revealed = useContext(MapRevealedContext)
   const boardRef = useRef(null)
   const targetsRef = useRef(targets)
+  const lootRef = useRef(groundLoot)
   const membersRef = useRef(state)
   const toBoard = (clientX, clientY) => {
     const matrix = svgRef.current?.getScreenCTM()
@@ -487,6 +480,7 @@ export default function PixiExplorationBoard(props) {
   useLayoutEffect(() => {
     boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, groundLoot, lastKnown, pulses, effects, explosions, environment, revealed }
     targetsRef.current = targets
+    lootRef.current = groundLoot
     membersRef.current = state
     if (placeHelpersRef) {
       placeHelpersRef.current = {
@@ -497,7 +491,7 @@ export default function PixiExplorationBoard(props) {
         memberAt: (clientX, clientY) => {
           const point = toBoard(clientX, clientY)
           if (!point) return null
-          const hit = hitTest(point, targetsRef.current)
+          const hit = pickAt(point, targetsRef.current, lootRef.current)
           return hit?.kind === 'member' ? hit.id : null
         },
       }
@@ -574,7 +568,7 @@ export default function PixiExplorationBoard(props) {
   const targetAt = (event) => {
     if (event.target !== svgRef.current) return null
     const point = toBoard(event.clientX, event.clientY)
-    return point ? hitTest(point, targetsRef.current) : null
+    return point ? pickAt(point, targetsRef.current, lootRef.current) : null
   }
 
   // Holding the left button: the point under the pointer is re-sent as the camera follows the lead character, so

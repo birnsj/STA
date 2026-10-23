@@ -130,7 +130,7 @@ describe('groundItemPlacements schema', () => {
 })
 
 describe('mapEdits ground items', () => {
-  it('places, moves, and removes with 32×32 snap; rejects solid tiles', () => {
+  it('places, moves, and removes on the tile the picture fills; rejects solid tiles', () => {
     let map = parseMapFile(
       {
         name: 'Edit',
@@ -244,7 +244,8 @@ describe('pickup and drop round-trip', () => {
       assert.ok(state.groundItems[instanceId])
       assert.equal(state.itemInstances[instanceId].itemId, itemId)
       assert.equal(state.groundItems[instanceId].support, undefined)
-      assert.deepEqual(state.groundItems[instanceId].position, snapItemPosition(park))
+      const landed = state.groundItems[instanceId].position
+      assert.ok(Math.abs(landed.x - park.x) <= 0.5 && Math.abs(landed.y - park.y) <= 0.5, `${itemId} left its tile`)
     }
     assert.equal(groundItemViews(state).length, TM_IDS.length)
     assert.equal(new Set(groundItemViews(state).map((view) => view.itemId)).size, TM_IDS.length)

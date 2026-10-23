@@ -4,7 +4,7 @@ import { hasAssetSelection, hasBoardSelection } from './editorSelection.js'
 import MapProperties from './MapProperties.jsx'
 import { PropertySectionsProvider, PropertySectionsToolbar } from './PropertySections.jsx'
 
-// Right Properties panel: Selection = board entity or Assets thumbnail; Map = episode / location props.
+// Right Properties panel: Properties = board entity or Assets thumbnail; Map = episode / location props.
 
 export default function EditorPropertiesPanel({
   map,
@@ -47,7 +47,7 @@ export default function EditorPropertiesPanel({
           disabled={!canShowSelection}
           onClick={() => onShowMapTab(false)}
         >
-          Selection
+          Properties
         </button>
       </div>
       <PropertySectionsProvider key={sectionsKey}>

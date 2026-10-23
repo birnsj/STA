@@ -34,6 +34,7 @@ const MENUS = [
       { id: 'ghost', label: 'See-through blocks' },
       { id: 'animate', label: 'Tile animations' },
       { id: 'lighting', label: 'Lighting' },
+      { id: 'surfaces', label: 'Placement surfaces' },
       { id: 'weatherFx', label: 'Weather FX' },
       { id: 'grid', label: 'Grid' },
       { id: 'gridOptions', label: 'Grid options…' },

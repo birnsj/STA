@@ -1,11 +1,13 @@
 // Isometric world props for inventory items dropped in exploration (64×96 design grid, like makeTilesV2.mjs).
-// Drawn at item.worldScale on the board so handheld gear stays smaller than characters (~40×64 frames).
+// Fitted to the stacking cell before writing (itemSpriteFit.mjs): large 128×192, small 64×96.
+// The board draws file pixels ÷ 4, so the picture is that cell. There is no further scale.
 // Writes to public/art/sprites/environment/items/. Inventory UI icons stay under public/art/items/.
 //
 // Run with: node scripts/makeDroppedItemSprites.mjs [--force]
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { fitBytes, stackScale, writeMeasuredPixels } from './itemSpriteFit.mjs'
 import { encodePng } from './png.mjs'
 import {
   FORCE,
@@ -137,9 +139,7 @@ function communicatorMaterial() {
   }
 }
 
-// Stacking-test boxes. At worldScale 0.5 the floor diamond is 32px wide (four per tile).
-// The block is 8px tall — under the 16px step to the cell behind — so that cell stays visible.
-// stackSize.height matches that top.
+// Stacking-test boxes. The picture is a full tile. The block is 16 design pixels tall.
 function stackBoxMaterial(colour, stripe, H) {
   const body = rgb(colour)
   const band = rgb(stripe)
@@ -878,7 +878,8 @@ for (const [id, draw] of Object.entries(PROPS)) {
     console.log(`kept   items/${id}.png`)
     continue
   }
-  const bytes = draw()
-  fs.writeFileSync(file, encodePng(OUT_W, OUT_H, bytes))
-  console.log(`wrote  items/${id}.png`)
+  const drawn = fitBytes(draw(), OUT_W, OUT_H, stackScale(id))
+  fs.writeFileSync(file, encodePng(drawn.width, drawn.height, drawn.bytes))
+  console.log(`wrote  items/${id}.png ${drawn.width}×${drawn.height}`)
 }
+writeMeasuredPixels()

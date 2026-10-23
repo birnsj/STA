@@ -1,6 +1,6 @@
 {
   "notes": [
-    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: Ģ (allocation order in docs/tiles.md)."
+    "Shared tile catalogue for map files (maps/*.json) and the map editor palette. What every field and tile family means, and the design decisions behind them: docs/tiles.md. Next free symbol: Ľ (allocation order in docs/tiles.md)."
   ],
   "imageSize": { "width": 64, "height": 96 },
   "paletteGroups": [
@@ -40,7 +40,12 @@
     { "id": "acidMarsh", "section": "Alien Biomes", "label": "Acid Marsh", "tiles": ["toxicMud", "acidPool", "bloatPod", "corrodedWall"] },
     { "id": "bioluminescent", "section": "Alien Biomes", "label": "Bioluminescent Jungle", "tiles": ["glowMoss", "glowTree", "glowPod", "glowRootWall"] },
     { "id": "rustDesert", "section": "Alien Biomes", "label": "Rust Desert", "tiles": ["rustDust", "rustRock", "rustMesa"] },
-    { "id": "glassPlains", "section": "Alien Biomes", "label": "Glass Plains", "tiles": ["glassPlain", "glassShard", "glassSpire", "obsidianWall"] }
+    { "id": "glassPlains", "section": "Alien Biomes", "label": "Glass Plains", "tiles": ["glassPlain", "glassShard", "glassSpire", "obsidianWall"] },
+    {"id":"calFloors","section":"Calibration","label":"Floors","tiles":["calFloor","calFloorCenter","calFloorGrid","calFloorCorners","null"]},
+    {"id":"calHeights","section":"Calibration","label":"Heights","tiles":["calBlock8","calBlock16","calBlock32","calBlock64","calBlock92"]},
+    {"id":"calWalls","section":"Calibration","label":"Walls","tiles":["calWall","calWallHalf","calWallCorner","calWallEnd","calWallCross"]},
+    {"id":"calSurfaces","section":"Calibration","label":"Surfaces","tiles":["calPlatformLow","calPlatformMid","calPlatformTall","calTable","calCrate","calSteps"]},
+    {"id":"calFurniture","section":"Calibration","label":"Furniture","tiles":["calChair","calStool","calBench","calBed","calConsole","calLocker","calShelf"]}
   ],
   "tiles": [
     { "id": "floor", "symbol": ".", "label": "Deck Plating", "image": "/art/sprites/environment/starship/floor.png", "altImage": "/art/sprites/environment/starship/floor-alt.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
@@ -418,6 +423,33 @@
     { "id": "dsAtmosphericProcessor", "symbol": "ƕ", "label": "Atmospheric Processor", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-intact.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "imageHeight": 128, "height": 60, "role": "destructible" },
     { "id": "dsAtmosphericProcessorDamaged", "symbol": "Ɩ", "label": "Atmospheric Processor (Damaged)", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-damaged.png", "solid": true, "blocksSight": true, "cover": true, "fade": true, "tall": true, "imageHeight": 128, "height": 60, "role": "destructible" },
     { "id": "dsAtmosphericProcessorDestroyed", "symbol": "Ɨ", "label": "Atmospheric Processor (Destroyed)", "image": "/art/sprites/environment/destructibles/atmosphericProcessor-destroyed.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 4, "role": "destructible" },
+    { "id": "calFloor", "symbol": "Ģ", "label": "Cal Floor", "image": "/art/sprites/environment/calibration/calFloor.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "calFloorCenter", "symbol": "ģ", "label": "Cal Floor Centre", "image": "/art/sprites/environment/calibration/calFloorCenter.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "calFloorGrid", "symbol": "Ĥ", "label": "Cal Floor Grid", "image": "/art/sprites/environment/calibration/calFloorGrid.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "calFloorCorners", "symbol": "ĥ", "label": "Cal Floor Corners", "image": "/art/sprites/environment/calibration/calFloorCorners.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null },
+    { "id": "calBlock8", "symbol": "Ħ", "label": "Cal Block 8", "image": "/art/sprites/environment/calibration/calBlock8.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 8, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBlock16", "symbol": "ħ", "label": "Cal Block 16", "image": "/art/sprites/environment/calibration/calBlock16.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 16, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBlock32", "symbol": "Ĩ", "label": "Cal Block 32", "image": "/art/sprites/environment/calibration/calBlock32.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 32, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBlock64", "symbol": "ĩ", "label": "Cal Block 64", "image": "/art/sprites/environment/calibration/calBlock64.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 64, "imageHeight": 100, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBlock92", "symbol": "Ī", "label": "Cal Block 92", "image": "/art/sprites/environment/calibration/calBlock92.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 92, "imageHeight": 128, "surface": {"maxStack":3}, "role": null },
+    { "id": "calWall", "symbol": "ī", "label": "Cal Wall 92", "image": "/art/sprites/environment/calibration/calWall.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "calWallHalf", "symbol": "Ĭ", "label": "Cal Wall 46", "image": "/art/sprites/environment/calibration/calWallHalf.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 46, "role": null },
+    { "id": "calWallCorner", "symbol": "ĭ", "label": "Cal Wall Corner", "image": "/art/sprites/environment/calibration/calWallCorner.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "calWallEnd", "symbol": "Į", "label": "Cal Wall End", "image": "/art/sprites/environment/calibration/calWallEnd.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "calWallCross", "symbol": "į", "label": "Cal Wall Cross", "image": "/art/sprites/environment/calibration/calWallCross.png", "solid": true, "blocksSight": true, "cover": false, "fade": true, "wall": true, "height": 92, "imageHeight": 128, "role": null },
+    { "id": "calPlatformLow", "symbol": "İ", "label": "Cal Platform Low", "image": "/art/sprites/environment/calibration/calPlatformLow.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 8, "surface": {"maxStack":3}, "role": null },
+    { "id": "calPlatformMid", "symbol": "ı", "label": "Cal Platform Mid", "image": "/art/sprites/environment/calibration/calPlatformMid.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 16, "surface": {"maxStack":3}, "role": null },
+    { "id": "calPlatformTall", "symbol": "Ĳ", "label": "Cal Platform Tall", "image": "/art/sprites/environment/calibration/calPlatformTall.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 32, "surface": {"maxStack":3}, "role": null },
+    { "id": "calTable", "symbol": "ĳ", "label": "Cal Table", "image": "/art/sprites/environment/calibration/calTable.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 16, "surface": {"inset":0.12,"maxStack":3}, "role": null },
+    { "id": "calCrate", "symbol": "Ĵ", "label": "Cal Crate", "image": "/art/sprites/environment/calibration/calCrate.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 16, "surface": {"maxStack":3}, "role": null },
+    { "id": "calSteps", "symbol": "ĵ", "label": "Cal Steps (top 32)", "image": "/art/sprites/environment/calibration/calSteps.png", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 32, "surface": {"maxStack":3}, "role": null },
+    { "id": "calChair", "symbol": "Ķ", "label": "Cal Chair", "image": "/art/sprites/environment/calibration/calChair.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 12, "surface": {"maxStack":3}, "role": null },
+    { "id": "calStool", "symbol": "ķ", "label": "Cal Stool", "image": "/art/sprites/environment/calibration/calStool.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 16, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBench", "symbol": "ĸ", "label": "Cal Bench", "image": "/art/sprites/environment/calibration/calBench.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 12, "surface": {"maxStack":3}, "role": null },
+    { "id": "calBed", "symbol": "Ĺ", "label": "Cal Bed", "image": "/art/sprites/environment/calibration/calBed.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 12, "surface": {"maxStack":3}, "role": null },
+    { "id": "calConsole", "symbol": "ĺ", "label": "Cal Console", "image": "/art/sprites/environment/calibration/calConsole.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 18, "surface": {"maxStack":3}, "role": null },
+    { "id": "calLocker", "symbol": "Ļ", "label": "Cal Locker", "image": "/art/sprites/environment/calibration/calLocker.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 52, "surface": {"maxStack":3}, "role": null },
+    { "id": "calShelf", "symbol": "ļ", "label": "Cal Shelf", "image": "/art/sprites/environment/calibration/calShelf.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 37, "surface": {"maxStack":3}, "role": null },
     { "id": "null", "symbol": "ġ", "label": "Empty (Null)", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null, "empty": true }
   ]
 }
