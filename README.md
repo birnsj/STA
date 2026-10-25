@@ -26,8 +26,18 @@ catalogue card art in the same folder (`episodeCards.json`) is never touched. Th
 (`npm run app`) saves characters to the same `characters/` folder; the portable `.exe` saves them in a `characters/`
 folder next to the `.exe`, and built copies can't save maps.
 
-The soundtrack is not in the repository. Drop the MP3s into `public/music/` (gitignored) and the menu plays them; without
-them the app runs silently.
+The soundtrack is not in the repository. Put the MP3s in `music/` (gitignored). Each cue fades in when it starts and
+out when it ends, and the cues are listed in `src/audio/music.js`:
+
+- Main menu: `menu01`.
+- Character creation: `creation01` or `creation02`, at random.
+- Exploration: `explore01` to `explore03`, in random order.
+- Captain's Log intro: `epintro01`, over the exploration cue until the intro closes.
+- Captain's Log outro: `epoutro01`, over the exploration cue until the mission is left.
+- Combat: `combat01` to `combat03`, in random order; the exploration cue returns when the fight is decided.
+
+Each episode can swap the intro, exploration, combat and outro tracks for others from `music/`: Dev Edit → Map tab →
+Music (saved in the map file). Without the files the app runs silently.
 
 ## The four parts
 

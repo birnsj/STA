@@ -1,5 +1,6 @@
-// A looping background track with fade-in/out. Lives outside React so a fade-out can finish after its screen unmounts.
-// FULL_VOLUME is the mix level at 100% on the Settings slider.
+// A background cue with fade-in/out. Lives outside React so a fade-out can finish after its screen unmounts.
+// A cue is one file (it loops) or several (they play in random order). FULL_VOLUME is the mix level at 100% on the
+// Settings slider.
 const FULL_VOLUME = 0.6
 const FADE_IN_MS = 3000
 const FADE_OUT_MS = 1500
@@ -9,11 +10,20 @@ const TICK_MS = 30
 const CROSSFADE_S = 0.4
 const GESTURE_EVENTS = ['pointerdown', 'keydown', 'touchend', 'click']
 
-// loopStart (seconds): where repeats begin, so a file's leading silence is only heard the first time.
-export function createMusicTrack(url, { loopStart = 0 } = {}) {
+// A random file from the list, never `last` when there is any other choice, so a cue does not repeat itself back to back.
+export function pickNext(urls, last = null, random = Math.random) {
+  const others = urls.length > 1 ? urls.filter((url) => url !== last) : urls
+  return others[Math.min(others.length - 1, Math.floor(random() * others.length))]
+}
+
+// urls: one file or a list. loopStart (seconds): where a single file's repeats begin, so its leading silence is only
+// heard the first time. Different files always start from their beginning.
+export function createMusicTrack(urls, { loopStart = 0 } = {}) {
+  const files = Array.isArray(urls) ? urls : [urls]
   let players = []
   let active = null
   let incoming = null
+  let lastPlayed = null
   let crossfadeStartedAt = 0
   let ticker = null
   let fade = null
@@ -26,7 +36,7 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
   function getPlayers() {
     if (!players.length) {
       players = [0, 1].map(() => {
-        const player = new Audio(url)
+        const player = new Audio()
         player.preload = 'auto'
         player.volume = 0
         // Backup only: if timers are throttled (hidden tab, minimized window) and the crossfade starts late,
@@ -36,6 +46,18 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
       })
     }
     return players
+  }
+
+  function load(player, url) {
+    if (player.dataset.url === url) return
+    player.dataset.url = url
+    player.src = url
+  }
+
+  // The idle player already holds the next file by the time the current one ends, so the crossfade never waits on a download.
+  function queueNext() {
+    const idle = players.find((player) => player !== active)
+    load(idle, pickNext(files, active.dataset.url))
   }
 
   // A timer rather than requestAnimationFrame, which stops in hidden tabs and would leave a fade unfinished.
@@ -54,7 +76,7 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
 
     if (!incoming && Number.isFinite(active.duration) && active.currentTime >= active.duration - CROSSFADE_S) {
       incoming = players.find((player) => player !== active)
-      incoming.currentTime = loopStart
+      incoming.currentTime = files.length > 1 ? 0 : loopStart
       incoming.volume = 0
       incoming.play().catch(() => {})
       crossfadeStartedAt = now
@@ -67,6 +89,8 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
         active.pause()
         active = incoming
         incoming = null
+        lastPlayed = active.dataset.url
+        queueNext()
         mix = 0
       }
     }
@@ -114,6 +138,10 @@ export function createMusicTrack(url, { loopStart = 0 } = {}) {
     starting = true
     halt()
     active = players[0]
+    // Each visit opens on a different file than the last one played.
+    load(active, pickNext(files, lastPlayed))
+    lastPlayed = active.dataset.url
+    queueNext()
     active.currentTime = 0
     active.volume = 0
     master = 0

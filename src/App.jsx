@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { music } from './audio/music.js'
+import { setMusicVolume, setViewCue } from './audio/music.js'
 import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
 import { CharacterProvider } from './character/CharacterContext.jsx'
 import { tryCreateRestoredState } from './character/characterReducer.js'
@@ -41,6 +41,10 @@ function initialView({ view, episode }) {
   return EPISODE_MODES.includes(view) && !episode?.mapId ? 'episodeSelect' : view
 }
 
+// The music cue each view plays (see src/audio/music.js). A fight inside the exploration view plays the combat cue
+// over it (Battle in CombatScreen.jsx) and the exploration cue returns when the fight is over.
+const VIEW_CUES = { menu: 'menu', creator: 'creation', exploration: 'exploration', combat: 'combat' }
+
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
 const MENU_STAGE = { width: 1024, height: 576 }
@@ -78,15 +82,10 @@ function Views() {
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
-  // The music plays across every view except the episode prototypes and the dev map editor, where it fades out and
-  // fades back in on leaving. The volume is set before starting so it fades in at the saved level.
-  const musicWanted = !['combat', 'exploration', 'mapEditor'].includes(view)
-  useEffect(() => music.setVolume(audioSettings.music / 100), [audioSettings.music])
-  useEffect(() => {
-    if (!musicWanted) return undefined
-    music.start()
-    return music.stop
-  }, [musicWanted])
+  // Each view's cue fades in on entering and out on leaving; views with no cue yet stay quiet. The volume is set
+  // before starting so the fade-in is at the saved level.
+  useEffect(() => setMusicVolume(audioSettings.music / 100), [audioSettings.music])
+  useEffect(() => setViewCue(VIEW_CUES[view] ?? null), [view])
 
   useEffect(() => setEffectsVolume(audioSettings.effects / 100), [audioSettings.effects])
   useEffect(() => installUiSounds(), [])

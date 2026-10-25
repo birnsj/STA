@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { cpSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -17,6 +18,7 @@ import { setItemDescription } from './tools/itemStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
 
+const MUSIC_FOLDER = fileURLToPath(new URL('./music', import.meta.url))
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
 const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
 const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.meta.url))
@@ -143,10 +145,94 @@ const authoredCharactersEndpoint = () => {
   }
 }
 
+// The soundtrack the map editor can choose from: the MP3s in music/ (file names without ".mp3"). Dev server only; a
+// missing folder is an empty list.
+const musicListEndpoint = () =>
+  jsonEndpoint('music-list-endpoint', '/__music', {
+    GET: () =>
+      existsSync(MUSIC_FOLDER)
+        ? readdirSync(MUSIC_FOLDER)
+            .filter((name) => /^[\w.-]+\.mp3$/i.test(name))
+            .map((name) => name.slice(0, -'.mp3'.length))
+            .sort()
+        : [],
+  })
+
+// Soundtrack files stay in music/ (gitignored). Dev and preview stream them at /music/; a build copies the mp3s
+// into dist/music so the Electron app can fetch the same path. A missing folder leaves the game silent.
+function musicFiles() {
+  const fileFor = (url) => {
+    const name = decodeURIComponent((url ?? '').split('?')[0].slice('/music/'.length))
+    if (!url?.startsWith('/music/') || !/^[\w.-]+\.mp3$/i.test(name)) return null
+    const file = path.join(MUSIC_FOLDER, name)
+    return existsSync(file) ? file : null
+  }
+
+  const serve = (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+    const file = fileFor(req.url)
+    if (!file) return next()
+    const { size } = statSync(file)
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '')
+    let start = 0
+    let end = size - 1
+    if (req.headers.range) {
+      if (!range) {
+        res.statusCode = 416
+        res.setHeader('Content-Range', `bytes */${size}`)
+        res.end()
+        return
+      }
+      start = range[1] ? Number(range[1]) : 0
+      end = range[2] ? Number(range[2]) : size - 1
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start > end || end >= size) {
+        res.statusCode = 416
+        res.setHeader('Content-Range', `bytes */${size}`)
+        res.end()
+        return
+      }
+      res.statusCode = 206
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`)
+    }
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('Content-Length', end - start + 1)
+    if (req.method === 'HEAD') {
+      res.end()
+      return
+    }
+    const stream = createReadStream(file, { start, end })
+    stream.on('error', () => res.destroy())
+    res.on('close', () => stream.destroy())
+    stream.pipe(res)
+  }
+
+  return {
+    name: 'music-files',
+    configureServer(server) {
+      server.middlewares.use(serve)
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(serve)
+    },
+    closeBundle() {
+      if (!existsSync(MUSIC_FOLDER)) return
+      const dest = fileURLToPath(new URL('./dist/music', import.meta.url))
+      mkdirSync(dest, { recursive: true })
+      for (const name of readdirSync(MUSIC_FOLDER)) {
+        if (!name.toLowerCase().endsWith('.mp3')) continue
+        cpSync(path.join(MUSIC_FOLDER, name), path.join(dest, name))
+      }
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    musicFiles(),
+    musicListEndpoint(),
     characterFilesEndpoint(),
     mapFilesEndpoint(),
     conversationFilesEndpoint(),

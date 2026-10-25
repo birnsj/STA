@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isPlayerControlled } from '../actors/controllers.js'
+import { useEpisodeMusic, useMusicScene } from '../audio/useMusicScene.js'
 import { playBeamOutSound } from '../audio/uiSounds.js'
 import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import { samePosition, tileKey } from '../combat/battleMap.js'
@@ -123,6 +124,9 @@ export function Battle({
   // partyAI / enemyAI come from Settings (persisted display settings).
   const { helpHints: showHints, cameraFollow, partyAI, enemyAI } = useDisplaySettings()
   const openSettings = useOpenSettings().openSettings
+  // The combat cue plays while the fight is on. When it is decided the view's own cue returns (exploration's, for a
+  // fight in the world), so the result is read over the calmer music.
+  useMusicScene(state.outcome ? null : 'combat')
   const active = getActiveCombatant(state)
   // Auto Combat (UI state): 'off' | 'running' | 'paused'. While on, the AI also plays the party.
   const [auto, setAuto] = useState('off')
@@ -907,6 +911,8 @@ export default function CombatScreen({ savedCharacters, mapId, onExit }) {
   const [runId, setRunId] = useState(0)
   const [state, dispatch] = useReducer(autoCombatReducer, null)
   const [phase, setPhase] = useState('setup')
+  // The episode's own combat tracks (map.music) once its map is chosen.
+  useEpisodeMusic(map?.music ?? null)
   // How to Play opens by itself only for the first fight after opening Load Episode.
   const [helpSeen, setHelpSeen] = useState(false)
 

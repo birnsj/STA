@@ -46,6 +46,9 @@ export const mustSurviveIds = (map) => (map?.npcs ?? []).filter((npc) => npc.mus
 // The marked NPCs in a fight (combat state), in the map's order.
 export const foughtNpcIds = (combat, ids) => ids.filter((id) => Boolean(combat?.combatants[id]))
 
-// state.missionFailed: { npcIds } once failed (never cleared), or absent.
+// A fight the away team lost also fails the mission (designer decision, 2026-10-25): the fight's result offers only
+// Exit Mission, as for a Must survive NPC.
+// state.missionFailed: { npcIds, defeated } once failed (never cleared), or absent. defeated: the party lost the fight.
 export const isMissionFailed = (state) => Boolean(state?.missionFailed)
 export const failedNpcNames = (state) => (state?.missionFailed?.npcIds ?? []).map((id) => state.world.npcs[id]?.name ?? id)
+export const partyLostFight = (state) => Boolean(state?.missionFailed?.defeated)

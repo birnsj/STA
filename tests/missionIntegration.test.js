@@ -12,7 +12,7 @@ import { getAvailableActions } from '../src/exploration/challengeObjects.js'
 import { MODE } from '../src/exploration/combatLink.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { objectiveStatus } from '../src/exploration/missionFlags.js'
-import { isMissionAccomplished, isMissionFailed } from '../src/exploration/missionObjectives.js'
+import { isMissionAccomplished, isMissionFailed, partyLostFight } from '../src/exploration/missionObjectives.js'
 import { parseMapFile } from '../src/maps/mapFormat.js'
 import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
@@ -157,6 +157,23 @@ describe('Deck 10 Brig, start to finish', () => {
     const guardDown = { ...guard.combat.combatants }
     guard.link.npcIds.forEach((id) => (guardDown[id] = { ...guardDown[id], condition: { ...guardDown[id].condition, defeated: true, dead: true } }))
     assert.equal(isMissionFailed(dispatch({ ...guard, combat: { ...guard.combat, combatants: guardDown } }, { type: 'endCombat' })), false)
+  })
+
+  it('fails when the away team loses a fight, and only then', () => {
+    const endFight = (outcome) => {
+      const fighting = dispatch(brig(), { type: 'attackNpc', npcId: 'guardA', targetId: 'alpha' })
+      assert.equal(fighting.mode, MODE.COMBAT)
+      return dispatch({ ...fighting, combat: { ...fighting.combat, outcome } }, { type: 'endCombat' })
+    }
+
+    const lost = endFight('defeat')
+    assert.equal(isMissionFailed(lost), true, 'a lost fight fails the mission')
+    assert.equal(partyLostFight(lost), true)
+    assert.deepEqual(lost.missionFailed.npcIds, [], 'no protected NPC is involved')
+    assert.ok(lost.missionLog.entries.some((entry) => entry.text === 'The away team was taken out of the fight. Mission failed.'))
+
+    assert.equal(isMissionFailed(endFight('victory')), false, 'a won fight does not')
+    assert.equal(isMissionFailed(endFight(undefined)), false, 'a fight ended by hand with no outcome does not')
   })
 
   it('can take the other routes: diagnose then replace the coupling, and override the lockout without clearance', () => {

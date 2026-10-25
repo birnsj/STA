@@ -34,6 +34,9 @@
 // left before every objective was complete (blank: a default line); outroFailed: shown instead when the mission failed
 // (an NPC who must survive was killed; blank: a default line); stardate: the episode's starting stardate
 // (a number, or null for missionLog.json's default). All are left out on disk when empty.
+// music: the episode's own tracks, { intro, outro (a file name in music/ without ".mp3", or null), exploration, combat
+// (lists of file names, played in random order) }; a cue left null or empty plays the default (audio/musicCues.js).
+// Left out on disk when nothing is changed.
 // destructibles: [{ id, type (destructibles.json), position, name?, structure?, resistance? }] — objects that can be shot
 // and blow up (world/environment.js); name / structure / resistance override the type's when set.
 // hazards: [{ id, type (hazards.json), tiles: { 'x,y': intensity 1-3 }, severity?, spreadChance?, dissipateChance?,
@@ -51,6 +54,7 @@
 // with { x, y } positions (a player start or enemy spawn may also carry facing, in degrees; without one it faces the
 // map's middle);
 // on disk the tiles are rows of catalogue symbols, rotated lists the rotated tiles, and positions are [x, y].
+import { emptyMusic, normalizeMusic, serializeMusic } from '../audio/musicCues.js'
 import awareness from '../data/adaptation/exploration/awareness.json'
 import catalogue from '../data/adaptation/maps/tiles.json'
 import destructibleData from '../data/adaptation/world/destructibles.json'
@@ -257,6 +261,7 @@ function blankFields(name, width, height, tiles) {
     outroAbandoned: '',
     outroFailed: '',
     stardate: null,
+    music: emptyMusic(),
   }
 }
 
@@ -705,6 +710,7 @@ export function parseMapFile(file, id) {
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
     outroFailed: typeof file.outroFailed === 'string' ? file.outroFailed : '',
     stardate: Number.isFinite(file.stardate) ? file.stardate : null,
+    music: normalizeMusic(file.music),
   }
   const supportDiagnostics = placementSupportDiagnostics(parsed.groundItemPlacements)
   if (supportDiagnostics.length) invalidMap('groundItemPlacements', supportDiagnostics.join(' '))
@@ -757,6 +763,7 @@ export function serializeMap(map) {
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
     ...(map.outroFailed?.trim() ? { outroFailed: map.outroFailed.trim() } : {}),
     ...(Number.isFinite(map.stardate) ? { stardate: map.stardate } : {}),
+    ...(serializeMusic(map.music) ? { music: serializeMusic(map.music) } : {}),
   }
 }
 

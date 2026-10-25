@@ -667,6 +667,16 @@ export function groundItemElevation(map, entry, probe = placementProbeState(map)
   }
 }
 
+// The world height of the plane `itemId` would rest on at `position`: 0 on the floor, a crate or table top, or the top
+// of an item that holds others. The editor's guide grid is drawn at this height while placing. `excludeId` leaves out the
+// item being dragged, so it does not count as its own support.
+export function placementPlaneZ(map, position, itemId, { excludeId = null } = {}) {
+  const check = groundItemPlaceCheck(map, position, { itemId, excludeId })
+  const on = onFromSupport(check.support)
+  if (!on) return 0
+  return groundItemElevation(map, { position: check.position ?? position, on }, placementProbeState(map, { excludeId })).z
+}
+
 // The snapped cell an item tool means for a pointer at a board (SVG) point. A raised top (crate, table, an item that
 // holds others) is tested in screen space like play does (rules/placement.js supportAtBoard); unprojecting to the floor
 // instead lands behind or beside the furniture and rejects or misplaces the drop. Falls back to the floor under the point.

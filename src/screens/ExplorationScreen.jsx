@@ -51,7 +51,8 @@ import { challengeFor, getChallengeViews, INTERACT_RANGE, objectivePosition, obj
 import { MODE } from '../exploration/combatLink.js'
 import { createExplorationState, explorationReducer, npcsInTalkRange } from '../exploration/explorationState.js'
 import { objectiveStatus } from '../exploration/missionFlags.js'
-import { failedNpcNames, isMissionAccomplished, isMissionFailed } from '../exploration/missionObjectives.js'
+import { useEpisodeMusic } from '../audio/useMusicScene.js'
+import { failedNpcNames, isMissionAccomplished, isMissionFailed, partyLostFight } from '../exploration/missionObjectives.js'
 import { recommendPartyAction } from '../exploration/partyActions.js'
 import { objectFor } from '../world/objects.js'
 import { activeHazards, isStanding } from '../world/environment.js'
@@ -697,7 +698,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
   if (outro) {
     if (!playOutro) return null
-    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} exitLabel={exitLabel} onDone={onExit} />
+    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} partyLost={partyLostFight(state)} exitLabel={exitLabel} onDone={onExit} />
   }
   return (
     <div className="combat-screen exploration-screen">
@@ -898,6 +899,8 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   const [state, dispatch] = useReducer(reducer, null)
   const [phase, setPhase] = useState('setup')
   const playIntro = useDisplaySettings().missionIntro
+  // The episode's own tracks (map.music) once its map is on: the intro, exploration, fights and the outro.
+  useEpisodeMusic(state?.party.map.music ?? null)
 
   if (phase === 'setup' || !state) {
     return (

@@ -7,6 +7,7 @@ import { isIndoors, weatherFor, weatherOptions } from '../../maps/mapWeather.js'
 import { randomEpisodeName } from '../../rules/locationNames.js'
 import EditorControlsHelp from './EditorControlsHelp.jsx'
 import EpisodeCardPicker from './EpisodeCardPicker.jsx'
+import MusicSettings from './MusicSettings.jsx'
 import { PropertySection } from './PropertySections.jsx'
 
 // Map-level properties for the right Properties panel when nothing is selected (or Map tab is forced).
@@ -220,6 +221,10 @@ export default function MapProperties({
           <textarea className="me-name me-wide" rows={3} value={map.outroFailed ?? ''} onChange={(event) => edit({ ...map, outroFailed: event.target.value })} />
         </label>
         <p className="me-text is-muted">Story wording: Mission → Story Wording.</p>
+      </PropertySection>
+
+      <PropertySection id="music" title="Music" defaultOpen={false}>
+        <MusicSettings map={map} edit={edit} />
       </PropertySection>
 
       <PropertySection id="objectives" title="Objectives">

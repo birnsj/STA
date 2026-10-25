@@ -1,15 +1,17 @@
 // onContinue: set for combat started in the exploration world; the fight's result then only leads back to exploration.
 // Otherwise onExit is Exit Mission (the away team beams up, then the main menu).
 // failedNames: the NPCs the map marks Must survive that were in this fight (missionObjectives.js); any shows Mission
-// Failed whatever the outcome, with only Exit Mission (onExitMission) when given.
+// Failed whatever the outcome, with only Exit Mission (onExitMission) when given. A fight in the world the party lost
+// ends the mission too (designer decision, 2026-10-25): it reads Defeat, with only Exit Mission.
 export default function CombatResultModal({ outcome, onRestart, onChangeCharacter, onExit, onContinue = null, failedNames = [], onExitMission = null }) {
   const failed = failedNames.length > 0
+  const missionLost = Boolean(onContinue) && outcome === 'defeat'
   const text = failed
     ? `We failed to protect ${failedNames.join(', ')}.`
     : onContinue
       ? outcome === 'victory'
         ? 'The hostiles have been stopped.'
-        : 'Your party has been taken out of the fight.'
+        : 'Your party has been taken out of the fight. The mission has failed.'
       : outcome === 'victory'
         ? 'The Klingon boarding party has been stopped.'
         : 'Your party has been taken out of the fight.'
@@ -21,7 +23,7 @@ export default function CombatResultModal({ outcome, onRestart, onChangeCharacte
         </h2>
         <p className="combat-modal-text">{text}</p>
         <div className="combat-modal-actions">
-          {failed && onExitMission ? (
+          {(failed || missionLost) && onExitMission ? (
             <button type="button" className="combat-button is-primary" onClick={onExitMission} autoFocus>
               Exit Mission
             </button>

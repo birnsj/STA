@@ -238,14 +238,17 @@ function logFights(previous, next) {
   return next
 }
 
-// A fight with an NPC the map marks mustSurvive in it (missionObjectives.js) fails the mission as it ends, written in
-// the Captain's Log once. previous.combat is the fight as it ended.
+// A fight fails the mission as it ends, written in the Captain's Log once: one with an NPC the map marks mustSurvive
+// in it (missionObjectives.js), or one the away team lost (designer decision, 2026-10-25). previous.combat is the fight
+// as it ended.
 function checkMissionFailure(previous, next) {
   if (isMissionFailed(next) || previous.mode !== MODE.COMBAT || next.mode === MODE.COMBAT) return next
   const npcIds = foughtNpcIds(previous.combat, mustSurviveIds(next.party.map))
-  if (!npcIds.length) return next
+  const defeated = next.lastCombat?.outcome === 'defeat'
+  if (!npcIds.length && !defeated) return next
   const names = npcIds.map((id) => npcName(next, id))
-  return addLogEntry({ ...next, missionFailed: { npcIds } }, { kind: 'fight', text: `We failed to protect ${names.join(', ')}. Mission failed.` })
+  const text = npcIds.length ? `We failed to protect ${names.join(', ')}. Mission failed.` : 'The away team was taken out of the fight. Mission failed.'
+  return addLogEntry({ ...next, missionFailed: { npcIds, defeated } }, { kind: 'fight', text })
 }
 
 // Objectives with conditions move as the flags change; every change that makes an objective active or complete is

@@ -1786,6 +1786,31 @@
   font-size: 10px;
 }
 
+/* Music section: a cue that takes several files is a short scrolling checklist. */
+.ed-map-props fieldset.me-music {
+  min-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ed-map-props .me-music legend {
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+.ed-map-props .me-music-list {
+  max-height: 9em;
+  overflow-y: auto;
+  padding: 2px 4px;
+  border: 1px solid var(--ed-border);
+  border-radius: 3px;
+}
+
+.ed-map-props .me-music-list .me-check {
+  margin-top: 0;
+}
+
 .ed-map-props .me-wide,
 .me-select.me-wide {
   width: 100%;

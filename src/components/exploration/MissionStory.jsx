@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMusicScene } from '../../audio/useMusicScene.js'
 import { cardFor } from '../../maps/episodeCards.js'
 import { stardateAt } from '../../exploration/missionLog.js'
 import { storyParagraphs } from '../../exploration/missionStory.js'
@@ -65,6 +66,8 @@ const LOG_STEP_MS = [1200, 2200, 2000]
 // (designer markup, 2026-10-11). A click, Space or Enter moves on (the title ends; the log shows at once). Skip Intro
 // begins at once. Begin Mission and Skip Intro fade to black first; the map then fades in from black (MapFadeIn).
 export function MissionIntro({ map, onBegin }) {
+  // Its own music over the exploration cue; that cue fades back in as the intro closes.
+  useMusicScene('intro')
   const paragraphs = useMemo(() => paragraphsOf(map.briefing), [map])
   // UI state: 'title' or 'log', and how many of the log's steps have happened (heading, briefing, Begin Mission).
   const [stage, setStage] = useState('title')
@@ -160,7 +163,7 @@ export function MissionAccomplished({ map, onExit, onReturn }) {
 }
 
 // The mission failed (an NPC the map marks Must survive went down or surrendered): only Exit Mission. names: who.
-export function MissionFailed({ map, names, onExit }) {
+export function MissionFailed({ map, names, partyLost = false, onExit }) {
   return (
     <div className="combat-modal-backdrop mission-accomplished-backdrop">
       <div className="combat-modal is-defeat" role="dialog" aria-modal="true" aria-labelledby="mission-failed-title">
@@ -169,6 +172,7 @@ export function MissionFailed({ map, names, onExit }) {
         </h2>
         <p className="combat-modal-text">{map.episodeName || map.name}</p>
         {names.length > 0 && <p className="combat-modal-text">We failed to protect {names.join(', ')}.</p>}
+        {names.length === 0 && partyLost && <p className="combat-modal-text">The away team was taken out of the fight.</p>}
         <div className="combat-modal-actions">
           <button type="button" className="combat-button is-primary" onClick={onExit} autoFocus>
             Exit Mission
@@ -183,7 +187,12 @@ export function MissionFailed({ map, names, onExit }) {
 // abandoned outro of its own (implementer placeholder until the designer words it).
 const ABANDONED_TEXT = 'The away team beamed out before the mission was complete. Mission abandoned.'
 // The same when the mission failed and the map has no failed outro of its own (implementer placeholder).
-const failedText = (names) => `We failed to protect ${names.length ? names.join(', ') : 'someone in our care'}. Mission failed.`
+const failedText = (names, partyLost) =>
+  names.length
+    ? `We failed to protect ${names.join(', ')}. Mission failed.`
+    : partyLost
+      ? 'The away team was taken out of the fight. Mission failed.'
+      : 'We failed to protect someone in our care. Mission failed.'
 
 // The outro's timings (implementer picks): the wait before the heading, before the first paragraph, between the
 // others, and after the last one before the exit button.
@@ -196,14 +205,15 @@ const OUTRO_END_MS = 1500
 // stardate …" fades in, then the outro text (or the abandoned line) and the mission log retold as prose
 // (missionStory.js), one paragraph at a time. A click, Space or Enter shows the rest at once. The exit button fades
 // to black, then onDone. result: 'accomplished', 'abandoned' (the mission ended before every objective was complete)
-// or 'failed' (failedNames: who was killed).
-export function MissionOutro({ map, time, entries, result = 'accomplished', failedNames = [], exitLabel, onDone }) {
+// or 'failed' (failedNames: who was killed; partyLost: the away team lost a fight).
+export function MissionOutro({ map, time, entries, result = 'accomplished', failedNames = [], partyLost = false, exitLabel, onDone }) {
+  useMusicScene('outro')
   const paragraphs = useMemo(() => {
     const own = { accomplished: map.outro, abandoned: map.outroAbandoned, failed: map.outroFailed }[result]
-    const fallback = { abandoned: ABANDONED_TEXT, failed: failedText(failedNames) }[result]
+    const fallback = { abandoned: ABANDONED_TEXT, failed: failedText(failedNames, partyLost) }[result]
     const opening = paragraphsOf(own)
     return [...(fallback && !opening.length ? [fallback] : opening), ...storyParagraphs(entries)]
-  }, [result, failedNames, map, entries])
+  }, [result, failedNames, partyLost, map, entries])
   // UI state: how many lines are showing (the heading is the first); one more than every line once the exit shows.
   const [step, setStep] = useState(0)
   const lineCount = paragraphs.length + 1
