@@ -16,8 +16,7 @@ release
 # Source-book PDFs (local reference only)
 reference/
 
-# Copyrighted soundtrack (local only; lives in public/music/ so the page fetches it at runtime) and test exports
-music/
+# Test exports
 /character.json
 
 # Local map backups taken before bulk edits (git history already has the maps)
