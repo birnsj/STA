@@ -3,15 +3,14 @@
 // the map (a sealed door's tile), NPC awareness, Party Knowledge, scene traits and mission flags. The resolver decides
 // success / failure / complications; the object decides what that means. The same object serves combat
 // (exploration/combatLink.js): combat only decides who acts, what it costs and who assists.
-import { isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
 import { checkCondition, checkConditions } from '../exploration/missionFlags.js'
-import { getMembers } from '../exploration/partyControl.js'
+import { canAct, getMembers } from '../exploration/partyControl.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { applyObjectEffect } from './objectEffects.js'
-import { withMap } from './objects.js'
+import { withScenarioTiles } from './scenarioTiles.js'
 import { WorldObject } from './WorldObject.js'
 
 // The action type an action takes in combat (Book p.288: a routine interaction is a minor action, an interaction
@@ -44,7 +43,7 @@ export class ChallengeObject extends WorldObject {
 
   // Party members close enough (and able) to act on the object.
   membersInRange(party) {
-    return getMembers(party).filter((member) => isUp(member) && this.inReach(member.position))
+    return getMembers(party).filter((member) => canAct(member) && this.inReach(member.position))
   }
 
   // requires.states, requires.flags { flag: value } (each must equal its value; an unset flag reads as false, 0 or '')
@@ -118,7 +117,7 @@ export class ChallengeObject extends WorldObject {
   // Puts the object in another of its authored states from outside its own outcomes (a conversation's
   // setChallengeState), then retiles the map. retile: how the map follows (a conversation hands in its refreshMap hook).
   // The same state when stateId isn't one of the object's states.
-  setState(state, stateId, retile = withMap) {
+  setState(state, stateId, retile = withScenarioTiles) {
     if (!this.definition.states[stateId]) return state
     const runtime = { ...this.runtime(state.scenario), state: stateId }
     return retile({ ...state, scenario: { ...state.scenario, objects: { ...state.scenario.objects, [this.id]: runtime } } })
@@ -184,6 +183,6 @@ export class ChallengeObject extends WorldObject {
     }
     next = { ...next, scenario: { ...next.scenario, log: [...next.scenario.log, entry] } }
     next = { ...next, lastTask: { ...entry, prepared: preview.prepared, assist: preview.assist, result, messages: ctx.messages } }
-    return withMap(next)
+    return withScenarioTiles(next)
   }
 }

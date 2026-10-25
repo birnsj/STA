@@ -3,6 +3,7 @@
 // (tools/mapStore.cjs keeps them in step); built copies (Netlify, the desktop app) use the files bundled at build time,
 // read-only.
 import { isPendingArt, pendingArtBase64 } from './episodeCards.js'
+import { requestJson } from '../files/jsonHttp.js'
 import { parseMapFile, serializeMap } from './mapFormat.js'
 
 const BUNDLED = import.meta.glob('/maps/*.json', { eager: true, import: 'default' })
@@ -17,17 +18,7 @@ const bundledEntries = () =>
 // Only the dev server can write files.
 export const canSaveMaps = import.meta.env.DEV
 
-async function callEndpoint(method, body) {
-  const response = await fetch('/__maps', {
-    method,
-    cache: 'no-store',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  const result = await response.json()
-  if (!response.ok || result?.error) throw new Error(result?.error ?? `${response.status} ${response.statusText}`)
-  return result
-}
+const callEndpoint = (method, body) => requestJson('/__maps', method, body)
 
 // [{ id, name, record }]
 const allEntries = () => (import.meta.env.DEV ? callEndpoint('GET') : Promise.resolve(bundledEntries()))

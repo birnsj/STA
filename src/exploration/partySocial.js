@@ -6,13 +6,13 @@ import combatActionData from '../data/adaptation/combat/actions.json'
 import socialData from '../data/adaptation/exploration/social.json'
 import { withinEarshot, AUDIBLE_RANGE_TILES } from '../rules/communication.js'
 import { checkDicePurchase, npcMomentumToThreat, saveMomentum } from '../rules/missionResources.js'
-import { isDefeated } from '../rules/personalCondition.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
 import { dispositionName, EMPTY_RECORD, isDown, isHostile, STATE } from './awareness.js'
 import { TASK_SEED_OFFSET } from './challengeObjects.js'
 import { addLogEntry } from './missionLog.js'
+import { canAct } from './partyControl.js'
 
 export const SOCIAL_KINDS = ['persuade', 'intimidate']
 const VERBS = { persuade: 'Persuade', intimidate: 'Intimidate' }
@@ -37,7 +37,7 @@ export const socialCooldown = (state, memberId) => Math.max(0, (state.socialRead
 export function canAskNpc(state, memberId, npcId, kind) {
   const verb = VERBS[kind]
   const member = state.party.members[memberId]
-  if (!member || isDefeated(member.condition)) return { possible: false, reason: 'Out of action.' }
+  if (!canAct(member)) return { possible: false, reason: 'Out of action.' }
   const npc = state.world.npcs[npcId]
   if (!npc || isDown(npc) || npc.fled) return { possible: false, reason: 'Nobody there to ask.' }
   if (!npc.character) return { possible: false, reason: `${npc.name} can't be reasoned with.` }

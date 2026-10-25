@@ -227,6 +227,22 @@ describe('groundItemDepth', () => {
     const floorDepth = groundItemDepth(state, { instanceId: 'x', position: { x: 0.875, y: 0.875 } })
     assert.equal(floorDepth, 0.875 + 0.875 + 0.35)
   })
+
+  it('returns finite fallback values for cyclic item supports', () => {
+    const state = {
+      map: mapWith(Array.from({ length: 3 }, () => Array(3).fill('floor'))),
+      itemInstances: {
+        a: { id: 'a', itemId: 'medkit' },
+        b: { id: 'b', itemId: 'medkit' },
+      },
+      groundItems: {
+        a: { instanceId: 'a', position: { x: 1, y: 1 }, support: { kind: 'item', instanceId: 'b' } },
+        b: { instanceId: 'b', position: { x: 1, y: 1 }, support: { kind: 'item', instanceId: 'a' } },
+      },
+    }
+    assert.equal(zOf(state, state.groundItems.a), 0)
+    assert.ok(Number.isFinite(groundItemDepth(state, state.groundItems.a)))
+  })
 })
 
 describe('item stack size on a 64×64 spot', () => {

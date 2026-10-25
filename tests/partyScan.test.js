@@ -40,6 +40,16 @@ describe('Scan (Prototype)', () => {
     assert.equal(explorationReducer(state, { type: 'scan', memberId: 'beta' }), state)
   })
 
+  it('does not allow a member in a transporter transition to scan', () => {
+    const state = start(1)
+    for (const transition of [{ beaming: true }, { arriving: true }]) {
+      const member = { ...state.party.members.alpha, ...transition }
+      const blocked = { ...state, party: { ...state.party, members: { ...state.party.members, alpha: member } } }
+      assert.equal(canScan(blocked, 'alpha').possible, false)
+      assert.equal(explorationReducer(blocked, { type: 'scan', memberId: 'alpha' }), blocked)
+    }
+  })
+
   it('a success reveals the NPC in range as a life sign (not identified), through no line of sight; a failure reveals nothing', () => {
     const outcomes = { success: null, failure: null }
     for (let seed = 0; seed < 200 && !(outcomes.success && outcomes.failure); seed++) {

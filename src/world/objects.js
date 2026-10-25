@@ -2,6 +2,7 @@
 // character controllers (actors/controllers.js). Instances hold only their authored definition, so one is cached per
 // definition object: a map that places the object elsewhere gets a new definition and so a new instance.
 import { ChallengeObject } from './ChallengeObject.js'
+import { applyScenarioTiles, withScenarioTiles } from './scenarioTiles.js'
 
 const instances = new WeakMap()
 
@@ -23,20 +24,7 @@ export const objectsOf = (scenario) => scenario.definitions.map(objectForDefinit
 
 // The map with every object's current tile (a sealed door blocks its doorway). Returns the same map when nothing changes,
 // so movement caches keyed by the map stay valid.
-export function applyScenarioTiles(map, scenario) {
-  const changes = objectsOf(scenario)
-    .flatMap((object) => object.currentTiles(scenario))
-    .filter(({ x, y, tile }) => map.tiles[y][x] !== tile)
-  if (!changes.length) return map
-  const tiles = map.tiles.map((row) => row.slice())
-  changes.forEach(({ x, y, tile }) => {
-    tiles[y][x] = tile
-  })
-  return { ...map, tiles }
-}
+export { applyScenarioTiles }
 
 // The exploration state with the world map showing every object's current tile (after an object's state changed).
-export const withMap = (state) => {
-  const map = applyScenarioTiles(state.party.map, state.scenario)
-  return map === state.party.map ? state : { ...state, party: { ...state.party, map }, world: { ...state.world, map } }
-}
+export const withMap = withScenarioTiles

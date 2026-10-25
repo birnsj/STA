@@ -185,6 +185,11 @@ Ground items / elevated surfaces
     (Z is never authored)
   - Painting a prop onto an existing surface cell appends `stackOver`
     (crate-on-crate); erase pops the top layer first
+  - Moving a supporting item carries its complete descendant support subtree
+    atomically; moving a tile carries the whole cell (`floorUnder`, rotation,
+    every `stackOver` layer) plus item subtrees supported by that cell
+  - Invalid, duplicate, cyclic, incompatible, or dangling support records are
+    rejected during map validation/load instead of being silently normalized
   - `surface` / item `surface` catalogues stay in tiles.json / items.json
   - Session drop/pickup is runtime-only (not map-authored)
 

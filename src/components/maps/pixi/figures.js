@@ -118,6 +118,13 @@ function cutFrameTexture(image, column, row, width, height) {
   return textureOf(canvas)
 }
 
+// Frame textures cut into their own canvases own those CanvasSources. Rectangle textures are only views onto a whole
+// sheet texture owned by SheetStore.sheets and must never destroy that shared source.
+export function destroyOwnedFrameTextures(frames) {
+  for (const { texture, ownsSource } of frames.values()) texture.destroy(ownsSource)
+  frames.clear()
+}
+
 // Sprite sheets and their frames, loaded once for the board (recoloured to each uniform, useRecolouredSheet.js).
 export class SheetStore {
   constructor() {
@@ -175,20 +182,19 @@ export class SheetStore {
     if (!this.frames.has(key)) {
       const { width, height } = sheetFrameSize(sheet)
       if (entry.chunked && entry.image) {
-        this.frames.set(key, cutFrameTexture(entry.image, column, row, width, height))
+        this.frames.set(key, { texture: cutFrameTexture(entry.image, column, row, width, height), ownsSource: true })
       } else {
-        this.frames.set(key, new Texture({ source: entry.texture.source, frame: new Rectangle(column * width, row * height, width, height) }))
+        this.frames.set(key, { texture: new Texture({ source: entry.texture.source, frame: new Rectangle(column * width, row * height, width, height) }), ownsSource: false })
       }
     }
-    return this.frames.get(key)
+    return this.frames.get(key).texture
   }
 
   destroy() {
     this.destroyed = true
-    for (const texture of this.frames.values()) texture.destroy(false)
+    destroyOwnedFrameTextures(this.frames)
     for (const entry of this.sheets.values()) entry.texture?.destroy(true)
     this.shadow.destroy(true)
-    this.frames.clear()
     this.sheets.clear()
   }
 }
@@ -236,6 +242,17 @@ function loadPortrait(src, colour) {
     )
   }
   return portraits.get(key)
+}
+
+// Portrait textures are canvas-created for one FigureView. Other token children (Graphics/Text) retain Pixi's normal
+// cleanup, while these sources are explicitly destroyed without ever touching sheet, shadow, or hazard textures.
+export function destroyOwnedTokenChildren(token, ownedTextures) {
+  for (const child of token.removeChildren()) {
+    if (ownedTextures.has(child.texture)) child.destroy()
+    else child.destroy(true)
+  }
+  for (const texture of ownedTextures) texture.destroy(true)
+  ownedTextures.clear()
 }
 
 // Mix white toward a CSS/hex beam colour for sprite tint (amount 0 = white, 1 = full colour).
@@ -287,6 +304,7 @@ export class FigureView {
     this.sheet = new Sprite()
     this.body.addChild(this.shadow, this.sheet)
     this.token = new Container()
+    this.tokenTextures = new Set()
     this.arrow = new Graphics()
     // Hazard FX sits on the figure container (not body) so it stays above the sheet/token and still shows when the
     // body is hidden for portrait-token figures. Combat badges stay on `over` above it.
@@ -824,7 +842,7 @@ export class FigureView {
     const look = `${figure.down}|${figure.bodyColour}|${figure.image}|${imageColour}|${figure.name}`
     if (this.shown.token === look) return
     this.shown.token = look
-    this.token.removeChildren().forEach((child) => child.destroy(true))
+    destroyOwnedTokenChildren(this.token, this.tokenTextures)
     const body = new Graphics()
     if (figure.down) {
       body.roundRect(-16, -12, 32, 14, 3).fill({ color: 0x0b1428 }).stroke({ color: figure.bodyColour, width: 1.5 })
@@ -837,7 +855,9 @@ export class FigureView {
     if (figure.image) {
       loadPortrait(figure.image, imageColour).then((canvas) => {
         if (!canvas || this.shown.token !== look || this.token.destroyed) return
-        const picture = new Sprite(textureOf(canvas))
+        const texture = textureOf(canvas)
+        const picture = new Sprite(texture)
+        this.tokenTextures.add(texture)
         picture.position.set(PORTRAIT.x, PORTRAIT.y)
         picture.scale.set(1 / 4)
         this.token.addChild(picture)
@@ -905,7 +925,7 @@ export class FigureView {
   }
 
   destroy() {
-    this.token.removeChildren().forEach((child) => child.destroy(true))
+    destroyOwnedTokenChildren(this.token, this.tokenTextures)
     this.container.destroy({ children: true })
     this.filter?.destroy()
   }

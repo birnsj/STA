@@ -15,6 +15,10 @@ import { tileDistance } from '../../combat/rangeSystem.js'
 import { getCombatantWeapon, getInjuryMode, getWeapon } from '../../combat/weaponSystem.js'
 import { CHARACTER_SCAN_RADIUS, scanSweepSeconds } from '../exploration/scanSweep.js'
 import { MAX_SEED } from '../../rules/seededRandom.js'
+import { SHOT_FIRE_MS, weaponShotLook } from '../../combat/shotPresentation.js'
+
+export { objectShotImpactMs } from '../../combat/shotPresentation.js'
+export { SHOT_FIRE_MS, weaponShotLook }
 
 // The combat screen's pure helpers: presentation delays, what the camera follows, the party's turn info, banners and the
 // button rings Auto Combat shows. Nothing here holds state or renders; Battle (screens/CombatScreen.jsx) calls them.
@@ -51,37 +55,10 @@ export function justFled(state) {
 // into the attacker's strike animation; a beam lands at once, a pulse after PULSE_TRAVEL_MS. The next AI step waits
 // SHOT_SEQUENCE_MS so the fall and the result label finish before anyone else moves. Divided by the Auto Combat speed.
 export const SHOT_ACTIONS = ['resolve', 'counterattack', 'ambush']
-export const SHOT_FIRE_MS = 220
-const PULSE_TRAVEL_MS = 280
-// After the beam is clearly on screen (beams) or the pulse lands — when an object shot's damage / explosion should apply.
-// Beams: hold the laser a beat before the boom (not the same frame as the muzzle).
-export const objectShotImpactMs = (weapon, side = 'player') => {
-  const look = weaponShotLook(side, weapon)
-  return look.pulse ? look.impactMs : SHOT_FIRE_MS + 450
-}
 export const SHOT_SEQUENCE_MS = 1600
 // A combat Scan's rings around the scanner and the target (scanSweep.js CHARACTER_SCAN_RADIUS).
 export const SCAN_SEQUENCE_MS = Math.ceil(scanSweepSeconds(CHARACTER_SCAN_RADIUS) * 1000)
 export { CHARACTER_SCAN_RADIUS }
-// Designer request (2026-10-12): every enemy ranged shot is a red pulse with the disruptor sound.
-const ENEMY_PULSE = '#ff2e1f'
-
-// Beam / pulse colour and timing for a weapon fired by a combatant (or exploration shooter).
-export function weaponShotLook(attackerSide, weapon, { injuryMode = null, missed = false } = {}) {
-  const enemyRanged = attackerSide === 'enemy' && weapon.type === 'ranged'
-  const mode = injuryMode ?? weapon.injuryModes[0]
-  const colour = enemyRanged ? ENEMY_PULSE : (weapon.beamColors?.[mode] ?? weapon.beamColor ?? null)
-  const pulse = Boolean(colour) && (enemyRanged || weapon.shotStyle === 'pulse')
-  return {
-    weapon,
-    injuryMode: mode,
-    colour,
-    pulse,
-    missed,
-    sound: enemyRanged ? 'disruptor' : (weapon.attackSound ?? null),
-    impactMs: SHOT_FIRE_MS + (pulse ? PULSE_TRAVEL_MS : 0),
-  }
-}
 
 // The shot state.lastAction shows: { attackerId, targetId?, objectId?, targetPosition?, weapon, colour, pulse,
 // missed, impactMs, sound } or null. colour null = no beam (a melee strike flash instead). Attack Object aims at the

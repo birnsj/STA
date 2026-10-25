@@ -7,13 +7,13 @@
 // traits: [{ name, potency, description, source }], log, taskCount }. The behaviour lives in the object classes
 // (src/world/, docs/world-objects.md); these functions are the scenario-level entry points the screens, the reducers
 // and combat (exploration/combatLink.js) call.
-import { isUp } from '../actors/controllers.js'
 import data from '../data/adaptation/exploration/challenges.json'
 import { combatCostOf } from '../world/ChallengeObject.js'
 import { hazardChallengeFor } from '../world/EnvironmentalHazard.js'
 import { playableActions, repairDefinitions } from '../world/objectDefinitions.js'
 import { applyScenarioTiles as retile, objectFor, objectForDefinition, objectsOf, withMap as withRetiledMap } from '../world/objects.js'
 import { objectiveFlag } from './missionFlags.js'
+import { canAct } from './partyControl.js'
 import { TASK_SEED_OFFSET } from './partyTaskRoll.js'
 
 export const INTERACT_RANGE = data.interactRange
@@ -78,7 +78,7 @@ export const membersInRange = (party, definition) => objectForDefinition(definit
 // Objects any of the given members can reach now.
 export const objectsInReach = (state, memberIds) =>
   objectsOf(state.scenario)
-    .filter((object) => memberIds.some((id) => isUp(state.party.members[id]) && object.inReach(state.party.members[id].position)))
+    .filter((object) => memberIds.some((id) => canAct(state.party.members[id]) && object.inReach(state.party.members[id].position)))
     .map((object) => object.definition)
 
 // The challenge behind an id: an authored object in the scenario, or a hazard's Neutralize task ('hazard:{id}',

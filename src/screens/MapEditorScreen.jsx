@@ -21,9 +21,9 @@ import { listConversations } from '../conversation/conversationFiles.js'
 import useEditorLayers from '../components/maps/useEditorLayers.js'
 import useEditorTools from '../components/maps/useEditorTools.js'
 import useMapDocument from '../components/maps/useMapDocument.js'
-import { updateNpc } from '../maps/mapEdits.js'
+import { resizeMap, updateNpc } from '../maps/mapEdits.js'
 import { canSaveMaps } from '../maps/mapFiles.js'
-import { resizeMap, validateMap } from '../maps/mapFormat.js'
+import { mapPlayErrors, validateMap } from '../maps/mapFormat.js'
 import { challengeMapWarnings } from '../world/objectAuthoring.js'
 import { canDrawEpisodeArt } from '../maps/episodeArt.js'
 import { randomMapName } from '../maps/mapGenerators.js'
@@ -176,10 +176,11 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
     () => [...validateMap(map, { enemySpawns: ENEMY_SPAWNS_NEEDED, label: 'Combat', hasAuthoredCharacter }), ...challengeMapWarnings(map)],
     [map],
   )
+  const playErrors = useMemo(() => mapPlayErrors(map, { hasAuthoredCharacter }), [map])
   const hoverTile = hover && hover.x < map.width && hover.y < map.height ? hover : null
 
   const onPlay = () => {
-    if (!map.markers.playerStarts.length) return setStatus('Play needs at least one player start on the map.')
+    if (playErrors.length) return setStatus(`Cannot play: ${playErrors[0]}`)
     const team = playAwayTeam(savedCharacters)
     if (!team.length) return setStatus('Play needs the authored redshirt party or a saved character.')
     setPlayTeam(team)
@@ -549,6 +550,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
           hazardIntensity={tools.hazardIntensity}
           onHazardIntensity={tools.setHazardIntensity}
           animateTiles={animateTiles}
+          layers={editorLayers.layers}
         />
       </div>
       <EditorOverviewWindow
@@ -571,8 +573,14 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onBusyChange={floatBusy('layers')}
         layers={editorLayers.layers}
         setActive={editorLayers.setActive}
-        toggleVisible={editorLayers.toggleVisible}
-        toggleLocked={editorLayers.toggleLocked}
+        toggleVisible={(id) => {
+          if (editorLayers.layers.visible[id] !== false) tools.clearLayerSelection(id)
+          editorLayers.toggleVisible(id)
+        }}
+        toggleLocked={(id) => {
+          if (!editorLayers.layers.locked[id]) tools.clearLayerSelection(id)
+          editorLayers.toggleLocked(id)
+        }}
       />
       <EditorLevelsWindow open={levelsOpen} onClose={() => setLevelsOpen(false)} onBusyChange={floatBusy('levels')} />
       {doc.showLoad && <LoadMapDialog maps={doc.maps} currentId={doc.fileId} onLoad={doc.onLoad} onCancel={() => doc.setShowLoad(false)} />}

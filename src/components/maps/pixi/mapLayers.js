@@ -132,6 +132,17 @@ function drawBlocks(layout, positions, area, time, animated, opacity = 1) {
   return canvas
 }
 
+// stackOver textures are made from a canvas for exactly one stack sprite. They are never entered in the shared block
+// texture cache, so the stack record owns both the Texture and its CanvasSource.
+export function destroyOwnedStackRecord(record) {
+  record?.sprite?.destroy()
+  record?.texture?.destroy(true)
+  if (record) {
+    record.sprite = null
+    record.texture = null
+  }
+}
+
 // The map's layers: floor (under the ground items), blocks (into the depth-sorted container, beside the figures) and
 // darkness (over everything). Build with build() once its images have loaded.
 // Options: playing (animated tiles run; else each holds its loop's first frame), ghost (every
@@ -308,7 +319,7 @@ export class MapLayers {
           lift += getTile(tileId).height ?? 0
           return
         }
-        if (existing?.sprite) existing.sprite.destroy()
+        if (existing) destroyOwnedStackRecord(existing)
         const layout = this.layoutWithTile(position, tileId)
         const area = blockDrawnArea(layout, position)
         const centre = project(position)
@@ -319,13 +330,13 @@ export class MapLayers {
         sprite.position.set(centre.x + (area.x - centre.x), centre.y + (area.y - centre.y) - lift)
         sprite.zIndex = position.x + position.y + 0.001 * stackLevel
         this.depthLayer.addChild(sprite)
-        this.stacks.set(key, { key, look, position, tileId, lift, stackLevel, sprite })
+        this.stacks.set(key, { key, look, position, tileId, lift, stackLevel, sprite, texture })
         lift += getTile(tileId).height ?? 0
       })
     }
     for (const [key, record] of [...this.stacks.entries()]) {
       if (nextKeys.has(key)) continue
-      record.sprite?.destroy()
+      destroyOwnedStackRecord(record)
       this.stacks.delete(key)
     }
   }
@@ -569,7 +580,7 @@ export class MapLayers {
       record.sprite.destroy()
       record.pair?.destroy()
     }
-    for (const record of this.stacks.values()) record.sprite?.destroy()
+    for (const record of this.stacks.values()) destroyOwnedStackRecord(record)
     for (const { texture } of this.textures.values()) texture.destroy(true)
     this.blocks.clear()
     this.stacks.clear()

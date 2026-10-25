@@ -5,6 +5,9 @@
 // state (condition, position, awareness) lives with the world actor or combatant that uses the character.
 import attributeData from '../data/source/attributes.json'
 import disciplineData from '../data/source/disciplines.json'
+import finishingSource from '../data/source/finishingTouches.json'
+import startingPoints from '../data/source/startingPoints.json'
+import { SCHEMA_VERSION } from '../export/serializeCharacter.js'
 import { getCharacterBackdrop, getPortraitById, getSpriteSet } from '../rules/appearance.js'
 import { getCreatorFaction } from '../rules/factions.js'
 import { getSpeciesAbility, getSpeciesDisplayName } from '../rules/species.js'
@@ -17,16 +20,54 @@ export const DISCIPLINE_IDS = disciplineData.disciplines.map((discipline) => dis
 export const getAttributeName = (id) => attributeData.attributes.find((attribute) => attribute.id === id)?.name ?? id
 export const getDisciplineName = (id) => disciplineData.disciplines.find((discipline) => discipline.id === id)?.name ?? id
 
-const isScore = (value) => Number.isInteger(value) && value >= 0
+const SCORE_RULES = {
+  attributes: {
+    min: startingPoints.attributeStart,
+    max: startingPoints.finishedCharacterLimits.attributeMax,
+    playerTotal: finishingSource.completeCharacter.attributeTotal,
+  },
+  disciplines: {
+    // Authored NPC stat blocks legitimately use 0 for departments they do not have.
+    min: startingPoints.disciplineStart,
+    authoredMin: 0,
+    max: startingPoints.finishedCharacterLimits.disciplineMax,
+    playerTotal: finishingSource.completeCharacter.disciplineTotal,
+  },
+}
 
-function readScores(scores, ids, label) {
+function readScores(scores, ids, label, { player }) {
   if (!isPlainObject(scores)) return { error: `The file has no final ${label}.` }
-  const missing = ids.filter((id) => !isScore(scores[id]))
+  const rules = SCORE_RULES[label]
+  const missing = ids.filter((id) => !Number.isInteger(scores[id]))
   if (missing.length) return { error: `The file is missing ${label}: ${missing.join(', ')}.` }
-  return { values: Object.fromEntries(ids.map((id) => [id, scores[id]])) }
+  const values = Object.fromEntries(ids.map((id) => [id, scores[id]]))
+  const min = player ? rules.min : (rules.authoredMin ?? rules.min)
+  const outside = ids.filter((id) => values[id] < min || values[id] > rules.max)
+  if (outside.length) return { error: `The file has ${label} outside ${min}-${rules.max}: ${outside.join(', ')}.` }
+  const total = Object.values(values).reduce((sum, score) => sum + score, 0)
+  if (player && total !== rules.playerTotal) return { error: `The file's ${label} total is ${total}; expected ${rules.playerTotal}.` }
+  return { values }
 }
 
 const idName = (value) => (isPlainObject(value) && value.id ? { id: value.id, name: value.name ?? value.id } : null)
+
+function schemaError(version) {
+  if (version == null) return null
+  if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) return `Unsupported character schema "${String(version)}".`
+  const parts = version.split('.').map(Number)
+  const supported = SCHEMA_VERSION.split('.').map(Number)
+  const newer = parts.some((part, index) => part > supported[index] && parts.slice(0, index).every((earlier, earlierIndex) => earlier === supported[earlierIndex]))
+  if (parts[0] !== supported[0] || newer) return `Unsupported character schema "${version}" (this build supports through ${SCHEMA_VERSION}).`
+  return null
+}
+
+const schemaAtLeast = (version, minimum) => {
+  if (!version) return false
+  const parts = version.split('.').map(Number)
+  const floor = minimum.split('.').map(Number)
+  return parts.some((part, index) => part > floor[index] && parts.slice(0, index).every((earlier, earlierIndex) => earlier === floor[earlierIndex])) ||
+    parts.every((part, index) => part === floor[index])
+}
 
 function readSpeciesAbility(ability) {
   if (!isPlainObject(ability) || !ability.id) return null
@@ -67,21 +108,28 @@ function readTalent(talent) {
 // Returns { character } or { error } (a message for the player when the JSON is not a usable character export).
 export function normalizeCharacterRecord(record, { id } = {}) {
   if (!isPlainObject(record) || !isPlainObject(record.final)) return { error: 'This is not a character export (no "final" section).' }
-  const attributes = readScores(record.final.attributes, ATTRIBUTE_IDS, 'attributes')
-  if (attributes.error) return { error: attributes.error }
-  const disciplines = readScores(record.final.disciplines, DISCIPLINE_IDS, 'disciplines')
-  if (disciplines.error) return { error: disciplines.error }
-
+  const incompatible = schemaError(record.schemaVersion)
+  if (incompatible) return { error: incompatible }
+  const authored = record.sourceType === 'authored' || Boolean(record.sourceClassification) || typeof record.id === 'string'
   const details = isPlainObject(record.character) ? record.character : {}
   const identity = isPlainObject(details.identity) ? details.identity : {}
   const career = isPlainObject(details.career) ? details.career : {}
+
+  const attributes = readScores(record.final.attributes, ATTRIBUTE_IDS, 'attributes', { player: !authored })
+  if (attributes.error) return { error: attributes.error }
+  const disciplines = readScores(record.final.disciplines, DISCIPLINE_IDS, 'disciplines', { player: !authored })
+  if (disciplines.error) return { error: disciplines.error }
+  if (!details.species?.id) return { error: 'The file has no species reference.' }
+  if (schemaAtLeast(record.schemaVersion, '0.9.0') && !idName(record.final.faction ?? details.faction)) return { error: 'The file has no faction reference.' }
+  if (schemaAtLeast(record.schemaVersion, '0.8.0') && !idName(record.final.department ?? career.department)) return { error: 'The file has no department reference.' }
+
   const portraitId = identity.portrait?.id ?? null
   const name = typeof identity.name === 'string' && identity.name.trim() ? identity.name.trim() : 'Unnamed Character'
   const strings = (list) => (Array.isArray(list) ? list.filter((item) => typeof item === 'string') : [])
   const items = (list) => (Array.isArray(list) ? list.filter((item) => isPlainObject(item)) : [])
   // Exports before schema 0.9.0 carry none; they all come from the creator, whose characters share one faction.
   const faction = idName(record.final.faction ?? details.faction) ?? getCreatorFaction()
-  const department = idName(career.department)
+  const department = idName(record.final.department ?? career.department)
   const uniform = faction.id === getCreatorFaction().id ? getUniformColour(department?.id) : null
 
   return {

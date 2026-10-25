@@ -1,7 +1,7 @@
 // Alpha masks of the prop art, for the editor to pick a prop by the pixels it draws (maps/propPick.js).
 // One mask per loaded picture, built the first time a click needs it from the picture's own pixels (a one-off read of the
 // source art, not of the screen). Keyed on the image element, so a picture that is loaded again gets a fresh mask.
-import { makeAlphaMask, setAlphaMaskSource } from '../../maps/propPick.js'
+import { BOUNDS_ALPHA_MASK, makeAlphaMask, setAlphaMaskSource } from '../../maps/propPick.js'
 import { loadedImage, loadImage } from './canvasTiles.js'
 
 const masks = new WeakMap()
@@ -30,7 +30,7 @@ export function alphaMaskFor(href) {
       masks.set(image, buildMask(image))
     } catch {
       // A picture the browser will not let us read: fall back to the sprite's box rather than make it unclickable.
-      masks.set(image, undefined)
+      masks.set(image, BOUNDS_ALPHA_MASK)
     }
   }
   return masks.get(image)

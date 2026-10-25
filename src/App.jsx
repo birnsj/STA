@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { music } from './audio/music.js'
 import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
 import { CharacterProvider } from './character/CharacterContext.jsx'
+import { tryCreateRestoredState } from './character/characterReducer.js'
 import { useCharacter } from './character/useCharacter.js'
 import { loadLocation, loadSettings, saveLocation, saveSettings } from './character/persistence.js'
 import {
@@ -102,7 +103,9 @@ function Views() {
     onLoad: (entry) => {
       const data = getSavedCharacterData(entry)
       if (!data) return
-      dispatch({ type: 'loadCharacter', character: data })
+      const { restoredState } = tryCreateRestoredState(data, { preserveEquipment: entry.record?.sourceType === 'authored' })
+      if (!restoredState) return
+      dispatch({ type: 'loadCharacter', restoredState })
       saveLocation({ ...loadLocation(), stepId: 'review', savedCharacterId: entry.id })
       setView('creator')
     },

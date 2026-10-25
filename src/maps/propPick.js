@@ -9,6 +9,9 @@ import { getTile, TILE_IMAGE } from './mapFormat.js'
 // Alpha (0-255) a pixel must exceed to take a click. Low enough that soft anti-aliased edges still count, high enough
 // that the near-invisible halo some PNG exports leave around a sprite does not.
 export const ALPHA_PICK_THRESHOLD = 16
+// The image loaded and is drawn, but its pixels could not be read (for example, a browser security restriction).
+// In that case the documented fallback is the sprite bounds rather than making the visible prop unclickable.
+export const BOUNDS_ALPHA_MASK = Symbol('bounds-alpha-mask')
 
 // The art a prop is drawn with: its own world picture, else its tile's picture, else the crate.
 export const spriteHref = (object) => object.worldImage || getTile(object.worldTile ?? 'crate')?.image || getTile('crate')?.image || null
@@ -46,9 +49,9 @@ export function alphaAt(mask, u, v) {
   return mask.alpha[Math.floor(v * mask.height) * mask.width + Math.floor(u * mask.width)]
 }
 
-// Where the picker gets a mask for a picture: href -> mask, undefined while the picture has not loaded, or null when it
-// failed to load. Either way that sprite takes no click: its rectangle is only the broad phase, and a front sprite's
-// empty padding must not hide the box drawn behind it. The browser installs one (components/maps/alphaMasks.js).
+// Where the picker gets a mask for a picture: href -> mask, BOUNDS_ALPHA_MASK when a loaded image cannot be read,
+// undefined while it has not loaded, or null when it failed to load. Loading/failed sprites take no click; the bounds
+// fallback does. The browser installs one (components/maps/alphaMasks.js).
 let maskSource = () => undefined
 export const setAlphaMaskSource = (source) => {
   maskSource = source
@@ -67,8 +70,9 @@ export function pickProp(objects, point, { maskOf = (href) => maskSource(href), 
     const v = (point.y - box.y) / box.height
     if (u < 0 || v < 0 || u >= 1 || v >= 1) continue
     // The box is the broad phase. Only an opaque pixel of the art takes the click; a picture that has not loaded yet
-    // (or failed) is skipped, so it cannot hide the sprite behind it.
+    // (or failed) is skipped, so it cannot hide the sprite behind it. An unreadable loaded picture uses its bounds.
     const mask = maskOf(spriteHref(object))
+    if (mask === BOUNDS_ALPHA_MASK) return object
     if (mask && alphaAt(mask, u, v) > threshold) return object
   }
   return null

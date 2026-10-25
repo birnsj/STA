@@ -38,7 +38,7 @@ import { objectsOf } from '../world/objects.js'
 import { challengeFor } from './challengeObjects.js'
 import { alertGroup, emitNoise, getCombatReady, getNpcs, hasIdentified, isHostile, joinsCombat, perceive, STATE } from './awareness.js'
 import { defeatedFlag } from './missionObjectives.js'
-import { getMembers, withAbleSelection } from './partyControl.js'
+import { cancelBeamOut, getMembers, withAbleSelection } from './partyControl.js'
 import { getEntityKnowledge, KNOWLEDGE, updatePartyKnowledge } from './partyKnowledge.js'
 import { gridToWorld, nearestFreeCell, snapToGrid, worldToGrid } from './tacticalGrid.js'
 
@@ -408,10 +408,12 @@ export class WorldEncounter extends CombatEncounter {
   // already running (so a second COMBAT_READY can never start a second fight) or nobody in the party can fight.
   start(state, { triggerNpcId, triggerTargetId = null, source = 'COMBAT_READY', position = null }) {
     if (state.mode === MODE.COMBAT || state.combat) return state
-    const { party } = state
+    let { party } = state
     const trigger = state.world.npcs[triggerNpcId]
-    const members = getMembers(party)
+    let members = getMembers(party)
     if (!trigger || !canFight(trigger) || !members.some(isUp)) return state
+    party = cancelBeamOut(party, party.memberIds)
+    members = getMembers(party)
 
     // Attacking someone who wasn't hostile (an innocent) turns them Hostile (designer request, Oct 2026).
     const turnsHostile = source === 'PLAYER_ATTACK' && !isHostile(trigger)
@@ -487,7 +489,7 @@ export class WorldEncounter extends CombatEncounter {
       snaps,
     }
     // The party starts the fight knowing what it knew a moment ago in exploration: no reveal on entering combat.
-    return withPartyPerception({ ...state, mode: MODE.COMBAT, world, combat, link, combatCount }, { perceive: false })
+    return withPartyPerception({ ...state, mode: MODE.COMBAT, party, world, combat, link, combatCount }, { perceive: false })
   }
 
   // Someone who knows of no opponent searches instead of fighting (the party in Auto Combat hunts the enemies; an enemy

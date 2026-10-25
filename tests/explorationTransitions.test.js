@@ -6,7 +6,8 @@ import { createCombat, getActiveCombatant } from '../src/combat/combatState.js'
 import { rollCombatTask } from '../src/combat/combatTasks.js'
 import { getItemById, getItemStatLines } from '../src/rules/equipment.js'
 import { describeRange, getWeaponForItem } from '../src/combat/weaponSystem.js'
-import { getNpcs, tickWorld } from '../src/exploration/awareness.js'
+import { getNpcs } from '../src/exploration/awareness.js'
+import { tickWorld } from '../src/exploration/awarenessTick.js'
 import { endCombat, MODE, startCombat } from '../src/exploration/combatLink.js'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
 import { canAct, partyReducer, withAbleSelection } from '../src/exploration/partyControl.js'
@@ -197,6 +198,20 @@ describe("the map editor's passive play-test", () => {
     assert.equal(next.world.time, state.world.time + 0.05)
     assert.deepEqual(getNpcs(next.world)[0].position, npc.position)
     assert.equal(next.mode, MODE.EXPLORATION)
+  })
+
+  it('uses the same clamped delta for party movement, world time and hazards', () => {
+    let state = createExplorationState(testMap(), team(), 0, { enemiesActive: false })
+    state = explorationReducer(state, { type: 'moveTo', target: { x: 2, y: 2 }, fresh: true })
+    state = { ...state, environment: { ...state.environment, hazards: { test: { id: 'test', active: true } } }, hazardClock: 0 }
+    const longFrame = explorationReducer(state, { type: 'tick', seconds: 1 })
+    const normalFrame = explorationReducer(state, { type: 'tick', seconds: 0.05 })
+    assert.equal(longFrame.world.time - state.world.time, 0.05)
+    assert.deepEqual(
+      Object.fromEntries(longFrame.party.memberIds.map((id) => [id, longFrame.party.members[id].position])),
+      Object.fromEntries(normalFrame.party.memberIds.map((id) => [id, normalFrame.party.members[id].position])),
+    )
+    assert.equal(longFrame.hazardClock, normalFrame.hazardClock)
   })
 })
 

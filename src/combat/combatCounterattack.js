@@ -7,7 +7,7 @@
 // lands, and the attacker may Avoid it as usual. The move out of Reach is not implemented.
 // The player decides for a player-controlled party member (state.pendingCounterattack waits for the
 // counterattackDecision action); anyone else decides through injuryPolicy.js.
-import { controllerFor } from '../actors/controllers.js'
+import { isPlayerControlledActor } from '../actors/actorControl.js'
 import { addThreat, npcMomentumToThreat, saveMomentum, spendMomentum, spendThreat } from '../rules/missionResources.js'
 import { inflictInjury, injuryFor } from './combatInjuries.js'
 import { addLog, markAction, momentumLine, updateCombatant, withStats } from './combatLog.js'
@@ -71,7 +71,7 @@ export function defenderWins(state, pending, evaluation) {
     return { state: next, lines, counterattack }
   }
   const offer = { defenderId: defender.id, attackerId: attacker.id, weaponId: option.weaponId, injuryModes: option.injuryModes, cost: option.cost }
-  if (controllerFor(defender).answersPrompts(defender)) {
+  if (isPlayerControlledActor(defender)) {
     lines.push(`${name} may Counterattack ${attacker.character.name}: ${option.cost} Momentum, an Injury from ${getCombatantWeapon(defender, option.weaponId).name}.`)
     return { state: { ...next, pendingCounterattack: offer }, lines, counterattack: { ...counterattack, decided: 'pending' } }
   }

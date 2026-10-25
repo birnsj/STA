@@ -9,6 +9,9 @@ import { getAttributeTotals, getDisciplineTotals } from './characterTotals.js'
 import { getFocusEntries } from './characterSheet.js'
 import { getFinalScores } from './finishingTouches.js'
 import { getOwnSpeciesIds } from './species.js'
+import { getFixedCareerTalentId, getTalentById } from './talentCatalog.js'
+
+export { getFixedCareerTalentId, getTalentById } from './talentCatalog.js'
 
 // Core p.132: four talents, one each from Upbringing (p.117; Early Outlook), Career Path (pp.120–126; Education),
 // Experience (pp.127–128; Career) and Finishing Touches (p.132).
@@ -41,13 +44,7 @@ export function createEmptyTalents() {
   return Object.fromEntries(TALENT_STEPS.map((stepId) => [stepId, null]))
 }
 
-export const getTalentById = (id) => talentsById.get(id) ?? null
 export const getTalentStepTitle = (stepId) => stepTitles[stepId]
-
-// Book p.127–128: Novice receives Untapped Potential and Veteran receives Veteran; Experienced chooses freely.
-export function getFixedCareerTalentId(character) {
-  return talentSource.careerLengthTalents[character.career.length?.id] ?? null
-}
 
 // ---------- Requirement checks ----------
 

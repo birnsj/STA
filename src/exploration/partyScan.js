@@ -7,7 +7,6 @@ import actionData from '../data/adaptation/exploration/partyActions.json'
 import scanData from '../data/adaptation/exploration/scan.json'
 import { getEquippedItems } from '../rules/equipment.js'
 import { checkDicePurchase, savableMomentum, saveMomentum } from '../rules/missionResources.js'
-import { isDefeated } from '../rules/personalCondition.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
@@ -16,6 +15,7 @@ import { challengeFor, TASK_SEED_OFFSET } from './challengeObjects.js'
 import { locationReport } from './locationReport.js'
 import { distance } from './navigation.js'
 import { revealEntity } from './partyKnowledge.js'
+import { canAct } from './partyControl.js'
 import { groundItemFor } from '../world/GroundItem.js'
 
 export const SCAN_TASK = actionData.actions.find((action) => action.id === 'scan').task
@@ -41,7 +41,7 @@ export const scanCooldown = (state, memberId) => Math.max(0, (state.scanReadyAt?
 // { possible, reason }: whether the member can scan now.
 export function canScan(state, memberId) {
   const member = state.party.members[memberId]
-  if (!member || isDefeated(member.condition)) return { possible: false, reason: 'Out of action.' }
+  if (!canAct(member)) return { possible: false, reason: 'Out of action.' }
   if (!scanRadius(member.character)) return { possible: false, reason: 'Carries no tricorder.' }
   const wait = scanCooldown(state, memberId)
   if (wait > 0) return { possible: false, reason: `Scan again in ${Math.ceil(wait)}s.` }

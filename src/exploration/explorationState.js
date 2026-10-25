@@ -9,10 +9,11 @@ import npcData from '../data/adaptation/exploration/npcs.json'
 import { spawnFacing } from '../maps/facing.js'
 import { createMissionResources } from '../rules/missionResources.js'
 import { chooseOption, continueConversation, leaveConversation, rollCheck, startConversation } from '../conversation/conversationRuntime.js'
-import { createNpc, createWorld, emitNoise, getNpcs, isHostile, tickWorld } from './awareness.js'
+import { clampSimulationDelta, createNpc, createWorld, emitNoise, getNpcs, isHostile } from './awareness.js'
+import { tickWorld } from './awarenessTick.js'
 import { applyScenarioTiles, attemptChallenge, challengeFor, createScenario, INTERACT_RANGE, withMap } from './challengeObjects.js'
 import { combatAction, endCombat, MODE, requestCombat, startCombat } from './combatLink.js'
-import { createPartyState, getMembers, partyReducer } from './partyControl.js'
+import { canAct, createPartyState, getMembers, partyReducer } from './partyControl.js'
 import { createPartyKnowledge, updatePartyKnowledge } from './partyKnowledge.js'
 import { scanArea, scanChallenge, scanDestructible, scanGroundItem, scanNpc } from './partyScan.js'
 import { askNpc } from './partySocial.js'
@@ -97,7 +98,7 @@ function createNpcWorld(map) {
 // NPCs with a conversation that any of the given members (able to act) stands close enough to talk to.
 export function npcsInTalkRange(state, memberIds) {
   if (state.mode === MODE.COMBAT) return []
-  const members = memberIds.map((id) => state.party.members[id]).filter(isUp)
+  const members = memberIds.map((id) => state.party.members[id]).filter(canAct)
   return getNpcs(state.world).filter(
     (npc) => controllerFor(npc).canTalk(npc) && members.some((member) => Math.hypot(member.position.x - npc.position.x, member.position.y - npc.position.y) <= INTERACT_RANGE),
   )
@@ -260,10 +261,12 @@ function reduceExploration(state, action) {
       return createExplorationState(action.map, action.characters, action.seed, { enemiesActive: action.enemiesActive ?? true })
     case 'tick': {
       if (state.mode === MODE.COMBAT) return state
-      const party = partyReducer(state.party, action)
+      const seconds = clampSimulationDelta(action.seconds)
+      const tick = { ...action, seconds }
+      const party = partyReducer(state.party, tick)
       // The clock still runs (challenge-object locks expire on it); only the NPCs stand still.
-      if (state.enemiesActive === false) return endConversationOutOfRange(tickHazards(perceive({ ...state, party, world: { ...state.world, time: state.world.time + Math.max(0, action.seconds) } }), action.seconds))
-      const next = requestCombat(tickHazards(perceive({ ...state, party, world: tickWorld(state.world, party, action.seconds) }), action.seconds))
+      if (state.enemiesActive === false) return endConversationOutOfRange(tickHazards(perceive({ ...state, party, world: { ...state.world, time: state.world.time + seconds } }), seconds))
+      const next = requestCombat(tickHazards(perceive({ ...state, party, world: tickWorld(state.world, party, seconds) }), seconds))
       // A fight breaking out ends any conversation.
       return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : endConversationOutOfRange(next)
     }
@@ -333,7 +336,9 @@ function reduceExploration(state, action) {
       return state.mode === MODE.COMBAT ? state : { ...state, party: partyReducer(state.party, action) }
     case 'beamOut': {
       if (state.mode === MODE.COMBAT) return { ...state, party: partyReducer(state.party, { type: 'cancelBeamOut', ids: action.ids }) }
-      const ids = action.ids.filter((id) => state.party.memberIds.includes(id))
+      // The delayed UI timer may fire after combat has started and ended. Only an uninterrupted transporter lock may
+      // remove someone; WorldEncounter.start clears `beaming` when combat begins.
+      const ids = action.ids.filter((id) => state.party.memberIds.includes(id) && state.party.members[id]?.beaming)
       if (!ids.length) return state
       const next = { ...state, party: partyReducer(state.party, { type: 'beamOut', ids }) }
       return ids.reduce((logged, id) => {

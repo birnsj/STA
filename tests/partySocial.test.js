@@ -56,6 +56,17 @@ describe('Persuade and Intimidate in exploration (Prototype)', () => {
     assert.equal(asked.missionLog.entries.at(-1).kind, 'task')
   })
 
+  it('does not allow a member in a transporter transition to use a social action', () => {
+    const state = start(1, 'wary')
+    const npcId = npcIdOf(state)
+    for (const transition of [{ beaming: true }, { arriving: true }]) {
+      const member = { ...state.party.members.alpha, ...transition }
+      const blocked = { ...state, party: { ...state.party, members: { ...state.party.members, alpha: member } } }
+      assert.equal(canAskNpc(blocked, 'alpha', npcId, 'persuade').possible, false)
+      assert.equal(explorationReducer(blocked, { type: 'askNpc', memberId: 'alpha', npcId, kind: 'persuade' }), blocked)
+    }
+  })
+
   it('a won Persuade makes the NPC one step friendlier and its conversation checks easier; a lost one changes nothing', () => {
     const won = find('hostile', 'persuade', true)
     assert.equal(won.next.world.npcs[won.npcId].disposition, 'wary')

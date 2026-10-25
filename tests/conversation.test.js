@@ -7,7 +7,7 @@ import engineerFile from '../conversations/engineerSealedSection.json'
 // Frozen copy of the Brig (see objectGolden.test.js): the live map is edited in the map editor and gains NPCs.
 import brigFile from './fixtures/deck10Brig.json'
 import { checkAhead, createConversation, createNode, getNode, parseConversation, removeNode, serializeConversation, validateConversation, withLink } from '../src/conversation/conversationFormat.js'
-import { availableOptions, currentCheck, previewCheckAssist, recommendCheck } from '../src/conversation/conversationRuntime.js'
+import { availableOptions, checkCandidates, currentCheck, previewCheckAssist, recommendCheck } from '../src/conversation/conversationRuntime.js'
 import { getNpcs } from '../src/exploration/awareness.js'
 import { getAvailableActions } from '../src/exploration/challengeObjects.js'
 import { MODE } from '../src/exploration/combatLink.js'
@@ -140,6 +140,8 @@ describe('NPCs placed on a map', () => {
     assert.deepEqual(npcsInTalkRange(state, state.party.memberIds).map((npc) => npc.id), ['eng'])
     const far = { ...state, party: { ...state.party, members: Object.fromEntries(Object.entries(state.party.members).map(([id, member]) => [id, { ...member, position: { x: 12, y: 8 } }])) } }
     assert.deepEqual(npcsInTalkRange(far, far.party.memberIds), [])
+    const beaming = { ...state, party: { ...state.party, members: Object.fromEntries(Object.entries(state.party.members).map(([id, member]) => [id, { ...member, beaming: true }])) } }
+    assert.deepEqual(npcsInTalkRange(beaming, beaming.party.memberIds), [])
   })
 })
 
@@ -178,6 +180,19 @@ describe('a conversation in exploration', () => {
     assert.equal(currentCheck(state)?.id, 'engineeringCheck')
     assert.equal(state.scenario.flags.faultInvestigated, true)
     assert.deepEqual(recommendCheck(state, currentCheck(state)).bestIds, ['beta'])
+  })
+
+  it('excludes transporter-transition members from conversation checks', () => {
+    const start = choose(talk(createExplorationState(roomWithEngineer(), team(), 7)), 'investigate')
+    const blocked = {
+      ...start,
+      party: {
+        ...start.party,
+        members: { ...start.party.members, alpha: { ...start.party.members.alpha, beaming: true }, beta: { ...start.party.members.beta, arriving: true } },
+      },
+    }
+    assert.deepEqual(checkCandidates(blocked), [])
+    assert.equal(explorationReducer(blocked, { type: 'conversationRoll', performerId: 'alpha' }), blocked)
   })
 
   it('rolls a check with the shared task (seeded), pays bonus dice and follows Success or Failure', () => {
@@ -233,7 +248,8 @@ describe('a conversation in exploration', () => {
       name: 'Fight',
       start: 'a',
       nodes: [
-        { ...createNode('action', 'a'), actions: [{ type: 'setDisposition', disposition: 'hostile' }, { type: 'startCombat' }], next: 'end' },
+        { ...createNode('action', 'a'), actions: [{ type: 'setDisposition', disposition: 'hostile' }, { type: 'startCombat' }, { type: 'changeFlag', flag: 'afterCombatSignal', op: 'set', value: true }], next: 'after' },
+        { ...createNode('action', 'after'), actions: [{ type: 'changeFlag', flag: 'traversedAfterCombatSignal', op: 'set', value: true }], next: 'end' },
         createNode('end', 'end'),
       ],
     }
@@ -241,6 +257,8 @@ describe('a conversation in exploration', () => {
     assert.equal(state.conversation, null)
     assert.equal(state.world.npcs.eng.disposition, 'hostile')
     assert.equal(state.mode, MODE.COMBAT)
+    assert.equal(state.scenario.flags.afterCombatSignal, undefined)
+    assert.equal(state.scenario.flags.traversedAfterCombatSignal, undefined)
   })
 
   it('is not started in combat or for an NPC who is down', () => {
@@ -280,6 +298,18 @@ describe('the Deck 10 Brig encounter', () => {
     const members = Object.fromEntries(Object.entries(state.party.members).map(([id, member]) => [id, { ...member, position: { x: okafor.x + 1, y: okafor.y } }]))
     const beside = { ...state, party: { ...state.party, members } }
     assert.deepEqual(npcsInTalkRange(beside, beside.party.memberIds).map((npc) => npc.id), ['engineer'])
+  })
+
+  it('does not allow transporter-transition members to attempt challenge actions', () => {
+    const state = brig()
+    for (const transition of [{ beaming: true }, { arriving: true }]) {
+      const beta = { ...state.party.members.beta, ...transition }
+      const blocked = { ...state, party: { ...state.party, members: { ...state.party.members, beta } } }
+      assert.equal(
+        explorationReducer(blocked, { type: 'challenge', objectId: 'powerJunction01', actionId: 'restorePower', performerId: 'beta' }),
+        blocked,
+      )
+    }
   })
 
   it('a diagnosis adds the easier junction approach; restoring power opens the bulkhead for a cleared party', () => {

@@ -10,6 +10,7 @@ import { parseMapFile } from '../src/maps/mapFormat.js'
 import {
   ALPHA_PICK_THRESHOLD,
   alphaAt,
+  BOUNDS_ALPHA_MASK,
   drawOrder,
   makeAlphaMask,
   pickProp,
@@ -220,6 +221,14 @@ describe('the alpha test itself', () => {
     assert.equal(pickProp([front], point, { maskOf: () => undefined }), null)
     assert.equal(pickProp([front], point, { maskOf: () => null }), null)
     assert.equal(pickProp([back, front], point, { maskOf: (href) => masks[href] })?.id, 'back')
+  })
+
+  it('uses the sprite bounds when a loaded picture cannot provide an alpha mask', () => {
+    const point = at(0.1, 0.1)
+    const front = object({ id: 'front', depth: 2 })
+    const back = object({ id: 'back', depth: 1, worldImage: '/art/b.png' })
+    assert.equal(pickProp([back, front], point, { maskOf: () => BOUNDS_ALPHA_MASK })?.id, 'front')
+    assert.equal(pickProp([front], { x: box.x - 1, y: box.y }, { maskOf: () => BOUNDS_ALPHA_MASK }), null)
   })
 
   it('reads the installed mask source when none is passed', () => {

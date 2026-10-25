@@ -56,6 +56,26 @@ const capitalised = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 // behind, the tiles it controls (a force field), Move, Duplicate and Delete. Every field left blank keeps the type's value.
 export default function DestructibleInspector({ object, moving, linking, onChange, onMove, onLink, onDuplicate, onDelete }) {
   const info = DESTRUCTIBLE_TYPES[object.type]
+  if (!info) {
+    return (
+      <div className="me-inspector">
+        <PropertySection id="destructible" title={`Destructible · ${object.position.x}, ${object.position.y}`}>
+          <p className="me-text">
+            <strong>Unknown destructible type “{object.type || '(blank)'}”.</strong> This object is preserved but cannot be edited or used in play.
+          </p>
+          <button type="button" className="me-button" aria-pressed={moving} onClick={onMove}>
+            {moving ? 'Cancel' : 'Move on Map'}
+          </button>
+          <button type="button" className="me-button" onClick={onDuplicate}>
+            Duplicate
+          </button>
+          <button type="button" className="me-button" onClick={onDelete}>
+            Delete
+          </button>
+        </PropertySection>
+      </div>
+    )
+  }
   const typeExplosion = info.explosion ?? {}
   const overrides = object.explosion ?? {}
   const setExplosion = (field, value) => {

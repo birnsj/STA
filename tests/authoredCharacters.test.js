@@ -17,6 +17,7 @@ import {
   reloadAuthoredCatalogue,
 } from '../src/character/authoredCharacters.js'
 import { findAuthoredCharacterReferences } from '../src/character/authoredReferences.js'
+import { createRestoredState } from '../src/character/characterReducer.js'
 import {
   buildAuthoredPoolEntry,
   canSaveAuthoredEdit,
@@ -188,6 +189,16 @@ describe('authored pool save helpers', () => {
     assert.equal(entry.character.identity.name, 'Klingon Warrior Renamed')
     assert.equal(entry.final.attributes.daring, 10)
     assert.equal(entry.sourceClassification.statBlock, 'Klingon Warrior')
+  })
+
+  it('preserves authored bespoke equipment while normal creator restores reconcile it', () => {
+    const raw = bundledCharacters.characters.find((entry) => entry.id === 'klingonWarrior1')
+    const bespoke = raw.character.equipment
+    const creatorShape = getAuthoredRecord(raw.id).character
+    const authored = createRestoredState(creatorShape, { preserveEquipment: true }).character
+    const player = createRestoredState(creatorShape).character
+    assert.deepEqual(authored.equipment, bespoke)
+    assert.notDeepEqual(player.equipment, bespoke)
   })
 
   it('duplicate allocates a new id and does not keep playtestParty', () => {

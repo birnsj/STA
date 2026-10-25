@@ -229,25 +229,34 @@ export function imagesFor(map) {
 }
 function listImages(map) {
   const hrefs = new Set()
+  const addTileArt = (tile) => {
+    hrefs.add(tile.image)
+    if (tile.big) hrefs.add(tile.big.image)
+    Object.values(tile.panelImages ?? {}).forEach((href) => hrefs.add(href))
+    Object.values(tile.runImages ?? {}).forEach((href) => hrefs.add(href))
+    for (const book of blockFlipbooks(tile)) {
+      book?.sprites.forEach((sprite) => [sprite.href, sprite.emission].forEach((href) => href && hrefs.add(href)))
+    }
+  }
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
       const tile = getTile(id)
       hrefs.add(tileImage(map, position))
       if (!isBlock(id)) return
-      hrefs.add(tile.image)
+      addTileArt(tile)
       const joined = joinedImage(map, position)
       if (joined) hrefs.add(joined)
       const variant = tile.wall ? wallVariant(tile, position) : null
       if (variant) hrefs.add(variant.href)
-      if (tile.big) hrefs.add(tile.big.image)
-      Object.values(tile.panelImages ?? {}).forEach((href) => hrefs.add(href))
-      Object.values(tile.runImages ?? {}).forEach((href) => hrefs.add(href))
-      for (const book of blockFlipbooks(tile)) {
-        book?.sprites.forEach((sprite) => [sprite.href, sprite.emission].forEach((href) => href && hrefs.add(href)))
-      }
     }),
   )
+  // stackOver art is drawn into its own canvas texture by Pixi rather than by drawBoard, but it must be ready before
+  // MapLayers builds that texture. Include every static and animated dependency even when the tile exists only here.
+  Object.values(map.stackOver ?? {}).forEach((layers) => {
+    if (!Array.isArray(layers)) return
+    layers.forEach((id) => addTileArt(getTile(id)))
+  })
   Object.values(map.wallScars ?? {}).forEach((scarTile) => hrefs.add(wallScarImage(scarTile)))
   return [...hrefs]
 }

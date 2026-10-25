@@ -5,7 +5,7 @@ import { isEarlyOutlookStepComplete } from './earlyOutlook.js'
 import { isEducationStepComplete } from './education.js'
 import { isCareerStepComplete } from './career.js'
 import { isCareerHistoryStepComplete } from './careerHistory.js'
-import { isFinishingStepComplete } from './finishingTouches.js'
+import { isFinishingStepComplete } from './finishingRequirements.js'
 
 const STEP_COMPLETION = {
   species: isSpeciesStepComplete,

@@ -1,4 +1,4 @@
-import { objectShotImpactMs } from '../../components/combat/battleHelpers.js'
+import { objectShotImpactMs } from '../shotPresentation.js'
 import { checkDicePurchase, npcMomentumToThreat, payForDice, savableMomentum, saveMomentum } from '../../rules/missionResources.js'
 import { evaluateStaDie, resolveStaTask, rollDice } from '../../rules/taskResolver.js'
 import { previewObjectAttack } from '../combatEnvironment.js'

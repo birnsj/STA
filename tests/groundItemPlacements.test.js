@@ -13,6 +13,7 @@ import {
   groundItemViews,
   pickupItem,
   resetInstanceIds,
+  seedGroundItemPlacements,
   snapItemPosition,
 } from '../src/rules/inventory.js'
 import { makeCharacter } from './support/characters.js'
@@ -154,6 +155,23 @@ describe('mapEdits ground items', () => {
 })
 
 describe('createExplorationState seeding', () => {
+  it('rejects authored supports that current placement rules cannot resolve', () => {
+    const map = parseMapFile(
+      {
+        name: 'Invalid supports',
+        rows: ['#####', '#...#', '#...#', '#####'],
+      },
+      'Invalid supports',
+    )
+    const base = { party: { map }, itemInstances: {}, groundItems: {} }
+    const state = seedGroundItemPlacements(base, [
+      { id: 'bad-tile', itemId: 'medkit', position: { x: 1, y: 1 }, on: { tile: [1, 1] } },
+      { id: 'bad-parent', itemId: 'medkit', position: { x: 2, y: 1 }, on: { placement: 'missing' } },
+    ])
+    assert.deepEqual(state.groundItems, {})
+    assert.deepEqual(state.itemInstances, {})
+  })
+
   it('places all Technical Manual catalogue items as ground instances with snapped positions', () => {
     const map = loadTestMap()
     const state = createExplorationState(map, [makeCharacter({ id: 'a', equipment: [] })], 1, { enemiesActive: false })

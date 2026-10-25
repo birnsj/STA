@@ -26,6 +26,8 @@ Allocation order: the printable ASCII characters first (`"` and `\` are avoided;
 - **`floorUnder`**: optional sparse `{ "x,y": tileId }` on the map file. Remembers the floor (or Null) under a wall or prop so erase restores it. Schema version stays **1** for legacy maps; maps that use Null, `floorUnder`, or `stackOver` write **2**.
 - **`stackOver`**: optional sparse `{ "x,y": [tileId, ...] }` — furniture stacked on a surface cell (bottom → top). Painting a prop onto a tile that already has `surface` appends here instead of replacing the base; erase pops the top layer first. See `src/maps/mapEdits.js` `stackTileOn`.
 - Editor layers (Ground, Walls, Furniture, Characters, Markers) are UI state only — never saved. See `src/maps/layers.js`.
+- **Move transaction (2026-10-24):** moving a tile cell swaps its complete authored structure atomically: base tile, rotation, `floorUnder`, the full `stackOver` list, and every ground-item support subtree rooted on that cell. The move is rejected when the destination cannot safely accept that structure; it never silently drops stack layers or supported items.
+- **Layer locks:** a locked layer is a mutation boundary, not only a visual state. Painting, Move, erase, placement, duplication, inspector edits and patrol edits must all refuse changes owned by that layer; hiding or locking a layer clears incompatible selection/tool state.
 
 ## Tile fields
 

@@ -1,8 +1,9 @@
 // A hostile NPC: in exploration it behaves as any NPC (perception and reactions by its disposition, NPCController); in
 // combat it plays the enemy AI. An NPC becomes one when it turns hostile (controllers.js controllerIdOf), and every
 // combatant on the enemy side is one.
-import { normalStep } from '../combat/autoCombat.js'
-import { canMove, getOpponents } from '../combat/combatState.js'
+import { normalStep } from '../combat/normalCombatStep.js'
+import { canMove } from '../combat/combatMovement.js'
+import { getOpponents } from '../combat/combatSelectors.js'
 import { escapeHazardStep, safeReachable } from '../combat/hazardAvoidance.js'
 import { tileDistance } from '../combat/rangeSystem.js'
 import { NPCController } from './NPCController.js'

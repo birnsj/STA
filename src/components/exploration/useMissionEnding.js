@@ -4,6 +4,7 @@ import { playBeamOutSound } from '../../audio/uiSounds.js'
 import { BEAM_OUT_MS } from '../combat/battleHelpers.js'
 import { perfEnd, perfOff, perfStart } from '../../dev/perfProbe.js'
 import { isMissionAccomplished, isMissionFailed } from '../../exploration/missionObjectives.js'
+import { createWorldTickCadence, takeWorldTick } from '../../exploration/worldClock.js'
 
 // How long the map stays up after the last objective completes before Mission Accomplished shows (implementer pick),
 // so the roll or line that finished it can be seen.
@@ -91,7 +92,7 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
   }
 }
 
-// The world runs in real time: one step per animation frame while running.
+// The world runs in real time, capped at sixty React commits per second while running.
 // flushSync: rendered and committed inside this frame's callback. Left to React's scheduler, the commit landed after the
 // frame was painted, so each frame showed the previous frame's step; with uneven frame times (a missed vsync) the
 // characters then moved in uneven jumps against the camera, which is updated inside the frame.
@@ -99,14 +100,14 @@ export function useWorldClock(dispatch, running) {
   useEffect(() => {
     if (!running) return
     let frame
-    let last = performance.now()
+    const cadence = createWorldTickCadence(performance.now())
     const step = (now) => {
-      if (!perfOff('tick')) {
+      const seconds = takeWorldTick(cadence, now)
+      if (seconds !== null && !perfOff('tick')) {
         const started = perfStart()
-        flushSync(() => dispatch({ type: 'tick', seconds: (now - last) / 1000 }))
+        flushSync(() => dispatch({ type: 'tick', seconds }))
         perfEnd('world.frame', started)
       }
-      last = now
       frame = requestAnimationFrame(step)
     }
     frame = requestAnimationFrame(step)

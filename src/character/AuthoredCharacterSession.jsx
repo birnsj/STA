@@ -10,7 +10,7 @@ export function AuthoredCharacterProvider({ initialCharacter = null, children })
   const [state, dispatch] = useReducer(creatorReducer, undefined, () => {
     if (!initialCharacter) return createInitialState()
     try {
-      return createRestoredState(initialCharacter)
+      return createRestoredState(initialCharacter, { preserveEquipment: true })
     } catch {
       return createInitialState()
     }

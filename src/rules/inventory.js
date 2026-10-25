@@ -1,8 +1,16 @@
 // Play inventory for exploration: item instances, equipment slots, bag, and ground drops.
 // Videogame adaptation — STA 2e has no slot/bag UI (Core p.141 lists issue gear without inventory rules).
-import { TILE_W } from '../maps/iso.js'
 import { getItemById } from './equipment.js'
-import { canPlaceOn, groundItemDepth, propSpriteSize, zOf } from './placement.js'
+import { snapItemPosition } from './itemGrid.js'
+import {
+  canPlaceOn,
+  groundItemDepth,
+  itemSupportChain,
+  propSpriteSize,
+  surfaceOfItem,
+  tileSurfaceAt,
+  zOf,
+} from './placement.js'
 
 export const EQUIP_SLOTS = ['body', 'sidearm', 'scanner', 'communicator']
 export const BAG_COLS = 6
@@ -10,22 +18,16 @@ export const BAG_ROWS = 8
 export const BAG_CAPACITY = BAG_COLS * BAG_ROWS
 // How many bag rows stay visible in the inventory window; the rest scroll.
 export const BAG_VISIBLE_ROWS = 4
-// Default play snap: 2 world-px cells (32×32 per tile when TILE_W is 64).
-export const ITEM_GRID = 32
-export const ITEM_CELL_PX = TILE_W / ITEM_GRID
-
-// Snap a tile-space point to a world-pixel cell size (2, 4, 8, 16, 32, 64, …). Editor guide grid uses the same sizes.
-export function snapItemPosition(point, cellPx = ITEM_CELL_PX) {
-  const size = Number(cellPx) > 0 ? Number(cellPx) : ITEM_CELL_PX
-  const step = size / TILE_W
-  return {
-    x: Math.round(point.x / step) * step,
-    y: Math.round(point.y / step) * step,
-  }
-}
+export { ITEM_CELL_PX, ITEM_GRID, snapItemPosition } from './itemGrid.js'
 
 let nextInstanceSeq = 1
-export const freshInstanceId = () => `item-${nextInstanceSeq++}`
+export function freshInstanceId(used = null) {
+  let id
+  do {
+    id = `item-${nextInstanceSeq++}`
+  } while (used instanceof Set ? used.has(id) : used?.[id])
+  return id
+}
 
 // Reset only for tests so ids stay predictable.
 export function resetInstanceIds(start = 1) {
@@ -101,7 +103,7 @@ function takeInstance(state, instanceId) {
   if (owner.kind === 'ground') {
     const groundItems = { ...state.groundItems }
     delete groundItems[instanceId]
-    return { state: { ...state, groundItems }, owner: { ...owner, instanceId } }
+    return { state: resolveGroundSupports({ ...state, groundItems }), owner: { ...owner, instanceId } }
   }
   const member = state.party.members[owner.memberId]
   const inventory = { ...member.character.inventory, slots: { ...member.character.inventory.slots }, bag: [...member.character.inventory.bag] }
@@ -159,14 +161,14 @@ export function seedMemberInventory(state, memberId, { grantMissionObject = fals
   for (const entry of member.character.equipment ?? []) {
     const def = getItemById(entry.itemId)
     if (!def) continue
-    const id = freshInstanceId()
+    const id = freshInstanceId(itemInstances)
     itemInstances[id] = { id, itemId: def.id, quantity: 1 }
     const slot = def.equipSlot
     if (slot && EQUIP_SLOTS.includes(slot) && !inventory.slots[slot]) inventory.slots[slot] = id
     else if (inventory.bag.length < BAG_CAPACITY) inventory.bag.push(id)
   }
   if (grantMissionObject && getItemById('missionObject') && inventory.bag.length < BAG_CAPACITY) {
-    const id = freshInstanceId()
+    const id = freshInstanceId(itemInstances)
     itemInstances[id] = { id, itemId: 'missionObject', quantity: 1 }
     inventory.bag.push(id)
   }
@@ -187,38 +189,60 @@ function supportFromPlacementOn(on) {
   return null
 }
 
+function authoredSupportIsValid(state, support, category) {
+  if (!support) return true
+  const acceptsCategory = (surface) => Boolean(surface) && (!surface.accepts?.length || (category && surface.accepts.includes(category)))
+  if (support.kind === 'tile') {
+    const map = state.party?.map ?? state.map
+    return Boolean(map && acceptsCategory(tileSurfaceAt(map, support.tile)))
+  }
+  if (support.kind === 'item') {
+    const parent = state.groundItems?.[support.instanceId]
+    const itemId = state.itemInstances?.[support.instanceId]?.itemId
+    return Boolean(parent && itemSupportChain(state, support.instanceId) && acceptsCategory(surfaceOfItem(itemId)))
+  }
+  return false
+}
+
 export function seedGroundItemPlacements(state, placements = []) {
   if (!placements?.length) return state
   let itemInstances = { ...(state.itemInstances ?? {}) }
   let groundItems = { ...(state.groundItems ?? {}) }
   let next = { ...state, itemInstances, groundItems }
-  // First pass: create instances so item-on-item supports can resolve later.
-  const ordered = [...placements]
-  for (const placement of ordered) {
-    const def = getItemById(placement.itemId)
-    if (!def) continue
-    const place = canPlaceAt(next, placement.position, { category: def.category, itemId: def.id })
-    if (!place.ok) continue
-    const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
-    const id = authored ? placement.id : freshInstanceId()
-    itemInstances = { ...itemInstances, [id]: { id, itemId: def.id, quantity: 1 } }
-    const ground = { instanceId: id, position: { x: place.position.x, y: place.position.y } }
-    // Prefer authored `on`; otherwise use what canPlaceAt found under the point.
-    const support = supportFromPlacementOn(placement.on) ?? place.support
-    if (support) ground.support = support
-    if (placement.name) ground.name = placement.name
-    if (placement.pickable === false) ground.pickable = false
-    if (placement.visible === false) ground.visible = false
-    groundItems = { ...groundItems, [id]: ground }
-    next = { ...next, itemInstances, groundItems }
-  }
-  // Second pass: rewrite placement-id supports that used authored placement ids (same as instance ids when authored).
-  for (const [id, entry] of Object.entries(groundItems)) {
-    if (entry.support?.kind !== 'item') continue
-    if (groundItems[entry.support.instanceId]) continue
-    // Orphan support → floor.
-    const { support: _s, ...rest } = entry
-    groundItems = { ...groundItems, [id]: rest }
+  const runtimeIds = new Map()
+  let pending = placements.filter((placement) => getItemById(placement.itemId))
+  while (pending.length) {
+    let progressed = false
+    const deferred = []
+    for (const placement of pending) {
+      const authoredParent = placement.on?.placement
+      if (authoredParent && !runtimeIds.has(authoredParent)) {
+        deferred.push(placement)
+        continue
+      }
+      const def = getItemById(placement.itemId)
+      const authoredSupport = supportFromPlacementOn(
+        authoredParent ? { placement: runtimeIds.get(authoredParent) } : placement.on,
+      )
+      const place = canPlaceAt(next, placement.position, { category: def.category, itemId: def.id })
+      // Authored positions predate current packing sizes, so validate their declared support without reflowing valid files.
+      if (!place.ok || !authoredSupportIsValid(next, authoredSupport, def.category)) continue
+      const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
+      const id = authored ? placement.id : freshInstanceId(itemInstances)
+      if (placement.id) runtimeIds.set(placement.id, id)
+      itemInstances = { ...itemInstances, [id]: { id, itemId: def.id, quantity: 1 } }
+      const ground = { instanceId: id, position: { x: place.position.x, y: place.position.y } }
+      const support = authoredSupport ?? place.support
+      if (support) ground.support = support
+      if (placement.name) ground.name = placement.name
+      if (placement.pickable === false) ground.pickable = false
+      if (placement.visible === false) ground.visible = false
+      groundItems = { ...groundItems, [id]: ground }
+      next = { ...next, itemInstances, groundItems }
+      progressed = true
+    }
+    if (!progressed) break
+    pending = deferred
   }
   return { ...next, itemInstances, groundItems }
 }
@@ -235,7 +259,7 @@ export function seedPartyInventory(state) {
     for (const entry of member.character.equipment ?? []) {
       const def = getItemById(entry.itemId)
       if (!def) continue
-      const id = freshInstanceId()
+      const id = freshInstanceId(itemInstances)
       itemInstances[id] = { id, itemId: def.id, quantity: 1 }
       const slot = def.equipSlot
       if (slot && EQUIP_SLOTS.includes(slot) && !inventory.slots[slot]) inventory.slots[slot] = id
@@ -250,7 +274,7 @@ export function seedPartyInventory(state) {
   if (leaderId && getItemById('missionObject')) {
     const leader = members[leaderId]
     if (leader.character.inventory.bag.length < BAG_CAPACITY) {
-      const id = freshInstanceId()
+      const id = freshInstanceId(itemInstances)
       itemInstances[id] = { id, itemId: 'missionObject', quantity: 1 }
       leader.character = {
         ...leader.character,
@@ -372,22 +396,23 @@ function swapSlotAndBag(state, from, to) {
 }
 
 function swapGroundAndBag(state, owner, to) {
-  const position = state.groundItems[owner.instanceId].position
+  const ground = state.groundItems[owner.instanceId]
   const occupant = state.party.members[to.memberId].character.inventory.bag[to.bagIndex] ?? null
-  const groundItems = { ...state.groundItems }
-  delete groundItems[owner.instanceId]
-  let next = { ...state, groundItems }
+  const taken = takeInstance(state, owner.instanceId)
+  if (!taken) return state
+  let next = taken.state
+  if (occupant) {
+    const dropped = dropItem(next, {
+      instanceId: occupant,
+      position: ground.position,
+      support: ground.support,
+    })
+    if (dropped === next) return state
+    next = dropped
+  }
   const inventory = copyInventory(next.party.members[to.memberId].character)
   inventory.bag = assignBagIndex(inventory.bag, to.bagIndex, owner.instanceId)
-  next = writeInventory(next, to.memberId, inventory)
-  if (!occupant) return next
-  return {
-    ...next,
-    groundItems: {
-      ...next.groundItems,
-      [occupant]: { instanceId: occupant, position: { x: position.x, y: position.y } },
-    },
-  }
+  return writeInventory(next, to.memberId, inventory)
 }
 
 export function moveToBag(state, { memberId, instanceId, toIndex = null }) {
@@ -536,16 +561,16 @@ export function pickupItem(state, { instanceId, memberId }) {
   if (!ground || ground.pickable === false) return state
   const member = state.party.members[memberId]
   if (!member?.character.inventory || bagFreeSlots(member.character) < 1) return state
-  const groundItems = { ...state.groundItems }
-  delete groundItems[instanceId]
   const free = firstFreeBagIndex(member.character.inventory.bag)
   if (free < 0) return state
+  const taken = takeInstance(state, instanceId)
+  if (!taken) return state
   const inventory = {
     ...member.character.inventory,
     slots: { ...member.character.inventory.slots },
     bag: assignBagIndex(member.character.inventory.bag, free, instanceId),
   }
-  const next = { ...state, groundItems }
+  const next = taken.state
   const character = syncEquippedEquipment({ ...member.character, inventory }, next.itemInstances)
   return withMemberCharacter(next, memberId, character)
 }

@@ -42,9 +42,9 @@ describe('Move tool swap', () => {
     assert.equal(isRotated(swapped, { x: 1, y: 1 }), false)
   })
 
-  it('drops a marker from a tile that becomes solid, and does nothing for the same tile', () => {
+  it('refuses to move a solid tile onto a marker, and does nothing for the same tile', () => {
     const map = { ...paintBrush(blank(), { x: 1, y: 1 }, 'crate'), markers: { playerStarts: [{ x: 4, y: 3 }], enemySpawns: [] } }
-    assert.deepEqual(swapTiles(map, { x: 1, y: 1 }, { x: 4, y: 3 }).markers.playerStarts, [])
+    assert.equal(swapTiles(map, { x: 1, y: 1 }, { x: 4, y: 3 }), map)
     assert.equal(swapTiles(map, { x: 2, y: 2 }, { x: 2, y: 2 }), map)
   })
 })

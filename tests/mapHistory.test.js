@@ -1,88 +1,81 @@
-// Document undo/redo helpers are exercised through edit semantics used by useMapDocument.
-// Pure snapshot-stack behaviour mirrored here so the rules stay testable without React.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { createBlankMap } from '../src/maps/mapFormat.js'
-import { paintTile } from '../src/maps/mapEdits.js'
-
-function historyMachine(initial) {
-  let map = initial
-  let undo = []
-  let redo = []
-  let stroke = null
-  const HISTORY_LIMIT = 100
-  return {
-    get map() {
-      return map
-    },
-    get canUndo() {
-      return undo.length > 0
-    },
-    get canRedo() {
-      return redo.length > 0
-    },
-    beginStroke() {
-      if (!stroke) stroke = { before: map, pushed: false }
-    },
-    endStroke() {
-      stroke = null
-    },
-    edit(next) {
-      if (next === map) return
-      if (stroke) {
-        if (!stroke.pushed) {
-          undo = [...undo.slice(-(HISTORY_LIMIT - 1)), stroke.before]
-          stroke.pushed = true
-          redo = []
-        }
-      } else {
-        undo = [...undo.slice(-(HISTORY_LIMIT - 1)), map]
-        redo = []
-      }
-      map = next
-    },
-    undo() {
-      if (!undo.length) return
-      const previous = undo[undo.length - 1]
-      undo = undo.slice(0, -1)
-      redo = [...redo, map]
-      map = previous
-      stroke = null
-    },
-    redo() {
-      if (!redo.length) return
-      const next = redo[redo.length - 1]
-      redo = redo.slice(0, -1)
-      undo = [...undo, map]
-      map = next
-      stroke = null
-    },
-  }
-}
+import { moveGroundItem, paintTile } from '../src/maps/mapEdits.js'
+import {
+  beginMapHistoryStroke,
+  createMapHistory,
+  editMapHistory,
+  endMapHistoryStroke,
+  redoMapHistory,
+  undoMapHistory,
+} from '../src/maps/mapHistory.js'
+import {
+  beginMapDocumentOperation,
+  createMapDocumentGuard,
+  isMapDocumentOperationCurrent,
+  noteMapDocumentChange,
+} from '../src/maps/mapDocumentGuard.js'
 
 describe('map history', () => {
   it('undoes and redoes a single edit', () => {
-    const h = historyMachine(createBlankMap({ width: 4, height: 4 }))
-    h.edit(paintTile(h.map, { x: 1, y: 1 }, 'bulkhead'))
-    assert.equal(h.map.tiles[1][1], 'bulkhead')
-    h.undo()
-    assert.equal(h.map.tiles[1][1], 'floor')
-    h.redo()
-    assert.equal(h.map.tiles[1][1], 'bulkhead')
+    let history = createMapHistory(createBlankMap({ width: 4, height: 4 }))
+    history = editMapHistory(history, paintTile(history.present, { x: 1, y: 1 }, 'bulkhead'))
+    assert.equal(history.present.tiles[1][1], 'bulkhead')
+    history = undoMapHistory(history)
+    assert.equal(history.present.tiles[1][1], 'floor')
+    history = redoMapHistory(history)
+    assert.equal(history.present.tiles[1][1], 'bulkhead')
   })
 
   it('coalesces a stroke into one undo step', () => {
-    const h = historyMachine(createBlankMap({ width: 6, height: 6 }))
-    h.beginStroke()
-    h.edit(paintTile(h.map, { x: 1, y: 1 }, 'bulkhead'))
-    h.edit(paintTile(h.map, { x: 2, y: 1 }, 'bulkhead'))
-    h.edit(paintTile(h.map, { x: 3, y: 1 }, 'bulkhead'))
-    h.endStroke()
-    assert.equal(h.map.tiles[1][1], 'bulkhead')
-    assert.equal(h.map.tiles[1][3], 'bulkhead')
-    h.undo()
-    assert.equal(h.map.tiles[1][1], 'floor')
-    assert.equal(h.map.tiles[1][3], 'floor')
-    assert.equal(h.canUndo, false)
+    let history = beginMapHistoryStroke(createMapHistory(createBlankMap({ width: 6, height: 6 })))
+    history = editMapHistory(history, paintTile(history.present, { x: 1, y: 1 }, 'bulkhead'))
+    history = editMapHistory(history, paintTile(history.present, { x: 2, y: 1 }, 'bulkhead'))
+    history = editMapHistory(history, paintTile(history.present, { x: 3, y: 1 }, 'bulkhead'))
+    history = endMapHistoryStroke(history)
+    assert.equal(history.present.tiles[1][1], 'bulkhead')
+    assert.equal(history.present.tiles[1][3], 'bulkhead')
+    history = undoMapHistory(history)
+    assert.equal(history.present.tiles[1][1], 'floor')
+    assert.equal(history.present.tiles[1][3], 'floor')
+    assert.equal(history.undoStack.length, 0)
+  })
+
+  it('undoes an atomic support-subtree movement as one edit', () => {
+    const map = {
+      ...createBlankMap({ width: 6, height: 6 }),
+      groundItemPlacements: [
+        { id: 'parent', itemId: 'medkit', position: { x: 1.25, y: 1.25 } },
+        { id: 'child', itemId: 'hypospray', position: { x: 1.25, y: 1.25 }, on: { placement: 'parent' } },
+      ],
+    }
+    let history = createMapHistory(map)
+    history = editMapHistory(history, moveGroundItem(history.present, 'parent', { x: 3.25, y: 2.25 }))
+    const movedPosition = history.present.groundItemPlacements[0].position
+    assert.deepEqual(history.present.groundItemPlacements.map((entry) => entry.position), [
+      movedPosition,
+      movedPosition,
+    ])
+    history = undoMapHistory(history)
+    assert.deepEqual(history.present.groundItemPlacements, map.groundItemPlacements)
+  })
+})
+
+describe('map document async guard', () => {
+  it('invalidates an operation when a newer edit occurs', () => {
+    const guard = createMapDocumentGuard()
+    const save = beginMapDocumentOperation(guard)
+    assert.equal(isMapDocumentOperationCurrent(guard, save), true)
+    noteMapDocumentChange(guard)
+    assert.equal(isMapDocumentOperationCurrent(guard, save), false)
+  })
+
+  it('lets only the newest operation replace the document', () => {
+    const guard = createMapDocumentGuard()
+    const load = beginMapDocumentOperation(guard)
+    const generate = beginMapDocumentOperation(guard)
+    assert.equal(isMapDocumentOperationCurrent(guard, load), false)
+    assert.equal(isMapDocumentOperationCurrent(guard, generate), true)
   })
 })

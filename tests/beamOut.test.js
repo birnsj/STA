@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
 import { createExplorationState, explorationReducer } from '../src/exploration/explorationState.js'
-import { MODE } from '../src/exploration/combatLink.js'
+import { getNpcs } from '../src/exploration/awareness.js'
+import { MODE, startCombat } from '../src/exploration/combatLink.js'
 import { parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
@@ -40,6 +41,7 @@ describe('beam out', () => {
     const leaderId = state.party.leaderId
     const follower = state.party.memberIds.find((id) => state.party.members[id].order?.type === 'follow')
     assert.ok(follower)
+    state = explorationReducer(state, { type: 'startBeamOut', ids: [leaderId] })
     state = explorationReducer(state, { type: 'beamOut', ids: [leaderId] })
     assert.equal(state.party.members[follower].order, null)
     assert.notEqual(state.party.leaderId, leaderId)
@@ -57,6 +59,26 @@ describe('beam out', () => {
   it('a fight breaking out before the beam completes keeps them on the mission', () => {
     let state = explorationReducer(start(), { type: 'startBeamOut', ids: ['alpha'] })
     state = explorationReducer({ ...state, mode: MODE.COMBAT }, { type: 'beamOut', ids: ['alpha'] })
+    assert.ok(state.party.memberIds.includes('alpha'))
+    assert.equal(state.party.members.alpha.beaming, false)
+  })
+
+  it('starting combat immediately invalidates every pending beam-out', () => {
+    let state = explorationReducer(start(), { type: 'startBeamOut', ids: ['alpha', 'bravo'] })
+    const npc = getNpcs(state.world).find((candidate) => candidate.character)
+    assert.ok(npc)
+    state = startCombat(state, { triggerNpcId: npc.id, triggerTargetId: 'charlie' })
+    assert.equal(state.mode, MODE.COMBAT)
+    assert.equal(state.party.members.alpha.beaming, false)
+    assert.equal(state.party.members.bravo.beaming, false)
+  })
+
+  it('ignores the old beam timer after that combat has already ended', () => {
+    let state = explorationReducer(start(), { type: 'startBeamOut', ids: ['alpha'] })
+    const npc = getNpcs(state.world).find((candidate) => candidate.character)
+    state = startCombat(state, { triggerNpcId: npc.id, triggerTargetId: 'charlie' })
+    state = { ...state, mode: MODE.EXPLORATION, combat: null }
+    state = explorationReducer(state, { type: 'beamOut', ids: ['alpha'] })
     assert.ok(state.party.memberIds.includes('alpha'))
     assert.equal(state.party.members.alpha.beaming, false)
   })

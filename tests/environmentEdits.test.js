@@ -51,12 +51,13 @@ describe('destructible edits', () => {
     assert.deepEqual(removeDestructible(copy.map, 'epsConduit1').destructibles.map((object) => object.id), [copy.object.id])
   })
 
-  it('painting a wall over a destructible or a hazard tile removes it', () => {
+  it('refuses to paint a wall over a destructible or hazard instead of deleting authored content', () => {
     let map = placeDestructible(blank(), { x: 3, y: 3 }, 'gasCylinder').map
     map = paintAll(map, 'fire', [[5, 5], [6, 5]])
-    map = paintTile(paintTile(map, { x: 3, y: 3 }, WALL_TILE), { x: 5, y: 5 }, WALL_TILE)
-    assert.deepEqual(map.destructibles, [])
-    assert.deepEqual(map.hazards[0].tiles, { '6,5': 2 })
+    assert.equal(paintTile(map, { x: 3, y: 3 }, WALL_TILE), map)
+    assert.equal(paintTile(map, { x: 5, y: 5 }, WALL_TILE), map)
+    assert.equal(map.destructibles[0].id, 'gasCylinder1')
+    assert.deepEqual(map.hazards[0].tiles, { '5,5': 2, '6,5': 2 })
   })
 })
 

@@ -9,8 +9,8 @@
 //   ended (true when a check's outcome ended it: the panel shows the result until closed) } | null.
 // Condition and Action nodes run straight through. Reaching an End node, a missing link or a 'startCombat' action
 // closes the conversation.
-import { isDown, isUp } from '../actors/controllers.js'
-import { getMembers } from '../exploration/partyControl.js'
+import { isDown } from '../actors/controllers.js'
+import { canAct, getMembers } from '../exploration/partyControl.js'
 import { checkDifficultyChange, checksSkipped, resistRequest } from '../exploration/partySocial.js'
 import { rollPartyTask, TASK_SEED_OFFSET } from '../exploration/partyTaskRoll.js'
 import { npcMomentumToThreat, saveMomentum } from '../rules/missionResources.js'
@@ -32,7 +32,12 @@ const NO_HOOKS = { refreshMap: (state) => state, startCombat: (state) => state }
 // signals: filled in by actions that need the runtime to do something afterwards ({ startCombat }).
 function applyActions(state, actions, hooks, npcId, signals) {
   const ctx = { npcId, refreshMap: hooks.refreshMap, signals }
-  return actions.reduce((current, action) => getActionType(action.type)?.apply(current, action, ctx) ?? current, state)
+  let current = state
+  for (const action of actions) {
+    current = getActionType(action.type)?.apply(current, action, ctx) ?? current
+    if (signals.startCombat) break
+  }
+  return current
 }
 
 function close(state, hooks, combat) {
@@ -58,6 +63,7 @@ function advance(state, nodeId, hooks) {
     }
     if (node.type === 'action') {
       current = applyActions(current, node.actions, hooks, conversation.npcId, signals)
+      if (signals.startCombat) return close(current, hooks, true)
       id = node.next
       continue
     }
@@ -129,7 +135,7 @@ export const checkSpec = (node) => ({ attribute: node.attribute, department: nod
 export const OPPOSED_BY = 'Control + Command'
 
 // Who may answer a check: every away team member able to act.
-export const checkCandidates = (state) => getMembers(state.party).filter(isUp)
+export const checkCandidates = (state) => getMembers(state.party).filter(canAct)
 
 // The character math before the roll for one party member (prepareTask's result). Persuading the NPC makes its checks
 // easier, a failed Intimidate harder (partySocial.js).

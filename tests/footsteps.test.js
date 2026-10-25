@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import awarenessData from '../src/data/adaptation/exploration/awareness.json' with { type: 'json' }
-import { createNpc, createWorld, footstepNoise, STATE, tickWorld } from '../src/exploration/awareness.js'
+import { createNpc, createWorld, footstepNoise, STATE } from '../src/exploration/awareness.js'
+import { tickWorld } from '../src/exploration/awarenessTick.js'
 import { createBlankMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 

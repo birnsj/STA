@@ -1,7 +1,8 @@
 // Auto Combat: AI-driven combat on the normal engine. Nothing here depends on React or timers; the screen only decides
 // when to take the next step, so the same steps can run headless (runAutoCombat) for later batch simulation.
-import { controllerFor } from '../actors/controllers.js'
+import { isPlayerControlledActor } from '../actors/actorControl.js'
 import {
+  canAmbush,
   combatReducer,
   createCombat,
   getActiveCombatant,
@@ -14,16 +15,10 @@ import {
   previewAttack,
 } from './combatState.js'
 import { canTakeCover } from './coverSystem.js'
-import { nextAIStep } from './combatAI.js'
-import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
-import { standUpStep } from './combatProne.js'
-import { retreatStep } from './combatRetreat.js'
+import { safeReachable } from './hazardAvoidance.js'
 import { chooseCounterattack, chooseFatigueAttribute } from './injuryPolicy.js'
-import { objectShotStep } from './objectAI.js'
+import { normalStep } from './normalCombatStep.js'
 import { tileDistance } from './rangeSystem.js'
-import { PLANNER_PROFILES, plannerStep } from './turnPlanner.js'
-import { randomStep } from './randomAI.js'
-import { supportStep } from './supportAI.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 
 // Test options for comparing AIs: which AI plays the party in Auto Combat, and which plays the enemies (always AI-run).
@@ -40,24 +35,7 @@ export const PARTY_AIS = [
 
 export const ENEMY_AIS = PARTY_AIS
 
-// One step by the chosen AI ('brain') for whoever is acting; the character's controller (actors/) picks the AI id.
-export function normalStep(state, self, ai) {
-  if (self.retreating) return retreatStep(state, self)
-  // Leave damaging hazards before any other plan (suits with immunity treat those tiles as safe).
-  const escape = escapeHazardStep(state, self)
-  if (escape) return escape
-  const stand = standUpStep(state, self)
-  if (stand) return stand
-  if (ai === 'random') return randomStep(state, self)
-  // Party AIs first weigh Scan, Persuade, Intimidate, First Aid, Guard and Direct against their own attack (supportAI.js).
-  const support = supportStep(state, self)
-  if (support) return support
-  // Either side shoots a destructible object when its blast beats their own best attack (objectAI.js).
-  const objectShot = objectShotStep(state, self)
-  if (objectShot) return objectShot
-  if (PLANNER_PROFILES[ai]) return plannerStep(state, self, ai)
-  return nextAIStep(state)
-}
+export { normalStep } from './normalCombatStep.js'
 
 // Prototype tuning, not a book rule: the party ambushes when it is at least this likely to succeed (Random: half the time).
 const AMBUSH_MIN_CHANCE = 0.5
@@ -111,8 +89,16 @@ export function ambushStep(state, self, ai) {
 // partyAmbush: false skips the opening ambush (to compare fights with and without it). The acting combatant's controller
 // decides: a party member plays the party AI (with the opening ambush), an enemy the enemy AI.
 export function chooseAIStep(state, options = {}) {
+  const { partyAI = 'classic', enemyAI = 'classic', partyAmbush = true } = options
   const self = getActiveCombatant(state)
-  return controllerFor(self).combatStep(state, self, options)
+  if (isPlayerControlledActor(self)) {
+    if (partyAmbush && canAmbush(state)) {
+      const ambush = ambushStep(state, self, partyAI)
+      if (ambush) return ambush
+    }
+    return normalStep(state, self, partyAI)
+  }
+  return normalStep(state, self, enemyAI)
 }
 
 // The attribute a newly Fatigued party member shuts down when the AI plays the party (combat/injuryPolicy.js).

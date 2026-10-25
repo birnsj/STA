@@ -5,7 +5,6 @@ import {
   getBookText,
   getCategories,
   getCharacterValues,
-  getFinishingRequirements,
   getIncreaseRows,
   getKindInfo,
   getLimitAdjustment,
@@ -15,8 +14,8 @@ import {
   getRequiredValueCount,
   getValueMatrix,
   isCustomValueAllowed,
-  isFinishingStepComplete,
 } from '../rules/finishingTouches.js'
+import { getFinishingRequirements, isFinishingStepComplete } from '../rules/finishingRequirements.js'
 import { getValuesHeldElsewhere } from '../rules/characterSheet.js'
 import { NAME_GROUPS, randomName } from '../rules/names.js'
 import { followsDepartment, getAvailablePortraits, getBackdrops, getCharacterBackdrop } from '../rules/appearance.js'

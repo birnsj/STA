@@ -73,7 +73,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 | 3 | Map resize / size presets | Complete | Y | Y | Y | — | Y | Y | Y | Y | `EditorToolbar.jsx`, `resizeMap` |
 | 4 | Location / biome / weather | Complete | Y | Y | Y | — | Y | Y | Y | Y | toolbar + `mapWeather.js` |
 | 5 | Ambient light | Complete | Y | Y | Y | — | Y | Y | Y | Y | `AmbientSlider`; `mapAmbient.test.js` |
-| 6 | Episode name / card | Complete | Y | Y | Y | — | Y | Y | — | Y | `EditorSidePanel`, `EpisodeCardPicker` |
+| 6 | Episode name / card | Complete | Y | Y | Y | — | Y | Y | — | Y | `MapProperties`, `EpisodeCardPicker` |
 | 7 | Generate Map / Name / Card | Complete | Y | Y | Y | Y | Y* | Y* | Y | Y* | Generators (starship layouts = full bulkhead); *until Save |
 | 7b | Deck generator styles + wall variations | Complete | Y | Generator Editor | Y | — | Y‡ | Y‡ | Y | Y | Sprite pickers; corner at junctions; `deckGenerators.json` + `generatedWallVariants.json` |
 | 8 | Area labels | Complete | Y | Y | Y | Y | Y | Y | Y | Y | area tool + serialize |
@@ -256,7 +256,7 @@ Columns: Runtime · Editor create · Configure · Place · Serialize · Reload �
 
 | Area | Files |
 |---|---|
-| Editor shell | `src/screens/MapEditorScreen.jsx`, `EditorToolbar.jsx`, `EditorSidePanel.jsx`, `EditorPalette.jsx`, `useEditorTools.js`, `EditorInspectors.jsx` |
+| Editor shell | `src/screens/MapEditorScreen.jsx`, `EditorToolbar.jsx`, `EditorPropertiesPanel.jsx`, `MapProperties.jsx`, `EditorPalette.jsx`, `useEditorTools.js`, `EditorInspectors.jsx` |
 | Inspectors | `NpcInspector.jsx` (response / perception / patrol), `HazardInspector.jsx`, `DestructibleInspector.jsx`, `GroundItemInspector.jsx`, `ObjectInspector.jsx`, `MarkerInspector.jsx` |
 | Sub-editors | `ObjectEditorScreen.jsx`, `ObjectActionFields.jsx`, `ObjectiveEditorScreen.jsx`, `ConversationEditorScreen.jsx`, `StoryEditorScreen.jsx` |
 | Format I/O | `src/maps/mapFormat.js`, `mapFiles.js`, `mapEdits.js` |

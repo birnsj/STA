@@ -9,7 +9,7 @@
 // it does once it has identified someone. COMBAT_READY is a state and an event here; combatLink.js starts combat from it.
 // Tuning: src/data/adaptation/exploration/awareness.json.
 import { headingTo, wrapAngle } from '../actors/CharacterController.js'
-import { controllerFor, isDown, isUp } from '../actors/controllers.js'
+import { isDown } from '../actors/actorStatus.js'
 import { blocksLineOfFire } from '../combat/battleMap.js'
 import data from '../data/adaptation/exploration/awareness.json'
 import { distance } from './navigation.js'
@@ -27,7 +27,7 @@ const STEPS = data.footsteps
 const toRadians = (degrees) => (degrees * Math.PI) / 180
 const MAX_TICK_SECONDS = 0.05
 const MAX_EVENTS = 40
-const NOISE_SHOW_SECONDS = 1.5
+export const NOISE_SHOW_SECONDS = 1.5
 // Which investigation wins when a new one comes up: checking on a character it identified beats one it only glimpsed,
 // which beats a noise.
 const PRIORITY = { noise: 1, alert: 1, glimpse: 2, lost: 3 }
@@ -267,7 +267,7 @@ export function hearSomething(npc, position, reason, amount) {
   return { ...npc, suspicion, investigation: startInvestigation(position, null, reason, 'react') }
 }
 
-const withEvents = (world, list) => (list.length ? { ...world, events: [...world.events, ...list.map((event) => ({ time: world.time, ...event }))].slice(-MAX_EVENTS) } : world)
+export const appendWorldEvents = (world, list) => (list.length ? { ...world, events: [...world.events, ...list.map((event) => ({ time: world.time, ...event }))].slice(-MAX_EVENTS) } : world)
 
 // A noise at a place: radius = how far it carries, intensity 0..1 = how alarming it is, source = who or what made it
 // (kept for the log only; hearing a noise doesn't tell an NPC who made it).
@@ -279,7 +279,7 @@ export function emitNoise(world, { position, radius, intensity = 1, source = nul
     npcs[npc.id] = hearSomething(npc, position, 'noise', T.noiseSuspicion * intensity)
     events.push({ type: 'NOISE_HEARD', npcId: npc.id })
   })
-  return withEvents({ ...world, npcs, noises: [...world.noises, { position: { ...position }, radius, time: world.time }] }, events)
+  return appendWorldEvents({ ...world, npcs, noises: [...world.noises, { position: { ...position }, radius, time: world.time }] }, events)
 }
 
 // Passes word of a sighting to one alert group: { position, sourceNpcId, targetId, method }. Only members of that group
@@ -307,37 +307,11 @@ export function alertGroup(world, groupId, { position, sourceNpcId = null, targe
     }
     events.push({ type: 'GROUP_ALERT_RECEIVED', npcId: npc.id, targetId: how.grants === 'alerted' ? targetId : null, method: how.id })
   })
-  return withEvents({ ...world, npcs }, events)
+  return appendWorldEvents({ ...world, npcs }, events)
 }
 
 // party: the party-control state (positions of the away team this frame).
-export function tickWorld(world, party, rawSeconds) {
-  const seconds = Math.min(MAX_TICK_SECONDS, Math.max(0, rawSeconds))
-  if (!seconds) return world
-  const time = world.time + seconds
-  // A Defeated party member draws no attention: NPCs only notice those still up.
-  const members = party.memberIds.map((id) => party.members[id]).filter(isUp)
-  const events = []
-  const emit = (event) => events.push(event)
-  const npcs = {}
-  const alerts = []
-  world.npcIds.forEach((id) => {
-    if (isDown(world.npcs[id])) {
-      npcs[id] = world.npcs[id]
-      return
-    }
-    const others = world.npcIds.filter((other) => other !== id).map((other) => world.npcs[other])
-    const npc = world.npcs[id]
-    const result = controllerFor(npc).exploreTick(npc, { map: world.map, members, others, time, seconds, emit })
-    npcs[id] = result.npc
-    alerts.push(...result.alerts)
-  })
-  let next = withEvents({ ...world, time, npcs, noises: world.noises.filter((noise) => time - noise.time < NOISE_SHOW_SECONDS) }, events)
-  alerts.forEach((alert) => {
-    next = alertGroup(next, alert.groupId, alert)
-  })
-  return next
-}
+export const clampSimulationDelta = (rawSeconds) => Math.min(MAX_TICK_SECONDS, Math.max(0, rawSeconds))
 
 // The NPCs that have reached the point where combat should begin: [{ npcId, targetId, time }].
 export const getCombatReady = (world) => getNpcs(world).filter((npc) => npc.combatReady && !isDown(npc)).map((npc) => ({ npcId: npc.id, ...npc.combatReady }))

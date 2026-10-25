@@ -95,9 +95,9 @@ const BIOME_MAP_TYPES = new Set(['forest', 'swamp', 'desert', 'iceField', 'volca
 
 const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const BY_SYMBOL = new Map(TILES.map((tile) => [tile.symbol, tile]))
-export const getTile = (id) => BY_ID.get(id) ?? BY_ID.get(FLOOR_TILE)
-export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id ?? FLOOR_TILE
-export const isEmptyTile = (id) => Boolean(getTile(id).empty)
+export const getTile = (id) => BY_ID.get(id)
+export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id
+export const isEmptyTile = (id) => Boolean(getTile(id)?.empty)
 export const cellKey = ({ x, y }) => `${x},${y}`
 export const parseCellKey = (key) => {
   const [x, y] = String(key).split(',').map(Number)
@@ -117,6 +117,95 @@ const fromPosition = ({ x, y }) => [x, y]
 const toSpawn = ([x, y, facing]) => (facing == null ? { x, y } : { x, y, facing: Number(facing) })
 const fromSpawn = ({ x, y, facing }) => (facing == null ? [x, y] : [x, y, Math.round(facing)])
 const isInside = (width, height, { x, y }) => x >= 0 && y >= 0 && x < width && y < height
+
+function invalidMap(path, message) {
+  throw new Error(`Invalid map ${path}: ${message}`)
+}
+
+function assertTuple(value, path, lengths = [2], { integers = false } = {}) {
+  if (!Array.isArray(value) || !lengths.includes(value.length)) {
+    invalidMap(path, `expected a ${lengths.join('-or-')}-value position tuple`)
+  }
+  value.forEach((part, index) => {
+    if (!Number.isFinite(part) || (integers && !Number.isInteger(part))) {
+      invalidMap(`${path}[${index}]`, integers ? 'expected an integer' : 'expected a finite number')
+    }
+  })
+}
+
+function assertUniqueAuthoredIds(records, path) {
+  const seen = new Set()
+  ;(Array.isArray(records) ? records : []).forEach((record, index) => {
+    if (!record || record.id == null) return
+    const authoredId = String(record.id)
+    if (seen.has(authoredId)) invalidMap(`${path}[${index}].id`, `duplicate authored id “${authoredId}”`)
+    seen.add(authoredId)
+  })
+}
+
+function assertMapFileStructure(file) {
+  if (!file || typeof file !== 'object' || Array.isArray(file)) invalidMap('file', 'expected an object')
+  if (file.schemaVersion != null && ![MAP_SCHEMA_VERSION, MAP_SCHEMA_VERSION_LAYERS].includes(file.schemaVersion)) {
+    invalidMap('schemaVersion', `unsupported version ${String(file.schemaVersion)}; supported versions are 1 and 2`)
+  }
+  if (file.rows != null && !Array.isArray(file.rows)) invalidMap('rows', 'expected an array of strings')
+  let rowWidth = null
+  ;(file.rows ?? []).forEach((row, y) => {
+    if (typeof row !== 'string') invalidMap(`rows[${y}]`, 'expected a string')
+    if (rowWidth == null) rowWidth = row.length
+    else if (row.length !== rowWidth) invalidMap(`rows[${y}]`, `expected width ${rowWidth}, got ${row.length}`)
+    ;[...row].forEach((symbol, x) => {
+      if (!BY_SYMBOL.has(symbol)) invalidMap(`rows[${y}][${x}]`, `unknown tile symbol “${symbol}”`)
+    })
+  })
+  ;(file.rotated ?? []).forEach((position, index) => assertTuple(position, `rotated[${index}]`, [2], { integers: true }))
+  ;['playerStarts', 'enemySpawns'].forEach((kind) => {
+    ;(file.markers?.[kind] ?? []).forEach((position, index) => assertTuple(position, `markers.${kind}[${index}]`, [2, 3]))
+  })
+  ;(file.areas ?? []).forEach((area, index) => assertTuple(area?.position, `areas[${index}].position`))
+  ;(file.npcs ?? []).forEach((npc, index) => {
+    if (npc?.position != null) assertTuple(npc.position, `npcs[${index}].position`)
+    ;(npc?.patrol ?? []).forEach((point, pointIndex) => assertTuple(point?.at, `npcs[${index}].patrol[${pointIndex}].at`))
+  })
+  ;(file.objectives ?? []).forEach((objective, index) => {
+    if (objective?.position != null) assertTuple(objective.position, `objectives[${index}].position`)
+  })
+  Object.entries(file.objectPlacements ?? {}).forEach(([objectId, position]) => assertTuple(position, `objectPlacements.${objectId}`))
+  ;(file.destructibles ?? []).forEach((object, index) => {
+    if (object?.position != null) assertTuple(object.position, `destructibles[${index}].position`)
+    ;(object?.linkedTiles ?? []).forEach((position, linkedIndex) =>
+      assertTuple(position, `destructibles[${index}].linkedTiles[${linkedIndex}]`, [2], { integers: true }),
+    )
+  })
+  ;(file.hazards ?? []).forEach((hazard, index) => {
+    ;(hazard?.tiles ?? []).forEach((tile, tileIndex) => {
+      assertTuple(tile, `hazards[${index}].tiles[${tileIndex}]`, [3])
+      if (!Number.isInteger(tile[0]) || !Number.isInteger(tile[1])) {
+        invalidMap(`hazards[${index}].tiles[${tileIndex}]`, 'tile coordinates must be integers')
+      }
+    })
+  })
+  ;(file.groundItemPlacements ?? []).forEach((placement, index) => {
+    if (placement?.position != null) assertTuple(placement.position, `groundItemPlacements[${index}].position`)
+    if (placement?.on != null) {
+      if (typeof placement.on !== 'object' || Array.isArray(placement.on)) {
+        invalidMap(`groundItemPlacements[${index}].on`, 'expected a support object')
+      }
+      const hasTile = placement.on.tile != null
+      const hasPlacement = placement.on.placement != null
+      if (hasTile === hasPlacement) {
+        invalidMap(`groundItemPlacements[${index}].on`, 'expected exactly one tile or placement reference')
+      }
+      if (hasTile) assertTuple(placement.on.tile, `groundItemPlacements[${index}].on.tile`, [2], { integers: true })
+      if (hasPlacement && (typeof placement.on.placement !== 'string' || !placement.on.placement)) {
+        invalidMap(`groundItemPlacements[${index}].on.placement`, 'expected a non-empty placement id')
+      }
+    }
+  })
+  ;['npcs', 'objectives', 'objects', 'destructibles', 'hazards', 'groundItemPlacements'].forEach((path) =>
+    assertUniqueAuthoredIds(file[path], path),
+  )
+}
 
 export const isRotated = (map, { x, y }) => Boolean(map.rotated?.[y]?.[x])
 const rotationGrid = (width, height, isOn) => Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => isOn(x, y)))
@@ -188,13 +277,16 @@ function parseFloorUnder(raw, inside) {
   if (!raw || typeof raw !== 'object') return {}
   const floorUnder = {}
   for (const [key, id] of Object.entries(raw)) {
+    if (id !== NULL_TILE && id !== null && (typeof id !== 'string' || !TILE_IDS.has(id))) {
+      invalidMap(`floorUnder.${key}`, `unknown tile id “${String(id)}”`)
+    }
     const position = parseCellKey(key)
     if (!inside(position)) continue
     if (id === NULL_TILE || id === null) {
       floorUnder[key] = NULL_TILE
       continue
     }
-    if (typeof id === 'string' && TILE_IDS.has(id)) floorUnder[key] = id
+    floorUnder[key] = id
   }
   return floorUnder
 }
@@ -208,10 +300,13 @@ function parseStackOver(raw, inside) {
   if (!raw || typeof raw !== 'object') return {}
   const stackOver = {}
   for (const [key, layers] of Object.entries(raw)) {
+    if (!Array.isArray(layers)) invalidMap(`stackOver.${key}`, 'expected an array of tile ids')
+    layers.forEach((id, index) => {
+      if (typeof id !== 'string' || !TILE_IDS.has(id)) invalidMap(`stackOver.${key}[${index}]`, `unknown tile id “${String(id)}”`)
+    })
     const position = parseCellKey(key)
-    if (!inside(position) || !Array.isArray(layers)) continue
-    const cleaned = layers.filter((id) => typeof id === 'string' && TILE_IDS.has(id))
-    if (cleaned.length) stackOver[key] = cleaned
+    if (!inside(position)) continue
+    if (layers.length) stackOver[key] = [...layers]
   }
   return stackOver
 }
@@ -254,7 +349,7 @@ function parseGroundItemPlacement(raw, inside, usedIds) {
   if (!inside(position)) return null
   const itemId = String(raw.itemId)
   let id = typeof raw.id === 'string' && raw.id ? raw.id : null
-  if (!id || usedIds.has(id)) id = freeGroundItemId(itemId, usedIds)
+  if (!id) id = freeGroundItemId(itemId, usedIds)
   usedIds.add(id)
   const entry = { id, itemId, position }
   if (typeof raw.name === 'string' && raw.name.trim()) entry.name = raw.name.trim()
@@ -529,16 +624,45 @@ const serializeObjective = (objective) => ({
   ...(objective.completeWhen?.length ? { completeWhen: objective.completeWhen } : {}),
 })
 
+function placementSupportDiagnostics(placements) {
+  const byId = new Map(placements.map((entry) => [entry.id, entry]))
+  const diagnostics = []
+  placements.forEach((entry) => {
+    const target = entry.on?.placement
+    if (target && !byId.has(target)) diagnostics.push(`Ground item ${entry.id} rests on missing placement “${target}”.`)
+  })
+  placements.forEach((entry) => {
+    const seen = new Set()
+    let current = entry
+    while (current?.on?.placement) {
+      if (seen.has(current.id)) {
+        diagnostics.push(`Ground item support cycle includes “${current.id}”.`)
+        break
+      }
+      seen.add(current.id)
+      current = byId.get(current.on.placement)
+    }
+  })
+  return [...new Set(diagnostics)]
+}
+
 // id: the file name the map was loaded from.
 export function parseMapFile(file, id) {
+  assertMapFileStructure(file)
   const rows = file.rows ?? []
   const width = Math.max(...rows.map((row) => row.length), 0)
-  const tiles = rows.map((row) => Array.from({ length: width }, (_, x) => tileIdForSymbol(row[x] ?? '.')))
+  const tiles = rows.map((row, y) =>
+    [...row].map((symbol, x) => {
+      const tileId = tileIdForSymbol(symbol)
+      if (!tileId) invalidMap(`rows[${y}][${x}]`, `unknown tile symbol “${symbol}”`)
+      return tileId
+    }),
+  )
   const inside = (position) => isInside(width, rows.length, position)
   const rotatedKeys = new Set((file.rotated ?? []).map(toPosition).filter(inside).map(({ x, y }) => `${x},${y}`))
   const oldBiomeType = BIOME_MAP_TYPES.has(file.mapType)
   const groundItemIds = new Set()
-  return {
+  const parsed = {
     id,
     name: file.name ?? id,
     episodeName: file.episodeName ?? '',
@@ -582,6 +706,9 @@ export function parseMapFile(file, id) {
     outroFailed: typeof file.outroFailed === 'string' ? file.outroFailed : '',
     stardate: Number.isFinite(file.stardate) ? file.stardate : null,
   }
+  const supportDiagnostics = placementSupportDiagnostics(parsed.groundItemPlacements)
+  if (supportDiagnostics.length) invalidMap('groundItemPlacements', supportDiagnostics.join(' '))
+  return parsed
 }
 
 export function serializeMap(map) {
@@ -597,7 +724,15 @@ export function serializeMap(map) {
     weather: map.weather ?? CLEAR_WEATHER,
     ambient: clampAmbient(map.ambient),
     ambientColour: clampAmbientColour(map.ambientColour),
-    rows: map.tiles.map((row) => row.map((id) => getTile(id).symbol).join('')),
+    rows: map.tiles.map((row, y) =>
+      row
+        .map((id, x) => {
+          const tile = getTile(id)
+          if (!tile) invalidMap(`tiles[${y}][${x}]`, `unknown tile id “${String(id)}”`)
+          return tile.symbol
+        })
+        .join(''),
+    ),
     rotated: map.tiles.flatMap((row, y) => row.flatMap((_, x) => (isRotated(map, { x, y }) ? [[x, y]] : []))),
     ...(floorUnder ? { floorUnder } : {}),
     ...(stackOver ? { stackOver } : {}),
@@ -665,7 +800,12 @@ export function resizeMap(map, width, height, { fill } = {}) {
 // hasAuthoredCharacter: optional (Character Library / editor); when omitted, unknown characterId is not checked.
 export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuthoredCharacter = null } = {}) {
   const warnings = []
-  const tileAt = ({ x, y }) => getTile(map.tiles[y][x])
+  map.tiles.forEach((row, y) =>
+    row.forEach((id, x) => {
+      if (!TILE_IDS.has(id)) warnings.push(`Tile at ${x}, ${y} references unknown tile “${id}”.`)
+    }),
+  )
+  const tileAt = ({ x, y }) => getTile(map.tiles[y][x]) ?? { solid: true }
   const { playerStarts, enemySpawns: spawns } = map.markers
   if (!mapFileId(map.name)) warnings.push('The map needs a name before it can be saved.')
   if (!playerStarts.length) warnings.push('No player start.')
@@ -721,7 +861,7 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
       warnings.push(`Hazard ${hazard.id} neutralize department “${neutralize.department}” is unknown.`)
     }
   })
-  const roles = new Set(map.tiles.flat().map((id) => getTile(id).role))
+  const roles = new Set(map.tiles.flat().map((id) => getTile(id)?.role).filter(Boolean))
   if (roles.has('hazard') && !roles.has('hazardControl')) warnings.push('Hazard tiles but no hazard control, so the hazard can never be set off.')
   if (roles.has('hazardControl') && !roles.has('hazard')) warnings.push('A hazard control but no hazard tiles.')
   const inside = (position) => isInside(map.width, map.height, position)
@@ -743,7 +883,11 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
       if (!TILE_IDS.has(id)) warnings.push(`stackOver at ${key} references unknown tile “${id}”.`)
     })
   })
-  const placementIds = new Set((map.groundItemPlacements ?? []).map((entry) => entry.id))
+  const placementIds = new Set()
+  ;(map.groundItemPlacements ?? []).forEach((entry) => {
+    if (placementIds.has(entry.id)) warnings.push(`Duplicate ground item placement id “${entry.id}”.`)
+    placementIds.add(entry.id)
+  })
   ;(map.groundItemPlacements ?? []).forEach((entry) => {
     const tile = { x: Math.round(entry.position.x), y: Math.round(entry.position.y) }
     if (inside(tile) && isEmptyTile(map.tiles[tile.y][tile.x]) && !entry.on) {
@@ -752,12 +896,13 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
     if (entry.on?.tile) {
       const [tx, ty] = entry.on.tile
       if (!inside({ x: tx, y: ty })) warnings.push(`Ground item ${entry.id} support tile is outside the map.`)
-      else if (!getTile(map.tiles[ty][tx]).surface) warnings.push(`Ground item ${entry.id} rests on a tile without a support surface.`)
+      else if (!getTile(map.tiles[ty][tx])?.surface) warnings.push(`Ground item ${entry.id} rests on a tile without a support surface.`)
     }
     if (entry.on?.placement && !placementIds.has(entry.on.placement)) {
       warnings.push(`Ground item ${entry.id} rests on missing placement “${entry.on.placement}”.`)
     }
   })
+  warnings.push(...placementSupportDiagnostics(map.groundItemPlacements ?? []).filter((message) => !warnings.includes(message)))
   Object.values(map.objectPlacements ?? {}).forEach((position) => {
     if (inside(position) && isEmptyTile(map.tiles[position.y][position.x])) {
       warnings.push(`A challenge object at ${position.x}, ${position.y} is on an empty cell.`)
@@ -774,4 +919,45 @@ export function validateMap(map, { enemySpawns = 0, label = 'this mode', hasAuth
     }
   })
   return warnings
+}
+
+// Problems that make an editor Play hand-off unsafe rather than merely incomplete or unusual. Keep ordinary authoring
+// advice in validateMap; this list is deliberately limited to records that would start inside solids, disappear, alias,
+// or fail to resolve at runtime.
+export function mapPlayErrors(map, { hasAuthoredCharacter = null } = {}) {
+  const errors = []
+  const tileAt = ({ x, y }) => getTile(map.tiles[y]?.[x]) ?? { solid: true, empty: true }
+  const addSolid = (label, position) => {
+    if (tileAt(position).solid) errors.push(`${label} at ${position.x}, ${position.y} is on a solid tile.`)
+  }
+  if (!(map.markers?.playerStarts ?? []).length) errors.push('No player start.')
+  ;[...(map.markers?.playerStarts ?? []), ...(map.markers?.enemySpawns ?? [])].forEach((position) => addSolid('Marker', position))
+  ;(map.npcs ?? []).forEach((npc) => {
+    addSolid(`NPC ${npc.name || npc.id}`, npc.position)
+    if (!npc.characterId || (typeof hasAuthoredCharacter === 'function' && !hasAuthoredCharacter(npc.characterId))) {
+      errors.push(`NPC ${npc.name || npc.id} references no available character.`)
+    }
+  })
+  ;(map.destructibles ?? []).forEach((object) => {
+    addSolid(`Destructible ${object.id}`, object.position)
+    if (!destructibleData.types[object.type]) errors.push(`Destructible ${object.id} has unknown type “${object.type}”.`)
+  })
+  ;(map.hazards ?? []).forEach((hazard) => {
+    if (!hazardData.types[hazard.type]) errors.push(`Hazard ${hazard.id} has unknown type “${hazard.type}”.`)
+  })
+  map.tiles.forEach((row, y) =>
+    row.forEach((id, x) => {
+      if (!TILE_IDS.has(id)) errors.push(`Tile at ${x}, ${y} references unknown tile “${id}”.`)
+    }),
+  )
+  errors.push(...placementSupportDiagnostics(map.groundItemPlacements ?? []))
+  ;(map.groundItemPlacements ?? []).forEach((entry) => {
+    if (entry.on?.tile) {
+      const [x, y] = entry.on.tile
+      if (!map.tiles[y]?.[x] || !getTile(map.tiles[y][x])?.surface) {
+        errors.push(`Ground item ${entry.id} has an invalid support tile.`)
+      }
+    }
+  })
+  return [...new Set(errors)]
 }

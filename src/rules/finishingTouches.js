@@ -6,9 +6,8 @@ import careerLengths from '../data/source/careerLengths.json'
 import finishingAdaptation from '../data/adaptation/finishingTouches.json'
 import { getSampleValues, getValueById, reconcileValue } from './values.js'
 import { getAttributeTotals, getDisciplineTotals } from './characterTotals.js'
-import { getPortraitById, isPortraitAvailable } from './appearance.js'
-import { areAllMet } from './requirements.js'
-import { getFixedCareerTalentId, getTalentById, isTalentSlotMet } from './talents.js'
+import { getPortraitById } from './appearance.js'
+import { getFixedCareerTalentId, getTalentById } from './talentCatalog.js'
 
 const limits = startingPoints.finishedCharacterLimits
 const TALENT_CAP_KEYS = { attributes: 'attributeMax', disciplines: 'departmentMax' }
@@ -351,19 +350,3 @@ function isScoreStepComplete(character, kind) {
   const analysis = getLimitAnalysis(character, kind)
   return analysis.final !== null && analysis.totalMatches
 }
-
-// In category order. Background Notes is optional, so it has no requirement.
-export function getFinishingRequirements(character) {
-  return {
-    finalValue: Boolean(character.finishingTouches.value?.text.trim()) && getCharacterValues(character).length === complete.valueCount,
-    attributes: getFinalScores(character, 'attributes') !== null,
-    disciplines: getFinalScores(character, 'disciplines') !== null,
-    talent: isTalentSlotMet(character, 'finishingTouches'),
-    portrait: isPortraitAvailable(character, character.identity.portrait?.id),
-    // Last, so naming the character is the final choice on the screen (sections unlock in this order).
-    identity: Boolean(character.identity.name.trim()) && hasPronouns(character.identity),
-  }
-}
-
-export const isFinishingStepComplete = (character) =>
-  areAllMet(getFinishingRequirements(character)) && getCharacterFocuses(character).length === complete.focusCount

@@ -189,6 +189,14 @@ function explore(map, seed = 1) {
   return createExplorationState(map, team(), seed)
 }
 
+function tickFor(state, seconds) {
+  let next = state
+  for (let remaining = seconds; remaining > 0; remaining -= 0.05) {
+    next = explorationReducer(next, { type: 'tick', seconds: Math.min(0.05, remaining) })
+  }
+  return next
+}
+
 describe('hazards in exploration', () => {
   it("a hazard's Neutralize goes through the challenge roll and puts the whole region out", () => {
     const map = room({ hazards: [fire('f', { '5,6': 2, '5,7': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 })] })
@@ -242,8 +250,8 @@ describe('hazards in exploration', () => {
 
   it('a hazard round passes every HAZARD_ROUND_SECONDS of world time; the member standing in it takes Stress', () => {
     let state = explore(room({ hazards: [fire('f', { '4,6': 2 }, { spreadChance: 0, dissipateChance: 0, migrateChance: 0 })] }))
-    state = explorationReducer(state, { type: 'tick', seconds: HAZARD_ROUND_SECONDS - 1 })
-    state = explorationReducer(state, { type: 'tick', seconds: 1.5 })
+    state = tickFor(state, HAZARD_ROUND_SECONDS - 1)
+    state = tickFor(state, 1.5)
     assert.ok(state.party.members.alpha.condition.stress > 0)
     assert.equal(state.environment.round, 1)
   })
@@ -255,7 +263,7 @@ describe('hazards across the hand-off', () => {
     map.markers.playerStarts = [{ x: 4, y: 6 }, { x: 4, y: 8 }]
     map.markers.enemySpawns = [{ x: 7, y: 6 }]
     let state = createExplorationState(map, team(), 3)
-    state = explorationReducer(state, { type: 'tick', seconds: HAZARD_ROUND_SECONDS / 2 })
+    state = tickFor(state, HAZARD_ROUND_SECONDS / 2)
     const clockBefore = state.hazardClock
     const [npcId] = Object.keys(state.world.npcs)
     const fighting = explorationReducer(state, { type: 'attackNpc', npcId, targetId: 'alpha' })
@@ -271,7 +279,7 @@ describe('hazards across the hand-off', () => {
     assert.equal(ended.environment.hazards.f.roundsLeft, 3, 'exploration carries on from the fight\'s result')
     assert.equal(ended.environment.round, 2)
     assert.equal(ended.hazardClock, clockBefore, 'the world clock waited while the fight ran')
-    const resumed = explorationReducer(ended, { type: 'tick', seconds: HAZARD_ROUND_SECONDS / 2 + 0.1 })
+    const resumed = tickFor(ended, HAZARD_ROUND_SECONDS / 2 + 0.1)
     assert.equal(resumed.environment.round, 3, 'and the next world round comes when the rest of the interval has passed')
   })
 })

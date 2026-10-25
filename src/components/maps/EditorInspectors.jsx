@@ -1,6 +1,7 @@
 import { assignNpcAppearances } from '../../character/npcAppearance.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { facingTowardCentre } from '../../maps/facing.js'
+import { canEditLayer } from '../../maps/layers.js'
 import {
   clearNpcPatrol,
   removeDestructible,
@@ -11,6 +12,7 @@ import {
   removePatrolWaypoint,
   setFacing,
   toggleMarker,
+  moveGroundItem,
   updateDestructible,
   updateGroundItem,
   updateHazard,
@@ -71,8 +73,12 @@ export default function EditorInspectors({
   onToggleMoveWaypoint,
   onSelectWaypoint,
   onWaypointCleared,
+  layers = null,
 }) {
   const { npc, object, marker, destructible, hazard, groundItem } = selection
+  const mutate = (layerId, change) => {
+    if (canEditLayer(layers, layerId)) edit(change())
+  }
   return (
     <>
       {destructible && (
@@ -80,11 +86,12 @@ export default function EditorInspectors({
           object={destructible}
           moving={destructibleMoving}
           linking={destructibleLinking}
-          onChange={(changes) => edit(updateDestructible(map, destructible.id, changes))}
+          onChange={(changes) => mutate('furniture', () => updateDestructible(map, destructible.id, changes))}
           onMove={onToggleDestructibleMove}
           onLink={onToggleDestructibleLink}
           onDuplicate={onDuplicateDestructible}
           onDelete={() => {
+            if (!canEditLayer(layers, 'furniture')) return
             edit(removeDestructible(map, destructible.id))
             onDestructibleCleared()
           }}
@@ -95,10 +102,12 @@ export default function EditorInspectors({
           object={groundItem}
           map={map}
           moving={groundItemMoving}
-          onChange={(changes) => edit(updateGroundItem(map, groundItem.id, changes))}
+          onChange={(changes) => mutate('furniture', () => updateGroundItem(map, groundItem.id, changes))}
+          onPositionChange={(position) => mutate('furniture', () => moveGroundItem(map, groundItem.id, position))}
           onMove={onToggleGroundItemMove}
           onDuplicate={onDuplicateGroundItem}
           onDelete={() => {
+            if (!canEditLayer(layers, 'furniture')) return
             edit(removeGroundItem(map, groundItem.id))
             onGroundItemCleared()
           }}
@@ -107,8 +116,9 @@ export default function EditorInspectors({
       {hazard && (
         <HazardInspector
           region={hazard}
-          onChange={(changes) => edit(updateHazard(map, hazard.id, changes))}
+          onChange={(changes) => mutate('furniture', () => updateHazard(map, hazard.id, changes))}
           onDelete={() => {
+            if (!canEditLayer(layers, 'furniture')) return
             edit(removeHazard(map, hazard.id))
             onHazardCleared()
           }}
@@ -120,10 +130,11 @@ export default function EditorInspectors({
           appearance={appearanceFor(map, npc.id)}
           conversations={conversations}
           moving={npcMoving}
-          onChange={(changes) => edit(updateNpc(map, npc.id, changes))}
-          onFacing={(facing) => edit(setFacing(map, npc.position, facing))}
+          onChange={(changes) => mutate('characters', () => updateNpc(map, npc.id, changes))}
+          onFacing={(facing) => mutate('characters', () => setFacing(map, npc.position, facing))}
           onMove={onToggleNpcMove}
           onDelete={() => {
+            if (!canEditLayer(layers, 'characters')) return
             edit(removeNpc(map, npc.id))
             onNpcCleared()
           }}
@@ -134,16 +145,19 @@ export default function EditorInspectors({
           onTogglePatrolEdit={onTogglePatrolEdit}
           onToggleMoveWaypoint={onToggleMoveWaypoint}
           onSelectWaypoint={onSelectWaypoint}
-          onChangeWaypoint={(index, changes) => edit(updatePatrolWaypoint(map, npc.id, index, changes))}
+          onChangeWaypoint={(index, changes) => mutate('characters', () => updatePatrolWaypoint(map, npc.id, index, changes))}
           onReorderWaypoint={(from, to) => {
+            if (!canEditLayer(layers, 'characters')) return
             edit(reorderPatrolWaypoint(map, npc.id, from, to))
             onSelectWaypoint(to)
           }}
           onDeleteWaypoint={(index) => {
+            if (!canEditLayer(layers, 'characters')) return
             edit(removePatrolWaypoint(map, npc.id, index))
             onWaypointCleared()
           }}
           onClearPatrol={() => {
+            if (!canEditLayer(layers, 'characters')) return
             edit(clearNpcPatrol(map, npc.id))
             onWaypointCleared()
           }}
@@ -162,7 +176,7 @@ export default function EditorInspectors({
           onOpenEditor={() => onOpenObjectEditor?.(object.id)}
           onReset={() => {
             const { [object.id]: _reset, ...rest } = map.objectPlacements ?? {}
-            edit({ ...map, objectPlacements: rest })
+            mutate('furniture', () => ({ ...map, objectPlacements: rest }))
           }}
         />
       )}
@@ -170,8 +184,9 @@ export default function EditorInspectors({
         <MarkerInspector
           marker={marker}
           defaultFacing={facingTowardCentre(map, marker)}
-          onFacing={(facing) => edit(setFacing(map, marker, facing))}
+          onFacing={(facing) => mutate('characters', () => setFacing(map, marker, facing))}
           onDelete={() => {
+            if (!canEditLayer(layers, 'characters')) return
             edit(toggleMarker(map, marker.kind, marker))
             onMarkerCleared()
           }}

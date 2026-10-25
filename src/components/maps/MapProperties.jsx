@@ -10,7 +10,7 @@ import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 import { PropertySection } from './PropertySections.jsx'
 
 // Map-level properties for the right Properties panel when nothing is selected (or Map tab is forced).
-// Extracted from EditorSidePanel; behavior unchanged.
+// Map-level fields shown in the editor's right Properties panel.
 
 function ScaleSlider({ label, title, min, value, onChange }) {
   return (

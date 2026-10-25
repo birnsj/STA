@@ -5,6 +5,7 @@ import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
 import {
   addPatrolWaypoint,
   areaAt,
+  dependentsAt,
   destructibleAt,
   duplicateDestructible,
   duplicateGroundItem,
@@ -37,10 +38,48 @@ import {
   updateNpc,
 } from '../../maps/mapEdits.js'
 import { canEditLayer, layerOfTile, selectionPriority } from '../../maps/layers.js'
-import { getTile, isRotated, NULL_TILE } from '../../maps/mapFormat.js'
+import { cellKey, getTile, isEmptyTile, isRotated, NULL_TILE } from '../../maps/mapFormat.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
+
+function markerLayersAt(map, position) {
+  const layers = new Set()
+  if (
+    (map.npcs ?? []).some((npc) => npc.position.x === position.x && npc.position.y === position.y) ||
+    [...(map.markers?.playerStarts ?? []), ...(map.markers?.enemySpawns ?? [])].some(
+      (marker) => marker.x === position.x && marker.y === position.y,
+    )
+  ) {
+    layers.add('characters')
+  }
+  if (
+    (map.areas ?? []).some((area) => area.position.x === position.x && area.position.y === position.y) ||
+    (map.objectives ?? []).some((objective) => objective.position?.x === position.x && objective.position?.y === position.y)
+  ) {
+    layers.add('markers')
+  }
+  return [...layers]
+}
+
+function cellAssemblyLayers(map, position, objectDefinitions) {
+  const layers = new Set([layerOfTile(map.tiles[position.y][position.x])])
+  const key = cellKey(position)
+  if (map.floorUnder?.[key] != null) layers.add('ground')
+  if (map.stackOver?.[key]?.length) layers.add('furniture')
+  if (objectDefinitions.some((definition) => definition.position[0] === position.x && definition.position[1] === position.y)) {
+    layers.add('furniture')
+  }
+  if (
+    (map.groundItemPlacements ?? []).some((entry) => {
+      const tile = entry.on?.tile
+      return Array.isArray(tile) && tile[0] === position.x && tile[1] === position.y
+    })
+  ) {
+    layers.add('furniture')
+  }
+  return [...layers]
+}
 
 // The map editor's tools: which tool is held, the board's click / drag / right-click behaviour for each, and what is
 // selected for its inspector (an NPC, a player start or enemy spawn, a challenge object). It edits through edit(map) and
@@ -141,10 +180,37 @@ export default function useEditorTools({
   const selectedDestructible = (map.destructibles ?? []).find((object) => object.id === selectedDestructibleId) ?? null
   const selectedHazard = (map.hazards ?? []).find((region) => region.id === selectedHazardId) ?? null
   const selectedGroundItem = (map.groundItemPlacements ?? []).find((entry) => entry.id === selectedGroundItemId) ?? null
+  const clearLayerSelection = (layerId) => {
+    if (layerId === 'furniture') {
+      setSelectedObjectId(null)
+      setPlacingObject(false)
+      setEditingObjectCovers(false)
+      setSelectedDestructibleId(null)
+      setMovingDestructible(false)
+      setLinkingDestructible(false)
+      setSelectedHazardId(null)
+      setSelectedGroundItemId(null)
+      setMovingGroundItem(false)
+    }
+    if (layerId === 'characters') {
+      setSelectedNpcId(null)
+      setSelectedMarker(null)
+      setMovingNpc(false)
+      setEditingPatrol(false)
+      setSelectedWaypointIndex(null)
+      setMovingWaypoint(false)
+    }
+    if (layerId === 'markers') {
+      setPlacingObjective(null)
+      setPlacingFromEditor(false)
+    }
+    setMoveFrom(null)
+  }
   // Tiles a destructible can't take: where challenge objects stand.
   const objectTiles = useMemo(() => objectDefinitions.map(({ position: [x, y] }) => ({ x, y })), [objectDefinitions])
   const duplicateSelected = () => {
     if (!selectedDestructible) return
+    if (!canEditLayer(layers, 'furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
     const copy = duplicateDestructible(map, selectedDestructible.id, objectTiles)
     if (!copy) return setStatus('No free floor tile near it for the copy.')
     edit(copy.map)
@@ -153,6 +219,7 @@ export default function useEditorTools({
   }
   const duplicateSelectedGroundItem = () => {
     if (!selectedGroundItem) return
+    if (!canEditLayer(layers, 'furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
     const copy = duplicateGroundItem(map, selectedGroundItem.id, itemGridSize)
     if (!copy) return setStatus('No free cell near it for the copy.')
     edit(copy.map)
@@ -182,6 +249,7 @@ export default function useEditorTools({
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && editingPatrol && selectedNpc && selectedWaypointIndex != null) {
         event.preventDefault()
+        if (!canEditLayer(layers, 'characters')) return setStatus('NPCs / Characters layer is locked or hidden.')
         edit(removePatrolWaypoint(map, selectedNpc.id, selectedWaypointIndex))
         setSelectedWaypointIndex(null)
         setMovingWaypoint(false)
@@ -190,6 +258,7 @@ export default function useEditorTools({
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedGroundItem) {
         event.preventDefault()
+        if (!canEditLayer(layers, 'furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
         edit(removeGroundItem(map, selectedGroundItem.id))
         setSelectedGroundItemId(null)
         setMovingGroundItem(false)
@@ -228,6 +297,10 @@ export default function useEditorTools({
   // relocates the selected point.
   const onPatrolEdit = (position) => {
     if (!selectedNpc) return false
+    if (!canEditLayer(layers, 'characters')) {
+      setStatus('NPCs / Characters layer is locked or hidden.')
+      return true
+    }
     const patrol = selectedNpc.patrol ?? []
     if (movingWaypoint && selectedWaypointIndex != null) {
       const moved = updatePatrolWaypoint(map, selectedNpc.id, selectedWaypointIndex, { at: position })
@@ -415,6 +488,7 @@ export default function useEditorTools({
     // Picking linked tiles: each click adds or removes one (a force-field generator's field).
     if (linkingDestructible && selectedDestructible) {
       if (!first) return
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const linked = selectedDestructible.linkedTiles ?? []
       const has = linked.some((tile) => tile.x === position.x && tile.y === position.y)
       const linkedTiles = has ? linked.filter((tile) => tile.x !== position.x || tile.y !== position.y) : [...linked, position]
@@ -424,6 +498,7 @@ export default function useEditorTools({
     }
     if (movingDestructible && selectedDestructible) {
       if (!first) return
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const moved = moveDestructible(map, selectedDestructible.id, position, objectTiles)
       if (moved === map) setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
       edit(moved)
@@ -432,6 +507,7 @@ export default function useEditorTools({
     }
     if (movingGroundItem && selectedGroundItem) {
       if (!first) return
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const moved = moveGroundItem(map, selectedGroundItem.id, position, itemGridSize)
       if (moved === map) setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
       else edit(moved)
@@ -465,6 +541,8 @@ export default function useEditorTools({
     }
     if (placingObject && selectedObject) {
       if (!first) return
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
+      if (isEmptyTile(map.tiles[position.y][position.x])) return setStatus('Challenge objects must be placed on a map tile.')
       edit({ ...map, objectPlacements: { ...(map.objectPlacements ?? {}), [selectedObject.id]: position } })
       setPlacingObject(false)
       setStatus(`Moved ${selectedObject.name} to (${position.x}, ${position.y}).`)
@@ -472,6 +550,7 @@ export default function useEditorTools({
     }
     if (editingObjectCovers && selectedObject) {
       if (!first) return
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const [ox, oy] = selectedObject.position
       if (position.x === ox && position.y === oy) {
         setStatus('The object tile itself cannot be a cover.')
@@ -482,6 +561,8 @@ export default function useEditorTools({
     }
     if (placingObjective !== null) {
       if (!first) return
+      if (!layerAllowsTool('markers')) return setStatus('Markers / Triggers layer is locked or hidden.')
+      if (isEmptyTile(map.tiles[position.y][position.x])) return setStatus('Objective markers must be placed on a map tile.')
       edit({ ...map, objectives: map.objectives.map((objective, index) => (index === placingObjective ? { ...objective, position } : objective)) })
       if (placingFromEditor) onObjectivePlaced(placingObjective)
       setPlacingObjective(null)
@@ -520,7 +601,12 @@ export default function useEditorTools({
           if (result.error) setStatus(result.error)
           else if (result.map !== map) edit(result.map)
         } else {
-          edit(paintBrush(map, position, tileId, rotated))
+          const painted = paintBrush(map, position, tileId, rotated, objectDefinitions)
+          if (painted === map && getTile(tileId).solid && dependentsAt(map, position, objectDefinitions).some((entry) => entry.kind !== 'prop' && entry.kind !== 'object')) {
+            setStatus('Move or remove the occupants before painting a solid tile.')
+          } else {
+            edit(painted)
+          }
         }
       } else if (first) selectAt(position, boardPoint)
       return
@@ -531,10 +617,12 @@ export default function useEditorTools({
       if (!layerAllowsTool('characters')) return setStatus('NPCs / Characters layer is locked or hidden.')
       onNpcTool(position)
     } else if (tool === 'erase') {
-      if (!layerAllowsTool('characters') && !layerAllowsTool('markers')) {
+      const characters = layerAllowsTool('characters')
+      const markers = layerAllowsTool('markers')
+      if (!characters && !markers) {
         return setStatus('Characters and Markers layers are locked or hidden.')
       }
-      edit(eraseMarkers(map, position))
+      edit(eraseMarkers(map, position, { characters, markers }))
     } else if (tool === 'area') {
       if (!layerAllowsTool('markers')) return setStatus('Markers / Triggers layer is locked or hidden.')
       const current = areaAt(map, position)?.name ?? ''
@@ -567,6 +655,7 @@ export default function useEditorTools({
     if (!position || (position.x === moveFrom.x && position.y === moveFrom.y)) return
     // A destructible object goes before markers and tiles: the Move tool carries it alone.
     if (moveFrom.destructible) {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       const moved = moveDestructible(map, moveFrom.destructible, position, objectTiles)
       if (moved === map) return setStatus('Destructible objects stand on free floor tiles (not under a challenge object).')
       edit(moved)
@@ -574,14 +663,21 @@ export default function useEditorTools({
       return
     }
     if (moveFrom.markers) {
+      const blockedLayer = markerLayersAt(map, moveFrom).find((layerId) => !layerAllowsTool(layerId))
+      if (blockedLayer) return setStatus(`${blockedLayer === 'characters' ? 'NPCs / Characters' : 'Markers / Triggers'} layer is locked or hidden.`)
       const moved = moveMarkers(map, moveFrom, position)
       if (moved.error) return setStatus(moved.error)
       edit(moved.map)
       setStatus(`Moved markers from (${moveFrom.x}, ${moveFrom.y}) to (${position.x}, ${position.y}).`)
       return
     }
+    const blockedLayer = [...cellAssemblyLayers(map, moveFrom, objectDefinitions), ...cellAssemblyLayers(map, position, objectDefinitions)].find(
+      (layerId) => !layerAllowsTool(layerId),
+    )
+    if (blockedLayer) return setStatus('A layer in that tile assembly is locked or hidden.')
     const [from, to] = [map.tiles[moveFrom.y][moveFrom.x], map.tiles[position.y][position.x]]
     const swapped = swapTilesWithObjects(map, moveFrom, position, objectDefinitions)
+    if (swapped.error) return setStatus(swapped.error)
     edit(swapped.map)
     setStatus(`Swapped ${getTile(from).label} (${moveFrom.x}, ${moveFrom.y}) with ${getTile(to).label} (${position.x}, ${position.y})${swapped.carried.length ? ', with its challenge object' : ''}.`)
   }
@@ -640,6 +736,7 @@ export default function useEditorTools({
     setTool,
     selectTool,
     clearBoardSelection,
+    clearLayerSelection,
     placing,
     moving,
     moveFrom,

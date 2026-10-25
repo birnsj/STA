@@ -7,6 +7,7 @@ import { getTile, TILE_IMAGE } from '../maps/mapFormat.js'
 import { project, TILE_H, TILE_W, unproject } from '../maps/iso.js'
 import itemArtPixels from '../data/adaptation/itemArtPixels.json'
 import { getItemById } from './equipment.js'
+import { itemGridKey, snapItemPosition } from './itemGrid.js'
 
 // How far in from the tile edge the usable top is (tile units). Small — furniture tops are nearly full-tile.
 export const DEFAULT_SURFACE_INSET = 0.05
@@ -17,26 +18,10 @@ export const ITEM_SUPPORT_DEPTH_CAP = 3
 // Large gear is 32×32 (four per tile). Small gear is 16×16 (sixteen per tile).
 export const STACK_SPOT_PX = 64
 const ART_PIXELS_PER_DESIGN = itemArtPixels.pixelsPerDesign
-// Match inventory.ITEM_CELL_PX (TILE_W / 32) without importing inventory (avoids a cycle).
-const ITEM_CELL_PX = TILE_W / 32
 // Depth bias so an item on a support always sorts after that tile's block sprite (and its front face).
 const SURFACE_DEPTH_BIAS = 0.55
 
 const cellKey = ({ x, y }) => `${x},${y}`
-
-function snapItemPosition(point, cellPx = ITEM_CELL_PX) {
-  const size = Number(cellPx) > 0 ? Number(cellPx) : ITEM_CELL_PX
-  const step = size / TILE_W
-  return {
-    x: Math.round(point.x / step) * step,
-    y: Math.round(point.y / step) * step,
-  }
-}
-
-function itemGridKey(position, cellPx = ITEM_CELL_PX) {
-  const snapped = snapItemPosition(position, cellPx)
-  return `${snapped.x},${snapped.y}`
-}
 
 // Resolved surface from a tile catalogue entry (opt-in via tiles.json "surface"), or null.
 export function surfaceOfTile(tileOrId) {
@@ -257,46 +242,62 @@ export function itemSupportChain(state, instanceId, { excludeInstanceId = null }
 }
 
 // Derived world Z for a ground entry (or 0 for the floor).
-export function zOf(state, entry) {
-  if (!entry?.support) return 0
+function resolveZ(state, entry, seen) {
+  if (!entry?.support) return { ok: true, value: 0 }
   if (entry.support.kind === 'tile') {
     const map = state.party?.map ?? state.map
     const surface = tileSurfaceAt(map, entry.support.tile)
-    return surface?.topZ ?? 0
+    return { ok: true, value: surface?.topZ ?? 0 }
   }
   if (entry.support.kind === 'item') {
-    const parent = state.groundItems?.[entry.support.instanceId]
-    if (!parent) return 0
+    const parentId = entry.support.instanceId
+    if (seen.has(parentId)) return { ok: false, value: 0 }
+    const parent = state.groundItems?.[parentId]
+    if (!parent) return { ok: true, value: 0 }
     const resolved = parent.instanceId ? getItemById(state.itemInstances?.[parent.instanceId]?.itemId) : null
     // The parent's top is its picture's painted height.
     const surface = surfaceOfItem(resolved) ?? surfaceOfItem(state.itemInstances?.[parent.instanceId]?.itemId)
-    const parentZ = zOf(state, parent)
-    return parentZ + (surface?.topZ ?? 0)
+    const parentZ = resolveZ(state, parent, new Set([...seen, parentId]))
+    return parentZ.ok ? { ok: true, value: parentZ.value + (surface?.topZ ?? 0) } : parentZ
   }
-  return 0
+  return { ok: true, value: 0 }
+}
+
+export function zOf(state, entry) {
+  const seen = new Set(entry?.instanceId ? [entry.instanceId] : [])
+  return resolveZ(state, entry, seen).value
 }
 
 // Depth sort key for a ground item.
 // Floor: x + y + 0.35 (unchanged).
 // On a support: at least the support tile's depth + bias (so the table/crate front face never covers the item),
 // and at least the item's own x + y + bias (so a drop near the near edge sorts in front of diagonal neighbours).
-export function groundItemDepth(state, entry) {
+function resolveGroundItemDepth(state, entry, seen) {
   const p = entry?.position ?? { x: 0, y: 0 }
-  if (!entry?.support) return p.x + p.y + 0.35
+  const floor = p.x + p.y + 0.35
+  if (!entry?.support) return { ok: true, value: floor }
   if (entry.support.kind === 'tile') {
     const t = entry.support.tile
     const surface = tileSurfaceAt(state.party?.map ?? state.map, t)
     const z = surface?.topZ ?? 0
     const stack = 0.01 * (surface?.stackLevel ?? 0)
     // z/TILE_H nudges elevated props slightly "forward" in the painter's sort.
-    return Math.max(p.x + p.y, t.x + t.y) + SURFACE_DEPTH_BIAS + z / TILE_H + stack
+    return { ok: true, value: Math.max(p.x + p.y, t.x + t.y) + SURFACE_DEPTH_BIAS + z / TILE_H + stack }
   }
   if (entry.support.kind === 'item') {
-    const parent = state.groundItems?.[entry.support.instanceId]
-    if (!parent) return p.x + p.y + 0.35
-    return groundItemDepth(state, parent) + 0.02
+    const parentId = entry.support.instanceId
+    if (seen.has(parentId)) return { ok: false, value: floor }
+    const parent = state.groundItems?.[parentId]
+    if (!parent) return { ok: true, value: floor }
+    const parentDepth = resolveGroundItemDepth(state, parent, new Set([...seen, parentId]))
+    return parentDepth.ok ? { ok: true, value: parentDepth.value + 0.02 } : { ok: false, value: floor }
   }
-  return p.x + p.y + 0.35
+  return { ok: true, value: floor }
+}
+
+export function groundItemDepth(state, entry) {
+  const seen = new Set(entry?.instanceId ? [entry.instanceId] : [])
+  return resolveGroundItemDepth(state, entry, seen).value
 }
 
 function categoryAccepted(surface, category) {

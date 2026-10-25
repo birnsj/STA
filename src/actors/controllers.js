@@ -4,6 +4,7 @@ import { isHostile } from '../exploration/awareness.js'
 import { EnemyController } from './EnemyController.js'
 import { NPCController } from './NPCController.js'
 import { PlayerController } from './PlayerController.js'
+export { isDown, isUp } from './actorStatus.js'
 
 // Looked up when needed, not at load, so modules that import each other in a circle load in any order.
 const controllerClass = (controllerId) => ({ player: PlayerController, npc: NPCController, enemy: EnemyController })[controllerId]
@@ -31,7 +32,4 @@ export function controllerFor(actor) {
   return controller
 }
 
-// Shorthands for the questions every system asks about a character.
-export const isUp = (actor) => Boolean(actor) && controllerFor(actor).isUp(actor)
-export const isDown = (actor) => !isUp(actor)
 export const isPlayerControlled = (actor) => controllerFor(actor).isPlayerControlled(actor)

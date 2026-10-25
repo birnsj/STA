@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { createEmptyCharacter } from '../src/character/characterModel.js'
-import { createInitialState, createRestoredState, creatorReducer } from '../src/character/characterReducer.js'
+import { createInitialState, createRestoredState, creatorReducer, tryCreateRestoredState } from '../src/character/characterReducer.js'
 import { getAttributeTotals, getDisciplineTotals } from '../src/rules/characterTotals.js'
 import { validateCharacter } from '../src/rules/characterValidation.js'
 import { getFocusEntries, getTraitEntries, getValueEntries } from '../src/rules/characterSheet.js'
@@ -807,6 +807,25 @@ describe('Export round trip', () => {
     assert.match(normalizeCharacterRecord({ character: {} }).error, /not a character export/)
     assert.match(normalizeCharacterRecord({ final: { attributes: {}, disciplines: {} } }).error, /missing attributes/)
     assert.ok(normalizeCharacterRecord(null).error)
+  })
+
+  it('rejects unsupported schemas, invalid player totals and missing required references', () => {
+    const record = serializeCharacter(BUILT[0].character)
+    assert.match(normalizeCharacterRecord({ ...record, schemaVersion: '0.13.0' }).error, /Unsupported character schema/)
+    assert.match(normalizeCharacterRecord({ ...record, schemaVersion: 'not-a-version' }).error, /Unsupported character schema/)
+    assert.match(normalizeCharacterRecord({ ...record, final: { ...record.final, attributes: { ...record.final.attributes, control: record.final.attributes.control - 1 } } }).error, /attributes total/)
+    assert.match(normalizeCharacterRecord({ ...record, final: { ...record.final, disciplines: { ...record.final.disciplines, command: 6 } } }).error, /outside 1-5/)
+    assert.match(normalizeCharacterRecord({ ...record, character: { ...record.character, species: null } }).error, /species reference/)
+    assert.match(normalizeCharacterRecord({ ...record, final: { ...record.final, faction: null }, character: { ...record.character, faction: null } }).error, /faction reference/)
+    assert.match(normalizeCharacterRecord({ ...record, final: { ...record.final, department: null }, character: { ...record.character, career: { ...record.character.career, department: null } } }).error, /department reference/)
+  })
+
+  it('reports a failed saved restore instead of producing state to bind', () => {
+    const broken = { ...BUILT[0].character }
+    Object.defineProperty(broken, 'species', { get: () => { throw new Error('broken species') } })
+    const failed = tryCreateRestoredState(broken)
+    assert.equal(failed.restoredState, undefined)
+    assert.match(failed.error, /broken species/)
   })
 })
 

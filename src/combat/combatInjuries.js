@@ -3,7 +3,7 @@
 // suffers it and is Defeated. Prototype (designer 2026-10-15 blasts/hazards; 2026-10-18 weapon attacks): Always spend
 // Stress or Threat when Avoid Injury is possible — no player prompt. Which attribute a newly Fatigued member shuts down
 // still waits for the player (state.pendingFatigue) or injuryPolicy.js for AI.
-import { controllerFor } from '../actors/controllers.js'
+import { isPlayerControlledActor } from '../actors/actorControl.js'
 import { getAttributeName } from '../character/runtimeCharacter.js'
 import {
   addedSeverityCost,
@@ -165,7 +165,7 @@ function resolveOneInjury(state, incoming, avoid) {
 // Injury); anyone else gets combat/injuryPolicy.js's choice now. lines: the log lines being built (appended to).
 export function startFatigueChoice(state, combatantId, lines) {
   const combatant = state.combatants[combatantId]
-  if (controllerFor(combatant).answersPrompts(combatant)) return { ...state, pendingFatigue: { combatantId } }
+  if (isPlayerControlledActor(combatant)) return { ...state, pendingFatigue: { combatantId } }
   const { attributeId, reason } = chooseFatigueAttribute({ combatant })
   lines.push(`AI Decision: shut down ${getAttributeName(attributeId)}`, `Reason: ${reason}`)
   return updateCombatant(state, combatantId, { condition: chooseFatiguedAttribute(combatant.condition, attributeId) })

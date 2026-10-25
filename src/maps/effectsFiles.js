@@ -1,4 +1,5 @@
 // Dev map editor: saves overlay emissive / emit colour / light-pool into tileEffects.json via /__effects.
+import { requestJson } from '../files/jsonHttp.js'
 import {
   overlayEmissive,
   overlayEmitColour,
@@ -10,15 +11,7 @@ import {
 export const canEditEffects = import.meta.env.DEV
 
 async function putEffects(body) {
-  const response = await fetch('/__effects', {
-    method: 'PUT',
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  const result = await response.json()
-  if (!response.ok || result?.error) throw new Error(result?.error ?? `${response.status} ${response.statusText}`)
-  return result
+  return requestJson('/__effects', 'PUT', body)
 }
 
 // Persists emissive strength (and refreshes the live catalogue). Prefer setOverlayEmissiveLocal while dragging.

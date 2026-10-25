@@ -425,14 +425,6 @@ function assertSquare(item, decoded) {
   }
 }
 
-function writeTiles(drawn) {
-  const dir = path.join(root, 'public/art/sprites/environment/calibration')
-  fs.mkdirSync(dir, { recursive: true })
-  for (const spec of TILES) {
-    fs.writeFileSync(path.join(dir, `${spec.id}.png`), drawn.get(spec.id).png)
-  }
-}
-
 function tileLine(spec) {
   const ih = imageHeightFor(spec.height)
   const image = `/art/sprites/environment/calibration/${spec.id}.png`

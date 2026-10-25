@@ -9,6 +9,7 @@ import {
   equipItem,
   pickupItem,
   resetInstanceIds,
+  seedMemberInventory,
   seedPartyInventory,
   snapItemPosition,
   transferItem,
@@ -61,6 +62,25 @@ describe('seedPartyInventory', () => {
     const equippedIds = getEquippedItems(state.party.members.a.character).map((item) => item.id)
     assert.ok(equippedIds.includes('phaserType2'))
     assert.ok(!equippedIds.includes('medkit'), 'bag items are not equipped')
+  })
+
+  it('allocates around authored instance ids when a member beams in later', () => {
+    const character = makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }] })
+    const state = {
+      party: {
+        map: { width: 8, height: 8, tiles: Array.from({ length: 8 }, () => Array(8).fill('floor')) },
+        memberIds: ['a'],
+        members: { a: { id: 'a', character: { ...character, inventory: null }, position: { x: 1, y: 1 } } },
+        leaderId: 'a',
+      },
+      itemInstances: { 'item-1': { id: 'item-1', itemId: 'hypospray', quantity: 1 } },
+      groundItems: { 'item-1': { instanceId: 'item-1', position: { x: 2, y: 2 } } },
+    }
+    const seeded = seedMemberInventory(state, 'a')
+    assert.equal(seeded.itemInstances['item-1'].itemId, 'hypospray')
+    const medkitId = seeded.party.members.a.character.inventory.bag.find((id) => seeded.itemInstances[id]?.itemId === 'medkit')
+    assert.ok(medkitId)
+    assert.notEqual(medkitId, 'item-1')
   })
 })
 
@@ -178,6 +198,54 @@ describe('ground drop and pickup', () => {
     state = pickupItem(state, { instanceId: medkitId, memberId: 'a' })
     assert.ok(!state.groundItems[medkitId])
     assert.ok(state.party.members.a.character.inventory.bag.includes(medkitId))
+  })
+
+  it('settles dependents instead of leaving a stale support when their parent is picked up', () => {
+    let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'hypospray' }] })])
+    const parentId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    const childId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'hypospray')
+    state = {
+      ...state,
+      groundItems: {
+        [parentId]: { instanceId: parentId, position: { x: 3.5, y: 3.5 } },
+        [childId]: { instanceId: childId, position: { x: 3.5, y: 3.5 }, support: { kind: 'item', instanceId: parentId } },
+      },
+      party: {
+        ...state.party,
+        members: {
+          ...state.party.members,
+          a: {
+            ...state.party.members.a,
+            character: {
+              ...state.party.members.a.character,
+              inventory: { ...state.party.members.a.character.inventory, bag: [] },
+            },
+          },
+        },
+      },
+    }
+    state = pickupItem(state, { instanceId: parentId, memberId: 'a' })
+    assert.equal(state.groundItems[parentId], undefined)
+    assert.notDeepEqual(state.groundItems[childId]?.support, { kind: 'item', instanceId: parentId })
+  })
+
+  it('validates an occupied bag swap and preserves the ground support', () => {
+    const tiles = Array.from({ length: 8 }, () => Array(8).fill('floor'))
+    tiles[3][3] = 'crate'
+    let state = partyState([makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }] })], {
+      width: 8,
+      height: 8,
+      tiles,
+      stackOver: {},
+    })
+    const medkitId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    const missionId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'missionObject')
+    const support = { kind: 'tile', tile: { x: 3, y: 3 } }
+    state = dropItem(state, { instanceId: medkitId, position: { x: 3.5, y: 3.5 }, support })
+    const missionIndex = state.party.members.a.character.inventory.bag.indexOf(missionId)
+    state = transferItem(state, { instanceId: medkitId, toMemberId: 'a', toBagIndex: missionIndex })
+    assert.equal(state.party.members.a.character.inventory.bag[missionIndex], medkitId)
+    assert.deepEqual(state.groundItems[missionId]?.support, support)
   })
 
   it('transferItem from the ground into another member bag (world drop-on-figure)', () => {

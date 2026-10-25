@@ -18,9 +18,9 @@ import {
 } from '../exploration/awareness.js'
 import { distance, planRoute, RADIUS, slide } from '../exploration/navigation.js'
 import { getSpriteAnimation } from '../rules/appearance.js'
+import { isDefeated } from '../rules/personalCondition.js'
 import { tickWaypointAnim } from '../maps/waypointAnimRuntime.js'
 import { CharacterController, headingTo, wrapAngle } from './CharacterController.js'
-import { isDown } from './controllers.js'
 
 const T = data.timing
 const MOVE = data.movement
@@ -272,7 +272,7 @@ export class NPCController extends CharacterController {
       pathGoal = null
     }
     if (look !== null) heading = turnToward(heading, look, seconds)
-    position = keepClear(map, position, [...members, ...others.filter((other) => !isDown(other))])
+    position = keepClear(map, position, [...members, ...others.filter((other) => !isDefeated(other.condition))])
     return { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, suspicion, investigation, waypointAnim }
   }
 

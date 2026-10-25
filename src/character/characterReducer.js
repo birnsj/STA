@@ -232,23 +232,32 @@ function finalize(character, previous = null) {
 }
 
 // Restores a saved character; reconciling repairs anything the current rules no longer allow.
-export function createRestoredState(savedCharacter) {
+export function createRestoredState(savedCharacter, { preserveEquipment = false } = {}) {
   if (!savedCharacter) return createInitialState()
   const { confirmedAt } = savedCharacter
-  const character = finalize(savedCharacter)
+  let character = finalize(savedCharacter)
+  // Authored records may carry bespoke stat-block gear. Player saves still use the creator's career reconciliation.
+  if (preserveEquipment && Array.isArray(savedCharacter.equipment)) {
+    character = { ...character, equipment: structuredClone(savedCharacter.equipment) }
+  }
   return {
     character: confirmedAt && isCharacterValid(character) ? { ...character, confirmedAt } : character,
     memory: createEmptyMemory(),
   }
 }
 
-// A saved character the current rules can't read leaves the current character untouched.
-function loadCharacter(state, savedCharacter) {
+export function tryCreateRestoredState(savedCharacter, options) {
   try {
-    return savedCharacter ? createRestoredState(savedCharacter) : state
-  } catch {
-    return state
+    return { restoredState: createRestoredState(savedCharacter, options) }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Saved character data could not be restored.' }
   }
+}
+
+// Loading is prepared by the caller so a failed restore is explicit before it binds a save id.
+function loadCharacter(state, action) {
+  if (action.restoredState) return action.restoredState
+  return action.character ? createRestoredState(action.character, action.options) : state
 }
 
 // confirmedAt can be supplied so the caller can save the exact same confirmed character it dispatched.
@@ -259,7 +268,7 @@ function confirm(state, confirmedAt = new Date().toISOString()) {
 
 export function creatorReducer(state, action) {
   if (action.type === 'resetCharacter') return createInitialState()
-  if (action.type === 'loadCharacter') return loadCharacter(state, action.character)
+  if (action.type === 'loadCharacter') return loadCharacter(state, action)
   if (action.type === 'confirmCharacter') return confirm(state, action.confirmedAt)
   if (action.type === 'autoChooseStep') {
     const auto = autoChooseStep(state, action.stepId, action.seed)

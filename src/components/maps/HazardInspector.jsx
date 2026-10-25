@@ -27,6 +27,20 @@ const capitalised = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(
 // The map editor's panel for a hazard region: type/tiles, intensity, and overrides of type values (hazards.json).
 export default function HazardInspector({ region, onChange, onDelete }) {
   const info = HAZARD_TYPES[region.type]
+  if (!info) {
+    return (
+      <div className="me-inspector">
+        <PropertySection id="hazard" title={`Hazard · ${region.id}`}>
+          <p className="me-text">
+            <strong>Unknown hazard type “{region.type || '(blank)'}”.</strong> This region is preserved but cannot be edited or used in play.
+          </p>
+          <button type="button" className="me-button" onClick={onDelete}>
+            Delete Region
+          </button>
+        </PropertySection>
+      </div>
+    )
+  }
   const intensities = Object.values(region.tiles)
   const uniform = intensities.every((value) => value === intensities[0]) ? intensities[0] : ''
   const effectiveInjury = hazardValue(region, 'injuryType') ?? info.injuryType
