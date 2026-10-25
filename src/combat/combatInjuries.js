@@ -21,7 +21,7 @@ import {
   takeHit,
 } from '../rules/personalCondition.js'
 import { tileKey } from './battleMap.js'
-import { blastFaceOrigin, blastThrow, isExplosionInjury } from '../rules/appearance.js'
+import { attackKnockbackFacing, attackKnockbackTiles, blastFaceOrigin, blastLandingCell, blastThrow, isExplosionInjury } from '../rules/appearance.js'
 import { updateCombatant, withStats } from './combatLog.js'
 import { proneCoverProtection } from './combatProne.js'
 import { getTurnOf, knowsAbout, statusText } from './combatSelectors.js'
@@ -84,6 +84,24 @@ function occupiedCombatKeys(state, exceptId) {
       .filter((other) => other.id !== exceptId && !other.fled && !other.condition?.defeated)
       .map((other) => tileKey(other.position)),
   )
+}
+
+// A hit that generates at least 3 Momentum throws the target along the attack. The renderer already knows how to
+// interpolate blastReact from `from` to `land`; this deliberately reuses that presentation path without pretending the
+// weapon was an explosion. A standing survivor falls and gets back up; a Defeated target stays down where it lands.
+export function applyAttackThrow(state, attackerId, targetId, momentumGenerated) {
+  const tiles = attackKnockbackTiles(momentumGenerated)
+  const attacker = state.combatants[attackerId]
+  const target = state.combatants[targetId]
+  if (!tiles || !attacker || !target) return state
+  const facing = attackKnockbackFacing(attacker.position, target.position, `${state.seed}:${state.log.length}:${targetId}`)
+  const from = { x: Math.round(target.position.x), y: Math.round(target.position.y) }
+  const land = blastLandingCell(state.map, from, facing, tiles, occupiedCombatKeys(state, targetId))
+  return updateCombatant(state, targetId, {
+    position: { ...land },
+    facing: { x: -facing.x, y: -facing.y },
+    blastReact: { key: `heavy:${state.log.length}:${targetId}`, from, land, facing },
+  })
 }
 
 // Move a combatant to the tile a blast throws them to (get up / lie where they land). Facing looks at the explosive.

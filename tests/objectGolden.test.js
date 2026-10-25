@@ -22,15 +22,15 @@ import { objectFor } from '../src/world/objects.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  // Re-baselined 2026-10-20: Deck 10 visual mix (Andorian/Tellarite/Vulcan + Klingon faces) and side conversations.
-  brigClosed: '9d7f6b81592e86a7',
-  brigCleared: 'eb7b15f906b20318',
-  brigLockout: 'c1bbc30fc5862c62',
-  vault: 'db68ed6fd6208ce1',
+  // Re-baselined 2026-10-25: rank-and-file Klingons now use their stat block's Minor NPC rules.
+  brigClosed: 'fea2f9e9b20908a2',
+  brigCleared: '7ddfc1442e78f0ce',
+  brigLockout: '2c95909442998511',
+  vault: 'fd4bbe8af3e62c51',
   // Re-baselined 2026-10-21: the Klingon expansion (95bbb71: stat-block default npcRules, personal Threat, prone) moved this
   // from dc25d1817baf3a41; the value committed with it ('bec5face863f5f7c') never matched that commit's own code.
-  combat: '503471f01f625d95',
-  conversation: '46582c89f5f33692',
+  combat: '04f24415254db2f4',
+  conversation: 'b9ff74c45f6c8cdb',
 }
 
 const PRINT = Boolean(process.env.GOLDEN_PRINT)

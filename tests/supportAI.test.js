@@ -42,7 +42,11 @@ describe('party AI support actions', () => {
 
   it('asks an enemy with no Stress left to surrender', () => {
     const { state, enemy } = fight()
-    const worn = setCombatant(state, enemy.id, { condition: { ...enemy.condition, stress: 99 } })
+    const supporting = { ...enemy.character, npcRules: 'supporting' }
+    const worn = setCombatant(state, enemy.id, {
+      character: supporting,
+      condition: { ...enemy.condition, stress: Math.ceil(supporting.attributes.fitness / 2) },
+    })
     const step = chooseAIStep(worn, { partyAI: 'classic', partyAmbush: false })
     assert.ok(SOCIAL_KINDS.includes(step.type), step.type)
     assert.equal(step.targetId, enemy.id)

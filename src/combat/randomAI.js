@@ -2,7 +2,7 @@
 // AIs against. The pick comes from the combat's seed and log length (not Math.random), so a seeded fight still replays
 // exactly. Pending rolls are still answered, since the fight cannot continue otherwise.
 import { canAfford, canAim, canMove, canSprint, getAssistableAllies, getOpponents } from './combatState.js'
-import { bestShot, injuryModesFor, pendingStep } from './combatAI.js'
+import { aiUnarmedVariant, bestShot, injuryModesFor, pendingStep } from './combatAI.js'
 import { escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { supportOptions } from './supportAI.js'
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
@@ -23,7 +23,8 @@ export function randomStep(state, self) {
   const options = [{ type: 'endTurn', decision: 'End turn' }]
   if (canAfford(state, self, 'attack') && shots.length) {
     const { target, shot } = pick(shots)
-    options.push({ type: 'attack', targetId: target.id, weaponId: shot.weapon.id, injuryMode: injuryModesFor(state, self, shot.weapon)[0], decision: `Attack ${target.character.name}` })
+    const variant = aiUnarmedVariant(state, self, shot, 'random')
+    options.push({ type: 'attack', targetId: target.id, weaponId: shot.weapon.id, injuryMode: injuryModesFor(state, self, shot.weapon)[0], ...(variant ? { variant } : {}), decision: `Attack ${target.character.name}` })
   }
   if (canAim(state, self) && shots.length) {
     const { target, shot } = pick(shots)

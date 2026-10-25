@@ -29,6 +29,54 @@ test('a strike plays once, for its animation length at the playback speed, then 
   assert.equal(shownPose(others).animation, 'idle')
 })
 
+test('Punch and Kick use their own strike clips', () => {
+  const start = initialPose(poseInput(standing))
+  const punch = advancePose(start, poseInput(standing, { lastAction: { ...shot(10), variant: 'punch' } }), 0)
+  const kick = advancePose(start, poseInput(standing, { lastAction: { ...shot(11), variant: 'kick' } }), 0)
+  assert.equal(shownPose(punch).animation, 'punch')
+  assert.equal(shownPose(kick).animation, 'kick')
+})
+
+test('a target dodges a miss, flinches from a low hit, and leaves heavy hits to the throw pose', () => {
+  const start = initialPose(poseInput(standing))
+  const miss = { ...shot(20, 'phaserType2', 'k2'), targetId: 'k1', passed: false, removed: false, momentumGenerated: 0 }
+  const low = { ...miss, key: 21, passed: true, momentumGenerated: 2 }
+  const heavy = { ...low, key: 22, momentumGenerated: 3 }
+  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: miss }), 0)).animation, 'dodge')
+  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: low }), 0)).animation, 'getHit')
+  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: heavy }), 0)).animation, 'idle')
+})
+
+test('a Defeated target flinches, then falls, and a heavy hit uses the fly-back', () => {
+  const start = initialPose(poseInput(standing))
+  const low = { ...shot(30, 'phaserType2', 'k2'), targetId: 'k1', passed: true, removed: true, momentumGenerated: 2 }
+  const flinch = advancePose(start, poseInput(downed, { lastAction: low }), 0)
+  assert.equal(flinch.down, false)
+  assert.equal(shownPose(flinch).animation, 'getHit')
+  const fallen = settlePose(flinch, getSpriteAnimation('getHit').seconds * 1000)
+  assert.equal(fallen.down, true)
+  assert.equal(shownPose(fallen).animation, fallen.fall)
+  assert.notEqual(fallen.fall, 'getHit')
+  const ambush = { ...low, key: 31, type: 'ambush', momentumGenerated: 1 }
+  assert.equal(shownPose(advancePose(start, poseInput(downed, { lastAction: ambush }), 0)).animation, 'getHit')
+  const thrown = {
+    ...downed,
+    blastReact: { key: 'heavy:1:k1', from: { x: 1, y: 1 }, land: { x: 3, y: 1 }, facing: { x: 1, y: 0 } },
+  }
+  const heavy = { ...low, key: 32, momentumGenerated: 4 }
+  const flew = advancePose(start, poseInput(thrown, { lastAction: heavy }), 0)
+  assert.equal(shownPose(flew).animation, 'fallBlastBack')
+  assert.equal(flew.down, true)
+})
+
+test('a target reaction waits for the shot impact', () => {
+  const low = { ...shot(23, 'phaserType2', 'k2'), targetId: 'k1', passed: true, removed: false, momentumGenerated: 1 }
+  const waiting = advancePose(initialPose(poseInput(standing)), poseInput(standing, { lastAction: low, hitDelayMs: 400 }), 1000)
+  assert.equal(shownPose(waiting).animation, 'idle')
+  assert.equal(poseWakeAt(waiting), 1400)
+  assert.equal(shownPose(settlePose(waiting, 1400)).animation, 'getHit')
+})
+
 test('a fall from a shot waits for the shot to land, then plays from its first frame', () => {
   let track = initialPose(poseInput(standing))
   track = advancePose(track, poseInput(downed, { hitDelayMs: 400 }), 1000)

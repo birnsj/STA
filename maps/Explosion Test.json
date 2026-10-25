@@ -56,8 +56,7 @@
       "position": [14, 5],
       "facing": 225,
       "name": "Warrior 1",
-      "disposition": "hostile",
-      "npcRules": "supporting"
+      "disposition": "hostile"
     },
     {
       "id": "enemy2",
@@ -65,8 +64,7 @@
       "position": [16, 6],
       "facing": 225,
       "name": "Warrior 2",
-      "disposition": "aggressive",
-      "npcRules": "supporting"
+      "disposition": "aggressive"
     },
     {
       "id": "enemy3",
@@ -74,8 +72,7 @@
       "position": [18, 5],
       "facing": 180,
       "name": "Warrior 3",
-      "disposition": "hostile",
-      "npcRules": "supporting"
+      "disposition": "hostile"
     },
     {
       "id": "enemy4",
@@ -83,8 +80,7 @@
       "position": [15, 11],
       "facing": 315,
       "name": "Warrior 4",
-      "disposition": "aggressive",
-      "npcRules": "supporting"
+      "disposition": "aggressive"
     },
     {
       "id": "enemy5",
@@ -92,8 +88,7 @@
       "position": [17, 12],
       "facing": 270,
       "name": "Warrior 5",
-      "disposition": "hostile",
-      "npcRules": "supporting"
+      "disposition": "hostile"
     },
     {
       "id": "enemy6",
@@ -101,8 +96,7 @@
       "position": [19, 11],
       "facing": 225,
       "name": "Warrior 6",
-      "disposition": "aggressive",
-      "npcRules": "supporting"
+      "disposition": "aggressive"
     }
   ],
   "objectives": [

@@ -136,6 +136,7 @@ export class UnitView {
     const { combatant } = unit
     const beforeSettle = this.track
     let track = settlePose(this.track, now)
+    track = this.holdClipUntilSheet(unit, track, now)
     // Blast hold → getUp: want getUp immediately; FigureView keeps fall until the sheet assigns.
     if (track.gettingUp && track.gettingUp !== beforeSettle?.gettingUp) {
       track = { ...track, oneShotUntil: null }
@@ -197,6 +198,26 @@ export class UnitView {
     if (!set) return
     // Request getup before further fall work so recolour workers are less likely to starve the stand clip.
     this.figure.sheets.sheet(set, 'getup', unit.colour)
+  }
+
+  // Punch, kick, dodge and get-hit share the reaction sheet. Don't run their clock out while that sheet is still loading,
+  // or the clip ends on the idle frame and a one-hit enemy never shows it.
+  holdClipUntilSheet(unit, track, now) {
+    const name = track.reactionHeldUntil == null ? track.reaction || track.strike : null
+    if (!name) return track
+    const animation = getSpriteAnimation(name)
+    if (!animation || animation.sheetId !== 'reaction') return track
+    const set = this.spriteSetFor(unit)
+    if (!set) return track
+    const entry = this.figure.sheets.sheet(set, animation.sheetId, unit.colour)
+    if (!this.figure.sheets.ready(entry)) {
+      // A missing sheet must not freeze a killing flinch: let the clip end so the fall still plays.
+      if (entry?.failed) return track.oneShotUntil === null ? { ...track, oneShotUntil: now } : track
+      return track.oneShotUntil === null ? track : { ...track, oneShotUntil: null }
+    }
+    if (track.oneShotUntil !== null) return track
+    const ms = (animation.seconds * 1000) / (unit.speed || 1)
+    return { ...track, oneShotUntil: now + ms, playKey: track.playKey + 1 }
   }
 
   // Fall one-shot clock starts only once the fall sheet can draw.

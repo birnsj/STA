@@ -201,6 +201,17 @@ export function blastFaceOrigin(injury, seed = '', fromCell = null) {
   return { x: -away.x, y: -away.y }
 }
 
+// Weapon-impact throw: the attack travels from the attacker through the target. Unlike a blast this is driven by
+// generated Momentum: 3 throws one tile, 4+ throws two (prototype rule, 2026-10-25).
+export function attackKnockbackFacing(attackerPosition, targetPosition, seed = '') {
+  if (attackerPosition && targetPosition) {
+    return snapKnockbackStep(targetPosition.x - attackerPosition.x, targetPosition.y - attackerPosition.y, seed, null)
+  }
+  return snapKnockbackStep(0, 0, seed, null)
+}
+
+export const attackKnockbackTiles = (momentumGenerated) => (momentumGenerated >= 4 ? 2 : momentumGenerated >= 3 ? 1 : 0)
+
 // Whole tile cell for blast math (exploration stands are continuous; map.tiles needs integer indices).
 const gridCell = (position) => (position ? { x: Math.round(position.x), y: Math.round(position.y) } : position)
 
@@ -259,10 +270,12 @@ function knockbackBetween(from, land, facing) {
 
 // From a blastReact { injury, from, land } (or injury alone): slide distance is how far they actually moved.
 export function explosionKnockbackFromReact(blastReact, seed = '') {
-  if (!blastReact?.injury) return null
+  if (!blastReact) return null
   const { injury, from, land } = blastReact
-  const facing = blastReact.facing ?? blastKnockbackFacing(injury, seed)
-  if (from && land) return knockbackBetween(from, land, facing)
+  // Heavy weapon hits reuse the throw renderer without claiming to be explosions. Their authored from/land/facing are
+  // already the complete movement; an injury is only needed for the older explosion-only fallback.
+  if (from && land) return knockbackBetween(from, land, blastReact.facing ?? attackKnockbackFacing(from, land, seed))
+  if (!injury) return null
   return explosionKnockbackFromInjury(injury, seed)
 }
 

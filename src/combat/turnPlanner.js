@@ -4,7 +4,8 @@
 // It replans after every action, so dice results and fallen enemies are always taken into account.
 //
 // Score = expected value of hits landed - dangerWeight x expected value of hits taken back at the end position + a little
-// for closing in. A hit's value: 1, plus killBonus when it would Defeat (Minor NPC, or not enough Stress / Threat left to
+// for closing in. During Auto Combat the party (except Cautious) raises that closing weight so it rushes to Reach.
+// A hit's value: 1, plus killBonus when it would Defeat (Minor NPC, or not enough Stress / Threat left to
 // Avoid the Injury; the same rules the resolver uses).
 // Expected values come from the same rules the attack uses (previewAttack / getHitChance); nothing is rolled here.
 // Enemies are judged by the enemy AI's own habits: each walks then shoots, and targets the nearest party member.
@@ -30,7 +31,7 @@ import {
   isActive,
   previewAttack,
 } from './combatState.js'
-import { bestShot, cancelThreatStep, expectedChance, injuryModesFor, pendingStep, shotSummary } from './combatAI.js'
+import { aiUnarmedVariant, bestShot, cancelThreatStep, expectedChance, injuryModesFor, pendingStep, shotSummary } from './combatAI.js'
 import { damagingHazardAt, escapeHazardStep, safeReachable } from './hazardAvoidance.js'
 import { getMaxStress } from '../rules/personalCondition.js'
 import { TASK_DICE } from '../rules/taskResolver.js'
@@ -58,6 +59,8 @@ const BASE_PROFILE = {
   cohesionWeight: 0,
   // Lookahead: weight of the best shot this character will have next turn from where it ends, after the enemies close in.
   nextTurnWeight: 0,
+  // Extra value for an attack made with a melee weapon; Aggressive uses this to favour closing into Reach.
+  meleeWeight: 0,
 }
 
 // Every planner AI runs out of patience after patienceRounds(Daring) whole rounds without attacking. It then plays like
@@ -69,7 +72,7 @@ export const patienceRounds = (daring) => Math.min(3, Math.max(1, 3 - Math.floor
 
 export const PLANNER_PROFILES = {
   planner: BASE_PROFILE,
-  aggressive: { ...BASE_PROFILE, killBonus: 1.5, dangerWeight: 0.2, approachWeight: 0.1 },
+  aggressive: { ...BASE_PROFILE, killBonus: 1.5, dangerWeight: 0.2, approachWeight: 0.1, meleeWeight: 0.5 },
   cautious: { ...BASE_PROFILE, dangerWeight: 1.6, approachWeight: 0.01, minShotChance: 0.4 },
   squad: { ...BASE_PROFILE, assistWeight: 1.5, focusWeight: 0.5, cohesionWeight: 0.05 },
   lookahead: { ...BASE_PROFILE, nextTurnWeight: 0.5 },
@@ -126,7 +129,7 @@ function bestAttack(state, self, valueOf, profile, fromPosition, { aimed = false
     if (!shot) continue
     const chance = expectedChance(judged, self.id, shot)
     if (chance < profile.minShotChance) continue
-    const value = chance * valueOf(target)
+    const value = chance * valueOf(target) * (shot.weapon.type === 'melee' ? 1 + profile.meleeWeight : 1)
     if (!best || value > best.value) best = { target, shot, chance, value }
   }
   return best
@@ -211,8 +214,15 @@ function nextTurnShot(state, self, position, opponents, valueOf, profile) {
   return bestAttack(predicted, predicted.combatants[self.id], valueOf, profile)
 }
 
-function attackAction(state, self, attack) {
-  return { type: 'attack', targetId: attack.target.id, weaponId: attack.shot.weapon.id, injuryMode: injuryModesFor(state, self, attack.shot.weapon)[0] }
+function attackAction(state, self, attack, profileId) {
+  const variant = aiUnarmedVariant(state, self, attack.shot, profileId)
+  return {
+    type: 'attack',
+    targetId: attack.target.id,
+    weaponId: attack.shot.weapon.id,
+    injuryMode: injuryModesFor(state, self, attack.shot.weapon)[0],
+    ...(variant ? { variant } : {}),
+  }
 }
 
 const attackText = (attack) => `Attack ${attack.target.character.name} (${pct(attack.chance)}, ${shotSummary(attack.shot)})`
@@ -222,9 +232,18 @@ export function plannerStep(state, self, profileId = 'planner') {
   const chosen = PLANNER_PROFILES[profileId] ?? BASE_PROFILE
   const patience = patienceRounds(self.character.attributes.daring)
   const impatient = state.round - (state.stats.byCombatant[self.id]?.lastAttackRound ?? 0) > patience
-  const profile = impatient
+  let profile = impatient
     ? { ...chosen, ...IMPATIENT, dangerWeight: Math.min(chosen.dangerWeight, IMPATIENT.dangerWeight), approachWeight: Math.max(chosen.approachWeight, IMPATIENT.approachWeight) }
     : chosen
+  // Auto Combat party rushes to Reach. Cautious stays at range; enemy planners keep their own weights.
+  if (self.side === 'player' && profileId !== 'cautious') {
+    profile = {
+      ...profile,
+      meleeWeight: Math.max(profile.meleeWeight, 3),
+      approachWeight: Math.max(profile.approachWeight, 0.4),
+      dangerWeight: Math.min(profile.dangerWeight, 0.25),
+    }
+  }
   if (state.pending) return pendingStep(state, self)
   if (!actionsLeft(state.turn)) return { type: 'endTurn', decision: 'End turn', reason: 'No actions left.' }
   if (!getOpponents(state, self).length) return { type: 'endTurn', decision: 'End turn', reason: 'No targets left.' }
@@ -250,9 +269,9 @@ export function plannerStep(state, self, profileId = 'planner') {
 
   add({ type: 'endTurn' }, ['End turn'], 0)
   if (attack) {
-    add(attackAction(state, self, attack), [attackText(attack)], attack.value)
+    add(attackAction(state, self, attack, profileId), [attackText(attack)], attack.value)
     if (both) {
-      for (const entry of tiles) add(attackAction(state, self, attack), [attackText(attack), `Move ${plural(entry.steps, 'tile')}`], attack.value, entry)
+      for (const entry of tiles) add(attackAction(state, self, attack, profileId), [attackText(attack), `Move ${plural(entry.steps, 'tile')}`], attack.value, entry)
       const aimed = canAim(state, self) ? bestAttack(state, self, valueOf, profile, undefined, { aimed: true }) : null
       if (aimed) add({ type: 'aim', targetId: aimed.target.id, weaponId: aimed.shot.weapon.id }, ['Aim', attackText(aimed)], aimed.value)
     }

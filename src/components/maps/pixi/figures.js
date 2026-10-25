@@ -728,8 +728,8 @@ export class FigureView {
     // blasts). preload (combat) asks up front so MapFadeIn waits.
     if (figure.preload || this.sheets.ready(base) || base.failed || revealed) {
       const order = blasting
-        ? ['getup', 'fall', 'combat', 'sneak', 'surrender', 'idle']
-        : ['combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']
+        ? ['getup', 'fall', 'reaction', 'combat', 'sneak', 'surrender', 'idle']
+        : ['reaction', 'combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']
       for (const sheetId of order) this.sheets.sheet(set, sheetId, figure.colour)
     }
     // Panic sheet while burning / afflicted (and with combat preload so MapFadeIn can wait when already on fire).

@@ -80,6 +80,7 @@ describe('sprite sheets and animations (Prototype)', () => {
     const set = getSpriteSetById('human-male')
     assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human/male/human-male.png')
     assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human/male/human-male-combat.png')
+    assert.equal(spriteSheetFile(set, 'reaction'), '/art/sprites/characters/human/male/human-male-reaction.png')
     assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human/male/human-male-fall-uniform.png')
     assert.equal(spriteMaskFile(getSpriteSetById('klingon-male'), 'combat'), null)
   })
@@ -106,7 +107,7 @@ describe('sprite sheets and animations (Prototype)', () => {
         }
       }
     }
-    assert.equal(files, 208)
+    assert.equal(files, 234)
   })
 
   it('keeps the old flat character-sprite paths out of the code', () => {
@@ -342,6 +343,18 @@ describe('blast throw direction and facing (Prototype presentation)', () => {
     assert.equal(land.y + kb.y * -1, from.y)
     // At t = 0 the slide offset is zero, so the figure rests on its landing tile; this only holds for a finite offset.
     assert.ok(Number.isFinite(kb.x) && Number.isFinite(kb.y))
+  })
+
+  it('uses an authored heavy-hit throw even when there is no explosion injury', () => {
+    const from = { x: 3, y: 5 }
+    const land = { x: 5, y: 5 }
+    const kb = explosionKnockbackFromReact({ from, land, facing: { x: 1, y: 0 } }, 'heavy-hit')
+    const fromScreen = project(from)
+    const landScreen = project(land)
+    assert.ok(kb)
+    assert.equal(landScreen.x - kb.x, fromScreen.x)
+    assert.equal(landScreen.y - kb.y, fromScreen.y)
+    assert.equal(kb.tiles, 2)
   })
 })
 

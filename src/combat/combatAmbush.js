@@ -10,7 +10,7 @@ import { seededRandomInt } from '../rules/seededRandom.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { rerollDie, resolveStaTask, rollDice, staTaskChance } from '../rules/taskResolver.js'
 import { previewAttack } from './combatAttacks.js'
-import { inflictInjury, injuryFor } from './combatInjuries.js'
+import { applyAttackThrow, inflictInjury, injuryFor } from './combatInjuries.js'
 import { addLog, diceText, focusText, markAction, momentumLine, recordDecision, takeRandom, taskText, turnHeader, withStats } from './combatLog.js'
 import { getActiveCombatant, getCombatantList, getOpponents, isActive, reachLines } from './combatSelectors.js'
 import { endTurnsOf, freshRound, startTurnOf, withOutcome } from './combatTurnOrder.js'
@@ -99,7 +99,7 @@ export function ambushStep(state, action) {
     const mode = weapon.injuryModes.includes('stun') ? 'stun' : weapon.injuryModes[0]
     // The ambushed target is unaware of the ambusher (Ambush Tactics, combatTalents.js).
     const hit = inflictInjury(next, ambusher.id, target.id, injuryFor(next, ambusher, target, weapon, mode, 0, { aimed: false, targetUnaware: true }))
-    next = hit.state
+    next = applyAttackThrow(hit.state, ambusher.id, target.id, evaluation.momentumGenerated)
     lines.push('RESULT: AMBUSHED', `Automatic hit: ${weapon.name} (${getInjuryMode(mode).name})`, ...hit.lines)
   } else {
     lines.push('RESULT: SPOTTED. The Klingons act first this fight.')
@@ -111,7 +111,13 @@ export function ambushStep(state, action) {
     stats.momentum.saved += saving.saved
     stats.momentum.lost += saving.lost
   })
-  next = markAction(next, 'ambush', ambusher.id, { targetId: target.id, weaponId: ambushWeaponId, passed, removed: !isActive(next.combatants[target.id]) })
+  next = markAction(next, 'ambush', ambusher.id, {
+    targetId: target.id,
+    weaponId: ambushWeaponId,
+    passed,
+    momentumGenerated: evaluation.momentumGenerated,
+    removed: !isActive(next.combatants[target.id]),
+  })
   next = addLog(next, lines)
   next = {
     ...next,

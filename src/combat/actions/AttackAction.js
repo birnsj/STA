@@ -13,7 +13,7 @@ import {
   withoutUsedAssist,
 } from '../combatAttacks.js'
 import { defenderWins } from '../combatCounterattack.js'
-import { affordAddedSeverity, inflictInjury, injuryFor } from '../combatInjuries.js'
+import { affordAddedSeverity, applyAttackThrow, inflictInjury, injuryFor } from '../combatInjuries.js'
 import { knockdownAfterHit, unarmedVariantFor } from '../combatUnarmed.js'
 import { addLog, assistLine, bonusMomentumLine, diceText, focusText, markAction, momentumLine, oppositionName, purchaseLine, recordDecision, takeRandom, taskText, updateCombatant, withStats } from '../combatLog.js'
 import { canAfford, facingToward, isActive } from '../combatSelectors.js'
@@ -230,6 +230,7 @@ export class ResolveAttackAction extends CombatAction {
       next = knocked.state
       knockdownLines = knocked.lines
     }
+    if (passed) next = applyAttackThrow(next, attacker.id, target.id, evaluation.momentumGenerated)
     const after = next.combatants[target.id]
     next = withStats(next, (stats) => {
       if (passed) {
@@ -260,7 +261,16 @@ export class ResolveAttackAction extends CombatAction {
       ...(evaluation.complications ? [`Complications: ${evaluation.complications}`] : []),
       ...(deadlyThreat ? [`Threat +1 (Deadly attack), now ${resources.threat}`] : []),
     ]
-    next = markAction(next, 'resolve', attacker.id, { targetId: target.id, weaponId: weapon.id, passed, removed: !isActive(after), injury, awaiting: false })
+    next = markAction(next, 'resolve', attacker.id, {
+      targetId: target.id,
+      weaponId: weapon.id,
+      variant: pending.variant ?? null,
+      passed,
+      momentumGenerated: evaluation.momentumGenerated,
+      removed: !isActive(after),
+      injury,
+      awaiting: false,
+    })
     next = addLog(next, lines)
     // Book p.290: an opposed attack the target won may be answered with a Counterattack (combatCounterattack.js).
     const won = !passed && pending.opposition ? defenderWins(next, pending, evaluation) : null

@@ -108,6 +108,8 @@ export function takeCounterattack(state, offer, decision) {
     weaponId: weapon.id,
     injuryMode: decision.injuryMode,
     injury,
+    passed: true,
+    momentumGenerated: 0,
     awaiting: false,
     removed: !isActive(hit.state.combatants[attacker.id]),
   })

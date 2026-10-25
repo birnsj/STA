@@ -154,7 +154,6 @@
       "facing": 180,
       "disposition": "hostile",
       "conversationId": "klingonBark",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "male",
       "portraitId": "klingon-male-1"
@@ -169,7 +168,6 @@
       "facing": 225,
       "disposition": "hostile",
       "conversationId": "klingonBark",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "female",
       "portraitId": "klingon-female-1"
@@ -184,7 +182,6 @@
       "facing": 180,
       "disposition": "hostile",
       "conversationId": "klingonBark",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "male",
       "portraitId": "klingon-male-2"
@@ -199,7 +196,6 @@
       "facing": 180,
       "disposition": "hostile",
       "conversationId": "klingonBark",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "female",
       "portraitId": "klingon-female-2"
@@ -214,7 +210,6 @@
       "facing": 180,
       "disposition": "hostile",
       "conversationId": "korathCheckpoint",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "male",
       "portraitId": "klingon-male-3"
@@ -229,7 +224,6 @@
       "facing": 225,
       "disposition": "hostile",
       "conversationId": "torakSentry",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "female",
       "portraitId": "klingon-female-3"
@@ -244,7 +238,6 @@
       "facing": 180,
       "disposition": "hostile",
       "conversationId": "krelWarrior",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "male",
       "portraitId": "klingon-male-4"
@@ -260,7 +253,6 @@
       "name": "Klingon Warrior",
       "disposition": "hostile",
       "conversationId": "klingonBark",
-      "npcRules": "supporting",
       "responseType": "combat",
       "gender": "female",
       "portraitId": "klingon-female-5"

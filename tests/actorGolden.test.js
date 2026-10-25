@@ -15,10 +15,10 @@ import { createBlankMap, parseMapFile } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  // 2026-10-18: waypointAnim on world NPCs + Deck 10 Brig test NPC placements.
-  exploreRoom: '5e241666a75e2d43',
+  // 2026-10-25: Minor Klingons, and Auto Combat parties rush to hand-to-hand.
+  exploreRoom: 'e050a1c7a85ec490',
   exploreBrig: 'ff3272b1aa576678',
-  autoCombat: '07266e856f3ba263',
+  autoCombat: '966b39576d38d0f4',
   handOff: '5f824f185c50116b',
 }
 
@@ -104,6 +104,7 @@ const worldView = (state) => ({
 // sides and handed back to the world. Records the world every 30 frames.
 function playExploration(state, target, frames = 900) {
   const record = []
+  let sawCombat = false
   let next = explorationReducer(state, { type: 'moveTo', target, fresh: true })
   for (let frame = 0; frame < frames; frame += 1) {
     if (next.mode === MODE.COMBAT) {
@@ -112,6 +113,10 @@ function playExploration(state, target, frames = 900) {
         : explorationReducer(next, { type: 'combat', action: { type: 'aiStep', partyAI: 'classic', enemyAI: 'classic', partyAuto: true } })
     } else {
       next = explorationReducer(next, { type: 'tick', seconds: 1 / 60 })
+    }
+    if (next.mode === MODE.COMBAT && !sawCombat) {
+      sawCombat = true
+      record.push(worldView(next))
     }
     if (frame % 30 === 0) record.push(worldView(next))
   }

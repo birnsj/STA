@@ -85,8 +85,8 @@ describe('Combat Scan', () => {
     assert.deepEqual(scanTraitLines(state, alpha, enemy, 2), [])
   })
 
-  it('Stress is shown in the condition without a scan (designer decision, Oct 2026)', () => {
+  it('a rank-and-file Klingon has no Stress track (Minor NPC)', () => {
     const { state, enemy } = fight()
-    assert.match(visibleCondition(state, enemy), /Stress 0\/5/)
+    assert.equal(visibleCondition(state, enemy), 'Unhurt')
   })
 })

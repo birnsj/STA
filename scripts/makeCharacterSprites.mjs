@@ -439,6 +439,53 @@ function meleePose(at) {
   }
 }
 
+function punchPose(at) {
+  return {
+    thigh: [deg(pick([0, -4, 5, 16, 12, 4], at)), deg(pick([0, 3, -3, -10, -8, -2], at))],
+    knee: [deg(5), deg(5)],
+    arm: [deg(28), deg(pick([8, -38, -18, 92, 72, 24], at))],
+    elbow: [deg(75), deg(pick([65, 105, 70, 2, 12, 45], at))],
+    breathe: 0,
+    lean: deg(pick([0, -5, 1, 13, 8, 2], at)),
+  }
+}
+
+function kickPose(at) {
+  return {
+    thigh: [deg(pick([0, -8, -16, -12, -5, 0], at)), deg(pick([0, 12, 58, 88, 34, 0], at))],
+    knee: [deg(pick([5, 12, 20, 8, 10, 5], at)), deg(pick([5, 62, 25, 4, 50, 5], at))],
+    arm: [deg(pick([10, 35, 65, 55, 25, 10], at)), deg(pick([10, -30, -55, -40, -18, 10], at))],
+    elbow: [deg(35), deg(35)],
+    breathe: 0,
+    lean: deg(pick([0, -8, -14, -10, -4, 0], at)),
+  }
+}
+
+function dodgePose(at) {
+  const lean = pick([0, -10, -20, -24, -12, 0], at)
+  return {
+    thigh: [deg(8), deg(-8)],
+    knee: [deg(8), deg(8)],
+    arm: [deg(25), deg(-18)],
+    elbow: [deg(55), deg(55)],
+    breathe: 0,
+    lean: deg(lean),
+    turns: [yawMatrix(deg(pick([0, -18, -35, -40, -20, 0], at)))],
+  }
+}
+
+function getHitPose(at) {
+  const recoil = pick([0, -7, -17, -22, -10, 0], at)
+  return {
+    thigh: [deg(8), deg(8)],
+    knee: [deg(8), deg(8)],
+    arm: [deg(pick([10, 35, 80, 95, 45, 10], at)), deg(pick([10, 45, 90, 75, 35, 10], at))],
+    elbow: [deg(35), deg(35)],
+    breathe: 0,
+    lean: deg(recoil),
+  }
+}
+
 // In cover: down on the right knee, weapon ready, breathing.
 function coverPose(frame, frames) {
   const breathe = Math.sin((frame / frames) * Math.PI * 2)
@@ -679,6 +726,10 @@ function poseFor(animation, frame, frames) {
   if (animation.startsWith('sneak')) return sneakPose(animation, frame, frames)
   if (animation === 'attack') return attackPose(keyAt(frame, frames))
   if (animation === 'melee') return meleePose(keyAt(frame, frames))
+  if (animation === 'punch') return punchPose(keyAt(frame, frames))
+  if (animation === 'kick') return kickPose(keyAt(frame, frames))
+  if (animation === 'dodge') return dodgePose(keyAt(frame, frames))
+  if (animation === 'getHit') return getHitPose(keyAt(frame, frames))
   if (animation === 'cover') return coverPose(frame, frames)
   if (animation.startsWith('fall')) return fallPose(animation, pick(FALL_PROGRESS, keyAt(frame, frames)))
   if (animation === 'idle') {

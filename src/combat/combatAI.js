@@ -11,11 +11,11 @@
 // - enemy: designer spec v1 enemy AI. Nearest target; attack if a shot is available (with the Minor action free, first
 //   moving into cover if a covered tile keeps the shot, else aiming); otherwise move to the best reachable firing position
 //   (lower Difficulty, covered preferred, fewer steps); otherwise close the distance. Prefers Deadly.
-// - player (Auto Combat spec): best available shot across all enemies (lowest Difficulty, exposed, a hit that would
-//   Defeat (no Avoid Injury possible), nearest);
-//   with the Minor action free, when exposed to fire, move next to cover if a shot is still available from there,
-//   otherwise Aim when it can still change the result; after attacking, move into cover with the Minor action if
-//   possible; with no shot and no move left, Assist the ally with the best shot; Stun unless the encounter allows Deadly.
+// - player (Auto Combat spec): rush to hand-to-hand. If a Reach strike is not available from here, Move (else Sprint)
+//   to a tile that has one, or toward the nearest enemy when Reach is still farther than this turn. Only when it cannot
+//   close does it take its best ranged shot. Once in Reach it strikes (cover or Aim first, with the Minor action).
+//   After attacking, move into cover with the Minor action if possible; with no shot and no move left, Assist the ally
+//   with the best shot; Stun unless the encounter allows Deadly.
 // Threat (designer decision, Oct 2026: enemies spend it): the enemy profile buys bonus d20s for a doubtful shot, an
 // Extra Minor to Aim after moving into cover, and a Second Major for another shot after attacking, all paid in Threat
 // (Book p.265, p.324). When it does so is AI tuning (thresholds below). The party profile buys nothing.
@@ -144,11 +144,23 @@ export function injuryModesFor(state, self, weapon) {
 // AI tuning (not a rule): a shot needing more successes than dice rolled can only pass on critical successes, so the AI
 // doesn't count it as usable and looks for a better position instead.
 export function bestShot(state, self, target, fromPosition) {
-  const shots = self.weaponIds
+  let shots = self.weaponIds
     .filter((weaponId) => injuryModesFor(state, self, getCombatantWeapon(self, weaponId)).length)
     .map((weaponId) => previewAttack(state, self.id, target.id, weaponId, fromPosition))
     .filter((shot) => shot.available && shot.task.difficulty <= TASK_DICE)
+  // At Reach, fight hand-to-hand rather than accepting the ranged-within-Reach penalty. Every combatant has the
+  // always-available Unarmed Strike; a carried blade appears before it and therefore wins equal-score ties.
+  if (shots.some((shot) => shot.band.id === 'reach' && shot.weapon.type === 'melee')) {
+    shots = shots.filter((shot) => shot.weapon.type === 'melee')
+  }
   return shots.sort((a, b) => a.task.difficulty - b.task.difficulty || b.task.targetNumber - a.task.targetNumber)[0] ?? null
+}
+
+export function aiUnarmedVariant(state, self, shot, profileId = 'classic') {
+  if (shot?.weapon.id !== 'unarmedStrike') return null
+  const pool = self.side === 'player' ? 'momentum' : 'threat'
+  const wantsKick = profileId === 'aggressive' || (profileId === 'classic' && self.side === 'enemy')
+  return wantsKick && state.resources[pool] >= 2 ? 'kick' : 'punch'
 }
 
 // Whether a hit with this shot would Defeat the target: the same Injury and Avoid Injury rules the resolver uses (a Minor
@@ -200,6 +212,7 @@ function attackAction(state, self, target, shot) {
     targetId: target.id,
     weaponId: shot.weapon.id,
     injuryMode: injuryModesFor(state, self, shot.weapon)[0],
+    ...(aiUnarmedVariant(state, self, shot, 'classic') ? { variant: aiUnarmedVariant(state, self, shot, 'classic') } : {}),
     ...(dice.bonusDice ? { purchase: { bonusDice: dice.bonusDice, momentum: 0 } } : {}),
     decision: `Target ${target.character.name}`,
     reason: `${shotSummary(shot)}; target ${target.inCover ? 'in cover (it rolls to raise the Difficulty)' : 'exposed'}, ${statusText(target)}${hitDefeats(state, self, target, shot) ? '; a hit Defeats' : ''}${bought}.`,
@@ -241,7 +254,8 @@ export function cancelThreatStep() {
 
 // Best reachable safe tile to shoot one of the targets from (lower Difficulty, covered preferred, fewer steps); else
 // close the distance. kind: 'move' or 'sprint'. Damaging hazard tiles are never destinations.
-function moveStep(state, self, targets, kind = 'move') {
+// closing: ignore ranged firing spots. A Reach strike wins; otherwise walk toward the target (Auto Combat rush).
+function moveStep(state, self, targets, kind = 'move', { closing = false } = {}) {
   const reachable = safeReachable(state, self, kind)
   const verb = kind === 'sprint' ? 'Sprint' : 'Move'
   const firing = targets
@@ -249,15 +263,20 @@ function moveStep(state, self, targets, kind = 'move') {
     .filter((option) => option.shot)
     .map((option) => ({ ...option, score: option.shot.task.difficulty * 10 - (option.covered ? COVER_PREFERENCE : 0) + option.entry.steps }))
     .sort((a, b) => a.score - b.score)
-  if (firing.length) {
-    const { target, entry, shot, covered } = firing[0]
+  const melee = firing.filter((option) => option.shot.weapon.type === 'melee' && option.shot.band.id === 'reach')
+  const positions = melee.length ? melee : closing ? [] : firing
+  if (positions.length) {
+    const { target, entry, shot, covered } = positions[0]
+    const handToHand = shot.weapon.type === 'melee'
     return {
       type: kind,
       destination: entry.position,
       targetId: target.id,
       weaponId: shot.weapon.id,
-      decision: `${verb} to a ${covered ? 'covered' : 'exposed'} firing position on ${target.character.name}`,
-      reason: `No shot from here; ${plural(entry.steps, 'tile')} away a shot is ${shotSummary(shot)}.`,
+      decision: closing && handToHand ? `${verb} into Reach of ${target.character.name}` : `${verb} to a ${covered ? 'covered' : 'exposed'} firing position on ${target.character.name}`,
+      reason: closing && handToHand
+        ? `Closing to strike ${target.character.name} hand-to-hand (${shotSummary(shot)}).`
+        : `No shot from here; ${plural(entry.steps, 'tile')} away a shot is ${shotSummary(shot)}.`,
     }
   }
   const target = [...targets].sort(byDistanceFrom(self.position))[0]
@@ -268,13 +287,32 @@ function moveStep(state, self, targets, kind = 'move') {
     .map((entry) => ({ entry, remaining: toward.get(tileKey(entry.position))?.steps ?? Infinity }))
     .sort((a, b) => a.remaining - b.remaining || a.entry.steps - b.entry.steps)[0]
   if (!closest || closest.remaining === Infinity) return null
+  if (closing) {
+    const hereRemaining = toward.get(tileKey(self.position))?.steps ?? Infinity
+    if (closest.remaining >= hereRemaining) return null
+  }
   return {
     type: kind,
     destination: closest.entry.position,
     targetId: target.id,
-    decision: `${kind === 'sprint' ? 'Sprint to close' : 'Close'} on ${target.character.name}`,
-    reason: 'No firing position within reach this turn.',
+    decision: closing ? `${verb} to rush ${target.character.name}` : `${kind === 'sprint' ? 'Sprint to close' : 'Close'} on ${target.character.name}`,
+    reason: closing ? 'Rushing to hand-to-hand; Reach is farther than this action.' : 'No firing position within reach this turn.',
   }
+}
+
+// Auto Combat party: close to a hand-to-hand strike instead of firing from range. Null when already in Reach, or when
+// this turn cannot get any closer (the caller then takes the ranged shot).
+function meleeRushStep(state, self) {
+  const targets = getOpponents(state, self)
+  if (!targets.length) return null
+  const nearest = [...targets].sort(byDistanceFrom(self.position))[0]
+  if (bestShot(state, self, nearest)?.weapon.type === 'melee') return null
+  if (canMove(state, self)) {
+    const step = moveStep(state, self, targets, 'move', { closing: true })
+    if (step) return step
+  }
+  if (canSprint(state, self)) return moveStep(state, self, targets, 'sprint', { closing: true })
+  return null
 }
 
 // Cover is automatic next to a cover object, so getting into cover means moving there. Nearest such safe tile that still
@@ -366,6 +404,11 @@ export function nextAIStep(state) {
 
   const nearest = nearestTarget(state, self)
   if (!nearest) return { type: 'endTurn', decision: 'End turn', reason: 'No targets left.' }
+  // The party in Auto Combat rushes. Enemies still shoot from range and only close when they have no shot.
+  if (self.side === 'player') {
+    const rush = meleeRushStep(state, self)
+    if (rush) return rush
+  }
   const choice = profile.targeting === 'nearest' ? { target: nearest, shot: bestShot(state, self, nearest) } : bestShotTarget(state, self)
 
   if (choice?.shot) {

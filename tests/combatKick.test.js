@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { combatReducer, createCombat, previewAttack } from '../src/combat/combatState.js'
+import { applyAttackThrow } from '../src/combat/combatInjuries.js'
 import { getMovementBlock } from '../src/combat/combatMovement.js'
 import { isProne, proneAttackEffects, standUpStep } from '../src/combat/combatProne.js'
 import { knockdownAfterHit, unarmedVariantFor } from '../src/combat/combatUnarmed.js'
@@ -95,6 +96,25 @@ describe('Kick', () => {
     assert.equal(asEnemy.state.resources.threat, 0)
     const again = knockdownAfterHit(asEnemy.state, enemy, alpha.id, 'kick')
     assert.equal(again.knocked, false)
+  })
+})
+
+describe('high-roll impact throw', () => {
+  it('throws one tile at 3 Momentum and two at 4 or more', () => {
+    const { state, alpha, enemy } = fight()
+    const one = applyAttackThrow(state, alpha.id, enemy.id, 3)
+    assert.deepEqual(one.combatants[enemy.id].position, { x: 4, y: 5 })
+    assert.deepEqual(one.combatants[enemy.id].blastReact.from, { x: 3, y: 5 })
+    const two = applyAttackThrow(state, alpha.id, enemy.id, 4)
+    assert.deepEqual(two.combatants[enemy.id].position, { x: 5, y: 5 })
+  })
+
+  it('does not throw a low hit and stops before another standing combatant', () => {
+    const { state, alpha, enemy } = fight()
+    assert.equal(applyAttackThrow(state, alpha.id, enemy.id, 2), state)
+    const blocker = { ...alpha, id: 'blocker', position: { x: 4, y: 5 } }
+    const blocked = { ...state, combatants: { ...state.combatants, blocker } }
+    assert.deepEqual(applyAttackThrow(blocked, alpha.id, enemy.id, 4).combatants[enemy.id].position, enemy.position)
   })
 })
 

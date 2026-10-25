@@ -5,6 +5,7 @@
     "Each set has one PNG per entry in sheets: the set's sheet path with the sheet's suffix before .png (base: none; e.g. human-male-combat.png). In a sheet, a row per drawn direction (directions, in order) and the sheet's animations side by side (first column and frame count). The other three directions are the mirror image of drawnFor's direction. frame is the design size of one frame (the PNG is drawn at resolution times that) and anchor the point in a frame where the feet stand. The fall sheet's frame is wide and low-resolution because a body lying on the floor reaches far from its feet.",
     "Animation play: loop repeats (idle, walk, run, cover); once plays and the figure goes back to its loop (attack, melee); hold plays and stays on its last frame (the falls). Run is used in exploration when a character runs (partyControl.json), and in combat for every Move and Sprint (designer decision, 2026-10-12); sneakIdle and sneakWalk (a crouch) while a character sneaks (sneak.json).",
     "Combat (components/combat/unitPose.js): attack plays when a character shoots (a weapon that is not melee in weapons.json), melee when it makes a melee attack, each on an Attack or Counterattack action; cover while it stands in cover. Book (STA 2e Core p.292): a Defeated character falls prone. Prototype (implementer pick, presentation only): a character Defeated by a Stun Injury (or a Minor NPC left Unconscious) crumples; one Defeated by a Deadly Injury falls back, forward or spins, picked by its id (appearance.js defeatAnimation). Defeated by an explosion (stun or deadly) uses one of explosionFalls and a slide away from the blast (appearance.js explosionKnockback; direction from blast origin to where they stood). A blast that is Avoided with Stress (designer 2026-10-15: automatic, no prompt) plays blastStaggerFall (fallBlastBack, so it matches getUp), holds on the ground (blastDownHoldSeconds), then getUp (getup sheet: plant hands → press torso up → one knee → stand; 16 frames like walk). First Aid that ends Defeated also plays getUp. Downed characters in exploration lie in the same pose.",
+    "Reaction sheet (designer decision 2026-10-25, enemies included the same day): Punch and Kick use distinct attacker clips. A missed melee or ranged attack plays Dodge on its target, player or enemy. A successful 0–2 Momentum hit plays getHit on the target even when that hit Defeats them; the defeat fall plays after the flinch. A 3+ Momentum hit uses fallBlastBack. A survivor then gets up; a Defeated target stays down on the landing tile.",
     "uniformMask (optional): a PNG the base sheet's size, opaque where the shirt is (each other sheet has one beside it, with the same suffix); uniformDivision is the colour the sheet already wears. The shirt is recoloured to the department colour exactly as on portraits (useUniformImage.js recolourMaskedPixels).",
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
     "Idle fidgets (designer request, 2026-10-11; implementer picks for review): the idle sheet's one-off animations (look around, shift weight, turn in place, check the phaser, scratch the head; at the designer's request turn in place replaced a stretch, and check the phaser replaced checking a PADD). In exploration a figure standing still (not walking, running or sneaking) plays one picked at random, never the same twice running, every gapSeconds [min, max] apart, then goes back to its idle loop. Each starts and ends on the idle pose.",
@@ -35,6 +36,18 @@
         "attack": { "start": 0, "frames": 12, "seconds": 0.7, "play": "once" },
         "melee": { "start": 12, "frames": 12, "seconds": 0.6, "play": "once" },
         "cover": { "start": 24, "frames": 8, "seconds": 2.4, "play": "loop" }
+      }
+    },
+    "reaction": {
+      "suffix": "-reaction",
+      "frame": { "width": 64, "height": 64 },
+      "anchor": { "x": 32, "y": 60 },
+      "resolution": 4,
+      "animations": {
+        "punch": { "start": 0, "frames": 12, "seconds": 0.55, "play": "once" },
+        "kick": { "start": 12, "frames": 12, "seconds": 0.65, "play": "once" },
+        "dodge": { "start": 24, "frames": 10, "seconds": 0.45, "play": "once" },
+        "getHit": { "start": 34, "frames": 10, "seconds": 0.45, "play": "once" }
       }
     },
     "fall": {

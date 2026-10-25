@@ -16,8 +16,10 @@ import { staTaskChance, TASK_DICE } from '../rules/taskResolver.js'
 
 // A combatant out of the fight (Defeated or surrendered), against 1 for an ordinary hit.
 const REMOVAL_VALUE = 2
-// A Defeated ally back in the fight (still injured, and only from their next turn).
-const REVIVE_VALUE = 1.5
+// Bringing an ally back and ending a fight through surrender must still beat a one-shot attack on a Minor NPC.
+// These preserve the authored support priorities now that rank-and-file Klingons use their book category.
+const REVIVE_VALUE = 3
+const SURRENDER_VALUE = 2.5
 // A won Persuade / Intimidate that only costs the enemy Stress: a step toward surrender.
 const STRESS_VALUE = 0.4
 // A scan pays off only from later shots, while the enemies keep shooting meanwhile: its gain is counted at this share.
@@ -96,7 +98,7 @@ function socialOptions(state, self) {
       const surrenders = remainingStress(target.character, target.condition) <= 0
       const verb = kind === 'persuade' ? 'Persuade' : 'Intimidate'
       return {
-        value: chance * (surrenders ? REMOVAL_VALUE : STRESS_VALUE),
+        value: chance * (surrenders ? SURRENDER_VALUE : STRESS_VALUE),
         action: { type: kind, targetId: target.id, decision: `${verb} ${target.character.name}` },
         reason: `${pct(chance)} to win; ${surrenders ? 'it has no Stress left, so a win makes it surrender' : 'a win costs it Stress'}.`,
       }

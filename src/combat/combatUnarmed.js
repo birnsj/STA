@@ -38,8 +38,8 @@ export function unarmedVariantFor(action) {
 }
 
 // After a Kick hits: if the target is still up and not prone, spend the knockdown's cost (the group's Momentum; an
-// enemy's Threat, Book p.265) and knock it prone. Returns { state, lines, knocked }.
-// The figure plays the existing fall, hold and get-up animation (blastReact; maps/pixi/figures.js).
+// enemy's Threat, Book p.265) and knock it prone. Returns { state, lines, knocked }. Attack-result presentation decides
+// whether this is a low-hit reaction or a heavy throw.
 export function knockdownAfterHit(state, attacker, targetId, variantId) {
   const attack = getUnarmedAttack(variantId)
   const target = state.combatants[targetId]
@@ -49,6 +49,6 @@ export function knockdownAfterHit(state, attacker, targetId, variantId) {
   const paid = pool === 'momentum' ? spendMomentum(state.resources, cost) : spendThreat(state.resources, cost)
   const name = target.character.name
   if (!paid) return { state, lines: [`${attack.name}: knocking ${name} prone costs ${cost} ${pool === 'momentum' ? 'Momentum' : 'Threat'}; the pool has ${state.resources[pool]}.`], knocked: false }
-  const next = updateCombatant({ ...state, resources: paid }, targetId, { prone: true, blastReact: { key: `kick:${state.log.length}:${targetId}` } })
+  const next = updateCombatant({ ...state, resources: paid }, targetId, { prone: true })
   return { state: next, lines: [`${name} is knocked prone (${cost} ${pool === 'momentum' ? 'Momentum' : 'Threat'} spent).`], knocked: true }
 }

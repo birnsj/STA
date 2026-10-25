@@ -98,7 +98,17 @@ describe('automatic Avoid Injury on weapon hits', () => {
   })
 
   it('a supporting-character enemy Avoids with Stress like a main character', () => {
-    const { state, alpha, enemy } = fight([makeCharacter({ id: 'alpha', name: 'Alpha' })])
+    const created = fight([makeCharacter({ id: 'alpha', name: 'Alpha' })])
+    const supportingCharacter = { ...created.enemy.character, npcRules: 'supporting' }
+    const state = {
+      ...created.state,
+      combatants: {
+        ...created.state.combatants,
+        [created.enemy.id]: { ...created.enemy, character: supportingCharacter, condition: createCondition(supportingCharacter) },
+      },
+    }
+    const alpha = state.combatants.alpha
+    const enemy = state.combatants[created.enemy.id]
     assert.ok(getMaxStress(enemy.character).value > 0)
     const weapon = getCombatantWeapon(alpha, alpha.weaponIds.find((id) => id !== 'unarmedStrike') ?? alpha.weaponIds[0])
     const injury = injuryFor(state, alpha, enemy, weapon, 'stun')

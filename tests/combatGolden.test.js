@@ -29,8 +29,8 @@ import { createBlankMap } from '../src/maps/mapFormat.js'
 import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
-  closeQuarters: '095ae70bdec6a9a6',
-  standOff: 'ccfbd06ce3192a3c',
+  closeQuarters: '2494f0d7e0d26f5b',
+  standOff: '47dde78f207ea081',
   refusals: '5cbfd343071584f3',
 }
 
@@ -163,7 +163,18 @@ const finalView = (state) => ({
 // Plays a fight to the end (or maxSteps). Prompts and pending rolls are answered first; enemies step through stepAI;
 // party turns follow PLANS, then end.
 function scriptedFight({ map, seed, maxSteps = 900, initiativeOptions }) {
-  let state = createCombat({ map, players: team(), seed, initiativeOptions })
+  const created = createCombat({ map, players: team(), seed, initiativeOptions })
+  // This exhaustive control needs durable sparring opponents so every rare action is reached. Production Klingon
+  // Warriors are Minor NPCs; only this fingerprint fixture gives its enemies supporting-character Stress.
+  let state = {
+    ...created,
+    combatants: Object.fromEntries(
+      Object.entries(created.combatants).map(([id, combatant]) => [
+        id,
+        combatant.side === 'enemy' ? { ...combatant, character: { ...combatant.character, npcRules: 'supporting' } } : combatant,
+      ]),
+    ),
+  }
   const record = []
   const dispatch = (action) => {
     const before = state
