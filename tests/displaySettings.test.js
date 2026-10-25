@@ -35,6 +35,12 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ cameraFollow: 'no' }).cameraFollow, true)
   })
 
+  it('older saves show the item placement box; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({}).itemPlacementPreview, true)
+    assert.equal(normalizeDisplaySettings({ itemPlacementPreview: false }).itemPlacementPreview, false)
+    assert.equal(normalizeDisplaySettings({ itemPlacementPreview: 'no' }).itemPlacementPreview, true)
+  })
+
   it('older saves without WASD After Glide get 100; a saved value is clamped 0–100', () => {
     assert.equal(normalizeDisplaySettings({ cameraFollow: false }).wasdCoast, 100)
     assert.equal(normalizeDisplaySettings({ wasdCoast: 0 }).wasdCoast, 0)

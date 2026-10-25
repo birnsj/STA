@@ -29,8 +29,9 @@ const centredOn = (point, view) => ({ x: point.x - view.width / 2, y: point.y - 
 
 const TOUCH_SLOP = 10
 const MIN_ZOOM = 0.6
-const MAX_ZOOM = 2
 const ZOOM_STEP = 1.15
+// One closer wheel step than the original 2× cap, shared by exploration, combat, and the map editor.
+const MAX_ZOOM = 2 * ZOOM_STEP
 
 function swallowNextClick() {
   const swallow = (event) => {

@@ -508,7 +508,7 @@ export default function useEditorTools({
     if (movingGroundItem && selectedGroundItem) {
       if (!first) return
       if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
-      const moved = moveGroundItem(map, selectedGroundItem.id, position, itemGridSize)
+      const moved = moveGroundItem(map, selectedGroundItem.id, position, itemGridSize, boardPoint)
       if (moved === map) setStatus(`Inventory objects need a free floor cell (${itemGridSize}px grid).`)
       else edit(moved)
       setMovingGroundItem(false)

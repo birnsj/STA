@@ -847,6 +847,15 @@
   height: 22px;
 }
 
+.ed-shell textarea.me-name.me-description {
+  height: auto;
+  min-height: 4.5em;
+  padding: 4px 7px;
+  line-height: 1.35;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
 .ed-shell .me-select {
   max-width: none;
   padding-right: 18px;

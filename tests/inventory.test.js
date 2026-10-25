@@ -298,6 +298,60 @@ describe('ground drop and pickup', () => {
     assert.deepEqual(stacked.position, { x: 4.5, y: 4.5 })
   })
 
+  it('repositions a ground-item subtree on its current item support', () => {
+    const tiles = Array.from({ length: 8 }, () => Array(8).fill('floor'))
+    tiles[2][2] = 'crate'
+    let state = partyState(
+      [makeCharacter({ id: 'a', equipment: [{ itemId: 'medkit' }, { itemId: 'hypospray' }, { itemId: 'autosuture' }] })],
+      { width: 8, height: 8, tiles, stackOver: {} },
+    )
+    const parentId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'medkit')
+    const childId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'hypospray')
+    const grandchildId = Object.keys(state.itemInstances).find((id) => state.itemInstances[id].itemId === 'autosuture')
+    state = {
+      ...state,
+      groundItems: {
+        [parentId]: {
+          instanceId: parentId,
+          position: { x: 2.5, y: 2.5 },
+          support: { kind: 'tile', tile: { x: 2, y: 2 } },
+        },
+        [childId]: {
+          instanceId: childId,
+          position: { x: 2.25, y: 2.25 },
+          support: { kind: 'item', instanceId: parentId },
+        },
+        [grandchildId]: {
+          instanceId: grandchildId,
+          position: { x: 2.25, y: 2.25 },
+          support: { kind: 'item', instanceId: childId },
+        },
+      },
+    }
+    const aim = { x: 2.15, y: 2.45 }
+    const screen = project(aim)
+    const boardPoint = { x: screen.x, y: screen.y - getTile('crate').height - 5 }
+    const hover = canPlaceAt(state, aim, {
+      excludeInstanceId: childId,
+      itemId: 'hypospray',
+      boardPoint,
+    })
+    assert.equal(hover.ok, true)
+    assert.deepEqual(hover.support, { kind: 'item', instanceId: parentId })
+    assert.deepEqual(hover.position, { x: 2.25, y: 2.5 })
+
+    const moved = dropItem(state, {
+      instanceId: childId,
+      position: hover.position,
+      support: hover.support,
+      boardPoint,
+    })
+    assert.deepEqual(moved.groundItems[childId].position, { x: 2.25, y: 2.5 })
+    assert.deepEqual(moved.groundItems[childId].support, { kind: 'item', instanceId: parentId })
+    assert.deepEqual(moved.groundItems[grandchildId].position, { x: 2.25, y: 2.5 })
+    assert.deepEqual(moved.groundItems[grandchildId].support, { kind: 'item', instanceId: childId })
+  })
+
   it('places the next box in the empty cell behind the first', () => {
     const tiles = Array.from({ length: 8 }, () => Array(8).fill('floor'))
     tiles[4][4] = 'crate'

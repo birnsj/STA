@@ -6,6 +6,7 @@ import {
   canPlaceOn,
   groundItemDepth,
   itemSupportChain,
+  pointInSurfaceFootprint,
   propSpriteSize,
   surfaceOfItem,
   tileSurfaceAt,
@@ -148,8 +149,39 @@ export function canEquipToSlot(state, instanceId, slot) {
 // Small floor drops never block movement/pathfinding. Elevated drops sit on tile/item surfaces (placement.js).
 // excludeInstanceId: when repositioning a ground item, ignore its current cell.
 // Optional category: when set, surface.accepts is checked (drag path passes the dragged item's category).
-export function canPlaceAt(state, position, { excludeInstanceId = null, category = null, boardPoint = null, itemId = null } = {}) {
-  return canPlaceOn(state, position, { excludeInstanceId, category, boardPoint, itemId })
+function groundItemSubtree(state, rootId) {
+  const ids = new Set()
+  const visit = (id) => {
+    if (!id || ids.has(id)) return
+    ids.add(id)
+    for (const entry of Object.values(state.groundItems ?? {})) {
+      if (entry.support?.kind === 'item' && entry.support.instanceId === id) visit(entry.instanceId)
+    }
+  }
+  visit(rootId)
+  return ids
+}
+
+export function canPlaceAt(
+  state,
+  position,
+  { excludeInstanceId = null, category = null, boardPoint = null, itemId = null, preferredSupport = undefined } = {},
+) {
+  const moving = excludeInstanceId ? state.groundItems?.[excludeInstanceId] : null
+  const excluded = moving ? groundItemSubtree(state, excludeInstanceId) : null
+  const placementState = excluded
+    ? {
+        ...state,
+        groundItems: Object.fromEntries(Object.entries(state.groundItems ?? {}).filter(([id]) => !excluded.has(id))),
+      }
+    : state
+  return canPlaceOn(placementState, position, {
+    excludeInstanceId,
+    category,
+    boardPoint,
+    itemId,
+    preferredSupport: preferredSupport === undefined ? (moving?.support ?? null) : preferredSupport,
+  })
 }
 
 // Expand one member's flat equipment list into instances/slots/bag (used for transporter beam-in mid-mission).
@@ -176,9 +208,10 @@ export function seedMemberInventory(state, memberId, { grantMissionObject = fals
   return withMemberCharacter({ ...state, itemInstances }, memberId, character)
 }
 
-// Place authored map groundItemPlacements into session groundItems (mapFormat.js). Skips unknown itemIds and blocked cells.
-// Uses the placement's authored id as the instance id when free; otherwise allocates a fresh one. Optional name /
-// pickable / visible ride on the ground entry for views and pickup gating.
+// Place authored map groundItemPlacements into session groundItems (mapFormat.js). Skips unknown itemIds and
+// supports the current rules cannot resolve. Keeps each file position: the drop snap is for a pointer, and it
+// moves a floor prop onto a neighbour. Uses the placement's authored id as the instance id when free; otherwise
+// allocates a fresh one. Optional name / pickable / visible ride on the ground entry for views and pickup gating.
 function supportFromPlacementOn(on) {
   if (!on) return null
   if (on.tile) {
@@ -204,6 +237,17 @@ function authoredSupportIsValid(state, support, category) {
   return false
 }
 
+// Same lift the editor draws when a placement omits `on`: the surface tile under the point, otherwise the floor.
+// Not the drop snap. That snap packs onto the nearest free slot and will sit a floor prop on a neighbour.
+function authoredFloorSupport(map, position) {
+  if (!map) return null
+  const tile = { x: Math.round(position.x), y: Math.round(position.y) }
+  if (tile.x < 0 || tile.y < 0 || tile.y >= map.height || tile.x >= map.width) return null
+  const surface = tileSurfaceAt(map, tile)
+  if (!surface || !pointInSurfaceFootprint(position, tile, surface.inset)) return null
+  return { kind: 'tile', tile }
+}
+
 export function seedGroundItemPlacements(state, placements = []) {
   if (!placements?.length) return state
   let itemInstances = { ...(state.itemInstances ?? {}) }
@@ -224,15 +268,19 @@ export function seedGroundItemPlacements(state, placements = []) {
       const authoredSupport = supportFromPlacementOn(
         authoredParent ? { placement: runtimeIds.get(authoredParent) } : placement.on,
       )
-      const place = canPlaceAt(next, placement.position, { category: def.category, itemId: def.id })
-      // Authored positions predate current packing sizes, so validate their declared support without reflowing valid files.
-      if (!place.ok || !authoredSupportIsValid(next, authoredSupport, def.category)) continue
+      const position = placement.position
+      if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) continue
+      const map = next.party?.map ?? next.map
+      if (map && (position.x < -0.5 || position.y < -0.5 || position.x >= map.width - 0.5 || position.y >= map.height - 0.5)) continue
+      // Keep the file's point. The drop snap would move it onto a free slot, and a floor prop whose
+      // picture overlaps a neighbour would be lifted onto that neighbour. The editor draws the file.
+      if (!authoredSupportIsValid(next, authoredSupport, def.category)) continue
       const authored = typeof placement.id === 'string' && placement.id && !itemInstances[placement.id] && !groundItems[placement.id]
       const id = authored ? placement.id : freshInstanceId(itemInstances)
       if (placement.id) runtimeIds.set(placement.id, id)
       itemInstances = { ...itemInstances, [id]: { id, itemId: def.id, quantity: 1 } }
-      const ground = { instanceId: id, position: { x: place.position.x, y: place.position.y } }
-      const support = authoredSupport ?? place.support
+      const ground = { instanceId: id, position: { x: position.x, y: position.y } }
+      const support = authoredSupport ?? authoredFloorSupport(map, position)
       if (support) ground.support = support
       if (placement.name) ground.name = placement.name
       if (placement.pickable === false) ground.pickable = false
@@ -510,6 +558,7 @@ export function resolveGroundSupports(state) {
 
 export function dropItem(state, { instanceId, position, support = undefined, boardPoint = null }) {
   const resolved = resolveItem(state, instanceId)
+  const ground = state.groundItems?.[instanceId] ?? null
   const place = canPlaceAt(state, position, {
     excludeInstanceId: instanceId,
     category: resolved?.def.category ?? null,
@@ -518,6 +567,28 @@ export function dropItem(state, { instanceId, position, support = undefined, boa
   })
   // Drag hover may pass support explicitly; otherwise use what canPlaceAt found (floor → omitted).
   const nextSupport = support !== undefined ? support : place.support
+  const moveGroundSubtree = (nextPosition, rootSupport) => {
+    const subtree = groundItemSubtree(state, instanceId)
+    const dx = nextPosition.x - ground.position.x
+    const dy = nextPosition.y - ground.position.y
+    const groundItems = { ...state.groundItems }
+    for (const id of subtree) {
+      const entry = state.groundItems[id]
+      if (!entry) continue
+      if (id === instanceId) {
+        const next = { ...entry, position: { x: nextPosition.x, y: nextPosition.y } }
+        if (rootSupport) next.support = rootSupport
+        else delete next.support
+        groundItems[id] = next
+      } else {
+        groundItems[id] = {
+          ...entry,
+          position: { x: entry.position.x + dx, y: entry.position.y + dy },
+        }
+      }
+    }
+    return { ...state, groundItems }
+  }
   if (!place.ok) {
     // A full surface stays full. The fallback is only the solid-tile case: hover already found a support,
     // but a floor-only re-check reports Blocked.
@@ -533,6 +604,7 @@ export function dropItem(state, { instanceId, position, support = undefined, boa
       return a.instanceId === b.instanceId
     })
     if (occupied) return state
+    if (ground) return moveGroundSubtree(snapped, nextSupport)
     const taken = takeInstance(state, instanceId)
     if (!taken) return state
     return {
@@ -543,6 +615,7 @@ export function dropItem(state, { instanceId, position, support = undefined, boa
       },
     }
   }
+  if (ground) return moveGroundSubtree(place.position, nextSupport)
   const taken = takeInstance(state, instanceId)
   if (!taken) return state
   const entry = { instanceId, position: { x: place.position.x, y: place.position.y } }

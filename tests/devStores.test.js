@@ -1,5 +1,5 @@
 // The dev server's file stores (tools/*.cjs): what each one writes, refuses and preserves. They save the authored files
-// (characters/, conversations/, the authored NPC pool, tiles.json, missionLog.json), so these tests also pin the exact
+// (characters/, conversations/, the authored NPC pool, tiles.json, items.json, missionLog.json), so these tests also pin the exact
 // bytes written: a change to how files are written must not change what ends up in them.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -13,6 +13,7 @@ const { listCharacters, putCharacter, removeCharacter } = require('../tools/char
 const { listConversations, putConversation, removeConversation } = require('../tools/conversationStore.cjs')
 const { listAuthoredCharacters, putAuthoredCharacter, removeAuthoredCharacter } = require('../tools/authoredCharacterStore.cjs')
 const { setTileFlag } = require('../tools/tileStore.cjs')
+const { setItemDescription } = require('../tools/itemStore.cjs')
 const { setAnimationEmissive, setTileGlow } = require('../tools/effectsStore.cjs')
 const { setStoryTemplates } = require('../tools/storyStore.cjs')
 const { putDeckStyle } = require('../tools/deckGeneratorStore.cjs')
@@ -180,6 +181,80 @@ describe('tile store', () => {
     assert.throws(() => setTileFlag(file(), { id: 'crate', colour: true }), /Only cover or fade/)
     assert.throws(() => setTileFlag(file(), { id: 'crate', cover: 'yes' }), /true or false/)
     assert.equal(text('tiles.json'), original)
+  })
+})
+
+describe('item store', () => {
+  // Pretty-printed like the catalogue entries, plus one compact line like the calibration items.
+  const original = [
+    '{',
+    '  "note": "keep",',
+    '  "items": [',
+    '    {',
+    '      "id": "phaser",',
+    '      "name": "Phaser",',
+    '      "description": "Says \\"pew\\".",',
+    '      "stats": { "security": 1 },',
+    '      "reference": "Core p.1",',
+    '      "notes": "Book: leave this."',
+    '    },',
+    '    {',
+    '      "id": "kit",',
+    '      "description": "Tools.",',
+    '      "notes": "untouched"',
+    '    },',
+    '    {"id":"calFoot8Red","name":"Cal 8 Red","description":"Calibration fixture.","reference":"none","notes":"compact"}',
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
+  const file = () => at('items.json')
+  const write = () => fs.writeFileSync(file(), original)
+
+  it('changes one description and leaves every other byte alone', () => {
+    write()
+    const next = 'Line one\nSays "hello".'
+    assert.deepEqual(setItemDescription(file(), { id: 'phaser', description: next }), { id: 'phaser', description: next })
+    assert.equal(text('items.json'), original.replace(JSON.stringify('Says "pew".'), JSON.stringify(next)))
+    const parsed = JSON.parse(text('items.json'))
+    assert.equal(parsed.note, 'keep')
+    assert.equal(parsed.items[0].reference, 'Core p.1')
+    assert.equal(parsed.items[0].notes, 'Book: leave this.')
+    assert.equal(parsed.items[0].stats.security, 1)
+    assert.equal(parsed.items[1].description, 'Tools.')
+    assert.equal(parsed.items[1].notes, 'untouched')
+    assert.equal(parsed.items[2].description, 'Calibration fixture.')
+  })
+
+  it('updates a compact item and allows an empty description', () => {
+    write()
+    setItemDescription(file(), { id: 'calFoot8Red', description: '' })
+    assert.equal(text('items.json'), original.replace('"description":"Calibration fixture."', '"description":""'))
+    const parsed = JSON.parse(text('items.json'))
+    assert.equal(parsed.items[2].description, '')
+    assert.equal(parsed.items[2].reference, 'none')
+    assert.equal(parsed.items[2].notes, 'compact')
+    assert.equal(parsed.items[0].description, 'Says "pew".')
+  })
+
+  it('leaves the file untouched when the description is already that text', () => {
+    write()
+    setItemDescription(file(), { id: 'kit', description: 'Tools.' })
+    assert.equal(text('items.json'), original)
+  })
+
+  it('refuses an unknown item, a non-string, or a missing description', () => {
+    write()
+    assert.throws(() => setItemDescription(file(), { id: 'nope', description: 'x' }), /No item with id/)
+    assert.throws(() => setItemDescription(file(), { id: 'phaser', description: 1 }), /must be a string/)
+    assert.throws(() => setItemDescription(file(), { id: 'phaser' }), /must be a string/)
+    assert.throws(() => setItemDescription(file(), null), /Missing item id/)
+    assert.equal(text('items.json'), original)
+
+    const bare = '{ "items": [ { "id": "bare", "name": "Bare" } ] }\n'
+    fs.writeFileSync(file(), bare)
+    assert.throws(() => setItemDescription(file(), { id: 'bare', description: 'x' }), /no description/)
+    assert.equal(text('items.json'), bare)
   })
 })
 

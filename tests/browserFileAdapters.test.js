@@ -12,6 +12,7 @@ const ADAPTERS = [
   'src/maps/wallVariantFiles.js',
   'src/maps/effectsFiles.js',
   'src/maps/tileFiles.js',
+  'src/rules/itemFiles.js',
   'src/exploration/storyFiles.js',
 ]
 
@@ -73,7 +74,11 @@ describe('development-browser JSON file adapters', () => {
     const walls = await load('src/maps/wallVariantFiles.js')
     const effects = await load('src/maps/effectsFiles.js')
     const tiles = await load('src/maps/tileFiles.js')
+    const items = await load('src/rules/itemFiles.js')
     const story = await load('src/exploration/storyFiles.js')
+    const { getItemById } = await import('../src/rules/equipment.js')
+    const medkit = getItemById('medkit')
+    const medkitDescription = medkit.description
 
     await maps.listMaps()
     await conversations.deleteConversation('hello')
@@ -81,6 +86,12 @@ describe('development-browser JSON file adapters', () => {
     await walls.saveWallVariantSet({ wallId: 'bulkhead', share: 0.4, panelVariants: ['lcarsPanel'], tileVariants: [] })
     await effects.setOverlayEmissive('lcarsWall', 1.2)
     await tiles.setTileFlag('floor', 'fade', true)
+    try {
+      await items.setItemDescription('medkit', 'Edited catalogue text.')
+      assert.equal(medkit.description, 'Edited catalogue text.')
+    } finally {
+      medkit.description = medkitDescription
+    }
     await story.saveStoryTemplates({ objectiveActive: 'Changed.' })
 
     assert.deepEqual(
@@ -110,6 +121,7 @@ describe('development-browser JSON file adapters', () => {
         },
         { url: '/__effects', method: 'PUT', cache: 'no-store', contentType: 'application/json', body: { id: 'lcarsWall', emissive: 1.2 } },
         { url: '/__tiles', method: 'PUT', cache: 'no-store', contentType: 'application/json', body: { id: 'floor', fade: true } },
+        { url: '/__items', method: 'PUT', cache: 'no-store', contentType: 'application/json', body: { id: 'medkit', description: 'Edited catalogue text.' } },
         { url: '/__story', method: 'PUT', cache: 'no-store', contentType: 'application/json', body: { story: { objectiveActive: 'Changed.' } } },
       ],
     )
@@ -166,8 +178,10 @@ describe('development-browser JSON file adapters', () => {
   it('keeps tile and story capability flags informational', async () => {
     answerWith((url) => response(url === '/__story' ? { objectiveActive: 'Changed.' } : {}))
     const tiles = await load('src/maps/tileFiles.js', { dev: false })
+    const items = await load('src/rules/itemFiles.js', { dev: false })
     const story = await load('src/exploration/storyFiles.js', { dev: false })
     assert.equal(tiles.canEditTiles, false)
+    assert.equal(items.canEditItems, false)
     assert.equal(story.canEditStory, false)
     await tiles.setTileFlag('floor', 'fade', false)
     await story.saveStoryTemplates({ objectiveActive: 'Changed.' })

@@ -11,6 +11,7 @@ import {
   groundItemTargetAt,
   paintTile,
   placeGroundItem,
+  placementPlaneZ,
   selectionCandidates,
 } from '../src/maps/mapEdits.js'
 
@@ -152,5 +153,22 @@ describe('groundItemElevation (how high the editor draws a placement)', () => {
     const map = crateAt(blank(), 3, 3)
     assert.equal(groundItemElevation(map, { id: 'f', position: { x: 5, y: 5 } }).z, 0)
     assert.equal(groundItemElevation(map, { id: 'u', position: { x: 3, y: 3 } }).z, CRATE_TOP)
+  })
+})
+
+describe('placementPlaneZ (guide grid height while placing an item)', () => {
+  it('stays on the floor away from a surface and rises to the crate top on that tile', () => {
+    const map = crateAt(blank(), 3, 3)
+    assert.equal(placementPlaneZ(map, { x: 5, y: 5 }, 'medkit'), 0)
+    assert.equal(placementPlaneZ(map, { x: 3, y: 3 }, 'medkit'), CRATE_TOP)
+  })
+
+  it('rises to an item top, and a drag of that item keeps the plane on the crate', () => {
+    const map = crateAt(blank(), 3, 3)
+    const placed = placeGroundItem(map, { x: 3, y: 3 }, 'medkit', 2)
+    assert.ok(placed)
+    const onItem = placementPlaneZ(placed.map, placed.object.position, 'hypospray')
+    assert.ok(onItem > CRATE_TOP)
+    assert.equal(placementPlaneZ(placed.map, placed.object.position, 'medkit', { excludeId: placed.object.id }), CRATE_TOP)
   })
 })

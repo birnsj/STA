@@ -1,0 +1,662 @@
+{
+  "schemaVersion": 1,
+  "name": "Computer Core Access",
+  "episodeName": "Siege of Computer Core Access",
+  "card": "/art/episodes/Computer%20Core%20Access.png?v=1792899723491",
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 35,
+  "ambientColour": "#02040a",
+  "rows": [
+    "################ïï##ññ######òò##ïï######",
+    "ï..cc..c..c..cc#..cc..MMMð..cc..MM..ccc#",
+    "ï..............#.........ð.............#",
+    "#c.............#c........#c............#",
+    "#.............c#c.......c#c............#",
+    "#..............òc.......c#c............ò",
+    "#c.............ò.........#c...........cò",
+    "#c............c#.........#c...........c#",
+    "#c............c#c.......c#............c#",
+    "#.............c#c.......c#.............#",
+    "#..............D........c#c............#",
+    "#c.............D.........D............c#",
+    "#c............còc........D............c#",
+    "#..............ò.........#.............#",
+    "#..ccc..cc..c..í..cccc..c#..c..ccc..c..#",
+    "##########DD########ððDD#####DDïï##ðð###",
+    "#MM..ccccc..c..#ccc..c..c#c.....ccc..cc#",
+    "#c.............#....hhh..#c...........c#",
+    "#.............c#....hhh..#.............#",
+    "#.............c#c...hhhEc#.............#",
+    "ïc.............D........cðc...........c#",
+    "ï..............D.........ðc...........c#",
+    "#.............c#c........D.............#",
+    "#c............c#.........D.............#",
+    "ñc............c#........c#c............#",
+    "ñ..............#c........#c...........c#",
+    "#..cccc..c..c..#c..c..c..#cc..ccc...ccc#",
+    "############ïï######################òò##"
+  ],
+  "rotated": [],
+  "areas": [
+    {
+      "name": "Holodeck 3",
+      "position": [
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Ten Forward Lounge",
+      "position": [
+        16,
+        1
+      ]
+    },
+    {
+      "name": "Transporter Room 1",
+      "position": [
+        26,
+        1
+      ]
+    },
+    {
+      "name": "Warp Core Ejection Gantry",
+      "position": [
+        3,
+        16
+      ]
+    },
+    {
+      "name": "Deck 6 Crew Quarters",
+      "position": [
+        19,
+        16
+      ]
+    },
+    {
+      "name": "Deck 8 Jefferies Tube Junction",
+      "position": [
+        27,
+        16
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        34,
+        22
+      ],
+      [
+        32,
+        22
+      ],
+      [
+        34,
+        20
+      ],
+      [
+        33,
+        24
+      ],
+      [
+        31,
+        21
+      ],
+      [
+        32,
+        20
+      ],
+      [
+        34,
+        26
+      ],
+      [
+        28,
+        18
+      ]
+    ],
+    "enemySpawns": [
+      [
+        6,
+        2
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        2,
+        12
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "groundItemPlacements": [
+    {
+      "id": "armouredVest1",
+      "itemId": "armouredVest",
+      "position": [
+        17.5,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          17,
+          16
+        ]
+      }
+    },
+    {
+      "id": "armouredVest2",
+      "itemId": "armouredVest",
+      "position": [
+        18,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          18,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit1",
+      "itemId": "thermalSuit",
+      "position": [
+        18.5,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          18,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit2",
+      "itemId": "thermalSuit",
+      "position": [
+        18.5,
+        16
+      ],
+      "on": {
+        "tile": [
+          18,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit3",
+      "itemId": "thermalSuit",
+      "position": [
+        18,
+        16
+      ],
+      "on": {
+        "tile": [
+          18,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit4",
+      "itemId": "thermalSuit",
+      "position": [
+        17.5,
+        16
+      ],
+      "on": {
+        "tile": [
+          17,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit5",
+      "itemId": "thermalSuit",
+      "position": [
+        17,
+        16
+      ],
+      "on": {
+        "tile": [
+          17,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit6",
+      "itemId": "thermalSuit",
+      "position": [
+        17,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          17,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit7",
+      "itemId": "thermalSuit",
+      "position": [
+        16.5,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          16,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit8",
+      "itemId": "thermalSuit",
+      "position": [
+        16.5,
+        16
+      ],
+      "on": {
+        "tile": [
+          16,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit9",
+      "itemId": "thermalSuit",
+      "position": [
+        16,
+        16
+      ],
+      "on": {
+        "tile": [
+          16,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit10",
+      "itemId": "thermalSuit",
+      "position": [
+        16,
+        16.5
+      ],
+      "on": {
+        "tile": [
+          16,
+          16
+        ]
+      }
+    },
+    {
+      "id": "thermalSuit11",
+      "itemId": "thermalSuit",
+      "position": [
+        16,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit9"
+      }
+    },
+    {
+      "id": "thermalSuit12",
+      "itemId": "thermalSuit",
+      "position": [
+        16,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit10"
+      }
+    },
+    {
+      "id": "thermalSuit13",
+      "itemId": "thermalSuit",
+      "position": [
+        16.5,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit8"
+      }
+    },
+    {
+      "id": "thermalSuit14",
+      "itemId": "thermalSuit",
+      "position": [
+        16.5,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit7"
+      }
+    },
+    {
+      "id": "thermalSuit15",
+      "itemId": "thermalSuit",
+      "position": [
+        16.5,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit13"
+      }
+    },
+    {
+      "id": "thermalSuit16",
+      "itemId": "thermalSuit",
+      "position": [
+        17,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit5"
+      }
+    },
+    {
+      "id": "thermalSuit17",
+      "itemId": "thermalSuit",
+      "position": [
+        17,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit6"
+      }
+    },
+    {
+      "id": "calFoot16Green1",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.25,
+        16.5
+      ],
+      "on": {
+        "placement": "armouredVest1"
+      }
+    },
+    {
+      "id": "calFoot16Green2",
+      "itemId": "calFoot16Green",
+      "position": [
+        17,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit17"
+      }
+    },
+    {
+      "id": "calFoot16Green3",
+      "itemId": "calFoot16Green",
+      "position": [
+        16.75,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit17"
+      }
+    },
+    {
+      "id": "calFoot16Green4",
+      "itemId": "calFoot16Green",
+      "position": [
+        16.75,
+        16.5
+      ],
+      "on": {
+        "placement": "calFoot16Green3"
+      }
+    },
+    {
+      "id": "calFoot16Green5",
+      "itemId": "calFoot16Green",
+      "position": [
+        17,
+        16.5
+      ],
+      "on": {
+        "placement": "calFoot16Green2"
+      }
+    },
+    {
+      "id": "calFoot16Green6",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.25,
+        16.75
+      ]
+    },
+    {
+      "id": "calFoot16Green7",
+      "itemId": "calFoot16Green",
+      "position": [
+        18,
+        16.5
+      ],
+      "on": {
+        "placement": "armouredVest2"
+      }
+    },
+    {
+      "id": "calFoot16Green8",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.25,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit1"
+      }
+    },
+    {
+      "id": "calFoot16Green9",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.5,
+        16.75
+      ]
+    },
+    {
+      "id": "calFoot16Green10",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.5,
+        16.5
+      ],
+      "on": {
+        "placement": "thermalSuit1"
+      }
+    },
+    {
+      "id": "calFoot16Green11",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.5,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit2"
+      }
+    },
+    {
+      "id": "calFoot16Green12",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.5,
+        15.75
+      ],
+      "on": {
+        "placement": "thermalSuit4"
+      }
+    },
+    {
+      "id": "calFoot16Green13",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.25,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit4"
+      }
+    },
+    {
+      "id": "calFoot16Green14",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.75,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit3"
+      }
+    },
+    {
+      "id": "calFoot16Green15",
+      "itemId": "calFoot16Green",
+      "position": [
+        17.5,
+        15.75
+      ],
+      "on": {
+        "placement": "calFoot16Green12"
+      }
+    },
+    {
+      "id": "calFoot16Green16",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.25,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit2"
+      }
+    },
+    {
+      "id": "calFoot16Green17",
+      "itemId": "calFoot16Green",
+      "position": [
+        18,
+        16
+      ],
+      "on": {
+        "placement": "thermalSuit3"
+      }
+    },
+    {
+      "id": "calFoot16Green18",
+      "itemId": "calFoot16Green",
+      "position": [
+        18,
+        16.25
+      ],
+      "on": {
+        "placement": "armouredVest2"
+      }
+    },
+    {
+      "id": "calFoot16Green19",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.25,
+        16.25
+      ],
+      "on": {
+        "placement": "thermalSuit1"
+      }
+    },
+    {
+      "id": "calFoot16Green20",
+      "itemId": "calFoot16Green",
+      "position": [
+        18.75,
+        16.5
+      ]
+    },
+    {
+      "id": "calFoot16Green21",
+      "itemId": "calFoot16Green",
+      "position": [
+        19.25,
+        17.5
+      ]
+    },
+    {
+      "id": "calFoot16Green22",
+      "itemId": "calFoot16Green",
+      "position": [
+        19.5,
+        17.5
+      ]
+    },
+    {
+      "id": "calFoot16Green23",
+      "itemId": "calFoot16Green",
+      "position": [
+        19.75,
+        17.75
+      ]
+    },
+    {
+      "id": "calFoot16Green24",
+      "itemId": "calFoot16Green",
+      "position": [
+        20,
+        18
+      ]
+    },
+    {
+      "id": "calFoot16Green25",
+      "itemId": "calFoot16Green",
+      "position": [
+        19.75,
+        18
+      ]
+    },
+    {
+      "id": "calFoot16Green26",
+      "itemId": "calFoot16Green",
+      "position": [
+        19.5,
+        18
+      ]
+    }
+  ]
+}

@@ -553,7 +553,11 @@ function compareSupports(a, b) {
   return b.z - a.z
 }
 
-export function canPlaceOn(state, position, { excludeInstanceId = null, category = null, boardPoint = null, itemId = null } = {}) {
+export function canPlaceOn(
+  state,
+  position,
+  { excludeInstanceId = null, category = null, boardPoint = null, itemId = null, preferredSupport = null } = {},
+) {
   const map = state.party?.map ?? state.map
   // A drop sends the corner the hover already resolved. On a .5 boundary that corner tileOf-rounds
   // onto the next tile, so a floor drop jumps. The pointer (boardPoint) is the cell the player aimed at.
@@ -567,13 +571,19 @@ export function canPlaceOn(state, position, { excludeInstanceId = null, category
   const stack = stackSizeOf(itemId) ?? { width: STACK_SPOT_PX, depth: STACK_SPOT_PX, height: 0 }
   const footprint = stackFootprint(stack)
   const choices = supportsUnderPointer(state, map, boardPoint, floorSnapped, excludeInstanceId)
-  const point = choices.find((choice) => choice.hitPoint)?.hitPoint ?? floorSnapped
   const seen = new Set()
-  for (const support of [...choices].sort(compareSupports)) {
+  const preferCurrentSupport = (a, b) => {
+    const aPreferred = supportEquals(supportRef(a), preferredSupport)
+    const bPreferred = supportEquals(supportRef(b), preferredSupport)
+    return Number(bPreferred) - Number(aPreferred) || compareSupports(a, b)
+  }
+  for (const support of [...choices].sort(preferCurrentSupport)) {
     const key = support.kind === 'tile' ? `tile:${support.tile.x},${support.tile.y}` : `item:${support.instanceId}`
     if (seen.has(key)) continue
     seen.add(key)
-    const placed = placeOnSupport(state, support, point, { excludeInstanceId, category, footprint })
+    // Each raised support resolves the pointer onto its own plane. Reusing the first candidate's
+    // point can move an item off its current support when a lower tile overlaps it on screen.
+    const placed = placeOnSupport(state, support, support.hitPoint ?? floorSnapped, { excludeInstanceId, category, footprint })
     if (placed.ok) return placed
     if (placed.stop) return refused(placed.reason, floorSnapped, floorTile)
   }

@@ -1482,6 +1482,14 @@
   gap: 4px;
 }
 
+.explore-placement-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
 .explore-formation-header .combat-panel-title {
   flex: 1 1 auto;
   min-width: 0;

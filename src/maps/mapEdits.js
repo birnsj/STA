@@ -622,7 +622,11 @@ export function placementProbeState(map, { excludeId = null, excludeIds = null }
   return { party: { map }, groundItems, itemInstances }
 }
 
-function groundItemPlaceCheck(map, position, { excludeId = null, excludeIds = null, itemId = null } = {}) {
+function groundItemPlaceCheck(
+  map,
+  position,
+  { excludeId = null, excludeIds = null, itemId = null, boardPoint = null, preferredSupport = null } = {},
+) {
   const state = placementProbeState(map, { excludeId, excludeIds })
   // Items lock to pack points inside canPlaceOn. The toolbar grid does not move them.
   const snapped = snapItemPosition(position, ITEM_CELL_PX)
@@ -631,7 +635,15 @@ function groundItemPlaceCheck(map, position, { excludeId = null, excludeIds = nu
     return { ok: false, position: snapped, support: null }
   }
   const def = itemId ? getItemById(itemId) : null
-  return canPlaceOn(state, snapped, { excludeInstanceId: excludeId, category: def?.category ?? null, itemId })
+  // boardPoint is the pointer on the lid. The floor cell under that pixel is the tile behind the
+  // surface, so a move that only has the floor cell rejects a valid spot on the surface it is leaving.
+  return canPlaceOn(state, snapped, {
+    excludeInstanceId: excludeId,
+    category: def?.category ?? null,
+    itemId,
+    boardPoint,
+    preferredSupport,
+  })
 }
 
 // What the board draws for an authored placement (or the tool's ghost): its support, derived world Z and depth sort key.
@@ -789,7 +801,7 @@ export function placeGroundItem(map, position, itemId, cellPx = ITEM_CELL_PX) {
   return { map: { ...map, groundItemPlacements: [...list, object] }, object }
 }
 
-export function moveGroundItem(map, id, position, cellPx = ITEM_CELL_PX) {
+export function moveGroundItem(map, id, position, cellPx = ITEM_CELL_PX, boardPoint = null) {
   const object = (map.groundItemPlacements ?? []).find((entry) => entry.id === id)
   if (!object) return map
   const children = directItemChildren(map)
@@ -800,7 +812,14 @@ export function moveGroundItem(map, id, position, cellPx = ITEM_CELL_PX) {
     for (const child of children.get(instanceId) ?? []) visit(child)
   }
   visit(id)
-  const check = groundItemPlaceCheck(map, position, { excludeId: id, excludeIds: subtree, cellPx, itemId: object.itemId })
+  const check = groundItemPlaceCheck(map, position, {
+    excludeId: id,
+    excludeIds: subtree,
+    cellPx,
+    itemId: object.itemId,
+    boardPoint,
+    preferredSupport: supportFromOn(object.on),
+  })
   if (!check.ok) return map
   const dx = check.position.x - object.position.x
   const dy = check.position.y - object.position.y

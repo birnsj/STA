@@ -13,6 +13,7 @@ import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
 import { setStoryTemplates } from './tools/storyStore.cjs'
 import { putDeckStyle } from './tools/deckGeneratorStore.cjs'
 import { applyEffectsChange } from './tools/effectsStore.cjs'
+import { setItemDescription } from './tools/itemStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
 
@@ -20,6 +21,7 @@ const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url)
 const MAPS_FOLDER = fileURLToPath(new URL('./maps', import.meta.url))
 const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.meta.url))
 const TILES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tiles.json', import.meta.url))
+const ITEMS_FILE = fileURLToPath(new URL('./src/data/adaptation/items.json', import.meta.url))
 const EFFECTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tileEffects.json', import.meta.url))
 const DECK_GENERATORS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/deckGenerators.json', import.meta.url))
 const WALL_VARIANTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/generatedWallVariants.json', import.meta.url))
@@ -108,6 +110,8 @@ function quietDataEndpoint(name, route, dataFile, save) {
 
 // The map editor's palette Cover checkboxes save into the tile catalogue.
 const tileFilesEndpoint = () => quietDataEndpoint('tile-files-endpoint', '/__tiles', TILES_FILE, setTileFlag)
+// Item Description in Properties saves that one string into the item catalogue.
+const itemFilesEndpoint = () => quietDataEndpoint('item-files-endpoint', '/__items', ITEMS_FILE, setItemDescription)
 // Overlay emissive strength slider in Properties → Selection.
 const effectsFilesEndpoint = () => quietDataEndpoint('effects-files-endpoint', '/__effects', EFFECTS_FILE, applyEffectsChange)
 // Generator Editor: deck Location tile / hazard styles.
@@ -147,6 +151,7 @@ export default defineConfig({
     mapFilesEndpoint(),
     conversationFilesEndpoint(),
     tileFilesEndpoint(),
+    itemFilesEndpoint(),
     effectsFilesEndpoint(),
     deckGeneratorsEndpoint(),
     wallVariantsEndpoint(),

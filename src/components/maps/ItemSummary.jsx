@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getCategoryName, getItemById, getItemStatLines } from '../../rules/equipment.js'
+import { canEditItems, setItemDescription, setItemDescriptionLocal } from '../../rules/itemFiles.js'
 import { propSpriteSize, stackSizeOf } from '../../rules/placement.js'
 import { PropertySection } from './PropertySections.jsx'
 
@@ -54,9 +55,79 @@ function ArtThumb({ src, label, file }) {
   )
 }
 
+// Last description written to items.json. The live catalogue entry changes while typing, so a remount
+// cannot treat that unsaved text as the saved copy.
+const savedDescriptions = new Map()
+
+function savedDescription(item) {
+  if (!item) return ''
+  if (!savedDescriptions.has(item.id)) savedDescriptions.set(item.id, item.description ?? '')
+  return savedDescriptions.get(item.id)
+}
+
+// Catalogue description, shared by the palette asset and a placed prop. Edits the item definition, not the placement.
+function ItemDescriptionField({ itemId, onStatus }) {
+  const item = getItemById(itemId)
+  const [draft, setDraft] = useState(item?.description ?? '')
+  const draftRef = useRef(draft)
+  const savedRef = useRef(savedDescription(item))
+  const onStatusRef = useRef(onStatus)
+  const commitRef = useRef(null)
+
+  const commit = () => {
+    if (!canEditItems) return
+    const next = draftRef.current
+    if (next === savedRef.current) return
+    const name = getItemById(itemId)?.name ?? itemId
+    setItemDescription(itemId, next)
+      .then(() => {
+        savedRef.current = next
+        savedDescriptions.set(itemId, next)
+        onStatusRef.current?.(`${name} description saved.`)
+      })
+      .catch((error) => {
+        setItemDescriptionLocal(itemId, savedRef.current)
+        draftRef.current = savedRef.current
+        setDraft(savedRef.current)
+        onStatusRef.current?.(`Could not save description for ${name}: ${error.message}`)
+      })
+  }
+
+  const onChange = (event) => {
+    const next = event.target.value
+    draftRef.current = next
+    setDraft(next)
+    if (canEditItems) setItemDescriptionLocal(itemId, next)
+  }
+
+  useEffect(() => {
+    commitRef.current = commit
+    onStatusRef.current = onStatus
+  })
+  useEffect(() => () => commitRef.current?.(), [])
+  if (!item) return null
+
+  return (
+    <>
+      <label className="me-field">
+        Description
+        <textarea
+          className="me-name me-wide me-description"
+          rows={4}
+          readOnly={!canEditItems}
+          value={draft}
+          onChange={onChange}
+          onBlur={commit}
+        />
+      </label>
+      <p className="me-text">Catalogue text for every copy of this item.</p>
+    </>
+  )
+}
+
 // The item block on the Red Stack Box properties window: preview, identity, pixel size, thumbnail.
 // Catalogue tools and placed ground items both use it, so every item reads the same way.
-export default function ItemSummary({ itemId, footer = null }) {
+export default function ItemSummary({ itemId, footer = null, onStatus = null }) {
   const item = getItemById(itemId)
   const stack = item ? stackSizeOf(item) : null
   const picture = item ? propSpriteSize(item) : null
@@ -77,6 +148,7 @@ export default function ItemSummary({ itemId, footer = null }) {
         ]}
       />
       <ArtThumb src={item?.icon} label="Icon" file={item?.icon} />
+      <ItemDescriptionField key={itemId} itemId={itemId} onStatus={onStatus} />
       {footer}
     </>
   )

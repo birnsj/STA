@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTile, PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
 import { getCategoryName, getItems } from '../../rules/equipment.js'
+import { propSpriteSize } from '../../rules/placement.js'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
+import { EDITOR_ITEM_DRAG_TYPE } from './editorItemDrag.js'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Left Asset Browser: tabbed catalogues (Tiles, Environment, Items, Markers, NPCs). Tool ids unchanged.
@@ -51,7 +53,31 @@ const CALIBRATION_ITEM_GROUPS = [
 const itemMatches = (item, q) => matchesQuery(item.name, q) || matchesQuery(item.id, q) || matchesQuery(getCategoryName(item.category), q)
 const calibrationItems = () => getItems().filter((item) => item.category === 'calibration')
 
-function ItemGrid({ items, tool, onTool }) {
+function setItemDragImage(event, item) {
+  const tileImage = getTile(item.worldTile ?? 'crate')?.image
+  const src = item.worldImage || tileImage || item.icon
+  if (!src) return
+  const size = propSpriteSize(item)
+  const image = document.createElement('img')
+  image.src = src
+  image.alt = ''
+  image.className = 'ed-item-drag-image'
+  Object.assign(image.style, {
+    position: 'fixed',
+    left: '-10000px',
+    top: '-10000px',
+    width: `${size.width}px`,
+    height: `${size.height}px`,
+    objectFit: 'contain',
+    pointerEvents: 'none',
+  })
+  document.body.appendChild(image)
+  event.dataTransfer.setDragImage(image, size.width / 2, size.height)
+  // Chrome snapshots the drag image after dragstart returns.
+  window.setTimeout(() => image.remove(), 0)
+}
+
+function ItemGrid({ items, tool, onTool, onItemDragStart, onItemDragEnd }) {
   if (!items.length) return null
   return (
     <div className="ed-asset-grid">
@@ -63,9 +89,17 @@ function ItemGrid({ items, tool, onTool }) {
             aria-pressed={tool === `inventory:${item.id}`}
             title={getCategoryName(item.category)}
             onClick={() => onTool(`inventory:${item.id}`)}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'copy'
+              event.dataTransfer.setData(EDITOR_ITEM_DRAG_TYPE, item.id)
+              setItemDragImage(event, item)
+              onItemDragStart?.(item.id)
+            }}
+            onDragEnd={onItemDragEnd}
           >
             {item.worldImage || item.icon ? (
-              <img className="me-thumb-preview" src={item.worldImage || item.icon} alt="" />
+              <img className="me-thumb-preview" src={item.worldImage || item.icon} alt="" draggable={false} />
             ) : (
               <span className="me-swatch is-area" aria-hidden="true" />
             )}
@@ -127,7 +161,15 @@ const TAB_FOR_LAYER = {
   markers: 'markers',
 }
 
-export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, animateTiles = true, activeLayer = null }) {
+export default function EditorPalette({
+  tool,
+  onTool,
+  onOpenCharacterLibrary,
+  onItemDragStart,
+  onItemDragEnd,
+  animateTiles = true,
+  activeLayer = null,
+}) {
   const [tab, setTab] = useState('tiles')
   const [query, setQuery] = useState('')
   const [thumbScale, setThumbScale] = useState(loadThumbScale)
@@ -331,12 +373,18 @@ export default function EditorPalette({ tool, onTool, onOpenCharacterLibrary, an
                 <div key={group.id}>
                   {!earlier && <p className="me-section">Calibration</p>}
                   <ToolGroup id={group.id} label={group.label} count={items.length} open={q ? new Set([group.id]) : open} onToggle={toggle}>
-                    <ItemGrid items={items} tool={tool} onTool={onTool} />
+                    <ItemGrid items={items} tool={tool} onTool={onTool} onItemDragStart={onItemDragStart} onItemDragEnd={onItemDragEnd} />
                   </ToolGroup>
                 </div>
               )
             })}
-            <ItemGrid items={getItems().filter((item) => item.category !== 'calibration' && itemMatches(item, q))} tool={tool} onTool={onTool} />
+            <ItemGrid
+              items={getItems().filter((item) => item.category !== 'calibration' && itemMatches(item, q))}
+              tool={tool}
+              onTool={onTool}
+              onItemDragStart={onItemDragStart}
+              onItemDragEnd={onItemDragEnd}
+            />
           </>
         )}
 

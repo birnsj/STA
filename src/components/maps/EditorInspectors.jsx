@@ -74,6 +74,7 @@ export default function EditorInspectors({
   onSelectWaypoint,
   onWaypointCleared,
   layers = null,
+  onStatus = null,
 }) {
   const { npc, object, marker, destructible, hazard, groundItem } = selection
   const mutate = (layerId, change) => {
@@ -106,6 +107,7 @@ export default function EditorInspectors({
           onPositionChange={(position) => mutate('furniture', () => moveGroundItem(map, groundItem.id, position))}
           onMove={onToggleGroundItemMove}
           onDuplicate={onDuplicateGroundItem}
+          onStatus={onStatus}
           onDelete={() => {
             if (!canEditLayer(layers, 'furniture')) return
             edit(removeGroundItem(map, groundItem.id))

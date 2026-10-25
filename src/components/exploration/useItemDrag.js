@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { playItemPickup } from '../../audio/uiSounds.js'
 import { bagFreeSlots, canPlaceAt, resolveItem } from '../../rules/inventory.js'
-import { inventoryDropAt, placeGhostClient, syncInventoryGhostPosition } from './inventoryDrag.js'
+import { zOf } from '../../rules/placement.js'
+import { inventoryDropAt, syncInventoryGhostPosition, worldGrabOffset } from './inventoryDrag.js'
 
 // Drag an item between the inventory panel and the world: the item follows the pointer until release or Escape.
 // Owns the drag's UI state (the dragged item and the place preview) and its window listeners. The game change itself
@@ -130,16 +131,27 @@ export default function useItemDrag({ state, dispatch }) {
   const beginItemDrag = useCallback(
     (start) => {
       if (itemDragRef.current) return
-      // The place square's front tip when it is showing; the pointer when the drag is over the inventory or a party member.
-      const pinGhost = (clientX, clientY) => {
-        const screen = placeGhostClient(placeHoverRef.current, placeHelpersRef.current?.toClient)
-        syncInventoryGhostPosition(screen?.x ?? clientX, screen?.y ?? clientY)
+      // Feet-to-pointer offset, measured once from where the prop was standing. Inventory drags have no world foot.
+      let grab = start.from?.location === 'ground' ? null : { x: 0, y: 0 }
+      const pinGhost = (clientX, clientY, overWorld) => {
+        if (overWorld && !grab) {
+          const ground = exploreStateRef.current.groundItems?.[start.instanceId]
+          grab = worldGrabOffset(
+            ground,
+            ground ? zOf(exploreStateRef.current, ground) : 0,
+            start.clientX,
+            start.clientY,
+            placeHelpersRef.current?.toClient,
+          )
+        }
+        const shift = overWorld ? grab : null
+        syncInventoryGhostPosition(clientX + (shift?.x ?? 0), clientY + (shift?.y ?? 0))
       }
       const drag = { ...start, overWorld: !pointerOverInventory(start.clientX, start.clientY) }
       itemDragRef.current = drag
       setItemDrag(drag)
       updatePlaceHover(start.clientX, start.clientY, drag.overWorld)
-      pinGhost(start.clientX, start.clientY)
+      pinGhost(start.clientX, start.clientY, drag.overWorld)
       // Category grab chirp when lifting from bag, slot, or ground (click pickup plays via the reducer).
       const lifted = resolveItem(state, start.instanceId)
       if (lifted) playItemPickup(lifted.def.category)
@@ -150,7 +162,7 @@ export default function useItemDrag({ state, dispatch }) {
         const current = itemDragRef.current
         if (!current) return
         if (current.overWorld) updatePlaceHover(current.clientX, current.clientY, true)
-        pinGhost(current.clientX, current.clientY)
+        pinGhost(current.clientX, current.clientY, current.overWorld)
         rafId = requestAnimationFrame(tick)
       }
       rafId = requestAnimationFrame(tick)
@@ -165,8 +177,7 @@ export default function useItemDrag({ state, dispatch }) {
         if (overChanged) setItemDrag(next)
         updatePlaceHover(moveEvent.clientX, moveEvent.clientY, overWorld)
         // Screen position without a React render — setState every move lagged behind the pointer on a scaled stage.
-        // Over the board the picture's bottom sits on the place square; elsewhere it stays on the pointer.
-        pinGhost(moveEvent.clientX, moveEvent.clientY)
+        pinGhost(moveEvent.clientX, moveEvent.clientY, overWorld)
       }
 
       const teardown = () => {

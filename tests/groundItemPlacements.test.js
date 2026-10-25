@@ -5,7 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it, beforeEach } from 'node:test'
 import { createExplorationState } from '../src/exploration/explorationState.js'
-import { groundItemAt, moveGroundItem, placeGroundItem, removeGroundItem } from '../src/maps/mapEdits.js'
+import { groundItemAt, groundItemElevation, moveGroundItem, placeGroundItem, removeGroundItem } from '../src/maps/mapEdits.js'
 import { parseMapFile, serializeMap, validateMap } from '../src/maps/mapFormat.js'
 import { zOf } from '../src/rules/placement.js'
 import {
@@ -183,6 +183,20 @@ describe('createExplorationState seeding', () => {
       assert.ok(view.worldImage, `${view.itemId} worldImage`)
       assert.deepEqual(view.position, snapItemPosition(view.position))
       assert.ok(view.icon, `${view.itemId} icon`)
+    }
+  })
+
+  it('keeps a floor prop where the file put it instead of stacking it on a neighbour', () => {
+    const map = parseMapFile(JSON.parse(fs.readFileSync(path.join(ROOT, 'maps', 'Computer Core Access.json'), 'utf8')), 'Computer Core Access')
+    const state = seedGroundItemPlacements({ party: { map }, itemInstances: {}, groundItems: {} }, map.groundItemPlacements)
+    for (const placement of map.groundItemPlacements) {
+      const ground = state.groundItems[placement.id]
+      assert.ok(ground, placement.id)
+      assert.deepEqual(ground.position, placement.position)
+      const drawn = groundItemElevation(map, placement)
+      if (drawn.support) assert.deepEqual(ground.support, drawn.support)
+      else assert.equal(ground.support, undefined)
+      assert.equal(zOf(state, ground), drawn.z)
     }
   })
 

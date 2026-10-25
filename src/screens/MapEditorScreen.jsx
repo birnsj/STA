@@ -22,6 +22,7 @@ import useEditorLayers from '../components/maps/useEditorLayers.js'
 import useEditorTools from '../components/maps/useEditorTools.js'
 import useMapDocument from '../components/maps/useMapDocument.js'
 import { resizeMap, updateNpc } from '../maps/mapEdits.js'
+import { useDisplaySettings, useUpdateDisplaySettings } from '../settings/DisplaySettingsContext.js'
 import { canSaveMaps } from '../maps/mapFiles.js'
 import { mapPlayErrors, validateMap } from '../maps/mapFormat.js'
 import { challengeMapWarnings } from '../world/objectAuthoring.js'
@@ -50,6 +51,8 @@ function playAwayTeam(savedCharacters) {
 }
 
 export default function MapEditorScreen({ savedCharacters = [], onBack }) {
+  const { itemPlacementPreview } = useDisplaySettings()
+  const updateDisplaySettings = useUpdateDisplaySettings()
   const shellRef = useRef(null)
   const [status, setStatus] = useState(null)
   const { askConfirm, askText, dialogs, open: dialogShowing } = useDialogs()
@@ -449,6 +452,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         onResize={(width, height) => edit(resizeMap(map, width, height))}
         enemiesActive={enemiesActive}
         onEnemiesActive={setEnemiesActive}
+        placementPreview={itemPlacementPreview}
+        onPlacementPreview={(checked) => updateDisplaySettings({ itemPlacementPreview: checked })}
         onPlay={onPlay}
         placing={placing}
         onPlacing={tools.onPlacingToggle}
@@ -505,6 +510,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             selectedDestructibleId={tools.selectedDestructibleId}
             selectedHazardId={tools.selectedHazardId}
             selectedGroundItemId={tools.selectedGroundItemId}
+            movingGroundItem={tools.movingGroundItem}
             inventoryTool={tool?.startsWith('inventory:') ? tool.slice('inventory:'.length) : null}
             moveFrom={tools.moveFrom}
             onPaint={boardBlocked ? undefined : tools.onPaint}

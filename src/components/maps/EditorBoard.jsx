@@ -20,6 +20,7 @@ import { getItemById } from '../../rules/equipment.js'
 import { propSpriteSize, stackFootprint, stackSizeOf, surfaceTileAtBoard } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
 import useCamera from '../combat/useCamera.js'
+import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import './alphaMasks.js' // installs the alpha masks that ground-item picking reads
 import { boardLayout } from './canvasTiles.js'
 import { startMapScene } from './pixi/mapScene.js'
@@ -64,6 +65,20 @@ function itemAt(event, map, gridSize) {
 
 const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
 
+// The placement picture's foot sits on the pointer. The green square stays on the cell a click will fill.
+function seatGhostOnCursor(scene, client) {
+  const ghost = scene?.groundLoot?.find((item) => item.id === '__ghost')
+  const svg = scene?.svg
+  if (!ghost || !client || !svg?.getScreenCTM) return
+  const matrix = svg.getScreenCTM()
+  if (!matrix) return
+  const point = new DOMPoint(client.x, client.y).matrixTransform(matrix.inverse())
+  const world = unproject(point)
+  ghost.position = world
+  ghost.z = 0
+  ghost.depth = world.x + world.y + 1000
+}
+
 function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
   // The same list the editor picks from (mapEdits groundItemSprites), so a click lands on what is drawn.
   const list = groundItemSprites(map).map((sprite) => ({ ...sprite, hovered: sprite.id === selectedGroundItemId, inReach: true }))
@@ -71,8 +86,8 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
     const probe = placementProbeState(map)
     const def = getItemById(inventoryTool)
     if (def) {
-      // The ghost sits on the cell the green (or red) square marks, so its bottom meets that guide
-      // even when the cell refuses the drop.
+      // The picture is seated on the cursor each frame (seatGhostOnCursor). This cell is only the
+      // fallback until that runs, and the position a click will actually write.
       const target = previewGroundItem(map, hover, inventoryTool)
       const at = target.position ?? hover
       const live = groundItemElevation(map, { position: at, on: target.on }, probe)
@@ -172,6 +187,7 @@ export default function EditorBoard({
   selectedDestructibleId = null,
   selectedHazardId = null,
   selectedGroundItemId = null,
+  movingGroundItem = false,
   inventoryTool = null,
   moveFrom = null,
   onPaint,
@@ -202,7 +218,12 @@ export default function EditorBoard({
   const hoverRef = useRef(null)
   const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current))
   const sceneRef = useRef(null)
-  const { hostRef, failed } = usePixiScene((host, isCancelled) => startMapScene(host, () => sceneRef.current, isCancelled))
+  const cursorClientRef = useRef(null)
+  const { hostRef, failed } = usePixiScene((host, isCancelled) => startMapScene(host, () => {
+    const scene = sceneRef.current
+    seatGhostOnCursor(scene, cursorClientRef.current)
+    return scene
+  }, isCancelled))
   const [hover, setHoverState] = useState(null)
   // Only a move onto another cell counts, so the board re-renders once per grid step rather than per pointer move.
   const setHover = (position) => {
@@ -212,7 +233,9 @@ export default function EditorBoard({
     onHover(position)
   }
   const painting = useRef(false)
-  const pointerAt = (event) => (inventoryTool ? itemAt(event, map, gridSize) : tileAt(event, map, brush))
+  // Moving an item uses the same lid hit as placing one. The floor tile under a raised top is the
+  // cell behind it, and that cell rejects a move onto another spot of the surface.
+  const pointerAt = (event) => (inventoryTool || movingGroundItem ? itemAt(event, map, gridSize) : tileAt(event, map, brush))
 
   useEffect(() => {
     const stop = () => {
@@ -294,6 +317,7 @@ export default function EditorBoard({
         })
       : []),
   ]
+  const { itemPlacementPreview } = useDisplaySettings()
   const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
   const surfaces = useMemo(() => (showSurfaces ? surfaceOverlayMarks(map) : null), [map, showSurfaces])
   const groundLoot = useMemo(
@@ -302,7 +326,7 @@ export default function EditorBoard({
   )
   // The cell a click would fill, drawn on the board while an inventory item is the tool.
   const itemPlaceMark = useMemo(() => {
-    if (!inventoryTool || !hover) return null
+    if (!itemPlacementPreview || !inventoryTool || !hover) return null
     const target = previewGroundItem(map, hover, inventoryTool)
     const at = target.position ?? hover
     const live = groundItemElevation(map, { position: at, on: target.on })
@@ -310,7 +334,7 @@ export default function EditorBoard({
       ok: target.ok,
       points: pts(footprintDiamond(at, stackFootprint(stackSizeOf(inventoryTool)), live.z)),
     }
-  }, [inventoryTool, hover, map])
+  }, [itemPlacementPreview, inventoryTool, hover, map])
   useLayoutEffect(() => {
     sceneRef.current = {
       layout,
@@ -352,12 +376,16 @@ export default function EditorBoard({
         className="me-board"
         viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
         {...dragHandlers}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={() => {
+          cursorClientRef.current = null
+          setHover(null)
+        }}
       >
         <polygon
           className="me-cells"
           points={outline}
           onPointerDown={(event) => {
+            cursorClientRef.current = { x: event.clientX, y: event.clientY }
             const position = event.button === 0 ? pointerAt(event) : null
             if (!position) return
             painting.current = true
@@ -365,12 +393,16 @@ export default function EditorBoard({
             onPaint(position, { first: true, boardPoint: boardPointOf(event) })
           }}
           onPointerMove={(event) => {
+            cursorClientRef.current = { x: event.clientX, y: event.clientY }
             const position = pointerAt(event)
             const moved = !sameHover(position, hover)
             setHover(position)
             if (position && moved && painting.current) onPaint(position, { first: false })
           }}
-          onPointerLeave={() => setHover(null)}
+          onPointerLeave={() => {
+            cursorClientRef.current = null
+            setHover(null)
+          }}
         />
         <g className="me-overlay">
           {moveFrom && !inventoryTool && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}

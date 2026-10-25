@@ -15,6 +15,7 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // tooltips: the hover boxes drawn from title / data-tip attributes (components/TitleTips.jsx).
 // cameraFollow: combat and exploration start with the view following the acting character (the camera button still
 // changes it during play).
+// itemPlacementPreview: the green/red footprint shown while positioning a ground inventory item in play or the editor.
 // wasdCoast: how far the camera keeps sliding after WASD / arrow keys are released (0 = stop at once, 100 = the
 // current coast). Pointer-drag coast is unchanged.
 // partyAI / enemyAI: which Auto Combat brain plays each side (ids must match PARTY_AIS / ENEMY_AIS in autoCombat.js);
@@ -30,6 +31,7 @@ export const DEFAULT_DISPLAY_SETTINGS = {
   missionOutro: true,
   tooltips: true,
   cameraFollow: true,
+  itemPlacementPreview: true,
   wasdCoast: 100,
   partyAI: 'classic',
   enemyAI: 'classic',
@@ -64,6 +66,7 @@ export function normalizeDisplaySettings(saved) {
     missionOutro: flag('missionOutro'),
     tooltips: flag('tooltips'),
     cameraFollow: flag('cameraFollow'),
+    itemPlacementPreview: flag('itemPlacementPreview'),
     wasdCoast,
     partyAI,
     enemyAI,

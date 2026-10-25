@@ -443,7 +443,7 @@ export default function AssetProperties({
     return (
       <div className="ed-asset-props">
         <PropertySection id="item" title="Item">
-          <ItemSummary itemId={asset.id} footer={<p className="me-text">Click the board to place this item on the ground.</p>} />
+          <ItemSummary itemId={asset.id} onStatus={onStatus} footer={<p className="me-text">Click the board to place this item on the ground.</p>} />
         </PropertySection>
         <ItemStatSection itemId={asset.id} />
       </div>

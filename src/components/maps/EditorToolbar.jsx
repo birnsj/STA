@@ -102,6 +102,8 @@ export default function EditorToolbar({
   onResize,
   enemiesActive,
   onEnemiesActive,
+  placementPreview,
+  onPlacementPreview,
   onPlay,
   placing,
   onPlacing,
@@ -244,6 +246,9 @@ export default function EditorToolbar({
               </button>
             ))}
           </div>
+          <label className="me-check" title="The green or red footprint while placing an inventory object.">
+            <input type="checkbox" checked={placementPreview} onChange={(event) => onPlacementPreview(event.target.checked)} /> Placement
+          </label>
           <label className="me-check" title="Off: enemies never notice the away team or start a fight.">
             <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies
           </label>

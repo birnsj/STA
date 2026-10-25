@@ -9,6 +9,7 @@ import { footprintDiamond, project, pts, TILE_H, TILE_W, unproject } from '../..
 import '../maps/alphaMasks.js'
 import { canPlaceAt, resolveItem } from '../../rules/inventory.js'
 import { stackFootprint, stackSizeOf } from '../../rules/placement.js'
+import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import { isDestructibleScanned } from '../../world/destructibleScan.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playBoardHover, playWeaponSound } from '../../audio/uiSounds.js'
@@ -68,6 +69,7 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
+  const { itemPlacementPreview } = useDisplaySettings()
   const {
     state,
     world,
@@ -376,7 +378,8 @@ export default function PixiExplorationBoard(props) {
       inReach,
       depth,
     })
-    // Same floating object tag as challenge objects (hover only — see MarkerView). After Scan: category + description.
+    // Same floating object tag as challenge objects (hover only — see MarkerView). Name and the catalogue
+    // description show on hover. Category joins the tag after a successful Scan; the ring card has the full text.
     const groundScanned = isDestructibleScanned(exploreState?.objectScans, view.id)
     markers.push({
       id: `ground:${view.id}`,
@@ -385,7 +388,7 @@ export default function PixiExplorationBoard(props) {
       name: view.name,
       stateLabel: z > 0 ? 'Placed' : 'On ground',
       typeLabel: groundScanned ? view.category : null,
-      description: groundScanned && view.description ? view.description : null,
+      description: view.description || null,
       changed: false,
       objective: false,
       inReach,
@@ -827,7 +830,7 @@ export default function PixiExplorationBoard(props) {
           />
         )}
         {/* The pack cell a drop will fill. Hidden while the item is going into a party member's bag. */}
-        {placingItem && placeHover && !placeHover.dropMemberId && (
+        {itemPlacementPreview && placingItem && placeHover && !placeHover.dropMemberId && (
           <polygon
             className={`explore-place-preview${placeHover.valid ? '' : ' is-invalid'}`}
             points={pts(footprintDiamond(

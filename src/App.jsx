@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { music } from './audio/music.js'
 import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
 import { CharacterProvider } from './character/CharacterContext.jsx'
@@ -16,7 +16,7 @@ import creationSteps from './data/adaptation/creationSteps.json'
 import ScaledStage from './components/ScaledStage.jsx'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
-import { DisplaySettingsContext, OpenSettingsProvider } from './settings/DisplaySettingsContext.js'
+import { DisplaySettingsContext, OpenSettingsProvider, UpdateDisplaySettingsProvider } from './settings/DisplaySettingsContext.js'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ShipBuilderPlaceholder from './screens/ShipBuilderPlaceholder.jsx'
@@ -72,6 +72,9 @@ function Views() {
     setViewWithSettings(view)
     setSettingsOpen(false)
   }
+  const updateDisplaySettings = useCallback((patch) => {
+    setDisplaySettings((current) => ({ ...current, ...patch }))
+  }, [])
   useEffect(() => saveSettings({ ...loadSettings(), display: displaySettings }), [displaySettings])
   useEffect(() => saveSettings({ ...loadSettings(), audio: audioSettings }), [audioSettings])
 
@@ -136,6 +139,7 @@ function Views() {
   // While a view's code is still arriving the stage stays black, as it is between views anyway.
   return (
     <DisplaySettingsContext.Provider value={displaySettings}>
+    <UpdateDisplaySettingsProvider value={updateDisplaySettings}>
     <OpenSettingsProvider value={{ open: settingsOpen, openSettings: () => setSettingsOpen(true) }}>
     <Suspense fallback={null}>
       {view === 'menu' && (
@@ -198,6 +202,7 @@ function Views() {
       )}
     </Suspense>
     </OpenSettingsProvider>
+    </UpdateDisplaySettingsProvider>
     </DisplaySettingsContext.Provider>
   )
 }

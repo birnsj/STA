@@ -51,7 +51,7 @@ function derivedZ(map, entry) {
 }
 
 // Map editor panel for an authored ground inventory placement (mapFormat.js groundItemPlacements).
-export default function GroundItemInspector({ object, map, moving, onChange, onPositionChange, onMove, onDuplicate, onDelete }) {
+export default function GroundItemInspector({ object, map, moving, onChange, onPositionChange, onMove, onDuplicate, onDelete, onStatus = null }) {
   const def = getItemById(object.itemId)
   const pos = object.position
   const z = derivedZ(map, object)
@@ -64,7 +64,7 @@ export default function GroundItemInspector({ object, map, moving, onChange, onP
   return (
     <div className="ed-asset-props">
       <PropertySection id="item" title="Item">
-        <ItemSummary itemId={object.itemId} />
+        <ItemSummary itemId={object.itemId} onStatus={onStatus} />
       </PropertySection>
       <ItemStatSection itemId={object.itemId} />
       <PropertySection id="ground-item" title="Placement">
