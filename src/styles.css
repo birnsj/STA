@@ -21,3 +21,5 @@
 @import './styles/creator/review.css';
 @import './styles/creator/footer.css';
 @import './styles/creator/stepSummary.css';
+@import './styles/ships/timeframe.css';
+@import './styles/ships/spaceframe.css';

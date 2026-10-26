@@ -216,7 +216,7 @@ export default function EditorBoard({
   )
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const hoverRef = useRef(null)
-  const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current))
+  const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current), true, null, null, false)
   const sceneRef = useRef(null)
   const cursorClientRef = useRef(null)
   const { hostRef, failed } = usePixiScene((host, isCancelled) => startMapScene(host, () => {

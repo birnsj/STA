@@ -1,7 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ENEMY_AIS, PARTY_AIS } from '../combat/autoCombat.js'
 import { AUDIO_CATEGORIES } from '../settings/audioSettings.js'
 import { SCALE_MODE_OPTIONS } from '../settings/displaySettings.js'
+
+// The stage is CSS-scaled. Chrome maps a range drag in unscaled coordinates, so the thumb does not follow the pointer.
+// The pointer's position on the control's real box is the value.
+function valueFromPointer(input, clientX) {
+  const rect = input.getBoundingClientRect()
+  if (!rect.width) return Number(input.value)
+  const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+  return Math.round(ratio * 100)
+}
 
 export default function SettingsScreen({ displaySettings, onChangeDisplay, audioSettings, onChangeAudio, onSave, onBack }) {
   const [saved, setSaved] = useState(false)
@@ -42,33 +51,19 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
           <h2 id="settings-audio" className="ui-heading">Audio</h2>
           <div className="settings-audio">
             {AUDIO_CATEGORIES.map((category) => (
-              <label key={category.id} className="settings-slider ui-row">
-                <span className="settings-slider-label">{category.label}</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={audioSettings[category.id]}
-                  onChange={(event) => onChangeAudio({ ...audioSettings, [category.id]: Number(event.target.value) })}
-                  style={{ '--fill': `${audioSettings[category.id]}%` }}
-                />
-                <span className="settings-slider-value">{audioSettings[category.id]}%</span>
-              </label>
-            ))}
-            <label className="settings-slider ui-row" title="WASD after glide: how far the camera keeps sliding after you release the keys. 100% is full coast; 0% stops at once.">
-              <span className="settings-slider-label">Sensitivity</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={displaySettings.wasdCoast}
-                onChange={(event) => onChangeDisplay({ ...displaySettings, wasdCoast: Number(event.target.value) })}
-                style={{ '--fill': `${displaySettings.wasdCoast}%` }}
+              <SettingsSlider
+                key={category.id}
+                label={category.label}
+                value={audioSettings[category.id]}
+                onChange={(next) => onChangeAudio({ ...audioSettings, [category.id]: next })}
               />
-              <span className="settings-slider-value">{displaySettings.wasdCoast}%</span>
-            </label>
+            ))}
+            <SettingsSlider
+              label="Sensitivity"
+              title="WASD after glide: how far the camera keeps sliding after you release the keys. 100% is full coast; 0% stops at once."
+              value={displaySettings.wasdCoast}
+              onChange={(wasdCoast) => onChangeDisplay({ ...displaySettings, wasdCoast })}
+            />
           </div>
           <h2 id="settings-combat" className="ui-heading">Combat</h2>
           <div className="settings-ai" role="group" aria-labelledby="settings-combat">
@@ -110,6 +105,60 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
       </div>
       </div>
     </div>
+  )
+}
+
+function SettingsSlider({ label, value, onChange, title }) {
+  // Set while a pointer drag is in progress, including the native change event that follows pointerup.
+  const pointerX = useRef(null)
+  const apply = (input, clientX) => {
+    const next = valueFromPointer(input, clientX)
+    if (next !== value) onChange(next)
+  }
+  return (
+    <label className="settings-slider ui-row" title={title}>
+      <span className="settings-slider-label">{label}</span>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        value={value}
+        aria-label={label}
+        style={{ '--fill': `${value}%` }}
+        onPointerDown={(event) => {
+          pointerX.current = event.clientX
+          try {
+            event.currentTarget.setPointerCapture(event.pointerId)
+          } catch {
+            // A pointer the browser has already released cannot be captured; the down position still counts.
+          }
+          apply(event.currentTarget, event.clientX)
+        }}
+        onPointerMove={(event) => {
+          if (pointerX.current === null || event.buttons === 0) return
+          pointerX.current = event.clientX
+          apply(event.currentTarget, event.clientX)
+        }}
+        onPointerUp={() => {
+          queueMicrotask(() => {
+            pointerX.current = null
+          })
+        }}
+        onPointerCancel={() => {
+          pointerX.current = null
+        }}
+        onKeyDown={() => {
+          pointerX.current = null
+        }}
+        onChange={(event) => {
+          const input = event.target
+          const next = pointerX.current === null ? Number(input.value) : valueFromPointer(input, pointerX.current)
+          if (next !== value) onChange(next)
+        }}
+      />
+      <span className="settings-slider-value">{value}%</span>
+    </label>
   )
 }
 

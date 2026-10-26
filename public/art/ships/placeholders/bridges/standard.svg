@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+<rect width="320" height="180" fill="#101820"/>
+  <path d="M28 150 Q160 20 292 150" fill="#1a2836" stroke="#3c5168" stroke-width="2"/>
+  <rect x="78" y="48" width="164" height="34" rx="6" fill="#0c2034" stroke="#e8c56a" stroke-width="2"/>
+  <circle cx="160" cy="112" r="14" fill="#243444" stroke="#e8c56a" stroke-width="2"/>
+  <rect x="36" y="92" width="40" height="26" rx="4" fill="#243240"/>
+  <rect x="244" y="92" width="40" height="26" rx="4" fill="#243240"/>
+  <rect x="104" y="96" width="30" height="20" rx="3" fill="#243240"/>
+  <rect x="186" y="96" width="30" height="20" rx="3" fill="#243240"/>
+  <circle cx="97" cy="128" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="108" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="48" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="24" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="28" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="68" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="84" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="56" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="124" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="112" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="16" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="12" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="104" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="0" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="164" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="116" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="76" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="12" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="164" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="60" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="24" r="1.15" fill="#d7e4ff"/>
+</svg>

@@ -1,0 +1,223 @@
+/* Starship Creator, Screen 03. Fits the 1920×1080 creator frame; the column does not scroll. */
+
+.mission-screen {
+  gap: 8px;
+  overflow: hidden;
+}
+
+.mission-screen .screen-title {
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.mission-screen .screen-heading,
+.mission-screen .screen-number {
+  font-size: 32px;
+}
+
+.mission-screen .screen-intro {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.mission-screen .source-ref {
+  display: block;
+  margin-top: 2px;
+}
+
+.mission-cards {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  height: 168px;
+  overflow: hidden;
+}
+
+.mission-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  text-align: center;
+  overflow: hidden;
+  cursor: var(--cursor-pointer);
+}
+
+.mission-card.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+}
+
+.mission-card-art {
+  flex: 1;
+  min-height: 0;
+}
+
+.mission-card-name,
+.mission-card-line {
+  display: block;
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+.mission-card-name {
+  flex: none;
+  min-width: 0;
+  height: 2.4em;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--yellow);
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.mission-card-line {
+  padding-bottom: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mission-detail {
+  flex: none;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  height: 128px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.mission-preview-art {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 4px;
+}
+
+.mission-detail-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mission-detail-name {
+  margin: 0 0 4px;
+  font-size: 22px;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.mission-detail-text p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.mission-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.mission-panels {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 8px;
+}
+
+.mission-panel {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mission-panel .panel-heading {
+  flex: none;
+  margin: 0;
+  padding: 6px 10px 4px;
+  font-size: 13px;
+}
+
+.mission-note {
+  flex: none;
+  margin: 2px 10px 4px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+.mission-score {
+  display: block;
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mission-stats {
+  margin: 0 10px 6px;
+}
+
+.mission-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.mission-stat dt {
+  color: var(--text-muted);
+}
+
+.mission-stat dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.mission-choices {
+  min-height: 0;
+  margin: 0 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.mission-choice {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 3px 8px;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.mission-choice.is-selected {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}

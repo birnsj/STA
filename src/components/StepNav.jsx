@@ -1,7 +1,7 @@
 // Completed steps (other than the current one) can be clicked to jump to them.
 // The first unfinished step is also reachable, since every step before it is done: e.g. Review once
 // steps 1-7 are checked, or an older save that predates a newly required choice such as Gender.
-export default function StepNav({ steps, currentStepId, completedStepIds, onSelectStep }) {
+export default function StepNav({ steps, currentStepId, completedStepIds, onSelectStep, previewLastStep = true }) {
   const activeIndex = steps.findIndex((step) => step.id === currentStepId)
   const firstIncompleteIndex = steps.findIndex((step) => !completedStepIds.includes(step.id))
   return (
@@ -12,7 +12,7 @@ export default function StepNav({ steps, currentStepId, completedStepIds, onSele
         const isNextUnfinished = index === firstIncompleteIndex
         const isSelectable = !isActive && (isComplete || isNextUnfinished)
         // Review isn't "complete" until confirmed, but once every step before it is done it looks complete so the player sees it's clickable.
-        const looksComplete = isSelectable && (isComplete || (isNextUnfinished && index === steps.length - 1))
+        const looksComplete = isSelectable && (isComplete || (previewLastStep && isNextUnfinished && index === steps.length - 1))
         const className = `step-nav-item${isActive ? ' is-active' : ''}${looksComplete ? ' is-complete' : ''}`
         const content = (
           <>

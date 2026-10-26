@@ -6,6 +6,34 @@ Open design decisions for the designer. Each entry separates what the book says 
 
 ## Open
 
+### Starship save and footer (implemented 2026-10-25)
+
+The ship creator footer matches the character creator: Back, Quit after the first screen, Autofill for the whole ship, Clear for the whole ship, Auto for the current screen once earlier screens are done, Summary when that screen has a choice, and Next. Complete saves the finished ship. The forward button then becomes Start Game and opens Load Episode. Quit returns to the main menu. Import Ship loads a saved ship onto Review. Saved ships are a separate list from saved characters and from the in-progress draft. Where: `docs/prototype-rules.md` (Starship creation), `savedShips.js`.
+
+### Starship review (implemented 2026-10-25)
+
+Screen 07 reads the ship already stored. Complete sets `confirmedAt` and does not add talents to reach Scale or calculate Resistance, Shields, or Crew Support. Trait and talent descriptions stay Unknown. Class designation stays N/A. Where: `docs/prototype-rules.md` (Starship creation), `shipModel.js`.
+
+### Starship finishing touches (implemented 2026-10-25)
+
+Screen 06 records the name and registry from Core p. 194. The prefix is derived from the class: U.S.S. and NCC for Federation, NX while the service record is Prototype, I.K.S. or I.R.W. for Klingon and Romulan ships, and NX for the United Earth NX class. Cardassian and Ferengi ships are not given a prefix. The mockup's bridge, markings, and emblem are stored and do not change statistics. Class designation and Final Options are not offered. Talents-to-Scale and the derived defenses are not on this screen. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `shipModel.js`.
+
+### Starship refits (implemented 2026-10-25)
+
+Screen 05 assigns the refits earned on Core p. 217. The count is the era's last year minus the class launch year, in full decades, and a Prototype service record adds 2. Each refit is +1 to one system, at most twice, and not above 12. The mockup's packages and category tabs are not offered. Where: `docs/prototype-rules.md` (Starship creation), `refits.json`, `shipModel.js`.
+
+### Starship service record (implemented 2026-10-25)
+
+Screen 04 offers the six Core service records on p. 216. One record is optional. It adds a trait named for the record and one special rule, stored as `serviceRecordId`. Survivor of X also stores the battle or war the player types. The mockup’s five histories, reputation, honors, and extra options are not offered. Aging Relic’s Crew Support +1 is described and not applied. Prototype’s two extra refits are applied on Screen 05. Where: `docs/prototype-rules.md` (Starship creation), `serviceRecords.json`, `shipModel.js`.
+
+### Starship mission profile (implemented 2026-10-25)
+
+Screen 03 uses the ten Core profiles on pp. 212–215, not the mockup’s five names or its sample modifiers. A department score is the profile baseline plus the class modifier. The profile adds 1 to one system (the player chooses which, for Multirole Explorer) and one talent from that profile’s list. Changing profile replaces the previous talent and system increase. Page 194’s caps (department 5, system 12) are not given a control, because no current pair exceeds them. Where: `docs/prototype-rules.md` (Starship creation), `missionProfiles.json`, `shipModel.js`.
+
+### Starship spaceframe eligibility (implemented 2026-10-25; cutoff awaiting designer confirmation)
+
+Screen 02 offers Core spaceframes (pp. 197–211) whose launch year is no later than the last year of the era chosen on Screen 01. The book (p. 193) asks for a single campaign year; Screen 01 still stores a range, and no year control was added. Non-Starfleet classes from pp. 206–211 are in the same picker. The filter row is All Classes only. Department scores stay blank on Screen 02. Where: `docs/prototype-rules.md` (Starship creation), `spaceframes.json`, `shipModel.js`.
+
 ### Map editor layers (implemented 2026-10-21 on `map-layers`; defaults awaiting designer review)
 
 Built per the approved architecture plan. Defaults chosen in the plan (change if wanted):
@@ -190,7 +218,7 @@ The expansion was built from the approved plan before the designer answered its 
   - The stardate starts at the map's stardate (default 4523.3) and goes up 0.1 per minute of exploration time.
   - Automatic entries: objectives becoming active or complete, conversation check results, challenge-object task results (designer request, 2026-10-11; in exploration and in fights, placed ahead of any entry the outcome writes), a fight breaking out and how it ended (outcome; who went down, surrendered or fled; which of the away team fell), and beam-outs. Implementer picks, open for review: routine object actions (no roll, e.g. opening a door), scans and single attacks are not logged.
   - The Deck 10 Brig briefing is an implementer draft for the designer to rewrite.
-- Game mode's intro and ending (designer decisions, 2026-10-11). Load Episode's "Exploration" is now called "Game" on screen; the code keeps its exploration names.
+- Game mode's intro and ending (designer decisions, 2026-10-11). Load Episode's "Exploration" was called "Game" on screen; the code keeps its exploration names. Designer request, 2026-10-25: Load Episode shows Exploration and Combat again. A card selects the episode; Begin opens it in the selected mode. The screen fills the menu stage and does not scroll.
   - Intro: played like a film opening (designer request, 2026-10-11): letterbox bars, the episode card fading up and drifting slowly closer, the episode title (with the location under it) fading in and away, then the Captain's Log over the image without a panel, centred on the screen (designer request, 2026-10-11): "Captain's log, stardate …" fades in first, then the whole Briefing fades in at once under it (designer markup, 2026-10-11), and Begin Mission follows. Begin Mission (or Skip Intro) fades the intro to black over 1.2 s and the map then fades in from black (designer request, 2026-10-11), in the editor's Play too. A click, Space or Enter moves on; Skip Intro begins at once; Begin Mission appears once the log has played. The world and beam-in only start then. Implementer picks, open for review: the timings (title 4.5 s; then 1.2 s to the heading, 2.2 s more to the Briefing, 2 s more to Begin Mission) and the look.
   - End: the mission is accomplished once every objective on the map is complete. A map without objectives never ends by itself. Mission Accomplished shows over the map once no fight or conversation is going on, with two buttons (designer decision, 2026-10-11): Exit Mission beams the away team out, then the outro; Return to Game closes it and play goes on (it doesn't come back; Exit Mission ends the mission later).
   - Exit Mission (designer decisions, 2026-10-11): the Formation panel's Exit icon is now Exit Mission. It asks for confirmation, then the whole away team beams out (blue-white beam, 1.6 s) and the outro shows. It can be used at any time; before every objective is complete the confirmation says so and the outro says the mission was abandoned.
@@ -551,6 +579,8 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 **Decided (2026-10-17): camera follows a shot.** With Camera Follow on, when a ranged shot fires the view rides from the shooter to where the shot was aimed (combat attacks and object shots; exploration object shots too), timed with the beam or pulse on the board. Free camera is unchanged. Where: `battleHelpers.js` (`shotAim`, `cameraFocusAlongShot`), `CombatScreen.jsx`, `PixiExplorationBoard.jsx`.
 
 **Decided (2026-10-17): WASD Sensitivity.** Settings lists a 0–100 **Sensitivity** slider with Music and Effects (same thin row). It scales how far the camera coasts after WASD / arrow keys are released (100 = full coast, 0 = stop at once). Pointer-drag coast is unchanged. Where: `displaySettings.js` (`wasdCoast`), `useCamera.js`, `SettingsScreen.jsx`.
+
+**Decided (designer request, 2026-10-25): mouse edge scroll.** Holding the pointer at the edge of the map pans the camera in exploration and combat. Like WASD and a drag, it turns Camera Follow off. The map editor does not edge-scroll (designer request, 2026-10-25, after a View checkbox that defaulted on). Implementer picks, open for review: the band is 120 screen pixels (widened from 36 at the designer's request, 2026-10-25); speed ramps from still at the inner side to the same speed as WASD at the rim; it stops when the pointer leaves, with no coast; it does not run while the pointer is on a button, panel or menu, or during a camera drag. Where: `useCamera.js`.
 
 ### Box selection in exploration (decided 2026-10-09)
 

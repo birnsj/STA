@@ -1,9 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 
-// Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag or one-finger drag pan, the mouse wheel zooms; when focus.key changes
-// (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
+// Presentation only: which part of the battlefield is on screen. WASD / arrow keys, right-click drag, one-finger drag,
+// or (when edge scrolling is on) holding the pointer at the map's edge pans; the mouse wheel zooms. When focus.key
+// changes (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
+// Screen pixels at the map's edge that pan the camera. Wide enough that the pointer starts the pan before it
+// reaches the bezel. Speed ramps from still at the inner side to PAN_SPEED at the rim.
+const EDGE_MARGIN = 120
 // Share of the remaining gap closed per 60 Hz frame. Soft enough that the view lags the focus and
 // visibly eases in after the followed unit stops (~0.9 s).
 const GLIDE = 0.045
@@ -45,6 +49,22 @@ function swallowNextClick() {
 
 const isTyping = (target) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
+// -1..1 on each axis: how far into the edge band the pointer is, toward that side of the map. Outside the band, or
+// when the map is too small to have a band, both are 0.
+function edgeScroll(x, y, width, height, margin = EDGE_MARGIN) {
+  if (width < margin * 2 || height < margin * 2) return { x: 0, y: 0 }
+  if (x < 0 || y < 0 || x > width || y > height) return { x: 0, y: 0 }
+  let ex = 0
+  let ey = 0
+  if (x < margin) ex = -((margin - x) / margin)
+  else if (x > width - margin) ex = (x - (width - margin)) / margin
+  if (y < margin) ey = -((margin - y) / margin)
+  else if (y > height - margin) ey = (y - (height - margin)) / margin
+  return { x: ex, y: ey }
+}
+
+const overControl = (target) => target instanceof Element && Boolean(target.closest('button, a, input, select, textarea, label, [role="button"]'))
+
 // bounds: world rectangle { minX, maxX, minY, maxY }; view: { width, height }; focus: { key, point }.
 // follow false: the camera stays where the player left it (it still starts centred on focus).
 // onRightClick: a right-button press released without dragging (a drag pans instead).
@@ -54,7 +74,8 @@ const isTyping = (target) => target instanceof HTMLElement && (target.isContentE
 // onPan(): the player started panning by key or drag while the camera follows (so the caller can stop following;
 // turning follow back on glides the camera back to focus.point).
 // onFollow(): Space asks the caller to turn following back on after a free pan (exploration flips followCamera).
-export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null, onFollow = null) {
+// edgeScrollEnabled: the pointer at the map's edge pans. Exploration and combat leave it on. The map editor passes false.
+export default function useCamera(bounds, view, focus, follow = true, onRightClick = null, rightPans = true, onPan = null, onFollow = null, edgeScrollEnabled = true) {
   const wasdCoast = useDisplaySettings().wasdCoast ?? 100
   const [camera, setCamera] = useState(() => clamp(centredOn(focus.point, view), bounds, view))
   const [zoom, setZoom] = useState(1)
@@ -77,6 +98,13 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   const movingRef = useRef(false)
   // World units per second from the last pan; decays with COAST_FRICTION after release.
   const velocityRef = useRef({ x: 0, y: 0 })
+  // Pointer in the map's edge band, as edgeScroll() reports it. Edge panning stops dead when the pointer leaves;
+  // it does not coast the way WASD and a drag do. edgeEnabledRef follows the editor's checkbox.
+  const edgeRef = useRef({ x: 0, y: 0 })
+  const edgeEnabledRef = useRef(edgeScrollEnabled)
+  const edgeDrivingRef = useRef(false)
+  // True while a mouse or touch drag owns the camera, so the edge band does not fight it.
+  const draggingRef = useRef(false)
   useEffect(() => {
     onPanRef.current = onPan
     onFollowRef.current = onFollow
@@ -84,6 +112,10 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
   useEffect(() => {
     wasdCoastRef.current = wasdCoast
   }, [wasdCoast])
+  useEffect(() => {
+    edgeEnabledRef.current = edgeScrollEnabled
+    if (!edgeScrollEnabled) edgeRef.current = { x: 0, y: 0 }
+  }, [edgeScrollEnabled])
   // True from the first pan input until coast settles. Blocks follow from re-arming a target mid-pan / mid-coast
   // (exploration still ticks the lead every frame, which would otherwise cancel WASD glide).
   const freePanRef = useRef(false)
@@ -214,12 +246,30 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       }
       const current = cameraRef.current
       let next = null
+      const edge = edgeRef.current
+      const edgeActive = !draggingRef.current && (edge.x !== 0 || edge.y !== 0)
       if (dx || dy) {
         panStarted()
         keyPanningRef.current = true
+        edgeDrivingRef.current = false
         const length = Math.hypot(dx, dy) || 1
         velocityRef.current = { x: (dx / length) * PAN_SPEED, y: (dy / length) * PAN_SPEED }
         next = clamp({ x: current.x + velocityRef.current.x * seconds, y: current.y + velocityRef.current.y * seconds }, limits, size)
+      } else if (edgeActive) {
+        panStarted()
+        keyPanningRef.current = false
+        edgeDrivingRef.current = true
+        const length = Math.hypot(edge.x, edge.y) || 1
+        const intensity = Math.min(1, Math.max(Math.abs(edge.x), Math.abs(edge.y)))
+        velocityRef.current = { x: (edge.x / length) * PAN_SPEED * intensity, y: (edge.y / length) * PAN_SPEED * intensity }
+        next = clamp({ x: current.x + velocityRef.current.x * seconds, y: current.y + velocityRef.current.y * seconds }, limits, size)
+      } else if (edgeDrivingRef.current) {
+        edgeDrivingRef.current = false
+        // A drag that began at the edge keeps its own coast; leaving the band otherwise stops at once.
+        if (!draggingRef.current) {
+          velocityRef.current = { x: 0, y: 0 }
+          endFreePan()
+        }
       } else if (freePanRef.current) {
         // WASD / drag coast: keep sliding after release, then ease to a stop (takes priority over follow).
         // WASD after-glide is scaled by Settings > WASD After Glide (0 = stop on release, 100 = full coast).
@@ -289,6 +339,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     }
     let announced = false
     let lastSample = { x: event.clientX, y: event.clientY, at: performance.now() }
+    if (panning) draggingRef.current = true
     const move = (moveEvent) => {
       if (moveEvent.pointerId !== event.pointerId) return
       if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) >= TOUCH_SLOP) dragged = true
@@ -299,6 +350,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       if (!announced) {
         announced = true
         keyPanningRef.current = false
+        draggingRef.current = true
         panStarted()
       }
       const next = clamp(
@@ -323,6 +375,7 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', end)
       window.removeEventListener('pointercancel', end)
+      draggingRef.current = false
       // Leave velocity for the tick loop to coast; only snap-stop a tap that never panned.
       if (!panning || !dragged) velocityRef.current = { x: 0, y: 0 }
       if (movingRef.current && Math.hypot(velocityRef.current.x, velocityRef.current.y) <= COAST_STOP) {
@@ -336,6 +389,32 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
   }
+
+  // The map's own edge, in screen pixels (the stage is scaled). Only while the pointer is on the map: a panel, menu
+  // or button on top does not scroll, and neither does a camera drag.
+  useEffect(() => {
+    const update = (event) => {
+      const element = svgRef.current
+      if (!edgeEnabledRef.current || !element || event.pointerType === 'touch' || draggingRef.current || !element.contains(event.target) || overControl(event.target)) {
+        edgeRef.current = { x: 0, y: 0 }
+        return
+      }
+      const rect = element.getBoundingClientRect()
+      edgeRef.current = edgeScroll(event.clientX - rect.left, event.clientY - rect.top, rect.width, rect.height)
+    }
+    const clear = () => {
+      edgeRef.current = { x: 0, y: 0 }
+    }
+    window.addEventListener('pointermove', update)
+    window.addEventListener('blur', clear)
+    document.documentElement.addEventListener('mouseleave', clear)
+    return () => {
+      window.removeEventListener('pointermove', update)
+      window.removeEventListener('blur', clear)
+      document.documentElement.removeEventListener('mouseleave', clear)
+      edgeRef.current = { x: 0, y: 0 }
+    }
+  }, [])
 
   const dragHandlers = { ref: svgRef, onPointerDown: startDrag, onContextMenu: (event) => event.preventDefault() }
   return { camera: { ...camera, width, height }, dragHandlers }

@@ -1,0 +1,146 @@
+{
+  "note": "STA 2e Core Rulebook v1.1, pp. 212–215. Department numbers are baselines. system is the system increased by 1, or choice when the profile says any one system. Talent entries are names only; the rules for those talents are later in the book and are not copied here.",
+  "profiles": [
+    {
+      "id": "battlecruiser",
+      "name": "Battlecruiser",
+      "page": 212,
+      "system": "weapons",
+      "overview": "In the mid-23rd century, the lessons of the Earth-Romulan War are still firmly in the minds of those on the core Federation worlds, and some vessels are outfitted as vessels of war in case hostilities begin with the Klingon or Romulan Empires. A similar push to develop heavy combat vessels arose during the Borg crisis and Dominion War in the 2360s and 2370s. These vessels are rare in Starfleet, and those outfitted as such rarely stray far from important starbases or the worlds they guard.",
+      "departments": { "command": 2, "conn": 2, "engineering": 2, "security": 3, "science": 2, "medicine": 1 },
+      "talents": [
+        { "id": "ablative-armor", "name": "Ablative Armor" },
+        { "id": "command-ship", "name": "Command Ship" },
+        { "id": "fast-targeting-systems", "name": "Fast Targeting Systems" },
+        { "id": "improved-damage-control", "name": "Improved Damage Control" },
+        { "id": "rapid-fire-torpedo-launcher", "name": "Rapid Fire Torpedo Launcher" }
+      ]
+    },
+    {
+      "id": "crisis-response",
+      "name": "Crisis and Emergency Response",
+      "page": 213,
+      "system": "sensors",
+      "overview": "These vessels are equipped to respond quickly to a crisis, whatever it may be. Normally capable of supporting expansive shuttlebays, they can deploy large quantities of personnel or cargo to, or evacuate large populations from, disaster areas. Such vessels also serve as hospital ships and troop transport during conflicts.",
+      "departments": { "command": 2, "conn": 2, "engineering": 1, "security": 2, "science": 2, "medicine": 3 },
+      "talents": [
+        { "id": "advanced-sickbay", "name": "Advanced Sickbay" },
+        { "id": "emergency-medical-hologram", "name": "Emergency Medical Hologram" },
+        { "id": "extensive-shuttlebays", "name": "Extensive Shuttlebays" },
+        { "id": "modular-laboratories", "name": "Modular Laboratories" }
+      ]
+    },
+    {
+      "id": "espionage",
+      "name": "Espionage / Intelligence",
+      "page": 213,
+      "system": "sensors",
+      "overview": "Vessels equipped for espionage are rare in active Starfleet service, but are used by member cultures within the Federation, and by other polities such as the Romulan Empire and Cardassian Union, whose intelligence agencies often employ dedicated vessels (whether or not they are legally permitted to), and in many cultures, intelligence agencies may commandeer existing vessels for their needs. These vessels are often equipped with highly sensitive monitoring devices, enhanced sensors, and stealth systems (though stopping short of actual cloaking devices for Starfleet vessels). These vessels range close to—and sometimes beyond—foreign borders. Serving on these ships is often a dangerous and thankless proposition.",
+      "departments": { "command": 2, "conn": 2, "engineering": 1, "security": 3, "science": 3, "medicine": 1 },
+      "talents": [
+        { "id": "electronic-warfare-systems", "name": "Electronic Warfare Systems" },
+        { "id": "high-resolution-sensors", "name": "High-Resolution Sensors" },
+        { "id": "improved-reaction-control-system", "name": "Improved Reaction Control System" },
+        { "id": "reduced-sensor-silhouette", "name": "Reduced Sensor Silhouette" }
+      ]
+    },
+    {
+      "id": "flagship",
+      "name": "Flagship",
+      "page": 213,
+      "system": "comms",
+      "overview": "Flagships are a specialized form of command ship, with a dedicated flag bridge or strategic operations center within the vessel. These ships can act as a mobile fleet headquarters, with systems and personnel dedicated to ensuring the operations of whole fleets, or even serving as a vessel for the continuity of command should disaster strike.",
+      "departments": { "command": 3, "conn": 1, "engineering": 2, "security": 3, "science": 2, "medicine": 1 },
+      "talents": [
+        { "id": "command-ship", "name": "Command Ship" },
+        { "id": "dedicated-subspace-transceiver-array", "name": "Dedicated Subspace Transceiver Array" },
+        { "id": "diplomatic-suites", "name": "Diplomatic Suites" },
+        { "id": "redundant-systems-communications", "name": "Redundant Systems (Communications)" }
+      ]
+    },
+    {
+      "id": "multirole-explorer",
+      "name": "Multirole Explorer",
+      "page": 214,
+      "system": "choice",
+      "overview": "Many of Starfleet's most renowned and revered vessels have been jack-of-all-trades ships, rather than specialized for a single type of mission. This versatility allowed the likes of Jonathan Archer, Christopher Pike, James Kirk, and Jean-Luc Picard to explore strange new worlds, seek out new life and new civilizations, and boldly go where no one has gone before.",
+      "departments": { "command": 2, "conn": 2, "engineering": 2, "security": 2, "science": 2, "medicine": 2 },
+      "talents": [
+        { "id": "improved-hull-integrity", "name": "Improved Hull Integrity" },
+        { "id": "improved-power-systems", "name": "Improved Power Systems" },
+        { "id": "redundant-systems", "name": "Redundant Systems" },
+        { "id": "rugged-design", "name": "Rugged Design" },
+        { "id": "secondary-reactors", "name": "Secondary Reactors" }
+      ]
+    },
+    {
+      "id": "pathfinder",
+      "name": "Pathfinder and Reconnaissance Operations",
+      "page": 214,
+      "system": "engines",
+      "overview": "Long-range missions often employ the most advanced stellar cartography and astrometric facilities, allowing them to chart and navigate unknown regions of space more effectively, especially where spatial distortions make those regions difficult to navigate. These vessels are relied upon for extended exploratory missions, intelligence-gathering military operations, and risky “pathfinder” operations into the unknown.",
+      "departments": { "command": 2, "conn": 3, "engineering": 2, "security": 2, "science": 2, "medicine": 1 },
+      "talents": [
+        { "id": "improved-reaction-control-system", "name": "Improved Reaction Control System" },
+        { "id": "improved-warp-drive", "name": "Improved Warp Drive" },
+        { "id": "rugged-design", "name": "Rugged Design" },
+        { "id": "high-resolution-sensors", "name": "High-Resolution Sensors" }
+      ]
+    },
+    {
+      "id": "patrol",
+      "name": "Patrol",
+      "page": 214,
+      "system": "sensors",
+      "overview": "Patrol vessels are dedicated to acting as peacekeepers in regions of space where hostility is not only possible, but likely. These vessels tend to operate along borders with other polities, and act as picket vessels during fleet actions. In times of peace, patrol vessels can be assigned to survey missions, or operate patrols against pirates, smugglers, and similar dangers.",
+      "departments": { "command": 1, "conn": 3, "engineering": 1, "security": 3, "science": 2, "medicine": 2 },
+      "talents": [
+        { "id": "fast-targeting-systems", "name": "Fast Targeting Systems" },
+        { "id": "high-resolution-sensors", "name": "High-Resolution Sensors" },
+        { "id": "improved-power-systems", "name": "Improved Power Systems" }
+      ]
+    },
+    {
+      "id": "scientific-survey",
+      "name": "Scientific and Survey Operations",
+      "page": 215,
+      "system": "computers",
+      "overview": "Starfleet's mission of exploration and discovery means that it employs many vessels for purely scientific missions, studying unknown phenomena, or supporting ongoing research. While most Federation starships are expected to have at least some capacity for scientific endeavor, some missions are outfitted specifically for such missions.",
+      "departments": { "command": 2, "conn": 1, "engineering": 3, "security": 1, "science": 3, "medicine": 2 },
+      "talents": [
+        { "id": "advanced-research-facilities", "name": "Advanced Research Facilities" },
+        { "id": "advanced-sensor-suites", "name": "Advanced Sensor Suites" },
+        { "id": "high-resolution-sensors", "name": "High-Resolution Sensors" },
+        { "id": "modular-laboratories", "name": "Modular Laboratories" }
+      ]
+    },
+    {
+      "id": "strategic-diplomatic",
+      "name": "Strategic and Diplomatic Operations",
+      "page": 215,
+      "system": "comms",
+      "overview": "Vessels equipped for this profile are often placed under the command of flag officers and used as the heart of squadrons, battlegroups, and even whole fleets. These ships, and the prestige and standing that accompanies them, are also used for major diplomatic undertakings where they can serve as mobile embassies and represent the best of the Federation.",
+      "departments": { "command": 2, "conn": 2, "engineering": 1, "security": 2, "science": 3, "medicine": 2 },
+      "talents": [
+        { "id": "command-ship", "name": "Command Ship" },
+        { "id": "diplomatic-suites", "name": "Diplomatic Suites" },
+        { "id": "electronic-warfare-systems", "name": "Electronic Warfare Systems" },
+        { "id": "extensive-shuttlebays", "name": "Extensive Shuttlebays" }
+      ]
+    },
+    {
+      "id": "tactical",
+      "name": "Tactical Operations",
+      "page": 215,
+      "system": "weapons",
+      "overview": "While Starfleet is not a military, the defense of the Federation is one of Starfleet's responsibilities, and Starfleet has been required to prepare for war on numerous occasions. Thus, many ships are equipped for peacekeeping and military actions, though the number of vessels outfitted in this manner varies depending on the politics of the day.",
+      "departments": { "command": 2, "conn": 2, "engineering": 2, "security": 3, "science": 1, "medicine": 2 },
+      "talents": [
+        { "id": "ablative-armor", "name": "Ablative Armor" },
+        { "id": "fast-targeting-systems", "name": "Fast Targeting Systems" },
+        { "id": "improved-damage-control", "name": "Improved Damage Control" },
+        { "id": "improved-impulse-drive", "name": "Improved Impulse Drive" }
+      ]
+    }
+  ]
+}

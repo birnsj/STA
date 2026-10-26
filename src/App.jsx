@@ -5,6 +5,7 @@ import { CharacterProvider } from './character/CharacterContext.jsx'
 import { tryCreateRestoredState } from './character/characterReducer.js'
 import { useCharacter } from './character/useCharacter.js'
 import { loadLocation, loadSettings, saveLocation, saveSettings } from './character/persistence.js'
+import { deleteSavedShip, loadSavedShips } from './ships/savedShips.js'
 import {
   deleteAllSavedCharacters,
   deleteSavedCharacter,
@@ -19,10 +20,10 @@ import { normalizeDisplaySettings } from './settings/displaySettings.js'
 import { DisplaySettingsContext, OpenSettingsProvider, UpdateDisplaySettingsProvider } from './settings/DisplaySettingsContext.js'
 import MainMenuScreen from './screens/MainMenuScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
-import ShipBuilderPlaceholder from './screens/ShipBuilderPlaceholder.jsx'
 
 // Everything beyond the menu loads on demand, so opening the app downloads the menu alone and each part (the creator,
 // the episode prototypes, the dev map editor) arrives the first time it is opened.
+const ShipCreator = lazy(() => import('./ships/ShipCreator.jsx'))
 const CharacterCreator = lazy(() => import('./CharacterCreator.jsx'))
 const EpisodeSelectScreen = lazy(() => import('./screens/EpisodeSelectScreen.jsx'))
 const CombatScreen = lazy(() => import('./screens/CombatScreen.jsx'))
@@ -41,9 +42,10 @@ function initialView({ view, episode }) {
   return EPISODE_MODES.includes(view) && !episode?.mapId ? 'episodeSelect' : view
 }
 
-// The music cue each view plays (see src/audio/music.js). A fight inside the exploration view plays the combat cue
-// over it (Battle in CombatScreen.jsx) and the exploration cue returns when the fight is over.
-const VIEW_CUES = { menu: 'menu', creator: 'creation', exploration: 'exploration', combat: 'combat' }
+// The music cue each view plays (see src/audio/music.js). Load Episode and Settings keep the main-menu cue, so that
+// track plays straight through. A fight inside the exploration view plays the combat cue over it (Battle in
+// CombatScreen.jsx) and the exploration cue returns when the fight is over.
+const VIEW_CUES = { menu: 'menu', episodeSelect: 'menu', settings: 'menu', creator: 'creation', exploration: 'exploration', combat: 'combat' }
 
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
@@ -56,6 +58,9 @@ function Views() {
   const [displaySettings, setDisplaySettings] = useState(() => normalizeDisplaySettings(loadSettings()?.display))
   const [audioSettings, setAudioSettings] = useState(() => normalizeAudioSettings(loadSettings()?.audio))
   const [savedCharacters, setSavedCharacters] = useState(getSavedCharacters)
+  const [savedShips, setSavedShips] = useState(loadSavedShips)
+  // How Build Ship or Import Ship opened the creator. Null on a refresh, which keeps the in-progress draft.
+  const [shipLaunch, setShipLaunch] = useState(null)
   // UI state: Load Episode's prototype ('combat' | 'exploration') and the episode (map file id) picked there.
   const [episode, setEpisode] = useState(() => {
     const saved = { mode: 'combat', mapId: null, ...loadLocation().episode }
@@ -96,7 +101,19 @@ function Views() {
       dispatch({ type: 'resetCharacter' })
       saveLocation({ ...loadLocation(), stepId: steps[0].id, savedCharacterId: null })
     }
+    if (nextView === 'shipBuilder') setShipLaunch({ mode: 'new', token: Date.now() })
     setView(nextView)
+  }
+
+  const savedShipActions = {
+    onLoad: (entry) => {
+      setShipLaunch({ mode: 'saved', id: entry.id, record: entry.record, token: Date.now() })
+      setView('shipBuilder')
+    },
+    onDelete: (id) => {
+      setSavedShips(deleteSavedShip(id))
+      if (loadLocation().savedShipId === id) saveLocation({ ...loadLocation(), savedShipId: null })
+    },
   }
 
   // An imported character becomes the creator's character and opens on Review (Back to Edit reaches every screen).
@@ -143,12 +160,18 @@ function Views() {
     <Suspense fallback={null}>
       {view === 'menu' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <MainMenuScreen {...MENU_STAGE} savedCharacters={savedCharacters} onOpen={openView} savedCharacterActions={savedCharacterActions} />
+          <MainMenuScreen {...MENU_STAGE} savedCharacters={savedCharacters} savedShips={savedShips} onOpen={openView} savedCharacterActions={savedCharacterActions} savedShipActions={savedShipActions} />
         </ScaledStage>
       )}
       {view === 'shipBuilder' && (
-        <ScaledStage {...MENU_STAGE} settings={displaySettings}>
-          <ShipBuilderPlaceholder onBack={openMenu} />
+        <ScaledStage settings={displaySettings}>
+          <ShipCreator
+            key={shipLaunch?.token ?? 'current'}
+            launch={shipLaunch}
+            onExit={openMenu}
+            onStartGame={() => setView('episodeSelect')}
+            onShipsSaved={setSavedShips}
+          />
         </ScaledStage>
       )}
       {view === 'settings' && (
@@ -167,8 +190,9 @@ function Views() {
         <ScaledStage {...MENU_STAGE} settings={displaySettings}>
           <EpisodeSelectScreen
             mode={episode.mode}
+            mapId={episode.mapId}
             onModeChange={(mode) => setEpisode({ ...episode, mode })}
-            onOpen={(mapId) => {
+            onBegin={(mapId) => {
               setEpisode({ ...episode, mapId })
               setView(episode.mode)
             }}

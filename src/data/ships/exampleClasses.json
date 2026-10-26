@@ -1,0 +1,11 @@
+{
+  "illustrative": true,
+  "note": "The five cards on the Timeframe mockup. Not a Core Rulebook availability list, and not filtered by the selected era.",
+  "classes": [
+    { "id": "constitution", "name": "Constitution", "role": "Exploration" },
+    { "id": "miranda", "name": "Miranda", "role": "Multi-Role" },
+    { "id": "excelsior-early", "name": "Excelsior (Early)", "role": "Exploration" },
+    { "id": "intrepid", "name": "Intrepid", "role": "Science" },
+    { "id": "new-orleans", "name": "New Orleans", "role": "Multi-Role" }
+  ]
+}

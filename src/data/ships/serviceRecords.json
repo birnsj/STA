@@ -1,0 +1,54 @@
+{
+  "note": "STA 2e Core Rulebook v1.1, p. 216. A service record is optional. It adds a trait named for the record and one special rule. namesake means the player replaces X with a battle or war. Crew Support and Prototype's extra refits are described here and not applied on this screen.",
+  "records": [
+    {
+      "id": "aging-relic",
+      "name": "Aging Relic",
+      "page": 216,
+      "overview": "The ship has been in service for decades, and has been home to many crews. Only the longest-serving crew are likely to remember when it was new.",
+      "ruleName": "Larger Crew",
+      "rule": "The ship's Crew Support is increased by 1."
+    },
+    {
+      "id": "dependable-workhorse",
+      "name": "Dependable Workhorse",
+      "page": 216,
+      "overview": "The ship is dependable, with a solid record of successful missions and accomplishments. While overshadowed by more famous ships, this vessel is nevertheless a mainstay of the fleet, with a competent, dedicated crew.",
+      "ruleName": "Reliable",
+      "rule": "Whenever the ship rolls to assist a task attempt, the group may spend 1 Momentum to ignore any complications rolled on the ship's die."
+    },
+    {
+      "id": "legendary",
+      "name": "Legendary",
+      "page": 216,
+      "overview": "This ship is famous, having been at the center of one or more major events that shaped the history and politics of one or more civilizations. This comes with great prestige for those involved.",
+      "ruleName": "Prestigious Posting",
+      "rule": "When a new supporting character is first introduced, apply a single improvement to them immediately, like a milestone (page 167)."
+    },
+    {
+      "id": "hope-ship",
+      "name": "Hope Ship",
+      "page": 216,
+      "overview": "This vessel's service has been spent responding to distress calls and disasters, warping to the rescue of those in danger or subjected to great hardship. The ship is heavily refitted for disaster relief, evacuation, and medical catastrophes, and the crew often have additional emergency medical training.",
+      "ruleName": "Mission of Mercy",
+      "rule": "The first time in a scene when an enemy makes an attack against this ship, the gamemaster must spend 1 Threat. The hope ship must add 1 Threat the first time in any scene it makes an attack."
+    },
+    {
+      "id": "prototype",
+      "name": "Prototype",
+      "page": 216,
+      "overview": "The ship is brand new, first of her class, and laden with the newest technologies, assembled to be tested and studied. There are potentially a whole host of unknown problems and challenges to face, as novel systems clash or malfunction as they interact in unexpected ways.",
+      "ruleName": "Experimental Vessel",
+      "rule": "When the ship is created, apply two additional refits to the ship. In addition, whenever the ship assists a task attempt, the ship's die increases its complication range by 2 (to 18–20). A milestone refit (see page 167) can remove this complication range increase, representing the ship's crew working out the problems in the prototype design."
+    },
+    {
+      "id": "survivor",
+      "name": "Survivor of X",
+      "page": 216,
+      "namesake": true,
+      "overview": "This ship was involved in some of the fiercest battles, surviving the fighting, though not without scars. The crew is battle-hardened and prepared for anything.",
+      "ruleName": "Ready for Battle",
+      "rule": "During the first round of ship combat, the gamemaster must spend 1 additional Threat to allow an enemy ship to take the first turn."
+    }
+  ]
+}

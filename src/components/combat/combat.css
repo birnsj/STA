@@ -829,17 +829,23 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
+}
+
+.turn-strip-item.is-cut {
+  display: none;
 }
 
 .turn-strip-item {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
 }
 
 .turn-strip-arrow {
   width: 0;
   height: 0;
-  margin: 0 5px;
+  margin: 0 3px;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
   border-left: 6px solid var(--yellow);
@@ -2499,105 +2505,171 @@
   margin-top: 12px;
 }
 
-/* Load Episode: combat prototype select */
+/* Load Episode fills the 1024×576 menu stage. The gallery grid is sized to the episode count so nothing scrolls. */
 .episode-select {
   display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100%;
+  padding: 10px;
+  overflow: hidden;
   font-family: var(--display-font);
   background: radial-gradient(ellipse at 50% 45%, #142446 0%, #070d1d 60%, #03060e 100%);
 }
 
-/* 22px wider than before the LCARS frame (.lcars-frame, ui.css), so the contents keep their width inside it. */
 .episode-select-panel {
-  width: 642px;
-  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  padding: 12px 16px 10px;
+  overflow: hidden;
   background: var(--panel);
 }
 
 .episode-select-title {
-  margin: 0 0 4px;
+  flex: none;
+  margin: 0;
   padding-bottom: 2px;
   border-bottom: var(--ui-border) solid var(--panel-border);
   color: var(--yellow);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
 .episode-select-text {
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--text-muted);
+  font-size: 14px;
 }
 
 .episode-select-modes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
-.episode-select-modes .episode-select-option {
-  padding: 10px 14px;
-  opacity: 0.6;
+.episode-select-mode {
+  padding: 6px 12px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--blue-deep);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-/* The creator's selected choice (.choice.is-selected, .option-card.is-selected): yellow border, faint yellow wash and
-   a ring drawn as a shadow so the tile never changes size. */
-.episode-select-modes .episode-select-option.is-selected {
+.episode-select-mode:hover,
+.episode-select-mode:focus-visible {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.episode-select-mode.is-selected {
   border-color: var(--yellow);
   background: rgba(246, 185, 40, 0.08);
-  box-shadow: 0 0 0 1px var(--yellow), 0 0 10px rgba(246, 185, 40, 0.5);
-  opacity: 1;
+  box-shadow: 0 0 0 1px var(--yellow);
+  color: var(--yellow);
+}
+
+.episode-select-gallery {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px;
+  overflow: hidden;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: rgba(3, 6, 14, 0.45);
 }
 
 .episode-select-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  max-height: 360px;
-  margin: 0 0 16px;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
   list-style: none;
 }
 
-.episode-select-list .episode-select-option {
+.episode-select-item {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.episode-select-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
   height: 100%;
-  padding: 10px 14px;
+  min-height: 0;
+  padding: 4px 4px 5px;
+  border: var(--ui-border) solid var(--panel-border);
+  border-radius: var(--ui-radius);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
 }
 
-.episode-select-list .episode-select-card {
-  gap: 4px;
-  padding: 6px 6px 8px;
+.episode-select-card:hover,
+.episode-select-card:focus-visible {
+  border-color: var(--text-muted);
 }
 
-.episode-select-card .episode-select-label {
-  font-size: 14px;
+.episode-select-card.is-selected {
+  border-color: var(--yellow);
+  background: rgba(246, 185, 40, 0.08);
+  box-shadow: 0 0 0 1px var(--yellow);
 }
 
-.episode-select-item { position: relative; }
+.episode-select-label,
+.episode-select-desc {
+  flex: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode-select-label {
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.episode-select-desc {
+  color: var(--text-muted);
+  font-size: 11px;
+}
 
 /* Dev only, over the card art's top-right corner. */
 .episode-select-delete {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   padding: 1px 6px;
   font-size: 10px;
   background: rgba(3, 6, 14, 0.8);
 }
 
-/* Episode card art is 16:9; episodes without a card keep an empty frame so the grid stays even. */
+/* The picture fills the card above the two text lines. Episodes without a card keep the empty frame. */
 .episode-select-art {
   position: relative;
   display: block;
-  aspect-ratio: 16 / 9;
-  margin-bottom: 2px;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
   background: linear-gradient(160deg, #10203f, #050a16);
@@ -2611,39 +2683,23 @@
   object-fit: cover;
 }
 
-.episode-select-option {
+.episode-select-actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border: var(--ui-border) solid var(--panel-border);
-  border-radius: var(--ui-radius);
-  background: var(--panel);
-  color: var(--text);
-  text-align: left;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.episode-select-option:hover {
-  border-color: var(--text-muted);
-}
-
-.episode-select-label {
-  color: var(--yellow);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.episode-select-desc {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.episode-select-back {
-  min-width: 0;
+/* nav-button is sized for the 1920 creator. This stage is 1024 wide. */
+.episode-select .nav-button {
+  min-width: 140px;
   padding: 6px 18px;
   font-size: 16px;
+}
+
+.episode-select .nav-next {
+  min-width: 180px;
 }
 
 /* Task math (components/task/TaskMath.jsx): one visual language for every rolled task, in exploration and combat. */

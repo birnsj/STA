@@ -1,0 +1,33 @@
+{
+  "note": "STA 2e Core Rulebook v1.1, p. 194. The name prefix and the registry prefix come from the class traits. Bridge layouts, markings, and emblems are the mockup's labels only. They do not change systems, departments, talents, or traits.",
+  "namePrefixes": [
+    { "trait": "Federation Starship", "prefix": "U.S.S." },
+    { "trait": "Klingon Starship", "prefix": "I.K.S." },
+    { "trait": "Romulan Starship", "prefix": "I.R.W." }
+  ],
+  "registryPrefixes": [
+    { "trait": "Federation Starship", "prefix": "NCC", "prototypePrefix": "NX", "required": true },
+    { "trait": "United Earth Starship", "prefix": "NX", "required": true }
+  ],
+  "bridges": [
+    { "id": "standard", "name": "Standard", "caption": "Classic configuration with all essential stations." },
+    { "id": "extended", "name": "Extended", "caption": "Additional stations and enhanced facilities." },
+    { "id": "tactical", "name": "Tactical", "caption": "Combat-focused layout with advanced systems." },
+    { "id": "scientific", "name": "Scientific", "caption": "Research and analysis focused layout." }
+  ],
+  "hullMarkings": [
+    { "id": "standard-federation", "name": "Standard Federation" }
+  ],
+  "stripingStyles": [
+    { "id": "classic-red", "name": "Classic Red" }
+  ],
+  "nacelleCaps": [
+    { "id": "standard", "name": "Standard" }
+  ],
+  "emblemStyles": [
+    { "id": "federation-insignia", "name": "Federation Insignia" }
+  ],
+  "secondaryMarkings": [
+    { "id": "none", "name": "None" }
+  ]
+}

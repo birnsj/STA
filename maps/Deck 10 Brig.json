@@ -662,6 +662,232 @@
       ]
     }
   ],
+  "groundItemPlacements": [
+    {
+      "id": "communicator1",
+      "itemId": "communicator",
+      "position": [
+        4,
+        17.5
+      ],
+      "on": {
+        "tile": [
+          4,
+          17
+        ]
+      }
+    },
+    {
+      "id": "standardTricorder1",
+      "itemId": "standardTricorder",
+      "position": [
+        4.5,
+        17.25
+      ],
+      "on": {
+        "tile": [
+          4,
+          17
+        ]
+      }
+    },
+    {
+      "id": "scienceTricorder1",
+      "itemId": "scienceTricorder",
+      "position": [
+        4,
+        17
+      ],
+      "on": {
+        "tile": [
+          4,
+          17
+        ]
+      }
+    },
+    {
+      "id": "medicalTricorder1",
+      "itemId": "medicalTricorder",
+      "position": [
+        5,
+        17.25
+      ],
+      "on": {
+        "tile": [
+          5,
+          17
+        ]
+      }
+    },
+    {
+      "id": "medkit1",
+      "itemId": "medkit",
+      "position": [
+        6,
+        17.5
+      ],
+      "on": {
+        "tile": [
+          6,
+          17
+        ]
+      }
+    },
+    {
+      "id": "scienceTricorder2",
+      "itemId": "scienceTricorder",
+      "position": [
+        6.5,
+        17
+      ],
+      "on": {
+        "tile": [
+          6,
+          17
+        ]
+      }
+    },
+    {
+      "id": "scienceTricorder3",
+      "itemId": "scienceTricorder",
+      "position": [
+        5.25,
+        17
+      ],
+      "on": {
+        "tile": [
+          5,
+          17
+        ]
+      }
+    },
+    {
+      "id": "phaserType21",
+      "itemId": "phaserType2",
+      "position": [
+        4.75,
+        17
+      ],
+      "on": {
+        "tile": [
+          5,
+          17
+        ]
+      }
+    },
+    {
+      "id": "phaserType22",
+      "itemId": "phaserType2",
+      "position": [
+        1.5,
+        19.25
+      ],
+      "on": {
+        "tile": [
+          1,
+          19
+        ]
+      }
+    },
+    {
+      "id": "phaserType23",
+      "itemId": "phaserType2",
+      "position": [
+        1.25,
+        19.75
+      ],
+      "on": {
+        "tile": [
+          1,
+          20
+        ]
+      }
+    },
+    {
+      "id": "cytoplasmicStimulator1",
+      "itemId": "cytoplasmicStimulator",
+      "position": [
+        1,
+        20.25
+      ],
+      "on": {
+        "tile": [
+          1,
+          20
+        ]
+      }
+    },
+    {
+      "id": "cytoplasmicStimulator2",
+      "itemId": "cytoplasmicStimulator",
+      "position": [
+        1.5,
+        20.25
+      ],
+      "on": {
+        "tile": [
+          1,
+          20
+        ]
+      }
+    },
+    {
+      "id": "cytoplasmicStimulator3",
+      "itemId": "cytoplasmicStimulator",
+      "position": [
+        1.5,
+        20.75
+      ],
+      "on": {
+        "tile": [
+          1,
+          21
+        ]
+      }
+    },
+    {
+      "id": "cytoplasmicStimulator4",
+      "itemId": "cytoplasmicStimulator",
+      "position": [
+        1.25,
+        20.75
+      ],
+      "on": {
+        "tile": [
+          1,
+          21
+        ]
+      }
+    },
+    {
+      "id": "cytoplasmicStimulator5",
+      "itemId": "cytoplasmicStimulator",
+      "position": [
+        1.25,
+        21.25
+      ],
+      "on": {
+        "tile": [
+          1,
+          21
+        ]
+      }
+    },
+    {
+      "id": "detronalScanner1",
+      "itemId": "detronalScanner",
+      "position": [
+        1.5,
+        24
+      ],
+      "on": {
+        "tile": [
+          1,
+          24
+        ]
+      }
+    }
+  ],
   "briefing": "Klingon boarders have forced their way aboard and are holding the brig on Deck 10. Their attack knocked out the section's power grid, and the emergency bulkheads have sealed the east section shut.\n\nLt. Okafor, the deck's engineer, is trapped on our side of the bulkheads. She knows the section's systems better than anyone; find her and learn what she needs to get the doors open.\n\nThe Klingons are posted throughout the brig and will raise the alarm if they spot us. Move carefully, and restore power to the section.",
   "stardate": 4523.3
 }

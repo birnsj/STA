@@ -1,0 +1,177 @@
+/* Starship Creator, Screen 04. Fits the 1920×1080 creator frame; the column does not scroll. */
+
+.service-screen {
+  gap: 8px;
+  overflow: hidden;
+}
+
+.service-screen .screen-title {
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.service-screen .screen-heading,
+.service-screen .screen-number {
+  font-size: 32px;
+}
+
+.service-screen .screen-intro {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.service-screen .source-ref {
+  display: block;
+  margin-top: 2px;
+}
+
+.service-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 8px;
+}
+
+.service-list {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.service-card {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 4px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  text-align: left;
+  overflow: hidden;
+  cursor: var(--cursor-pointer);
+}
+
+.service-card.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+}
+
+.service-card-art {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 4px;
+}
+
+.service-card-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.service-card-name,
+.service-card-line {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.service-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.service-card-line {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.service-detail {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.service-preview-art {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 4px;
+}
+
+.service-detail-text {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.service-detail-name {
+  margin: 0 0 4px;
+  font-size: 22px;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.service-detail-text p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.service-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.service-effect {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.service-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.service-name input {
+  margin: 0;
+  padding: 6px 8px;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  background: #040814;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.service-name input:focus {
+  outline: none;
+  border-color: var(--yellow);
+}

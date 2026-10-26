@@ -3,6 +3,7 @@ import background from '../assets/main-menu-background.jpg'
 import CoverArt from '../components/CoverArt.jsx'
 import { playtestImportEntries } from '../character/authoredCharacters.js'
 import ImportCharacterCarousel from '../components/ImportCharacterCarousel.jsx'
+import ImportShipDialog from '../components/ships/ImportShipDialog.jsx'
 import NewCharacterNotice from '../components/NewCharacterNotice.jsx'
 import LogoSheen from '../components/LogoSheen.jsx'
 import MenuAmbience from '../components/MenuAmbience.jsx'
@@ -16,7 +17,7 @@ const MENU_ITEMS = [
   { id: 'createCharacter', label: 'Create Character', accent: 'yellow', primary: true, action: 'creator', enabled: true, checkedAfterCharacter: true },
   { id: 'importCharacter', label: 'Import Character', accent: 'cyan', popup: 'import', enabled: 'afterCharacter' },
   { id: 'buildShip', label: 'Build Ship', accent: 'blue', action: 'shipBuilder', enabled: 'afterCharacter' },
-  { id: 'importShip', label: 'Import Ship', accent: 'blue', action: null, enabled: false },
+  { id: 'importShip', label: 'Import Ship', accent: 'blue', popup: 'importShip', enabled: false },
   // For now Load Episode picks which combat prototype to test (designer decision).
   { id: 'loadEpisode', label: 'Load Episode', accent: 'red', action: 'episodeSelect', enabled: 'afterCharacter' },
   { id: 'settings', label: 'Settings', accent: 'yellow', action: 'settings', enabled: true },
@@ -28,7 +29,7 @@ const MENU_SAFE_AREA = { left: 40, top: 25, right: 510, bottom: 565 }
 
 const isEnabled = (item, hasSavedCharacter) => (item.enabled === 'afterCharacter' ? hasSavedCharacter : item.enabled)
 
-export default function MainMenuScreen({ width, height, savedCharacters, onOpen, savedCharacterActions }) {
+export default function MainMenuScreen({ width, height, savedCharacters, savedShips = [], onOpen, savedCharacterActions, savedShipActions }) {
   const hasSavedCharacter = savedCharacters.length > 0
   const savedIds = new Set(savedCharacters.map((entry) => entry.id))
   const importCharacters = [...savedCharacters, ...playtestImportEntries().filter((entry) => !savedIds.has(entry.id))]
@@ -40,6 +41,7 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
   const select = (item) => {
     if (item.popup) setPopup(item.popup)
     else if (item.action === 'creator' && hasSavedCharacter) setPopup('newCharacter')
+    else if (item.action === 'shipBuilder' && savedShips.length > 0) setPopup('newShip')
     else onOpen(item.action)
   }
 
@@ -51,8 +53,12 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
         <LogoSheen image={background} />
         <nav className="main-menu-list" aria-label="Main menu" inert={Boolean(popup)}>
           {MENU_ITEMS.map((item) => {
-            const enabled = item.id === 'importCharacter' ? importCharacters.length > 0 : isEnabled(item, hasSavedCharacter)
-            const checked = item.checkedAfterCharacter && hasSavedCharacter
+            const enabled = item.id === 'importCharacter'
+              ? importCharacters.length > 0
+              : item.id === 'importShip'
+                ? savedShips.length > 0
+                : isEnabled(item, hasSavedCharacter)
+            const checked = (item.checkedAfterCharacter && hasSavedCharacter) || (item.id === 'buildShip' && savedShips.length > 0)
             return (
             <div key={item.id} className={`main-menu-row${enabled ? '' : ' is-disabled'}`}>
               <span className={`main-menu-accent accent-${item.accent}`} aria-hidden="true" />
@@ -80,7 +86,29 @@ export default function MainMenuScreen({ width, height, savedCharacters, onOpen,
       {popup === 'newCharacter' && (
         <NewCharacterNotice savedCount={savedCharacters.length} onContinue={() => onOpen('creator')} onCancel={closePopup} />
       )}
+      {popup === 'newShip' && (
+        <div className="menu-notice-backdrop">
+          <div className="ship-builder-panel menu-notice" role="alertdialog" aria-modal="true" aria-labelledby="new-ship-notice-title">
+            <h2 id="new-ship-notice-title" className="menu-notice-title">New Ship</h2>
+            <p className="menu-notice-text">
+              You already have {savedShips.length} saved ship{savedShips.length === 1 ? '' : 's'}. Starting a new ship will not replace {savedShips.length === 1 ? 'it' : 'them'};
+              every confirmed ship stays saved.
+            </p>
+            <div className="menu-notice-actions">
+              <button type="button" className="nav-button nav-back" onClick={closePopup}>
+                Cancel
+              </button>
+              <button type="button" className="nav-button nav-next" onClick={() => onOpen('shipBuilder')} autoFocus>
+                Build New Ship →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {popup === 'import' && <ImportCharacterCarousel characters={importCharacters} {...savedCharacterActions} onCancel={closePopup} />}
+      {popup === 'importShip' && (
+        <ImportShipDialog ships={savedShips} {...savedShipActions} onCancel={closePopup} />
+      )}
     </div>
   )
 }

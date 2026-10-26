@@ -291,3 +291,33 @@
 .menu-notice .nav-next:not(:disabled) {
   animation: none;
 }
+
+.ship-import {
+  width: 520px;
+  text-align: left;
+}
+
+.ship-import-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.ship-import-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ship-import-row span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

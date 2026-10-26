@@ -1,0 +1,182 @@
+/* Starship Creator, Screen 06. Fits the 1920×1080 creator frame; the column does not scroll. */
+
+.finish-screen {
+  gap: 8px;
+  overflow: hidden;
+}
+
+.finish-screen .screen-title {
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.finish-screen .screen-heading,
+.finish-screen .screen-number {
+  font-size: 32px;
+}
+
+.finish-screen .screen-intro {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.finish-screen .source-ref {
+  display: block;
+  margin-top: 2px;
+}
+
+.finish-tabs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.finish-tab {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 15px;
+  cursor: var(--cursor-pointer);
+}
+
+.finish-tab.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+  color: var(--yellow);
+}
+
+.finish-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.finish-name,
+.finish-emblem {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+}
+
+.finish-form,
+.finish-choices {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.finish-form h2,
+.finish-choices h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.finish-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.finish-field input,
+.finish-field select,
+.finish-registry button {
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.finish-registry {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.finish-registry button {
+  cursor: var(--cursor-pointer);
+}
+
+.finish-readout {
+  margin: 0;
+  color: var(--yellow);
+  font-size: 18px;
+}
+
+.finish-class-art,
+.finish-emblem-art,
+.finish-card-art {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 4px;
+}
+
+.finish-bridge {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.finish-note {
+  flex: none;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.finish-cards {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.finish-card {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.finish-card.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+}
+
+.finish-card-art {
+  flex: 1;
+}
+
+.finish-card-name {
+  font-size: 16px;
+  color: var(--yellow);
+}
+
+.finish-card-caption {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.finish-panel[hidden] {
+  display: none;
+}

@@ -1,0 +1,29 @@
+{
+  "note": "Era cards from the Timeframe mockup. TOS copy is the text on that mockup. The other eras have a name and years only; their panels stay empty until copy is supplied. throughYear is the last year of that range, used only to decide which spaceframes have launched (Core p. 193). It is not a campaign year the player picked. It is also the year of play used to count refits (Core p. 217).",
+  "eras": [
+    {
+      "id": "tos",
+      "name": "The Original Series",
+      "years": "2260s–2270s",
+      "throughYear": 2279,
+      "summary": "The 2260s and 2270s are a time of exploration and expanding influence for the United Federation of Planets. Starfleet vessels push into uncharted space, establish first contact with new worlds, and defend the Federation's interests along its borders.",
+      "overview": "Starfleet is a smaller, leaner organization, with a focus on exploration, diplomacy, and scientific discovery. Ships of this era are iconic, versatile vessels designed for long-range missions and independent operations.",
+      "characteristics": [
+        "Exploration and first contact",
+        "Fewer starship classes",
+        "Technology level appropriate to the 23rd century",
+        "Emphasis on scientific and diplomatic missions"
+      ],
+      "considerations": [
+        "No later-era technology",
+        "Limited ship classes",
+        "Refits restricted to this era",
+        "Era-appropriate equipment only"
+      ]
+    },
+    { "id": "tmp", "name": "The Motion Picture Era", "years": "2270s–2280s", "throughYear": 2289 },
+    { "id": "tng", "name": "The Next Generation Era", "years": "2360s–2370s", "throughYear": 2379 },
+    { "id": "ds9", "name": "Deep Space Nine Era", "years": "2369–2375", "throughYear": 2375 },
+    { "id": "voy", "name": "Voyager Era", "years": "2371–2378", "throughYear": 2378 }
+  ]
+}

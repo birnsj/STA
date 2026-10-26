@@ -1,0 +1,129 @@
+.review-screen {
+  gap: 8px;
+  overflow: hidden;
+}
+
+.review-screen .screen-title {
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.review-screen .screen-heading,
+.review-screen .screen-number {
+  font-size: 32px;
+}
+
+.review-screen .screen-intro {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.review-screen .source-ref {
+  display: block;
+  margin-top: 2px;
+}
+
+.review-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.9fr;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(0, 0.85fr);
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.review-body .panel {
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.review-screen .screen-footer {
+  flex: none;
+  margin-top: auto;
+}
+
+.review-overview {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.review-departments { grid-column: 3; grid-row: 1; }
+.review-systems { grid-column: 1; grid-row: 2; }
+.review-finishing { grid-column: 2; grid-row: 2; }
+.review-traits { grid-column: 3; grid-row: 2; }
+.review-rules { grid-column: 1 / 4; grid-row: 3; }
+
+.review-art,
+.review-bridge {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.review-finishing-body {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.review-finishing-body:not(:has(.review-bridge)) {
+  grid-template-columns: 1fr;
+}
+
+.review-name {
+  color: var(--yellow);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.review-screen h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.review-screen p,
+.review-screen li {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.review-screen ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.review-note {
+  margin-top: 4px;
+}
+
+.review-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-issues button {
+  font: inherit;
+  font-size: 13px;
+}

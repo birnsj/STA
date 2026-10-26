@@ -1,0 +1,200 @@
+/* Starship Creator, Screen 01. Fits the 1920×1080 creator frame; the column does not scroll. */
+
+.timeframe-screen {
+  height: 100%;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.timeframe-screen .screen-footer {
+  flex: none;
+}
+
+.timeframe-screen .screen-title {
+  flex: none;
+  padding-bottom: 4px;
+}
+
+.timeframe-screen .screen-heading,
+.timeframe-screen .screen-number {
+  font-size: 32px;
+}
+
+.timeframe-screen .screen-intro {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.timeframe-screen .source-ref {
+  display: block;
+  margin-top: 2px;
+}
+
+.ship-art {
+  display: block;
+  height: 100%;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(44, 102, 216, 0.35), transparent 70%),
+    #040814;
+  overflow: hidden;
+}
+
+.ship-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.timeframe-eras {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timeframe-era {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  text-align: center;
+  overflow: hidden;
+}
+
+.timeframe-era.is-selected {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+}
+
+.timeframe-era-art {
+  flex: 1;
+  min-height: 0;
+}
+
+.timeframe-era-name,
+.timeframe-era-years {
+  display: block;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeframe-era-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.timeframe-era-years {
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.timeframe-detail {
+  flex: none;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  height: 80px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.timeframe-detail-art {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.timeframe-detail-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.timeframe-detail-name {
+  margin: 0 0 4px;
+  font-size: 22px;
+  text-transform: uppercase;
+  color: var(--yellow);
+}
+
+.timeframe-detail-text p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.timeframe-panels {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  height: 104px;
+}
+
+.timeframe-panel {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeframe-panel p,
+.timeframe-list {
+  margin: 8px 12px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.timeframe-list {
+  padding-left: 18px;
+}
+
+.ship-summary {
+  overflow: hidden;
+}
+
+.ship-summary-art {
+  flex: none;
+  height: 92px;
+  margin-bottom: 6px;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.ship-summary .summary-row {
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.ship-summary-popup {
+  width: 420px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ship-summary-popup h2 {
+  margin: 0;
+  color: var(--yellow);
+  text-transform: uppercase;
+}
+
+.ship-summary-popup p {
+  margin: 0;
+}
+
+.ship-summary-popup .nav-button {
+  align-self: flex-end;
+  margin-top: 8px;
+}
