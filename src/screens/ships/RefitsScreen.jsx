@@ -153,14 +153,10 @@ export default function RefitsScreen({
       </div>
     )
   } else if (tab === 'weapons' || tab === 'special') {
-    const talents = (tab === 'weapons' ? weaponTalents : specialTalents).filter((talent) => {
-      if (granted.has(talent.id) || extras.includes(talent.id)) return true
-      return !talentIneligibility(ship, talent.id)
-    })
+    const talents = tab === 'weapons' ? weaponTalents : specialTalents
     list = (
       <div className="refit-list" role="listbox" aria-label={tab === 'weapons' ? 'Weapons and defenses' : 'Special systems'}>
         {talents.map((talent) => {
-          const selected = extras.includes(talent.id) || focusTalentId === talent.id
           const locked = granted.has(talent.id)
           const chosen = extras.includes(talent.id)
           const blocked = talentIneligibility(ship, talent.id)
@@ -171,12 +167,9 @@ export default function RefitsScreen({
               name={talent.name}
               line={locked ? 'Granted' : chosen ? 'Selected' : blocked ? blocked : `p. ${talent.page}`}
               artSrc={frame ? `/art/ships/classes/${frame.id}.png` : '/art/ships/summary.png'}
-              selected={selected}
+              selected={focusTalentId === talent.id}
               capped={capped}
-              onClick={() => {
-                setFocusTalentId(talent.id)
-                if (!locked && !capped) onToggleTalent(talent.id)
-              }}
+              onClick={() => setFocusTalentId(talent.id)}
             />
           )
         })}
@@ -299,14 +292,43 @@ export default function RefitsScreen({
         <div className="refit-detail-body">
           <div className="refit-detail-head">
             <h2 className="refit-detail-name">{selectedSystem.name}</h2>
-            <p>Read-only totals. Assign refits on Major Refits (Core p. 217).</p>
+            <p>{SYSTEM_BLURB[selectedSystem.id]}</p>
           </div>
           <div className="refit-detail-grid">
             <DetailBlock title="Effects">
-              <p>No separate system-upgrade spend. This tab shows the current rating only.</p>
+              <p>
+                Current rating for this system. Spaceframe base, mission profile +1 (if this system was chosen), and Major Refits assignments all add together. This tab is read-only.
+              </p>
+              <p>
+                Refits on this system:
+                {' '}
+                {count}
+                {room < 1 ? ' (at the per-system limit).' : '.'}
+              </p>
             </DetailBlock>
             <DetailBlock title="Requirements">
-              <p>Use Major Refits to spend earned refit slots.</p>
+              <p>
+                Spend earned refit slots on Major Refits (Core Rulebook, p. 217). Each assignment raises one system by 1, at most twice per system, and not above 12.
+              </p>
+              <p>
+                Year of play
+                {' '}
+                {era?.throughYear ?? '—'}
+                . Class launched
+                {' '}
+                {frame?.launchYear ?? '—'}
+                .
+              </p>
+              <p>
+                Refits earned:
+                {' '}
+                {budget}
+                {ship.serviceRecordId === 'prototype' ? ' (includes Prototype +2)' : ''}
+                . Assigned:
+                {' '}
+                {assigned}
+                .
+              </p>
             </DetailBlock>
             <DetailBlock title="Resulting Changes">
               <p className="refit-score">
@@ -323,6 +345,18 @@ export default function RefitsScreen({
                 refits =
                 {' '}
                 {total ?? '—'}
+              </p>
+              <p>
+                Resistance
+                {' '}
+                {shipResistance(ship) ?? '—'}
+                . Shields
+                {' '}
+                {shipShields(ship) ?? '—'}
+                . Crew Support
+                {' '}
+                {shipCrewSupport(ship) ?? '—'}
+                .
               </p>
             </DetailBlock>
           </div>
