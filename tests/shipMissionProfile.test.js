@@ -34,6 +34,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 const saved = (fields) => ({
   version: 1,
   timeframeId: null,
+  campaignYear: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -99,6 +100,7 @@ describe('starship mission profile', () => {
     const next = selectMissionProfileTalent(selectMissionProfile(constitution(), 'battlecruiser'), 'ablative-armor')
     assert.deepEqual(next, saved({
       timeframeId: 'tos',
+      campaignYear: 2279,
       spaceframeId: 'constitution',
       missionProfileId: 'battlecruiser',
       missionProfileTalentId: 'ablative-armor',
@@ -143,7 +145,7 @@ describe('starship mission profile', () => {
     saveShip(selected)
     assert.deepEqual(loadShip(), selected)
     stored.set('st-adventures.ship', JSON.stringify({ version: 1, timeframeId: 'voy', spaceframeId: 'intrepid' }))
-    assert.deepEqual(loadShip(), saved({ timeframeId: 'voy', spaceframeId: 'intrepid' }))
+    assert.deepEqual(loadShip(), saved({ timeframeId: 'voy', campaignYear: 2378, spaceframeId: 'intrepid' }))
     stored.set('st-adventures.ship', JSON.stringify({
       version: 1,
       timeframeId: 'tos',
@@ -154,17 +156,18 @@ describe('starship mission profile', () => {
     }))
     assert.deepEqual(loadShip(), saved({
       timeframeId: 'tos',
+      campaignYear: 2279,
       spaceframeId: 'constitution',
       missionProfileId: 'battlecruiser',
       missionProfileSystemId: 'weapons',
     }))
     stored.set('st-adventures.ship', JSON.stringify({ version: 1, timeframeId: 'tos', missionProfileId: 'exploration' }))
-    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos' }))
+    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos', campaignYear: 2279 }))
   })
 
   it('clears only the profile, keeps it when the class is cleared, and drops it with the era', () => {
     const selected = selectMissionProfile(constitution(), 'tactical')
-    assert.deepEqual(clearMissionProfile(selected), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(clearMissionProfile(selected), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
     const withoutClass = clearSpaceframe(selected)
     assert.equal(withoutClass.missionProfileId, 'tactical')
     assert.equal(withoutClass.spaceframeId, null)

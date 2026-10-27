@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import '../../styles/ships/serviceRecord.css'
+import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import {
+  serviceEventArt,
+  serviceHistoryArt,
+  serviceHonorArt,
+  serviceReputationArt,
+  shipSummaryArt,
+  traitArt,
+} from '../../ships/shipArtPaths.js'
 import {
   getServiceHonorById,
   getServiceHonors,
@@ -25,11 +34,11 @@ const INTRO = 'A service record is optional. It adds one trait, named for the re
 const NARRATIVE_STATUS = 'Prototype narrative Trait · −1 / +1 on tagged tasks · not STA 2E Service Record mechanics'
 
 const TABS = [
-  ['history', 'Service History'],
-  ['events', 'Notable Events'],
-  ['reputation', 'Reputation'],
-  ['traits', 'Traits'],
-  ['honors', 'Honors & Citations'],
+  ['history', 'Service History', 'Official optional service record from the Core Rulebook.'],
+  ['events', 'Notable Events', 'Narrative prototype. Not STA 2E Service Record mechanics.'],
+  ['reputation', 'Reputation', 'Narrative prototype. Not STA 2E Service Record mechanics.'],
+  ['traits', 'Traits', 'Read-only review of traits granted so far.'],
+  ['honors', 'Honors & Citations', 'Narrative prototype. Not STA 2E Service Record mechanics.'],
 ]
 
 function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', capped = false }) {
@@ -43,11 +52,26 @@ function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', ca
       onClick={onClick}
     >
       <ShipArt src={artSrc} alt="" className="service-card-art" />
-      <span className="service-card-text">
-        <span className="service-card-name">{name}</span>
-        {line && <span className="service-card-line">{line}</span>}
-      </span>
+      <span className="service-card-name" title={name}>{name}</span>
+      {line ? <span className="service-card-line">{line}</span> : null}
     </button>
+  )
+}
+
+function ServiceCarousel({ count, label, children }) {
+  const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(count, 196, 8)
+  return (
+    <div className="carousel service-carousel" ref={carouselRef}>
+      {!fits && (
+        <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label={`Scroll ${label} left`}>‹</button>
+      )}
+      <div className="carousel-track service-list" ref={trackRef} role="listbox" aria-label={label}>
+        {children}
+      </div>
+      {!fits && (
+        <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label={`Scroll ${label} right`}>›</button>
+      )}
+    </div>
   )
 }
 
@@ -101,15 +125,7 @@ function EffectsList({ items }) {
 }
 
 function artForTrait(entry, ship) {
-  if (entry.source === 'class') {
-    const frame = getSpaceframeById(ship.spaceframeId)
-    return frame ? `/art/ships/classes/${frame.id}.png` : null
-  }
-  if (entry.source === 'serviceRecord') return `/art/ships/service/${entry.sourceId}.png`
-  if (entry.source === 'event') return `/art/ships/service/events/${entry.sourceId}.png`
-  if (entry.source === 'reputation') return `/art/ships/service/reputation/${entry.sourceId}.png`
-  if (entry.source === 'honor') return `/art/ships/service/honors/${entry.sourceId}.png`
-  return null
+  return traitArt(entry, ship.spaceframeId)
 }
 
 function sourceLabel(entry, ship) {
@@ -149,10 +165,18 @@ function buildTraitCards(ship) {
   }))
 }
 
+function specialStatusLine(status) {
+  if (!status?.id) return null
+  if (status.available === true) return `${status.name}: available.`
+  if (status.available === 'partial') return `${status.name}: partial — ${status.reason}`
+  return `${status.name}: stub — ${status.reason}`
+}
+
 export default function ServiceRecordScreen({
   step,
   ship,
   onSelect,
+  onClearRecord,
   onDetail,
   onToggleEvent,
   onSelectReputation,
@@ -163,6 +187,7 @@ export default function ServiceRecordScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  nextDisabled = false,
   onNext,
 }) {
   const records = getServiceRecords()
@@ -188,6 +213,8 @@ export default function ServiceRecordScreen({
   const focusHonor = getServiceHonorById(focusHonorId)
     ?? getServiceHonorById(ship.serviceHonorIds?.[0])
   const focusTrait = traitCards.find((card) => card.id === focusTraitId) ?? traitCards[0] ?? null
+  const activeTab = TABS.find((entry) => entry[0] === tab) ?? TABS[0]
+  const noneSelected = !ship.serviceRecordId
 
   useEffect(() => {
     setDraft(ship.serviceRecordDetail ?? '')
@@ -207,25 +234,32 @@ export default function ServiceRecordScreen({
   const leftList = (() => {
     if (tab === 'history') {
       return (
-        <div className="service-list" role="listbox" aria-label="Service record">
+        <ServiceCarousel count={records.length + 1} label="Service record">
+          <OptionCard
+            name="None"
+            line="No service record"
+            artSrc={shipSummaryArt()}
+            selected={noneSelected}
+            onClick={() => onClearRecord?.()}
+          />
           {records.map((record) => (
             <OptionCard
               key={record.id}
               name={record.name}
               line={record.ruleName}
-              artSrc={`/art/ships/service/${record.id}.png`}
+              artSrc={serviceHistoryArt(record.id)}
               selected={record.id === ship.serviceRecordId}
               onClick={() => onSelect(record.id)}
             />
           ))}
-        </div>
+        </ServiceCarousel>
       )
     }
     if (tab === 'events') {
       const eventIds = ship.serviceNotableEventIds ?? []
       const atEventCap = eventIds.length >= MAX_SERVICE_NOTABLE_EVENTS
       return (
-        <div className="service-list" role="listbox" aria-label="Notable events">
+        <ServiceCarousel count={events.length} label="Notable events">
           {events.map((event) => {
             const chosen = eventIds.includes(event.id)
             const blocked = atEventCap && !chosen
@@ -234,7 +268,7 @@ export default function ServiceRecordScreen({
                 key={event.id}
                 name={event.name}
                 line={chosen ? 'Selected' : blocked ? `Limit ${MAX_SERVICE_NOTABLE_EVENTS}` : 'Narrative'}
-                artSrc={`/art/ships/service/events/${event.id}.png`}
+                artSrc={serviceEventArt(event.id)}
                 selected={Boolean(chosen)}
                 capped={blocked}
                 onClick={() => {
@@ -244,28 +278,28 @@ export default function ServiceRecordScreen({
               />
             )
           })}
-        </div>
+        </ServiceCarousel>
       )
     }
     if (tab === 'reputation') {
       return (
-        <div className="service-list" role="listbox" aria-label="Reputation">
+        <ServiceCarousel count={reputations.length} label="Reputation">
           {reputations.map((entry) => (
             <OptionCard
               key={entry.id}
               name={entry.name}
               line="Narrative"
-              artSrc={`/art/ships/service/reputation/${entry.id}.png`}
+              artSrc={serviceReputationArt(entry.id)}
               selected={ship.serviceReputationId === entry.id}
               onClick={() => onSelectReputation(entry.id)}
             />
           ))}
-        </div>
+        </ServiceCarousel>
       )
     }
     if (tab === 'traits') {
       return (
-        <div className="service-list" role="listbox" aria-label="Ship traits">
+        <ServiceCarousel count={Math.max(traitCards.length, 1)} label="Ship traits">
           {traitCards.length === 0 ? (
             <p className="service-empty">No traits yet.</p>
           ) : (
@@ -280,13 +314,13 @@ export default function ServiceRecordScreen({
               />
             ))
           )}
-        </div>
+        </ServiceCarousel>
       )
     }
     const honorIds = ship.serviceHonorIds ?? []
     const atHonorCap = honorIds.length >= MAX_SERVICE_HONORS
     return (
-      <div className="service-list" role="listbox" aria-label="Honors and citations">
+      <ServiceCarousel count={honors.length} label="Honors and citations">
         {honors.map((honor) => {
           const chosen = honorIds.includes(honor.id)
           const blocked = atHonorCap && !chosen
@@ -295,7 +329,7 @@ export default function ServiceRecordScreen({
               key={honor.id}
               name={honor.name}
               line={chosen ? 'Selected' : blocked ? `Limit ${MAX_SERVICE_HONORS}` : 'Narrative'}
-              artSrc={`/art/ships/service/honors/${honor.id}.png`}
+              artSrc={serviceHonorArt(honor.id)}
               selected={Boolean(chosen)}
               capped={blocked}
               onClick={() => {
@@ -305,15 +339,16 @@ export default function ServiceRecordScreen({
             />
           )
         })}
-      </div>
+      </ServiceCarousel>
     )
   })()
 
   let detail = null
   if (tab === 'history') {
+    const statusLine = selected ? specialStatusLine(specialStatus) : null
     detail = (
       <ServiceDetail
-        artSrc={selected ? `/art/ships/service/${selected.id}.png` : null}
+        artSrc={selected ? serviceHistoryArt(selected.id) : null}
         title={selected ? selected.name : 'No service record selected'}
         description={selected?.overview}
         context={selected
@@ -342,7 +377,17 @@ export default function ServiceRecordScreen({
                   </>
                 ),
               },
-            ]}
+              statusLine ? {
+                key: 'status',
+                node: (
+                  <>
+                    <strong>Special rule status.</strong>
+                    {' '}
+                    {statusLine}
+                  </>
+                ),
+              } : null,
+            ].filter(Boolean)}
           />
         ) : null}
         sourceLabel={selected ? `Star Trek Adventures 2E Core Rulebook, p. ${selected.page}` : null}
@@ -374,13 +419,13 @@ export default function ServiceRecordScreen({
             </span>
           </label>
         ) : null}
-        emptyBody="Unset. A service record is optional."
+        emptyBody="Unset. A service record is optional. Choose None to continue without one."
       />
     )
   } else if (tab === 'events') {
     detail = (
       <ServiceDetail
-        artSrc={focusEvent ? `/art/ships/service/events/${focusEvent.id}.png` : null}
+        artSrc={focusEvent ? serviceEventArt(focusEvent.id) : null}
         title={focusEvent ? focusEvent.name : 'No notable event focused'}
         description={focusEvent?.description ?? focusEvent?.summary}
         context={narrativeContext(focusEvent)}
@@ -392,7 +437,7 @@ export default function ServiceRecordScreen({
   } else if (tab === 'reputation') {
     detail = (
       <ServiceDetail
-        artSrc={focusReputation ? `/art/ships/service/reputation/${focusReputation.id}.png` : null}
+        artSrc={focusReputation ? serviceReputationArt(focusReputation.id) : null}
         title={focusReputation ? focusReputation.name : 'No reputation selected'}
         description={focusReputation?.description ?? focusReputation?.summary}
         context={narrativeContext(focusReputation)}
@@ -435,6 +480,7 @@ export default function ServiceRecordScreen({
                     <strong>Status.</strong>
                     {' '}
                     {status}
+                    {' · Review only'}
                   </>
                 ),
               },
@@ -470,7 +516,7 @@ export default function ServiceRecordScreen({
   } else {
     detail = (
       <ServiceDetail
-        artSrc={focusHonor ? `/art/ships/service/honors/${focusHonor.id}.png` : null}
+        artSrc={focusHonor ? serviceHonorArt(focusHonor.id) : null}
         title={focusHonor ? focusHonor.name : 'No honor focused'}
         description={focusHonor?.description ?? focusHonor?.summary}
         context={narrativeContext(focusHonor)}
@@ -511,6 +557,7 @@ export default function ServiceRecordScreen({
           )
         })}
       </div>
+      <p className="service-tab-purpose">{activeTab[2]}</p>
 
       <div className="service-body">
         {leftList}
@@ -531,6 +578,7 @@ export default function ServiceRecordScreen({
         autoDisabled={!isMissionProfileComplete(ship)}
         autoTitle="Choose a service record at random."
         nextLabel="Next: Refits →"
+        nextDisabled={nextDisabled}
         onNext={onNext}
       />
     </section>

@@ -4,9 +4,13 @@ import timeframes from '../src/data/ships/timeframes.json'
 import {
   clearTimeframe,
   createEmptyShip,
+  getEligibleSpaceframes,
   getExampleClasses,
   getTimeframes,
+  refitBudget,
+  selectSpaceframe,
   selectTimeframe,
+  setCampaignYear,
 } from '../src/ships/shipModel.js'
 import { loadShip, saveShip } from '../src/ships/persistence.js'
 
@@ -23,6 +27,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 const ship = (fields) => ({
   version: 1,
   timeframeId: null,
+  campaignYear: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -67,7 +72,26 @@ describe('starship timeframe', () => {
 
   it('records the era id and leaves the spaceframe empty', () => {
     const next = selectTimeframe(createEmptyShip(), 'tos')
-    assert.deepEqual(next, ship({ timeframeId: 'tos' }))
+    assert.deepEqual(next, ship({ timeframeId: 'tos', campaignYear: 2279 }))
+  })
+
+  it('defaults campaign year to the era throughYear and clamps on change', () => {
+    const era = selectTimeframe(createEmptyShip(), 'tos')
+    assert.equal(era.campaignYear, 2279)
+    const earlier = setCampaignYear(era, 2265)
+    assert.equal(earlier.campaignYear, 2265)
+    assert.equal(setCampaignYear(earlier, 2200).campaignYear, 2260)
+    assert.equal(setCampaignYear(earlier, 2300).campaignYear, 2279)
+  })
+
+  it('uses campaign year for class eligibility and refit decades', () => {
+    let ship = selectTimeframe(createEmptyShip(), 'tos')
+    ship = setCampaignYear(ship, 2255)
+    assert.equal(getEligibleSpaceframes('tos', 2255).some((frame) => frame.id === 'constitution'), true)
+    ship = selectSpaceframe(ship, 'constitution')
+    assert.equal(refitBudget(ship), 1)
+    ship = setCampaignYear(ship, 2279)
+    assert.equal(refitBudget(ship), 3)
   })
 
   it('leaves the ship unchanged for an unknown id', () => {
@@ -87,7 +111,9 @@ describe('starship timeframe', () => {
   it('saves and loads the timeframe, and clear removes it', () => {
     const selected = selectTimeframe(createEmptyShip(), 'ds9')
     saveShip(selected)
-    assert.deepEqual(loadShip(), ship({ timeframeId: 'ds9' }))
+    assert.deepEqual(loadShip(), ship({ timeframeId: 'ds9', campaignYear: 2375 }))
     assert.deepEqual(clearTimeframe(selected), ship({}))
+    stored.set('st-adventures.ship', JSON.stringify({ version: 1, timeframeId: 'voy' }))
+    assert.deepEqual(loadShip(), ship({ timeframeId: 'voy', campaignYear: 2378 }))
   })
 })

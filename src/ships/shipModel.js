@@ -68,6 +68,7 @@ export function createEmptyShip() {
 
 function shipRecord({
   timeframeId = null,
+  campaignYear = null,
   spaceframeId = null,
   missionProfileId = null,
   missionProfileTalentId = null,
@@ -93,6 +94,7 @@ function shipRecord({
   const draft = {
     version: SHIP_VERSION,
     timeframeId,
+    campaignYear: timeframeId ? clampCampaignYear(timeframeId, campaignYear) : null,
     spaceframeId,
     missionProfileId,
     missionProfileTalentId,
@@ -213,6 +215,7 @@ function keepTalents(ship) {
 function kept(ship, overrides) {
   const fields = {
     timeframeId: ship.timeframeId ?? null,
+    campaignYear: ship.campaignYear ?? null,
     spaceframeId: ship.spaceframeId ?? null,
     ...keepProfile(ship),
     ...keepService(ship),
@@ -280,28 +283,80 @@ export function missionSystemLabel(systemId) {
   return SYSTEM_LABELS[systemId] ?? null
 }
 
-// A class is offered when it had entered service by the last year of the era (Core p. 193). The era stores that
-// year; Screen 01 does not ask for a single campaign year.
-export function isSpaceframeEligible(timeframeId, spaceframeId) {
-  const era = getTimeframeById(timeframeId)
-  const frame = getSpaceframeById(spaceframeId)
-  if (!era || !frame || !Number.isFinite(era.throughYear)) return false
-  return frame.launchYear <= era.throughYear
+// Era year span for the Campaign Year control (Core p. 193). Always includes throughYear.
+export function timeframeYearSpan(eraOrId) {
+  const era = typeof eraOrId === 'string' ? getTimeframeById(eraOrId) : eraOrId
+  if (!era) return null
+  let start
+  let end
+  if (Number.isFinite(era.campaignStart) && Number.isFinite(era.campaignEnd)) {
+    start = era.campaignStart
+    end = era.campaignEnd
+  } else {
+    const nums = [...(era.years ?? '').matchAll(/\d{4}/g)].map((match) => Number(match[0]))
+    if (nums.length >= 2) {
+      start = nums[0]
+      end = nums[1]
+    } else if (Number.isFinite(era.throughYear)) {
+      start = era.throughYear
+      end = era.throughYear
+    } else {
+      return null
+    }
+  }
+  if (Number.isFinite(era.throughYear)) {
+    start = Math.min(start, era.throughYear)
+    end = Math.max(end, era.throughYear)
+  }
+  return { start, end }
 }
 
-export function getEligibleSpaceframes(timeframeId) {
-  return spaceframes.filter((frame) => isSpaceframeEligible(timeframeId, frame.id))
+export function clampCampaignYear(timeframeId, year) {
+  const era = getTimeframeById(timeframeId)
+  const span = timeframeYearSpan(era)
+  if (!span) return null
+  const fallback = Number.isFinite(era?.throughYear) ? era.throughYear : span.end
+  if (!Number.isFinite(year)) return fallback
+  return Math.min(span.end, Math.max(span.start, Math.round(year)))
+}
+
+export function shipPlayYear(ship) {
+  if (Number.isFinite(ship?.campaignYear)) return ship.campaignYear
+  return getTimeframeById(ship?.timeframeId)?.throughYear ?? null
+}
+
+// A class is offered when it had entered service by the campaign year (Core p. 193).
+export function isSpaceframeEligible(timeframeId, spaceframeId, year = null) {
+  const era = getTimeframeById(timeframeId)
+  const frame = getSpaceframeById(spaceframeId)
+  if (!era || !frame) return false
+  const play = Number.isFinite(year) ? year : era.throughYear
+  if (!Number.isFinite(play) || !Number.isFinite(frame.launchYear)) return false
+  return frame.launchYear <= play
+}
+
+export function getEligibleSpaceframes(timeframeId, year = null) {
+  return spaceframes.filter((frame) => isSpaceframeEligible(timeframeId, frame.id, year))
 }
 
 export function selectTimeframe(ship, timeframeId) {
   if (!getTimeframeById(timeframeId)) return ship
-  if (ship.timeframeId === timeframeId) return ship
-  const spaceframeId = isSpaceframeEligible(timeframeId, ship.spaceframeId) ? ship.spaceframeId : null
-  return kept(ship, { timeframeId, spaceframeId })
+  const campaignYear = clampCampaignYear(timeframeId, ship.timeframeId === timeframeId ? ship.campaignYear : null)
+  if (ship.timeframeId === timeframeId && ship.campaignYear === campaignYear) return ship
+  const spaceframeId = isSpaceframeEligible(timeframeId, ship.spaceframeId, campaignYear) ? ship.spaceframeId : null
+  return kept(ship, { timeframeId, campaignYear, spaceframeId })
+}
+
+export function setCampaignYear(ship, year) {
+  if (!ship.timeframeId) return ship
+  const campaignYear = clampCampaignYear(ship.timeframeId, year)
+  if (campaignYear == null || ship.campaignYear === campaignYear) return ship
+  const spaceframeId = isSpaceframeEligible(ship.timeframeId, ship.spaceframeId, campaignYear) ? ship.spaceframeId : null
+  return kept(ship, { campaignYear, spaceframeId })
 }
 
 export function selectSpaceframe(ship, spaceframeId) {
-  if (!isSpaceframeEligible(ship.timeframeId, spaceframeId)) return ship
+  if (!isSpaceframeEligible(ship.timeframeId, spaceframeId, shipPlayYear(ship))) return ship
   if (ship.spaceframeId === spaceframeId) return ship
   return kept(ship, { spaceframeId })
 }
@@ -311,8 +366,8 @@ export function clearSpaceframe(ship) {
   return kept(ship, { spaceframeId: null })
 }
 
-export function pickSpaceframeId(timeframeId, random = Math.random) {
-  const options = getEligibleSpaceframes(timeframeId)
+export function pickSpaceframeId(timeframeId, random = Math.random, year = null) {
+  const options = getEligibleSpaceframes(timeframeId, year)
   if (!options.length) return null
   const index = Math.floor(random() * options.length)
   return options[Math.min(index, options.length - 1)].id
@@ -387,12 +442,12 @@ export function systemScore(ship, system) {
   return frame.systems[system] + (ship.missionProfileSystemId === system ? 1 : 0) + refitCountOf(ship.refits ?? [], system)
 }
 
-// The era's last year is the year of play. Prototype adds the two refits from p. 216.
+// Campaign year is the year of play (Core p. 193). Prototype adds the two refits from p. 216.
 export function refitBudget(ship) {
-  const era = getTimeframeById(ship.timeframeId)
   const frame = getSpaceframeById(ship.spaceframeId)
-  if (!era || !frame || !Number.isFinite(era.throughYear) || !Number.isFinite(frame.launchYear)) return 0
-  const decades = Math.max(0, Math.floor((era.throughYear - frame.launchYear) / 10))
+  const year = shipPlayYear(ship)
+  if (!frame || !Number.isFinite(year) || !Number.isFinite(frame.launchYear)) return 0
+  const decades = Math.max(0, Math.floor((year - frame.launchYear) / 10))
   return decades + (ship.serviceRecordId === 'prototype' ? 2 : 0)
 }
 
@@ -446,6 +501,7 @@ export function normalizeRefits(ship) {
   ) return ship
   return shipRecord({
     timeframeId: ship.timeframeId ?? null,
+    campaignYear: ship.campaignYear ?? null,
     spaceframeId: ship.spaceframeId ?? null,
     missionProfileId: ship.missionProfileId ?? null,
     missionProfileTalentId: ship.missionProfileTalentId ?? null,
@@ -926,7 +982,7 @@ export function pickFinishing(ship) {
 // Dev Autofill fills every screen, in order, the way character Autofill fills the whole character.
 export function autofillShip(random = Math.random) {
   let ship = selectTimeframe(createEmptyShip(), pickTimeframeId(random))
-  const spaceframeId = pickSpaceframeId(ship.timeframeId, random)
+  const spaceframeId = pickSpaceframeId(ship.timeframeId, random, ship.campaignYear)
   if (spaceframeId) ship = selectSpaceframe(ship, spaceframeId)
   ship = pickMissionProfile(ship, random)
   ship = pickServiceRecord(ship, random)

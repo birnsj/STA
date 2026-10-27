@@ -1,6 +1,7 @@
 import '../../styles/ships/review.css'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import { bridgeArt, classArt } from '../../ships/shipArtPaths.js'
 import {
   departmentScore,
   getFinishingOptions,
@@ -8,18 +9,24 @@ import {
   getServiceRecordById,
   getSpaceframeById,
   getSpecialRule,
+  getStarshipTalentById,
   getTimeframeById,
+  grantedTalentIds,
   isShipComplete,
   refitBudget,
   refitSummary,
   reviewScoreLabel,
   serviceRecordLabel,
+  shipCrewSupport,
   shipDisplayName,
   shipDisplayRegistry,
   shipIssues,
+  shipResistance,
+  shipShields,
   shipTraitNames,
   systemScore,
 } from '../../ships/shipModel.js'
+import { serviceSpecialRuleStatus } from '../../ships/serviceEffects.js'
 
 const SYSTEMS = [
   ['comms', 'Communications'],
@@ -59,11 +66,29 @@ function refitLine(ship, frame) {
   return refitSummary(ship) ?? 'None'
 }
 
-function talentEntries(ship, frame, profile) {
-  const entries = (frame?.talents ?? []).map((talent) => ({ name: talent.name, page: talent.page ?? null }))
-  const chosen = profile?.talents.find((talent) => talent.id === ship.missionProfileTalentId)
-  if (chosen && !entries.some((entry) => entry.name === chosen.name)) entries.push({ name: chosen.name, page: null })
+function talentEntries(ship) {
+  const ids = [...grantedTalentIds(ship), ...(ship.extraTalentIds ?? [])]
+  const seen = new Set()
+  const entries = []
+  for (const id of ids) {
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const talent = getStarshipTalentById(id)
+    entries.push({
+      id,
+      name: talent?.name ?? id,
+      page: talent?.page ?? null,
+      effect: talent?.effect ?? null,
+    })
+  }
   return entries
+}
+
+function specialStatusLine(status) {
+  if (!status?.id) return null
+  if (status.available === true) return `${status.name}: available.`
+  if (status.available === 'partial') return `${status.name}: partial — ${status.reason}`
+  return `${status.name}: stub — ${status.reason}`
 }
 
 function Row({ label, value }) {
@@ -83,12 +108,11 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
   const displayName = shipDisplayName(ship)
   const displayRegistry = shipDisplayRegistry(ship)
   const heading = [displayName, displayRegistry].filter(Boolean).join(' · ') || 'Not entered'
-  const talents = talentEntries(ship, frame, profile)
+  const talents = talentEntries(ship)
   const rules = (frame?.specialRuleIds ?? []).map((id) => getSpecialRule(id)).filter(Boolean)
   const issues = shipIssues(ship)
-  const scaleNote = frame && talents.length < frame.scale
-    ? `Talents ${talents.length}. Scale ${frame.scale}. Additional talents are not chosen in this creator.`
-    : null
+  const specialStatus = serviceSpecialRuleStatus(ship)
+  const specialLine = record ? specialStatusLine(specialStatus) : null
 
   return (
     <section className="screen review-screen" aria-labelledby="review-title">
@@ -105,7 +129,7 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
 
       <div className="review-body">
         <article className="panel review-overview">
-          <ShipArt key={frame?.id ?? 'class'} src={frame ? `/art/ships/classes/${frame.id}.png` : ''} alt="" className="review-art" />
+          <ShipArt key={frame?.id ?? 'class'} src={frame ? classArt(frame.id) : ''} alt="" className="review-art" />
           <div className="review-identity">
             <h2>Starship overview</h2>
             <p className="review-name">{heading}</p>
@@ -114,6 +138,9 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
             <Row label="Mission profile" value={profile?.name ?? 'Pending'} />
             <Row label="Service record" value={record ? serviceRecordLabel(ship) : 'Not selected'} />
             <Row label="Refits" value={refitLine(ship, frame)} />
+            <Row label="Resistance" value={frame ? String(shipResistance(ship) ?? '—') : 'Pending'} />
+            <Row label="Shields" value={frame ? String(shipShields(ship) ?? '—') : 'Pending'} />
+            <Row label="Crew Support" value={frame ? String(shipCrewSupport(ship) ?? '—') : 'Pending'} />
             <Row label="Class designation" value="N/A" />
           </div>
         </article>
@@ -136,7 +163,7 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
           <h2>Finishing choices</h2>
           <div className="review-finishing-body">
             {ship.bridgeLayoutId && (
-              <ShipArt src={`/art/ships/bridges/${ship.bridgeLayoutId}.png`} alt="" className="review-bridge" />
+              <ShipArt src={bridgeArt(ship.bridgeLayoutId)} alt="" className="review-bridge" />
             )}
             <div>
               {COSMETICS.map(([field, label]) => (
@@ -151,13 +178,15 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
           <p>{frame ? shipTraitNames(ship).join(', ') || 'None' : 'Pending'}</p>
           <ul>
             {talents.map((talent) => (
-              <li key={talent.name}>
+              <li key={talent.id}>
                 {talent.name}
-                {talent.page ? ` (p. ${talent.page})` : ''}: Unknown
+                {talent.page ? ` (p. ${talent.page})` : ''}
+                :
+                {' '}
+                {talent.effect || 'Unknown'}
               </li>
             ))}
           </ul>
-          {scaleNote && <p className="review-note">{scaleNote}</p>}
         </article>
 
         <article className="panel review-rules">
@@ -170,6 +199,7 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
             </ul>
           )}
           <p>{record ? `${record.ruleName}: ${record.rule}` : 'Service record rule: Not selected'}</p>
+          {specialLine && <p className="review-note">Service special rule status: {specialLine}</p>}
           <p>Weapons: {frame ? (frame.weapons?.join(', ') || 'None') : 'Pending'}</p>
         </article>
       </div>

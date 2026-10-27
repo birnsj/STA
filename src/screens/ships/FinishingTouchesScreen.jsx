@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import '../../styles/ships/finishingTouches.css'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import { bridgeArt, classArt, finishingArt } from '../../ships/shipArtPaths.js'
 import {
   getBridgeLayouts,
   getFinishingOptions,
@@ -12,7 +13,7 @@ import {
   shipDisplayRegistry,
 } from '../../ships/shipModel.js'
 
-const INTRO = 'Every starship needs a name. A Federation ship also needs a registry. A bridge layout, markings, and an emblem are recorded for the ship and do not change its statistics.'
+const INTRO = 'Name and registry are required for a Federation ship (name always; registry when required). Bridge layout, markings, and emblem are optional cosmetics and do not change statistics.'
 
 const TABS = [
   { id: 'name', label: 'Name & Registry' },
@@ -60,6 +61,7 @@ export default function FinishingTouchesScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  nextDisabled = false,
   onNext,
 }) {
   const [tab, setTab] = useState('name')
@@ -128,13 +130,20 @@ export default function FinishingTouchesScreen({
                   onChange={(event) => setRegistryDraft(event.target.value)}
                   onBlur={(event) => onRegistry(event.currentTarget.value)}
                 />
-                <button type="button" onClick={onRandom}>Random</button>
+                <button
+                  type="button"
+                  title="Use a notable example name and registry from this class."
+                  onClick={onRandom}
+                >
+                  Random
+                </button>
               </span>
             </label>
+            <p className="finish-note">Random fills a notable example from this class when one is listed.</p>
             <p className="finish-readout">{displayName || '—'}</p>
             <p className="finish-readout">{displayRegistry || '—'}</p>
           </form>
-          <ShipArt key={frame?.id ?? 'class'} src={frame ? `/art/ships/classes/${frame.id}.png` : ''} alt="" className="finish-class-art" />
+          <ShipArt key={frame?.id ?? 'class'} src={frame ? classArt(frame.id) : ''} alt="" className="finish-class-art" />
         </div>
 
       <div className="finish-panel finish-bridge" hidden={tab !== 'bridge'}>
@@ -151,7 +160,7 @@ export default function FinishingTouchesScreen({
                   className={selected ? 'finish-card is-selected' : 'finish-card'}
                   onClick={() => onChoice('bridgeLayoutId', layout.id)}
                 >
-                  <ShipArt src={`/art/ships/bridges/${layout.id}.png`} alt="" className="finish-card-art" />
+                  <ShipArt src={bridgeArt(layout.id)} alt="" className="finish-card-art" />
                   <span className="finish-card-name">{layout.name}</span>
                   <span className="finish-card-caption">{layout.caption}</span>
                 </button>
@@ -165,6 +174,18 @@ export default function FinishingTouchesScreen({
           {APPEARANCE.map(([field, label]) => (
             <ChoiceSelect key={field} field={field} label={label} ship={ship} onChoice={onChoice} />
           ))}
+          <div className="finish-appearance-preview">
+            {APPEARANCE.map(([field]) => (
+              ship[field] ? (
+                <ShipArt
+                  key={field}
+                  src={finishingArt(field, ship[field])}
+                  alt=""
+                  className="finish-option-art"
+                />
+              ) : null
+            ))}
+          </div>
         </div>
 
       <div className="finish-panel finish-emblem" hidden={tab !== 'emblem'}>
@@ -176,7 +197,7 @@ export default function FinishingTouchesScreen({
           </div>
           <ShipArt
             key={ship.emblemStyleId ?? 'emblem'}
-            src={ship.emblemStyleId ? `/art/ships/emblems/${ship.emblemStyleId}.png` : ''}
+            src={ship.emblemStyleId ? finishingArt('emblemStyleId', ship.emblemStyleId) : ''}
             alt=""
             className="finish-emblem-art"
           />
@@ -194,6 +215,7 @@ export default function FinishingTouchesScreen({
         autoDisabled={!isRefitsFinished(ship)}
         autoTitle="Use the class's first named example, and the listed cosmetic choices."
         nextLabel="Next: Review →"
+        nextDisabled={nextDisabled}
         onNext={onNext}
       />
     </section>

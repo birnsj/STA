@@ -83,6 +83,7 @@ export function canonicalizeTalentId(id) {
 }
 
 export function playYear(ship) {
+  if (Number.isFinite(ship?.campaignYear)) return ship.campaignYear
   return eraOf(ship)?.throughYear ?? null
 }
 
@@ -310,6 +311,8 @@ export function shipCrewSupport(ship) {
     value += derived.crewSupport ?? 0
     if (derived.crewSupportHalve) halve = true
   }
+  // Aging Relic: +1 Crew Support (Core p. 216). Helper lives in serviceEffects; avoid circular import.
+  if (ship.serviceRecordId === 'aging-relic') value += 1
   if (halve) value = Math.ceil(value / 2)
   return value
 }

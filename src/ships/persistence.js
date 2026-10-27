@@ -6,6 +6,7 @@ import {
   getServiceRecordById,
   getServiceReputationById,
   getTimeframeById,
+  clampCampaignYear,
   isSpaceframeEligible,
   MAX_SERVICE_HONORS,
   MAX_SERVICE_NOTABLE_EVENTS,
@@ -81,6 +82,7 @@ export function persistedShip(ship) {
   return {
     version: SHIP_VERSION,
     timeframeId: ship.timeframeId ?? null,
+    campaignYear: ship.campaignYear ?? null,
     spaceframeId: ship.spaceframeId ?? null,
     missionProfileId: ship.missionProfileId ?? null,
     missionProfileTalentId: ship.missionProfileTalentId ?? null,
@@ -109,11 +111,13 @@ export function shipFromRecord(saved) {
   if (!saved || saved.version !== SHIP_VERSION) return createEmptyShip()
   const timeframeId = saved.timeframeId ?? null
   if (timeframeId !== null && !getTimeframeById(timeframeId)) return createEmptyShip()
+  const campaignYear = timeframeId ? clampCampaignYear(timeframeId, saved.campaignYear) : null
   const requested = saved.spaceframeId ?? null
-  const spaceframeId = requested && isSpaceframeEligible(timeframeId, requested) ? requested : null
+  const spaceframeId = requested && isSpaceframeEligible(timeframeId, requested, campaignYear) ? requested : null
   const draft = {
     version: SHIP_VERSION,
     timeframeId,
+    campaignYear,
     spaceframeId,
     ...missionFields(saved),
     ...serviceFields(saved),

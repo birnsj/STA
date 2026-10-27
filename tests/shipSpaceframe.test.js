@@ -25,6 +25,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 const ship = (fields) => ({
   version: 1,
   timeframeId: null,
+  campaignYear: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -72,7 +73,7 @@ describe('starship spaceframe', () => {
   it('stores only the class id, and ignores an unknown id', () => {
     const era = selectTimeframe(createEmptyShip(), 'tos')
     const next = selectSpaceframe(era, 'constitution')
-    assert.deepEqual(next, ship({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(next, ship({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
     assert.equal(selectSpaceframe(next, 'no-such-class'), next)
   })
 
@@ -89,10 +90,10 @@ describe('starship spaceframe', () => {
   it('saves and loads the class, and an older save without one still loads', () => {
     const selected = selectSpaceframe(selectTimeframe(createEmptyShip(), 'ds9'), 'galaxy')
     saveShip(selected)
-    assert.deepEqual(loadShip(), ship({ timeframeId: 'ds9', spaceframeId: 'galaxy' }))
+    assert.deepEqual(loadShip(), ship({ timeframeId: 'ds9', campaignYear: 2375, spaceframeId: 'galaxy' }))
     stored.set('st-adventures.ship', JSON.stringify({ version: 1, timeframeId: 'voy' }))
-    assert.deepEqual(loadShip(), ship({ timeframeId: 'voy' }))
-    assert.deepEqual(clearSpaceframe(selected), ship({ timeframeId: 'ds9' }))
+    assert.deepEqual(loadShip(), ship({ timeframeId: 'voy', campaignYear: 2378 }))
+    assert.deepEqual(clearSpaceframe(selected), ship({ timeframeId: 'ds9', campaignYear: 2375 }))
   })
 
   it('keeps department modifiers on the class record, not on the saved ship', () => {
@@ -105,7 +106,7 @@ describe('starship spaceframe', () => {
     assert.equal(loadShip().departmentModifiers, undefined)
   })
 
-  it('keeps Constitution�s saucer separation and its talents, and leaves the example classes alone', () => {
+  it('keeps ConstitutionÃÂs saucer separation and its talents, and leaves the example classes alone', () => {
     const constitution = getSpaceframeById('constitution')
     assert.ok(constitution.specialRuleIds.includes('saucer-separation'))
     assert.deepEqual(

@@ -7,6 +7,7 @@ import {
   selectMissionProfile,
   selectMissionProfileSystem,
   selectMissionProfileTalent,
+  selectServiceRecord,
   selectSpaceframe,
   selectTimeframe,
   shipCrewSupport,
@@ -50,6 +51,8 @@ describe('starship talents and derived stats', () => {
     assert.equal(shipResistance(ship), 5)
     assert.ok(shipShields(ship) > 0)
     assert.equal(shipCrewSupport(ship), 6)
+    const relic = selectServiceRecord(ship, 'aging-relic')
+    assert.equal(shipCrewSupport(relic), 7)
   })
 
   it('rejects Cloaking Device on a Federation ship', () => {

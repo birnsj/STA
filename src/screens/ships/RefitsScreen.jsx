@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import '../../styles/ships/refits.css'
+import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import {
+  finishingArt,
+  refitSystemArt,
+  shipSummaryArt,
+  talentArt,
+  technicalArt,
+} from '../../ships/shipArtPaths.js'
 import {
   APPEARANCE_FIELDS,
   getFinishingOptions,
@@ -28,11 +36,11 @@ import {
 const INTRO = 'Assign earned system refits (Core p. 217) and fill starship talents up to Scale (pp. 218–225). Appearance choices are cosmetic only.'
 
 const TABS = [
-  ['major', 'Major Refits'],
-  ['systems', 'System Upgrades'],
-  ['weapons', 'Weapons & Defenses'],
-  ['special', 'Special Systems'],
-  ['appearance', 'Appearance Packages'],
+  ['major', 'Major Refits', 'Assign earned refit slots to raise systems.'],
+  ['systems', 'Systems Overview', 'Read-only view of current system totals.'],
+  ['weapons', 'Weapons & Defenses', 'Choose optional weapon and defense talents.'],
+  ['special', 'Special Systems', 'Choose optional special-system talents.'],
+  ['appearance', 'Appearance Packages', 'Cosmetic packages only; no statistical change.'],
 ]
 
 const SYSTEM_BLURB = {
@@ -44,22 +52,37 @@ const SYSTEM_BLURB = {
   weapons: 'Offensive systems and fire control.',
 }
 
-function OptionCard({ name, line, artSrc, selected, capped, onClick }) {
+function OptionCard({ name, line, artSrc, selected, focused, capped, onClick }) {
   return (
     <button
       type="button"
       role="option"
       aria-selected={selected}
       aria-disabled={capped || undefined}
-      className={`refit-card${selected ? ' is-selected' : ''}${capped ? ' is-capped' : ''}`}
+      className={`refit-card${selected ? ' is-selected' : ''}${focused && !selected ? ' is-focused' : ''}${capped ? ' is-capped' : ''}`}
       onClick={onClick}
     >
       <ShipArt src={artSrc} alt="" className="refit-card-art" />
-      <span className="refit-card-text">
-        <span className="refit-card-name">{name}</span>
-        {line && <span className="refit-card-line">{line}</span>}
-      </span>
+      <span className="refit-card-name" title={name}>{name}</span>
+      {line ? <span className="refit-card-line">{line}</span> : null}
     </button>
+  )
+}
+
+function RefitCarousel({ count, label, children }) {
+  const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(count, 196, 8)
+  return (
+    <div className="carousel refit-carousel" ref={carouselRef}>
+      {!fits && (
+        <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label={`Scroll ${label} left`}>‹</button>
+      )}
+      <div className="carousel-track refit-list" ref={trackRef} role="listbox" aria-label={label}>
+        {children}
+      </div>
+      {!fits && (
+        <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label={`Scroll ${label} right`}>›</button>
+      )}
+    </div>
   )
 }
 
@@ -86,6 +109,7 @@ export default function RefitsScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  nextDisabled = false,
   onNext,
 }) {
   const systems = getRefitSystems()
@@ -105,7 +129,7 @@ export default function RefitsScreen({
   const total = Number.isFinite(classValue) ? classValue + profileBonus + count : null
   const canIncrease = assigned < budget && refitRoom(ship, selectedSystem.id) > 0
   const room = refitRoom(ship, selectedSystem.id)
-  const technicalSrc = frame ? `/art/ships/technical/${frame.id}.png` : null
+  const technicalSrc = frame ? technicalArt(frame.id) : null
   const granted = new Set(grantedTalentIds(ship))
   const extras = ship.extraTalentIds ?? []
   const weaponTalents = talentsForTab('weapons')
@@ -114,11 +138,26 @@ export default function RefitsScreen({
   const capacity = talentCapacity(ship)
   const used = talentSlotsUsed(ship)
   const remaining = talentSlotsRemaining(ship)
+  const activeTab = TABS.find((entry) => entry[0] === tab) ?? TABS[0]
+
+  const handleTalentClick = (talent) => {
+    const locked = granted.has(talent.id)
+    const chosen = extras.includes(talent.id)
+    const blocked = talentIneligibility(ship, talent.id)
+    const capped = Boolean(blocked && !chosen && !locked)
+    setFocusTalentId(talent.id)
+    if (locked) return
+    if (chosen) {
+      onToggleTalent(talent.id)
+      return
+    }
+    if (!capped) onToggleTalent(talent.id)
+  }
 
   let list = null
   if (tab === 'major') {
     list = (
-      <div className="refit-list" role="listbox" aria-label="System refits">
+      <RefitCarousel count={systems.length} label="System refits">
         {systems.map((entry) => {
           const usedCount = refitCount(ship, entry.id)
           return (
@@ -126,17 +165,17 @@ export default function RefitsScreen({
               key={entry.id}
               name={entry.name}
               line={usedCount ? `${usedCount} assigned` : 'Available'}
-              artSrc={`/art/ships/refits/${entry.id}.png`}
+              artSrc={refitSystemArt(entry.id)}
               selected={entry.id === selectedSystem.id}
               onClick={() => setSelectedSystemId(entry.id)}
             />
           )
         })}
-      </div>
+      </RefitCarousel>
     )
   } else if (tab === 'systems') {
     list = (
-      <div className="refit-list" role="listbox" aria-label="Current systems">
+      <RefitCarousel count={systems.length} label="Current systems">
         {systems.map((entry) => {
           const score = systemScore(ship, entry.id)
           return (
@@ -144,40 +183,42 @@ export default function RefitsScreen({
               key={entry.id}
               name={entry.name}
               line={score == null ? 'Pending' : `Total ${score}`}
-              artSrc={`/art/ships/refits/${entry.id}.png`}
+              artSrc={refitSystemArt(entry.id)}
               selected={entry.id === selectedSystem.id}
               onClick={() => setSelectedSystemId(entry.id)}
             />
           )
         })}
-      </div>
+      </RefitCarousel>
     )
   } else if (tab === 'weapons' || tab === 'special') {
     const talents = tab === 'weapons' ? weaponTalents : specialTalents
     list = (
-      <div className="refit-list" role="listbox" aria-label={tab === 'weapons' ? 'Weapons and defenses' : 'Special systems'}>
+      <RefitCarousel count={talents.length} label={tab === 'weapons' ? 'Weapons and defenses' : 'Special systems'}>
         {talents.map((talent) => {
           const locked = granted.has(talent.id)
           const chosen = extras.includes(talent.id)
           const blocked = talentIneligibility(ship, talent.id)
           const capped = Boolean(blocked && !chosen && !locked)
+          const selected = chosen || locked
           return (
             <OptionCard
               key={talent.id}
               name={talent.name}
               line={locked ? 'Granted' : chosen ? 'Selected' : blocked ? blocked : `p. ${talent.page}`}
-              artSrc={frame ? `/art/ships/classes/${frame.id}.png` : '/art/ships/summary.png'}
-              selected={focusTalentId === talent.id}
+              artSrc={talentArt(talent.id)}
+              selected={selected}
+              focused={focusTalentId === talent.id}
               capped={capped}
-              onClick={() => setFocusTalentId(talent.id)}
+              onClick={() => handleTalentClick(talent)}
             />
           )
         })}
-      </div>
+      </RefitCarousel>
     )
   } else {
     list = (
-      <div className="refit-list" role="listbox" aria-label="Appearance packages">
+      <RefitCarousel count={APPEARANCE_FIELDS.length} label="Appearance packages">
         {APPEARANCE_FIELDS.map(([field, label]) => {
           const options = getFinishingOptions(field)
           const current = options.find((entry) => entry.id === ship[field])
@@ -185,14 +226,14 @@ export default function RefitsScreen({
             <OptionCard
               key={field}
               name={label}
-              line={current?.name ?? 'Unset'}
-              artSrc={technicalSrc ?? '/art/ships/summary.png'}
+              line={current?.name ?? 'Unset · Cosmetic'}
+              artSrc={technicalSrc ?? shipSummaryArt()}
               selected={focusAppearance === field}
               onClick={() => setFocusAppearance(field)}
             />
           )
         })}
-      </div>
+      </RefitCarousel>
     )
   }
 
@@ -395,14 +436,10 @@ export default function RefitsScreen({
                     </select>
                   </label>
                 ) : null}
-                {!locked ? (
+                {chosen && !locked ? (
                   <div className="refit-actions">
-                    <button
-                      type="button"
-                      onClick={() => onToggleTalent(focusTalent.id)}
-                      disabled={Boolean(blocked && !chosen)}
-                    >
-                      {chosen ? 'Remove' : 'Select'}
+                    <button type="button" onClick={() => onToggleTalent(focusTalent.id)}>
+                      Remove
                     </button>
                   </div>
                 ) : null}
@@ -471,7 +508,8 @@ export default function RefitsScreen({
                 className={`refit-appearance-chip${ship[focusAppearance] === entry.id ? ' is-selected' : ''}`}
                 onClick={() => onAppearance(focusAppearance, entry.id)}
               >
-                {entry.name}
+                <ShipArt src={finishingArt(focusAppearance, entry.id)} alt="" className="refit-appearance-art" />
+                <span>{entry.name}</span>
               </button>
             ))}
           </div>
@@ -504,6 +542,25 @@ export default function RefitsScreen({
         </div>
       </div>
 
+      <div className="refit-resource-strip" aria-label="Refit and talent budget">
+        <span>
+          Refits
+          {' '}
+          {assigned}
+          /
+          {budget}
+        </span>
+        <span>
+          Talents
+          {' '}
+          {used}
+          /
+          {capacity || '—'}
+          {' '}
+          (Scale)
+        </span>
+      </div>
+
       <div className="refit-tabs" role="tablist" aria-label="Refit categories">
         {TABS.map(([id, label]) => (
           <button
@@ -518,6 +575,7 @@ export default function RefitsScreen({
           </button>
         ))}
       </div>
+      <p className="refit-tab-purpose">{activeTab[2]}</p>
 
       <div className="refit-body">
         {list}
@@ -536,6 +594,7 @@ export default function RefitsScreen({
         autoDisabled={!isServiceRecordFinished(ship)}
         autoTitle="Assign remaining refits and fill talents to Scale."
         nextLabel="Next: Finishing Touches →"
+        nextDisabled={nextDisabled}
         onNext={onNext}
       />
     </section>

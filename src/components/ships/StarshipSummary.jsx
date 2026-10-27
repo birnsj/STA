@@ -13,6 +13,7 @@ import {
   shipTalentNames,
   shipTraitNames,
 } from '../../ships/shipModel.js'
+import { classArt, eraArt, shipSummaryArt } from '../../ships/shipArtPaths.js'
 import ShipArt from './ShipArt.jsx'
 
 const EMPTY = '—'
@@ -47,7 +48,7 @@ export default function StarshipSummary({ ship }) {
   return (
     <aside className="summary panel ship-summary">
       <h2 className="summary-heading">Starship Summary</h2>
-      <ShipArt src={frame ? `/art/ships/classes/${frame.id}.png` : era ? `/art/ships/eras/${era.id}.png` : '/art/ships/summary.png'} alt="" className="ship-summary-art" />
+      <ShipArt src={frame ? classArt(frame.id) : era ? eraArt(era.id) : shipSummaryArt()} alt="" className="ship-summary-art" />
       <dl className="summary-group">
         <Row label="Name" value={shipDisplayName(ship)} />
         <Row label="Registry" value={shipDisplayRegistry(ship)} />

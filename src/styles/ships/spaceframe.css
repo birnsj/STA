@@ -144,51 +144,54 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .spaceframe-preview-art {
-  flex: none;
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: calc(100% - 62px);
   border-radius: 4px;
 }
 
-.spaceframe-preview-art img,
-.spaceframe-view .ship-art img {
+.spaceframe-preview-art img {
   object-fit: contain;
 }
 
 .spaceframe-views {
   flex: none;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
-  height: 56px;
 }
 
 .spaceframe-view {
+  flex: 1;
   min-width: 0;
-  padding: 0;
+  margin: 0;
+  padding: 6px 8px;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
+  background: #040814;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   cursor: var(--cursor-pointer);
 }
 
 .spaceframe-view.is-selected {
   border-color: var(--yellow);
   box-shadow: 0 0 0 1px var(--yellow);
+  color: var(--yellow);
 }
 
 .spaceframe-view:disabled {
   cursor: var(--cursor-default);
-}
-
-.spaceframe-view .ship-art {
-  height: 100%;
+  opacity: 0.45;
 }
 
 .spaceframe-detail-text {

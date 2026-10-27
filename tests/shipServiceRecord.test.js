@@ -39,6 +39,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 const saved = (fields) => ({
   version: 1,
   timeframeId: null,
+  campaignYear: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -124,7 +125,7 @@ describe('starship service record', () => {
     saveShip(selected)
     assert.deepEqual(loadShip(), selected)
     stored.set('st-adventures.ship', JSON.stringify({ version: 1, timeframeId: 'tos', spaceframeId: 'constitution' }))
-    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
     stored.set('st-adventures.ship', JSON.stringify({
       version: 1,
       timeframeId: 'tos',
@@ -132,12 +133,12 @@ describe('starship service record', () => {
       serviceRecordId: 'frontier-operations',
       serviceRecordDetail: 'Wolf 359',
     }))
-    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(loadShip(), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
   })
 
   it('clears only the record, keeps it when the class changes, and drops it with the era', () => {
     const selected = selectServiceRecord(constitution(), 'legendary')
-    assert.deepEqual(clearServiceRecord(selected), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(clearServiceRecord(selected), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
     const moved = selectSpaceframe(selectTimeframe(selected, 'tmp'), 'excelsior')
     assert.equal(moved.spaceframeId, 'excelsior')
     assert.equal(moved.serviceRecordId, 'legendary')
@@ -197,7 +198,7 @@ describe('starship service record', () => {
     assert.ok(shipTraitNames(switched).includes('Hope Ship'))
     assert.equal(shipTraitNames(switched).includes('Legendary'), false)
 
-    assert.deepEqual(clearServiceRecord(switched), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.deepEqual(clearServiceRecord(switched), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
     assert.equal(toggleServiceNotableEvent(noted, 'no-such-event'), noted)
     assert.equal(toggleServiceHonor(noted, 'no-such-honor'), noted)
 

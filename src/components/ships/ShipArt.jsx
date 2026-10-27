@@ -1,35 +1,27 @@
 import { useEffect, useState } from 'react'
+import { shipEmptyArt } from '../../ships/shipArtPaths.js'
 
-// Screens keep requesting the finished PNG path. A missing file falls back to the
-// matching placeholder SVG, so a real PNG can replace it without a code change.
-function placeholderSrc(src) {
-  if (!src?.startsWith('/art/ships/') || !src.endsWith('.png')) return null
-  return src.replace('/art/ships/', '/art/ships/placeholders/').replace(/\.png$/, '.svg')
-}
+const EMPTY = shipEmptyArt()
 
+// Screens request finished PNG paths. Missing files fall back to a PNG empty tile (never SVG).
 export default function ShipArt({ src, alt = '', className = '' }) {
-  const [usePlaceholder, setUsePlaceholder] = useState(false)
-  const [hidden, setHidden] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    setUsePlaceholder(false)
-    setHidden(false)
+    setFailed(false)
   }, [src])
 
-  const shown = usePlaceholder ? placeholderSrc(src) : src
+  const shown = failed ? EMPTY : (src || EMPTY)
   return (
     <span className={`ship-art ${className}`}>
-      {shown && !hidden && (
-        <img
-          src={shown}
-          alt={alt}
-          draggable={false}
-          onError={() => {
-            if (!usePlaceholder && placeholderSrc(src)) setUsePlaceholder(true)
-            else setHidden(true)
-          }}
-        />
-      )}
+      <img
+        src={shown}
+        alt={alt}
+        draggable={false}
+        onError={() => {
+          if (!failed) setFailed(true)
+        }}
+      />
     </span>
   )
 }

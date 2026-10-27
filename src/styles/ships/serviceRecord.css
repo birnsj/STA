@@ -54,39 +54,61 @@
   color: #111;
 }
 
+.service-tab-purpose {
+  flex: none;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
 .service-body {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(260px, 30%) 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   overflow: hidden;
+}
+
+.service-carousel {
+  --card-width: 196px;
+  --card-gap: 8px;
+  flex: none;
+  height: 152px;
+}
+
+.service-carousel .carousel-track {
+  height: 100%;
+  align-items: stretch;
+}
+
+.service-carousel .service-card {
+  flex: 0 0 var(--card-width);
+  width: var(--card-width);
+  height: 100%;
 }
 
 .service-list {
   min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-right: 2px;
+  flex-direction: row;
+  gap: var(--card-gap, 8px);
+  overflow: hidden;
 }
 
 .service-card {
-  flex: none;
-  display: grid;
-  grid-template-columns: 148px 1fr;
-  gap: 10px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   margin: 0;
-  padding: 4px;
-  height: 92px;
+  padding: 0;
   background: var(--panel);
   border: 2px solid var(--panel-border);
   border-radius: 6px;
   color: var(--text);
-  text-align: left;
+  text-align: center;
   overflow: hidden;
   cursor: var(--cursor-pointer);
 }
@@ -101,43 +123,42 @@
 }
 
 .service-screen .service-card-art {
-  width: 148px;
-  height: 83px;
+  flex: none;
+  width: 100%;
+  height: 108px;
   min-width: 0;
   min-height: 0;
-  border-radius: 4px;
-  overflow: hidden;
 }
 
 .service-screen .service-card-art img {
-  object-fit: cover;
+  object-fit: contain;
 }
 
-.service-card-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding-right: 4px;
+.service-card-name,
+.service-card-line {
+  display: block;
+  padding: 0 4px;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .service-card-name {
-  font-size: 16px;
+  padding-top: 4px;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 1.15;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .service-card-line {
-  font-size: 13px;
-  line-height: 1.2;
+  padding-bottom: 5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 .service-main {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -158,7 +179,7 @@
 .service-screen .service-preview-art {
   flex: none;
   width: 100%;
-  height: 364px;
+  height: 280px;
   min-height: 0;
   border-radius: 4px;
   overflow: hidden;

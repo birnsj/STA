@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import { classArt, classViewArts } from '../../ships/shipArtPaths.js'
 import { getEligibleSpaceframes, getSpaceframeById, getSpecialRule } from '../../ships/shipModel.js'
 
-const INTRO = 'Select the ship class for your starship. Only a class that had entered service by the end of your timeframe is offered.'
+const INTRO = 'Select the ship class for your starship. Eligibility uses your campaign year. Each class brings Scale, traits, and system ratings that form the ship’s baseline.'
 
 const SYSTEMS = [
   ['comms', 'Comms'],
@@ -41,14 +42,11 @@ function matchesFilter(frame, pattern) {
   return frame.suggestedMissionProfiles.some((name) => pattern.test(name))
 }
 
-// The first thumb is the class picture. The others are temporary angles. A PNG at the same path replaces the placeholder.
+// Hero plus four view thumbs. Drop-in PNGs at the same paths replace placeholders.
+const VIEW_ANGLES = ['Profile', 'Bow', 'Stern', 'Dorsal', 'Port']
+
 function viewSources(id) {
-  return [
-    `/art/ships/classes/${id}.png`,
-    `/art/ships/classes/${id}-view-2.png`,
-    `/art/ships/classes/${id}-view-3.png`,
-    `/art/ships/classes/${id}-view-4.png`,
-  ]
+  return [classArt(id), ...classViewArts(id)]
 }
 
 function Stat({ label, value }) {
@@ -60,8 +58,20 @@ function Stat({ label, value }) {
   )
 }
 
-export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit, onClear, onAuto, onAutofill, onShowSummary, onNext }) {
-  const frames = getEligibleSpaceframes(ship.timeframeId)
+export default function SpaceframeScreen({
+  step,
+  ship,
+  onSelect,
+  onBack,
+  onQuit,
+  onClear,
+  onAuto,
+  onAutofill,
+  onShowSummary,
+  nextDisabled = false,
+  onNext,
+}) {
+  const frames = getEligibleSpaceframes(ship.timeframeId, ship.campaignYear)
   const selected = getSpaceframeById(ship.spaceframeId)
   const rules = selected ? selected.specialRuleIds.map(getSpecialRule).filter(Boolean) : []
   const [filterId, setFilterId] = useState('all')
@@ -71,6 +81,7 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(shown.length, 196, 8)
   const views = selected ? viewSources(selected.id) : []
   const preview = views[viewIndex] ?? null
+  const year = Number.isFinite(ship.campaignYear) ? ship.campaignYear : null
 
   const choose = (id) => {
     setViewIndex(0)
@@ -85,6 +96,9 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
           <h1 className="screen-heading">{step.title}</h1>
           <p className="screen-intro">
             {INTRO}
+            {year != null && (
+              <span className="spaceframe-year-note"> Campaign year {year}.</span>
+            )}
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 195–211</span>
           </p>
         </div>
@@ -120,7 +134,7 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
               className={`spaceframe-card${isSelected ? ' is-selected' : ''}`}
               onClick={() => choose(frame.id)}
             >
-              <ShipArt src={`/art/ships/classes/${frame.id}.png`} alt="" className="spaceframe-card-art" />
+              <ShipArt src={classArt(frame.id)} alt="" className="spaceframe-card-art" />
               <span className="spaceframe-card-name">{frame.name}</span>
               <span className="spaceframe-card-line">{frame.suggestedMissionProfiles[0]}</span>
             </button>
@@ -135,19 +149,22 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
       <div className="spaceframe-detail">
         <div className="spaceframe-preview">
           <ShipArt src={preview} alt="" className="spaceframe-preview-art" />
-          <div className="spaceframe-views">
-            {(views.length ? views : [null, null, null, null]).map((src, index) => (
-              <button
-                key={src ?? `empty-${index}`}
-                type="button"
-                className={`spaceframe-view${src && index === viewIndex ? ' is-selected' : ''}`}
-                aria-label={src ? `View ${index + 1}` : 'No alternate view'}
-                disabled={!src}
-                onClick={() => setViewIndex(index)}
-              >
-                <ShipArt src={src} alt="" />
-              </button>
-            ))}
+          <div className="spaceframe-views" role="group" aria-label="View angle">
+            {(views.length ? views : VIEW_ANGLES.map(() => null)).map((src, index) => {
+              const angle = VIEW_ANGLES[index] ?? `View ${index + 1}`
+              return (
+                <button
+                  key={src ?? `empty-${index}`}
+                  type="button"
+                  className={`spaceframe-view${src && index === viewIndex ? ' is-selected' : ''}`}
+                  aria-pressed={Boolean(src && index === viewIndex)}
+                  disabled={!src}
+                  onClick={() => setViewIndex(index)}
+                >
+                  {angle}
+                </button>
+              )
+            })}
           </div>
         </div>
         <div className="spaceframe-detail-text">
@@ -160,6 +177,7 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
               <dl className="spaceframe-stats">
               <Stat label="Launch year" value={selected.launchYear} />
               <Stat label="Scale" value={selected.scale} />
+              <Stat label="Traits" value={selected.traits?.join(', ') || '—'} />
               {SYSTEMS.map(([key, label]) => (
                 <Stat key={key} label={label} value={selected.systems[key]} />
               ))}
@@ -225,6 +243,7 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
         autoDisabled={!ship.timeframeId}
         autoTitle="Choose an eligible class at random."
         nextLabel="Next: Mission Profile →"
+        nextDisabled={nextDisabled}
         onNext={onNext}
       />
     </section>

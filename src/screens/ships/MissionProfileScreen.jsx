@@ -2,9 +2,10 @@ import '../../styles/ships/missionProfile.css'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
+import { profileArt } from '../../ships/shipArtPaths.js'
 import { getMissionProfileById, getMissionProfiles, getSpaceframeById, missionSystemLabel } from '../../ships/shipModel.js'
 
-const INTRO = 'Select the mission profile for your starship. It sets the baseline for each department, increases one system by 1, and provides one talent from its list.'
+const INTRO = 'Select a mission profile. Departments are applied automatically from the profile and class. You choose one talent from its list, and the system that gains +1 when the profile leaves that choice open.'
 
 const DEPARTMENTS = [
   ['command', 'Command'],
@@ -41,12 +42,20 @@ export default function MissionProfileScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  nextDisabled = false,
   onNext,
 }) {
   const profiles = getMissionProfiles()
   const selected = getMissionProfileById(ship.missionProfileId)
   const frame = getSpaceframeById(ship.spaceframeId)
   const choosingSystem = selected?.system === 'choice'
+  const talentReady = Boolean(selected?.talents.some((talent) => talent.id === ship.missionProfileTalentId))
+  const systemReady = Boolean(
+    selected
+    && (choosingSystem
+      ? SYSTEMS.some(([key]) => key === ship.missionProfileSystemId)
+      : ship.missionProfileSystemId === selected.system),
+  )
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(profiles.length, 196, 8)
 
   return (
@@ -54,7 +63,7 @@ export default function MissionProfileScreen({
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
-          <h1 className="screen-heading">{step.title}</h1>
+          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>{step.title}</h1>
           <p className="screen-intro">
             {INTRO}
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 212–215</span>
@@ -62,7 +71,7 @@ export default function MissionProfileScreen({
         </div>
       </div>
 
-      <div className="carousel mission-carousel" ref={carouselRef}>
+      <div className={`carousel mission-carousel${selected ? '' : ' is-missing'}`} ref={carouselRef}>
         {!fits && (
           <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label="Scroll profiles left">‹</button>
         )}
@@ -78,7 +87,7 @@ export default function MissionProfileScreen({
               className={`mission-card${isSelected ? ' is-selected' : ''}`}
               onClick={() => onSelect(profile.id)}
             >
-              <ShipArt src={`/art/ships/profiles/${profile.id}.png`} alt="" className="mission-card-art" />
+              <ShipArt src={profileArt(profile.id)} alt="" className="mission-card-art" />
               <span className="mission-card-name" title={profile.name}>{profile.name}</span>
               <span className="mission-card-line">{cardLine(profile)}</span>
             </button>
@@ -91,9 +100,11 @@ export default function MissionProfileScreen({
       </div>
 
       <div className="mission-detail panel">
-        <ShipArt src={selected ? `/art/ships/profiles/${selected.id}.png` : null} alt="" className="mission-preview-art" />
+        <ShipArt src={selected ? profileArt(selected.id) : null} alt="" className="mission-preview-art" />
         <div className="mission-detail-text">
-          <h2 className="mission-detail-name">{selected ? selected.name : 'No mission profile selected'}</h2>
+          <h2 className={`mission-detail-name${selected ? '' : ' is-missing'}`}>
+            {selected ? selected.name : 'No mission profile selected'}
+          </h2>
           {selected && <p className="mission-clamp">{selected.overview}</p>}
           {selected && <p className="source-ref">Star Trek Adventures 2E Core Rulebook, p. {selected.page}</p>}
         </div>
@@ -104,7 +115,7 @@ export default function MissionProfileScreen({
           <h3 className="panel-heading">Departments</h3>
           {selected && (
             <>
-              <p className="mission-note">Baseline + class modifier = score.</p>
+              <p className="mission-note">Automatic. Baseline + class modifier = score.</p>
               <dl className="mission-stats">
                 {DEPARTMENTS.map(([key, label]) => {
                   const base = selected.departments[key]
@@ -126,14 +137,14 @@ export default function MissionProfileScreen({
             </>
           )}
         </section>
-        <section className="panel mission-panel">
+        <section className={`panel mission-panel${selected && !systemReady ? ' is-missing' : ''}`}>
           <h3 className="panel-heading">Systems</h3>
           {selected && !choosingSystem && (
             <SystemLine frame={frame} systemId={selected.system} />
           )}
           {selected && choosingSystem && (
             <>
-              <p className="mission-note">Increase any one system by 1.</p>
+              <p className="mission-note">Player pick. Increase any one system by 1.</p>
               <div className="mission-choices" role="listbox" aria-label="System to increase">
                 {SYSTEMS.map(([key, label]) => {
                   const isSelected = ship.missionProfileSystemId === key
@@ -156,11 +167,11 @@ export default function MissionProfileScreen({
             </>
           )}
         </section>
-        <section className="panel mission-panel">
+        <section className={`panel mission-panel${selected && !talentReady ? ' is-missing' : ''}`}>
           <h3 className="panel-heading">Talents</h3>
           {selected && (
             <>
-              <p className="mission-note">Select one of the following talents.</p>
+              <p className="mission-note">Player pick. Select one of the following talents.</p>
               <div className="mission-choices" role="listbox" aria-label="Mission profile talent">
                 {selected.talents.map((talent) => {
                   const isSelected = talent.id === ship.missionProfileTalentId
@@ -195,6 +206,7 @@ export default function MissionProfileScreen({
         autoDisabled={!ship.spaceframeId}
         autoTitle="Choose a mission profile at random."
         nextLabel="Next: Service Record →"
+        nextDisabled={nextDisabled}
         onNext={onNext}
       />
     </section>
@@ -206,7 +218,7 @@ function SystemLine({ frame, systemId }) {
   const base = frame?.systems[systemId]
   return (
     <p className="mission-note">
-      Increase {label} by 1.
+      Automatic. Increase {label} by 1.
       {base != null && <span className="mission-score">{label} {base} + 1 = {base + 1}</span>}
     </p>
   )

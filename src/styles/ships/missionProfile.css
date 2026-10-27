@@ -30,7 +30,7 @@
   --card-width: 196px;
   --card-gap: 8px;
   flex: none;
-  height: 168px;
+  height: 152px;
 }
 
 .mission-carousel .carousel-track {
@@ -69,7 +69,10 @@
   height: 108px;
 }
 
-.mission-card-art img,
+.mission-card-art img {
+  object-fit: contain;
+}
+
 .mission-preview-art img {
   object-fit: cover;
 }
@@ -78,30 +81,23 @@
 .mission-card-line {
   display: block;
   padding: 0 4px;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mission-card-name {
-  flex: none;
-  min-width: 0;
-  height: 2.4em;
+  padding-top: 4px;
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.15;
   text-transform: uppercase;
   color: var(--yellow);
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .mission-card-line {
-  padding-bottom: 4px;
+  padding-bottom: 5px;
   font-size: 12px;
   color: var(--text-muted);
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .mission-detail {
@@ -124,6 +120,10 @@
 .mission-detail-text {
   min-width: 0;
   overflow: hidden;
+}
+
+.mission-detail-name.is-missing {
+  animation: requirement-pulse 1.4s ease-in-out infinite;
 }
 
 .mission-detail-name {

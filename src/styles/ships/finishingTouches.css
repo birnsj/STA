@@ -115,10 +115,22 @@
 
 .finish-class-art,
 .finish-emblem-art,
-.finish-card-art {
+.finish-card-art,
+.finish-option-art {
   min-width: 0;
   min-height: 0;
   border-radius: 4px;
+}
+
+.finish-appearance-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.finish-option-art {
+  width: 160px;
+  aspect-ratio: 16 / 9;
 }
 
 .finish-bridge {

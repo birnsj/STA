@@ -44,11 +44,13 @@ import {
   selectMissionProfile,
   selectMissionProfileSystem,
   selectMissionProfileTalent,
+  clearServiceRecord,
   selectServiceRecord,
   selectSpaceframe,
   selectTimeframe,
   serviceRecordLabel,
   selectServiceReputation,
+  setCampaignYear,
   setServiceRecordDetail,
   toggleServiceHonor,
   toggleServiceNotableEvent,
@@ -194,6 +196,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onAuto={() => setShip((current) => pickFinishing(current))}
             onAutofill={fillShip}
             onShowSummary={() => setSummaryOpen(true)}
+            nextDisabled={!finishingReady}
             onNext={() => setStepId('review')}
           />
         ) : onRefits ? (
@@ -211,6 +214,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onAuto={() => setShip((current) => pickRefitsAndTalents(current))}
             onAutofill={fillShip}
             onShowSummary={() => setSummaryOpen(true)}
+            nextDisabled={!refitsReady}
             onNext={() => setStepId('finishingTouches')}
           />
         ) : onService ? (
@@ -218,6 +222,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             step={step}
             ship={ship}
             onSelect={(serviceRecordId) => setShip((current) => selectServiceRecord(current, serviceRecordId))}
+            onClearRecord={() => setShip((current) => clearServiceRecord(current))}
             onDetail={(text) => setShip((current) => setServiceRecordDetail(current, text))}
             onToggleEvent={(eventId) => setShip((current) => toggleServiceNotableEvent(current, eventId))}
             onSelectReputation={(reputationId) => setShip((current) => selectServiceReputation(current, reputationId))}
@@ -228,6 +233,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onAuto={() => setShip((current) => pickServiceRecord(current))}
             onAutofill={fillShip}
             onShowSummary={() => record && setSummaryOpen(true)}
+            nextDisabled={!serviceReady}
             onNext={() => setStepId('refits')}
           />
         ) : onMission ? (
@@ -243,6 +249,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onAuto={() => setShip((current) => pickMissionProfile(current))}
             onAutofill={fillShip}
             onShowSummary={() => profile && setSummaryOpen(true)}
+            nextDisabled={!missionReady}
             onNext={() => setStepId('serviceRecord')}
           />
         ) : onSpaceframe ? (
@@ -253,9 +260,10 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onBack={() => setStepId('timeframe')}
             onQuit={requestQuit}
             onClear={resetShip}
-            onAuto={() => chooseFrame(pickSpaceframeId(ship.timeframeId))}
+            onAuto={() => chooseFrame(pickSpaceframeId(ship.timeframeId, Math.random, ship.campaignYear))}
             onAutofill={fillShip}
             onShowSummary={() => frame && setSummaryOpen(true)}
+            nextDisabled={!ship.spaceframeId}
             onNext={() => setStepId('missionProfile')}
           />
         ) : (
@@ -263,11 +271,13 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             step={step}
             ship={ship}
             onSelect={chooseEra}
+            onYear={(year) => setShip((current) => setCampaignYear(current, year))}
             onBack={requestQuit}
             onClear={resetShip}
             onAuto={() => chooseEra(pickTimeframeId())}
             onAutofill={fillShip}
             onShowSummary={() => era && setSummaryOpen(true)}
+            nextDisabled={!ship.timeframeId}
             onNext={() => setStepId('spaceframe')}
           />
         )}
