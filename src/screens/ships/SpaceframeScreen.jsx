@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { getEligibleSpaceframes, getSpaceframeById, getSpecialRule } from '../../ships/shipModel.js'
@@ -25,8 +26,29 @@ const DEPARTMENTS = [
 
 const modifier = (value) => (value > 0 ? `+${value}` : '—')
 
-function cardLine(frame) {
-  return frame.traits.filter((trait) => !trait.toLowerCase().endsWith(' class')).join(', ')
+// Display groups for the era's eligible classes. A class can sit in more than one tab. This does not change which class can be chosen.
+const FILTERS = [
+  ['all', 'All Classes', null],
+  ['exploration', 'Exploration', /explorer|pathfinder|reconnaissance/i],
+  ['multi', 'Multi-Role', /multirole/i],
+  ['science', 'Science', /scientific/i],
+  ['support', 'Support', /colony|logistical|crisis|patrol|reserve/i],
+  ['specialized', 'Specialized', /tactical|espionage|battlecruiser|technical testbed/i],
+]
+
+function matchesFilter(frame, pattern) {
+  if (!pattern) return true
+  return frame.suggestedMissionProfiles.some((name) => pattern.test(name))
+}
+
+// The first thumb is the class picture. The others are temporary angles. A PNG at the same path replaces the placeholder.
+function viewSources(id) {
+  return [
+    `/art/ships/classes/${id}.png`,
+    `/art/ships/classes/${id}-view-2.png`,
+    `/art/ships/classes/${id}-view-3.png`,
+    `/art/ships/classes/${id}-view-4.png`,
+  ]
 }
 
 function Stat({ label, value }) {
@@ -42,10 +64,13 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
   const frames = getEligibleSpaceframes(ship.timeframeId)
   const selected = getSpaceframeById(ship.spaceframeId)
   const rules = selected ? selected.specialRuleIds.map(getSpecialRule).filter(Boolean) : []
+  const [filterId, setFilterId] = useState('all')
   const [viewIndex, setViewIndex] = useState(0)
-  const views = selected?.views ?? []
-  const shownView = views[viewIndex] ?? null
-  const preview = shownView ?? (selected ? `/art/ships/classes/${selected.id}.png` : null)
+  const filter = FILTERS.find((entry) => entry[0] === filterId) ?? FILTERS[0]
+  const shown = frames.filter((frame) => matchesFilter(frame, filter[2]))
+  const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(shown.length, 196, 8)
+  const views = selected ? viewSources(selected.id) : []
+  const preview = views[viewIndex] ?? null
 
   const choose = (id) => {
     setViewIndex(0)
@@ -66,13 +91,25 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
       </div>
 
       <div className="spaceframe-filters" role="toolbar" aria-label="Class filters">
-        <button type="button" className="spaceframe-filter is-selected" aria-pressed="true">
-          All Classes
-        </button>
+        {FILTERS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`spaceframe-filter${id === filterId ? ' is-selected' : ''}`}
+            aria-pressed={id === filterId}
+            onClick={() => setFilterId(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="spaceframe-cards" role="listbox" aria-label="Spaceframe">
-        {frames.map((frame) => {
+      <div className="carousel spaceframe-carousel" ref={carouselRef}>
+        {!fits && (
+          <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label="Scroll classes left">‹</button>
+        )}
+        <div className="carousel-track spaceframe-cards" ref={trackRef} role="listbox" aria-label="Spaceframe">
+        {shown.map((frame) => {
           const isSelected = frame.id === ship.spaceframeId
           return (
             <button
@@ -85,37 +122,42 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
             >
               <ShipArt src={`/art/ships/classes/${frame.id}.png`} alt="" className="spaceframe-card-art" />
               <span className="spaceframe-card-name">{frame.name}</span>
-              <span className="spaceframe-card-line">{cardLine(frame)}</span>
+              <span className="spaceframe-card-line">{frame.suggestedMissionProfiles[0]}</span>
             </button>
           )
         })}
+        </div>
+        {!fits && (
+          <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label="Scroll classes right">›</button>
+        )}
       </div>
 
-      <div className="spaceframe-detail panel">
+      <div className="spaceframe-detail">
         <div className="spaceframe-preview">
           <ShipArt src={preview} alt="" className="spaceframe-preview-art" />
-          {views.length > 0 && (
-            <div className="spaceframe-views">
-              {views.slice(0, 4).map((src, index) => (
-                <button key={src} type="button" className={`spaceframe-view${index === viewIndex ? ' is-selected' : ''}`} onClick={() => setViewIndex(index)}>
-                  <ShipArt src={src} alt="" />
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="spaceframe-views">
+            {(views.length ? views : [null, null, null, null]).map((src, index) => (
+              <button
+                key={src ?? `empty-${index}`}
+                type="button"
+                className={`spaceframe-view${src && index === viewIndex ? ' is-selected' : ''}`}
+                aria-label={src ? `View ${index + 1}` : 'No alternate view'}
+                disabled={!src}
+                onClick={() => setViewIndex(index)}
+              >
+                <ShipArt src={src} alt="" />
+              </button>
+            ))}
+          </div>
         </div>
         <div className="spaceframe-detail-text">
           <h2 className="spaceframe-detail-name">{selected ? `${selected.name} class` : 'No spaceframe selected'}</h2>
-          {selected && <p className="spaceframe-clamp">{selected.overview}</p>}
+          {selected && <p className="spaceframe-overview">{selected.overview}</p>}
           {selected && <p className="source-ref">Star Trek Adventures 2E Core Rulebook, p. {selected.page}</p>}
-        </div>
-      </div>
-
-      <div className="spaceframe-panels">
-        <section className="panel spaceframe-panel">
-          <h3 className="panel-heading">Class Characteristics</h3>
           {selected && (
-            <dl className="spaceframe-stats">
+            <>
+              <h3 className="spaceframe-stats-heading">Class Characteristics</h3>
+              <dl className="spaceframe-stats">
               <Stat label="Launch year" value={selected.launchYear} />
               <Stat label="Scale" value={selected.scale} />
               {SYSTEMS.map(([key, label]) => (
@@ -124,43 +166,49 @@ export default function SpaceframeScreen({ step, ship, onSelect, onBack, onQuit,
               {DEPARTMENTS.map(([key, label]) => (
                 <Stat key={key} label={`${label} modifier`} value={modifier(selected.departmentModifiers[key])} />
               ))}
-            </dl>
+              </dl>
+            </>
           )}
-        </section>
+        </div>
+      </div>
+
+      <div className="spaceframe-panels">
         <section className="panel spaceframe-panel">
           <h3 className="panel-heading">Primary Capabilities</h3>
           {selected && (
-            <>
-              <p className="spaceframe-clamp">{selected.capabilities}</p>
+            <div className="spaceframe-panel-body">
               <ul className="spaceframe-list">
                 {selected.weapons.map((weapon) => (
                   <li key={weapon}>{weapon}</li>
                 ))}
               </ul>
-            </>
+              <p>{selected.capabilities}</p>
+            </div>
           )}
         </section>
         <section className="panel spaceframe-panel">
           <h3 className="panel-heading">Considerations</h3>
           {selected && (
-            <>
-              <p className="spaceframe-clamp">{selected.refits}</p>
-              {rules.map((rule) => (
-                <p key={rule.id} className="spaceframe-rule">
-                  <strong>{rule.name}.</strong> {rule.text}
-                </p>
-              ))}
-            </>
+            <div className="spaceframe-panel-body">
+              <ul className="spaceframe-list">
+                {rules.map((rule) => (
+                  <li key={rule.id}>
+                    <strong>{rule.name}.</strong> {rule.text}
+                  </li>
+                ))}
+              </ul>
+              <p>{selected.refits}</p>
+            </div>
           )}
         </section>
         <section className="panel spaceframe-panel">
           <h3 className="panel-heading">Notes</h3>
           {selected && (
-            <>
-              <p className="spaceframe-clamp">Suggested mission profiles: {selected.suggestedMissionProfiles.join(', ')}.</p>
-              <p className="spaceframe-clamp">{selected.naming}</p>
-              <p className="spaceframe-clamp">{selected.notableExamples}</p>
-            </>
+            <div className="spaceframe-panel-body">
+              <p>{selected.notableExamples}</p>
+              <p>{selected.naming}</p>
+              <p>Suggested mission profiles: {selected.suggestedMissionProfiles.join(', ')}.</p>
+            </div>
           )}
         </section>
       </div>

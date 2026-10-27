@@ -1,0 +1,229 @@
+{
+  "note": "Prototype narrative catalogs for Screen 04. Not STA 2E mechanics (Core Rulebook p. 216). Events and honors are multi-select; reputation is one or none. No mechanical bonuses.",
+  "events": [
+    {
+      "id": "first-contact",
+      "name": "First Contact",
+      "summary": "First contact with an unknown civilization",
+      "description": "The ship established first contact with a previously unknown people or polity.",
+      "background": "Contact protocols and careful shows of peaceful intent shaped the encounter.",
+      "significance": "It can redefine maps, alliances, and the ship's place in Starfleet lore.",
+      "implications": "Later missions may bring follow-up diplomacy—or suspicion from powers that prefer a quiet frontier.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "rescue-operation",
+      "name": "Rescue Operation",
+      "summary": "High-risk rescue under time pressure",
+      "description": "The crew executed a dangerous rescue while lives hung in the balance.",
+      "background": "Speed, coordination, and accepted risk defined the operation.",
+      "significance": "Marks the ship as a vessel that answers distress when it matters most.",
+      "implications": "Allies may seek this registry in a crisis; adversaries may test that reputation.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "major-scientific-discovery",
+      "name": "Major Scientific Discovery",
+      "summary": "A lasting scientific finding underway",
+      "description": "Shipboard science produced a discovery of lasting research value.",
+      "background": "Sensors, labs, and field teams went beyond routine survey duty.",
+      "significance": "Adds scholarly prestige without rewriting the ship's mechanical profile.",
+      "implications": "Science missions and requests to revisit the discovery site may follow.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "border-incident",
+      "name": "Border Incident",
+      "summary": "Confrontation on a contested frontier",
+      "description": "The ship was drawn into a tense confrontation along a disputed border.",
+      "background": "Incomplete intelligence and rival claims turned a patrol into a crisis.",
+      "significance": "Reminds others that this vessel has stood watch where politics turn sharp.",
+      "implications": "Diplomatic fallout or renewed scrutiny of the ship's log are plausible story beats.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "diplomatic-breakthrough",
+      "name": "Diplomatic Breakthrough",
+      "summary": "Talks that broke a long deadlock",
+      "description": "Negotiations hosted or supported by the ship broke a stubborn diplomatic impasse.",
+      "background": "Patience, protocol, and credible neutrality mattered as much as firepower.",
+      "significance": "Associates the registry with careful mediation rather than force.",
+      "implications": "Future assignments may favor escorts, treaty talks, or tense summits.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "emergency-evacuation",
+      "name": "Emergency Evacuation",
+      "summary": "Evacuation from imminent disaster",
+      "description": "The ship helped evacuate civilians or crew from catastrophe.",
+      "background": "Overloaded decks, triage, and hard choices shaped the operation.",
+      "significance": "Reinforces a reputation for putting people ahead of convenience.",
+      "implications": "Relief work, survivor follow-ups, and unfinished evacuations may recur.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "historic-exploration",
+      "name": "Historic Exploration",
+      "summary": "Charting that entered Starfleet lore",
+      "description": "The ship charted a region or phenomenon that became part of Starfleet lore.",
+      "background": "Long surveys and incomplete charts preceded a discovery that earned a lasting name.",
+      "significance": "Places the vessel among explorers remembered for what they found.",
+      "implications": "Return expeditions, naming disputes, or second-look hazards can drive later episodes.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "major-systems-failure",
+      "name": "Major Systems Failure",
+      "summary": "Cascading failure tested the crew",
+      "description": "A cascading systems failure tested the crew's ingenuity and resolve.",
+      "background": "Battle damage, experiment, or misfortune forced improvisation under pressure.",
+      "significance": "A scar on the record that also proves the ship and crew endured.",
+      "implications": "Technical quirks, crew trauma, or skepticism about readiness can color later missions.",
+      "rulesNote": "Narrative only."
+    }
+  ],
+  "reputations": [
+    {
+      "id": "distinguished",
+      "name": "Distinguished",
+      "summary": "Respected for consistent excellence",
+      "description": "The ship is widely respected for consistent excellence in the field.",
+      "background": "A string of competent, high-visibility missions built this standing.",
+      "significance": "Others expect professionalism and measured judgment from this registry.",
+      "implications": "Preferred for sensitive work—but mistakes draw higher scrutiny.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "dependable",
+      "name": "Dependable",
+      "summary": "Gets the mission done without drama",
+      "description": "Known for getting the mission done without unnecessary drama.",
+      "background": "Quiet competence and crews that finish what they start.",
+      "significance": "A workhorse reputation: valued, not always celebrated.",
+      "implications": "Trusted for support—and sometimes overlooked or overused.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "pioneering",
+      "name": "Pioneering",
+      "summary": "Associated with firsts and experiments",
+      "description": "Associated with firsts, experiments, and uncharted work.",
+      "background": "New systems, routes, or methods link the ship to innovation—and risk.",
+      "significance": "Suggests curiosity and appetite for the unknown.",
+      "implications": "Sought for pathfinding; blamed if experiments go wrong.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "diplomatic",
+      "name": "Diplomatic",
+      "summary": "Favored for talks and careful escorts",
+      "description": "Favored for talks, escorts, and careful representation of the Federation.",
+      "background": "Success in high-protocol environments shaped how others see the ship.",
+      "significance": "Signals restraint and political usefulness.",
+      "implications": "Welcome at summits—yet every misstep becomes a diplomatic incident.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "formidable",
+      "name": "Formidable",
+      "summary": "Spoken of with caution",
+      "description": "Spoken of with caution in contested space.",
+      "background": "Combat readiness or prevailing under fire created this aura.",
+      "significance": "Deterrence and respect—sometimes fear.",
+      "implications": "Adversaries may hesitate; allies may expect escalation.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "controversial",
+      "name": "Controversial",
+      "summary": "Still argued about in the fleet",
+      "description": "Decisions made under this registry still draw argument.",
+      "background": "A contested tactical, ethical, or political call left the name polarizing.",
+      "significance": "Notoriety without consensus.",
+      "implications": "Some want that boldness; hearings and distrust may follow.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "unproven",
+      "name": "Unproven",
+      "summary": "Too new or too quiet to judge",
+      "description": "Too new or too quiet for a settled reputation.",
+      "background": "Little public record, a fresh commission, or quiet assignments.",
+      "significance": "A blank slate: opportunity and doubt in equal measure.",
+      "implications": "Fewer preconceptions—and harder to win discretionary support.",
+      "rulesNote": "Narrative only."
+    }
+  ],
+  "honors": [
+    {
+      "id": "starfleet-commendation",
+      "name": "Starfleet Commendation",
+      "summary": "Formal commendation for outstanding service",
+      "description": "A formal Starfleet commendation entered for outstanding service.",
+      "background": "Awarded when performance exceeds expected standards on a named mission or tour.",
+      "significance": "A clear mark of recognition in the ship's ceremonial record.",
+      "implications": "May open doors socially or politically; no mechanical effect.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "distinguished-exploration-citation",
+      "name": "Distinguished Exploration Citation",
+      "summary": "Cited for exceptional exploration",
+      "description": "Cited for exceptional exploratory achievement.",
+      "background": "Recognizes charting, discovery, or endurance on the frontier.",
+      "significance": "Links the ship to Starfleet's exploratory mandate.",
+      "implications": "Useful color for science and survey stories; no mechanical benefit.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "scientific-achievement-award",
+      "name": "Scientific Achievement Award",
+      "summary": "Recognized for science underway",
+      "description": "Recognized for scientific contribution while underway.",
+      "background": "Labs, sensors, and analysis that advanced Starfleet knowledge.",
+      "significance": "Celebrates discovery as service.",
+      "implications": "May attract research partners; narrative only.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "humanitarian-service-citation",
+      "name": "Humanitarian Service Citation",
+      "summary": "Honored for relief and aid",
+      "description": "Honored for relief, rescue, or aid to civilians.",
+      "background": "Disaster response, medical support, or evacuation under hardship.",
+      "significance": "Affirms care for the vulnerable as Federation service.",
+      "implications": "Story hooks around survivors and unfinished aid; no mechanical effect.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "diplomatic-excellence-citation",
+      "name": "Diplomatic Excellence Citation",
+      "summary": "Cited for lasting diplomatic success",
+      "description": "Cited for diplomacy that advanced lasting peace or understanding.",
+      "background": "Negotiations or careful representation that avoided unnecessary conflict.",
+      "significance": "Frames the ship as an instrument of peace as well as exploration.",
+      "implications": "Useful for political plotlines; no mechanical effect.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "meritorious-service-award",
+      "name": "Meritorious Service Award",
+      "summary": "Sustained meritorious performance",
+      "description": "Awarded for sustained meritorious performance over a tour or campaign.",
+      "background": "Consistent excellence across many duties, not a single flashy action.",
+      "significance": "A steady honor for a steady ship.",
+      "implications": "Supports a tone of reliability; narrative only.",
+      "rulesNote": "Narrative only."
+    },
+    {
+      "id": "defense-of-the-federation-citation",
+      "name": "Defense of the Federation Citation",
+      "summary": "Cited for defense of Federation lives",
+      "description": "Cited for defense of Federation lives or territory.",
+      "background": "Combat or interdiction where the ship stood between a threat and those it protected.",
+      "significance": "Martial recognition that the ship answered when defense was required.",
+      "implications": "May color how others view the registry; no mechanical effect.",
+      "rulesNote": "Narrative only."
+    }
+  ]
+}

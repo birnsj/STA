@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+<defs><radialGradient id="sky" cx="55%" cy="68%" r="75%"><stop offset="0%" stop-color="#3a2418"/><stop offset="100%" stop-color="#0c0908"/></radialGradient></defs>
+<rect width="320" height="180" fill="url(#sky)"/><circle cx="250" cy="88" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="32" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="104" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="68" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="0" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="112" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="164" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="64" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="108" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="4" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="52" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="84" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="44" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="0" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="72" r="1.15" fill="#d7e4ff"/><circle cx="64" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="12" r="1.15" fill="#d7e4ff"/><g transform="translate(160 90) scale(1.22) translate(-160 -90)"><g transform="translate(170 98)" fill="#9aa4b0" stroke="#667280" stroke-width="1.1">
+    <polygon points="78,0 8,-9 -48,-6 -78,0 -48,6 8,9"/>
+    <polygon points="-16,-7 -92,-38 -24,-10"/>
+    <polygon points="-16,7 -92,38 -24,10"/>
+    <circle cx="52" cy="0" r="7" fill="#e7eef5" stroke="none"/>
+    <circle cx="-62" cy="-30" r="4" fill="#e07040" stroke="none"/>
+    <circle cx="-62" cy="30" r="4" fill="#e07040" stroke="none"/>
+  </g>
+</g></svg>

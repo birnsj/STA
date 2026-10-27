@@ -16,10 +16,14 @@ import {
   selectServiceRecord,
   selectSpaceframe,
   selectTimeframe,
+  selectServiceReputation,
   setServiceRecordDetail,
   shipTraitNames,
+  systemScore,
+  toggleServiceHonor,
+  toggleServiceNotableEvent,
 } from '../src/ships/shipModel.js'
-import { loadShip, saveShip } from '../src/ships/persistence.js'
+import { loadShip, saveShip, persistedShip } from '../src/ships/persistence.js'
 
 const stored = new Map()
 Object.defineProperty(globalThis, 'localStorage', {
@@ -40,6 +44,9 @@ const saved = (fields) => ({
   missionProfileSystemId: null,
   serviceRecordId: null,
   serviceRecordDetail: null,
+  serviceNotableEventIds: [],
+  serviceReputationId: null,
+  serviceHonorIds: [],
   refits: [],
   shipName: null,
   registry: null,
@@ -149,6 +156,48 @@ describe('starship service record', () => {
     assert.equal(isMissionProfileComplete(selectMissionProfileTalent(open, 'ablative-armor')), true)
     const multirole = selectMissionProfile(constitution(), 'multirole-explorer')
     assert.equal(isMissionProfileComplete(selectMissionProfileTalent(multirole, 'rugged-design')), false)
+  })
+
+  it('keeps narrative ids when the record changes, clears them with the record, and does not change scores', () => {
+    const base = selectServiceRecord(constitution(), 'legendary')
+    let noted = toggleServiceNotableEvent(base, 'first-contact')
+    noted = toggleServiceNotableEvent(noted, 'rescue-operation')
+    noted = selectServiceReputation(noted, 'distinguished')
+    noted = toggleServiceHonor(noted, 'starfleet-commendation')
+    assert.deepEqual(noted.serviceNotableEventIds, ['first-contact', 'rescue-operation'])
+    assert.equal(noted.serviceReputationId, 'distinguished')
+    assert.deepEqual(noted.serviceHonorIds, ['starfleet-commendation'])
+    assert.equal(systemScore(noted, 'weapons'), systemScore(base, 'weapons'))
+    assert.equal(departmentScore(noted, 'command'), departmentScore(base, 'command'))
+    assert.deepEqual(shipTraitNames(noted), shipTraitNames(base))
+
+    const clearedRep = selectServiceReputation(noted, 'distinguished')
+    assert.equal(clearedRep.serviceReputationId, null)
+
+    const switched = selectServiceRecord(noted, 'hope-ship')
+    assert.deepEqual(switched.serviceNotableEventIds, ['first-contact', 'rescue-operation'])
+    assert.equal(switched.serviceReputationId, 'distinguished')
+    assert.deepEqual(switched.serviceHonorIds, ['starfleet-commendation'])
+    assert.ok(shipTraitNames(switched).includes('Hope Ship'))
+    assert.equal(shipTraitNames(switched).includes('Legendary'), false)
+
+    assert.deepEqual(clearServiceRecord(switched), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
+    assert.equal(toggleServiceNotableEvent(noted, 'no-such-event'), noted)
+    assert.equal(toggleServiceHonor(noted, 'no-such-honor'), noted)
+  })
+
+  it('saves and loads narrative ids with the ship JSON', () => {
+    let ship = selectServiceRecord(constitution(), 'legendary')
+    ship = toggleServiceNotableEvent(ship, 'border-incident')
+    ship = selectServiceReputation(ship, 'dependable')
+    ship = toggleServiceHonor(ship, 'meritorious-service-award')
+    saveShip(ship)
+    assert.deepEqual(loadShip(), ship)
+    const exported = persistedShip(ship)
+    assert.deepEqual(exported.serviceNotableEventIds, ['border-incident'])
+    assert.equal(exported.serviceReputationId, 'dependable')
+    assert.deepEqual(exported.serviceHonorIds, ['meritorious-service-award'])
+    assert.equal(exported.serviceRecordId, 'legendary')
   })
 })
 

@@ -8,6 +8,7 @@
   --card-gap: 10px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -27,9 +28,21 @@
   flex: 1;
   display: flex;
   gap: var(--card-gap);
+  box-sizing: border-box;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
-  padding: 4px 2px;
+  padding: 0;
+  scroll-snap-type: x mandatory;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-track > * {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .option-card {

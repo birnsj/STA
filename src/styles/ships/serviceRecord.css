@@ -1,23 +1,24 @@
-/* Starship Creator, Screen 04. Fits the 1920×1080 creator frame; the column does not scroll. */
+/* Starship Creator, Screen 04. Fits the 1920×1080 creator frame; no scrollbars. */
 
 .service-screen {
-  gap: 8px;
+  height: 100%;
+  gap: 6px;
   overflow: hidden;
 }
 
 .service-screen .screen-title {
   flex: none;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .service-screen .screen-heading,
 .service-screen .screen-number {
-  font-size: 32px;
+  font-size: 36px;
 }
 
 .service-screen .screen-intro {
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .service-screen .source-ref {
@@ -25,30 +26,62 @@
   margin-top: 2px;
 }
 
+.service-tabs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.service-tab {
+  margin: 0;
+  padding: 7px 6px;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: var(--cursor-pointer);
+}
+
+.service-tab.is-selected {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: #111;
+}
+
 .service-body {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: minmax(260px, 30%) 1fr;
   gap: 8px;
+  overflow: hidden;
 }
 
 .service-list {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
+  gap: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .service-card {
-  flex: 1;
-  min-height: 0;
+  flex: none;
   display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 8px;
+  grid-template-columns: 148px 1fr;
+  gap: 10px;
+  align-items: center;
   margin: 0;
   padding: 4px;
+  height: 92px;
   background: var(--panel);
   border: 2px solid var(--panel-border);
   border-radius: 6px;
@@ -63,10 +96,17 @@
   box-shadow: 0 0 0 1px var(--yellow);
 }
 
-.service-card-art {
+.service-screen .service-card-art {
+  width: 148px;
+  height: 83px;
   min-width: 0;
   min-height: 0;
   border-radius: 4px;
+  overflow: hidden;
+}
+
+.service-screen .service-card-art img {
+  object-fit: cover;
 }
 
 .service-card-text {
@@ -75,81 +115,117 @@
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-}
-
-.service-card-name,
-.service-card-line {
+  padding-right: 4px;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .service-card-name {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
+  line-height: 1.15;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .service-card-line {
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.2;
   color: var(--text-muted);
 }
 
-.service-detail {
+.service-main {
   min-width: 0;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 12px;
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.service-preview-art {
-  min-width: 0;
+.service-detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.service-screen .service-preview-art {
+  flex: none;
+  width: 100%;
+  height: 240px;
   min-height: 0;
   border-radius: 4px;
+  overflow: hidden;
+}
+
+.service-screen .service-preview-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .service-detail-text {
+  flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .service-detail-name {
-  margin: 0 0 4px;
-  font-size: 22px;
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .service-detail-text p {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.service-detail-effects {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.service-detail-effects li {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.service-detail-status {
+  margin: 0;
+  font-size: 12px;
   line-height: 1.3;
+  color: var(--text-muted);
 }
 
-.service-clamp {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
-}
-
-.service-effect {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
+.service-empty {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text-muted);
 }
 
 .service-name {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 4px;
+  margin: 0;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -159,7 +235,7 @@
 
 .service-name input {
   margin: 0;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
   background: #040814;
@@ -174,4 +250,33 @@
 .service-name input:focus {
   outline: none;
   border-color: var(--yellow);
+}
+
+/* Screen 04 summary only — do not change other ship screens. */
+.frame-body:has(.service-screen) .ship-summary {
+  padding: 6px 12px 8px;
+  overflow: hidden;
+}
+
+.frame-body:has(.service-screen) .ship-summary .summary-heading {
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.frame-body:has(.service-screen) .ship-summary .summary-group {
+  gap: 3px;
+  margin-top: 6px;
+  padding: 6px 0 2px;
+}
+
+.frame-body:has(.service-screen) .ship-summary .summary-row {
+  grid-template-columns: 118px 1fr;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.frame-body:has(.service-screen) .ship-summary .summary-row dd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

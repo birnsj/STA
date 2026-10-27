@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+<defs><radialGradient id="sky" cx="55%" cy="68%" r="75%"><stop offset="0%" stop-color="#24506a"/><stop offset="100%" stop-color="#081018"/></radialGradient></defs>
+<rect width="320" height="180" fill="url(#sky)"/><circle cx="112" cy="68" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="184" cy="156" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="116" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="92" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="100" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="72" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="8" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="172" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="112" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="60" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="48" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="108" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="44" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="88" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="116" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="124" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="64" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="100" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="160" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="0" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="140" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="112" r="0.55" fill="#d7e4ff"/><g transform="translate(20 90) scale(1.9) translate(-160 -90)"><g transform="translate(168 96) rotate(0) scale(0.82)" fill="#c9d3de" stroke="#8494a6" stroke-width="1.1">
+    <ellipse cx="0" cy="0" rx="72" ry="15"/>
+    <ellipse cx="10" cy="0" rx="18" ry="9" fill="#aebccc"/>
+    <rect x="-6" y="7" width="46" height="9" rx="4"/>
+    <rect x="-86" y="-30" width="96" height="7" rx="3.5" transform="rotate(0 -30 -26)"/>
+    <rect x="-86" y="22" width="96" height="7" rx="3.5" transform="rotate(0 -30 26)"/>
+    <circle cx="12" cy="-26" r="4.5" fill="#f0d090" stroke="none"/>
+    <circle cx="12" cy="26" r="4.5" fill="#f0d090" stroke="none"/>
+    <circle cx="40" cy="0" r="2.6" fill="#f0d090" stroke="none"/>
+    
+  </g>
+</g></svg>

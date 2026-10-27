@@ -1,7 +1,10 @@
 import {
   createEmptyShip,
   getMissionProfileById,
+  getServiceHonorById,
+  getServiceNarrativeEventById,
   getServiceRecordById,
+  getServiceReputationById,
   getTimeframeById,
   isSpaceframeEligible,
   normalizeConfirmation,
@@ -35,11 +38,38 @@ function missionFields(saved) {
   return { missionProfileId: profile.id, missionProfileTalentId, missionProfileSystemId }
 }
 
+function idList(value, lookup) {
+  if (!Array.isArray(value)) return []
+  const kept = []
+  for (const id of value) {
+    if (lookup(id) && !kept.includes(id)) kept.push(id)
+  }
+  return kept
+}
+
 function serviceFields(saved) {
+  const serviceNotableEventIds = idList(saved.serviceNotableEventIds, getServiceNarrativeEventById)
+  const serviceHonorIds = idList(saved.serviceHonorIds, getServiceHonorById)
+  const reputation = getServiceReputationById(saved.serviceReputationId)
+  const serviceReputationId = reputation ? reputation.id : null
   const record = getServiceRecordById(saved.serviceRecordId)
-  if (!record) return { serviceRecordId: null, serviceRecordDetail: null }
+  if (!record) {
+    return {
+      serviceRecordId: null,
+      serviceRecordDetail: null,
+      serviceNotableEventIds,
+      serviceReputationId,
+      serviceHonorIds,
+    }
+  }
   const detail = typeof saved.serviceRecordDetail === 'string' ? saved.serviceRecordDetail.trim() : ''
-  return { serviceRecordId: record.id, serviceRecordDetail: record.namesake && detail ? detail : null }
+  return {
+    serviceRecordId: record.id,
+    serviceRecordDetail: record.namesake && detail ? detail : null,
+    serviceNotableEventIds,
+    serviceReputationId,
+    serviceHonorIds,
+  }
 }
 
 export function persistedShip(ship) {
@@ -52,6 +82,9 @@ export function persistedShip(ship) {
     missionProfileSystemId: ship.missionProfileSystemId ?? null,
     serviceRecordId: ship.serviceRecordId ?? null,
     serviceRecordDetail: ship.serviceRecordDetail ?? null,
+    serviceNotableEventIds: Array.isArray(ship.serviceNotableEventIds) ? ship.serviceNotableEventIds : [],
+    serviceReputationId: ship.serviceReputationId ?? null,
+    serviceHonorIds: Array.isArray(ship.serviceHonorIds) ? ship.serviceHonorIds : [],
     refits: Array.isArray(ship.refits) ? ship.refits : [],
     shipName: ship.shipName ?? null,
     registry: ship.registry ?? null,

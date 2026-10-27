@@ -41,12 +41,12 @@ export default function StarshipSummary({ ship }) {
   return (
     <aside className="summary panel ship-summary">
       <h2 className="summary-heading">Starship Summary</h2>
-      <ShipArt src={frame ? `/art/ships/classes/${frame.id}.png` : '/art/ships/summary.png'} alt="" className="ship-summary-art" />
+      <ShipArt src={frame ? `/art/ships/classes/${frame.id}.png` : era ? `/art/ships/eras/${era.id}.png` : '/art/ships/summary.png'} alt="" className="ship-summary-art" />
       <dl className="summary-group">
         <Row label="Name" value={shipDisplayName(ship)} />
         <Row label="Registry" value={shipDisplayRegistry(ship)} />
         <Row label="Class" value={frame?.name} />
-        <Row label="Timeframe" value={era?.name} />
+        <Row label="Timeframe" value={era ? `${era.name} (${era.years})` : null} />
         <Row label="Mission Profile" value={profile?.name} />
         <Row label="Service Record" value={serviceRecordLabel(ship)} />
         <Row label="Refits" value={refitSummary(ship)} />

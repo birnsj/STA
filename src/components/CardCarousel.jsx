@@ -1,30 +1,9 @@
-import { useLayoutEffect, useRef, useState } from 'react'
 import Portrait from './Portrait.jsx'
-
-// True when every card fits at its normal width (--card-width / --card-gap in styles.css).
-function allCardsFit(carousel, count) {
-  const style = getComputedStyle(carousel)
-  const cardWidth = parseFloat(style.getPropertyValue('--card-width'))
-  const gap = parseFloat(style.getPropertyValue('--card-gap'))
-  const trackPadding = 4
-  return count * cardWidth + (count - 1) * gap + trackPadding <= carousel.clientWidth
-}
+import { useWholeCardCarousel } from './wholeCardCarousel.js'
 
 // Scrolls with arrows when the cards overflow; otherwise drops the arrows and stretches the cards evenly.
 export default function CardCarousel({ items, selectedId, onSelect, label, variant = '' }) {
-  const carouselRef = useRef(null)
-  const trackRef = useRef(null)
-  const [fits, setFits] = useState(false)
-  useLayoutEffect(() => {
-    const carousel = carouselRef.current
-    const measure = () => setFits(allCardsFit(carousel, items.length))
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(carousel)
-    return () => observer.disconnect()
-  }, [items.length])
-
-  const scroll = (direction) => trackRef.current?.scrollBy({ left: direction * 300, behavior: 'smooth' })
+  const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(items.length, 124, 10)
 
   return (
     <div className={`carousel ${variant}${fits ? ' is-stretched' : ''}`} ref={carouselRef}>

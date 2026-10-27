@@ -2,6 +2,7 @@ import exampleClasses from '../data/ships/exampleClasses.json'
 import finishingTouches from '../data/ships/finishingTouches.json'
 import missionProfiles from '../data/ships/missionProfiles.json'
 import refitTable from '../data/ships/refits.json'
+import serviceNarrative from '../data/ships/serviceNarrative.json'
 import serviceRecords from '../data/ships/serviceRecords.json'
 import spaceframeData from '../data/ships/spaceframes.json'
 import timeframes from '../data/ships/timeframes.json'
@@ -13,8 +14,15 @@ const spaceframes = spaceframeData.spaceframes
 const specialRules = spaceframeData.specialRules
 const profiles = missionProfiles.profiles
 const records = serviceRecords.records
+const narrativeEvents = serviceNarrative.events
+const narrativeReputations = serviceNarrative.reputations
+const narrativeHonors = serviceNarrative.honors
 const refitSystems = refitTable.systems
 const REFIT_CAP = 12
+
+const narrativeEventIds = new Set(narrativeEvents.map((entry) => entry.id))
+const narrativeReputationIds = new Set(narrativeReputations.map((entry) => entry.id))
+const narrativeHonorIds = new Set(narrativeHonors.map((entry) => entry.id))
 
 const SYSTEMS = ['comms', 'engines', 'structure', 'computers', 'sensors', 'weapons']
 
@@ -39,6 +47,9 @@ function shipRecord({
   missionProfileSystemId = null,
   serviceRecordId = null,
   serviceRecordDetail = null,
+  serviceNotableEventIds = [],
+  serviceReputationId = null,
+  serviceHonorIds = [],
   refits = [],
   shipName = null,
   registry = null,
@@ -59,6 +70,9 @@ function shipRecord({
     missionProfileSystemId,
     serviceRecordId,
     serviceRecordDetail,
+    serviceNotableEventIds: filterIdList(serviceNotableEventIds, narrativeEventIds),
+    serviceReputationId: narrativeReputationIds.has(serviceReputationId) ? serviceReputationId : null,
+    serviceHonorIds: filterIdList(serviceHonorIds, narrativeHonorIds),
     refits,
     shipName,
     registry,
@@ -80,11 +94,31 @@ function keepProfile(ship) {
   }
 }
 
+function filterIdList(ids, allowed) {
+  if (!Array.isArray(ids)) return []
+  const kept = []
+  for (const id of ids) {
+    if (allowed.has(id) && !kept.includes(id)) kept.push(id)
+  }
+  return kept
+}
+
 function keepService(ship) {
   return {
     serviceRecordId: ship.serviceRecordId ?? null,
     serviceRecordDetail: ship.serviceRecordDetail ?? null,
+    serviceNotableEventIds: filterIdList(ship.serviceNotableEventIds, narrativeEventIds),
+    serviceReputationId: narrativeReputationIds.has(ship.serviceReputationId) ? ship.serviceReputationId : null,
+    serviceHonorIds: filterIdList(ship.serviceHonorIds, narrativeHonorIds),
   }
+}
+
+function hasNarrative(ship) {
+  return Boolean(
+    ship.serviceNotableEventIds?.length
+    || ship.serviceReputationId
+    || ship.serviceHonorIds?.length,
+  )
 }
 
 function keepFinishing(ship) {
@@ -343,8 +377,7 @@ export function normalizeRefits(ship) {
     missionProfileId: ship.missionProfileId ?? null,
     missionProfileTalentId: ship.missionProfileTalentId ?? null,
     missionProfileSystemId: ship.missionProfileSystemId ?? null,
-    serviceRecordId: ship.serviceRecordId ?? null,
-    serviceRecordDetail: ship.serviceRecordDetail ?? null,
+    ...keepService(ship),
     refits,
     ...keepFinishing(ship),
     confirmedAt: ship.confirmedAt ?? null,
@@ -417,8 +450,68 @@ export function setServiceRecordDetail(ship, text) {
 }
 
 export function clearServiceRecord(ship) {
-  if (!ship.serviceRecordId && !ship.serviceRecordDetail) return ship
-  return kept(ship, { serviceRecordId: null, serviceRecordDetail: null })
+  if (!ship.serviceRecordId && !ship.serviceRecordDetail && !hasNarrative(ship)) return ship
+  return kept(ship, {
+    serviceRecordId: null,
+    serviceRecordDetail: null,
+    serviceNotableEventIds: [],
+    serviceReputationId: null,
+    serviceHonorIds: [],
+  })
+}
+
+export function getServiceNarrativeEvents() {
+  return narrativeEvents
+}
+
+export function getServiceNarrativeEventById(id) {
+  return narrativeEvents.find((entry) => entry.id === id) ?? null
+}
+
+export function getServiceReputations() {
+  return narrativeReputations
+}
+
+export function getServiceReputationById(id) {
+  return narrativeReputations.find((entry) => entry.id === id) ?? null
+}
+
+export function getServiceHonors() {
+  return narrativeHonors
+}
+
+export function getServiceHonorById(id) {
+  return narrativeHonors.find((entry) => entry.id === id) ?? null
+}
+
+export function toggleServiceNotableEvent(ship, eventId) {
+  if (!narrativeEventIds.has(eventId)) return ship
+  const current = filterIdList(ship.serviceNotableEventIds, narrativeEventIds)
+  const serviceNotableEventIds = current.includes(eventId)
+    ? current.filter((id) => id !== eventId)
+    : [...current, eventId]
+  if (sameList(serviceNotableEventIds, current)) return ship
+  return kept(ship, { serviceNotableEventIds })
+}
+
+export function selectServiceReputation(ship, reputationId) {
+  if (reputationId == null) {
+    if (!ship.serviceReputationId) return ship
+    return kept(ship, { serviceReputationId: null })
+  }
+  if (!narrativeReputationIds.has(reputationId)) return ship
+  if (ship.serviceReputationId === reputationId) return kept(ship, { serviceReputationId: null })
+  return kept(ship, { serviceReputationId: reputationId })
+}
+
+export function toggleServiceHonor(ship, honorId) {
+  if (!narrativeHonorIds.has(honorId)) return ship
+  const current = filterIdList(ship.serviceHonorIds, narrativeHonorIds)
+  const serviceHonorIds = current.includes(honorId)
+    ? current.filter((id) => id !== honorId)
+    : [...current, honorId]
+  if (sameList(serviceHonorIds, current)) return ship
+  return kept(ship, { serviceHonorIds })
 }
 
 export function pickServiceRecord(ship, random = Math.random) {
@@ -630,8 +723,7 @@ export function normalizeConfirmation(ship) {
     missionProfileId: ship.missionProfileId ?? null,
     missionProfileTalentId: ship.missionProfileTalentId ?? null,
     missionProfileSystemId: ship.missionProfileSystemId ?? null,
-    serviceRecordId: ship.serviceRecordId ?? null,
-    serviceRecordDetail: ship.serviceRecordDetail ?? null,
+    ...keepService(ship),
     refits: ship.refits ?? [],
     ...keepFinishing(ship),
     confirmedAt,

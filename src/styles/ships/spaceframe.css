@@ -1,23 +1,28 @@
 /* Starship Creator, Screen 02. Fits the 1920×1080 creator frame; the column does not scroll. */
 
 .spaceframe-screen {
+  height: 100%;
   gap: 8px;
   overflow: hidden;
 }
 
-.spaceframe-screen .screen-title {
+.spaceframe-screen .screen-title,
+.spaceframe-screen .screen-footer {
   flex: none;
+}
+
+.spaceframe-screen .screen-title {
   padding-bottom: 4px;
 }
 
 .spaceframe-screen .screen-heading,
 .spaceframe-screen .screen-number {
-  font-size: 32px;
+  font-size: 36px;
 }
 
 .spaceframe-screen .screen-intro {
-  font-size: 14px;
-  line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .spaceframe-screen .source-ref {
@@ -27,38 +32,49 @@
 
 .spaceframe-filters {
   flex: none;
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .spaceframe-filter {
   margin: 0;
-  padding: 4px 10px;
+  padding: 8px 6px;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
   background: var(--panel);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-align: center;
   text-transform: uppercase;
   cursor: var(--cursor-pointer);
 }
 
 .spaceframe-filter.is-selected {
+  background: var(--yellow);
   border-color: var(--yellow);
-  color: var(--yellow);
+  color: #111;
 }
 
-.spaceframe-cards {
+.spaceframe-carousel {
+  --card-width: 196px;
+  --card-gap: 8px;
   flex: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 6px;
-  height: 136px;
-  overflow: hidden;
+  height: 152px;
+}
+
+.spaceframe-carousel .carousel-track {
+  height: 100%;
+  align-items: stretch;
+}
+
+.spaceframe-carousel .spaceframe-card {
+  flex: 0 0 var(--card-width);
+  width: var(--card-width);
+  height: 100%;
 }
 
 .spaceframe-card {
@@ -82,8 +98,8 @@
 }
 
 .spaceframe-card-art {
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  height: 108px;
 }
 
 .spaceframe-card-name,
@@ -96,25 +112,30 @@
 }
 
 .spaceframe-card-name {
-  font-size: 12px;
+  padding-top: 4px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .spaceframe-card-line {
-  padding-bottom: 3px;
-  font-size: 11px;
+  padding-bottom: 5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
+.spaceframe-card-art img {
+  object-fit: contain;
+}
+
 .spaceframe-detail {
-  flex: none;
+  flex: 1.15;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 12px;
-  height: 148px;
-  padding: 8px;
+  grid-template-columns: minmax(240px, 36%) 1fr;
+  align-items: stretch;
+  gap: 16px;
   overflow: hidden;
 }
 
@@ -123,21 +144,29 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
 }
 
 .spaceframe-preview-art {
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100% - 62px);
   border-radius: 4px;
+}
+
+.spaceframe-preview-art img,
+.spaceframe-view .ship-art img {
+  object-fit: contain;
 }
 
 .spaceframe-views {
   flex: none;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  height: 36px;
+  gap: 6px;
+  height: 56px;
 }
 
 .spaceframe-view {
@@ -151,6 +180,11 @@
 
 .spaceframe-view.is-selected {
   border-color: var(--yellow);
+  box-shadow: 0 0 0 1px var(--yellow);
+}
+
+.spaceframe-view:disabled {
+  cursor: var(--cursor-default);
 }
 
 .spaceframe-view .ship-art {
@@ -159,27 +193,51 @@
 
 .spaceframe-detail-text {
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .spaceframe-detail-name {
-  margin: 0 0 4px;
-  font-size: 22px;
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.1;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
-.spaceframe-detail-text p {
+.spaceframe-overview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
   margin: 0;
-  font-size: 14px;
-  line-height: 1.3;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.spaceframe-detail-text .source-ref {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.spaceframe-stats-heading {
+  flex: none;
+  margin: 8px 0 0;
+  padding-bottom: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--yellow);
+  border-bottom: 2px solid var(--panel-border);
 }
 
 .spaceframe-panels {
-  flex: 1;
+  flex: 0.85;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -191,54 +249,54 @@
   flex-direction: column;
 }
 
+.spaceframe-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 12px 8px;
+}
+
 .spaceframe-panel .panel-heading {
   flex: none;
   margin: 0;
-  padding: 6px 10px 4px;
-  font-size: 13px;
+  padding: 8px 12px 4px;
+  font-size: 16px;
 }
 
-.spaceframe-clamp {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  overflow: hidden;
-  margin: 4px 10px;
-  font-size: 12px;
-  line-height: 1.3;
+.spaceframe-panel-body p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 .spaceframe-list {
-  margin: 2px 10px 6px;
-  padding-left: 16px;
-  font-size: 12px;
-  line-height: 1.3;
-}
-
-.spaceframe-rule {
-  margin: 2px 10px;
-  font-size: 12px;
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
+  margin: 4px 0 0;
+  padding-left: 1.15em;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 .spaceframe-stats {
+  flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px 8px;
-  margin: 4px 10px 6px;
+  align-content: start;
+  gap: 0 22px;
+  margin: 6px 0 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .spaceframe-stat {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
+  align-items: baseline;
+  gap: 10px;
   min-width: 0;
-  font-size: 12px;
-  line-height: 1.25;
+  padding: 3px 0;
+  font-size: 14px;
+  line-height: 1.3;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .spaceframe-stat dt {
@@ -250,6 +308,8 @@
 
 .spaceframe-stat dd {
   margin: 0;
+  flex: none;
   font-weight: 700;
   color: var(--text);
 }
+

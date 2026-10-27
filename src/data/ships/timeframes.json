@@ -1,5 +1,5 @@
 {
-  "note": "Era cards from the Timeframe mockup. TOS copy is the text on that mockup. The other eras have a name and years only; their panels stay empty until copy is supplied. throughYear is the last year of that range, used only to decide which spaceframes have launched (Core p. 193). It is not a campaign year the player picked. It is also the year of play used to count refits (Core p. 217).",
+  "note": "Era cards from the Timeframe mockup. TOS copy is the text on that mockup. The other eras' summary, overview, and characteristics are project-authored screen text, not rulebook mechanics. campaignStart and campaignEnd are the Campaign Year control only. throughYear is the last year used to decide which spaceframes have launched (Core p. 193). It is not a campaign year the player picked. It is also the year of play used to count refits (Core p. 217).",
   "eras": [
     {
       "id": "tos",
@@ -21,9 +21,69 @@
         "Era-appropriate equipment only"
       ]
     },
-    { "id": "tmp", "name": "The Motion Picture Era", "years": "2270s–2280s", "throughYear": 2289 },
-    { "id": "tng", "name": "The Next Generation Era", "years": "2360s–2370s", "throughYear": 2379 },
-    { "id": "ds9", "name": "Deep Space Nine Era", "years": "2369–2375", "throughYear": 2375 },
-    { "id": "voy", "name": "Voyager Era", "years": "2371–2378", "throughYear": 2378 }
+    {
+      "id": "tmp",
+      "name": "The Motion Picture Era",
+      "years": "2270s–2280s",
+      "throughYear": 2289,
+      "campaignStart": 2270,
+      "campaignEnd": 2299,
+      "summary": "A period of technological advancement and expanding Federation influence. Starfleet introduces refitted starships, improved propulsion systems, and more sophisticated exploration vessels. Crews undertake ambitious deep-space missions while navigating rising tensions with the Klingon Empire and the emergence of new interstellar threats.",
+      "overview": "A period of technological advancement and expanding Federation influence. Starfleet introduces refitted starships, improved propulsion systems, and more sophisticated exploration vessels.",
+      "characteristics": [
+        "Major starship refits and technological modernization",
+        "Improved propulsion, shields, and weapon systems",
+        "Expanding Federation diplomatic influence",
+        "Klingon tensions and emerging interstellar threats"
+      ]
+    },
+    {
+      "id": "tng",
+      "name": "The Next Generation Era",
+      "years": "2360s–2370s",
+      "throughYear": 2379,
+      "campaignStart": 2364,
+      "campaignEnd": 2370,
+      "summary": "An era of exploration, diplomacy, and scientific discovery. Starfleet operates advanced vessels designed for extended missions, with families and civilian specialists serving alongside officers. The Federation expands its understanding of the galaxy while confronting powerful new civilizations and threats, including the Borg.",
+      "overview": "An era of exploration, diplomacy, and scientific discovery. Starfleet operates advanced vessels designed for extended missions, with families and civilian specialists serving alongside officers.",
+      "characteristics": [
+        "Advanced exploration and scientific research",
+        "Galaxy-class starships and extended missions",
+        "Diplomacy and peaceful conflict resolution",
+        "Encounters with the Borg and new civilizations"
+      ]
+    },
+    {
+      "id": "ds9",
+      "name": "Deep Space Nine Era",
+      "years": "2369–2375",
+      "throughYear": 2375,
+      "campaignStart": 2369,
+      "campaignEnd": 2375,
+      "summary": "A turbulent period of political instability and interstellar conflict. Starfleet shifts from peaceful exploration toward defense and strategic operations as tensions escalate into the Dominion War. Crews face difficult moral choices, shifting alliances, and increasingly dangerous missions along the Federation's borders.",
+      "overview": "A turbulent period of political instability and interstellar conflict. Starfleet shifts from peaceful exploration toward defense and strategic operations as tensions escalate into the Dominion War.",
+      "characteristics": [
+        "Dominion War and large-scale fleet operations",
+        "Strategic defense and tactical missions",
+        "Complex diplomacy and shifting alliances",
+        "Increased emphasis on combat readiness"
+      ]
+    },
+    {
+      "id": "voy",
+      "name": "Voyager Era",
+      "years": "2371–2378",
+      "throughYear": 2378,
+      "campaignStart": 2371,
+      "campaignEnd": 2378,
+      "summary": "An era of exploration beyond familiar Federation space. Advanced starships incorporate new technologies while Starfleet confronts the challenges of distant regions and unfamiliar civilizations. Missions emphasize adaptability, resourcefulness, and survival, particularly for crews operating far from Federation support.",
+      "overview": "An era of exploration beyond familiar Federation space. Advanced starships incorporate new technologies while Starfleet confronts the challenges of distant regions and unfamiliar civilizations.",
+      "characteristics": [
+        "Exploration of distant and unfamiliar regions",
+        "Advanced starship technology and adaptability",
+        "Limited resources and independent operations",
+        "Encounters with unfamiliar civilizations"
+      ]
+    }
   ]
 }

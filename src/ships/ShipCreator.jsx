@@ -47,7 +47,10 @@ import {
   selectSpaceframe,
   selectTimeframe,
   serviceRecordLabel,
+  selectServiceReputation,
   setServiceRecordDetail,
+  toggleServiceHonor,
+  toggleServiceNotableEvent,
 } from './shipModel.js'
 import { loadShip, saveShip, shipFromRecord } from './persistence.js'
 import { saveConfirmedShip } from './savedShips.js'
@@ -211,6 +214,9 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             ship={ship}
             onSelect={(serviceRecordId) => setShip((current) => selectServiceRecord(current, serviceRecordId))}
             onDetail={(text) => setShip((current) => setServiceRecordDetail(current, text))}
+            onToggleEvent={(eventId) => setShip((current) => toggleServiceNotableEvent(current, eventId))}
+            onSelectReputation={(reputationId) => setShip((current) => selectServiceReputation(current, reputationId))}
+            onToggleHonor={(honorId) => setShip((current) => toggleServiceHonor(current, honorId))}
             onBack={() => setStepId('missionProfile')}
             onQuit={requestQuit}
             onClear={resetShip}

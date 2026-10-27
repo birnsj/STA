@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import { samePosition } from '../combat/battleMap.js'
-import { useDisplaySettings, useOpenSettings, useUpdateDisplaySettings } from '../settings/DisplaySettingsContext.js'
+import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
 import ObjectivesPanel from '../components/combat/ObjectivesPanel.jsx'
 import useBeamIn from '../components/combat/useBeamIn.js'
@@ -115,8 +115,7 @@ function transporterCandidates(party, savedCharacters) {
 // savedCharacters: the saved characters the transporter can beam down.
 function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const { party, world } = state
-  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro, cameraFollow, itemPlacementPreview } = useDisplaySettings()
-  const updateDisplaySettings = useUpdateDisplaySettings()
+  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro, cameraFollow } = useDisplaySettings()
   const { open: settingsOpen, openSettings } = useOpenSettings()
   const [followCamera, setFollowCamera] = useState(cameraFollow)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
@@ -865,8 +864,6 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           }}
           onTransporter={canBeamIn ? openTransporter : null}
           onExitMission={beaming ? null : ending.askExitMission}
-          placementPreview={itemPlacementPreview}
-          onPlacementPreview={(checked) => updateDisplaySettings({ itemPlacementPreview: checked })}
         />
       </div>
       {transporterOpen && canBeamIn && (

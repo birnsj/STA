@@ -315,16 +315,12 @@ const INVENTORY_ICON = 'M4 5h16v14H4zM8 5v3h8V5M8 11h8M8 15h5'
 // debug panels (party, awareness, scenario state and the task log). onInventory(): opens the inventory window.
 // onTransporter(): opens the transporter's picker; null while it can't be used. onExitMission(): Exit Mission (the
 // screen confirms, then beams the away team out); null while it can't be used.
-export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, inventoryOpen, onInventory, onTransporter, onExitMission, placementPreview = true, onPlacementPreview }) {
+export const FormationPanel = memo(function FormationPanel({ formationId, onFormation, onRegroup, followCamera, onFollowCamera, debugOpen, onDebug, inventoryOpen, onInventory, onTransporter, onExitMission }) {
   const current = FORMATIONS.find((formation) => formation.id === formationId)
   return (
     <div className="combat-panel explore-formation-panel">
       <div className="explore-formation-header">
         <p className="combat-panel-title">Formation{current ? `: ${current.name}` : ''}</p>
-        <label className="explore-placement-check" title="The green or red footprint while dragging an inventory object.">
-          <input type="checkbox" checked={placementPreview} onChange={(event) => onPlacementPreview?.(event.target.checked)} />
-          Box
-        </label>
         <button
           type="button"
           className="explore-panel-icon-button"

@@ -1,4 +1,5 @@
 import '../../styles/ships/missionProfile.css'
+import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { getMissionProfileById, getMissionProfiles, getSpaceframeById, missionSystemLabel } from '../../ships/shipModel.js'
@@ -46,6 +47,7 @@ export default function MissionProfileScreen({
   const selected = getMissionProfileById(ship.missionProfileId)
   const frame = getSpaceframeById(ship.spaceframeId)
   const choosingSystem = selected?.system === 'choice'
+  const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(profiles.length, 196, 8)
 
   return (
     <section className="screen mission-screen">
@@ -60,7 +62,11 @@ export default function MissionProfileScreen({
         </div>
       </div>
 
-      <div className="mission-cards" role="listbox" aria-label="Mission profile">
+      <div className="carousel mission-carousel" ref={carouselRef}>
+        {!fits && (
+          <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label="Scroll profiles left">‹</button>
+        )}
+        <div className="carousel-track mission-cards" ref={trackRef} role="listbox" aria-label="Mission profile">
         {profiles.map((profile) => {
           const isSelected = profile.id === ship.missionProfileId
           return (
@@ -78,10 +84,14 @@ export default function MissionProfileScreen({
             </button>
           )
         })}
+        </div>
+        {!fits && (
+          <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label="Scroll profiles right">›</button>
+        )}
       </div>
 
       <div className="mission-detail panel">
-        <ShipArt src={frame ? `/art/ships/classes/${frame.id}.png` : null} alt="" className="mission-preview-art" />
+        <ShipArt src={selected ? `/art/ships/profiles/${selected.id}.png` : null} alt="" className="mission-preview-art" />
         <div className="mission-detail-text">
           <h2 className="mission-detail-name">{selected ? selected.name : 'No mission profile selected'}</h2>
           {selected && <p className="mission-clamp">{selected.overview}</p>}
@@ -103,7 +113,12 @@ export default function MissionProfileScreen({
                   return (
                     <div key={key} className="mission-stat">
                       <dt>{label}</dt>
-                      <dd>{score == null ? base : `${base} + ${modifier} = ${score}`}</dd>
+                      <dd>
+                        <span className="mission-bar-track" aria-hidden="true">
+                          <span className="mission-bar" style={{ width: `${Math.min(100, (base / 5) * 100)}%` }} />
+                        </span>
+                        <span>{score == null ? base : `${base} + ${modifier} = ${score}`}</span>
+                      </dd>
                     </div>
                   )
                 })}

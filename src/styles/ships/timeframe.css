@@ -12,22 +12,41 @@
 
 .timeframe-screen .screen-title {
   flex: none;
-  padding-bottom: 4px;
+  display: block;
+  padding-bottom: 2px;
+  border-bottom: none;
+}
+
+.timeframe-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .timeframe-screen .screen-heading,
 .timeframe-screen .screen-number {
-  font-size: 32px;
+  font-size: 36px;
 }
 
 .timeframe-screen .screen-intro {
-  font-size: 14px;
-  line-height: 1.25;
+  margin: 6px 0 0;
+  font-size: 16px;
+  line-height: 1.35;
 }
 
 .timeframe-screen .source-ref {
   display: block;
-  margin-top: 2px;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+/* The red and yellow header strips are empty decoration on this screen. Other creator screens keep them. */
+.frame:has(.timeframe-screen) .header-bars {
+  display: none;
+}
+
+.frame:has(.timeframe-screen) .header {
+  justify-content: space-between;
 }
 
 .ship-art {
@@ -48,8 +67,8 @@
 }
 
 .timeframe-eras {
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  height: 196px;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
@@ -62,13 +81,19 @@
   padding: 0;
   background: var(--panel);
   border: 2px solid var(--panel-border);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--text);
   text-align: center;
   overflow: hidden;
 }
 
-.timeframe-era.is-selected {
+.timeframe-era:hover,
+.timeframe-era:focus-visible {
+  border-color: #3d74e0;
+}
+
+.timeframe-era.is-selected,
+.timeframe-era.is-selected:hover {
   border-color: var(--yellow);
   box-shadow: 0 0 0 1px var(--yellow);
 }
@@ -76,6 +101,13 @@
 .timeframe-era-art {
   flex: 1;
   min-height: 0;
+  border-radius: 0;
+}
+
+.timeframe-era-art img,
+.timeframe-detail-art img,
+.timeframe-panel-art img {
+  object-fit: cover;
 }
 
 .timeframe-era-name,
@@ -88,25 +120,29 @@
 }
 
 .timeframe-era-name {
+  padding-top: 6px;
   font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .timeframe-era-years {
-  padding-bottom: 4px;
-  font-size: 12px;
+  padding-bottom: 6px;
+  font-size: 13px;
   color: var(--text-muted);
 }
 
 .timeframe-detail {
-  flex: none;
+  flex: 1.05;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 12px;
-  height: 80px;
-  padding: 8px;
+  grid-template-columns: minmax(180px, 28%) 1fr;
+  align-items: center;
+  gap: 16px;
+  height: auto;
+  padding: 12px 14px;
   overflow: hidden;
 }
 
@@ -117,28 +153,33 @@
 
 .timeframe-detail-text {
   min-width: 0;
-  overflow: hidden;
 }
 
 .timeframe-detail-name {
-  margin: 0 0 4px;
-  font-size: 22px;
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.1;
   text-transform: uppercase;
   color: var(--yellow);
 }
 
 .timeframe-detail-text p {
   margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.timeframe-detail-text .source-ref {
+  margin-top: 8px;
   font-size: 14px;
-  line-height: 1.3;
 }
 
 .timeframe-panels {
-  flex: none;
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  height: 104px;
 }
 
 .timeframe-panel {
@@ -148,32 +189,177 @@
   flex-direction: column;
 }
 
+.timeframe-panel-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 12px;
+}
+
+.timeframe-panel-art {
+  width: 112px;
+  height: 112px;
+  align-self: center;
+  border-radius: 4px;
+}
+
+.timeframe-panel-text {
+  min-width: 0;
+  text-align: left;
+}
+
+.timeframe-screen .panel-heading {
+  flex: none;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 18px;
+}
+
 .timeframe-panel p,
 .timeframe-list {
-  margin: 8px 12px;
-  font-size: 13px;
-  line-height: 1.3;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
 .timeframe-list {
-  padding-left: 18px;
+  padding-left: 1.15em;
+  list-style-position: outside;
+}
+
+.timeframe-year {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 4px 14px 8px 0;
+}
+
+.timeframe-year-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.timeframe-year-copy p {
+  margin: 2px 14px 4px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.timeframe-year-control {
+  display: grid;
+  grid-template-columns: 44px auto 44px;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: stretch;
+  flex: none;
+  margin-right: 4px;
+}
+
+.timeframe-year-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: auto;
+  padding: 0;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text);
+  background: #071226;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.timeframe-year-control .timeframe-year-button:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.timeframe-year-control .timeframe-year-button:nth-child(3) {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.timeframe-year-button:not(:disabled):hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.timeframe-year-value {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 120px;
+  padding: 6px 16px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  background: #040814;
+  border: 2px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.timeframe-year-range {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: center;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .ship-summary {
   overflow: hidden;
 }
 
+.ship-summary .summary-row {
+  font-size: 12px;
+  line-height: 1.15;
+}
+
 .ship-summary-art {
   flex: none;
-  height: 92px;
+  width: 100%;
+  height: 148px;
   margin-bottom: 6px;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
 }
 
-.ship-summary .summary-row {
-  font-size: 12px;
-  line-height: 1.15;
+.ship-summary-art img {
+  object-fit: contain;
+  object-position: center;
+}
+
+.frame-body:has(.timeframe-screen) .ship-summary {
+  padding: 6px 14px 10px;
+}
+
+.frame-body:has(.timeframe-screen) .ship-summary .summary-heading {
+  margin-bottom: 10px;
+  font-size: 22px;
+}
+
+.frame-body:has(.timeframe-screen) .ship-summary .summary-group {
+  gap: 3px;
+  margin-top: 8px;
+  padding: 8px 0 2px;
+}
+
+.frame-body:has(.timeframe-screen) .ship-summary .summary-row {
+  grid-template-columns: 124px 1fr;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.frame-body:has(.timeframe-screen) .ship-summary .summary-row.is-heading {
+  margin-bottom: 2px;
 }
 
 .ship-summary-popup {

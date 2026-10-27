@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+<defs><radialGradient id="sky" cx="55%" cy="68%" r="75%"><stop offset="0%" stop-color="#12243c"/><stop offset="100%" stop-color="#080c14"/></radialGradient></defs>
+<rect width="320" height="180" fill="url(#sky)"/><circle cx="310" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="100" r="0.55" fill="#d7e4ff"/><circle cx="248" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="156" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="76" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="96" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="156" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="56" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="44" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="120" r="1.15" fill="#d7e4ff"/><circle cx="128" cy="124" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="76" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="48" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="84" r="1.15" fill="#d7e4ff"/><circle cx="248" cy="140" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="64" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="172" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="136" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="152" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="24" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="36" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="96" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="36" r="1.15" fill="#d7e4ff"/><g transform="translate(20 90) scale(1.9) translate(-160 -90)"><g transform="translate(168 96) rotate(0) scale(0.88)" fill="#c9d3de" stroke="#8494a6" stroke-width="1.1">
+    <ellipse cx="0" cy="0" rx="92.16" ry="15"/>
+    <ellipse cx="12.8" cy="0" rx="18" ry="9" fill="#aebccc"/>
+    <rect x="-7.68" y="7" width="58.88" height="9" rx="4"/>
+    <rect x="-110.08" y="-30" width="122.88" height="7" rx="3.5" transform="rotate(0 -38.4 -26)"/>
+    <rect x="-110.08" y="22" width="122.88" height="7" rx="3.5" transform="rotate(0 -38.4 26)"/>
+    <circle cx="15.36" cy="-26" r="4.5" fill="#d7e6ff" stroke="none"/>
+    <circle cx="15.36" cy="26" r="4.5" fill="#d7e6ff" stroke="none"/>
+    <circle cx="51.2" cy="0" r="2.6" fill="#d7e6ff" stroke="none"/>
+    
+  </g>
+</g></svg>

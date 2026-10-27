@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+<defs><radialGradient id="sky" cx="55%" cy="68%" r="75%"><stop offset="0%" stop-color="#243044"/><stop offset="100%" stop-color="#070b12"/></radialGradient></defs>
+<rect width="320" height="180" fill="url(#sky)"/><circle cx="168" cy="28" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="12" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="32" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="124" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="60" r="1.15" fill="#d7e4ff"/><circle cx="64" cy="140" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="136" r="0.55" fill="#d7e4ff"/><circle cx="256" cy="136" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="36" r="1.15" fill="#d7e4ff"/><circle cx="64" cy="84" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="36" r="1.15" fill="#d7e4ff"/><circle cx="192" cy="20" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="40" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="44" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="80" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="72" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="148" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="36" r="1.15" fill="#d7e4ff"/><circle cx="0" cy="96" r="1.15" fill="#d7e4ff"/><circle cx="256" cy="76" r="0.55" fill="#d7e4ff"/><circle cx="128" cy="160" r="0.55" fill="#d7e4ff"/><circle cx="192" cy="168" r="1.15" fill="#d7e4ff"/><circle cx="64" cy="148" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="116" r="0.55" fill="#d7e4ff"/><circle cx="0" cy="112" r="0.55" fill="#d7e4ff"/><circle cx="64" cy="28" r="0.55" fill="#d7e4ff"/><g transform="translate(300 90) scale(-1.75 1.75) translate(-160 -90)"><g transform="translate(168 96) rotate(0) scale(0.92)" fill="#d5dbe3" stroke="#8494a6" stroke-width="1.1">
+    <ellipse cx="0" cy="0" rx="82.8" ry="15"/>
+    <ellipse cx="11.5" cy="0" rx="18" ry="9" fill="#aebccc"/>
+    <rect x="-6.8999999999999995" y="7" width="52.9" height="9" rx="4"/>
+    <rect x="-98.89999999999999" y="-30" width="110.39999999999999" height="7" rx="3.5" transform="rotate(0 -34.5 -26)"/>
+    <rect x="-98.89999999999999" y="22" width="110.39999999999999" height="7" rx="3.5" transform="rotate(0 -34.5 26)"/>
+    <circle cx="13.799999999999999" cy="-26" r="4.5" fill="#f2d48a" stroke="none"/>
+    <circle cx="13.799999999999999" cy="26" r="4.5" fill="#f2d48a" stroke="none"/>
+    <circle cx="46" cy="0" r="2.6" fill="#f2d48a" stroke="none"/>
+    
+  </g>
+</g></svg>
