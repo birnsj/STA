@@ -29,7 +29,7 @@ import {
   missionSystemLabel,
   pickFinishing,
   pickMissionProfile,
-  pickRefits,
+  pickRefitsAndTalents,
   pickServiceRecord,
   pickSpaceframeId,
   pickTimeframeId,
@@ -38,6 +38,7 @@ import {
   setFinishingChoice,
   setRegistry,
   setShipName,
+  setShipTalentChoice,
   shipDisplayName,
   shipDisplayRegistry,
   selectMissionProfile,
@@ -51,6 +52,7 @@ import {
   setServiceRecordDetail,
   toggleServiceHonor,
   toggleServiceNotableEvent,
+  toggleShipTalent,
 } from './shipModel.js'
 import { loadShip, saveShip, shipFromRecord } from './persistence.js'
 import { saveConfirmedShip } from './savedShips.js'
@@ -200,10 +202,13 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             ship={ship}
             onIncrease={(system) => setShip((current) => addRefit(current, system))}
             onDecrease={(system) => setShip((current) => removeRefit(current, system))}
+            onToggleTalent={(talentId) => setShip((current) => toggleShipTalent(current, talentId))}
+            onTalentChoice={(talentId, choice) => setShip((current) => setShipTalentChoice(current, talentId, choice))}
+            onAppearance={(field, id) => setShip((current) => setFinishingChoice(current, field, id))}
             onBack={() => setStepId('serviceRecord')}
             onQuit={requestQuit}
             onClear={resetShip}
-            onAuto={() => setShip((current) => pickRefits(current))}
+            onAuto={() => setShip((current) => pickRefitsAndTalents(current))}
             onAutofill={fillShip}
             onShowSummary={() => setSummaryOpen(true)}
             onNext={() => setStepId('finishingTouches')}

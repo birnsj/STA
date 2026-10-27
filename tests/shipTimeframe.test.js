@@ -33,6 +33,8 @@ const ship = (fields) => ({
   serviceReputationId: null,
   serviceHonorIds: [],
   refits: [],
+  extraTalentIds: [],
+  talentChoices: {},
   shipName: null,
   registry: null,
   bridgeLayoutId: null,

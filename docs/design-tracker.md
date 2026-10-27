@@ -18,13 +18,17 @@ Screen 07 reads the ship already stored. Complete sets `confirmedAt` and does no
 
 Screen 06 records the name and registry from Core p. 194. The prefix is derived from the class: U.S.S. and NCC for Federation, NX while the service record is Prototype, I.K.S. or I.R.W. for Klingon and Romulan ships, and NX for the United Earth NX class. Cardassian and Ferengi ships are not given a prefix. The mockup's bridge, markings, and emblem are stored and do not change statistics. Class designation and Final Options are not offered. Talents-to-Scale and the derived defenses are not on this screen. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `shipModel.js`.
 
-### Starship refits (implemented 2026-10-25)
+### Starship refits (updated 2026-10-26)
 
-Screen 05 assigns the refits earned on Core p. 217. The count is the era's last year minus the class launch year, in full decades, and a Prototype service record adds 2. Each refit is +1 to one system, at most twice, and not above 12. The mockup's packages and category tabs are not offered. Where: `docs/prototype-rules.md` (Starship creation), `refits.json`, `shipModel.js`.
+Screen 05 keeps five mockup tabs mapped to book rules: Major Refits = Core p. 217 system +1s; System Upgrades = read-only totals; Weapons & Defenses / Special Systems = remaining starship talents to Scale (pp. 218–225); Appearance = cosmetic finishing fields. Cloaking Device is Klingon/Romulan only. Resistance / Shields / Crew Support are calculated; ship combat effects are deferred. Where: `docs/prototype-rules.md` (Starship creation), `refits.json`, `starshipTalents.json`, `shipTalents.js`.
+
+### Starship service record gameplay (implemented 2026-10-26)
+
+Screen 04 Service History keeps the six Core records. Narrative tabs (events up to 2, reputation one or none, honors up to 2) grant distinct ship Traits applied through `prepareTask` when task tags match (−1 / +1 adaptation). RAW special rules other than Prototype’s refits are stubbed. Active ship: `savedShipId`. Where: `docs/prototype-rules.md` (Starship creation), `serviceEffects.js`.
 
 ### Starship service record (implemented 2026-10-25)
 
-Screen 04 offers the six Core service records on p. 216. One record is optional. It adds a trait named for the record and one special rule, stored as `serviceRecordId`. Survivor of X also stores the battle or war the player types. The mockup’s five histories, reputation, honors, and extra options are not offered. Aging Relic’s Crew Support +1 is described and not applied. Prototype’s two extra refits are applied on Screen 05. Where: `docs/prototype-rules.md` (Starship creation), `serviceRecords.json`, `shipModel.js`.
+Screen 04 offers the six Core service records on p. 216. One record is optional. It adds a trait named for the record and one special rule, stored as `serviceRecordId`. Survivor of X also stores the battle or war the player types. Notable Events (up to 2), Reputation (one or none), and Honors (up to 2) are prototype narrative catalogs (not Core lists; mockup caps). Prototype’s two extra refits are applied on Screen 05. Where: `docs/prototype-rules.md` (Starship creation), `serviceRecords.json`, `serviceNarrative.json`, `shipModel.js`.
 
 ### Starship mission profile (implemented 2026-10-25)
 

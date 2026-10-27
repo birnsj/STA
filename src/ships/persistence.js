@@ -7,11 +7,14 @@ import {
   getServiceReputationById,
   getTimeframeById,
   isSpaceframeEligible,
+  MAX_SERVICE_HONORS,
+  MAX_SERVICE_NOTABLE_EVENTS,
   normalizeConfirmation,
   normalizeFinishing,
   normalizeRefits,
   SHIP_VERSION,
 } from './shipModel.js'
+import { filterExtraTalentIds, filterTalentChoices } from './shipTalents.js'
 
 // The ship in progress. Separate from the character save. Never written into character location data.
 const SHIP_KEY = 'st-adventures.ship'
@@ -38,18 +41,20 @@ function missionFields(saved) {
   return { missionProfileId: profile.id, missionProfileTalentId, missionProfileSystemId }
 }
 
-function idList(value, lookup) {
+function idList(value, lookup, max = Infinity) {
   if (!Array.isArray(value)) return []
   const kept = []
   for (const id of value) {
-    if (lookup(id) && !kept.includes(id)) kept.push(id)
+    if (!lookup(id) || kept.includes(id)) continue
+    kept.push(id)
+    if (kept.length >= max) break
   }
   return kept
 }
 
 function serviceFields(saved) {
-  const serviceNotableEventIds = idList(saved.serviceNotableEventIds, getServiceNarrativeEventById)
-  const serviceHonorIds = idList(saved.serviceHonorIds, getServiceHonorById)
+  const serviceNotableEventIds = idList(saved.serviceNotableEventIds, getServiceNarrativeEventById, MAX_SERVICE_NOTABLE_EVENTS)
+  const serviceHonorIds = idList(saved.serviceHonorIds, getServiceHonorById, MAX_SERVICE_HONORS)
   const reputation = getServiceReputationById(saved.serviceReputationId)
   const serviceReputationId = reputation ? reputation.id : null
   const record = getServiceRecordById(saved.serviceRecordId)
@@ -86,6 +91,8 @@ export function persistedShip(ship) {
     serviceReputationId: ship.serviceReputationId ?? null,
     serviceHonorIds: Array.isArray(ship.serviceHonorIds) ? ship.serviceHonorIds : [],
     refits: Array.isArray(ship.refits) ? ship.refits : [],
+    extraTalentIds: Array.isArray(ship.extraTalentIds) ? ship.extraTalentIds : [],
+    talentChoices: ship.talentChoices && typeof ship.talentChoices === 'object' ? ship.talentChoices : {},
     shipName: ship.shipName ?? null,
     registry: ship.registry ?? null,
     bridgeLayoutId: ship.bridgeLayoutId ?? null,
@@ -104,13 +111,15 @@ export function shipFromRecord(saved) {
   if (timeframeId !== null && !getTimeframeById(timeframeId)) return createEmptyShip()
   const requested = saved.spaceframeId ?? null
   const spaceframeId = requested && isSpaceframeEligible(timeframeId, requested) ? requested : null
-  return normalizeConfirmation(normalizeFinishing(normalizeRefits({
+  const draft = {
     version: SHIP_VERSION,
     timeframeId,
     spaceframeId,
     ...missionFields(saved),
     ...serviceFields(saved),
     refits: Array.isArray(saved.refits) ? saved.refits : [],
+    extraTalentIds: Array.isArray(saved.extraTalentIds) ? saved.extraTalentIds : [],
+    talentChoices: saved.talentChoices && typeof saved.talentChoices === 'object' ? saved.talentChoices : {},
     shipName: saved.shipName ?? null,
     registry: saved.registry ?? null,
     bridgeLayoutId: saved.bridgeLayoutId ?? null,
@@ -120,7 +129,10 @@ export function shipFromRecord(saved) {
     emblemStyleId: saved.emblemStyleId ?? null,
     secondaryMarkingsId: saved.secondaryMarkingsId ?? null,
     confirmedAt: typeof saved.confirmedAt === 'string' ? saved.confirmedAt : null,
-  })))
+  }
+  draft.extraTalentIds = filterExtraTalentIds(draft, draft.extraTalentIds)
+  draft.talentChoices = filterTalentChoices(draft, draft.talentChoices)
+  return normalizeConfirmation(normalizeFinishing(normalizeRefits(draft)))
 }
 
 export function loadShip() {

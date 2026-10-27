@@ -8,6 +8,7 @@ import { checkCondition, checkConditions } from '../exploration/missionFlags.js'
 import { canAct, getMembers } from '../exploration/partyControl.js'
 import { rollPartyTask } from '../exploration/partyTaskRoll.js'
 import { prepareAssist, prepareTask } from '../rules/taskPreparation.js'
+import { augmentTaskContext, augmentTaskSpec } from '../ships/serviceEffects.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
 import { applyObjectEffect } from './objectEffects.js'
 import { withScenarioTiles } from './scenarioTiles.js'
@@ -94,7 +95,15 @@ export class ChallengeObject extends WorldObject {
   // Difficulty changes combat adds to the task ([{ label, change }], e.g. a bought second Major).
   taskContext(scenario, actionId, condition, combatLines = []) {
     const mod = this.runtime(scenario).difficultyMods[actionId]
-    return { traits: scenario.traits, side: 'player', condition, difficultyMod: mod?.change ?? 0, difficultyModLabel: mod?.label, extraLines: combatLines }
+    // Active confirmed ship Traits (location.savedShipId) join scene traits for authored traitRules.
+    return augmentTaskContext({
+      traits: scenario.traits,
+      side: 'player',
+      condition,
+      difficultyMod: mod?.change ?? 0,
+      difficultyModLabel: mod?.label,
+      extraLines: combatLines,
+    })
   }
 
   // The character math before the roll: { prepared (leader), assist: { approach, task, focus, ... } | null }.
@@ -104,7 +113,11 @@ export class ChallengeObject extends WorldObject {
     const action = this.action(actionId)
     if (action.routine) return { prepared: null, assist: null }
     const performer = state.party.members[performerId]
-    const prepared = prepareTask(performer.character, action.task, this.taskContext(state.scenario, actionId, performer.condition, combatLines))
+    const prepared = prepareTask(
+      performer.character,
+      augmentTaskSpec(action.task),
+      this.taskContext(state.scenario, actionId, performer.condition, combatLines),
+    )
     // A combat Assist may carry the helper's talents (combat/combatTalents.js: Pack Tactics' bonus Momentum).
     const talentBonus = combatAssist?.talents?.bonusMomentum ?? 0
     if (combatAssist) return { prepared: talentBonus ? { ...prepared, bonusMomentum: prepared.bonusMomentum + talentBonus } : prepared, assist: combatAssist }

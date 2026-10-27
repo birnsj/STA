@@ -97,7 +97,7 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
         <div>
           <h1 id="review-title" className="screen-heading">{step.title}</h1>
           <p className="screen-intro">
-            The finished ship is the class, mission profile, service record, and refits already chosen. Complete does not add talents or calculate Resistance, Shields, or Crew Support.
+            The finished ship is the class, mission profile, service record, refits, and talents (equal to Scale) already chosen on earlier screens, including Resistance, Shields, and Crew Support.
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 194</span>
           </p>
         </div>

@@ -2,10 +2,37 @@ import exampleClasses from '../data/ships/exampleClasses.json'
 import finishingTouches from '../data/ships/finishingTouches.json'
 import missionProfiles from '../data/ships/missionProfiles.json'
 import refitTable from '../data/ships/refits.json'
+import serviceEffects from '../data/ships/serviceEffects.json'
 import serviceNarrative from '../data/ships/serviceNarrative.json'
 import serviceRecords from '../data/ships/serviceRecords.json'
 import spaceframeData from '../data/ships/spaceframes.json'
 import timeframes from '../data/ships/timeframes.json'
+import {
+  filterExtraTalentIds,
+  filterTalentChoices,
+  pickExtraTalents,
+  setTalentChoice,
+  talentsFilled,
+  toggleExtraTalent,
+} from './shipTalents.js'
+
+export {
+  APPEARANCE_FIELDS,
+  getStarshipTalentById,
+  getStarshipTalents,
+  grantedTalentIds,
+  playYear,
+  shipCrewSupport,
+  shipResistance,
+  shipShields,
+  shipTalentNames,
+  talentCapacity,
+  talentIneligibility,
+  talentSlotsRemaining,
+  talentSlotsUsed,
+  talentsFilled,
+  talentsForTab,
+} from './shipTalents.js'
 
 export const SHIP_VERSION = 1
 
@@ -51,6 +78,8 @@ function shipRecord({
   serviceReputationId = null,
   serviceHonorIds = [],
   refits = [],
+  extraTalentIds = [],
+  talentChoices = {},
   shipName = null,
   registry = null,
   bridgeLayoutId = null,
@@ -61,7 +90,7 @@ function shipRecord({
   secondaryMarkingsId = null,
   confirmedAt = null,
 }) {
-  return {
+  const draft = {
     version: SHIP_VERSION,
     timeframeId,
     spaceframeId,
@@ -70,10 +99,12 @@ function shipRecord({
     missionProfileSystemId,
     serviceRecordId,
     serviceRecordDetail,
-    serviceNotableEventIds: filterIdList(serviceNotableEventIds, narrativeEventIds),
+    serviceNotableEventIds: filterIdList(serviceNotableEventIds, narrativeEventIds, MAX_SERVICE_NOTABLE_EVENTS),
     serviceReputationId: narrativeReputationIds.has(serviceReputationId) ? serviceReputationId : null,
-    serviceHonorIds: filterIdList(serviceHonorIds, narrativeHonorIds),
+    serviceHonorIds: filterIdList(serviceHonorIds, narrativeHonorIds, MAX_SERVICE_HONORS),
     refits,
+    extraTalentIds,
+    talentChoices,
     shipName,
     registry,
     bridgeLayoutId,
@@ -84,6 +115,10 @@ function shipRecord({
     secondaryMarkingsId,
     confirmedAt,
   }
+  const nextExtra = filterExtraTalentIds(draft, extraTalentIds)
+  draft.extraTalentIds = nextExtra
+  draft.talentChoices = filterTalentChoices({ ...draft, extraTalentIds: nextExtra }, talentChoices)
+  return draft
 }
 
 function keepProfile(ship) {
@@ -94,11 +129,17 @@ function keepProfile(ship) {
   }
 }
 
-function filterIdList(ids, allowed) {
+// Prototype narrative caps (mockup Screen 04: up to 2). Reputation remains one or none.
+export const MAX_SERVICE_NOTABLE_EVENTS = 2
+export const MAX_SERVICE_HONORS = 2
+
+function filterIdList(ids, allowed, max = Infinity) {
   if (!Array.isArray(ids)) return []
   const kept = []
   for (const id of ids) {
-    if (allowed.has(id) && !kept.includes(id)) kept.push(id)
+    if (!allowed.has(id) || kept.includes(id)) continue
+    kept.push(id)
+    if (kept.length >= max) break
   }
   return kept
 }
@@ -107,9 +148,9 @@ function keepService(ship) {
   return {
     serviceRecordId: ship.serviceRecordId ?? null,
     serviceRecordDetail: ship.serviceRecordDetail ?? null,
-    serviceNotableEventIds: filterIdList(ship.serviceNotableEventIds, narrativeEventIds),
+    serviceNotableEventIds: filterIdList(ship.serviceNotableEventIds, narrativeEventIds, MAX_SERVICE_NOTABLE_EVENTS),
     serviceReputationId: narrativeReputationIds.has(ship.serviceReputationId) ? ship.serviceReputationId : null,
-    serviceHonorIds: filterIdList(ship.serviceHonorIds, narrativeHonorIds),
+    serviceHonorIds: filterIdList(ship.serviceHonorIds, narrativeHonorIds, MAX_SERVICE_HONORS),
   }
 }
 
@@ -162,6 +203,13 @@ function legalRefits(ship, refits) {
   return kept
 }
 
+function keepTalents(ship) {
+  return {
+    extraTalentIds: Array.isArray(ship.extraTalentIds) ? ship.extraTalentIds : [],
+    talentChoices: ship.talentChoices && typeof ship.talentChoices === 'object' ? ship.talentChoices : {},
+  }
+}
+
 function kept(ship, overrides) {
   const fields = {
     timeframeId: ship.timeframeId ?? null,
@@ -169,11 +217,30 @@ function kept(ship, overrides) {
     ...keepProfile(ship),
     ...keepService(ship),
     refits: ship.refits ?? [],
+    ...keepTalents(ship),
     ...keepFinishing(ship),
     confirmedAt: null,
     ...overrides,
   }
   return shipRecord({ ...fields, refits: legalRefits(fields, fields.refits ?? []) })
+}
+
+export function toggleShipTalent(ship, talentId) {
+  const probed = toggleExtraTalent(ship, talentId)
+  if (
+    sameList(probed.extraTalentIds ?? [], ship.extraTalentIds ?? [])
+    && JSON.stringify(probed.talentChoices ?? {}) === JSON.stringify(ship.talentChoices ?? {})
+  ) return ship
+  return kept(ship, {
+    extraTalentIds: probed.extraTalentIds ?? [],
+    talentChoices: probed.talentChoices ?? {},
+  })
+}
+
+export function setShipTalentChoice(ship, talentId, choice) {
+  const probed = setTalentChoice(ship, talentId, choice)
+  if (JSON.stringify(probed.talentChoices ?? {}) === JSON.stringify(ship.talentChoices ?? {})) return ship
+  return kept(ship, { talentChoices: probed.talentChoices ?? {} })
 }
 
 export function getTimeframes() {
@@ -370,7 +437,13 @@ export function clearRefits(ship) {
 
 export function normalizeRefits(ship) {
   const refits = legalRefits(ship, Array.isArray(ship.refits) ? ship.refits : [])
-  if (sameList(refits, ship.refits ?? [])) return ship
+  const extraTalentIds = filterExtraTalentIds(ship, ship.extraTalentIds ?? [])
+  const talentChoices = filterTalentChoices({ ...ship, extraTalentIds }, ship.talentChoices ?? {})
+  if (
+    sameList(refits, ship.refits ?? [])
+    && sameList(extraTalentIds, ship.extraTalentIds ?? [])
+    && JSON.stringify(talentChoices) === JSON.stringify(ship.talentChoices ?? {})
+  ) return ship
   return shipRecord({
     timeframeId: ship.timeframeId ?? null,
     spaceframeId: ship.spaceframeId ?? null,
@@ -379,6 +452,8 @@ export function normalizeRefits(ship) {
     missionProfileSystemId: ship.missionProfileSystemId ?? null,
     ...keepService(ship),
     refits,
+    extraTalentIds,
+    talentChoices,
     ...keepFinishing(ship),
     confirmedAt: ship.confirmedAt ?? null,
   })
@@ -486,10 +561,15 @@ export function getServiceHonorById(id) {
 
 export function toggleServiceNotableEvent(ship, eventId) {
   if (!narrativeEventIds.has(eventId)) return ship
-  const current = filterIdList(ship.serviceNotableEventIds, narrativeEventIds)
-  const serviceNotableEventIds = current.includes(eventId)
-    ? current.filter((id) => id !== eventId)
-    : [...current, eventId]
+  const current = filterIdList(ship.serviceNotableEventIds, narrativeEventIds, MAX_SERVICE_NOTABLE_EVENTS)
+  let serviceNotableEventIds
+  if (current.includes(eventId)) {
+    serviceNotableEventIds = current.filter((id) => id !== eventId)
+  } else if (current.length >= MAX_SERVICE_NOTABLE_EVENTS) {
+    return ship
+  } else {
+    serviceNotableEventIds = [...current, eventId]
+  }
   if (sameList(serviceNotableEventIds, current)) return ship
   return kept(ship, { serviceNotableEventIds })
 }
@@ -506,10 +586,15 @@ export function selectServiceReputation(ship, reputationId) {
 
 export function toggleServiceHonor(ship, honorId) {
   if (!narrativeHonorIds.has(honorId)) return ship
-  const current = filterIdList(ship.serviceHonorIds, narrativeHonorIds)
-  const serviceHonorIds = current.includes(honorId)
-    ? current.filter((id) => id !== honorId)
-    : [...current, honorId]
+  const current = filterIdList(ship.serviceHonorIds, narrativeHonorIds, MAX_SERVICE_HONORS)
+  let serviceHonorIds
+  if (current.includes(honorId)) {
+    serviceHonorIds = current.filter((id) => id !== honorId)
+  } else if (current.length >= MAX_SERVICE_HONORS) {
+    return ship
+  } else {
+    serviceHonorIds = [...current, honorId]
+  }
   if (sameList(serviceHonorIds, current)) return ship
   return kept(ship, { serviceHonorIds })
 }
@@ -519,6 +604,18 @@ export function pickServiceRecord(ship, random = Math.random) {
   if (!options.length) return ship
   const record = options[Math.min(Math.floor(random() * options.length), options.length - 1)]
   return selectServiceRecord(ship, record.id)
+}
+
+// Prototype sample battles and wars for the Survivor Random control. The book does not list them.
+export function getSurvivorNamesakes() {
+  return Array.isArray(serviceRecords.survivorNamesakes) ? serviceRecords.survivorNamesakes : []
+}
+
+export function pickSurvivorNamesake(ship, random = Math.random) {
+  const options = getSurvivorNamesakes()
+  if (!getServiceRecordById(ship.serviceRecordId)?.namesake || !options.length) return ship
+  const name = options[Math.min(Math.floor(random() * options.length), options.length - 1)]
+  return setServiceRecordDetail(ship, name)
 }
 
 // The trait is the record's title. Survivor of X has none until the player names the battle or war.
@@ -536,15 +633,100 @@ export function serviceRecordLabel(ship) {
   return serviceRecordTitle(ship) ?? record.name
 }
 
-export function shipTraitNames(ship) {
+function pushUniqueTrait(list, entry) {
+  if (!entry?.name) return
+  if (list.some((existing) => existing.name.toLowerCase() === entry.name.toLowerCase())) return
+  list.push(entry)
+}
+
+// Class + service-record Traits (Core), then narrative Traits from events / reputation / honors (prototype).
+// First source wins on a duplicate name. Pending Survivor namesake is listed but not active for rules.
+export function getShipGameplayTraits(ship) {
+  if (!ship) return []
+  const traits = []
   const frame = getSpaceframeById(ship.spaceframeId)
-  const names = []
-  for (const trait of frame?.traits ?? []) {
-    if (trait && !names.includes(trait)) names.push(trait)
+  for (const name of frame?.traits ?? []) {
+    pushUniqueTrait(traits, {
+      name,
+      source: 'class',
+      sourceId: frame.id,
+      line: 'Class trait',
+      description: null,
+      effect: null,
+      pending: false,
+    })
   }
-  const title = serviceRecordTitle(ship)
-  if (title && !names.includes(title)) names.push(title)
-  return names
+
+  const record = getServiceRecordById(ship.serviceRecordId)
+  if (record) {
+    const title = serviceRecordTitle(ship)
+    pushUniqueTrait(traits, {
+      name: title ?? (record.namesake ? 'Name the battle or war.' : record.name),
+      source: 'serviceRecord',
+      sourceId: record.id,
+      line: 'Service record trait',
+      description: title || !record.namesake ? record.overview : null,
+      effect: title
+        ? `Grants the ${title} trait and the ${record.ruleName} special rule.`
+        : (record.namesake
+          ? 'Pending until the battle or war is named on Service History.'
+          : `Grants the ${record.name} trait and the ${record.ruleName} special rule.`),
+      pending: Boolean(record.namesake && !title),
+      specialRule: { id: record.id, name: record.ruleName, text: record.rule },
+    })
+  }
+
+  for (const id of ship.serviceNotableEventIds ?? []) {
+    const event = getServiceNarrativeEventById(id)
+    const effect = serviceEffects.events?.[id]
+    if (!event || !effect) continue
+    pushUniqueTrait(traits, {
+      name: effect.traitName,
+      source: 'event',
+      sourceId: id,
+      line: 'Notable event',
+      description: event.description ?? event.summary,
+      effect: `Contextual Trait (−1 / +1 on tagged tasks). ${event.implications ?? ''}`.trim(),
+      pending: false,
+    })
+  }
+
+  if (ship.serviceReputationId) {
+    const reputation = getServiceReputationById(ship.serviceReputationId)
+    const effect = serviceEffects.reputations?.[ship.serviceReputationId]
+    if (reputation && effect) {
+      pushUniqueTrait(traits, {
+        name: effect.traitName,
+        source: 'reputation',
+        sourceId: reputation.id,
+        line: 'Reputation',
+        description: reputation.description ?? reputation.summary,
+        effect: `Contextual Trait (−1 / +1 on tagged tasks). ${reputation.implications ?? ''}`.trim(),
+        pending: false,
+      })
+    }
+  }
+
+  for (const id of ship.serviceHonorIds ?? []) {
+    const honor = getServiceHonorById(id)
+    const effect = serviceEffects.honors?.[id]
+    if (!honor || !effect) continue
+    pushUniqueTrait(traits, {
+      name: effect.traitName,
+      source: 'honor',
+      sourceId: id,
+      line: 'Honor',
+      description: honor.description ?? honor.summary,
+      effect: `Contextual Trait (−1 / +1 on tagged tasks). ${honor.implications ?? ''}`.trim(),
+      pending: false,
+    })
+  }
+
+  return traits
+}
+
+export function shipTraitNames(ship) {
+  return getShipGameplayTraits(ship).filter((entry) => !entry.pending).map((entry) => entry.name)
 }
 
 const FINISHING_LISTS = {
@@ -668,10 +850,11 @@ export function isFinishingTouchesComplete(ship) {
   return true
 }
 
-// Earned refits are assigned, including a ship that earned none. The step stays closed until the record is finished.
+// Earned refits are assigned and talents equal Scale. The step stays closed until the service record is finished.
 export function isRefitsFinished(ship) {
   if (!isServiceRecordFinished(ship)) return false
-  return (ship.refits?.length ?? 0) === refitBudget(ship)
+  if ((ship.refits?.length ?? 0) !== refitBudget(ship)) return false
+  return talentsFilled(ship)
 }
 
 export function applyNotableExample(ship) {
@@ -694,6 +877,8 @@ export function shipIssues(ship) {
   }
   if (ship.spaceframeId && isServiceRecordFinished(ship) && (ship.refits?.length ?? 0) !== refitBudget(ship)) {
     issues.push({ stepId: 'refits', message: 'Assign every earned refit.' })
+  } else if (ship.spaceframeId && isServiceRecordFinished(ship) && !talentsFilled(ship)) {
+    issues.push({ stepId: 'refits', message: 'Select starship talents until they equal Scale.' })
   }
   if (ship.spaceframeId && !ship.shipName?.trim()) issues.push({ stepId: 'finishingTouches', message: 'Enter the ship name.' })
   else if (registryRequired(ship) && !ship.registry?.trim()) issues.push({ stepId: 'finishingTouches', message: 'Enter the registry.' })
@@ -725,6 +910,7 @@ export function normalizeConfirmation(ship) {
     missionProfileSystemId: ship.missionProfileSystemId ?? null,
     ...keepService(ship),
     refits: ship.refits ?? [],
+    ...keepTalents(ship),
     ...keepFinishing(ship),
     confirmedAt,
   })
@@ -744,6 +930,23 @@ export function autofillShip(random = Math.random) {
   if (spaceframeId) ship = selectSpaceframe(ship, spaceframeId)
   ship = pickMissionProfile(ship, random)
   ship = pickServiceRecord(ship, random)
-  ship = pickRefits(ship, random)
+  ship = pickRefitsAndTalents(ship, random)
   return pickFinishing(ship)
+}
+
+export function pickRefitsAndTalents(ship, random = Math.random) {
+  let withRefits = pickRefits(ship, random)
+  // Finish leftover budget if the d20 loop stalled on a full system.
+  let guard = 0
+  while ((withRefits.refits?.length ?? 0) < refitBudget(withRefits) && guard < 40) {
+    guard += 1
+    const open = refitSystems.find((entry) => refitRoom(withRefits, entry.id) > 0)
+    if (!open) break
+    withRefits = addRefit(withRefits, open.id)
+  }
+  const filled = pickExtraTalents(withRefits, random)
+  return kept(withRefits, {
+    extraTalentIds: filled.extraTalentIds ?? [],
+    talentChoices: filled.talentChoices ?? {},
+  })
 }

@@ -1,4 +1,18 @@
-import { departmentScore, getMissionProfileById, getSpaceframeById, getTimeframeById, refitSummary, serviceRecordLabel, shipDisplayName, shipDisplayRegistry, shipTraitNames } from '../../ships/shipModel.js'
+import {
+  departmentScore,
+  getMissionProfileById,
+  getSpaceframeById,
+  getTimeframeById,
+  refitSummary,
+  serviceRecordLabel,
+  shipCrewSupport,
+  shipDisplayName,
+  shipDisplayRegistry,
+  shipResistance,
+  shipShields,
+  shipTalentNames,
+  shipTraitNames,
+} from '../../ships/shipModel.js'
 import ShipArt from './ShipArt.jsx'
 
 const EMPTY = '—'
@@ -11,16 +25,6 @@ const DEPARTMENTS = [
   ['science', 'Science'],
   ['medicine', 'Medicine'],
 ]
-
-function talentNames(frame, profile, talentId) {
-  const names = []
-  for (const talent of frame?.talents ?? []) {
-    if (talent?.name && !names.includes(talent.name)) names.push(talent.name)
-  }
-  const chosen = profile?.talents.find((talent) => talent.id === talentId)
-  if (chosen && !names.includes(chosen.name)) names.push(chosen.name)
-  return names
-}
 
 function Row({ label, value }) {
   return (
@@ -37,7 +41,9 @@ export default function StarshipSummary({ ship }) {
   const era = getTimeframeById(ship.timeframeId)
   const frame = getSpaceframeById(ship.spaceframeId)
   const profile = getMissionProfileById(ship.missionProfileId)
-  const talents = talentNames(frame, profile, ship.missionProfileTalentId)
+  const resistance = shipResistance(ship)
+  const shields = shipShields(ship)
+  const crew = shipCrewSupport(ship)
   return (
     <aside className="summary panel ship-summary">
       <h2 className="summary-heading">Starship Summary</h2>
@@ -50,6 +56,9 @@ export default function StarshipSummary({ ship }) {
         <Row label="Mission Profile" value={profile?.name} />
         <Row label="Service Record" value={serviceRecordLabel(ship)} />
         <Row label="Refits" value={refitSummary(ship)} />
+        <Row label="Resistance" value={resistance == null ? null : String(resistance)} />
+        <Row label="Shields" value={shields == null ? null : String(shields)} />
+        <Row label="Crew Support" value={crew == null ? null : String(crew)} />
       </dl>
       <dl className="summary-group">
         <div className="summary-row is-heading">
@@ -63,7 +72,7 @@ export default function StarshipSummary({ ship }) {
       </dl>
       <dl className="summary-group">
         <Row label="Traits" value={joined(shipTraitNames(ship))} />
-        <Row label="Talents" value={joined(talents)} />
+        <Row label="Talents" value={joined(shipTalentNames(ship))} />
       </dl>
     </aside>
   )

@@ -10,6 +10,7 @@ import { checkDicePurchase, savableMomentum, saveMomentum } from '../rules/missi
 import { deriveSeed, seededRandomInt } from '../rules/seededRandom.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { resolveStaTask, rollDice } from '../rules/taskResolver.js'
+import { augmentTaskContext, augmentTaskSpec } from '../ships/serviceEffects.js'
 import { getNpcs, isDown } from './awareness.js'
 import { challengeFor, TASK_SEED_OFFSET } from './challengeObjects.js'
 import { locationReport } from './locationReport.js'
@@ -19,6 +20,14 @@ import { canAct } from './partyControl.js'
 import { groundItemFor } from '../world/GroundItem.js'
 
 export const SCAN_TASK = actionData.actions.find((action) => action.id === 'scan').task
+
+function prepareScan(member, state) {
+  return prepareTask(
+    member.character,
+    augmentTaskSpec(SCAN_TASK),
+    augmentTaskContext({ traits: state.scenario.traits, side: 'player', condition: member.condition }),
+  )
+}
 
 // The best Scan stat among the character's items (0 without a scanner).
 const scanStat = (character) => Math.max(0, ...getEquippedItems(character).map((item) => item.stats.scan ?? 0))
@@ -112,7 +121,7 @@ export function scanNpc(state, memberId, npcId) {
   if (!canScanNpc(state, memberId, npcId).possible) return state
   const member = state.party.members[memberId]
   const npc = state.world.npcs[npcId]
-  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const prepared = prepareScan(member, state)
   if (!prepared.possible) return state
 
   const key = state.scenario.taskCount
@@ -151,7 +160,7 @@ export function scanDestructible(state, memberId, objectId) {
   if (!canScanDestructible(state, memberId, objectId).possible) return state
   const member = state.party.members[memberId]
   const record = state.environment.destructibles[objectId]
-  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const prepared = prepareScan(member, state)
   if (!prepared.possible) return state
 
   const key = state.scenario.taskCount
@@ -193,7 +202,7 @@ export function scanChallenge(state, memberId, objectId) {
   const member = state.party.members[memberId]
   const challenge = challengeFor(state, objectId)
   const position = challenge.position()
-  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const prepared = prepareScan(member, state)
   if (!prepared.possible) return state
 
   const key = state.scenario.taskCount
@@ -233,7 +242,7 @@ export function scanGroundItem(state, memberId, instanceId) {
   if (!canScanGroundItem(state, memberId, instanceId).possible) return state
   const member = state.party.members[memberId]
   const position = groundItemFor(instanceId).position(state)
-  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const prepared = prepareScan(member, state)
   if (!prepared.possible) return state
 
   const key = state.scenario.taskCount
@@ -276,7 +285,7 @@ export function scanGroundItem(state, memberId, instanceId) {
 export function scanArea(state, memberId) {
   if (!canScan(state, memberId).possible) return state
   const member = state.party.members[memberId]
-  const prepared = prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition })
+  const prepared = prepareScan(member, state)
   if (!prepared.possible) return state
 
   const key = state.scenario.taskCount

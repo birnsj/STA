@@ -1,5 +1,5 @@
 {
-  "note": "Prototype narrative catalogs for Screen 04. Not STA 2E mechanics (Core Rulebook p. 216). Events and honors are multi-select; reputation is one or none. No mechanical bonuses.",
+  "note": "Prototype narrative catalogs for Screen 04. Not STA 2E mechanics (Core Rulebook p. 216). Events and honors: up to 2 each (mockup). Reputation: one or none. Gameplay: each selection maps to a distinct ship Trait in serviceEffects.json (−1 / +1 on tagged tasks only).",
   "events": [
     {
       "id": "first-contact",

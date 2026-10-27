@@ -11,13 +11,18 @@ import {
   getServiceRecords,
   getServiceReputationById,
   getServiceReputations,
+  getShipGameplayTraits,
   getSpaceframeById,
   isMissionProfileComplete,
+  MAX_SERVICE_HONORS,
+  MAX_SERVICE_NOTABLE_EVENTS,
+  pickSurvivorNamesake,
   serviceRecordTitle,
 } from '../../ships/shipModel.js'
+import { serviceSpecialRuleStatus } from '../../ships/serviceEffects.js'
 
 const INTRO = 'A service record is optional. It adds one trait, named for the record, and one special rule.'
-const NARRATIVE_STATUS = 'Narrative only · not STA 2E Service Record mechanics'
+const NARRATIVE_STATUS = 'Prototype narrative Trait · −1 / +1 on tagged tasks · not STA 2E Service Record mechanics'
 
 const TABS = [
   ['history', 'Service History'],
@@ -27,13 +32,14 @@ const TABS = [
   ['honors', 'Honors & Citations'],
 ]
 
-function OptionCard({ name, line, artSrc, selected, onClick, role = 'option' }) {
+function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', capped = false }) {
   return (
     <button
       type="button"
       role={role}
       aria-selected={selected}
-      className={`service-card${selected ? ' is-selected' : ''}`}
+      aria-disabled={capped || undefined}
+      className={`service-card${selected ? ' is-selected' : ''}${capped ? ' is-capped' : ''}`}
       onClick={onClick}
     >
       <ShipArt src={artSrc} alt="" className="service-card-art" />
@@ -94,38 +100,53 @@ function EffectsList({ items }) {
   )
 }
 
-function buildTraitCards(ship, selected) {
+function artForTrait(entry, ship) {
+  if (entry.source === 'class') {
+    const frame = getSpaceframeById(ship.spaceframeId)
+    return frame ? `/art/ships/classes/${frame.id}.png` : null
+  }
+  if (entry.source === 'serviceRecord') return `/art/ships/service/${entry.sourceId}.png`
+  if (entry.source === 'event') return `/art/ships/service/events/${entry.sourceId}.png`
+  if (entry.source === 'reputation') return `/art/ships/service/reputation/${entry.sourceId}.png`
+  if (entry.source === 'honor') return `/art/ships/service/honors/${entry.sourceId}.png`
+  return null
+}
+
+function sourceLabel(entry, ship) {
+  if (entry.source === 'class') {
+    const frame = getSpaceframeById(ship.spaceframeId)
+    return frame ? `${frame.name} spaceframe (official)` : 'Spaceframe (official)'
+  }
+  if (entry.source === 'serviceRecord') {
+    const record = getServiceRecordById(entry.sourceId)
+    return record
+      ? `Service record · Star Trek Adventures 2E Core Rulebook, p. ${record.page}`
+      : 'Service record (official)'
+  }
+  if (entry.source === 'event') return 'Notable event (prototype narrative Trait)'
+  if (entry.source === 'reputation') return 'Reputation (prototype narrative Trait)'
+  if (entry.source === 'honor') return 'Honor (prototype narrative Trait)'
+  return 'Ship Trait'
+}
+
+function classTraitEffect(ship) {
   const frame = getSpaceframeById(ship.spaceframeId)
-  const cards = []
-  for (const name of frame?.traits ?? []) {
-    cards.push({
-      id: `class:${name}`,
-      name,
-      line: 'Class trait',
-      artSrc: frame ? `/art/ships/classes/${frame.id}.png` : null,
-      description: null,
-      source: frame ? `${frame.name} spaceframe` : 'Spaceframe',
-      effect: null,
-    })
-  }
-  if (selected) {
-    const title = serviceRecordTitle(ship)
-    cards.push({
-      id: `service:${selected.id}`,
-      name: title ?? (selected.namesake ? 'Name the battle or war.' : selected.name),
-      line: 'Service record trait',
-      artSrc: `/art/ships/service/${selected.id}.png`,
-      description: title || !selected.namesake ? selected.overview : null,
-      source: `Star Trek Adventures 2E Core Rulebook, p. ${selected.page}`,
-      effect: title
-        ? `Grants the ${title} trait and the ${selected.ruleName} special rule.`
-        : (selected.namesake
-          ? 'Pending until the battle or war is named on Service History.'
-          : `Grants the ${selected.name} trait and the ${selected.ruleName} special rule.`),
-      pending: selected.namesake && !title,
-    })
-  }
-  return cards
+  if (frame?.overview) return `Official class trait. ${frame.overview}`
+  return 'Unknown. No longer description is stored for this class trait in project data.'
+}
+
+function buildTraitCards(ship) {
+  return getShipGameplayTraits(ship).map((entry) => ({
+    id: `${entry.source}:${entry.sourceId}:${entry.name}`,
+    name: entry.name,
+    line: entry.line,
+    artSrc: artForTrait(entry, ship),
+    description: entry.description,
+    source: sourceLabel(entry, ship),
+    effect: entry.effect ?? (entry.source === 'class' ? classTraitEffect(ship) : null),
+    pending: entry.pending,
+    specialRule: entry.specialRule,
+  }))
 }
 
 export default function ServiceRecordScreen({
@@ -159,7 +180,8 @@ export default function ServiceRecordScreen({
   const [focusHonorId, setFocusHonorId] = useState(null)
   const [focusTraitId, setFocusTraitId] = useState(null)
 
-  const traitCards = buildTraitCards(ship, selected)
+  const traitCards = buildTraitCards(ship)
+  const specialStatus = serviceSpecialRuleStatus(ship)
   const focusEvent = getServiceNarrativeEventById(focusEventId)
     ?? getServiceNarrativeEventById(ship.serviceNotableEventIds?.[0])
   const focusReputation = getServiceReputationById(ship.serviceReputationId)
@@ -173,7 +195,14 @@ export default function ServiceRecordScreen({
 
   useEffect(() => {
     setFocusTraitId(null)
-  }, [ship.spaceframeId, ship.serviceRecordId, ship.serviceRecordDetail])
+  }, [
+    ship.spaceframeId,
+    ship.serviceRecordId,
+    ship.serviceRecordDetail,
+    ship.serviceNotableEventIds,
+    ship.serviceReputationId,
+    ship.serviceHonorIds,
+  ])
 
   const leftList = (() => {
     if (tab === 'history') {
@@ -193,20 +222,24 @@ export default function ServiceRecordScreen({
       )
     }
     if (tab === 'events') {
+      const eventIds = ship.serviceNotableEventIds ?? []
+      const atEventCap = eventIds.length >= MAX_SERVICE_NOTABLE_EVENTS
       return (
         <div className="service-list" role="listbox" aria-label="Notable events">
           {events.map((event) => {
-            const chosen = ship.serviceNotableEventIds?.includes(event.id)
+            const chosen = eventIds.includes(event.id)
+            const blocked = atEventCap && !chosen
             return (
               <OptionCard
                 key={event.id}
                 name={event.name}
-                line={chosen ? 'Selected' : 'Narrative'}
+                line={chosen ? 'Selected' : blocked ? `Limit ${MAX_SERVICE_NOTABLE_EVENTS}` : 'Narrative'}
                 artSrc={`/art/ships/service/events/${event.id}.png`}
                 selected={Boolean(chosen)}
+                capped={blocked}
                 onClick={() => {
                   setFocusEventId(event.id)
-                  onToggleEvent(event.id)
+                  if (!blocked) onToggleEvent(event.id)
                 }}
               />
             )
@@ -250,20 +283,24 @@ export default function ServiceRecordScreen({
         </div>
       )
     }
+    const honorIds = ship.serviceHonorIds ?? []
+    const atHonorCap = honorIds.length >= MAX_SERVICE_HONORS
     return (
       <div className="service-list" role="listbox" aria-label="Honors and citations">
         {honors.map((honor) => {
-          const chosen = ship.serviceHonorIds?.includes(honor.id)
+          const chosen = honorIds.includes(honor.id)
+          const blocked = atHonorCap && !chosen
           return (
             <OptionCard
               key={honor.id}
               name={honor.name}
-              line={chosen ? 'Selected' : 'Narrative'}
+              line={chosen ? 'Selected' : blocked ? `Limit ${MAX_SERVICE_HONORS}` : 'Narrative'}
               artSrc={`/art/ships/service/honors/${honor.id}.png`}
               selected={Boolean(chosen)}
+              capped={blocked}
               onClick={() => {
                 setFocusHonorId(honor.id)
-                onToggleHonor(honor.id)
+                if (!blocked) onToggleHonor(honor.id)
               }}
             />
           )
@@ -312,15 +349,29 @@ export default function ServiceRecordScreen({
         extra={selected?.namesake ? (
           <label className="service-name">
             Battle or war
-            <input
-              type="text"
-              value={draft}
-              onChange={(event) => {
-                setDraft(event.target.value)
-                onDetail(event.target.value)
-              }}
-              onBlur={() => setDraft(ship.serviceRecordDetail ?? '')}
-            />
+            <span className="service-name-row">
+              <input
+                type="text"
+                value={draft}
+                onChange={(event) => {
+                  setDraft(event.target.value)
+                  onDetail(event.target.value)
+                }}
+                onBlur={() => setDraft(ship.serviceRecordDetail ?? '')}
+              />
+              <button
+                type="button"
+                title="Pick a sample battle or war."
+                onClick={() => {
+                  const next = pickSurvivorNamesake(ship)
+                  const name = next.serviceRecordDetail ?? ''
+                  setDraft(name)
+                  onDetail(name)
+                }}
+              >
+                Random
+              </button>
+            </span>
           </label>
         ) : null}
         emptyBody="Unset. A service record is optional."
@@ -335,7 +386,7 @@ export default function ServiceRecordScreen({
         context={narrativeContext(focusEvent)}
         effects={focusEvent?.implications ? <p>{focusEvent.implications}</p> : null}
         sourceLabel={focusEvent ? NARRATIVE_STATUS : null}
-        emptyBody="Unset. Select one or more narrative events. None are required."
+        emptyBody={`Unset. Select up to ${MAX_SERVICE_NOTABLE_EVENTS} narrative events. None are required.`}
       />
     )
   } else if (tab === 'reputation') {
@@ -387,15 +438,23 @@ export default function ServiceRecordScreen({
                   </>
                 ),
               },
-              selected && focusTrait.id.startsWith('service:') ? {
+              focusTrait.specialRule ? {
                 key: 'rule',
                 node: (
                   <>
-                    <strong>{selected.ruleName}.</strong>
+                    <strong>{focusTrait.specialRule.name}.</strong>
                     {' '}
-                    {selected.rule}
+                    {focusTrait.specialRule.text}
                     {' '}
-                    <span>(Special rule — not a trait.)</span>
+                    <span>
+                      (Special rule — not a trait.
+                      {specialStatus.available === 'partial'
+                        ? ` ${specialStatus.reason}`
+                        : specialStatus.available
+                          ? ''
+                          : ` ${specialStatus.reason}`}
+                      )
+                    </span>
                   </>
                 ),
               } : null,
@@ -417,7 +476,7 @@ export default function ServiceRecordScreen({
         context={narrativeContext(focusHonor)}
         effects={focusHonor?.implications ? <p>{focusHonor.implications}</p> : null}
         sourceLabel={focusHonor ? NARRATIVE_STATUS : null}
-        emptyBody="Unset. Select one or more narrative honors. None are required."
+        emptyBody={`Unset. Select up to ${MAX_SERVICE_HONORS} narrative honors. None are required.`}
       />
     )
   }

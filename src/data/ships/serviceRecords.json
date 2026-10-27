@@ -1,5 +1,17 @@
 {
-  "note": "STA 2e Core Rulebook v1.1, p. 216. A service record is optional. It adds a trait named for the record and one special rule. namesake means the player replaces X with a battle or war. Crew Support and Prototype's extra refits are described here and not applied on this screen.",
+  "note": "STA 2e Core Rulebook v1.1, p. 216. A service record is optional. It adds a trait named for the record and one special rule. namesake means the player replaces X with a battle or war. Crew Support and Prototype's extra refits are described here and not applied on this screen. survivorNamesakes are prototype sample names for the Random control; the book does not list them.",
+  "survivorNamesakes": [
+    "Wolf 359",
+    "the Dominion War",
+    "the Battle of Chin'toka",
+    "the Battle of Cardassia",
+    "the Battle of Sector 001",
+    "Narendra III",
+    "the Earth-Romulan War",
+    "the Klingon War",
+    "Operation Return",
+    "the Battle of Maxia"
+  ],
   "records": [
     {
       "id": "aging-relic",

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { beforeEach, describe, it } from 'node:test'
 import {
-  addRefit,
   applyNotableExample,
   createEmptyShip,
   departmentScore,
@@ -11,6 +10,7 @@ import {
   isRefitsFinished,
   namePrefix,
   pickFinishing,
+  pickRefitsAndTalents,
   registryPrefix,
   registryRequired,
   selectMissionProfile,
@@ -116,9 +116,9 @@ describe('starship finishing touches', () => {
     assert.equal(picked.bridgeLayoutId, 'standard')
     let ready = battlecruiser(shipOf('tos', 'constitution'))
     assert.equal(isRefitsFinished(ready), false)
-    for (const system of ['comms', 'engines', 'structure']) ready = addRefit(ready, system)
+    ready = pickRefitsAndTalents(ready)
     assert.equal(isRefitsFinished(ready), true)
-    const none = battlecruiser(shipOf('voy', 'intrepid'))
+    const none = pickRefitsAndTalents(battlecruiser(shipOf('voy', 'intrepid')))
     assert.equal(isRefitsFinished(none), true)
   })
 

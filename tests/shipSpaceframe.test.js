@@ -35,6 +35,8 @@ const ship = (fields) => ({
   serviceReputationId: null,
   serviceHonorIds: [],
   refits: [],
+  extraTalentIds: [],
+  talentChoices: {},
   shipName: null,
   registry: null,
   bridgeLayoutId: null,
@@ -103,7 +105,7 @@ describe('starship spaceframe', () => {
     assert.equal(loadShip().departmentModifiers, undefined)
   })
 
-  it('keeps Constitutionâ€™s saucer separation and its talents, and leaves the example classes alone', () => {
+  it('keeps Constitution’s saucer separation and its talents, and leaves the example classes alone', () => {
     const constitution = getSpaceframeById('constitution')
     assert.ok(constitution.specialRuleIds.includes('saucer-separation'))
     assert.deepEqual(

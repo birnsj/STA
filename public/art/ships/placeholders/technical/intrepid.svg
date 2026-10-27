@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400">
+  <rect width="960" height="400" fill="#061018"/>
+  <g stroke="#0e2a3d" stroke-width="1" opacity="0.85">
+    <path d="M0 40H960M0 80H960M0 120H960M0 160H960M0 200H960M0 240H960M0 280H960M0 320H960M0 360H960"/>
+    <path d="M40 0V400M80 0V400M120 0V400M160 0V400M200 0V400M240 0V400M280 0V400M320 0V400M360 0V400M400 0V400M440 0V400M480 0V400M520 0V400M560 0V400M600 0V400M640 0V400M680 0V400M720 0V400M760 0V400M800 0V400M840 0V400M880 0V400M920 0V400"/>
+  </g>
+  <g fill="none" stroke="#7eb6d6" stroke-width="2">
+    <ellipse cx="420" cy="200" rx="150" ry="70"/>
+    <rect x="540" y="175" width="180" height="50" rx="8"/>
+    <path d="M700 160h90v20H700zM700 220h90v20H700z"/>
+    <path d="M790 150v100"/>
+  </g>
+  <text x="24" y="28" fill="#9ec9e0" font-family="Consolas, monospace" font-size="14">TECHNICAL SCHEMATIC — TOP VIEW</text>
+  <text x="24" y="384" fill="#ffb45a" font-family="Consolas, monospace" font-size="16">INTREPID · PLACEHOLDER</text>
+  <text x="780" y="28" fill="#5a8799" font-family="Consolas, monospace" font-size="12">SCALE REF</text>
+</svg>

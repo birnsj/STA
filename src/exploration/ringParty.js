@@ -7,6 +7,15 @@ import partyActionData from '../data/adaptation/exploration/partyActions.json'
 import { isDefeated } from '../rules/personalCondition.js'
 import { prepareTask } from '../rules/taskPreparation.js'
 import { recommendPerformers } from '../rules/taskRecommendation.js'
+import { augmentTaskContext, augmentTaskSpec } from '../ships/serviceEffects.js'
+
+function preparePartyPreview(character, task, state, condition) {
+  return prepareTask(
+    character,
+    augmentTaskSpec(task),
+    augmentTaskContext({ traits: state.scenario.traits, side: 'player', condition }),
+  )
+}
 import { challengeFor, INTERACT_RANGE } from './challengeObjects.js'
 import { previewObjectShot } from './explorationEnvironment.js'
 import { distance } from './navigation.js'
@@ -73,7 +82,7 @@ export function ringPartyView(state, target, buttonId) {
         .filter((member) => !blocked[member.id])
         .map((member) => ({
           id: member.id,
-          prepared: prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition }),
+          prepared: preparePartyPreview(member.character, SCAN_TASK, state, member.condition),
         })),
     )
   } else if (target.objectId && buttonId === 'scan') {
@@ -83,7 +92,7 @@ export function ringPartyView(state, target, buttonId) {
         .filter((member) => !blocked[member.id])
         .map((member) => ({
           id: member.id,
-          prepared: prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition }),
+          prepared: preparePartyPreview(member.character, SCAN_TASK, state, member.condition),
         })),
     )
   } else if (target.groundItemId && buttonId === 'scan') {
@@ -93,7 +102,7 @@ export function ringPartyView(state, target, buttonId) {
         .filter((member) => !blocked[member.id])
         .map((member) => ({
           id: member.id,
-          prepared: prepareTask(member.character, SCAN_TASK, { traits: state.scenario.traits, side: 'player', condition: member.condition }),
+          prepared: preparePartyPreview(member.character, SCAN_TASK, state, member.condition),
         })),
     )
   } else if (target.objectId && buttonId) {
@@ -106,7 +115,7 @@ export function ringPartyView(state, target, buttonId) {
     recommendation = recommendPerformers(
       members
         .filter((member) => !blocked[member.id])
-        .map((member) => ({ id: member.id, prepared: prepareTask(member.character, task, { traits: state.scenario.traits, side: 'player', condition: member.condition }) })),
+        .map((member) => ({ id: member.id, prepared: preparePartyPreview(member.character, task, state, member.condition) })),
     )
   }
 

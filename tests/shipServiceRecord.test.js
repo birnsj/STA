@@ -11,6 +11,7 @@ import {
   getSpaceframeById,
   isMissionProfileComplete,
   pickServiceRecord,
+  pickSurvivorNamesake,
   selectMissionProfile,
   selectMissionProfileTalent,
   selectServiceRecord,
@@ -48,6 +49,8 @@ const saved = (fields) => ({
   serviceReputationId: null,
   serviceHonorIds: [],
   refits: [],
+  extraTalentIds: [],
+  talentChoices: {},
   shipName: null,
   registry: null,
   bridgeLayoutId: null,
@@ -150,6 +153,16 @@ describe('starship service record', () => {
     assert.equal(pickServiceRecord(constitution(), () => 0).serviceRecordId, 'aging-relic')
   })
 
+  it('fills a Survivor namesake from the sample list', () => {
+    const open = selectServiceRecord(constitution(), 'survivor')
+    const named = pickSurvivorNamesake(open, () => 0)
+    assert.equal(named.serviceRecordDetail, 'Wolf 359')
+    assert.ok(shipTraitNames(named).includes('Survivor of Wolf 359'))
+    assert.equal(pickSurvivorNamesake(named, () => 0), named)
+    const without = constitution()
+    assert.equal(pickSurvivorNamesake(without, () => 0), without)
+  })
+
   it('treats the mission profile as complete only when its talent and system are chosen', () => {
     const open = selectMissionProfile(constitution(), 'battlecruiser')
     assert.equal(isMissionProfileComplete(open), false)
@@ -169,7 +182,10 @@ describe('starship service record', () => {
     assert.deepEqual(noted.serviceHonorIds, ['starfleet-commendation'])
     assert.equal(systemScore(noted, 'weapons'), systemScore(base, 'weapons'))
     assert.equal(departmentScore(noted, 'command'), departmentScore(base, 'command'))
-    assert.deepEqual(shipTraitNames(noted), shipTraitNames(base))
+    assert.ok(shipTraitNames(noted).includes('First Contact Experience'))
+    assert.ok(shipTraitNames(noted).includes('Distinguished Reputation'))
+    assert.ok(shipTraitNames(noted).includes('Starfleet Commendation'))
+    assert.ok(shipTraitNames(base).every((name) => shipTraitNames(noted).includes(name)))
 
     const clearedRep = selectServiceReputation(noted, 'distinguished')
     assert.equal(clearedRep.serviceReputationId, null)
@@ -184,6 +200,15 @@ describe('starship service record', () => {
     assert.deepEqual(clearServiceRecord(switched), saved({ timeframeId: 'tos', spaceframeId: 'constitution' }))
     assert.equal(toggleServiceNotableEvent(noted, 'no-such-event'), noted)
     assert.equal(toggleServiceHonor(noted, 'no-such-honor'), noted)
+
+    const thirdEvent = toggleServiceNotableEvent(noted, 'major-scientific-discovery')
+    assert.equal(thirdEvent, noted)
+    assert.deepEqual(noted.serviceNotableEventIds, ['first-contact', 'rescue-operation'])
+    let twoHonors = toggleServiceHonor(noted, 'meritorious-service-award')
+    assert.deepEqual(twoHonors.serviceHonorIds, ['starfleet-commendation', 'meritorious-service-award'])
+    const thirdHonor = toggleServiceHonor(twoHonors, 'humanitarian-service-citation')
+    assert.equal(thirdHonor, twoHonors)
+    assert.deepEqual(twoHonors.serviceHonorIds, ['starfleet-commendation', 'meritorious-service-award'])
   })
 
   it('saves and loads narrative ids with the ship JSON', () => {

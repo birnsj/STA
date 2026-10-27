@@ -1,0 +1,124 @@
+{
+  "note": "Prototype gameplay bindings for Screen 04 narrative catalogs (serviceNarrative.json). Not STA 2E published lists. Each selection becomes a distinct ship Trait name. Difficulty −1 (helpful) / +1 (complicating) is a designer adaptation (2026-10-26) applied only when a task's tags intersect the entry's tags and the Trait is on the active ship (savedShipId). Official Service History special rules are stubbed in serviceEffects.js, not listed here.",
+  "difficulty": { "helpful": -1, "complicating": 1 },
+  "events": {
+    "first-contact": {
+      "traitName": "First Contact Experience",
+      "stance": "helpful",
+      "tags": ["diplomacy", "first-contact", "social"]
+    },
+    "rescue-operation": {
+      "traitName": "Rescue Experience",
+      "stance": "helpful",
+      "tags": ["rescue", "medicine", "medical", "crisis", "firstAid"]
+    },
+    "major-scientific-discovery": {
+      "traitName": "Scientific Prestige",
+      "stance": "helpful",
+      "tags": ["science", "sensors", "research", "analysis"]
+    },
+    "border-incident": {
+      "traitName": "Border Scar",
+      "stance": "complicating",
+      "tags": ["diplomacy", "border", "social"],
+      "also": { "stance": "helpful", "tags": ["security", "tactical", "combat"] }
+    },
+    "diplomatic-breakthrough": {
+      "traitName": "Diplomatic Credibility",
+      "stance": "helpful",
+      "tags": ["diplomacy", "social", "command"]
+    },
+    "emergency-evacuation": {
+      "traitName": "Evacuation Experience",
+      "stance": "helpful",
+      "tags": ["rescue", "crisis", "medicine", "medical", "firstAid"]
+    },
+    "historic-exploration": {
+      "traitName": "Explorer's Mark",
+      "stance": "helpful",
+      "tags": ["exploration", "science", "sensors", "analysis"]
+    },
+    "major-systems-failure": {
+      "traitName": "Scarred Systems",
+      "stance": "complicating",
+      "tags": ["engineering", "systems", "electronics"],
+      "also": { "stance": "helpful", "tags": ["repair", "jury-rig"] }
+    }
+  },
+  "reputations": {
+    "distinguished": {
+      "traitName": "Distinguished Reputation",
+      "stance": "helpful",
+      "tags": ["command", "social", "diplomacy"]
+    },
+    "dependable": {
+      "traitName": "Dependable Reputation",
+      "stance": "helpful",
+      "tags": ["engineering", "operations", "support"]
+    },
+    "pioneering": {
+      "traitName": "Pioneering Reputation",
+      "stance": "helpful",
+      "tags": ["exploration", "science", "prototype"]
+    },
+    "diplomatic": {
+      "traitName": "Diplomatic Reputation",
+      "stance": "helpful",
+      "tags": ["diplomacy", "social"]
+    },
+    "formidable": {
+      "traitName": "Formidable Reputation",
+      "stance": "helpful",
+      "tags": ["security", "tactical", "combat", "intimidate"]
+    },
+    "controversial": {
+      "traitName": "Controversial Reputation",
+      "stance": "complicating",
+      "tags": ["command", "diplomacy", "social"],
+      "also": { "stance": "helpful", "tags": ["security", "tactical"] }
+    },
+    "unproven": {
+      "traitName": "Unproven Reputation",
+      "stance": "complicating",
+      "tags": ["command", "social", "support"]
+    }
+  },
+  "honors": {
+    "starfleet-commendation": {
+      "traitName": "Starfleet Commendation",
+      "stance": "helpful",
+      "tags": ["command", "social", "starfleet"]
+    },
+    "distinguished-exploration-citation": {
+      "traitName": "Exploration Citation",
+      "stance": "helpful",
+      "tags": ["exploration", "science"]
+    },
+    "scientific-achievement-award": {
+      "traitName": "Scientific Achievement",
+      "stance": "helpful",
+      "tags": ["science", "research"]
+    },
+    "humanitarian-service-citation": {
+      "traitName": "Humanitarian Citation",
+      "stance": "helpful",
+      "tags": ["medicine", "medical", "rescue", "crisis", "firstAid"]
+    },
+    "diplomatic-excellence-citation": {
+      "traitName": "Diplomatic Citation",
+      "stance": "helpful",
+      "tags": ["diplomacy", "social"]
+    },
+    "meritorious-service-award": {
+      "traitName": "Meritorious Service",
+      "stance": "helpful",
+      "tags": ["command", "operations", "support"]
+    },
+    "defense-of-the-federation-citation": {
+      "traitName": "Defense Citation",
+      "stance": "helpful",
+      "tags": ["security", "tactical", "combat"],
+      "also": { "stance": "complicating", "tags": ["diplomacy", "peace"] }
+    }
+  }
+}

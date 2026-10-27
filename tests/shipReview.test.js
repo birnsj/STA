@@ -8,6 +8,7 @@ import {
   isShipComplete,
   departmentScore,
   getExampleClasses,
+  pickRefitsAndTalents,
   reviewScoreLabel,
   selectMissionProfile,
   selectMissionProfileTalent,
@@ -17,6 +18,7 @@ import {
   setShipName,
   shipIssues,
   systemScore,
+  toggleShipTalent,
 } from '../src/ships/shipModel.js'
 import { loadShip, saveShip, shipFromRecord } from '../src/ships/persistence.js'
 import { loadSavedShips, saveConfirmedShip } from '../src/ships/savedShips.js'
@@ -39,7 +41,14 @@ function battlecruiser() {
 }
 
 function assigned() {
-  return ['comms', 'engines', 'structure'].reduce((ship, system) => addRefit(ship, system), battlecruiser())
+  // Fixed refits keep Weapons at class+profile (8). Fill remaining talent slots to Scale.
+  let ship = ['comms', 'engines', 'structure'].reduce((next, system) => addRefit(next, system), battlecruiser())
+  for (const id of ['advanced-shields', 'backup-eps-conduits', 'captains-yacht', 'improved-warp-drive', 'secondary-reactors']) {
+    const next = toggleShipTalent(ship, id)
+    if (next !== ship) ship = next
+    if ((ship.extraTalentIds?.length ?? 0) + 3 >= 4) break
+  }
+  return ship
 }
 
 describe('starship review', () => {
