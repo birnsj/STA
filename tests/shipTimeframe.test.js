@@ -4,6 +4,7 @@ import timeframes from '../src/data/ships/timeframes.json'
 import {
   clearTimeframe,
   createEmptyShip,
+  emptyAppearanceDetail,
   getEligibleSpaceframes,
   getExampleClasses,
   getTimeframes,
@@ -28,6 +29,7 @@ const ship = (fields) => ({
   version: 1,
   timeframeId: null,
   campaignYear: null,
+  classDesignation: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -48,6 +50,7 @@ const ship = (fields) => ({
   nacelleCapsId: null,
   emblemStyleId: null,
   secondaryMarkingsId: null,
+  appearanceDetail: emptyAppearanceDetail(),
   confirmedAt: null,
   ...fields,
 })

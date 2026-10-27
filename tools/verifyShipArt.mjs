@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  appearanceArt,
   bridgeArt,
   classArt,
   classViewArts,
@@ -69,6 +70,15 @@ for (const entry of finishing.stripingStyles ?? []) paths.add(finishingArt('stri
 for (const entry of finishing.nacelleCaps ?? []) paths.add(finishingArt('nacelleCapsId', entry.id))
 for (const entry of finishing.emblemStyles ?? []) paths.add(finishingArt('emblemStyleId', entry.id))
 for (const entry of finishing.secondaryMarkings ?? []) paths.add(finishingArt('secondaryMarkingsId', entry.id))
+
+const appearanceCatalog = data('appearanceCatalog.json')
+for (const category of appearanceCatalog.categories ?? []) {
+  for (const slot of category.slots ?? []) {
+    for (const option of slot.options ?? []) {
+      if (option.visual?.file) paths.add(appearanceArt(option.visual.file))
+    }
+  }
+}
 
 const missing = []
 for (const url of [...paths].sort()) {

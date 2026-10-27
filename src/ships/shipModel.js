@@ -8,6 +8,17 @@ import serviceRecords from '../data/ships/serviceRecords.json'
 import spaceframeData from '../data/ships/spaceframes.json'
 import timeframes from '../data/ships/timeframes.json'
 import {
+  appearanceDetailEqual,
+  emptyAppearanceDetail,
+  getAppearanceOption,
+  getFinishingPackageOption,
+  isAppearanceOptionAvailable,
+  isFinishingPackageAvailable,
+  normalizeAppearanceDetail,
+  sanitizeAppearanceDetail,
+  sanitizeFinishingPackages,
+} from './appearanceRules.js'
+import {
   filterExtraTalentIds,
   filterTalentChoices,
   pickExtraTalents,
@@ -15,6 +26,27 @@ import {
   talentsFilled,
   toggleExtraTalent,
 } from './shipTalents.js'
+
+export {
+  appearanceDetailEqual,
+  appearanceLayerPaths,
+  appearanceOptionAvailability,
+  emptyAppearanceDetail,
+  findAppearanceOptionById,
+  finishingPackageAvailability,
+  getAppearanceCategories,
+  getAppearanceCategoryById,
+  getAppearanceContextEntries,
+  getAppearanceOption,
+  getAppearanceSlot,
+  getFinishingPackageOption,
+  getFinishingPackageOptions,
+  isAppearanceOptionAvailable,
+  isFinishingPackageAvailable,
+  normalizeAppearanceDetail,
+  sanitizeAppearanceDetail,
+  sanitizeFinishingPackages,
+} from './appearanceRules.js'
 
 export {
   APPEARANCE_FIELDS,
@@ -83,12 +115,14 @@ function shipRecord({
   talentChoices = {},
   shipName = null,
   registry = null,
+  classDesignation = null,
   bridgeLayoutId = null,
   hullMarkingsId = null,
   stripingStyleId = null,
   nacelleCapsId = null,
   emblemStyleId = null,
   secondaryMarkingsId = null,
+  appearanceDetail = null,
   confirmedAt = null,
 }) {
   const draft = {
@@ -109,12 +143,14 @@ function shipRecord({
     talentChoices,
     shipName,
     registry,
+    classDesignation,
     bridgeLayoutId,
     hullMarkingsId,
     stripingStyleId,
     nacelleCapsId,
     emblemStyleId,
     secondaryMarkingsId,
+    appearanceDetail: normalizeAppearanceDetail(appearanceDetail),
     confirmedAt,
   }
   const nextExtra = filterExtraTalentIds(draft, extraTalentIds)
@@ -168,13 +204,22 @@ function keepFinishing(ship) {
   return {
     shipName: ship.shipName ?? null,
     registry: ship.registry ?? null,
+    classDesignation: ship.classDesignation ?? null,
     bridgeLayoutId: ship.bridgeLayoutId ?? null,
     hullMarkingsId: ship.hullMarkingsId ?? null,
     stripingStyleId: ship.stripingStyleId ?? null,
     nacelleCapsId: ship.nacelleCapsId ?? null,
     emblemStyleId: ship.emblemStyleId ?? null,
     secondaryMarkingsId: ship.secondaryMarkingsId ?? null,
+    appearanceDetail: normalizeAppearanceDetail(ship.appearanceDetail),
   }
+}
+
+function withSanitizedAppearance(ship, overrides) {
+  const base = { ...ship, ...overrides }
+  const { appearanceDetail } = sanitizeAppearanceDetail(base)
+  const { finishing } = sanitizeFinishingPackages({ ...base, appearanceDetail })
+  return kept(ship, { ...overrides, appearanceDetail, ...finishing })
 }
 
 function sameList(left, right) {
@@ -344,7 +389,7 @@ export function selectTimeframe(ship, timeframeId) {
   const campaignYear = clampCampaignYear(timeframeId, ship.timeframeId === timeframeId ? ship.campaignYear : null)
   if (ship.timeframeId === timeframeId && ship.campaignYear === campaignYear) return ship
   const spaceframeId = isSpaceframeEligible(timeframeId, ship.spaceframeId, campaignYear) ? ship.spaceframeId : null
-  return kept(ship, { timeframeId, campaignYear, spaceframeId })
+  return withSanitizedAppearance(ship, { timeframeId, campaignYear, spaceframeId })
 }
 
 export function setCampaignYear(ship, year) {
@@ -569,7 +614,7 @@ export function selectServiceRecord(ship, serviceRecordId) {
   const record = getServiceRecordById(serviceRecordId)
   if (!record) return ship
   if (ship.serviceRecordId === serviceRecordId) return ship
-  return kept(ship, { serviceRecordId, serviceRecordDetail: null })
+  return withSanitizedAppearance(ship, { serviceRecordId, serviceRecordDetail: null })
 }
 
 export function setServiceRecordDetail(ship, text) {
@@ -577,12 +622,12 @@ export function setServiceRecordDetail(ship, text) {
   if (!record?.namesake) return ship
   const serviceRecordDetail = String(text ?? '').trim() || null
   if (ship.serviceRecordDetail === serviceRecordDetail) return ship
-  return kept(ship, { serviceRecordDetail })
+  return withSanitizedAppearance(ship, { serviceRecordDetail })
 }
 
 export function clearServiceRecord(ship) {
   if (!ship.serviceRecordId && !ship.serviceRecordDetail && !hasNarrative(ship)) return ship
-  return kept(ship, {
+  return withSanitizedAppearance(ship, {
     serviceRecordId: null,
     serviceRecordDetail: null,
     serviceNotableEventIds: [],
@@ -627,17 +672,19 @@ export function toggleServiceNotableEvent(ship, eventId) {
     serviceNotableEventIds = [...current, eventId]
   }
   if (sameList(serviceNotableEventIds, current)) return ship
-  return kept(ship, { serviceNotableEventIds })
+  return withSanitizedAppearance(ship, { serviceNotableEventIds })
 }
 
 export function selectServiceReputation(ship, reputationId) {
   if (reputationId == null) {
     if (!ship.serviceReputationId) return ship
-    return kept(ship, { serviceReputationId: null })
+    return withSanitizedAppearance(ship, { serviceReputationId: null })
   }
   if (!narrativeReputationIds.has(reputationId)) return ship
-  if (ship.serviceReputationId === reputationId) return kept(ship, { serviceReputationId: null })
-  return kept(ship, { serviceReputationId: reputationId })
+  if (ship.serviceReputationId === reputationId) {
+    return withSanitizedAppearance(ship, { serviceReputationId: null })
+  }
+  return withSanitizedAppearance(ship, { serviceReputationId: reputationId })
 }
 
 export function toggleServiceHonor(ship, honorId) {
@@ -652,7 +699,7 @@ export function toggleServiceHonor(ship, honorId) {
     serviceHonorIds = [...current, honorId]
   }
   if (sameList(serviceHonorIds, current)) return ship
-  return kept(ship, { serviceHonorIds })
+  return withSanitizedAppearance(ship, { serviceHonorIds })
 }
 
 export function pickServiceRecord(ship, random = Math.random) {
@@ -811,14 +858,35 @@ function cleanRegistry(text) {
   return String(text ?? '').trim().replace(REGISTRY_PREFIX, '').trim()
 }
 
-function notableIdentity(frame) {
+function parseNotableIdentities(frame) {
   const text = frame?.notableExamples ?? ''
-  const paren = text.match(PAREN_EXAMPLE)
-  if (paren) return { shipName: cleanName(paren[1]) || null, registry: paren[2] }
-  const lead = text.match(LEAD_EXAMPLE)
-  if (lead) return { shipName: cleanName(lead[2]) || null, registry: lead[1] }
-  const shipName = cleanName(text.split(',')[0])
-  return shipName ? { shipName, registry: null } : null
+  const found = []
+  const seen = new Set()
+  const add = (shipName, registry) => {
+    const name = cleanName(shipName)
+    if (!name) return
+    const key = `${name}|${registry ?? ''}`
+    if (seen.has(key)) return
+    seen.add(key)
+    found.push({ shipName: name, registry: registry || null })
+  }
+  for (const match of text.matchAll(/([^,()]+?)\s*\(\s*(?:NX\/)?(?:NCC|NX)-([0-9][0-9A-Z-]*)/gi)) {
+    add(match[1], match[2])
+  }
+  for (const match of text.matchAll(/(?:^|,)\s*(?:NCC|NX)-([0-9][0-9A-Z-]*)\s+([^,(]+)/gi)) {
+    add(match[2], match[1])
+  }
+  if (!found.length) {
+    for (const part of text.split(',')) {
+      const name = cleanName(part.replace(/\(.*?\)/g, ''))
+      if (name) add(name, null)
+    }
+  }
+  return found
+}
+
+function notableIdentity(frame) {
+  return parseNotableIdentities(frame)[0] ?? null
 }
 
 export function getBridgeLayouts() {
@@ -872,31 +940,86 @@ export function setRegistry(ship, text) {
   return kept(ship, { registry })
 }
 
+export function setClassDesignation(ship, text) {
+  const classDesignation = typeof text === 'string' ? (text.trim() || null) : null
+  if ((ship.classDesignation ?? null) === classDesignation) return ship
+  return kept(ship, { classDesignation })
+}
+
 export function setFinishingChoice(ship, field, id) {
   const list = FINISHING_LISTS[field]
   if (!list) return ship
   const next = id && list.some((entry) => entry.id === id) ? id : null
   if (id && next === null) return ship
+  if (next && !isFinishingPackageAvailable(ship, field, next) && getFinishingPackageOption(field, next)) {
+    return ship
+  }
   if ((ship[field] ?? null) === next) return ship
   return kept(ship, { [field]: next })
 }
 
+export function setAppearanceDetailChoice(ship, categoryId, slotId, optionId) {
+  const current = normalizeAppearanceDetail(ship.appearanceDetail)
+  if (!Object.hasOwn(current, categoryId) || !Object.hasOwn(current[categoryId], slotId)) return ship
+  const clearing = !optionId
+  if (clearing) {
+    if ((current[categoryId][slotId] ?? null) === null) return ship
+    const appearanceDetail = {
+      ...current,
+      [categoryId]: { ...current[categoryId], [slotId]: null },
+    }
+    return kept(ship, { appearanceDetail })
+  }
+  const option = getAppearanceOption(categoryId, slotId, optionId)
+  if (!option) return ship
+  if (!isAppearanceOptionAvailable(ship, option)) return ship
+  if (current[categoryId][slotId] === optionId) {
+    const appearanceDetail = {
+      ...current,
+      [categoryId]: { ...current[categoryId], [slotId]: null },
+    }
+    return kept(ship, { appearanceDetail })
+  }
+  const appearanceDetail = {
+    ...current,
+    [categoryId]: { ...current[categoryId], [slotId]: optionId },
+  }
+  return kept(ship, { appearanceDetail })
+}
+
 export function clearFinishing(ship) {
   const empty = keepFinishing({})
-  if (Object.keys(empty).every((key) => (ship[key] ?? null) === empty[key])) return ship
+  const sameLegacy = Object.keys(empty).every((key) => {
+    if (key === 'appearanceDetail') return appearanceDetailEqual(ship.appearanceDetail, empty.appearanceDetail)
+    return (ship[key] ?? null) === empty[key]
+  })
+  if (sameLegacy) return ship
   return kept(ship, empty)
 }
 
 export function normalizeFinishing(ship) {
   const shipName = typeof ship.shipName === 'string' ? (cleanName(ship.shipName) || null) : null
   const registry = typeof ship.registry === 'string' ? (cleanRegistry(ship.registry) || null) : null
+  const classDesignation = typeof ship.classDesignation === 'string'
+    ? (ship.classDesignation.trim() || null)
+    : null
   const choices = {}
   for (const [field, list] of Object.entries(FINISHING_LISTS)) {
     const id = ship[field] ?? null
-    choices[field] = list.some((entry) => entry.id === id) ? id : null
+    const known = list.some((entry) => entry.id === id) ? id : null
+    choices[field] = known && isFinishingPackageAvailable(ship, field, known)
+      ? known
+      : (known && getFinishingPackageOption(field, known) ? null : known)
   }
-  const next = { shipName, registry, ...choices }
-  if (Object.entries(next).every(([key, value]) => (ship[key] ?? null) === value)) return ship
+  const draft = { ...ship, ...choices, shipName, registry, classDesignation }
+  const { appearanceDetail } = sanitizeAppearanceDetail(draft)
+  const { finishing } = sanitizeFinishingPackages({ ...draft, appearanceDetail })
+  const next = { shipName, registry, classDesignation, ...choices, ...finishing, appearanceDetail }
+  const same = Object.entries(next).every(([key, value]) => {
+    if (key === 'appearanceDetail') return appearanceDetailEqual(ship.appearanceDetail, value)
+    return (ship[key] ?? null) === value
+  })
+  if (same) return ship
   return kept(ship, next)
 }
 
@@ -913,10 +1036,32 @@ export function isRefitsFinished(ship) {
   return talentsFilled(ship)
 }
 
-export function applyNotableExample(ship) {
-  const example = notableIdentity(getSpaceframeById(ship.spaceframeId))
+export function getNotableExample(ship, random = null) {
+  const frame = getSpaceframeById(ship?.spaceframeId)
+  const list = parseNotableIdentities(frame)
+  if (!list.length) return null
+  // Prefer examples that include a registry when the class has any.
+  const withRegistry = list.filter((entry) => entry.registry)
+  const pool = withRegistry.length ? withRegistry : list
+  const index = typeof random === 'function'
+    ? Math.min(pool.length - 1, Math.floor(Number(random()) * pool.length))
+    : 0
+  const identity = pool[index]
+  return {
+    shipName: identity.shipName,
+    registry: identity.registry ?? null,
+    classDesignation: frame?.name ? `${frame.name} class` : null,
+  }
+}
+
+export function applyNotableExample(ship, random = null) {
+  const example = getNotableExample(ship, random)
   if (!example?.shipName) return ship
-  return kept(ship, example)
+  return kept(ship, {
+    shipName: example.shipName,
+    registry: example.registry ?? null,
+    classDesignation: example.classDesignation ?? null,
+  })
 }
 
 export function isShipComplete(ship) {
@@ -973,7 +1118,7 @@ export function normalizeConfirmation(ship) {
 }
 
 export function pickFinishing(ship) {
-  const example = notableIdentity(getSpaceframeById(ship.spaceframeId))
+  const example = getNotableExample(ship)
   const choices = {}
   for (const [field, list] of Object.entries(FINISHING_LISTS)) choices[field] = list[0]?.id ?? null
   return kept(ship, { ...(example ?? {}), ...choices })

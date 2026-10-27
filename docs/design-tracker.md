@@ -16,7 +16,7 @@ Screen 07 reads the ship already stored. Complete sets `confirmedAt` and does no
 
 ### Starship finishing touches (implemented 2026-10-25)
 
-Screen 06 records the name and registry from Core p. 194. The prefix is derived from the class: U.S.S. and NCC for Federation, NX while the service record is Prototype, I.K.S. or I.R.W. for Klingon and Romulan ships, and NX for the United Earth NX class. Cardassian and Ferengi ships are not given a prefix. The mockup's bridge, markings, and emblem are stored and do not change statistics. Class designation and Final Options are not offered. Talents-to-Scale and the derived defenses are not on this screen. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `shipModel.js`.
+Screen 06 records the name and registry from Core p. 194. The prefix is derived from the class: U.S.S. and NCC for Federation, NX while the service record is Prototype, I.K.S. or I.R.W. for Klingon and Romulan ships, and NX for the United Earth NX class. Cardassian and Ferengi ships are not given a prefix. Legacy bridge, markings, and emblem remain cosmetic. Nested Appearance Detail (Identification / Livery / Surface Finish) adds cosmetic/contextual/earned options linked to Screen 04 without Systems/Departments bonuses or Trait double-counting. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `appearanceCatalog.json`, `appearanceRules.js`, `shipModel.js`.
 
 ### Starship refits (updated 2026-10-26)
 

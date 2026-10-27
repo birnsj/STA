@@ -327,5 +327,4 @@ export const APPEARANCE_FIELDS = [
   ['stripingStyleId', 'Striping'],
   ['nacelleCapsId', 'Nacelle Caps'],
   ['emblemStyleId', 'Emblem'],
-  ['secondaryMarkingsId', 'Secondary Markings'],
 ]

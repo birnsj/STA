@@ -10,6 +10,7 @@ import {
   isSpaceframeEligible,
   MAX_SERVICE_HONORS,
   MAX_SERVICE_NOTABLE_EVENTS,
+  normalizeAppearanceDetail,
   normalizeConfirmation,
   normalizeFinishing,
   normalizeRefits,
@@ -97,12 +98,14 @@ export function persistedShip(ship) {
     talentChoices: ship.talentChoices && typeof ship.talentChoices === 'object' ? ship.talentChoices : {},
     shipName: ship.shipName ?? null,
     registry: ship.registry ?? null,
+    classDesignation: ship.classDesignation ?? null,
     bridgeLayoutId: ship.bridgeLayoutId ?? null,
     hullMarkingsId: ship.hullMarkingsId ?? null,
     stripingStyleId: ship.stripingStyleId ?? null,
     nacelleCapsId: ship.nacelleCapsId ?? null,
     emblemStyleId: ship.emblemStyleId ?? null,
     secondaryMarkingsId: ship.secondaryMarkingsId ?? null,
+    appearanceDetail: normalizeAppearanceDetail(ship.appearanceDetail),
     confirmedAt: ship.confirmedAt ?? null,
   }
 }
@@ -126,12 +129,14 @@ export function shipFromRecord(saved) {
     talentChoices: saved.talentChoices && typeof saved.talentChoices === 'object' ? saved.talentChoices : {},
     shipName: saved.shipName ?? null,
     registry: saved.registry ?? null,
+    classDesignation: typeof saved.classDesignation === 'string' ? (saved.classDesignation.trim() || null) : null,
     bridgeLayoutId: saved.bridgeLayoutId ?? null,
     hullMarkingsId: saved.hullMarkingsId ?? null,
     stripingStyleId: saved.stripingStyleId ?? null,
     nacelleCapsId: saved.nacelleCapsId ?? null,
     emblemStyleId: saved.emblemStyleId ?? null,
     secondaryMarkingsId: saved.secondaryMarkingsId ?? null,
+    appearanceDetail: normalizeAppearanceDetail(saved.appearanceDetail),
     confirmedAt: typeof saved.confirmedAt === 'string' ? saved.confirmedAt : null,
   }
   draft.extraTalentIds = filterExtraTalentIds(draft, draft.extraTalentIds)

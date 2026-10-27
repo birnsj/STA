@@ -6,8 +6,12 @@
   overflow: hidden;
 }
 
-.service-screen .screen-title {
+.service-screen .screen-title,
+.service-screen .screen-footer {
   flex: none;
+}
+
+.service-screen .screen-title {
   padding-bottom: 2px;
 }
 

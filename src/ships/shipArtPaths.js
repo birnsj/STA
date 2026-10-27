@@ -118,3 +118,14 @@ export function finishingFolderForField(field) {
   if (field === 'bridgeLayoutId') return 'bridges'
   return FINISHING_FOLDERS[field] ?? null
 }
+
+/** Layer/thumbnail under /art/ships/appearance/{file} (file may include subfolders). */
+export function appearanceArt(file) {
+  if (!file) return shipEmptyArt()
+  const parts = String(file).replace(/^\/+/, '').split('/')
+  return join('appearance', ...parts)
+}
+
+export function appearanceOptionArt(option) {
+  return appearanceArt(option?.visual?.file)
+}

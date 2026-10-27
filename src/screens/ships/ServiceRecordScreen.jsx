@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import '../../styles/ships/serviceRecord.css'
+import HelpTip from '../../components/HelpTip.jsx'
+import { useInfoTip } from '../../components/useInfoTip.js'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
@@ -28,6 +30,7 @@ import {
   pickSurvivorNamesake,
   serviceRecordTitle,
 } from '../../ships/shipModel.js'
+import { narrativeServiceTip, serviceRecordTip } from '../../ships/shipInfoTips.js'
 import { serviceSpecialRuleStatus } from '../../ships/serviceEffects.js'
 
 const INTRO = 'A service record is optional. It adds one trait, named for the record, and one special rule.'
@@ -41,18 +44,19 @@ const TABS = [
   ['honors', 'Honors & Citations', 'Narrative prototype. Not STA 2E Service Record mechanics.'],
 ]
 
-function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', capped = false }) {
+function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', capped = false, tipBind = {} }) {
   return (
     <button
       type="button"
       role={role}
       aria-selected={selected}
       aria-disabled={capped || undefined}
-      className={`service-card${selected ? ' is-selected' : ''}${capped ? ' is-capped' : ''}`}
+      className={`service-card help-tip${selected ? ' is-selected' : ''}${capped ? ' is-capped' : ''}`}
       onClick={onClick}
+      {...tipBind}
     >
       <ShipArt src={artSrc} alt="" className="service-card-art" />
-      <span className="service-card-name" title={name}>{name}</span>
+      <span className="service-card-name">{name}</span>
       {line ? <span className="service-card-line">{line}</span> : null}
     </button>
   )
@@ -215,6 +219,7 @@ export default function ServiceRecordScreen({
   const focusTrait = traitCards.find((card) => card.id === focusTraitId) ?? traitCards[0] ?? null
   const activeTab = TABS.find((entry) => entry[0] === tab) ?? TABS[0]
   const noneSelected = !ship.serviceRecordId
+  const tip = useInfoTip()
 
   useEffect(() => {
     setDraft(ship.serviceRecordDetail ?? '')
@@ -241,6 +246,11 @@ export default function ServiceRecordScreen({
             artSrc={shipSummaryArt()}
             selected={noneSelected}
             onClick={() => onClearRecord?.()}
+            tipBind={tip.bind({
+              title: 'No service record',
+              text: 'Skip the optional Core service record. The ship keeps no service-record trait or special rule from this tab.',
+              source: 'Star Trek Adventures 2E Core Rulebook, p.216',
+            })}
           />
           {records.map((record) => (
             <OptionCard
@@ -250,8 +260,10 @@ export default function ServiceRecordScreen({
               artSrc={serviceHistoryArt(record.id)}
               selected={record.id === ship.serviceRecordId}
               onClick={() => onSelect(record.id)}
+              tipBind={tip.bind(serviceRecordTip(record))}
             />
           ))}
+          {tip.element}
         </ServiceCarousel>
       )
     }
@@ -275,9 +287,11 @@ export default function ServiceRecordScreen({
                   setFocusEventId(event.id)
                   if (!blocked) onToggleEvent(event.id)
                 }}
+                tipBind={tip.bind(narrativeServiceTip(event, 'Notable Event'))}
               />
             )
           })}
+          {tip.element}
         </ServiceCarousel>
       )
     }
@@ -292,8 +306,10 @@ export default function ServiceRecordScreen({
               artSrc={serviceReputationArt(entry.id)}
               selected={ship.serviceReputationId === entry.id}
               onClick={() => onSelectReputation(entry.id)}
+              tipBind={tip.bind(narrativeServiceTip(entry, 'Reputation'))}
             />
           ))}
+          {tip.element}
         </ServiceCarousel>
       )
     }
@@ -311,9 +327,15 @@ export default function ServiceRecordScreen({
                 artSrc={card.artSrc}
                 selected={focusTrait?.id === card.id}
                 onClick={() => setFocusTraitId(card.id)}
+                tipBind={tip.bind({
+                  title: card.name,
+                  text: card.description || card.effect || card.line,
+                  note: card.effect && card.description ? card.effect : null,
+                })}
               />
             ))
           )}
+          {tip.element}
         </ServiceCarousel>
       )
     }
@@ -336,9 +358,11 @@ export default function ServiceRecordScreen({
                 setFocusHonorId(honor.id)
                 if (!blocked) onToggleHonor(honor.id)
               }}
+              tipBind={tip.bind(narrativeServiceTip(honor, 'Honor'))}
             />
           )
         })}
+        {tip.element}
       </ServiceCarousel>
     )
   })()
@@ -532,7 +556,7 @@ export default function ServiceRecordScreen({
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
-          <h1 className="screen-heading">{step.title}</h1>
+          <h1 className="screen-heading"><HelpTip helpId="serviceRecordScreen">{step.title}</HelpTip></h1>
           <p className="screen-intro">
             {INTRO}
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 216</span>

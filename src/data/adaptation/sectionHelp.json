@@ -349,6 +349,128 @@
       "title": "Notes Details",
       "what": "How background notes are used.",
       "does": "Reference only; nothing to choose here."
+    },
+
+    "starshipCreation": {
+      "title": "Starship Creation",
+      "what": "Building a player starship for Star Trek Adventures 2E: timeframe and campaign year, spaceframe, mission profile, optional service record, refits and talents, then finishing touches.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 192,
+      "does": "Work through each step in order. Later screens depend on earlier choices. Quit returns to the Main Menu; an unfinished ship asks first."
+    },
+    "timeframeScreen": {
+      "title": "Timeframe",
+      "what": "Book Step: choose the era of play. That sets which spaceframes are available. Campaign year decides class eligibility and how many refits the ship earns.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 193,
+      "does": "Pick an era card, then set the campaign year within that era's range. Classes that launch after this year are not offered."
+    },
+    "timeframeCampaignYear": {
+      "title": "Campaign Year",
+      "what": "The year of play used for spaceframe launch eligibility and counting refit decades (Core p. 193 and p. 217).",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 193,
+      "does": "Use − / + to set the year inside the selected era's allowed range. Required before Spaceframe."
+    },
+    "timeframeEraDetails": {
+      "title": "Era Details",
+      "what": "Overview copy for the selected era of play.",
+      "does": "Reference only. Change the era with the cards above."
+    },
+    "timeframeCharacteristics": {
+      "title": "Key Characteristics",
+      "what": "Short bullets describing what stands out about this era in the prototype.",
+      "does": "Reference only. Not a mechanical checklist."
+    },
+    "spaceframeScreen": {
+      "title": "Spaceframe",
+      "what": "Book: the ship class. It supplies Scale, traits, system ratings, weapons, special rules, and department modifiers that form the ship's baseline.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 195,
+      "does": "Filter and choose an eligible class for your campaign year. Hover a class card for its overview."
+    },
+    "spaceframeCapabilities": {
+      "title": "Primary Capabilities",
+      "what": "Weapons list and capability text from the spaceframe entry.",
+      "does": "Reference only. Comes with the selected class."
+    },
+    "spaceframeConsiderations": {
+      "title": "Considerations",
+      "what": "Special rules for this class and notes about later refits.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 196,
+      "does": "Reference only. Special rules are part of the class; hover a class card for the overview."
+    },
+    "spaceframeNotes": {
+      "title": "Notes",
+      "what": "Notable examples, naming guidance, and suggested mission profiles for the class.",
+      "does": "Reference only. Naming is applied later on Finishing Touches."
+    },
+    "missionProfileScreen": {
+      "title": "Mission Profile",
+      "what": "Book: the ship's role. It sets department baselines, raises one system by +1 (or lets you choose which), and grants one talent from its list.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 212,
+      "does": "Choose a profile card, then its talent. If the profile leaves the system open, pick which system gains +1."
+    },
+    "missionDepartments": {
+      "title": "Departments",
+      "what": "Six department scores for the ship (Command, Conn, Engineering, Security, Science, Medicine).",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 212,
+      "does": "Automatic on this screen: profile baseline plus the class department modifier. Not a player pick here."
+    },
+    "missionSystems": {
+      "title": "Systems",
+      "what": "Six ship systems (Comms, Engines, Structure, Computers, Sensors, Weapons). A mission profile raises one by +1.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 212,
+      "does": "Fixed by the profile, or choose any one system when the profile says so."
+    },
+    "missionTalents": {
+      "title": "Mission Profile Talent",
+      "what": "One starship talent granted by the mission profile. Talent rules are in Core pp. 218–225.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 212,
+      "does": "Pick one talent from the profile's list. Hover a talent for its effect text when available."
+    },
+    "serviceRecordScreen": {
+      "title": "Service Record",
+      "what": "Book: an optional service history that adds one trait and one special rule (Core p. 216). This screen also holds prototype narrative traits (events, reputation, honors) that are not STA 2E Service Record mechanics.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 216,
+      "does": "Service History is optional. Notable Events, Reputation, and Honors are prototype narrative Traits. Traits tab reviews what you already have."
+    },
+    "refitsScreen": {
+      "title": "Refits",
+      "what": "Book: each decade after launch grants one refit that raises a system by 1 (Core p. 217). Starship talents fill up to Scale (pp. 218–225). Appearance packages here are cosmetic only.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 217,
+      "does": "Assign earned refit slots on Major Refits, review systems, pick optional talents, and choose cosmetic Appearance Packages. Hover options for effects and requirements."
+    },
+    "refitMajor": {
+      "title": "Major Refits",
+      "what": "Each earned refit raises one system by +1, within the book's per-system limits.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 217,
+      "does": "Spend remaining refit slots on the selected system. The resource strip shows budget and assignments."
+    },
+    "refitAppearance": {
+      "title": "Appearance Packages",
+      "what": "Prototype cosmetics (hull markings, striping, nacelles, emblem, secondary). Some options are locked until service honors or other context unlock them. No System or Department bonuses.",
+      "does": "Pick one package per category. Locked earned options show why. Gameplay badges mark cosmetic, contextual, or earned."
+    },
+    "shipFinishingTouchesScreen": {
+      "title": "Finishing Touches",
+      "what": "Book: name the ship and assign its registry (Core p. 194). This prototype also covers class designation, bridge layout, and remaining appearance packages.",
+      "book": "Star Trek Adventures 2E Core Rulebook",
+      "page": 194,
+      "does": "Enter name and registry (required). Class designation and cosmetics are optional presentation. Hover packages for captions and lock reasons."
+    },
+    "shipReviewScreen": {
+      "title": "Review",
+      "what": "The finished starship sheet: systems, departments, traits, talents, cosmetics, and any open issues.",
+      "does": "Fix anything under Needs Attention, then Complete to save the ship. Start Game opens Load Episode once the ship is confirmed."
     }
   }
 }

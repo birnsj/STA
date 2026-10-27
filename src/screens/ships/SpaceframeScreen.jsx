@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import HelpTip from '../../components/HelpTip.jsx'
+import { useInfoTip } from '../../components/useInfoTip.js'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { classArt, classViewArts } from '../../ships/shipArtPaths.js'
+import { spaceframeTip } from '../../ships/shipInfoTips.js'
 import { getEligibleSpaceframes, getSpaceframeById, getSpecialRule } from '../../ships/shipModel.js'
 
 const INTRO = 'Select the ship class for your starship. Eligibility uses your campaign year. Each class brings Scale, traits, and system ratings that form the ship’s baseline.'
@@ -82,6 +85,7 @@ export default function SpaceframeScreen({
   const views = selected ? viewSources(selected.id) : []
   const preview = views[viewIndex] ?? null
   const year = Number.isFinite(ship.campaignYear) ? ship.campaignYear : null
+  const tip = useInfoTip()
 
   const choose = (id) => {
     setViewIndex(0)
@@ -93,7 +97,7 @@ export default function SpaceframeScreen({
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
-          <h1 className="screen-heading">{step.title}</h1>
+          <h1 className="screen-heading"><HelpTip helpId="spaceframeScreen">{step.title}</HelpTip></h1>
           <p className="screen-intro">
             {INTRO}
             {year != null && (
@@ -131,8 +135,9 @@ export default function SpaceframeScreen({
               type="button"
               role="option"
               aria-selected={isSelected}
-              className={`spaceframe-card${isSelected ? ' is-selected' : ''}`}
+              className={`spaceframe-card help-tip${isSelected ? ' is-selected' : ''}`}
               onClick={() => choose(frame.id)}
+              {...tip.bind(spaceframeTip(frame))}
             >
               <ShipArt src={classArt(frame.id)} alt="" className="spaceframe-card-art" />
               <span className="spaceframe-card-name">{frame.name}</span>
@@ -144,6 +149,7 @@ export default function SpaceframeScreen({
         {!fits && (
           <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label="Scroll classes right">›</button>
         )}
+        {tip.element}
       </div>
 
       <div className="spaceframe-detail">
@@ -192,7 +198,7 @@ export default function SpaceframeScreen({
 
       <div className="spaceframe-panels">
         <section className="panel spaceframe-panel">
-          <h3 className="panel-heading">Primary Capabilities</h3>
+          <h3 className="panel-heading"><HelpTip helpId="spaceframeCapabilities">Primary Capabilities</HelpTip></h3>
           {selected && (
             <div className="spaceframe-panel-body">
               <ul className="spaceframe-list">
@@ -205,7 +211,7 @@ export default function SpaceframeScreen({
           )}
         </section>
         <section className="panel spaceframe-panel">
-          <h3 className="panel-heading">Considerations</h3>
+          <h3 className="panel-heading"><HelpTip helpId="spaceframeConsiderations">Considerations</HelpTip></h3>
           {selected && (
             <div className="spaceframe-panel-body">
               <ul className="spaceframe-list">
@@ -220,7 +226,7 @@ export default function SpaceframeScreen({
           )}
         </section>
         <section className="panel spaceframe-panel">
-          <h3 className="panel-heading">Notes</h3>
+          <h3 className="panel-heading"><HelpTip helpId="spaceframeNotes">Notes</HelpTip></h3>
           {selected && (
             <div className="spaceframe-panel-body">
               <p>{selected.notableExamples}</p>

@@ -35,8 +35,10 @@ import {
   pickTimeframeId,
   refitSummary,
   removeRefit,
+  setAppearanceDetailChoice,
   setFinishingChoice,
   setRegistry,
+  setClassDesignation,
   setShipName,
   setShipTalentChoice,
   shipDisplayName,
@@ -158,7 +160,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
 
   return (
     <div className="frame">
-      <Header subtitle="Starship Creation" />
+      <Header subtitle="Starship Creation" subtitleHelpId="starshipCreation" />
       <div className="frame-body" inert={summaryOpen || quitOpen}>
         <StepNav
           steps={steps}
@@ -188,8 +190,12 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             ship={ship}
             onName={(text) => setShip((current) => setShipName(current, text))}
             onRegistry={(text) => setShip((current) => setRegistry(current, text))}
+            onClassDesignation={(text) => setShip((current) => setClassDesignation(current, text))}
             onChoice={(field, id) => setShip((current) => setFinishingChoice(current, field, id))}
-            onRandom={() => setShip((current) => applyNotableExample(current))}
+            onAppearanceDetail={(categoryId, slotId, optionId) => (
+              setShip((current) => setAppearanceDetailChoice(current, categoryId, slotId, optionId))
+            )}
+            onRandom={() => setShip((current) => applyNotableExample(current, Math.random))}
             onBack={() => setStepId('refits')}
             onQuit={requestQuit}
             onClear={resetShip}
@@ -273,6 +279,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onSelect={chooseEra}
             onYear={(year) => setShip((current) => setCampaignYear(current, year))}
             onBack={requestQuit}
+            onQuit={requestQuit}
             onClear={resetShip}
             onAuto={() => chooseEra(pickTimeframeId())}
             onAutofill={fillShip}

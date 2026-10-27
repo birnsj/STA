@@ -1,0 +1,346 @@
+{
+  "note": "Prototype Screen 06 Appearance Detail catalogs (Identification / Livery / Surface Finish). Not STA 2E published hull-marking tables (Core p. 194 covers name/registry only). gameplay: cosmetic | contextual | earned. Earned options require Screen 04 / Official Service History selections. linksTraitSource means the marking visualizes an existing Trait and must not grant a second Trait. Weathering is visual only and does not change Structure or damage state.",
+  "categories": [
+    {
+      "id": "identification",
+      "name": "Identification",
+      "slots": [
+        {
+          "id": "registryStyleId",
+          "label": "Registry Placement",
+          "options": [
+            {
+              "id": "registry-standard",
+              "name": "Visible Registry",
+              "caption": "Clear Starfleet registry lettering on the hull.",
+              "description": "Displays standard, readable registry typography. Contextual recognition: other ships and stations can identify the vessel by registry when circumstances allow. Does not change Systems or Departments.",
+              "gameplay": "contextual",
+              "contextTags": ["identification", "starfleet", "social"],
+              "visual": { "layer": "registry", "file": "registry/registry-standard.png" }
+            },
+            {
+              "id": "registry-minimal",
+              "name": "Minimal Registry",
+              "caption": "Recessed, low-contrast registry markings.",
+              "description": "Uses subdued registry placement for a cleaner silhouette. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "registry", "file": "registry/registry-minimal.png" }
+            },
+            {
+              "id": "registry-obscured",
+              "name": "Altered Registry",
+              "caption": "Hard-to-read or deliberately altered identification.",
+              "description": "Registry markings are obscured, incomplete, or altered. Contextual: may invite suspicion during security or inspection encounters. Does not change Systems or Departments.",
+              "gameplay": "contextual",
+              "contextTags": ["identification", "security", "suspicion", "social"],
+              "visual": { "layer": "registry", "file": "registry/registry-obscured.png" }
+            }
+          ]
+        },
+        {
+          "id": "hullIdMarkingsId",
+          "label": "Hull Identification",
+          "options": [
+            {
+              "id": "id-standard-federation",
+              "name": "Standard Hull ID",
+              "caption": "Standard Starfleet hull identification graphics.",
+              "description": "Applies conventional Federation hull identification markings. Cosmetic presentation only; does not grant Traits.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "hull-id", "file": "hull-id/id-standard-federation.png" }
+            }
+          ]
+        },
+        {
+          "id": "pennantId",
+          "label": "Pennants",
+          "options": [
+            {
+              "id": "pennant-federation",
+              "name": "Federation Pennant",
+              "caption": "Federation pennant markings on the hull.",
+              "description": "Displays Federation pennant graphics. Contextual recognition during diplomatic or Starfleet encounters when circumstances support it. Does not change Systems or Departments.",
+              "gameplay": "contextual",
+              "contextTags": ["diplomacy", "starfleet", "social"],
+              "visual": { "layer": "pennant", "file": "pennant/pennant-federation.png" }
+            }
+          ]
+        },
+        {
+          "id": "missionIdMarkingsId",
+          "label": "Mission Identification",
+          "options": [
+            {
+              "id": "mission-medical",
+              "name": "Medical Mission Markings",
+              "caption": "Exterior markings signaling medical or relief duty.",
+              "description": "Shows medical/relief mission identification. Earned from Hope Ship service, rescue/evacuation events, or a Humanitarian citation. Contextual recognition on appropriate missions. Does not invent an honor or change Systems.",
+              "gameplay": "earned",
+              "requires": {
+                "mode": "any",
+                "serviceRecordIds": ["hope-ship"],
+                "eventIds": ["rescue-operation", "emergency-evacuation"],
+                "honorIds": ["humanitarian-service-citation"]
+              },
+              "contextTags": ["medicine", "medical", "rescue", "crisis"],
+              "visual": { "layer": "mission", "file": "mission/mission-medical.png" }
+            },
+            {
+              "id": "mission-diplomatic",
+              "name": "Diplomatic Mission Markings",
+              "caption": "Exterior markings signaling diplomatic assignment.",
+              "description": "Shows diplomatic mission identification. Earned from diplomatic reputation, breakthrough events, or Diplomatic Excellence citation. Contextual recognition when an authorized diplomatic assignment applies. Does not invent an honor.",
+              "gameplay": "earned",
+              "requires": {
+                "mode": "any",
+                "eventIds": ["diplomatic-breakthrough", "first-contact"],
+                "reputationIds": ["diplomatic"],
+                "honorIds": ["diplomatic-excellence-citation"]
+              },
+              "contextTags": ["diplomacy", "social", "command"],
+              "visual": { "layer": "mission", "file": "mission/mission-diplomatic.png" }
+            }
+          ]
+        },
+        {
+          "id": "honorInsigniaId",
+          "label": "Honor Insignia",
+          "options": [
+            {
+              "id": "insignia-starfleet-commendation",
+              "name": "Commendation Insignia",
+              "caption": "Displays the Starfleet Commendation on the hull.",
+              "description": "Visual presentation of an already-earned Starfleet Commendation. Requires that honor on Screen 04. Does not grant a second Trait.",
+              "gameplay": "earned",
+              "requires": { "mode": "all", "honorIds": ["starfleet-commendation"] },
+              "linksTraitSource": { "type": "honor", "id": "starfleet-commendation" },
+              "visual": { "layer": "honor", "file": "honor/insignia-starfleet-commendation.png" }
+            },
+            {
+              "id": "insignia-humanitarian",
+              "name": "Humanitarian Citation Insignia",
+              "caption": "Displays the Humanitarian Service Citation.",
+              "description": "Visual presentation of an already-earned Humanitarian Service Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
+              "gameplay": "earned",
+              "requires": { "mode": "all", "honorIds": ["humanitarian-service-citation"] },
+              "linksTraitSource": { "type": "honor", "id": "humanitarian-service-citation" },
+              "visual": { "layer": "honor", "file": "honor/insignia-humanitarian.png" }
+            },
+            {
+              "id": "insignia-diplomatic",
+              "name": "Diplomatic Citation Insignia",
+              "caption": "Displays the Diplomatic Excellence Citation.",
+              "description": "Visual presentation of an already-earned Diplomatic Excellence Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
+              "gameplay": "earned",
+              "requires": { "mode": "all", "honorIds": ["diplomatic-excellence-citation"] },
+              "linksTraitSource": { "type": "honor", "id": "diplomatic-excellence-citation" },
+              "visual": { "layer": "honor", "file": "honor/insignia-diplomatic.png" }
+            },
+            {
+              "id": "insignia-exploration",
+              "name": "Exploration Citation Insignia",
+              "caption": "Displays the Distinguished Exploration Citation.",
+              "description": "Visual presentation of an already-earned Distinguished Exploration Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
+              "gameplay": "earned",
+              "requires": { "mode": "all", "honorIds": ["distinguished-exploration-citation"] },
+              "linksTraitSource": { "type": "honor", "id": "distinguished-exploration-citation" },
+              "visual": { "layer": "honor", "file": "honor/insignia-exploration.png" }
+            },
+            {
+              "id": "insignia-defense",
+              "name": "Defense Citation Insignia",
+              "caption": "Displays the Defense of the Federation Citation.",
+              "description": "Visual presentation of an already-earned Defense of the Federation Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
+              "gameplay": "earned",
+              "requires": { "mode": "all", "honorIds": ["defense-of-the-federation-citation"] },
+              "linksTraitSource": { "type": "honor", "id": "defense-of-the-federation-citation" },
+              "visual": { "layer": "honor", "file": "honor/insignia-defense.png" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "livery",
+      "name": "Livery",
+      "slots": [
+        {
+          "id": "stripingPatternId",
+          "label": "Striping & Patterns",
+          "options": [
+            {
+              "id": "stripe-classic-red",
+              "name": "Classic Red Striping",
+              "caption": "Traditional red accent striping.",
+              "description": "Applies classic red accent striping along primary hull lines. Distinct from the legacy Striping Style field. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "striping", "file": "striping/stripe-classic-red.png" }
+            },
+            {
+              "id": "stripe-aztec",
+              "name": "Aztec Panel Pattern",
+              "caption": "Aztec-style panel contrast pattern.",
+              "description": "Emphasizes TMP-and-later panel patterning on the hull. Cosmetic only. Available from the Motion Picture era onward.",
+              "gameplay": "cosmetic",
+              "eraIds": ["tmp", "tng", "ds9", "voy"],
+              "visual": { "layer": "striping", "file": "striping/stripe-aztec.png" }
+            }
+          ]
+        },
+        {
+          "id": "nacelleMarkingsId",
+          "label": "Nacelle Markings",
+          "options": [
+            {
+              "id": "nacelle-standard-marks",
+              "name": "Standard Nacelle Marks",
+              "caption": "Standard nacelle identification markings.",
+              "description": "Default nacelle markings for the class silhouette. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "nacelle-marks", "file": "nacelle-marks/nacelle-standard-marks.png" }
+            },
+            {
+              "id": "nacelle-high-vis",
+              "name": "High-Visibility Nacelle Marks",
+              "caption": "Higher-contrast nacelle warning markings.",
+              "description": "Increases contrast on nacelle tip and pylon markings. Cosmetic only; does not change Engines.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "nacelle-marks", "file": "nacelle-marks/nacelle-high-vis.png" }
+            }
+          ]
+        },
+        {
+          "id": "engineeringHullId",
+          "label": "Engineering Hull",
+          "options": [
+            {
+              "id": "eng-hull-standard",
+              "name": "Standard Engineering Hull",
+              "caption": "Standard secondary-hull marking treatment.",
+              "description": "Conventional engineering-hull graphics. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "engineering", "file": "engineering/eng-hull-standard.png" }
+            },
+            {
+              "id": "eng-hull-yard",
+              "name": "Yard Pattern",
+              "caption": "Shipyard-style engineering-hull markings.",
+              "description": "Emphasizes construction-yard style markings on the secondary hull. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "engineering", "file": "engineering/eng-hull-yard.png" }
+            }
+          ]
+        },
+        {
+          "id": "hullColorId",
+          "label": "Hull Colors",
+          "options": [
+            {
+              "id": "color-starfleet-grey",
+              "name": "Starfleet Grey",
+              "caption": "Standard Starfleet hull grey.",
+              "description": "Familiar fleet grey hull coloration. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "color", "file": "color/color-starfleet-grey.png" }
+            },
+            {
+              "id": "color-muted-wartime",
+              "name": "Muted Wartime",
+              "caption": "Subdued wartime hull coloration.",
+              "description": "Mutes accent brightness for a wartime presentation. Cosmetic only; does not change armor or shields.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "color", "file": "color/color-muted-wartime.png" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "surfaceFinish",
+      "name": "Surface Finish",
+      "slots": [
+        {
+          "id": "finishId",
+          "label": "Hull Finish",
+          "options": [
+            {
+              "id": "finish-clean",
+              "name": "Clean Finish",
+              "caption": "Fresh, well-maintained hull finish.",
+              "description": "A clean, well-kept exterior finish. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "finish", "file": "finish/finish-clean.png" }
+            },
+            {
+              "id": "finish-matte",
+              "name": "Matte Finish",
+              "caption": "Low-sheen matte hull finish.",
+              "description": "Reduces hull sheen for a matte presentation. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "finish", "file": "finish/finish-matte.png" }
+            }
+          ]
+        },
+        {
+          "id": "panelContrastId",
+          "label": "Panel Contrast",
+          "options": [
+            {
+              "id": "panel-low",
+              "name": "Low Panel Contrast",
+              "caption": "Subtle panel line contrast.",
+              "description": "Softens panel line contrast across the hull. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "panels", "file": "panels/panel-low.png" }
+            },
+            {
+              "id": "panel-high",
+              "name": "High Panel Contrast",
+              "caption": "Strong panel line contrast.",
+              "description": "Increases panel line contrast for a sharper exterior read. Cosmetic only.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "panels", "file": "panels/panel-high.png" }
+            }
+          ]
+        },
+        {
+          "id": "weatheringId",
+          "label": "Weathering",
+          "options": [
+            {
+              "id": "weather-none",
+              "name": "No Weathering",
+              "caption": "No visible weathering or scarring.",
+              "description": "Hull appears freshly maintained. Cosmetic only. Does not change damage state.",
+              "gameplay": "cosmetic",
+              "visual": { "layer": "weathering", "file": "weathering/weather-none.png" }
+            },
+            {
+              "id": "weather-light",
+              "name": "Light Weathering",
+              "caption": "Light wear and surface weathering.",
+              "description": "Shows light wear. Contextual: NPCs may remark on the ship's apparent condition. Visual only — does not alter Structure, Resistance, or damage state.",
+              "gameplay": "contextual",
+              "contextTags": ["condition", "social", "engineering"],
+              "visual": { "layer": "weathering", "file": "weathering/weather-light.png" }
+            },
+            {
+              "id": "weather-battle-scarred",
+              "name": "Battle-Scarred",
+              "caption": "Visible battle scarring on the hull.",
+              "description": "Shows battle scarring. Earned from Survivor of X or border-incident / major-systems-failure events. Visual only — does not change Structure or invent damage Traits.",
+              "gameplay": "earned",
+              "requires": {
+                "mode": "any",
+                "serviceRecordIds": ["survivor"],
+                "eventIds": ["border-incident", "major-systems-failure"]
+              },
+              "contextTags": ["condition", "combat", "social"],
+              "visual": { "layer": "weathering", "file": "weathering/weather-battle-scarred.png" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

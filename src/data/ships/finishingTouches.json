@@ -1,5 +1,5 @@
 {
-  "note": "STA 2e Core Rulebook v1.1, p. 194. The name prefix and the registry prefix come from the class traits. Bridge layouts, markings, and emblems are the mockup's labels only. They do not change systems, departments, talents, or traits.",
+  "note": "STA 2e Core Rulebook v1.1, p. 194. Name/registry only in the book. Bridge layouts, markings, striping, nacelle caps, and emblems are Prototype Appearance Packages (Screens 05–06). gameplay: cosmetic | contextual | earned. Contextual tags are for future mission/dialogue consumption — not automatic ±1 Task modifiers. Earned options require Screen 04 honors. Nested Appearance Detail lives in appearanceCatalog.json.",
   "namePrefixes": [
     { "trait": "Federation Starship", "prefix": "U.S.S." },
     { "trait": "Klingon Starship", "prefix": "I.K.S." },
@@ -10,24 +10,189 @@
     { "trait": "United Earth Starship", "prefix": "NX", "required": true }
   ],
   "bridges": [
-    { "id": "standard", "name": "Standard", "caption": "Classic configuration with all essential stations." },
-    { "id": "extended", "name": "Extended", "caption": "Additional stations and enhanced facilities." },
-    { "id": "tactical", "name": "Tactical", "caption": "Combat-focused layout with advanced systems." },
-    { "id": "scientific", "name": "Scientific", "caption": "Research and analysis focused layout." }
+    {
+      "id": "standard",
+      "name": "Standard",
+      "caption": "Traditional Starfleet bridge with central chair and balanced perimeter stations.",
+      "description": "A traditional Starfleet command bridge built around a central captain's chair, forward helm and navigation stations, and perimeter consoles for science, communications, engineering, and tactical operations. Its balanced arrangement supports exploration, diplomacy, and routine ship operations. Contextual for shipboard scenarios only — no Department or System bonuses.",
+      "gameplay": "contextual",
+      "contextTags": ["bridge", "command", "operations"]
+    },
+    {
+      "id": "extended",
+      "name": "Extended",
+      "caption": "Expanded command center with extra specialist and mission-coordination stations.",
+      "description": "An expanded command center featuring additional specialist workstations, mission coordination displays, and auxiliary consoles. Designed for vessels conducting complex assignments requiring simultaneous scientific, engineering, and operational oversight. Contextual for shipboard scenarios only — no Department or System bonuses.",
+      "gameplay": "contextual",
+      "contextTags": ["bridge", "mission-ops", "coordination"]
+    },
+    {
+      "id": "tactical",
+      "name": "Tactical",
+      "caption": "Combat-focused bridge for threat monitoring and rapid command decisions.",
+      "description": "A mission-focused bridge emphasizing tactical coordination, defensive readiness, and rapid command decisions. Dedicated tactical displays, prominent threat-monitoring stations, and a streamlined command arrangement support operations in potentially hostile environments. Contextual for shipboard scenarios only — no Department or System bonuses.",
+      "gameplay": "contextual",
+      "contextTags": ["bridge", "tactical", "security", "combat"]
+    },
+    {
+      "id": "scientific",
+      "name": "Scientific",
+      "caption": "Research-oriented bridge with expanded science and sensor-analysis stations.",
+      "description": "A research-oriented command center with expanded scientific displays, dedicated sensor-analysis stations, and integrated research workstations. Designed to support planetary surveys, astronomical investigations, anomaly analysis, and other complex scientific missions. Contextual for shipboard scenarios only — no Department or System bonuses.",
+      "gameplay": "contextual",
+      "contextTags": ["bridge", "science", "sensors", "research"]
+    }
   ],
   "hullMarkings": [
-    { "id": "standard-federation", "name": "Standard Federation" }
+    {
+      "id": "standard-federation",
+      "name": "Standard Federation",
+      "caption": "Standard Starfleet hull registry and identification markings.",
+      "description": "Applies the familiar Federation exterior marking set—registry lettering, pennant-style identifiers, and department-neutral hull graphics. Visually signals a conventional Starfleet vessel without changing systems or departments.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "exploration-assignment",
+      "name": "Exploration Assignment",
+      "caption": "Hull markings suggesting exploratory survey duty.",
+      "description": "Exterior identification emphasizing exploration and survey presentation. May influence recognition in exploration-flavored encounters. Does not grant an actual mission assignment, authority, or Traits. No Systems or Departments change.",
+      "gameplay": "contextual",
+      "contextTags": ["identification", "exploration", "survey"]
+    },
+    {
+      "id": "diplomatic-assignment",
+      "name": "Diplomatic Assignment",
+      "caption": "Hull markings suggesting diplomatic representation.",
+      "description": "Exterior identification emphasizing diplomatic presentation. May influence recognition in diplomatic encounters. Does not grant an actual diplomatic assignment or authority. No Systems or Departments change.",
+      "gameplay": "contextual",
+      "contextTags": ["identification", "diplomacy", "social"]
+    },
+    {
+      "id": "special-operations",
+      "name": "Special Operations",
+      "caption": "Low-profile markings suggesting sensitive operations.",
+      "description": "Subdued exterior identification associated with sensitive or special operations presentation. May color recognition or suspicion in security-flavored encounters. Grants no authority Trait and does not change Systems or Departments.",
+      "gameplay": "contextual",
+      "contextTags": ["identification", "security", "covert"]
+    }
   ],
   "stripingStyles": [
-    { "id": "classic-red", "name": "Classic Red" }
+    {
+      "id": "classic-red",
+      "name": "Classic Red",
+      "caption": "Classic red accent striping along primary hull lines.",
+      "description": "Adds traditional red accent stripes along the saucer/secondary hull edges and key structural lines. Changes exterior color accents only; no effect on armor, shields, or other statistics.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "command-gold",
+      "name": "Command Gold",
+      "caption": "Gold accent striping associated with command presentation.",
+      "description": "Applies gold accent striping for a command-forward livery. Available to identification and dialogue systems as visual identity only — no forced Task bonuses or Department changes.",
+      "gameplay": "cosmetic",
+      "contextTags": ["livery", "command"]
+    },
+    {
+      "id": "science-blue",
+      "name": "Science Blue",
+      "caption": "Blue accent striping associated with science presentation.",
+      "description": "Applies blue accent striping for a science-forward livery. Available to identification and dialogue systems as visual identity only — no forced Task bonuses or Department changes.",
+      "gameplay": "cosmetic",
+      "contextTags": ["livery", "science"]
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "caption": "Sparse striping with a clean silhouette.",
+      "description": "Reduces exterior striping for a minimal, clean presentation. Cosmetic livery only.",
+      "gameplay": "cosmetic",
+      "contextTags": ["livery"]
+    }
   ],
   "nacelleCaps": [
-    { "id": "standard", "name": "Standard" }
+    {
+      "id": "standard",
+      "name": "Standard",
+      "caption": "Standard Starfleet nacelle end-cap geometry.",
+      "description": "Uses the default nacelle tip/cap treatment for the class silhouette. Cosmetic only—does not alter warp engines, speed, or system scores.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "early-production",
+      "name": "Early Production",
+      "caption": "Early-production nacelle cap geometry.",
+      "description": "Shows early-production nacelle end-cap styling. Visual configuration only — not an engine upgrade. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
+      "gameplay": "contextual",
+      "contextTags": ["engineering", "inspection", "technical"]
+    },
+    {
+      "id": "modernized",
+      "name": "Modernized",
+      "caption": "Modernized nacelle cap geometry.",
+      "description": "Shows modernized nacelle end-cap styling. Visual configuration only — not an engine upgrade. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
+      "gameplay": "contextual",
+      "contextTags": ["engineering", "inspection", "technical"]
+    },
+    {
+      "id": "experimental",
+      "name": "Experimental",
+      "caption": "Experimental nacelle cap geometry.",
+      "description": "Shows experimental nacelle end-cap styling. Visual configuration only — not an engine upgrade or Prototype Trait. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
+      "gameplay": "contextual",
+      "contextTags": ["engineering", "prototype", "inspection"]
+    }
   ],
   "emblemStyles": [
-    { "id": "federation-insignia", "name": "Federation Insignia" }
+    {
+      "id": "federation-insignia",
+      "name": "Federation Insignia",
+      "caption": "Classic United Federation of Planets arrowhead emblem.",
+      "description": "Displays the standard Federation insignia as the ship's primary emblem treatment (hull/badge presentation). Purely cosmetic; does not grant traits or talents.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "starfleet-command",
+      "name": "Starfleet Command",
+      "caption": "Starfleet Command emblem treatment.",
+      "description": "Displays a Starfleet Command–oriented emblem. May support recognition events involving Starfleet identity. Does not grant Traits or change Systems or Departments.",
+      "gameplay": "contextual",
+      "contextTags": ["emblem", "starfleet", "command"]
+    },
+    {
+      "id": "exploration-division",
+      "name": "Exploration Division",
+      "caption": "Exploration Division emblem treatment.",
+      "description": "Displays an Exploration Division–oriented emblem. May support recognition events involving exploratory identity. Does not grant Traits or change Systems or Departments.",
+      "gameplay": "contextual",
+      "contextTags": ["emblem", "exploration"]
+    },
+    {
+      "id": "mission-citation",
+      "name": "Mission Citation",
+      "caption": "Emblem reflecting a documented mission citation.",
+      "description": "Displays a mission-citation emblem. Earned: requires a qualifying honor or citation on Screen 04 Service Record. Visual recognition only — does not invent an honor or grant a second Trait. Clearing the qualifying honor removes this selection.",
+      "gameplay": "earned",
+      "requires": {
+        "mode": "any",
+        "honorIds": [
+          "starfleet-commendation",
+          "distinguished-exploration-citation",
+          "diplomatic-excellence-citation",
+          "humanitarian-service-citation",
+          "meritorious-service-award",
+          "defense-of-the-federation-citation"
+        ]
+      },
+      "contextTags": ["emblem", "honor", "starfleet"]
+    }
   ],
   "secondaryMarkings": [
-    { "id": "none", "name": "None" }
+    {
+      "id": "none",
+      "name": "None",
+      "caption": "No secondary hull decals or mission badges.",
+      "description": "Leaves secondary marking areas clear—no additional squadron badges, mission patches, or decorative decals beyond the primary emblem and hull set.",
+      "gameplay": "cosmetic"
+    }
   ]
 }

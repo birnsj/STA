@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from 'node:test'
 import {
   clearSpaceframe,
   createEmptyShip,
+  emptyAppearanceDetail,
   getEligibleSpaceframes,
   getExampleClasses,
   getSpaceframeById,
@@ -26,6 +27,7 @@ const ship = (fields) => ({
   version: 1,
   timeframeId: null,
   campaignYear: null,
+  classDesignation: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -46,6 +48,7 @@ const ship = (fields) => ({
   nacelleCapsId: null,
   emblemStyleId: null,
   secondaryMarkingsId: null,
+  appearanceDetail: emptyAppearanceDetail(),
   confirmedAt: null,
   ...fields,
 })
@@ -106,7 +109,7 @@ describe('starship spaceframe', () => {
     assert.equal(loadShip().departmentModifiers, undefined)
   })
 
-  it('keeps ConstitutionÃÂs saucer separation and its talents, and leaves the example classes alone', () => {
+  it('keeps ConstitutionÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂs saucer separation and its talents, and leaves the example classes alone', () => {
     const constitution = getSpaceframeById('constitution')
     assert.ok(constitution.specialRuleIds.includes('saucer-separation'))
     assert.deepEqual(

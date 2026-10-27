@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import '../../styles/ships/refits.css'
+import HelpTip from '../../components/HelpTip.jsx'
+import { useInfoTip } from '../../components/useInfoTip.js'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
@@ -12,6 +14,7 @@ import {
 } from '../../ships/shipArtPaths.js'
 import {
   APPEARANCE_FIELDS,
+  finishingPackageAvailability,
   getFinishingOptions,
   getRefitSystems,
   getSpaceframeById,
@@ -32,6 +35,11 @@ import {
   talentSlotsUsed,
   talentsForTab,
 } from '../../ships/shipModel.js'
+import { finishingOptionTip, starshipTalentTip, systemTip } from '../../ships/shipInfoTips.js'
+
+const GAMEPLAY_LABEL = {
+  earned: 'Earned',
+}
 
 const INTRO = 'Assign earned system refits (Core p. 217) and fill starship talents up to Scale (pp. 218–225). Appearance choices are cosmetic only.'
 
@@ -52,18 +60,19 @@ const SYSTEM_BLURB = {
   weapons: 'Offensive systems and fire control.',
 }
 
-function OptionCard({ name, line, artSrc, selected, focused, capped, onClick }) {
+function OptionCard({ name, line, artSrc, selected, focused, capped, onClick, tipBind = {} }) {
   return (
     <button
       type="button"
       role="option"
       aria-selected={selected}
       aria-disabled={capped || undefined}
-      className={`refit-card${selected ? ' is-selected' : ''}${focused && !selected ? ' is-focused' : ''}${capped ? ' is-capped' : ''}`}
+      className={`refit-card help-tip${selected ? ' is-selected' : ''}${focused && !selected ? ' is-focused' : ''}${capped ? ' is-capped' : ''}`}
       onClick={onClick}
+      {...tipBind}
     >
       <ShipArt src={artSrc} alt="" className="refit-card-art" />
-      <span className="refit-card-name" title={name}>{name}</span>
+      <span className="refit-card-name">{name}</span>
       {line ? <span className="refit-card-line">{line}</span> : null}
     </button>
   )
@@ -117,6 +126,7 @@ export default function RefitsScreen({
   const [selectedSystemId, setSelectedSystemId] = useState(systems[0].id)
   const [focusTalentId, setFocusTalentId] = useState(null)
   const [focusAppearance, setFocusAppearance] = useState(APPEARANCE_FIELDS[0][0])
+  const [focusOptionId, setFocusOptionId] = useState(null)
 
   const frame = getSpaceframeById(ship.spaceframeId)
   const era = getTimeframeById(ship.timeframeId)
@@ -139,6 +149,7 @@ export default function RefitsScreen({
   const used = talentSlotsUsed(ship)
   const remaining = talentSlotsRemaining(ship)
   const activeTab = TABS.find((entry) => entry[0] === tab) ?? TABS[0]
+  const tip = useInfoTip()
 
   const handleTalentClick = (talent) => {
     const locked = granted.has(talent.id)
@@ -168,9 +179,11 @@ export default function RefitsScreen({
               artSrc={refitSystemArt(entry.id)}
               selected={entry.id === selectedSystem.id}
               onClick={() => setSelectedSystemId(entry.id)}
+              tipBind={tip.bind(systemTip(entry.id, entry.name))}
             />
           )
         })}
+        {tip.element}
       </RefitCarousel>
     )
   } else if (tab === 'systems') {
@@ -186,9 +199,11 @@ export default function RefitsScreen({
               artSrc={refitSystemArt(entry.id)}
               selected={entry.id === selectedSystem.id}
               onClick={() => setSelectedSystemId(entry.id)}
+              tipBind={tip.bind(systemTip(entry.id, entry.name))}
             />
           )
         })}
+        {tip.element}
       </RefitCarousel>
     )
   } else if (tab === 'weapons' || tab === 'special') {
@@ -211,9 +226,11 @@ export default function RefitsScreen({
               focused={focusTalentId === talent.id}
               capped={capped}
               onClick={() => handleTalentClick(talent)}
+              tipBind={tip.bind(starshipTalentTip(talent, locked ? 'Granted by class or mission profile.' : blocked))}
             />
           )
         })}
+        {tip.element}
       </RefitCarousel>
     )
   } else {
@@ -229,7 +246,17 @@ export default function RefitsScreen({
               line={current?.name ?? 'Unset · Cosmetic'}
               artSrc={technicalSrc ?? shipSummaryArt()}
               selected={focusAppearance === field}
-              onClick={() => setFocusAppearance(field)}
+              tipBind={tip.bind({
+                title: label,
+                text: current
+                  ? (current.description || current.caption)
+                  : 'Choose a cosmetic package for this category. No System or Department bonuses.',
+                note: current ? `Selected: ${current.name}` : 'Unset',
+              })}
+              onClick={() => {
+                setFocusAppearance(field)
+                setFocusOptionId(null)
+              }}
             />
           )
         })}
@@ -492,37 +519,85 @@ export default function RefitsScreen({
   } else {
     const options = getFinishingOptions(focusAppearance)
     const label = APPEARANCE_FIELDS.find(([field]) => field === focusAppearance)?.[1] ?? 'Appearance'
+    const selectedOption = options.find((entry) => entry.id === ship[focusAppearance]) ?? null
+    const focusedId = selectedOption?.id ?? focusOptionId
+    const focusedOption = options.find((entry) => entry.id === focusedId) ?? selectedOption ?? options[0] ?? null
+    const focusedAvailability = focusedOption
+      ? finishingPackageAvailability(ship, focusAppearance, focusedOption)
+      : null
     detail = (
-      <div className="refit-detail panel">
-        <ShipArt src={technicalSrc} alt="" className="refit-technical-art" />
-        <div className="refit-detail-body">
+      <div className="refit-detail panel refit-detail-appearance">
+        <div className="refit-appearance-preview">
+          <ShipArt src={technicalSrc} alt="" className="refit-technical-art" />
+          <div className="refit-appearance-info panel">
+            {focusedOption ? (
+              <>
+                <p className="refit-appearance-info-title">{focusedOption.name}</p>
+                {focusedOption.caption ? <p>{focusedOption.caption}</p> : null}
+                <p>{focusedOption.description}</p>
+                <p className="refit-score">No statistical change.</p>
+                {focusedOption.gameplay === 'earned' ? (
+                  <p>
+                    <strong>Earned:</strong>
+                    {' '}
+                    Requires a Screen 04 honor.
+                  </p>
+                ) : null}
+                {focusedAvailability && !focusedAvailability.available ? (
+                  <p className="refit-appearance-warn">{focusedAvailability.reason}</p>
+                ) : (
+                  <p>
+                    <strong>Requirements:</strong>
+                    {' '}
+                    {focusedOption.requires ? 'See lock reason when unavailable.' : 'None.'}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p>Select an option to read its description.</p>
+            )}
+          </div>
+        </div>
+        <div className="refit-detail-body refit-detail-body-appearance">
           <div className="refit-detail-head">
             <h2 className="refit-detail-name">{label}</h2>
-            <p>Cosmetic only. No systems, talents, or combat bonuses (Core finishing touches).</p>
+            <p>Shared with Finishing Touches. No Systems, Departments, weapons, or refit budget change.</p>
           </div>
-          <div className="refit-appearance-options">
-            {options.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={`refit-appearance-chip${ship[focusAppearance] === entry.id ? ' is-selected' : ''}`}
-                onClick={() => onAppearance(focusAppearance, entry.id)}
-              >
-                <ShipArt src={finishingArt(focusAppearance, entry.id)} alt="" className="refit-appearance-art" />
-                <span>{entry.name}</span>
-              </button>
-            ))}
-          </div>
-          <div className="refit-detail-grid">
-            <DetailBlock title="Effects">
-              <p>Stored on the ship record for presentation. Shared with Finishing Touches.</p>
-            </DetailBlock>
-            <DetailBlock title="Requirements">
-              <p>None. Optional visual customization.</p>
-            </DetailBlock>
-            <DetailBlock title="Resulting Changes">
-              <p className="refit-score">No statistical change.</p>
-            </DetailBlock>
+          <div className="refit-appearance-options" role="listbox" aria-label={label}>
+            {options.map((entry) => {
+              const selected = ship[focusAppearance] === entry.id
+              const availability = finishingPackageAvailability(ship, focusAppearance, entry)
+              const locked = !availability.available
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  aria-disabled={locked}
+                  className={`refit-appearance-chip help-tip${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}`}
+                  onClick={() => {
+                    setFocusOptionId(entry.id)
+                    if (locked && !selected) return
+                    onAppearance(focusAppearance, selected ? '' : entry.id)
+                  }}
+                  {...tip.bind(finishingOptionTip(entry, availability))}
+                >
+                  <ShipArt
+                    src={finishingArt(focusAppearance, entry.id)}
+                    alt=""
+                    className="refit-appearance-art"
+                  />
+                  <span className="refit-appearance-chip-meta">
+                    <span className="refit-appearance-chip-name">{entry.name}</span>
+                    {entry.gameplay === 'earned' ? (
+                      <span className="refit-gameplay-badge is-earned">{GAMEPLAY_LABEL.earned}</span>
+                    ) : null}
+                  </span>
+                </button>
+              )
+            })}
+            {tip.element}
           </div>
         </div>
       </div>
@@ -534,7 +609,7 @@ export default function RefitsScreen({
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
-          <h1 className="screen-heading">{step.title}</h1>
+          <h1 className="screen-heading"><HelpTip helpId="refitsScreen">{step.title}</HelpTip></h1>
           <p className="screen-intro">
             {INTRO}
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 217–225</span>

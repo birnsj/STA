@@ -1,10 +1,14 @@
+import { getCardTip } from '../rules/infoTips.js'
 import Portrait from './Portrait.jsx'
+import { useInfoTip } from './useInfoTip.js'
 import { useWholeCardCarousel } from './wholeCardCarousel.js'
 
 // Scrolls with arrows when the cards overflow; otherwise drops the arrows and stretches the cards evenly.
+// Hover shows the book's description when the item has one (same info box as section HelpTips).
 export default function CardCarousel({ items, selectedId, selectedIds, onSelect, label, variant = '' }) {
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(items.length, 124, 10)
   const multi = Array.isArray(selectedIds)
+  const tip = useInfoTip()
 
   return (
     <div className={`carousel ${variant}${fits ? ' is-stretched' : ''}`} ref={carouselRef}>
@@ -14,6 +18,7 @@ export default function CardCarousel({ items, selectedId, selectedIds, onSelect,
       <div className="carousel-track" ref={trackRef} role="listbox" aria-label={label} aria-multiselectable={multi || undefined}>
         {items.map((item) => {
           const isSelected = multi ? selectedIds.includes(item.id) : item.id === selectedId
+          const cardTip = getCardTip(item)
           return (
             <button
               key={item.id}
@@ -21,8 +26,9 @@ export default function CardCarousel({ items, selectedId, selectedIds, onSelect,
               role="option"
               aria-selected={isSelected}
               disabled={item.disabled}
-              className={`option-card${isSelected ? ' is-selected' : ''}${item.missing ? ' is-missing' : ''}`}
+              className={`option-card${isSelected ? ' is-selected' : ''}${item.missing ? ' is-missing' : ''}${cardTip ? ' help-tip' : ''}`}
               onClick={() => onSelect(item.id)}
+              {...tip.bind(cardTip)}
             >
               {item.tag && <span className="option-card-tag">{item.tag}</span>}
               <Portrait label={item.name} image={item.image} className="portrait-card" />
@@ -34,6 +40,7 @@ export default function CardCarousel({ items, selectedId, selectedIds, onSelect,
       {!fits && (
         <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label={`Scroll ${label} right`}>›</button>
       )}
+      {tip.element}
     </div>
   )
 }

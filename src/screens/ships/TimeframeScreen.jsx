@@ -1,6 +1,9 @@
+import HelpTip from '../../components/HelpTip.jsx'
+import { useInfoTip } from '../../components/useInfoTip.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { eraArt, shipSummaryArt } from '../../ships/shipArtPaths.js'
+import { eraTip } from '../../ships/shipInfoTips.js'
 import { getTimeframeById, getTimeframes, timeframeYearSpan } from '../../ships/shipModel.js'
 
 const INTRO = 'Choose the era of play. That choice sets which spaceframes are available. Then set the campaign year — it decides class eligibility and how many refits the ship earns (Core p. 193).'
@@ -24,6 +27,7 @@ export default function TimeframeScreen({
   onSelect,
   onYear,
   onBack,
+  onQuit,
   onClear,
   onAuto,
   onAutofill,
@@ -35,13 +39,16 @@ export default function TimeframeScreen({
   const selected = getTimeframeById(ship.timeframeId)
   const span = timeframeYearSpan(selected)
   const year = Number.isFinite(ship.campaignYear) ? ship.campaignYear : null
+  const tip = useInfoTip()
 
   return (
     <section className="screen timeframe-screen">
       <div className="screen-title">
         <div className="timeframe-heading">
           <span className="screen-number">{step.number}</span>
-          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>{step.title}</h1>
+          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>
+            <HelpTip helpId="timeframeScreen">{step.title}</HelpTip>
+          </h1>
         </div>
         <p className="screen-intro">
           {INTRO}
@@ -58,8 +65,9 @@ export default function TimeframeScreen({
               type="button"
               role="option"
               aria-selected={isSelected}
-              className={`timeframe-era${isSelected ? ' is-selected' : ''}`}
+              className={`timeframe-era help-tip${isSelected ? ' is-selected' : ''}`}
               onClick={() => onSelect(era.id)}
+              {...tip.bind(eraTip(era))}
             >
               <ShipArt src={eraArt(era.id)} alt="" className="timeframe-era-art" />
               <span className="timeframe-era-name">{era.name}</span>
@@ -67,6 +75,7 @@ export default function TimeframeScreen({
             </button>
           )
         })}
+        {tip.element}
       </div>
 
       <div className="timeframe-detail panel">
@@ -80,7 +89,7 @@ export default function TimeframeScreen({
 
       <div className="timeframe-panels">
         <section className="panel timeframe-panel">
-          <h3 className="panel-heading">Era Details</h3>
+          <h3 className="panel-heading"><HelpTip helpId="timeframeEraDetails">Era Details</HelpTip></h3>
           <div className="timeframe-panel-body">
             <ShipArt src={eraArt(selected?.id, 'details')} alt="" className="timeframe-panel-art" />
             <div className="timeframe-panel-text">
@@ -89,7 +98,7 @@ export default function TimeframeScreen({
           </div>
         </section>
         <section className="panel timeframe-panel">
-          <h3 className="panel-heading">Key Characteristics</h3>
+          <h3 className="panel-heading"><HelpTip helpId="timeframeCharacteristics">Key Characteristics</HelpTip></h3>
           <div className="timeframe-panel-body">
             <ShipArt src={eraArt(selected?.id, 'characteristics')} alt="" className="timeframe-panel-art" />
             <div className="timeframe-panel-text">
@@ -101,7 +110,7 @@ export default function TimeframeScreen({
 
       <div className="timeframe-year panel">
         <div className="timeframe-year-copy">
-          <h3 className="panel-heading">Campaign Year</h3>
+          <h3 className="panel-heading"><HelpTip helpId="timeframeCampaignYear">Campaign Year</HelpTip></h3>
           <p>{YEAR_NOTE}</p>
         </div>
         <div className="timeframe-year-control">
@@ -131,6 +140,7 @@ export default function TimeframeScreen({
       <ShipScreenFooter
         ship={ship}
         onBack={onBack}
+        onQuit={onQuit}
         onClear={onClear}
         onAuto={onAuto}
         onAutofill={onAutofill}

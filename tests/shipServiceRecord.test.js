@@ -6,6 +6,7 @@ import {
   clearTimeframe,
   createEmptyShip,
   departmentScore,
+  emptyAppearanceDetail,
   getServiceRecordById,
   getServiceRecords,
   getSpaceframeById,
@@ -40,6 +41,7 @@ const saved = (fields) => ({
   version: 1,
   timeframeId: null,
   campaignYear: null,
+  classDesignation: null,
   spaceframeId: null,
   missionProfileId: null,
   missionProfileTalentId: null,
@@ -60,6 +62,7 @@ const saved = (fields) => ({
   nacelleCapsId: null,
   emblemStyleId: null,
   secondaryMarkingsId: null,
+  appearanceDetail: emptyAppearanceDetail(),
   confirmedAt: null,
   ...fields,
 })

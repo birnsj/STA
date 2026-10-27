@@ -6,8 +6,12 @@
   overflow: hidden;
 }
 
-.mission-screen .screen-title {
+.mission-screen .screen-title,
+.mission-screen .screen-footer {
   flex: none;
+}
+
+.mission-screen .screen-title {
   padding-bottom: 4px;
 }
 

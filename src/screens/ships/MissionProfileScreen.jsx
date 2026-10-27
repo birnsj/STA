@@ -1,8 +1,11 @@
 import '../../styles/ships/missionProfile.css'
+import HelpTip from '../../components/HelpTip.jsx'
+import { useInfoTip } from '../../components/useInfoTip.js'
 import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { profileArt } from '../../ships/shipArtPaths.js'
+import { departmentTip, missionProfileTip, missionTalentTip, systemTip } from '../../ships/shipInfoTips.js'
 import { getMissionProfileById, getMissionProfiles, getSpaceframeById, missionSystemLabel } from '../../ships/shipModel.js'
 
 const INTRO = 'Select a mission profile. Departments are applied automatically from the profile and class. You choose one talent from its list, and the system that gains +1 when the profile leaves that choice open.'
@@ -57,13 +60,17 @@ export default function MissionProfileScreen({
       : ship.missionProfileSystemId === selected.system),
   )
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(profiles.length, 196, 8)
+  const tip = useInfoTip()
+  const choiceTip = useInfoTip()
 
   return (
     <section className="screen mission-screen">
       <div className="screen-title">
         <span className="screen-number">{step.number}</span>
         <div>
-          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>{step.title}</h1>
+          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>
+            <HelpTip helpId="missionProfileScreen">{step.title}</HelpTip>
+          </h1>
           <p className="screen-intro">
             {INTRO}
             <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 212–215</span>
@@ -84,11 +91,12 @@ export default function MissionProfileScreen({
               type="button"
               role="option"
               aria-selected={isSelected}
-              className={`mission-card${isSelected ? ' is-selected' : ''}`}
+              className={`mission-card help-tip${isSelected ? ' is-selected' : ''}`}
               onClick={() => onSelect(profile.id)}
+              {...tip.bind(missionProfileTip(profile))}
             >
               <ShipArt src={profileArt(profile.id)} alt="" className="mission-card-art" />
-              <span className="mission-card-name" title={profile.name}>{profile.name}</span>
+              <span className="mission-card-name">{profile.name}</span>
               <span className="mission-card-line">{cardLine(profile)}</span>
             </button>
           )
@@ -97,6 +105,7 @@ export default function MissionProfileScreen({
         {!fits && (
           <button type="button" className="carousel-arrow" onClick={() => scroll(1)} aria-label="Scroll profiles right">›</button>
         )}
+        {tip.element}
       </div>
 
       <div className="mission-detail panel">
@@ -112,7 +121,7 @@ export default function MissionProfileScreen({
 
       <div className="mission-panels">
         <section className="panel mission-panel">
-          <h3 className="panel-heading">Departments</h3>
+          <h3 className="panel-heading"><HelpTip helpId="missionDepartments">Departments</HelpTip></h3>
           {selected && (
             <>
               <p className="mission-note">Automatic. Baseline + class modifier = score.</p>
@@ -122,7 +131,7 @@ export default function MissionProfileScreen({
                   const modifier = frame?.departmentModifiers[key] ?? 0
                   const score = frame ? base + modifier : null
                   return (
-                    <div key={key} className="mission-stat">
+                    <div key={key} className="mission-stat help-tip" {...choiceTip.bind(departmentTip(key, label))}>
                       <dt>{label}</dt>
                       <dd>
                         <span className="mission-bar-track" aria-hidden="true">
@@ -138,7 +147,7 @@ export default function MissionProfileScreen({
           )}
         </section>
         <section className={`panel mission-panel${selected && !systemReady ? ' is-missing' : ''}`}>
-          <h3 className="panel-heading">Systems</h3>
+          <h3 className="panel-heading"><HelpTip helpId="missionSystems">Systems</HelpTip></h3>
           {selected && !choosingSystem && (
             <SystemLine frame={frame} systemId={selected.system} />
           )}
@@ -155,8 +164,9 @@ export default function MissionProfileScreen({
                       type="button"
                       role="option"
                       aria-selected={isSelected}
-                      className={`mission-choice${isSelected ? ' is-selected' : ''}`}
+                      className={`mission-choice help-tip${isSelected ? ' is-selected' : ''}`}
                       onClick={() => onSelectSystem(key)}
+                      {...choiceTip.bind(systemTip(key, label))}
                     >
                       <span>{label}</span>
                       <span>{base == null ? '' : isSelected ? `${base} + 1 = ${base + 1}` : base}</span>
@@ -168,7 +178,7 @@ export default function MissionProfileScreen({
           )}
         </section>
         <section className={`panel mission-panel${selected && !talentReady ? ' is-missing' : ''}`}>
-          <h3 className="panel-heading">Talents</h3>
+          <h3 className="panel-heading"><HelpTip helpId="missionTalents">Talents</HelpTip></h3>
           {selected && (
             <>
               <p className="mission-note">Player pick. Select one of the following talents.</p>
@@ -181,8 +191,9 @@ export default function MissionProfileScreen({
                       type="button"
                       role="option"
                       aria-selected={isSelected}
-                      className={`mission-choice${isSelected ? ' is-selected' : ''}`}
+                      className={`mission-choice help-tip${isSelected ? ' is-selected' : ''}`}
                       onClick={() => onSelectTalent(talent.id)}
+                      {...choiceTip.bind(missionTalentTip(talent))}
                     >
                       {talent.name}
                     </button>
@@ -192,6 +203,7 @@ export default function MissionProfileScreen({
             </>
           )}
         </section>
+        {choiceTip.element}
       </div>
 
       <ShipScreenFooter

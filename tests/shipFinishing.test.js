@@ -103,16 +103,22 @@ describe('starship finishing touches', () => {
     assert.equal(moved.spaceframeId, 'nx')
   })
 
-  it('fills the first notable example and finishes refits only when every earned refit is assigned', () => {
+  it('fills a notable example and finishes refits only when every earned refit is assigned', () => {
     const named = applyNotableExample(shipOf('tos', 'constitution'))
     assert.equal(named.shipName, 'Enterprise')
     assert.equal(named.registry, '1701')
+    assert.equal(named.classDesignation, 'Constitution class')
+    const other = applyNotableExample(shipOf('tos', 'constitution'), () => 0.9)
+    assert.ok(other.registry)
+    assert.equal(other.classDesignation, 'Constitution class')
     const picked = pickFinishing(shipOf('tos', 'nx'))
     assert.equal(picked.shipName, 'Enterprise')
     assert.equal(picked.registry, '01')
+    assert.equal(picked.classDesignation, 'NX class')
     const klingon = pickFinishing(shipOf('tos', 'd7'))
     assert.equal(klingon.shipName, 'Devisor')
     assert.equal(klingon.registry, null)
+    assert.equal(klingon.classDesignation, 'D7 class')
     assert.equal(picked.bridgeLayoutId, 'standard')
     let ready = battlecruiser(shipOf('tos', 'constitution'))
     assert.equal(isRefitsFinished(ready), false)
