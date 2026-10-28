@@ -108,6 +108,11 @@
   object-fit: contain;
 }
 
+/* Lower panels: pin the contained image to the left of its well. */
+.timeframe-panel .timeframe-panel-art img {
+  object-position: left center;
+}
+
 .timeframe-era-name,
 .timeframe-era-years {
   display: block;
