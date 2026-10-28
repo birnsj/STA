@@ -288,7 +288,7 @@ for (const frame of spaceframeRows) {
 
 for (const profile of profileRows) jobs.push([`profiles/${profile.id}.png`, 320, 180, profile.name || profile.id])
 for (const record of serviceRows) jobs.push([`service/${record.id}.png`, 960, 540, record.name || record.id])
-jobs.push(['service/none.png', 320, 180, 'No Service Record'])
+jobs.push(['service/none.png', 960, 540, 'No Service Record'])
 for (const entry of eventRows) jobs.push([`service/events/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])
 for (const entry of reputationRows) jobs.push([`service/reputation/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])
 for (const entry of honorRows) jobs.push([`service/honors/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])

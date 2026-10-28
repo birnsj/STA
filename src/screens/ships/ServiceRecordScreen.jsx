@@ -10,7 +10,6 @@ import {
   serviceHistoryArt,
   serviceHonorArt,
   serviceReputationArt,
-  shipSummaryArt,
   traitArt,
 } from '../../ships/shipArtPaths.js'
 import {
@@ -247,7 +246,7 @@ export default function ServiceRecordScreen({
           <OptionCard
             name="None"
             line="No service record"
-            artSrc={shipSummaryArt()}
+            artSrc={serviceHistoryArt(null)}
             selected={noneSelected}
             onClick={() => onClearRecord?.()}
             tipBind={tip.bind({
@@ -376,7 +375,7 @@ export default function ServiceRecordScreen({
     const statusLine = selected ? specialStatusLine(specialStatus) : null
     detail = (
       <ServiceDetail
-        artSrc={selected ? serviceHistoryArt(selected.id) : null}
+        artSrc={serviceHistoryArt(selected?.id ?? null)}
         title={selected ? selected.name : 'No service record selected'}
         description={selected?.overview}
         context={selected
