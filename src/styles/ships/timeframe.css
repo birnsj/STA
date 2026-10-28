@@ -34,15 +34,6 @@
   font-size: 14px;
 }
 
-/* The red and yellow header strips are empty decoration on this screen. Other creator screens keep them. */
-.frame:has(.timeframe-screen) .header-bars {
-  display: none;
-}
-
-.frame:has(.timeframe-screen) .header {
-  justify-content: space-between;
-}
-
 .ship-art {
   display: block;
   height: 100%;
