@@ -25,7 +25,8 @@ function useIsTyping() {
 // show() re-opens it on demand (the Summary button) whenever the screen is complete.
 // It opens with the choice that completes the screen; the guide highlight points at its Close button, then at Next.
 // Optional adapters let starship creation reuse the same popup timing without character step tables.
-export function useStepSummaryPopup(stepId, entity, adapters = null) {
+// enabled: Settings → Creation Summary; when false the popup never opens and the Summary button stays hidden.
+export function useStepSummaryPopup(stepId, entity, adapters = null, enabled = true) {
   const hasSummary = adapters?.hasSummary ?? hasStepSummary
   const isComplete = adapters?.isComplete ?? isStepComplete
   const getSignature = adapters?.getSignature ?? getStepSignature
@@ -38,12 +39,14 @@ export function useStepSummaryPopup(stepId, entity, adapters = null) {
   // Arriving on a screen sets its baseline (React's "adjust state while rendering" pattern).
   if (seen.stepId !== stepId) setSeen({ stepId, signature })
 
-  const automatic = seen.stepId === stepId && complete && signature !== seen.signature && !typing
-  const requested = requestedStepId === stepId && complete
+  const automatic = enabled && seen.stepId === stepId && complete && signature !== seen.signature && !typing
+  const requested = enabled && requestedStepId === stepId && complete
   return {
     open: automatic || requested,
-    canShow: complete,
-    show: () => setRequestedStepId(stepId),
+    canShow: enabled && complete,
+    show: () => {
+      if (enabled) setRequestedStepId(stepId)
+    },
     close: () => {
       setSeen({ stepId, signature })
       setRequestedStepId(null)

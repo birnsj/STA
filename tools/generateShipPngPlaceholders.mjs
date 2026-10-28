@@ -270,9 +270,11 @@ const jobs = []
 
 for (const era of eraRows) {
   jobs.push([`eras/${era.id}.png`, 320, 180, era.name || era.id])
+  jobs.push([`eras/${era.id}-feature.png`, 960, 540, `${era.name || era.id} Feature`])
   jobs.push([`eras/${era.id}-details.png`, 960, 540, `${era.name || era.id} Details`])
   jobs.push([`eras/${era.id}-characteristics.png`, 960, 540, `${era.name || era.id} Characteristics`])
 }
+jobs.push(['eras/feature.png', 960, 540, 'Era Feature'])
 jobs.push(['eras/details.png', 960, 540, 'Era Details'])
 jobs.push(['eras/characteristics.png', 960, 540, 'Era Characteristics'])
 jobs.push(['summary.png', 480, 270, 'Ship Summary'])

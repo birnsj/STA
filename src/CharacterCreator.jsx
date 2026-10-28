@@ -42,7 +42,7 @@ const isKnownStep = (stepId) => steps.some((step) => step.id === stepId)
 
 // mode: 'player' (default Main Menu creator) | 'authored' (Dev Edit Character Library; nested provider, pool Save).
 // authored: { isNew, previousFinal, onSave(character) } when mode is 'authored'.
-export default function CharacterCreator({ onExit, onConfirmed, showGuide, mode = 'player', authored = null }) {
+export default function CharacterCreator({ onExit, onConfirmed, showGuide, showCreationSummary = true, mode = 'player', authored = null }) {
   const isAuthored = mode === 'authored'
   const { character, dispatch } = useCharacter()
   const [currentStepId, setCurrentStepId] = useState(() => {
@@ -62,7 +62,7 @@ export default function CharacterCreator({ onExit, onConfirmed, showGuide, mode 
   const previousStep = steps[index - 1]
   const nextStep = steps[index + 1]
   const Screen = SCREENS[step.id] ?? PlaceholderScreen
-  const summaryPopup = useStepSummaryPopup(step.id, character)
+  const summaryPopup = useStepSummaryPopup(step.id, character, null, showCreationSummary)
   // UI state: whether the Quit confirmation is showing.
   const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
   const requestQuit = () => (hasUnsavedProgress(character) ? setQuitConfirmOpen(true) : onExit())

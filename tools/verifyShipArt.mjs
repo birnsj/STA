@@ -32,6 +32,7 @@ const paths = new Set([
   shipSummaryArt(),
   shipEmptyArt(),
   shipUnavailableArt(),
+  eraArt(null, 'feature'),
   eraArt(null, 'details'),
   eraArt(null, 'characteristics'),
   serviceHistoryArt(null),
@@ -39,6 +40,7 @@ const paths = new Set([
 
 for (const era of data('timeframes.json').eras ?? []) {
   paths.add(eraArt(era.id))
+  paths.add(eraArt(era.id, 'feature'))
   paths.add(eraArt(era.id, 'details'))
   paths.add(eraArt(era.id, 'characteristics'))
 }

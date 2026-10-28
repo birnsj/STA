@@ -18,12 +18,15 @@ export function shipUnavailableArt() {
   return join('ui', 'unavailable.png')
 }
 
+// panel: null = era picker card; 'feature' = Screen 01 large preview; 'details' / 'characteristics' = lower panels.
 export function eraArt(eraId, panel = null) {
   if (!eraId) {
+    if (panel === 'feature') return join('eras', 'feature.png')
     if (panel === 'details') return join('eras', 'details.png')
     if (panel === 'characteristics') return join('eras', 'characteristics.png')
     return shipSummaryArt()
   }
+  if (panel === 'feature') return join('eras', `${eraId}-feature.png`)
   if (panel === 'details') return join('eras', `${eraId}-details.png`)
   if (panel === 'characteristics') return join('eras', `${eraId}-characteristics.png`)
   return join('eras', `${eraId}.png`)

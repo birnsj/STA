@@ -99,9 +99,13 @@
 }
 
 .timeframe-era-art img,
-.timeframe-detail-art img,
-.timeframe-panel-art img {
+.timeframe-detail-art img {
   object-fit: cover;
+}
+
+/* Landscape era art: show the whole image in the panel, do not crop. */
+.timeframe-panel-art img {
+  object-fit: contain;
 }
 
 .timeframe-era-name,
@@ -187,16 +191,17 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 112px 1fr;
-  align-items: center;
+  grid-template-columns: minmax(220px, 48%) minmax(0, 1fr);
+  align-items: stretch;
   gap: 14px;
   padding: 10px 14px 12px;
 }
 
 .timeframe-panel-art {
-  width: 112px;
-  height: 112px;
-  align-self: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
   border-radius: 4px;
 }
 

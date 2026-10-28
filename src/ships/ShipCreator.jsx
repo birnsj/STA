@@ -79,7 +79,7 @@ function initialStepId(launch) {
   return steps.some((entry) => entry.id === saved) ? saved : 'timeframe'
 }
 
-export default function ShipCreator({ launch = null, onExit, onStartGame, onShipsSaved, showGuide = true }) {
+export default function ShipCreator({ launch = null, onExit, onStartGame, onShipsSaved, showGuide = true, showCreationSummary = true }) {
   const [ship, setShip] = useState(() => initialShip(launch))
   // Which step is on screen. UI state, saved with the location so a reload returns here.
   const [stepId, setStepId] = useState(() => initialStepId(launch))
@@ -90,7 +90,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
   })
   const [quitOpen, setQuitOpen] = useState(false)
   const step = steps.find((entry) => entry.id === stepId) ?? steps[0]
-  const summaryPopup = useStepSummaryPopup(step.id, ship, SHIP_SUMMARY_ADAPTERS)
+  const summaryPopup = useStepSummaryPopup(step.id, ship, SHIP_SUMMARY_ADAPTERS, showCreationSummary)
   const onSpaceframe = step.id === 'spaceframe'
   const onMission = step.id === 'missionProfile'
   const onService = step.id === 'serviceRecord'

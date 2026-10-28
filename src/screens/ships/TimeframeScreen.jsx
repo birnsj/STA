@@ -2,7 +2,7 @@ import HelpTip from '../../components/HelpTip.jsx'
 import { useInfoTip } from '../../components/useInfoTip.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
-import { eraArt, shipSummaryArt } from '../../ships/shipArtPaths.js'
+import { eraArt } from '../../ships/shipArtPaths.js'
 import { eraTip } from '../../ships/shipInfoTips.js'
 import {
   allCampaignYearSpan,
@@ -89,7 +89,7 @@ export default function TimeframeScreen({
       </div>
 
       <div className="timeframe-detail panel">
-        <ShipArt src={selected ? eraArt(selected.id) : shipSummaryArt()} alt="" className="timeframe-detail-art" />
+        <ShipArt src={selected ? eraArt(selected.id, 'feature') : eraArt(null, 'feature')} alt="" className="timeframe-detail-art" />
         <div className="timeframe-detail-text">
           <h2 className="timeframe-detail-name">{selected?.name ?? 'No timeframe selected'}</h2>
           {selected?.summary && <p>{selected.summary}</p>}

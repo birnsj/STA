@@ -172,6 +172,7 @@ function Views() {
             onStartGame={() => setView('episodeSelect')}
             onShipsSaved={setSavedShips}
             showGuide={displaySettings.guideHighlight}
+            showCreationSummary={displaySettings.creationSummary}
           />
         </ScaledStage>
       )}
@@ -221,7 +222,12 @@ function Views() {
       )}
       {view === 'creator' && (
         <ScaledStage settings={displaySettings}>
-          <CharacterCreator onExit={openMenu} onConfirmed={handleConfirmed} showGuide={displaySettings.guideHighlight} />
+          <CharacterCreator
+            onExit={openMenu}
+            onConfirmed={handleConfirmed}
+            showGuide={displaySettings.guideHighlight}
+            showCreationSummary={displaySettings.creationSummary}
+          />
         </ScaledStage>
       )}
     </Suspense>
