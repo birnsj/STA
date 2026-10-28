@@ -6,6 +6,7 @@ import { useWholeCardCarousel } from '../../components/wholeCardCarousel.js'
 import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import {
+  refitOverviewSystemArt,
   refitSystemArt,
   talentArt,
   technicalArt,
@@ -186,7 +187,7 @@ export default function RefitsScreen({
               key={entry.id}
               name={entry.name}
               line={score == null ? 'Pending' : `Total ${score}`}
-              artSrc={refitSystemArt(entry.id)}
+              artSrc={refitOverviewSystemArt(entry.id)}
               selected={entry.id === selectedSystem.id}
               onClick={() => setSelectedSystemId(entry.id)}
               tipBind={tip.bind(systemTip(entry.id, entry.name))}

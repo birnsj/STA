@@ -90,6 +90,12 @@ export function refitSystemArt(systemId) {
   return join('refits', `${systemId}.png`)
 }
 
+// Systems Overview tab only; Major Refits keeps refitSystemArt.
+export function refitOverviewSystemArt(systemId) {
+  if (!systemId) return shipEmptyArt()
+  return join('refits', 'overview', `${systemId}.png`)
+}
+
 export function talentArt(talentId) {
   if (!talentId) return shipEmptyArt()
   return join('talents', `${talentId}.png`)

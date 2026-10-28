@@ -13,6 +13,7 @@ import {
   eraArt,
   finishingArt,
   profileArt,
+  refitOverviewSystemArt,
   refitSystemArt,
   serviceEventArt,
   serviceHistoryArt,
@@ -61,6 +62,7 @@ for (const entry of narrative.honors ?? []) paths.add(serviceHonorArt(entry.id))
 
 for (const system of ['comms', 'computers', 'engines', 'sensors', 'structure', 'weapons']) {
   paths.add(refitSystemArt(system))
+  paths.add(refitOverviewSystemArt(system))
 }
 
 for (const talent of data('starshipTalents.json').talents ?? []) paths.add(talentArt(talent.id))

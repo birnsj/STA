@@ -292,7 +292,10 @@ jobs.push(['service/none.png', 960, 540, 'No Service Record'])
 for (const entry of eventRows) jobs.push([`service/events/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])
 for (const entry of reputationRows) jobs.push([`service/reputation/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])
 for (const entry of honorRows) jobs.push([`service/honors/${entry.id}.png`, 960, 540, entry.name || entry.summary || entry.id])
-for (const [id, name] of refits) jobs.push([`refits/${id}.png`, 320, 180, `Refit: ${name}`])
+for (const [id, name] of refits) {
+  jobs.push([`refits/${id}.png`, 320, 180, `Refit: ${name}`])
+  jobs.push([`refits/overview/${id}.png`, 320, 180, `Overview: ${name}`])
+}
 for (const bridge of bridgeRows) jobs.push([`bridges/${bridge.id}.png`, 960, 540, `Bridge: ${bridge.name || bridge.id}`])
 // Match bridges/appearance catalog (960×540) so Screen 06 choice + preview do not upscale tiny placards.
 for (const [rel, label] of finishingJobs) jobs.push([rel, 960, 540, label])
