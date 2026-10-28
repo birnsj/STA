@@ -68,10 +68,10 @@ function OptionCard({ name, line, artSrc, selected, focused, capped, onClick, ti
   )
 }
 
-function RefitCarousel({ count, label, children }) {
+function RefitCarousel({ count, label, missing = false, children }) {
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(count, 196, 8)
   return (
-    <div className="carousel refit-carousel" ref={carouselRef}>
+    <div className={`carousel refit-carousel${missing ? ' is-missing' : ''}`} ref={carouselRef}>
       {!fits && (
         <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label={`Scroll ${label} left`}>‹</button>
       )}
@@ -107,6 +107,7 @@ export default function RefitsScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -135,6 +136,8 @@ export default function RefitsScreen({
   const capacity = talentCapacity(ship)
   const used = talentSlotsUsed(ship)
   const remaining = talentSlotsRemaining(ship)
+  const refitsOpen = assigned < budget
+  const talentsOpen = remaining > 0
   const activeTab = TABS.find((entry) => entry[0] === tab) ?? TABS[0]
   const tip = useInfoTip()
 
@@ -155,7 +158,7 @@ export default function RefitsScreen({
   let list = null
   if (tab === 'major') {
     list = (
-      <RefitCarousel count={systems.length} label="System refits">
+      <RefitCarousel count={systems.length} label="System refits" missing={refitsOpen}>
         {systems.map((entry) => {
           const usedCount = refitCount(ship, entry.id)
           return (
@@ -196,7 +199,7 @@ export default function RefitsScreen({
   } else if (tab === 'weapons' || tab === 'special') {
     const talents = tab === 'weapons' ? weaponTalents : specialTalents
     list = (
-      <RefitCarousel count={talents.length} label={tab === 'weapons' ? 'Weapons and defenses' : 'Special systems'}>
+      <RefitCarousel count={talents.length} label={tab === 'weapons' ? 'Weapons and defenses' : 'Special systems'} missing={talentsOpen}>
         {talents.map((talent) => {
           const locked = granted.has(talent.id)
           const chosen = extras.includes(talent.id)
@@ -481,7 +484,7 @@ export default function RefitsScreen({
       <div className="screen-title">
         <div className="screen-title-heading">
           <span className="screen-number">{step.number}</span>
-          <h1 className="screen-heading"><HelpTip helpId="refitsScreen">{step.title}</HelpTip></h1>
+          <h1 className={`screen-heading${refitsOpen || talentsOpen ? ' is-missing' : ''}`}><HelpTip helpId="refitsScreen">{step.title}</HelpTip></h1>
         </div>
         <p className="screen-intro">
           {INTRO}
@@ -515,7 +518,12 @@ export default function RefitsScreen({
             type="button"
             role="tab"
             aria-selected={tab === id}
-            className={`refit-tab${tab === id ? ' is-selected' : ''}`}
+            className={[
+              'refit-tab',
+              tab === id ? 'is-selected' : '',
+              id === 'major' && refitsOpen && tab !== 'major' ? 'is-missing' : '',
+              (id === 'weapons' || id === 'special') && talentsOpen && tab !== 'weapons' && tab !== 'special' ? 'is-missing' : '',
+            ].filter(Boolean).join(' ')}
             onClick={() => setTab(id)}
           >
             {label}
@@ -537,7 +545,7 @@ export default function RefitsScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(frame)}
+        canShowSummary={canShowSummary}
         autoDisabled={!isServiceRecordFinished(ship)}
         autoTitle="Assign remaining refits and fill talents to Scale."
         nextLabel="Next: Finishing Touches →"

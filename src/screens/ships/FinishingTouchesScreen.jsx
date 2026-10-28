@@ -311,6 +311,7 @@ export default function FinishingTouchesScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -561,7 +562,7 @@ export default function FinishingTouchesScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(frame)}
+        canShowSummary={canShowSummary}
         autoDisabled={!isRefitsFinished(ship)}
         autoTitle="Use the class's first named example, and the listed cosmetic choices."
         nextLabel="Next: Review →"

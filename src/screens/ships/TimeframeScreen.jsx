@@ -37,6 +37,7 @@ export default function TimeframeScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -48,6 +49,7 @@ export default function TimeframeScreen({
   const tip = useInfoTip()
   const atStart = !globalSpan || year == null || year <= globalSpan.start
   const atEnd = !globalSpan || year == null || year >= globalSpan.end
+  const yearMissing = Boolean(selected) && year == null
 
   return (
     <section className="screen timeframe-screen">
@@ -64,7 +66,7 @@ export default function TimeframeScreen({
         </p>
       </div>
 
-      <div className="timeframe-eras" role="listbox" aria-label="Timeframe">
+      <div className={`timeframe-eras${selected ? '' : ' is-missing'}`} role="listbox" aria-label="Timeframe">
         {eras.map((era) => {
           const isSelected = era.id === ship.timeframeId
           return (
@@ -116,7 +118,7 @@ export default function TimeframeScreen({
         </section>
       </div>
 
-      <div className="timeframe-year panel">
+      <div className={`timeframe-year panel${yearMissing ? ' is-missing' : ''}`}>
         <div className="timeframe-year-copy">
           <h3 className="panel-heading"><HelpTip helpId="timeframeCampaignYear">Campaign Year</HelpTip></h3>
           <p>{YEAR_NOTE}</p>
@@ -155,7 +157,7 @@ export default function TimeframeScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(selected)}
+        canShowSummary={canShowSummary}
         nextLabel="Next: Spaceframe →"
         nextDisabled={nextDisabled}
         onNext={onNext}

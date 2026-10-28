@@ -62,10 +62,10 @@ function OptionCard({ name, line, artSrc, selected, onClick, role = 'option', ca
   )
 }
 
-function ServiceCarousel({ count, label, children }) {
+function ServiceCarousel({ count, label, missing = false, children }) {
   const { carouselRef, trackRef, fits, scroll } = useWholeCardCarousel(count, 196, 8)
   return (
-    <div className="carousel service-carousel" ref={carouselRef}>
+    <div className={`carousel service-carousel${missing ? ' is-missing' : ''}`} ref={carouselRef}>
       {!fits && (
         <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label={`Scroll ${label} left`}>‹</button>
       )}
@@ -193,6 +193,7 @@ export default function ServiceRecordScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -202,6 +203,7 @@ export default function ServiceRecordScreen({
   const honors = getServiceHonors()
   const selected = getServiceRecordById(ship.serviceRecordId)
   const title = serviceRecordTitle(ship)
+  const namesakeMissing = Boolean(selected?.namesake && !title)
   const traitLabel = selected
     ? (title ?? (selected.namesake ? 'Name the battle or war.' : selected.name))
     : null
@@ -418,7 +420,7 @@ export default function ServiceRecordScreen({
         ) : null}
         sourceLabel={selected ? `Star Trek Adventures 2E Core Rulebook, p. ${selected.page}` : null}
         extra={selected?.namesake ? (
-          <label className="service-name">
+          <label className={`service-name finish-field${namesakeMissing ? ' is-missing' : ''}`}>
             Battle or war
             <span className="service-name-row">
               <input
@@ -558,7 +560,7 @@ export default function ServiceRecordScreen({
       <div className="screen-title">
         <div className="screen-title-heading">
           <span className="screen-number">{step.number}</span>
-          <h1 className="screen-heading"><HelpTip helpId="serviceRecordScreen">{step.title}</HelpTip></h1>
+          <h1 className={`screen-heading${namesakeMissing ? ' is-missing' : ''}`}><HelpTip helpId="serviceRecordScreen">{step.title}</HelpTip></h1>
         </div>
         <p className="screen-intro">
           {INTRO}
@@ -575,7 +577,7 @@ export default function ServiceRecordScreen({
               type="button"
               role="tab"
               aria-selected={active}
-              className={`service-tab${active ? ' is-selected' : ''}`}
+              className={`service-tab${active ? ' is-selected' : ''}${namesakeMissing && id === 'history' && !active ? ' is-missing' : ''}`}
               onClick={() => setTab(id)}
             >
               {label}
@@ -600,7 +602,7 @@ export default function ServiceRecordScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(selected)}
+        canShowSummary={canShowSummary}
         autoDisabled={!isMissionProfileComplete(ship)}
         autoTitle="Choose a service record at random."
         nextLabel="Next: Refits →"

@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import Header from '../components/Header.jsx'
 import QuitConfirm from '../components/QuitConfirm.jsx'
 import StepNav from '../components/StepNav.jsx'
+import { useStepSummaryPopup } from '../components/useStepSummaryPopup.js'
+import ShipStepSummaryModal from '../components/ships/ShipStepSummaryModal.jsx'
 import StarshipSummary from '../components/ships/StarshipSummary.jsx'
+import GuideHighlight from '../effects/GuideHighlight.jsx'
 import { loadLocation, saveLocation } from '../character/persistence.js'
 import creationSteps from '../data/ships/creationSteps.json'
 import FinishingTouchesScreen from '../screens/ships/FinishingTouchesScreen.jsx'
@@ -12,28 +15,24 @@ import RefitsScreen from '../screens/ships/RefitsScreen.jsx'
 import ServiceRecordScreen from '../screens/ships/ServiceRecordScreen.jsx'
 import SpaceframeScreen from '../screens/ships/SpaceframeScreen.jsx'
 import TimeframeScreen from '../screens/ships/TimeframeScreen.jsx'
+import { getCompletedShipStepIds, isShipStepComplete } from './creationProgress.js'
+import { buildShipStepSummary, getShipStepSignature, hasShipStepSummary } from './shipStepSummary.js'
 import {
   addRefit,
   applyNotableExample,
   autofillShip,
   createEmptyShip,
-  getMissionProfileById,
-  getServiceRecordById,
-  getSpaceframeById,
   confirmShip,
-  getTimeframeById,
   isFinishingTouchesComplete,
   isMissionProfileComplete,
   isRefitsFinished,
   isServiceRecordFinished,
-  missionSystemLabel,
   pickFinishing,
   pickMissionProfile,
   pickRefitsAndTalents,
   pickServiceRecord,
   pickSpaceframeId,
   pickTimeframeId,
-  refitSummary,
   removeRefit,
   setAppearanceDetailChoice,
   setFinishingChoice,
@@ -41,8 +40,6 @@ import {
   setClassDesignation,
   setShipName,
   setShipTalentChoice,
-  shipDisplayName,
-  shipDisplayRegistry,
   selectMissionProfile,
   selectMissionProfileSystem,
   selectMissionProfileTalent,
@@ -50,7 +47,6 @@ import {
   selectServiceRecord,
   selectSpaceframe,
   selectTimeframe,
-  serviceRecordLabel,
   selectServiceReputation,
   setCampaignYear,
   setServiceRecordDetail,
@@ -62,6 +58,13 @@ import { loadShip, saveShip, shipFromRecord } from './persistence.js'
 import { saveConfirmedShip } from './savedShips.js'
 
 const { steps } = creationSteps
+const STEP_IDS = steps.map((entry) => entry.id)
+
+const SHIP_SUMMARY_ADAPTERS = {
+  hasSummary: hasShipStepSummary,
+  isComplete: isShipStepComplete,
+  getSignature: getShipStepSignature,
+}
 
 function initialShip(launch) {
   if (launch?.mode === 'new') return createEmptyShip()
@@ -76,7 +79,7 @@ function initialStepId(launch) {
   return steps.some((entry) => entry.id === saved) ? saved : 'timeframe'
 }
 
-export default function ShipCreator({ launch = null, onExit, onStartGame, onShipsSaved }) {
+export default function ShipCreator({ launch = null, onExit, onStartGame, onShipsSaved, showGuide = true }) {
   const [ship, setShip] = useState(() => initialShip(launch))
   // Which step is on screen. UI state, saved with the location so a reload returns here.
   const [stepId, setStepId] = useState(() => initialStepId(launch))
@@ -85,13 +88,9 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
     if (launch?.mode === 'saved') return launch.id
     return loadLocation().savedShipId ?? null
   })
-  const [summaryOpen, setSummaryOpen] = useState(false)
   const [quitOpen, setQuitOpen] = useState(false)
   const step = steps.find((entry) => entry.id === stepId) ?? steps[0]
-  const era = getTimeframeById(ship.timeframeId)
-  const frame = getSpaceframeById(ship.spaceframeId)
-  const profile = getMissionProfileById(ship.missionProfileId)
-  const record = getServiceRecordById(ship.serviceRecordId)
+  const summaryPopup = useStepSummaryPopup(step.id, ship, SHIP_SUMMARY_ADAPTERS)
   const onSpaceframe = step.id === 'spaceframe'
   const onMission = step.id === 'missionProfile'
   const onService = step.id === 'serviceRecord'
@@ -102,15 +101,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
   const serviceReady = isServiceRecordFinished(ship)
   const refitsReady = isRefitsFinished(ship)
   const finishingReady = isFinishingTouchesComplete(ship)
-  const completedStepIds = [
-    ship.timeframeId ? 'timeframe' : null,
-    ship.spaceframeId ? 'spaceframe' : null,
-    missionReady ? 'missionProfile' : null,
-    serviceReady ? 'serviceRecord' : null,
-    refitsReady ? 'refits' : null,
-    finishingReady ? 'finishingTouches' : null,
-    ship.confirmedAt ? 'review' : null,
-  ].filter(Boolean)
+  const completedStepIds = getCompletedShipStepIds(ship, STEP_IDS)
 
   useEffect(() => {
     saveShip(ship)
@@ -142,35 +133,25 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
   const chooseFrame = (spaceframeId) => setShip((current) => selectSpaceframe(current, spaceframeId))
   const chooseProfile = (missionProfileId) => setShip((current) => selectMissionProfile(current, missionProfileId))
 
-  const systemLabel = missionSystemLabel(profile?.system === 'choice' ? ship.missionProfileSystemId : profile?.system)
-  const recordLabel = serviceRecordLabel(ship)
-  const refitLine = refitSummary(ship)
-  const finishingName = shipDisplayName(ship)
-  const summary = onReview || onFinishing
-    ? { title: finishingName || 'Finishing Touches', lines: [shipDisplayRegistry(ship) || 'No registry'] }
-    : onRefits
-    ? { title: 'Refits', lines: [refitLine || 'None'] }
-    : onService
-    ? record && { title: recordLabel, lines: [record.ruleName] }
-    : onMission
-      ? profile && { title: profile.name, lines: [systemLabel ? `${systemLabel} +1` : 'Choose one system to increase by 1.'] }
-      : onSpaceframe
-        ? frame && { title: frame.name, lines: [`Launch year ${frame.launchYear}`] }
-        : era && { title: era.name, lines: [era.years] }
+  const footerSummary = {
+    canShowSummary: summaryPopup.canShow,
+    onShowSummary: summaryPopup.show,
+  }
 
   return (
     <div className="frame">
       <Header subtitle="Starship Creation" subtitleHelpId="starshipCreation" />
-      <div className="frame-body" inert={summaryOpen || quitOpen}>
-        <StepNav
-          steps={steps}
-          currentStepId={step.id}
-          completedStepIds={completedStepIds}
-          previewLastStep={false}
-          onSelectStep={(id) => {
-            if (id === 'timeframe' || id === 'spaceframe' || (id === 'missionProfile' && ship.spaceframeId) || (id === 'serviceRecord' && missionReady) || (id === 'refits' && serviceReady) || (id === 'finishingTouches' && refitsReady) || (id === 'review' && finishingReady)) setStepId(id)
-          }}
-        />
+      <div className={`frame-body${onReview ? ' frame-body-review' : ''}`} inert={summaryPopup.open || quitOpen}>
+        {!onReview && (
+          <StepNav
+            steps={steps}
+            currentStepId={step.id}
+            completedStepIds={completedStepIds}
+            onSelectStep={(id) => {
+              if (id === 'timeframe' || id === 'spaceframe' || (id === 'missionProfile' && ship.spaceframeId) || (id === 'serviceRecord' && missionReady) || (id === 'refits' && serviceReady) || (id === 'finishingTouches' && refitsReady) || (id === 'review' && finishingReady)) setStepId(id)
+            }}
+          />
+        )}
         {onReview ? (
           <ReviewScreen
             step={step}
@@ -179,7 +160,8 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onQuit={requestQuit}
             onClear={resetShip}
             onAutofill={fillShip}
-            onShowSummary={() => setSummaryOpen(true)}
+            onShowSummary={summaryPopup.show}
+            canShowSummary={summaryPopup.canShow}
             onComplete={completeShip}
             onStartGame={onStartGame}
             onGoToStep={setStepId}
@@ -201,7 +183,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => setShip((current) => pickFinishing(current))}
             onAutofill={fillShip}
-            onShowSummary={() => setSummaryOpen(true)}
+            {...footerSummary}
             nextDisabled={!finishingReady}
             onNext={() => setStepId('review')}
           />
@@ -218,7 +200,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => setShip((current) => pickRefitsAndTalents(current))}
             onAutofill={fillShip}
-            onShowSummary={() => setSummaryOpen(true)}
+            {...footerSummary}
             nextDisabled={!refitsReady}
             onNext={() => setStepId('finishingTouches')}
           />
@@ -237,7 +219,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => setShip((current) => pickServiceRecord(current))}
             onAutofill={fillShip}
-            onShowSummary={() => record && setSummaryOpen(true)}
+            {...footerSummary}
             nextDisabled={!serviceReady}
             onNext={() => setStepId('refits')}
           />
@@ -253,7 +235,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => setShip((current) => pickMissionProfile(current))}
             onAutofill={fillShip}
-            onShowSummary={() => profile && setSummaryOpen(true)}
+            {...footerSummary}
             nextDisabled={!missionReady}
             onNext={() => setStepId('serviceRecord')}
           />
@@ -267,7 +249,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => chooseFrame(pickSpaceframeId(ship.timeframeId, Math.random, ship.campaignYear))}
             onAutofill={fillShip}
-            onShowSummary={() => frame && setSummaryOpen(true)}
+            {...footerSummary}
             nextDisabled={!ship.spaceframeId}
             onNext={() => setStepId('missionProfile')}
           />
@@ -282,25 +264,15 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onClear={resetShip}
             onAuto={() => chooseEra(pickTimeframeId())}
             onAutofill={fillShip}
-            onShowSummary={() => era && setSummaryOpen(true)}
-            nextDisabled={!ship.timeframeId}
+            {...footerSummary}
+            nextDisabled={!ship.timeframeId || !Number.isFinite(ship.campaignYear)}
             onNext={() => setStepId('spaceframe')}
           />
         )}
-        <StarshipSummary ship={ship} />
+        {!onReview && <StarshipSummary ship={ship} />}
       </div>
-      {summaryOpen && summary && (
-        <div className="step-summary-overlay" role="presentation" onClick={() => setSummaryOpen(false)}>
-          <div className="ship-summary-popup panel" role="dialog" aria-labelledby="ship-summary-title" onClick={(event) => event.stopPropagation()}>
-            <h2 id="ship-summary-title">{summary.title}</h2>
-            {summary.lines.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-            <button type="button" className="nav-button nav-next" onClick={() => setSummaryOpen(false)}>
-              Close
-            </button>
-          </div>
-        </div>
+      {summaryPopup.open && (
+        <ShipStepSummaryModal summary={buildShipStepSummary(step.id, ship)} onClose={summaryPopup.close} />
       )}
       {quitOpen && (
         <QuitConfirm
@@ -309,6 +281,7 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
           onCancel={() => setQuitOpen(false)}
         />
       )}
+      {showGuide && <GuideHighlight enterFromFull={onReview} />}
     </div>
   )
 }

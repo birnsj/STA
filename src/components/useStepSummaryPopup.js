@@ -20,13 +20,17 @@ function useIsTyping() {
   return typing
 }
 
-// UI state only. Opens when the screen's NEXT check (isStepComplete) passes with a completed choice set the player
+// UI state only. Opens when the screen's NEXT check (isComplete) passes with a completed choice set the player
 // hasn't already closed on this visit. A screen that is already complete when the player arrives stays quiet.
 // show() re-opens it on demand (the Summary button) whenever the screen is complete.
 // It opens with the choice that completes the screen; the guide highlight points at its Close button, then at Next.
-export function useStepSummaryPopup(stepId, character) {
-  const complete = hasStepSummary(stepId) && isStepComplete(stepId, character)
-  const signature = complete ? getStepSignature(stepId, character) : null
+// Optional adapters let starship creation reuse the same popup timing without character step tables.
+export function useStepSummaryPopup(stepId, entity, adapters = null) {
+  const hasSummary = adapters?.hasSummary ?? hasStepSummary
+  const isComplete = adapters?.isComplete ?? isStepComplete
+  const getSignature = adapters?.getSignature ?? getStepSignature
+  const complete = hasSummary(stepId) && isComplete(stepId, entity)
+  const signature = complete ? getSignature(stepId, entity) : null
   const [seen, setSeen] = useState({ stepId, signature })
   const [requestedStepId, setRequestedStepId] = useState(null)
   const typing = useIsTyping()

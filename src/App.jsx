@@ -171,6 +171,7 @@ function Views() {
             onExit={openMenu}
             onStartGame={() => setView('episodeSelect')}
             onShipsSaved={setSavedShips}
+            showGuide={displaySettings.guideHighlight}
           />
         </ScaledStage>
       )}

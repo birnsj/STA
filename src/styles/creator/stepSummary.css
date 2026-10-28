@@ -149,6 +149,19 @@
   aspect-ratio: 180 / 114;
 }
 
+.summary-portrait.ship-art {
+  display: block;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.summary-portrait.ship-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Wide cards start level with the first choice row, below the "What You Chose" heading (its full height, margin included). */
 .summary-portrait:not(.summary-portrait-tall) {
   margin-top: 38px;

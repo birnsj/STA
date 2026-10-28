@@ -124,10 +124,21 @@
 .panel.is-missing,
 .env-tab.is-missing,
 .carousel.is-missing .option-card,
+.carousel.is-missing .spaceframe-card,
+.carousel.is-missing .mission-card,
+.carousel.is-missing .service-card,
+.carousel.is-missing .refit-card,
+.timeframe-eras.is-missing .timeframe-era,
 .env-select.is-missing,
 .species-gender.is-missing .species-gender-option,
-.chip-group.is-missing .chip:not(:disabled) {
+.chip-group.is-missing .chip:not(:disabled),
+.finish-field.is-missing {
   animation: requirement-border 1.4s ease-in-out infinite;
+}
+
+.service-tab.is-missing,
+.refit-tab.is-missing {
+  animation: requirement-fade 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -141,8 +152,16 @@
   .panel.is-missing,
   .env-tab.is-missing,
   .carousel.is-missing .option-card,
+  .carousel.is-missing .spaceframe-card,
+  .carousel.is-missing .mission-card,
+  .carousel.is-missing .service-card,
+  .carousel.is-missing .refit-card,
+  .timeframe-eras.is-missing .timeframe-era,
   .env-select.is-missing,
-  .chip-group.is-missing .chip {
+  .chip-group.is-missing .chip,
+  .finish-field.is-missing,
+  .service-tab.is-missing,
+  .refit-tab.is-missing {
     animation: none;
   }
 }

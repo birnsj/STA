@@ -101,7 +101,7 @@ function Row({ label, value }) {
   )
 }
 
-export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAutofill, onShowSummary, onComplete, onStartGame, onGoToStep }) {
+export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAutofill, onShowSummary, canShowSummary = false, onComplete, onStartGame, onGoToStep }) {
   const frame = getSpaceframeById(ship.spaceframeId)
   const era = getTimeframeById(ship.timeframeId)
   const profile = getMissionProfileById(ship.missionProfileId)
@@ -224,7 +224,7 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
         onClear={onClear}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary
+        canShowSummary={canShowSummary}
         showAuto={false}
         nextLabel={ship.confirmedAt ? 'Start Game →' : 'Complete →'}
         nextDisabled={!ship.confirmedAt && !isShipComplete(ship)}

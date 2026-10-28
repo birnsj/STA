@@ -71,6 +71,7 @@ export default function SpaceframeScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -97,7 +98,7 @@ export default function SpaceframeScreen({
       <div className="screen-title">
         <div className="screen-title-heading">
           <span className="screen-number">{step.number}</span>
-          <h1 className="screen-heading"><HelpTip helpId="spaceframeScreen">{step.title}</HelpTip></h1>
+          <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}><HelpTip helpId="spaceframeScreen">{step.title}</HelpTip></h1>
         </div>
         <p className="screen-intro">
           {INTRO}
@@ -122,7 +123,7 @@ export default function SpaceframeScreen({
         ))}
       </div>
 
-      <div className="carousel spaceframe-carousel" ref={carouselRef}>
+      <div className={`carousel spaceframe-carousel${selected ? '' : ' is-missing'}`} ref={carouselRef}>
         {!fits && (
           <button type="button" className="carousel-arrow" onClick={() => scroll(-1)} aria-label="Scroll classes left">‹</button>
         )}
@@ -247,7 +248,7 @@ export default function SpaceframeScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(selected)}
+        canShowSummary={canShowSummary}
         autoDisabled={!ship.timeframeId}
         autoTitle="Choose an eligible class at random."
         nextLabel="Next: Mission Profile →"

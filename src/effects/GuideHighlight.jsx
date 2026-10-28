@@ -8,8 +8,8 @@ import { GUIDE_FADE_MS as FADE_MS, GUIDE_HOLD_MS as HOLD_MS, GUIDE_TRAVEL_MS as 
 
 // Sections a player fills in, in priority order. Tabs and category cards only lead when no section on show is missing.
 const SECTION_SELECTOR =
-  '.carousel.is-missing, .panel.is-missing, .species-gender.is-missing, .env-select.is-missing, .chip-group.is-missing'
-const SECONDARY_SELECTOR = '.option-card.is-missing, .env-tab.is-missing'
+  '.carousel.is-missing, .panel.is-missing, .species-gender.is-missing, .env-select.is-missing, .chip-group.is-missing, .timeframe-eras.is-missing, .finish-field.is-missing'
+const SECONDARY_SELECTOR = '.option-card.is-missing, .env-tab.is-missing, .service-tab.is-missing, .refit-tab.is-missing, .timeframe-era.is-missing'
 const NEXT_SELECTOR = '.nav-next:not(:disabled)'
 // The step Summary popup's Close button; the box waits there until the popup closes, then returns to Next.
 const POPUP_CLOSE_SELECTOR = '.step-summary-close'

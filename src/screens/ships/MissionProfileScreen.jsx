@@ -45,6 +45,7 @@ export default function MissionProfileScreen({
   onAuto,
   onAutofill,
   onShowSummary,
+  canShowSummary = false,
   nextDisabled = false,
   onNext,
 }) {
@@ -214,7 +215,7 @@ export default function MissionProfileScreen({
         onAuto={onAuto}
         onAutofill={onAutofill}
         onShowSummary={onShowSummary}
-        canShowSummary={Boolean(selected)}
+        canShowSummary={canShowSummary}
         autoDisabled={!ship.spaceframeId}
         autoTitle="Choose a mission profile at random."
         nextLabel="Next: Service Record →"
