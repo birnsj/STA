@@ -95,17 +95,19 @@ function ServiceDetail({
       <ShipArt src={artSrc} alt="" className="service-preview-art" />
       <div className="service-detail-text">
         <h2 className="service-detail-name">{title}</h2>
-        {hasContent ? (
-          <>
-            {description && <p>{description}</p>}
-            {context && <p>{context}</p>}
-            {effects}
-            {extra}
-            {sourceLabel && <p className="service-detail-status">{sourceLabel}</p>}
-          </>
-        ) : (
-          <p className="service-empty">{emptyBody}</p>
-        )}
+        <div className="service-detail-scroll">
+          {hasContent ? (
+            <>
+              {description && <p>{description}</p>}
+              {context && <p>{context}</p>}
+              {effects}
+              {extra}
+              {sourceLabel && <p className="service-detail-status">{sourceLabel}</p>}
+            </>
+          ) : (
+            <p className="service-empty">{emptyBody}</p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -554,14 +556,14 @@ export default function ServiceRecordScreen({
   return (
     <section className="screen service-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className="screen-heading"><HelpTip helpId="serviceRecordScreen">{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            {INTRO}
-            <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 216</span>
-          </p>
         </div>
+        <p className="screen-intro">
+          {INTRO}
+          <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 216</span>
+        </p>
       </div>
 
       <div className="service-tabs" role="tablist" aria-label="Service record categories">

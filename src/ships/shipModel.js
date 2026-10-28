@@ -328,39 +328,112 @@ export function missionSystemLabel(systemId) {
   return SYSTEM_LABELS[systemId] ?? null
 }
 
-// Era year span for the Campaign Year control (Core p. 193). Always includes throughYear.
+// Era year span for the Campaign Year control only (Core p. 193).
+// Does not expand with throughYear — that field is for class eligibility / refit fallback, not the year picker.
 export function timeframeYearSpan(eraOrId) {
   const era = typeof eraOrId === 'string' ? getTimeframeById(eraOrId) : eraOrId
   if (!era) return null
-  let start
-  let end
   if (Number.isFinite(era.campaignStart) && Number.isFinite(era.campaignEnd)) {
-    start = era.campaignStart
-    end = era.campaignEnd
-  } else {
-    const nums = [...(era.years ?? '').matchAll(/\d{4}/g)].map((match) => Number(match[0]))
-    if (nums.length >= 2) {
-      start = nums[0]
-      end = nums[1]
-    } else if (Number.isFinite(era.throughYear)) {
-      start = era.throughYear
-      end = era.throughYear
-    } else {
-      return null
+    return {
+      start: Math.min(era.campaignStart, era.campaignEnd),
+      end: Math.max(era.campaignStart, era.campaignEnd),
     }
   }
-  if (Number.isFinite(era.throughYear)) {
-    start = Math.min(start, era.throughYear)
-    end = Math.max(end, era.throughYear)
+  const nums = [...(era.years ?? '').matchAll(/\d{4}/g)].map((match) => Number(match[0]))
+  if (nums.length >= 2) {
+    let start = nums[0]
+    let end = nums[1]
+    // "2260s–2270s" → inclusive decade end (2279), not the digit pair alone.
+    if (/\d{4}s/.test(era.years ?? '')) end = end - (end % 10) + 9
+    return { start: Math.min(start, end), end: Math.max(start, end) }
   }
-  return { start, end }
+  if (Number.isFinite(era.throughYear)) {
+    return { start: era.throughYear, end: era.throughYear }
+  }
+  return null
+}
+
+/** Full campaign-year continuum across every era card (gaps allowed between eras). */
+export function allCampaignYearSpan() {
+  let start = null
+  let end = null
+  for (const era of eras) {
+    const span = timeframeYearSpan(era)
+    if (!span) continue
+    start = start == null ? span.start : Math.min(start, span.start)
+    end = end == null ? span.end : Math.max(end, span.end)
+  }
+  return start == null ? null : { start, end }
+}
+
+function erasContainingYear(year) {
+  if (!Number.isFinite(year)) return []
+  return eras.filter((era) => {
+    const span = timeframeYearSpan(era)
+    return span && year >= span.start && year <= span.end
+  })
+}
+
+/**
+ * Resolve which era card owns a campaign year.
+ * Keep the preferred card while the year still falls in its range (handles TOS/TMP and TNG/DS9/VOY overlaps).
+ * When the year leaves the preferred card, pick the next/previous card in list order that covers it.
+ */
+export function timeframeIdForYear(year, preferredId = null) {
+  const matches = erasContainingYear(year)
+  if (!matches.length) return null
+  if (preferredId && matches.some((era) => era.id === preferredId)) return preferredId
+
+  if (preferredId) {
+    const order = eras.map((era) => era.id)
+    const preferredIndex = order.indexOf(preferredId)
+    if (preferredIndex >= 0) {
+      const later = matches.filter((era) => order.indexOf(era.id) > preferredIndex)
+      if (later.length) return later[0].id
+      const earlier = matches.filter((era) => order.indexOf(era.id) < preferredIndex)
+      if (earlier.length) return earlier[earlier.length - 1].id
+    }
+  }
+
+  // No preference: narrowest matching range (DS9/VOY over the wider TNG decade band).
+  const ranked = [...matches].sort((left, right) => {
+    const leftSpan = timeframeYearSpan(left)
+    const rightSpan = timeframeYearSpan(right)
+    return (leftSpan.end - leftSpan.start) - (rightSpan.end - rightSpan.start)
+  })
+  return ranked[0].id
+}
+
+function snapYearAcrossGap(fromYear, requestedYear) {
+  const global = allCampaignYearSpan()
+  if (!global) return null
+  let y = Math.round(requestedYear)
+  y = Math.min(global.end, Math.max(global.start, y))
+  if (timeframeIdForYear(y)) return y
+
+  // Year landed in a gap between eras — jump to the next/previous era edge in the travel direction.
+  const forward = requestedYear >= fromYear
+  if (forward) {
+    for (const era of eras) {
+      const span = timeframeYearSpan(era)
+      if (span && span.start > fromYear) return span.start
+    }
+    return global.end
+  }
+  for (let index = eras.length - 1; index >= 0; index -= 1) {
+    const span = timeframeYearSpan(eras[index])
+    if (span && span.end < fromYear) return span.end
+  }
+  return global.start
 }
 
 export function clampCampaignYear(timeframeId, year) {
   const era = getTimeframeById(timeframeId)
   const span = timeframeYearSpan(era)
   if (!span) return null
-  const fallback = Number.isFinite(era?.throughYear) ? era.throughYear : span.end
+  const fallback = Number.isFinite(era?.throughYear)
+    ? Math.min(span.end, Math.max(span.start, era.throughYear))
+    : span.end
   if (!Number.isFinite(year)) return fallback
   return Math.min(span.end, Math.max(span.start, Math.round(year)))
 }
@@ -386,18 +459,49 @@ export function getEligibleSpaceframes(timeframeId, year = null) {
 
 export function selectTimeframe(ship, timeframeId) {
   if (!getTimeframeById(timeframeId)) return ship
-  const campaignYear = clampCampaignYear(timeframeId, ship.timeframeId === timeframeId ? ship.campaignYear : null)
+  // Keep the current year when it still falls inside the newly chosen era; otherwise default inside that era.
+  const keepYear = ship.timeframeId === timeframeId || timeframeIdForYear(ship.campaignYear, timeframeId) === timeframeId
+  const campaignYear = clampCampaignYear(timeframeId, keepYear ? ship.campaignYear : null)
   if (ship.timeframeId === timeframeId && ship.campaignYear === campaignYear) return ship
   const spaceframeId = isSpaceframeEligible(timeframeId, ship.spaceframeId, campaignYear) ? ship.spaceframeId : null
   return withSanitizedAppearance(ship, { timeframeId, campaignYear, spaceframeId })
 }
 
 export function setCampaignYear(ship, year) {
-  if (!ship.timeframeId) return ship
-  const campaignYear = clampCampaignYear(ship.timeframeId, year)
-  if (campaignYear == null || ship.campaignYear === campaignYear) return ship
-  const spaceframeId = isSpaceframeEligible(ship.timeframeId, ship.spaceframeId, campaignYear) ? ship.spaceframeId : null
-  return kept(ship, { campaignYear, spaceframeId })
+  if (!Number.isFinite(year) && !ship.timeframeId) return ship
+  const fromYear = Number.isFinite(ship.campaignYear) ? ship.campaignYear : (allCampaignYearSpan()?.start ?? year)
+  let campaignYear = snapYearAcrossGap(fromYear, Number.isFinite(year) ? year : fromYear)
+  if (campaignYear == null) return ship
+
+  // Era follows the year. Prefer the current card while the year still belongs to it.
+  let timeframeId = timeframeIdForYear(campaignYear, ship.timeframeId) ?? ship.timeframeId
+  if (!timeframeId) return ship
+
+  // Moving forward must not snap back into an earlier overlapping card (e.g. Voyager 2378 → TNG 2379).
+  if (
+    ship.timeframeId
+    && Number.isFinite(year)
+    && Number.isFinite(ship.campaignYear)
+    && year > ship.campaignYear
+  ) {
+    const order = eras.map((era) => era.id)
+    const nextIndex = order.indexOf(timeframeId)
+    const currentIndex = order.indexOf(ship.timeframeId)
+    if (currentIndex >= 0 && nextIndex >= 0 && nextIndex < currentIndex) {
+      timeframeId = ship.timeframeId
+      campaignYear = clampCampaignYear(timeframeId, year)
+    }
+  }
+
+  // Final clamp to the resolved era so year never leaves that era's published bounds.
+  const clamped = clampCampaignYear(timeframeId, campaignYear)
+  if (clamped == null) return ship
+  if (ship.timeframeId === timeframeId && ship.campaignYear === clamped) return ship
+  const spaceframeId = isSpaceframeEligible(timeframeId, ship.spaceframeId, clamped) ? ship.spaceframeId : null
+  if (ship.timeframeId !== timeframeId) {
+    return withSanitizedAppearance(ship, { timeframeId, campaignYear: clamped, spaceframeId })
+  }
+  return kept(ship, { campaignYear: clamped, spaceframeId })
 }
 
 export function selectSpaceframe(ship, spaceframeId) {
@@ -575,14 +679,18 @@ export function pickRefits(ship, random = Math.random) {
   return next
 }
 
-export function refitSummary(ship) {
+export function refitSummaryItems(ship) {
   const counts = new Map()
   for (const id of ship.refits ?? []) counts.set(id, (counts.get(id) ?? 0) + 1)
-  if (!counts.size) return null
+  if (!counts.size) return []
   return refitSystems
     .filter((entry) => counts.has(entry.id))
     .map((entry) => (counts.get(entry.id) > 1 ? `${entry.name} ${counts.get(entry.id)}` : entry.name))
-    .join(', ')
+}
+
+export function refitSummary(ship) {
+  const items = refitSummaryItems(ship)
+  return items.length ? items.join(', ') : null
 }
 
 export function getServiceRecords() {

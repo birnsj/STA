@@ -12,10 +12,20 @@
 
 .screen-title {
   display: flex;
-  align-items: center;
-  gap: 18px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   padding-bottom: 6px;
   border-bottom: 2px solid var(--panel-border);
+}
+
+/* Number + title on one baseline (Timeframe reference); intro sits under both. */
+.screen-title-heading,
+.timeframe-heading,
+.finish-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .screen-number,
@@ -28,6 +38,7 @@
 }
 
 .screen-intro {
+  margin: 0;
   font-size: 16px;
   color: var(--text-muted);
 }

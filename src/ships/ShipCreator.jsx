@@ -213,7 +213,6 @@ export default function ShipCreator({ launch = null, onExit, onStartGame, onShip
             onDecrease={(system) => setShip((current) => removeRefit(current, system))}
             onToggleTalent={(talentId) => setShip((current) => toggleShipTalent(current, talentId))}
             onTalentChoice={(talentId, choice) => setShip((current) => setShipTalentChoice(current, talentId, choice))}
-            onAppearance={(field, id) => setShip((current) => setFinishingChoice(current, field, id))}
             onBack={() => setStepId('serviceRecord')}
             onQuit={requestQuit}
             onClear={resetShip}

@@ -98,15 +98,15 @@ export default function EducationScreen({ step, navigation }) {
   return (
     <section className="screen education-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.option ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose your Career Path: your higher education and current profession, as defined in the Core Rulebook.
-            <br />
-            Your Career Path provides a trait and the benefits below. Final Attribute values are assigned later (total must equal 56).
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose your Career Path: your higher education and current profession, as defined in the Core Rulebook.
+          <br />
+          Your Career Path provides a trait and the benefits below. Final Attribute values are assigned later (total must equal 56).
+        </p>
       </div>
 
       <CardCarousel

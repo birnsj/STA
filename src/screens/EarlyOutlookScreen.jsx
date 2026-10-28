@@ -38,15 +38,15 @@ export default function EarlyOutlookScreen({ step, navigation }) {
   return (
     <section className="screen early-outlook-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.outlook ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose your Upbringing: the culture you grew up in, and whether you accepted or rebelled against it.
-            <br />
-            {getUpbringingRules().grants}
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose your Upbringing: the culture you grew up in, and whether you accepted or rebelled against it.
+          <br />
+          {getUpbringingRules().grants}
+        </p>
       </div>
 
       <CardCarousel

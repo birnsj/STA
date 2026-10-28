@@ -1,8 +1,8 @@
 import { createElement, useEffect, useRef, useState } from 'react'
 import InfoTipBubble from './InfoTipBubble.jsx'
 
-// Long enough that sweeping the pointer across the screen doesn't flash boxes; clicking shows one at once.
-export const SHOW_DELAY_MS = 800
+// Hover-only: long enough that sweeping or clicking through a list doesn't flash boxes.
+export const SHOW_DELAY_MS = 1400
 
 // One info box per list: spread `bind(content)` onto each item and render `element` once.
 export function useInfoTip() {
@@ -31,7 +31,8 @@ export function useInfoTip() {
         timerRef.current = setTimeout(() => setActive({ content, anchor }), SHOW_DELAY_MS)
       },
       onPointerLeave: hide,
-      onPointerUp: (event) => show(content, event.currentTarget),
+      // Click selects the control — cancel any pending tip and do not show on press.
+      onPointerDown: hide,
       onFocus: (event) => event.currentTarget.matches(':focus-visible') && show(content, event.currentTarget),
       onBlur: hide,
     }

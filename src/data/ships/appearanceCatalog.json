@@ -1,5 +1,5 @@
 {
-  "note": "Prototype Screen 06 Appearance Detail catalogs (Identification / Livery / Surface Finish). Not STA 2E published hull-marking tables (Core p. 194 covers name/registry only). gameplay: cosmetic | contextual | earned. Earned options require Screen 04 / Official Service History selections. linksTraitSource means the marking visualizes an existing Trait and must not grant a second Trait. Weathering is visual only and does not change Structure or damage state.",
+  "note": "Prototype Screen 06 Appearance Detail catalogs (Identification / Livery / Surface Finish). Not STA 2E published hull-marking tables (Core p. 194 covers name/registry only). gameplay: cosmetic | contextual | earned. Earned options require Screen 04 / Official Service History selections. linksTraitSource means the marking visualizes an existing Trait and must not grant a second Trait. Weathering is visual only and does not change Structure or damage state. Each slot (except Honor Insignia, which has five) is padded to four options so Screen 06 always shows a full 2×2 choice grid.",
   "categories": [
     {
       "id": "identification",
@@ -15,8 +15,15 @@
               "caption": "Clear Starfleet registry lettering on the hull.",
               "description": "Displays standard, readable registry typography. Contextual recognition: other ships and stations can identify the vessel by registry when circumstances allow. Does not change Systems or Departments.",
               "gameplay": "contextual",
-              "contextTags": ["identification", "starfleet", "social"],
-              "visual": { "layer": "registry", "file": "registry/registry-standard.png" }
+              "contextTags": [
+                "identification",
+                "starfleet",
+                "social"
+              ],
+              "visual": {
+                "layer": "registry",
+                "file": "registry/registry-standard.png"
+              }
             },
             {
               "id": "registry-minimal",
@@ -24,7 +31,10 @@
               "caption": "Recessed, low-contrast registry markings.",
               "description": "Uses subdued registry placement for a cleaner silhouette. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "registry", "file": "registry/registry-minimal.png" }
+              "visual": {
+                "layer": "registry",
+                "file": "registry/registry-minimal.png"
+              }
             },
             {
               "id": "registry-obscured",
@@ -32,8 +42,27 @@
               "caption": "Hard-to-read or deliberately altered identification.",
               "description": "Registry markings are obscured, incomplete, or altered. Contextual: may invite suspicion during security or inspection encounters. Does not change Systems or Departments.",
               "gameplay": "contextual",
-              "contextTags": ["identification", "security", "suspicion", "social"],
-              "visual": { "layer": "registry", "file": "registry/registry-obscured.png" }
+              "contextTags": [
+                "identification",
+                "security",
+                "suspicion",
+                "social"
+              ],
+              "visual": {
+                "layer": "registry",
+                "file": "registry/registry-obscured.png"
+              }
+            },
+            {
+              "id": "registry-offset",
+              "name": "Offset Registry",
+              "caption": "Registry lettering shifted toward the bow.",
+              "description": "Registry lettering shifted toward the bow. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "registry",
+                "file": "registry/registry-offset.png"
+              }
             }
           ]
         },
@@ -47,7 +76,43 @@
               "caption": "Standard Starfleet hull identification graphics.",
               "description": "Applies conventional Federation hull identification markings. Cosmetic presentation only; does not grant Traits.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "hull-id", "file": "hull-id/id-standard-federation.png" }
+              "visual": {
+                "layer": "hull-id",
+                "file": "hull-id/id-standard-federation.png"
+              }
+            },
+            {
+              "id": "id-minimal",
+              "name": "Minimal Hull ID",
+              "caption": "Reduced hull identification graphics.",
+              "description": "Reduced hull identification graphics. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "hull-id",
+                "file": "hull-id/id-minimal.png"
+              }
+            },
+            {
+              "id": "id-high-contrast",
+              "name": "High-Contrast Hull ID",
+              "caption": "High-contrast hull identification graphics.",
+              "description": "High-contrast hull identification graphics. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "hull-id",
+                "file": "hull-id/id-high-contrast.png"
+              }
+            },
+            {
+              "id": "id-survey",
+              "name": "Survey Hull ID",
+              "caption": "Survey-oriented hull identification graphics.",
+              "description": "Survey-oriented hull identification graphics. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "hull-id",
+                "file": "hull-id/id-survey.png"
+              }
             }
           ]
         },
@@ -61,8 +126,48 @@
               "caption": "Federation pennant markings on the hull.",
               "description": "Displays Federation pennant graphics. Contextual recognition during diplomatic or Starfleet encounters when circumstances support it. Does not change Systems or Departments.",
               "gameplay": "contextual",
-              "contextTags": ["diplomacy", "starfleet", "social"],
-              "visual": { "layer": "pennant", "file": "pennant/pennant-federation.png" }
+              "contextTags": [
+                "diplomacy",
+                "starfleet",
+                "social"
+              ],
+              "visual": {
+                "layer": "pennant",
+                "file": "pennant/pennant-federation.png"
+              }
+            },
+            {
+              "id": "pennant-none",
+              "name": "No Pennant",
+              "caption": "Omits pennant markings from the hull.",
+              "description": "Omits pennant markings from the hull. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "pennant",
+                "file": "pennant/pennant-none.png"
+              }
+            },
+            {
+              "id": "pennant-minimal",
+              "name": "Minimal Pennant",
+              "caption": "Small, low-contrast pennant marking.",
+              "description": "Small, low-contrast pennant marking. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "pennant",
+                "file": "pennant/pennant-minimal.png"
+              }
+            },
+            {
+              "id": "pennant-escort",
+              "name": "Escort Pennant",
+              "caption": "Escort-style pennant presentation.",
+              "description": "Escort-style pennant presentation. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "pennant",
+                "file": "pennant/pennant-escort.png"
+              }
             }
           ]
         },
@@ -78,12 +183,27 @@
               "gameplay": "earned",
               "requires": {
                 "mode": "any",
-                "serviceRecordIds": ["hope-ship"],
-                "eventIds": ["rescue-operation", "emergency-evacuation"],
-                "honorIds": ["humanitarian-service-citation"]
+                "serviceRecordIds": [
+                  "hope-ship"
+                ],
+                "eventIds": [
+                  "rescue-operation",
+                  "emergency-evacuation"
+                ],
+                "honorIds": [
+                  "humanitarian-service-citation"
+                ]
               },
-              "contextTags": ["medicine", "medical", "rescue", "crisis"],
-              "visual": { "layer": "mission", "file": "mission/mission-medical.png" }
+              "contextTags": [
+                "medicine",
+                "medical",
+                "rescue",
+                "crisis"
+              ],
+              "visual": {
+                "layer": "mission",
+                "file": "mission/mission-medical.png"
+              }
             },
             {
               "id": "mission-diplomatic",
@@ -93,12 +213,48 @@
               "gameplay": "earned",
               "requires": {
                 "mode": "any",
-                "eventIds": ["diplomatic-breakthrough", "first-contact"],
-                "reputationIds": ["diplomatic"],
-                "honorIds": ["diplomatic-excellence-citation"]
+                "eventIds": [
+                  "diplomatic-breakthrough",
+                  "first-contact"
+                ],
+                "reputationIds": [
+                  "diplomatic"
+                ],
+                "honorIds": [
+                  "diplomatic-excellence-citation"
+                ]
               },
-              "contextTags": ["diplomacy", "social", "command"],
-              "visual": { "layer": "mission", "file": "mission/mission-diplomatic.png" }
+              "contextTags": [
+                "diplomacy",
+                "social",
+                "command"
+              ],
+              "visual": {
+                "layer": "mission",
+                "file": "mission/mission-diplomatic.png"
+              }
+            },
+            {
+              "id": "mission-none",
+              "name": "No Mission Markings",
+              "caption": "No exterior mission identification.",
+              "description": "No exterior mission identification. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "mission",
+                "file": "mission/mission-none.png"
+              }
+            },
+            {
+              "id": "mission-survey",
+              "name": "Survey Mission Markings",
+              "caption": "Exterior markings suggesting survey duty.",
+              "description": "Exterior markings suggesting survey duty. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "mission",
+                "file": "mission/mission-survey.png"
+              }
             }
           ]
         },
@@ -112,9 +268,20 @@
               "caption": "Displays the Starfleet Commendation on the hull.",
               "description": "Visual presentation of an already-earned Starfleet Commendation. Requires that honor on Screen 04. Does not grant a second Trait.",
               "gameplay": "earned",
-              "requires": { "mode": "all", "honorIds": ["starfleet-commendation"] },
-              "linksTraitSource": { "type": "honor", "id": "starfleet-commendation" },
-              "visual": { "layer": "honor", "file": "honor/insignia-starfleet-commendation.png" }
+              "requires": {
+                "mode": "all",
+                "honorIds": [
+                  "starfleet-commendation"
+                ]
+              },
+              "linksTraitSource": {
+                "type": "honor",
+                "id": "starfleet-commendation"
+              },
+              "visual": {
+                "layer": "honor",
+                "file": "honor/insignia-starfleet-commendation.png"
+              }
             },
             {
               "id": "insignia-humanitarian",
@@ -122,9 +289,20 @@
               "caption": "Displays the Humanitarian Service Citation.",
               "description": "Visual presentation of an already-earned Humanitarian Service Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
               "gameplay": "earned",
-              "requires": { "mode": "all", "honorIds": ["humanitarian-service-citation"] },
-              "linksTraitSource": { "type": "honor", "id": "humanitarian-service-citation" },
-              "visual": { "layer": "honor", "file": "honor/insignia-humanitarian.png" }
+              "requires": {
+                "mode": "all",
+                "honorIds": [
+                  "humanitarian-service-citation"
+                ]
+              },
+              "linksTraitSource": {
+                "type": "honor",
+                "id": "humanitarian-service-citation"
+              },
+              "visual": {
+                "layer": "honor",
+                "file": "honor/insignia-humanitarian.png"
+              }
             },
             {
               "id": "insignia-diplomatic",
@@ -132,9 +310,20 @@
               "caption": "Displays the Diplomatic Excellence Citation.",
               "description": "Visual presentation of an already-earned Diplomatic Excellence Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
               "gameplay": "earned",
-              "requires": { "mode": "all", "honorIds": ["diplomatic-excellence-citation"] },
-              "linksTraitSource": { "type": "honor", "id": "diplomatic-excellence-citation" },
-              "visual": { "layer": "honor", "file": "honor/insignia-diplomatic.png" }
+              "requires": {
+                "mode": "all",
+                "honorIds": [
+                  "diplomatic-excellence-citation"
+                ]
+              },
+              "linksTraitSource": {
+                "type": "honor",
+                "id": "diplomatic-excellence-citation"
+              },
+              "visual": {
+                "layer": "honor",
+                "file": "honor/insignia-diplomatic.png"
+              }
             },
             {
               "id": "insignia-exploration",
@@ -142,9 +331,20 @@
               "caption": "Displays the Distinguished Exploration Citation.",
               "description": "Visual presentation of an already-earned Distinguished Exploration Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
               "gameplay": "earned",
-              "requires": { "mode": "all", "honorIds": ["distinguished-exploration-citation"] },
-              "linksTraitSource": { "type": "honor", "id": "distinguished-exploration-citation" },
-              "visual": { "layer": "honor", "file": "honor/insignia-exploration.png" }
+              "requires": {
+                "mode": "all",
+                "honorIds": [
+                  "distinguished-exploration-citation"
+                ]
+              },
+              "linksTraitSource": {
+                "type": "honor",
+                "id": "distinguished-exploration-citation"
+              },
+              "visual": {
+                "layer": "honor",
+                "file": "honor/insignia-exploration.png"
+              }
             },
             {
               "id": "insignia-defense",
@@ -152,9 +352,20 @@
               "caption": "Displays the Defense of the Federation Citation.",
               "description": "Visual presentation of an already-earned Defense of the Federation Citation. Requires that honor on Screen 04. Does not grant a second Trait.",
               "gameplay": "earned",
-              "requires": { "mode": "all", "honorIds": ["defense-of-the-federation-citation"] },
-              "linksTraitSource": { "type": "honor", "id": "defense-of-the-federation-citation" },
-              "visual": { "layer": "honor", "file": "honor/insignia-defense.png" }
+              "requires": {
+                "mode": "all",
+                "honorIds": [
+                  "defense-of-the-federation-citation"
+                ]
+              },
+              "linksTraitSource": {
+                "type": "honor",
+                "id": "defense-of-the-federation-citation"
+              },
+              "visual": {
+                "layer": "honor",
+                "file": "honor/insignia-defense.png"
+              }
             }
           ]
         }
@@ -174,7 +385,10 @@
               "caption": "Traditional red accent striping.",
               "description": "Applies classic red accent striping along primary hull lines. Distinct from the legacy Striping Style field. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "striping", "file": "striping/stripe-classic-red.png" }
+              "visual": {
+                "layer": "striping",
+                "file": "striping/stripe-classic-red.png"
+              }
             },
             {
               "id": "stripe-aztec",
@@ -182,8 +396,38 @@
               "caption": "Aztec-style panel contrast pattern.",
               "description": "Emphasizes TMP-and-later panel patterning on the hull. Cosmetic only. Available from the Motion Picture era onward.",
               "gameplay": "cosmetic",
-              "eraIds": ["tmp", "tng", "ds9", "voy"],
-              "visual": { "layer": "striping", "file": "striping/stripe-aztec.png" }
+              "eraIds": [
+                "tmp",
+                "tng",
+                "ds9",
+                "voy"
+              ],
+              "visual": {
+                "layer": "striping",
+                "file": "striping/stripe-aztec.png"
+              }
+            },
+            {
+              "id": "stripe-none",
+              "name": "No Striping Pattern",
+              "caption": "No additional striping pattern layer.",
+              "description": "No additional striping pattern layer. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "striping",
+                "file": "striping/stripe-none.png"
+              }
+            },
+            {
+              "id": "stripe-thin-gold",
+              "name": "Thin Gold Accent",
+              "caption": "Thin gold accent striping along hull lines.",
+              "description": "Thin gold accent striping along hull lines. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "striping",
+                "file": "striping/stripe-thin-gold.png"
+              }
             }
           ]
         },
@@ -197,7 +441,10 @@
               "caption": "Standard nacelle identification markings.",
               "description": "Default nacelle markings for the class silhouette. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "nacelle-marks", "file": "nacelle-marks/nacelle-standard-marks.png" }
+              "visual": {
+                "layer": "nacelle-marks",
+                "file": "nacelle-marks/nacelle-standard-marks.png"
+              }
             },
             {
               "id": "nacelle-high-vis",
@@ -205,7 +452,32 @@
               "caption": "Higher-contrast nacelle warning markings.",
               "description": "Increases contrast on nacelle tip and pylon markings. Cosmetic only; does not change Engines.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "nacelle-marks", "file": "nacelle-marks/nacelle-high-vis.png" }
+              "visual": {
+                "layer": "nacelle-marks",
+                "file": "nacelle-marks/nacelle-high-vis.png"
+              }
+            },
+            {
+              "id": "nacelle-none",
+              "name": "No Nacelle Marks",
+              "caption": "Omits extra nacelle identification marks.",
+              "description": "Omits extra nacelle identification marks. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "nacelle-marks",
+                "file": "nacelle-marks/nacelle-none.png"
+              }
+            },
+            {
+              "id": "nacelle-fleet",
+              "name": "Fleet Nacelle Marks",
+              "caption": "Fleet-standard nacelle tip markings.",
+              "description": "Fleet-standard nacelle tip markings. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "nacelle-marks",
+                "file": "nacelle-marks/nacelle-fleet.png"
+              }
             }
           ]
         },
@@ -219,7 +491,10 @@
               "caption": "Standard secondary-hull marking treatment.",
               "description": "Conventional engineering-hull graphics. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "engineering", "file": "engineering/eng-hull-standard.png" }
+              "visual": {
+                "layer": "engineering",
+                "file": "engineering/eng-hull-standard.png"
+              }
             },
             {
               "id": "eng-hull-yard",
@@ -227,7 +502,32 @@
               "caption": "Shipyard-style engineering-hull markings.",
               "description": "Emphasizes construction-yard style markings on the secondary hull. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "engineering", "file": "engineering/eng-hull-yard.png" }
+              "visual": {
+                "layer": "engineering",
+                "file": "engineering/eng-hull-yard.png"
+              }
+            },
+            {
+              "id": "eng-hull-none",
+              "name": "No Engineering Marks",
+              "caption": "Omits extra engineering-hull markings.",
+              "description": "Omits extra engineering-hull markings. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "engineering",
+                "file": "engineering/eng-hull-none.png"
+              }
+            },
+            {
+              "id": "eng-hull-grid",
+              "name": "Grid Pattern",
+              "caption": "Grid-style engineering-hull markings.",
+              "description": "Grid-style engineering-hull markings. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "engineering",
+                "file": "engineering/eng-hull-grid.png"
+              }
             }
           ]
         },
@@ -241,7 +541,10 @@
               "caption": "Standard Starfleet hull grey.",
               "description": "Familiar fleet grey hull coloration. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "color", "file": "color/color-starfleet-grey.png" }
+              "visual": {
+                "layer": "color",
+                "file": "color/color-starfleet-grey.png"
+              }
             },
             {
               "id": "color-muted-wartime",
@@ -249,7 +552,32 @@
               "caption": "Subdued wartime hull coloration.",
               "description": "Mutes accent brightness for a wartime presentation. Cosmetic only; does not change armor or shields.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "color", "file": "color/color-muted-wartime.png" }
+              "visual": {
+                "layer": "color",
+                "file": "color/color-muted-wartime.png"
+              }
+            },
+            {
+              "id": "color-bright-fleet",
+              "name": "Bright Fleet",
+              "caption": "Brighter fleet hull coloration.",
+              "description": "Brighter fleet hull coloration. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "color",
+                "file": "color/color-bright-fleet.png"
+              }
+            },
+            {
+              "id": "color-deep-space",
+              "name": "Deep Space",
+              "caption": "Darker deep-space hull coloration.",
+              "description": "Darker deep-space hull coloration. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "color",
+                "file": "color/color-deep-space.png"
+              }
             }
           ]
         }
@@ -269,7 +597,10 @@
               "caption": "Fresh, well-maintained hull finish.",
               "description": "A clean, well-kept exterior finish. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "finish", "file": "finish/finish-clean.png" }
+              "visual": {
+                "layer": "finish",
+                "file": "finish/finish-clean.png"
+              }
             },
             {
               "id": "finish-matte",
@@ -277,7 +608,32 @@
               "caption": "Low-sheen matte hull finish.",
               "description": "Reduces hull sheen for a matte presentation. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "finish", "file": "finish/finish-matte.png" }
+              "visual": {
+                "layer": "finish",
+                "file": "finish/finish-matte.png"
+              }
+            },
+            {
+              "id": "finish-satin",
+              "name": "Satin Finish",
+              "caption": "Soft satin hull sheen.",
+              "description": "Soft satin hull sheen. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "finish",
+                "file": "finish/finish-satin.png"
+              }
+            },
+            {
+              "id": "finish-polished",
+              "name": "Polished Finish",
+              "caption": "High-sheen polished hull finish.",
+              "description": "High-sheen polished hull finish. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "finish",
+                "file": "finish/finish-polished.png"
+              }
             }
           ]
         },
@@ -291,7 +647,10 @@
               "caption": "Subtle panel line contrast.",
               "description": "Softens panel line contrast across the hull. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "panels", "file": "panels/panel-low.png" }
+              "visual": {
+                "layer": "panels",
+                "file": "panels/panel-low.png"
+              }
             },
             {
               "id": "panel-high",
@@ -299,7 +658,32 @@
               "caption": "Strong panel line contrast.",
               "description": "Increases panel line contrast for a sharper exterior read. Cosmetic only.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "panels", "file": "panels/panel-high.png" }
+              "visual": {
+                "layer": "panels",
+                "file": "panels/panel-high.png"
+              }
+            },
+            {
+              "id": "panel-medium",
+              "name": "Medium Panel Contrast",
+              "caption": "Balanced panel line contrast.",
+              "description": "Balanced panel line contrast. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "panels",
+                "file": "panels/panel-medium.png"
+              }
+            },
+            {
+              "id": "panel-uniform",
+              "name": "Uniform Panels",
+              "caption": "Nearly uniform panel presentation.",
+              "description": "Nearly uniform panel presentation. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "panels",
+                "file": "panels/panel-uniform.png"
+              }
             }
           ]
         },
@@ -313,7 +697,10 @@
               "caption": "No visible weathering or scarring.",
               "description": "Hull appears freshly maintained. Cosmetic only. Does not change damage state.",
               "gameplay": "cosmetic",
-              "visual": { "layer": "weathering", "file": "weathering/weather-none.png" }
+              "visual": {
+                "layer": "weathering",
+                "file": "weathering/weather-none.png"
+              }
             },
             {
               "id": "weather-light",
@@ -321,8 +708,15 @@
               "caption": "Light wear and surface weathering.",
               "description": "Shows light wear. Contextual: NPCs may remark on the ship's apparent condition. Visual only — does not alter Structure, Resistance, or damage state.",
               "gameplay": "contextual",
-              "contextTags": ["condition", "social", "engineering"],
-              "visual": { "layer": "weathering", "file": "weathering/weather-light.png" }
+              "contextTags": [
+                "condition",
+                "social",
+                "engineering"
+              ],
+              "visual": {
+                "layer": "weathering",
+                "file": "weathering/weather-light.png"
+              }
             },
             {
               "id": "weather-battle-scarred",
@@ -332,11 +726,34 @@
               "gameplay": "earned",
               "requires": {
                 "mode": "any",
-                "serviceRecordIds": ["survivor"],
-                "eventIds": ["border-incident", "major-systems-failure"]
+                "serviceRecordIds": [
+                  "survivor"
+                ],
+                "eventIds": [
+                  "border-incident",
+                  "major-systems-failure"
+                ]
               },
-              "contextTags": ["condition", "combat", "social"],
-              "visual": { "layer": "weathering", "file": "weathering/weather-battle-scarred.png" }
+              "contextTags": [
+                "condition",
+                "combat",
+                "social"
+              ],
+              "visual": {
+                "layer": "weathering",
+                "file": "weathering/weather-battle-scarred.png"
+              }
+            },
+            {
+              "id": "weather-patrol",
+              "name": "Patrol Wear",
+              "caption": "Light patrol wear without battle scarring.",
+              "description": "Light patrol wear without battle scarring. Prototype cosmetic only. Does not change Systems or Departments.",
+              "gameplay": "cosmetic",
+              "visual": {
+                "layer": "weathering",
+                "file": "weathering/weather-patrol.png"
+              }
             }
           ]
         }

@@ -6,7 +6,7 @@
     { "id": "missionProfile", "number": "03", "title": "Mission Profile", "subtitle": "Role and Departments" },
     { "id": "serviceRecord", "number": "04", "title": "Service Record", "subtitle": "History and Traits" },
     { "id": "refits", "number": "05", "title": "Refits", "subtitle": "Apply improvements" },
-    { "id": "finishingTouches", "number": "06", "title": "Finishing Touches", "subtitle": "Name, Registry, Bridge" },
+    { "id": "finishingTouches", "number": "06", "title": "Finishing Touches", "subtitle": "Name, Registry, Appearance" },
     { "id": "review", "number": "07", "title": "Review", "subtitle": "Starship Record" }
   ]
 }

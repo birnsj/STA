@@ -1,4 +1,4 @@
-/* Starship Creator, Screen 04. Fits the 1920×1080 creator frame; no scrollbars. */
+/* Starship Creator, Screen 04. Outer frame stays fixed; detail copy scrolls when it overflows. */
 
 .service-screen {
   height: 100%;
@@ -208,6 +208,7 @@
 }
 
 .service-detail-name {
+  flex: none;
   margin: 0;
   font-size: 28px;
   line-height: 1.1;
@@ -215,7 +216,19 @@
   color: var(--yellow);
 }
 
-.service-detail-text p {
+.service-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.service-detail-text p,
+.service-detail-scroll p {
   margin: 0;
   font-size: 15px;
   line-height: 1.35;
@@ -308,7 +321,8 @@
 /* Screen 04 summary only — do not change other ship screens. */
 .frame-body:has(.service-screen) .ship-summary {
   padding: 6px 12px 8px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .frame-body:has(.service-screen) .ship-summary .summary-heading {
@@ -329,7 +343,7 @@
 }
 
 .frame-body:has(.service-screen) .ship-summary .summary-row dd {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
 }

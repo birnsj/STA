@@ -14,13 +14,17 @@ The ship creator footer matches the character creator: Back, Quit after the firs
 
 Screen 07 reads the ship already stored. Complete sets `confirmedAt` and does not add talents to reach Scale or calculate Resistance, Shields, or Crew Support. Trait and talent descriptions stay Unknown. Class designation stays N/A. Where: `docs/prototype-rules.md` (Starship creation), `shipModel.js`.
 
-### Starship finishing touches (implemented 2026-10-25)
+### Starship finishing touches (updated 2026-10-27)
 
-Screen 06 records the name and registry from Core p. 194. The prefix is derived from the class: U.S.S. and NCC for Federation, NX while the service record is Prototype, I.K.S. or I.R.W. for Klingon and Romulan ships, and NX for the United Earth NX class. Cardassian and Ferengi ships are not given a prefix. Legacy bridge, markings, and emblem remain cosmetic. Nested Appearance Detail (Identification / Livery / Surface Finish) adds cosmetic/contextual/earned options linked to Screen 04 without Systems/Departments bonuses or Trait double-counting. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `appearanceCatalog.json`, `appearanceRules.js`, `shipModel.js`.
+Screen 06 is the sole appearance surface: Identity (name/registry/class designation), Exterior Appearance, Insignia & Decals, Surface Finish, and Summary. Legacy package fields and nested Appearance Detail each map once; Cosmetic / Contextual / Earned badges and Screen 04 locks remain. Appearance Packages were removed from Screen 05. Catalog slots (except Honor Insignia’s five) are padded to four options for a fixed 2×2 choice grid. Where: `docs/prototype-rules.md` (Starship creation), `finishingTouches.json`, `appearanceCatalog.json`, `FinishingTouchesScreen.jsx`.
 
-### Starship refits (updated 2026-10-26)
+### Starship refits (updated 2026-10-27)
 
-Screen 05 keeps five mockup tabs mapped to book rules: Major Refits = Core p. 217 system +1s; System Upgrades = read-only totals; Weapons & Defenses / Special Systems = remaining starship talents to Scale (pp. 218–225); Appearance = cosmetic finishing fields. Cloaking Device is Klingon/Romulan only. Resistance / Shields / Crew Support are calculated; ship combat effects are deferred. Where: `docs/prototype-rules.md` (Starship creation), `refits.json`, `starshipTalents.json`, `shipTalents.js`.
+Screen 05 keeps four mechanical tabs: Major Refits = Core p. 217 system +1s; Systems Overview = read-only totals; Weapons & Defenses / Special Systems = remaining starship talents to Scale (pp. 218–225). Appearance Packages no longer live here. Cloaking Device is Klingon/Romulan only. Resistance / Shields / Crew Support are calculated; ship combat effects are deferred. Where: `docs/prototype-rules.md` (Starship creation), `refits.json`, `starshipTalents.json`, `RefitsScreen.jsx`.
+
+### Starship campaign year (updated 2026-10-27)
+
+Screen 01 stores both an era card and a campaign year. Each era’s picker range matches its card label (decade-inclusive). Stepping the year past an era edge selects the next/previous era; overlaps keep the current card until the year leaves it. Year of play for class eligibility and refits is the campaign year. Where: `docs/prototype-rules.md` (Starship creation), `timeframes.json`, `shipModel.js`, `TimeframeScreen.jsx`.
 
 ### Starship service record gameplay (implemented 2026-10-26)
 
@@ -34,9 +38,9 @@ Screen 04 offers the six Core service records on p. 216. One record is optional.
 
 Screen 03 uses the ten Core profiles on pp. 212–215, not the mockup’s five names or its sample modifiers. A department score is the profile baseline plus the class modifier. The profile adds 1 to one system (the player chooses which, for Multirole Explorer) and one talent from that profile’s list. Changing profile replaces the previous talent and system increase. Page 194’s caps (department 5, system 12) are not given a control, because no current pair exceeds them. Where: `docs/prototype-rules.md` (Starship creation), `missionProfiles.json`, `shipModel.js`.
 
-### Starship spaceframe eligibility (implemented 2026-10-25; cutoff awaiting designer confirmation)
+### Starship spaceframe eligibility (updated 2026-10-27)
 
-Screen 02 offers Core spaceframes (pp. 197–211) whose launch year is no later than the last year of the era chosen on Screen 01. The book (p. 193) asks for a single campaign year; Screen 01 still stores a range, and no year control was added. Non-Starfleet classes from pp. 206–211 are in the same picker. The filter row is All Classes only. Department scores stay blank on Screen 02. Where: `docs/prototype-rules.md` (Starship creation), `spaceframes.json`, `shipModel.js`.
+Screen 02 offers Core spaceframes (pp. 197–211) whose launch year is no later than the campaign year from Screen 01 (fallback: era `throughYear`). Non-Starfleet classes from pp. 206–211 are in the same picker. Detail and bottom panels scroll when copy overflows. Department scores stay blank on Screen 02 until a mission profile is chosen. Where: `docs/prototype-rules.md` (Starship creation), `spaceframes.json`, `shipModel.js`, `SpaceframeScreen.jsx`.
 
 ### Map editor layers (implemented 2026-10-21 on `map-layers`; defaults awaiting designer review)
 

@@ -95,17 +95,17 @@ export default function SpaceframeScreen({
   return (
     <section className="screen spaceframe-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className="screen-heading"><HelpTip helpId="spaceframeScreen">{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            {INTRO}
-            {year != null && (
-              <span className="spaceframe-year-note"> Campaign year {year}.</span>
-            )}
-            <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 195–211</span>
-          </p>
         </div>
+        <p className="screen-intro">
+          {INTRO}
+          {year != null && (
+            <span className="spaceframe-year-note"> Campaign year {year}.</span>
+          )}
+          <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 195–211</span>
+        </p>
       </div>
 
       <div className="spaceframe-filters" role="toolbar" aria-label="Class filters">
@@ -175,24 +175,26 @@ export default function SpaceframeScreen({
         </div>
         <div className="spaceframe-detail-text">
           <h2 className="spaceframe-detail-name">{selected ? `${selected.name} class` : 'No spaceframe selected'}</h2>
-          {selected && <p className="spaceframe-overview">{selected.overview}</p>}
-          {selected && <p className="source-ref">Star Trek Adventures 2E Core Rulebook, p. {selected.page}</p>}
-          {selected && (
-            <>
-              <h3 className="spaceframe-stats-heading">Class Characteristics</h3>
-              <dl className="spaceframe-stats">
-              <Stat label="Launch year" value={selected.launchYear} />
-              <Stat label="Scale" value={selected.scale} />
-              <Stat label="Traits" value={selected.traits?.join(', ') || '—'} />
-              {SYSTEMS.map(([key, label]) => (
-                <Stat key={key} label={label} value={selected.systems[key]} />
-              ))}
-              {DEPARTMENTS.map(([key, label]) => (
-                <Stat key={key} label={`${label} modifier`} value={modifier(selected.departmentModifiers[key])} />
-              ))}
-              </dl>
-            </>
-          )}
+          <div className="spaceframe-detail-scroll">
+            {selected && <p className="spaceframe-overview">{selected.overview}</p>}
+            {selected && <p className="source-ref">Star Trek Adventures 2E Core Rulebook, p. {selected.page}</p>}
+            {selected && (
+              <>
+                <h3 className="spaceframe-stats-heading">Class Characteristics</h3>
+                <dl className="spaceframe-stats">
+                  <Stat label="Launch year" value={selected.launchYear} />
+                  <Stat label="Scale" value={selected.scale} />
+                  <Stat label="Traits" value={selected.traits?.join(', ') || '—'} />
+                  {SYSTEMS.map(([key, label]) => (
+                    <Stat key={key} label={label} value={selected.systems[key]} />
+                  ))}
+                  {DEPARTMENTS.map(([key, label]) => (
+                    <Stat key={key} label={`${label} modifier`} value={modifier(selected.departmentModifiers[key])} />
+                  ))}
+                </dl>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

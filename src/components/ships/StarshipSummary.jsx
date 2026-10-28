@@ -3,7 +3,7 @@ import {
   getMissionProfileById,
   getSpaceframeById,
   getTimeframeById,
-  refitSummary,
+  refitSummaryItems,
   serviceRecordLabel,
   shipCrewSupport,
   shipDisplayName,
@@ -31,12 +31,30 @@ function Row({ label, value }) {
   return (
     <div className="summary-row">
       <dt>{label}</dt>
-      <dd title={value || undefined}>{value || EMPTY}</dd>
+      <dd>{value || EMPTY}</dd>
     </div>
   )
 }
 
-const joined = (items) => (items?.length ? items.join(', ') : null)
+function BulletRow({ label, items }) {
+  const list = items?.filter(Boolean) ?? []
+  return (
+    <div className="summary-row summary-row-list">
+      <dt>{label}</dt>
+      <dd>
+        {list.length ? (
+          <ul className="ship-summary-bullets">
+            {list.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          EMPTY
+        )}
+      </dd>
+    </div>
+  )
+}
 
 export default function StarshipSummary({ ship }) {
   const era = getTimeframeById(ship.timeframeId)
@@ -56,7 +74,7 @@ export default function StarshipSummary({ ship }) {
         <Row label="Timeframe" value={era ? `${era.name} (${era.years})` : null} />
         <Row label="Mission Profile" value={profile?.name} />
         <Row label="Service Record" value={serviceRecordLabel(ship)} />
-        <Row label="Refits" value={refitSummary(ship)} />
+        <BulletRow label="Refits" items={refitSummaryItems(ship)} />
         <Row label="Resistance" value={resistance == null ? null : String(resistance)} />
         <Row label="Shields" value={shields == null ? null : String(shields)} />
         <Row label="Crew Support" value={crew == null ? null : String(crew)} />
@@ -72,8 +90,8 @@ export default function StarshipSummary({ ship }) {
         })}
       </dl>
       <dl className="summary-group">
-        <Row label="Traits" value={joined(shipTraitNames(ship))} />
-        <Row label="Talents" value={joined(shipTalentNames(ship))} />
+        <BulletRow label="Traits" items={shipTraitNames(ship)} />
+        <BulletRow label="Talents" items={shipTalentNames(ship)} />
       </dl>
     </aside>
   )

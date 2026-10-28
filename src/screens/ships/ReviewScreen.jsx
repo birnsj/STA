@@ -118,16 +118,16 @@ export default function ReviewScreen({ step, ship, onBack, onQuit, onClear, onAu
   return (
     <section className="screen review-screen" aria-labelledby="review-title">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 id="review-title" className="screen-heading">
             <HelpTip helpId="shipReviewScreen">{step.title}</HelpTip>
           </h1>
-          <p className="screen-intro">
-            The finished ship is the class, mission profile, service record, refits, and talents (equal to Scale) already chosen on earlier screens, including Resistance, Shields, and Crew Support.
-            <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 194</span>
-          </p>
         </div>
+        <p className="screen-intro">
+          The finished ship is the class, mission profile, service record, refits, and talents (equal to Scale) already chosen on earlier screens, including Resistance, Shields, and Crew Support.
+          <span className="source-ref">Star Trek Adventures 2E Core Rulebook, p. 194</span>
+        </p>
       </div>
 
       <div className="review-body">

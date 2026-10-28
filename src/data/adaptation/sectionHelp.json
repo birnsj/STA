@@ -370,7 +370,7 @@
       "what": "The year of play used for spaceframe launch eligibility and counting refit decades (Core p. 193 and p. 217).",
       "book": "Star Trek Adventures 2E Core Rulebook",
       "page": 193,
-      "does": "Use − / + to set the year inside the selected era's allowed range. Required before Spaceframe."
+      "does": "Use − / + to set the year. The selected era follows the year; stepping past an era's end moves to the next era. Stops at the first and last campaign years. Required before Spaceframe."
     },
     "timeframeEraDetails": {
       "title": "Era Details",
@@ -443,10 +443,10 @@
     },
     "refitsScreen": {
       "title": "Refits",
-      "what": "Book: each decade after launch grants one refit that raises a system by 1 (Core p. 217). Starship talents fill up to Scale (pp. 218–225). Appearance packages here are cosmetic only.",
+      "what": "Book: each decade after launch grants one refit that raises a system by 1 (Core p. 217). Starship talents fill up to Scale (pp. 218–225). Appearance is set on Finishing Touches.",
       "book": "Star Trek Adventures 2E Core Rulebook",
       "page": 217,
-      "does": "Assign earned refit slots on Major Refits, review systems, pick optional talents, and choose cosmetic Appearance Packages. Hover options for effects and requirements."
+      "does": "Assign earned refit slots on Major Refits, review systems, and pick optional talents. Hover options for effects and requirements."
     },
     "refitMajor": {
       "title": "Major Refits",
@@ -462,10 +462,10 @@
     },
     "shipFinishingTouchesScreen": {
       "title": "Finishing Touches",
-      "what": "Book: name the ship and assign its registry (Core p. 194). This prototype also covers class designation, bridge layout, and remaining appearance packages.",
+      "what": "Book: name the ship and assign its registry (Core p. 194). This prototype also covers class designation and all exterior, insignia, and surface appearance choices.",
       "book": "Star Trek Adventures 2E Core Rulebook",
       "page": 194,
-      "does": "Enter name and registry (required). Class designation and cosmetics are optional presentation. Hover packages for captions and lock reasons."
+      "does": "Set Identity, Exterior Appearance, Insignia & Decals, and Surface Finish. Review on Summary. Hover options for captions and lock reasons."
     },
     "shipReviewScreen": {
       "title": "Review",

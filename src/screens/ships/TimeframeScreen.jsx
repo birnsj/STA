@@ -4,7 +4,12 @@ import ShipArt from '../../components/ships/ShipArt.jsx'
 import ShipScreenFooter from '../../components/ships/ShipScreenFooter.jsx'
 import { eraArt, shipSummaryArt } from '../../ships/shipArtPaths.js'
 import { eraTip } from '../../ships/shipInfoTips.js'
-import { getTimeframeById, getTimeframes, timeframeYearSpan } from '../../ships/shipModel.js'
+import {
+  allCampaignYearSpan,
+  getTimeframeById,
+  getTimeframes,
+  timeframeYearSpan,
+} from '../../ships/shipModel.js'
 
 const INTRO = 'Choose the era of play. That choice sets which spaceframes are available. Then set the campaign year — it decides class eligibility and how many refits the ship earns (Core p. 193).'
 const YEAR_NOTE = 'Campaign year is required for spaceframe eligibility and refit decades. Classes that launch after this year are not offered.'
@@ -38,13 +43,16 @@ export default function TimeframeScreen({
   const eras = getTimeframes()
   const selected = getTimeframeById(ship.timeframeId)
   const span = timeframeYearSpan(selected)
+  const globalSpan = allCampaignYearSpan()
   const year = Number.isFinite(ship.campaignYear) ? ship.campaignYear : null
   const tip = useInfoTip()
+  const atStart = !globalSpan || year == null || year <= globalSpan.start
+  const atEnd = !globalSpan || year == null || year >= globalSpan.end
 
   return (
     <section className="screen timeframe-screen">
       <div className="screen-title">
-        <div className="timeframe-heading">
+        <div className="screen-title-heading">
           <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>
             <HelpTip helpId="timeframeScreen">{step.title}</HelpTip>
@@ -118,7 +126,7 @@ export default function TimeframeScreen({
             type="button"
             className="timeframe-year-button"
             aria-label="Earlier year"
-            disabled={!span || year == null || year <= span.start}
+            disabled={atStart}
             onClick={() => onYear?.(year - 1)}
           >
             −
@@ -128,12 +136,14 @@ export default function TimeframeScreen({
             type="button"
             className="timeframe-year-button"
             aria-label="Later year"
-            disabled={!span || year == null || year >= span.end}
+            disabled={atEnd}
             onClick={() => onYear?.(year + 1)}
           >
             +
           </button>
-          <span className="timeframe-year-range">{span ? `Range: ${span.start} – ${span.end}` : 'Range: —'}</span>
+          <span className="timeframe-year-range">
+            {span ? `Era range: ${span.start} – ${span.end}` : 'Era range: —'}
+          </span>
         </div>
       </div>
 

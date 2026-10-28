@@ -1,13 +1,31 @@
 {
   "note": "STA 2e Core Rulebook v1.1, p. 194. Name/registry only in the book. Bridge layouts, markings, striping, nacelle caps, and emblems are Prototype Appearance Packages (Screens 05–06). gameplay: cosmetic | contextual | earned. Contextual tags are for future mission/dialogue consumption — not automatic ±1 Task modifiers. Earned options require Screen 04 honors. Nested Appearance Detail lives in appearanceCatalog.json.",
   "namePrefixes": [
-    { "trait": "Federation Starship", "prefix": "U.S.S." },
-    { "trait": "Klingon Starship", "prefix": "I.K.S." },
-    { "trait": "Romulan Starship", "prefix": "I.R.W." }
+    {
+      "trait": "Federation Starship",
+      "prefix": "U.S.S."
+    },
+    {
+      "trait": "Klingon Starship",
+      "prefix": "I.K.S."
+    },
+    {
+      "trait": "Romulan Starship",
+      "prefix": "I.R.W."
+    }
   ],
   "registryPrefixes": [
-    { "trait": "Federation Starship", "prefix": "NCC", "prototypePrefix": "NX", "required": true },
-    { "trait": "United Earth Starship", "prefix": "NX", "required": true }
+    {
+      "trait": "Federation Starship",
+      "prefix": "NCC",
+      "prototypePrefix": "NX",
+      "required": true
+    },
+    {
+      "trait": "United Earth Starship",
+      "prefix": "NX",
+      "required": true
+    }
   ],
   "bridges": [
     {
@@ -16,7 +34,11 @@
       "caption": "Traditional Starfleet bridge with central chair and balanced perimeter stations.",
       "description": "A traditional Starfleet command bridge built around a central captain's chair, forward helm and navigation stations, and perimeter consoles for science, communications, engineering, and tactical operations. Its balanced arrangement supports exploration, diplomacy, and routine ship operations. Contextual for shipboard scenarios only — no Department or System bonuses.",
       "gameplay": "contextual",
-      "contextTags": ["bridge", "command", "operations"]
+      "contextTags": [
+        "bridge",
+        "command",
+        "operations"
+      ]
     },
     {
       "id": "extended",
@@ -24,7 +46,11 @@
       "caption": "Expanded command center with extra specialist and mission-coordination stations.",
       "description": "An expanded command center featuring additional specialist workstations, mission coordination displays, and auxiliary consoles. Designed for vessels conducting complex assignments requiring simultaneous scientific, engineering, and operational oversight. Contextual for shipboard scenarios only — no Department or System bonuses.",
       "gameplay": "contextual",
-      "contextTags": ["bridge", "mission-ops", "coordination"]
+      "contextTags": [
+        "bridge",
+        "mission-ops",
+        "coordination"
+      ]
     },
     {
       "id": "tactical",
@@ -32,7 +58,12 @@
       "caption": "Combat-focused bridge for threat monitoring and rapid command decisions.",
       "description": "A mission-focused bridge emphasizing tactical coordination, defensive readiness, and rapid command decisions. Dedicated tactical displays, prominent threat-monitoring stations, and a streamlined command arrangement support operations in potentially hostile environments. Contextual for shipboard scenarios only — no Department or System bonuses.",
       "gameplay": "contextual",
-      "contextTags": ["bridge", "tactical", "security", "combat"]
+      "contextTags": [
+        "bridge",
+        "tactical",
+        "security",
+        "combat"
+      ]
     },
     {
       "id": "scientific",
@@ -40,7 +71,12 @@
       "caption": "Research-oriented bridge with expanded science and sensor-analysis stations.",
       "description": "A research-oriented command center with expanded scientific displays, dedicated sensor-analysis stations, and integrated research workstations. Designed to support planetary surveys, astronomical investigations, anomaly analysis, and other complex scientific missions. Contextual for shipboard scenarios only — no Department or System bonuses.",
       "gameplay": "contextual",
-      "contextTags": ["bridge", "science", "sensors", "research"]
+      "contextTags": [
+        "bridge",
+        "science",
+        "sensors",
+        "research"
+      ]
     }
   ],
   "hullMarkings": [
@@ -57,7 +93,11 @@
       "caption": "Hull markings suggesting exploratory survey duty.",
       "description": "Exterior identification emphasizing exploration and survey presentation. May influence recognition in exploration-flavored encounters. Does not grant an actual mission assignment, authority, or Traits. No Systems or Departments change.",
       "gameplay": "contextual",
-      "contextTags": ["identification", "exploration", "survey"]
+      "contextTags": [
+        "identification",
+        "exploration",
+        "survey"
+      ]
     },
     {
       "id": "diplomatic-assignment",
@@ -65,7 +105,11 @@
       "caption": "Hull markings suggesting diplomatic representation.",
       "description": "Exterior identification emphasizing diplomatic presentation. May influence recognition in diplomatic encounters. Does not grant an actual diplomatic assignment or authority. No Systems or Departments change.",
       "gameplay": "contextual",
-      "contextTags": ["identification", "diplomacy", "social"]
+      "contextTags": [
+        "identification",
+        "diplomacy",
+        "social"
+      ]
     },
     {
       "id": "special-operations",
@@ -73,7 +117,11 @@
       "caption": "Low-profile markings suggesting sensitive operations.",
       "description": "Subdued exterior identification associated with sensitive or special operations presentation. May color recognition or suspicion in security-flavored encounters. Grants no authority Trait and does not change Systems or Departments.",
       "gameplay": "contextual",
-      "contextTags": ["identification", "security", "covert"]
+      "contextTags": [
+        "identification",
+        "security",
+        "covert"
+      ]
     }
   ],
   "stripingStyles": [
@@ -90,7 +138,10 @@
       "caption": "Gold accent striping associated with command presentation.",
       "description": "Applies gold accent striping for a command-forward livery. Available to identification and dialogue systems as visual identity only — no forced Task bonuses or Department changes.",
       "gameplay": "cosmetic",
-      "contextTags": ["livery", "command"]
+      "contextTags": [
+        "livery",
+        "command"
+      ]
     },
     {
       "id": "science-blue",
@@ -98,7 +149,10 @@
       "caption": "Blue accent striping associated with science presentation.",
       "description": "Applies blue accent striping for a science-forward livery. Available to identification and dialogue systems as visual identity only — no forced Task bonuses or Department changes.",
       "gameplay": "cosmetic",
-      "contextTags": ["livery", "science"]
+      "contextTags": [
+        "livery",
+        "science"
+      ]
     },
     {
       "id": "minimal",
@@ -106,7 +160,9 @@
       "caption": "Sparse striping with a clean silhouette.",
       "description": "Reduces exterior striping for a minimal, clean presentation. Cosmetic livery only.",
       "gameplay": "cosmetic",
-      "contextTags": ["livery"]
+      "contextTags": [
+        "livery"
+      ]
     }
   ],
   "nacelleCaps": [
@@ -123,7 +179,11 @@
       "caption": "Early-production nacelle cap geometry.",
       "description": "Shows early-production nacelle end-cap styling. Visual configuration only — not an engine upgrade. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
       "gameplay": "contextual",
-      "contextTags": ["engineering", "inspection", "technical"]
+      "contextTags": [
+        "engineering",
+        "inspection",
+        "technical"
+      ]
     },
     {
       "id": "modernized",
@@ -131,7 +191,11 @@
       "caption": "Modernized nacelle cap geometry.",
       "description": "Shows modernized nacelle end-cap styling. Visual configuration only — not an engine upgrade. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
       "gameplay": "contextual",
-      "contextTags": ["engineering", "inspection", "technical"]
+      "contextTags": [
+        "engineering",
+        "inspection",
+        "technical"
+      ]
     },
     {
       "id": "experimental",
@@ -139,7 +203,11 @@
       "caption": "Experimental nacelle cap geometry.",
       "description": "Shows experimental nacelle end-cap styling. Visual configuration only — not an engine upgrade or Prototype Trait. May be referenced during inspections or technical investigations. Does not change Engines or Structure.",
       "gameplay": "contextual",
-      "contextTags": ["engineering", "prototype", "inspection"]
+      "contextTags": [
+        "engineering",
+        "prototype",
+        "inspection"
+      ]
     }
   ],
   "emblemStyles": [
@@ -156,7 +224,11 @@
       "caption": "Starfleet Command emblem treatment.",
       "description": "Displays a Starfleet Command–oriented emblem. May support recognition events involving Starfleet identity. Does not grant Traits or change Systems or Departments.",
       "gameplay": "contextual",
-      "contextTags": ["emblem", "starfleet", "command"]
+      "contextTags": [
+        "emblem",
+        "starfleet",
+        "command"
+      ]
     },
     {
       "id": "exploration-division",
@@ -164,7 +236,10 @@
       "caption": "Exploration Division emblem treatment.",
       "description": "Displays an Exploration Division–oriented emblem. May support recognition events involving exploratory identity. Does not grant Traits or change Systems or Departments.",
       "gameplay": "contextual",
-      "contextTags": ["emblem", "exploration"]
+      "contextTags": [
+        "emblem",
+        "exploration"
+      ]
     },
     {
       "id": "mission-citation",
@@ -183,7 +258,11 @@
           "defense-of-the-federation-citation"
         ]
       },
-      "contextTags": ["emblem", "honor", "starfleet"]
+      "contextTags": [
+        "emblem",
+        "honor",
+        "starfleet"
+      ]
     }
   ],
   "secondaryMarkings": [
@@ -192,6 +271,27 @@
       "name": "None",
       "caption": "No secondary hull decals or mission badges.",
       "description": "Leaves secondary marking areas clear—no additional squadron badges, mission patches, or decorative decals beyond the primary emblem and hull set.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "squadron",
+      "name": "Squadron Badge",
+      "caption": "Small squadron badge on secondary hull surfaces.",
+      "description": "Adds a small squadron-style secondary badge. Prototype cosmetic only. No Systems or Departments change.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "mission-patch",
+      "name": "Mission Patch",
+      "caption": "Decorative mission patch marking.",
+      "description": "Adds a decorative mission-patch secondary marking. Prototype cosmetic only. No Systems or Departments change.",
+      "gameplay": "cosmetic"
+    },
+    {
+      "id": "dedication",
+      "name": "Dedication Plaque Mark",
+      "caption": "Subtle dedication-plaque style secondary mark.",
+      "description": "Adds a subtle dedication-style secondary mark. Prototype cosmetic only. No Systems or Departments change.",
       "gameplay": "cosmetic"
     }
   ]

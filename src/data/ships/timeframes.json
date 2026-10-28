@@ -1,11 +1,13 @@
 {
-  "note": "Era cards from the Timeframe mockup. TOS copy is the text on that mockup. The other eras' summary, overview, and characteristics are project-authored screen text, not rulebook mechanics. campaignStart and campaignEnd are the Campaign Year control only. throughYear is the last year used to decide which spaceframes have launched (Core p. 193). It is not a campaign year the player picked. It is also the year of play used to count refits (Core p. 217).",
+  "note": "Era cards from the Timeframe mockup. TOS copy is the text on that mockup. The other eras' summary, overview, and characteristics are project-authored screen text, not rulebook mechanics. campaignStart/campaignEnd must match the card years label (decade strings inclusive: 2260s–2270s → 2260–2279). throughYear equals that era's campaignEnd and is the fallback class-eligibility / refit year when no campaign year is set (Core pp. 193, 217). Stepping the year past an era edge selects the next/previous era; overlaps keep the current card until the year leaves it.",
   "eras": [
     {
       "id": "tos",
       "name": "The Original Series",
       "years": "2260s–2270s",
       "throughYear": 2279,
+      "campaignStart": 2260,
+      "campaignEnd": 2279,
       "summary": "The 2260s and 2270s are a time of exploration and expanding influence for the United Federation of Planets. Starfleet vessels push into uncharted space, establish first contact with new worlds, and defend the Federation's interests along its borders.",
       "overview": "Starfleet is a smaller, leaner organization, with a focus on exploration, diplomacy, and scientific discovery. Ships of this era are iconic, versatile vessels designed for long-range missions and independent operations.",
       "characteristics": [
@@ -27,7 +29,7 @@
       "years": "2270s–2280s",
       "throughYear": 2289,
       "campaignStart": 2270,
-      "campaignEnd": 2299,
+      "campaignEnd": 2289,
       "summary": "A period of technological advancement and expanding Federation influence. Starfleet introduces refitted starships, improved propulsion systems, and more sophisticated exploration vessels. Crews undertake ambitious deep-space missions while navigating rising tensions with the Klingon Empire and the emergence of new interstellar threats.",
       "overview": "A period of technological advancement and expanding Federation influence. Starfleet introduces refitted starships, improved propulsion systems, and more sophisticated exploration vessels.",
       "characteristics": [
@@ -42,8 +44,8 @@
       "name": "The Next Generation Era",
       "years": "2360s–2370s",
       "throughYear": 2379,
-      "campaignStart": 2364,
-      "campaignEnd": 2370,
+      "campaignStart": 2360,
+      "campaignEnd": 2379,
       "summary": "An era of exploration, diplomacy, and scientific discovery. Starfleet operates advanced vessels designed for extended missions, with families and civilian specialists serving alongside officers. The Federation expands its understanding of the galaxy while confronting powerful new civilizations and threats, including the Borg.",
       "overview": "An era of exploration, diplomacy, and scientific discovery. Starfleet operates advanced vessels designed for extended missions, with families and civilian specialists serving alongside officers.",
       "characteristics": [

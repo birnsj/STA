@@ -63,7 +63,7 @@ export default function ShipAppearancePreview({ ship, className = '' }) {
       )}
       {!visibleLayers.length && layers.length === 0 && (
         <p className="finish-note ship-appearance-preview-note">
-          Class preview only — select Appearance Detail options to stack layers when art is available.
+          Class preview only — catalog layers stack when selected and art is available. Legacy packages are not painted onto the hull here.
         </p>
       )}
     </div>

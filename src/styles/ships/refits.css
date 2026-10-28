@@ -1,4 +1,4 @@
-/* Starship Creator, Screen 05. Fits the 1920×1080 creator frame; no scrollbars. */
+/* Starship Creator, Screen 05. Outer frame stays fixed; detail copy scrolls when it overflows. */
 
 .refit-screen {
   height: 100%;
@@ -242,7 +242,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .refit-detail-head {
@@ -273,11 +275,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .refit-block {
-  flex: 1;
+  flex: none;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -287,7 +289,7 @@
   background: #040814;
   border: 2px solid var(--panel-border);
   border-radius: 4px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .refit-block-title {
@@ -350,177 +352,4 @@
   color: var(--text);
   font: inherit;
   text-transform: none;
-}
-
-/* Left: preview + bridge/package info. Right: heading + fixed 2×2 option tiles. */
-.refit-detail.refit-detail-appearance {
-  align-items: stretch;
-}
-
-.refit-appearance-preview {
-  min-width: 0;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(110px, 0.42fr);
-  gap: 8px;
-  overflow: hidden;
-}
-
-.refit-detail-appearance .refit-technical-art {
-  height: 100%;
-}
-
-.refit-detail-body-appearance {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-}
-
-/* Fixed 2×2 tile grid: image-first squares that do not resize with caption length. */
-.refit-appearance-options {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 8px;
-  align-items: stretch;
-  overflow: hidden;
-}
-
-.refit-appearance-chip {
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 2px solid var(--panel-border);
-  border-radius: 6px;
-  background: #040814;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  cursor: var(--cursor-pointer);
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  overflow: hidden;
-}
-
-.refit-appearance-art {
-  min-width: 0;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  overflow: hidden;
-  background: #061018;
-}
-
-.refit-appearance-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-}
-
-.refit-appearance-chip-meta {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 2px 6px 4px;
-  border-top: 1px solid var(--panel-border);
-  background: #040814;
-  overflow: hidden;
-}
-
-.refit-appearance-chip.is-selected {
-  border-color: var(--yellow);
-  color: var(--yellow);
-  box-shadow: 0 0 0 1px var(--yellow);
-}
-
-.refit-appearance-chip.is-locked {
-  opacity: 0.55;
-}
-
-.refit-appearance-chip-name {
-  max-width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.refit-gameplay-badge {
-  flex: none;
-  align-self: center;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #111;
-  background: #7a8a9a;
-}
-
-.refit-gameplay-badge.is-cosmetic {
-  background: #7a8a9a;
-}
-
-.refit-gameplay-badge.is-contextual {
-  background: #c9a227;
-}
-
-.refit-gameplay-badge.is-earned {
-  background: var(--yellow);
-}
-
-/* Info under the big preview (scrolls instead of growing the frame). */
-.refit-appearance-info {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.refit-appearance-info p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--text-muted);
-}
-
-.refit-appearance-info-title {
-  flex: none;
-  color: var(--yellow) !important;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.refit-appearance-info strong {
-  color: var(--yellow);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 11px;
-}
-
-.refit-appearance-info .refit-score {
-  color: var(--text-muted);
-}
-
-.refit-appearance-warn {
-  color: var(--yellow) !important;
 }

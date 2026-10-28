@@ -137,13 +137,13 @@ export default function CareerScreen({ step, navigation }) {
   return (
     <section className="screen career-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.length ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose your Experience, then your assignment and rank. Your Experience gives you one Value; your assignment sets your department.
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose your Experience, then your assignment and rank. Your Experience gives you one Value; your assignment sets your department.
+        </p>
       </div>
 
       <CardCarousel

@@ -402,14 +402,14 @@ export default function FinishingTouchesScreen({ step, navigation }) {
   return (
     <section className="screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.finalValue ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Add the final value, bring any attribute or department over the limits back within them and then add your increases, choose your fourth
-            talent and a portrait, and finally name your character.
-          </p>
         </div>
+        <p className="screen-intro">
+          Add the final value, bring any attribute or department over the limits back within them and then add your increases, choose your fourth
+          talent and a portrait, and finally name your character.
+        </p>
       </div>
 
       <CardCarousel label="Finishing touches" variant="carousel-environment" items={items} selectedId={activeId} onSelect={setChosenCategory} />

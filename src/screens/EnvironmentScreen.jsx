@@ -45,13 +45,13 @@ export default function EnvironmentScreen({ step, navigation }) {
   return (
     <section className="screen environment-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.background ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose the kind of place where you were raised. Your choice gives you one Attribute bonus, one Department bonus, and one Value.
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose the kind of place where you were raised. Your choice gives you one Attribute bonus, one Department bonus, and one Value.
+        </p>
       </div>
 
       <CardCarousel

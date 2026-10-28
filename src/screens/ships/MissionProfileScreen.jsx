@@ -66,16 +66,16 @@ export default function MissionProfileScreen({
   return (
     <section className="screen mission-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${selected ? '' : ' is-missing'}`}>
             <HelpTip helpId="missionProfileScreen">{step.title}</HelpTip>
           </h1>
-          <p className="screen-intro">
-            {INTRO}
-            <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 212–215</span>
-          </p>
         </div>
+        <p className="screen-intro">
+          {INTRO}
+          <span className="source-ref">Star Trek Adventures 2E Core Rulebook, pp. 212–215</span>
+        </p>
       </div>
 
       <div className={`carousel mission-carousel${selected ? '' : ' is-missing'}`} ref={carouselRef}>

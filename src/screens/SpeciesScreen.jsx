@@ -46,17 +46,17 @@ export default function SpeciesScreen({ step, navigation }) {
   return (
     <section className="screen species-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements.species ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose your species. Each species gives a Species Trait, +1 to three attributes, and a distinct Species
-            Ability.
-            <br />
-            All three are assigned automatically when you select a species. You will assign the final Attribute values
-            later in the process. The total must equal 56.
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose your species. Each species gives a Species Trait, +1 to three attributes, and a distinct Species
+          Ability.
+          <br />
+          All three are assigned automatically when you select a species. You will assign the final Attribute values
+          later in the process. The total must equal 56.
+        </p>
       </div>
 
       <CardCarousel

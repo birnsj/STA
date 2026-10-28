@@ -90,13 +90,13 @@ export default function CareerHistoryScreen({ step, navigation }) {
   return (
     <section className="screen career-history-screen">
       <div className="screen-title">
-        <span className="screen-number">{step.number}</span>
-        <div>
+        <div className="screen-title-heading">
+          <span className="screen-number">{step.number}</span>
           <h1 className={`screen-heading${requirements[slotKeys(0).event] ? '' : ' is-missing'}`}><HelpTip helpId={`${step.id}Screen`}>{step.title}</HelpTip></h1>
-          <p className="screen-intro">
-            Choose {getEventCount()} defining career events ({completedCount}/{getEventCount()} complete). Each increases one Attribute by 1, one Department by 1, and gives one Focus.
-          </p>
         </div>
+        <p className="screen-intro">
+          Choose {getEventCount()} defining career events ({completedCount}/{getEventCount()} complete). Each increases one Attribute by 1, one Department by 1, and gives one Focus.
+        </p>
       </div>
 
       <div className="env-tabs" role="tablist">

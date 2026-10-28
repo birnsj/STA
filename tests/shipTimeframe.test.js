@@ -12,6 +12,7 @@ import {
   selectSpaceframe,
   selectTimeframe,
   setCampaignYear,
+  timeframeYearSpan,
 } from '../src/ships/shipModel.js'
 import { loadShip, saveShip } from '../src/ships/persistence.js'
 
@@ -78,13 +79,53 @@ describe('starship timeframe', () => {
     assert.deepEqual(next, ship({ timeframeId: 'tos', campaignYear: 2279 }))
   })
 
-  it('defaults campaign year to the era throughYear and clamps on change', () => {
+  it('uses campaign ranges that match each era card label (decade-inclusive)', () => {
+    assert.deepEqual(timeframeYearSpan('tos'), { start: 2260, end: 2279 })
+    assert.deepEqual(timeframeYearSpan('tmp'), { start: 2270, end: 2289 })
+    assert.deepEqual(timeframeYearSpan('tng'), { start: 2360, end: 2379 })
+    assert.deepEqual(timeframeYearSpan('ds9'), { start: 2369, end: 2375 })
+    assert.deepEqual(timeframeYearSpan('voy'), { start: 2371, end: 2378 })
+  })
+
+  it('defaults campaign year inside the era and stops at continuum edges', () => {
     const era = selectTimeframe(createEmptyShip(), 'tos')
     assert.equal(era.campaignYear, 2279)
     const earlier = setCampaignYear(era, 2265)
     assert.equal(earlier.campaignYear, 2265)
+    assert.equal(earlier.timeframeId, 'tos')
     assert.equal(setCampaignYear(earlier, 2200).campaignYear, 2260)
-    assert.equal(setCampaignYear(earlier, 2300).campaignYear, 2279)
+    assert.equal(setCampaignYear(earlier, 2200).timeframeId, 'tos')
+    assert.equal(selectTimeframe(createEmptyShip(), 'tng').campaignYear, 2379)
+  })
+
+  it('changes era when the campaign year leaves the current card, and stops after the last year', () => {
+    let ship = selectTimeframe(createEmptyShip(), 'tos')
+    ship = setCampaignYear(ship, 2279)
+    ship = setCampaignYear(ship, 2280)
+    assert.equal(ship.timeframeId, 'tmp')
+    assert.equal(ship.campaignYear, 2280)
+
+    ship = setCampaignYear(ship, 2289)
+    ship = setCampaignYear(ship, 2290)
+    assert.equal(ship.timeframeId, 'tng')
+    assert.equal(ship.campaignYear, 2360)
+
+    // Overlap years keep the selected TNG card until the player picks DS9/VOY.
+    ship = setCampaignYear(ship, 2371)
+    assert.equal(ship.timeframeId, 'tng')
+    assert.equal(ship.campaignYear, 2371)
+
+    ship = selectTimeframe(ship, 'ds9')
+    assert.equal(ship.timeframeId, 'ds9')
+    assert.equal(ship.campaignYear, 2371)
+    ship = setCampaignYear(ship, 2375)
+    ship = setCampaignYear(ship, 2376)
+    assert.equal(ship.timeframeId, 'voy')
+    assert.equal(ship.campaignYear, 2376)
+
+    ship = setCampaignYear(ship, 2400)
+    assert.equal(ship.timeframeId, 'voy')
+    assert.equal(ship.campaignYear, 2378)
   })
 
   it('uses campaign year for class eligibility and refit decades', () => {
