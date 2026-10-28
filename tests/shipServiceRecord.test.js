@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { beforeEach, describe, it } from 'node:test'
 import {
   clearServiceRecord,
-  clearSpaceframe,
   clearTimeframe,
   createEmptyShip,
   departmentScore,
@@ -19,6 +18,7 @@ import {
   selectSpaceframe,
   selectTimeframe,
   selectServiceReputation,
+  setCampaignYear,
   setServiceRecordDetail,
   shipTraitNames,
   systemScore,
@@ -142,7 +142,9 @@ describe('starship service record', () => {
   it('clears only the record, keeps it when the class changes, and drops it with the era', () => {
     const selected = selectServiceRecord(constitution(), 'legendary')
     assert.deepEqual(clearServiceRecord(selected), saved({ timeframeId: 'tos', campaignYear: 2279, spaceframeId: 'constitution' }))
-    const moved = selectSpaceframe(selectTimeframe(selected, 'tmp'), 'excelsior')
+    // TOS→TMP keeps year 2279 (still inside TMP). Excelsior launches 2285, so bump the year first.
+    const tmp = setCampaignYear(selectTimeframe(selected, 'tmp'), 2285)
+    const moved = selectSpaceframe(tmp, 'excelsior')
     assert.equal(moved.spaceframeId, 'excelsior')
     assert.equal(moved.serviceRecordId, 'legendary')
     assert.deepEqual(clearTimeframe(selected), saved({}))

@@ -9,7 +9,7 @@ production work in Unreal. React + Vite + plain JavaScript; no backend, no datab
 ```
 npm install
 npm run dev        # Vite dev server at http://localhost:5173/
-npm test           # node --test, ~1370 tests (tests/**/*.test.js)
+npm test           # node --test, ~1820 tests (tests/**/*.test.js)
 npm run lint       # oxlint
 npm run build      # production bundle in dist/
 npm run check      # lint, then the tests, then a build: run this before committing (needs Node 22.15+)
@@ -39,16 +39,17 @@ out when it ends, and the cues are listed in `src/audio/music.js`:
 Each episode can swap the intro, exploration, combat and outro tracks for others from `music/`: Dev Edit → Map tab →
 Music (saved in the map file). If the files are missing the app runs silently.
 
-## The four parts
+## The parts
 
 | Part | Where | What it does |
 | --- | --- | --- |
 | Character creator | `src/CharacterCreator.jsx`, `src/screens/*Screen.jsx`, `src/rules/` | Eight screens following the STA 2e Core Rulebook lifepath (Species → Environment → Upbringing → Career Path → Career (Experience, assignment, rank) → Career History → Finishing Touches → Review). Exports a character as JSON (schema `0.12.0`). |
+| Starship creator | `src/ships/`, `src/screens/ships/`, `src/data/ships/` | Seven screens (Timeframe → Spaceframe → Mission Profile → Service Record → Refits → Finishing Touches → Review). Saves confirmed ships separately from the in-progress draft; ship combat is deferred. |
 | Combat (Type 1) | `src/combat/`, `src/components/combat/` | Turn-based grid combat: STA 2e task roll, Momentum/Threat, Injuries, Guard / First Aid / Direct / Assist, social surrender, Scan trait, object shots, hazards, Auto Combat AI (both sides), seeded reducer so fights replay. |
 | Exploration | `src/exploration/`, `src/conversation/`, `src/world/` | Away team (up to 8, one team) on a map: formations, sneak, awareness, challenge objects, conversations, objectives, Captain's Log, intro/outro, transporter; shared destructibles/hazards/explosions; hands off to combat and back (`combatLink.js` / `WorldEncounter.js`). |
 | Map editor | `src/maps/`, `src/components/maps/`, `src/components/conversation/` | Paints isometric maps (`docs/tiles.md`); places NPCs, objectives, destructibles and hazards; edits conversations, challenge objects, objectives and story wording; Play-tests from the editor. |
 
-`src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part. Ship builder is a placeholder only.
+`src/App.jsx` is the shell: the main menu, Settings, and lazy-loaded views for each part. For a dated status board (shipped / partial / deferred) and the latest code-review notes, see `docs/project-status.md`.
 
 The exploration, combat and map editor boards are drawn only with PixiJS (WebGL): the map, figures and effects. A
 transparent SVG layer on top takes pointer input, sets the camera and holds UI such as the action ring and tooltips.
@@ -95,6 +96,7 @@ src/
   conversation       dialogue runtime and format
   maps               map format, generators, area centres
   actors             player / NPC / enemy controllers
+  ships              starship creator model, persistence, save list
   export             character JSON serialize + download
   settings, audio    display and sound
   items              behaviour classes for the Technical Manual tools and weapons (id registry)
@@ -104,7 +106,7 @@ tests/               node --test suites; tests/support/ has helpers, tests/fixtu
 tools/               dev-server stores and the JSON loader for tests
 scripts/             tile, sprite, hazard, dice, cursor and episode-card art generators
 electron/            desktop wrapper
-docs/                design-tracker, prototype-rules, world-objects, combat-architecture, …
+docs/                project-status, design-tracker, prototype-rules, world-objects, combat-architecture, …
 reference/           the rulebook PDFs (not committed)
 ```
 
@@ -112,10 +114,12 @@ reference/           the rulebook PDFs (not committed)
 
 | Doc | Role |
 | --- | --- |
+| `docs/project-status.md` | Dated board: where each aspect stands + latest code review |
 | `docs/prototype-rules.md` | Every Book vs Prototype rule difference |
 | `docs/design-tracker.md` | Open designer questions and decision history |
 | `docs/world-objects.md` | Challenge / destructible / hazard code layout |
 | `docs/combat-architecture.md` | Combat actions, encounters, reducer |
 | `docs/character-controllers.md` | Player / NPC / enemy controllers |
 | `docs/tiles.md` | Tile catalogue fields and symbols |
+| `docs/editor-authoring-summary.md` | What Dev Edit can author vs JSON-only gaps |
 | `docs/performance.md` | Frame-rate measurements and probe tools |

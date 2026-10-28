@@ -1,8 +1,8 @@
 import { cueFiles } from './musicCues.js'
 import { createMusicTrack } from './musicTrack.js'
 
-// The cues. The files live in music/ at the project root (local only, not in git: see .gitignore) and are fetched when
-// a cue first plays rather than bundled, so a checkout without the soundtrack still builds and runs, silently.
+// The cues. The MP3s live in music/ at the project root (tracked in git) and are fetched when a cue first plays rather
+// than bundled, so a checkout that somehow lacks the soundtrack still builds and runs, silently.
 const url = (file) => `${import.meta.env.BASE_URL}music/${file}.mp3`
 
 // Which cue plays: the view's own, unless a scene inside it asks for another (a fight in the exploration view, the

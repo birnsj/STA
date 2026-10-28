@@ -2,7 +2,7 @@
 
 Open design decisions for the designer. Each entry separates what the book says from what the prototype currently does.
 
-**Doc status (2026-10-16):** this file is the living decision log. Entries under Open often stay there after implementation so implementer picks and follow-up questions remain visible; check each entry’s “implemented / decided” line for what already shipped. Rule diffs that are settled live in `prototype-rules.md`. Architecture notes: `world-objects.md`, `combat-architecture.md`, `character-controllers.md`.
+**Doc status (2026-10-28):** this file is the living decision log. Entries under Open often stay there after implementation so implementer picks and follow-up questions remain visible; check each entry’s “implemented / decided” line for what already shipped. Rule diffs that are settled live in `prototype-rules.md`. A dated shipped/partial/deferred board and the latest code-review notes are in `project-status.md`. Architecture notes: `world-objects.md`, `combat-architecture.md`, `character-controllers.md`.
 
 ## Open
 
@@ -12,7 +12,7 @@ The ship creator footer matches the character creator: Back, Quit after the firs
 
 ### Starship review (implemented 2026-10-25)
 
-Screen 07 reads the ship already stored. Complete sets `confirmedAt` and does not add talents to reach Scale or calculate Resistance, Shields, or Crew Support. Trait and talent descriptions stay Unknown. Class designation stays N/A. Where: `docs/prototype-rules.md` (Starship creation), `shipModel.js`.
+Screen 07 reads the ship already stored. Complete sets `confirmedAt`. Resistance, Shields, and Crew Support are calculated on Screen 05 for the summary (ship combat still deferred). Trait and talent descriptions stay Unknown. Class designation stays N/A. Where: `docs/prototype-rules.md` (Starship creation), `shipModel.js`.
 
 ### Starship finishing touches (updated 2026-10-27)
 

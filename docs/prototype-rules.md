@@ -9,7 +9,7 @@ Every place where the prototype changes, adds to, or leaves out a rule from the 
 
 Design reasoning and dates for the larger decisions are in `design-tracker.md`. Purely presentational choices (art, layout, help text) and AI tuning are left out unless they change what a player may do.
 
-**Doc status (2026-10-16):** kept in sync with shipped rules for away-team size / Fireteams, deferred object-shot impact (laser before boom), blast survivor stagger, hazard overlays / afflictions / AI avoidance, and room Environmental Controls. Character export schema is `0.12.0` (`serializeCharacter.js`).
+**Doc status (2026-10-28):** kept in sync with shipped rules for away-team size / Fireteams, deferred object-shot impact (laser before boom), blast survivor stagger, hazard overlays / afflictions / AI avoidance, room Environmental Controls, exploration inventory / elevated placement, hand-to-hand combat reactions, and starship creation (§8; ship combat deferred). Character export schema is `0.12.0` (`serializeCharacter.js`). Ship draft / save version is `SHIP_VERSION` 1 (`shipModel.js`). High-level aspect board: `project-status.md`.
 
 ## Switches
 
