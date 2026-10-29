@@ -590,6 +590,8 @@ Where: `components/dice/RollWindow.jsx` (`PreRollWindow`, `ResultWindow`), `comp
 
 **Decided (designer request, 2026-10-25): mouse edge scroll.** Holding the pointer at the edge of the map pans the camera in exploration and combat. Like WASD and a drag, it turns Camera Follow off. The map editor does not edge-scroll (designer request, 2026-10-25, after a View checkbox that defaulted on). Implementer picks, open for review: the band is 48 screen pixels (was 36, then 120 at the designer's request 2026-10-25; narrowed again 2026-10-28 because 120 fought Camera Follow); Debug paints the band on the board; speed ramps from still at the inner side to the same speed as WASD at the rim; it stops when the pointer leaves, with no coast; it does not run while the pointer is on a button, panel or menu, or during a camera drag. Where: `useCamera.js` (`EDGE_MARGIN`), `EdgeScrollDebugOverlay.jsx`.
 
+**Sprite Sheets editor (designer request, 2026-10-28; moved to main menu 2026-10-28):** Main menu → Sprites (beside Dev Edit) browses PNGs under `public/art/sprites/` (characters, environment, effects, dice). Preview shows the sheet (fit or 1×) with an iso floor guide; character sheets from `characterSprites.json` get a frame grid and an animation preview. Export downloads the PNG; Import (Vite DEV only) replaces that file on disk after confirm, and warns when a character sheet’s pixel size does not match the expected grid. Built apps can still view/export character sheets known from JSON; full folder listing and Import need DEV. Where: `SpriteSheetsScreen.jsx`, `tools/spriteStore.cjs`, `/__sprites`.
+
 ### Box selection in exploration (decided 2026-10-09)
 
 **Book:** no rule.

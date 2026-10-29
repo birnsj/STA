@@ -1,0 +1,256 @@
+/* Mission → Sprite Sheets editor (1024×576 menu stage). */
+
+.ss-screen .ess-body {
+  min-height: 0;
+}
+
+.ss-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 10px 10px;
+  box-sizing: border-box;
+}
+
+.ss-list-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.ss-type-tabs {
+  flex: none;
+  gap: 4px;
+}
+
+.ss-type-tabs .ed-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ss-type-count {
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+.ss-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.ss-list-tools .me-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.ss-collapse-all {
+  flex: none;
+  white-space: nowrap;
+}
+
+.ss-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #1e3a42;
+  background: #0a1418;
+}
+
+.ss-group + .ss-group {
+  border-top: 1px solid #1e3a42;
+}
+
+.ss-group .me-group-tag {
+  width: 100%;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.ss-group-list {
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.ss-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.ss-list-item:hover {
+  background: #13272b;
+}
+
+.ss-list-item.is-selected {
+  background: #1a3d48;
+}
+
+.ss-list-name {
+  color: #e6f2f4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ss-list-path {
+  color: #6f8f94;
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ss-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ss-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  flex: none;
+}
+
+.ss-detail-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e6f2f4;
+}
+
+.ss-detail-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ss-preview-visual {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.ss-sheet-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  cursor: grab;
+  border: 1px solid #1e3a42;
+  /* Floor is painted on the sheet canvas (aligned to the cell grid); wrap stays a neutral surround. */
+  background-color: #0a1418;
+}
+
+.ss-zoom-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ss-zoom-hint {
+  opacity: 0.8;
+}
+
+.ss-sheet-wrap.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.ss-sheet-canvas {
+  display: block;
+  /* Size is set in JS (zoom); no CSS max-size or padding — those break zoom-at-cursor. */
+  max-width: none;
+  max-height: none;
+  image-rendering: pixelated;
+  vertical-align: top;
+  /* Pan is owned by the wrap; don't let the browser drag the bitmap. */
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ss-size-block {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ss-sprite-size {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--yellow, #ffd24d);
+}
+
+.ss-sprite-size.is-file {
+  color: #e6f2f4;
+}
+
+.ss-sprite-size strong {
+  font-size: 15px;
+}
+
+.ss-mismatch {
+  color: #ff8a8a;
+  font-weight: 700;
+}
+
+.ss-size,
+.ss-size-hint {
+  margin: 0;
+}
+
+.ss-size-hint {
+  opacity: 0.85;
+}
+
+.ss-anim-preview {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #1e3a42;
+  background: #0a1418;
+}
+
+.ss-anim-preview canvas {
+  width: 80px;
+  height: auto;
+  image-rendering: pixelated;
+  background: #122228;
+  border: 1px solid #1e3a42;
+}
+
+.ss-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}

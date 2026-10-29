@@ -17,6 +17,7 @@ import { applyEffectsChange } from './tools/effectsStore.cjs'
 import { setItemDescription } from './tools/itemStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
+import { listSprites, putSprite } from './tools/spriteStore.cjs'
 
 const MUSIC_FOLDER = fileURLToPath(new URL('./music', import.meta.url))
 const CHARACTERS_FOLDER = fileURLToPath(new URL('./characters', import.meta.url))
@@ -32,6 +33,7 @@ const AUTHORED_CHARACTERS_FILE = fileURLToPath(
   new URL('./src/data/adaptation/characters.json', import.meta.url),
 )
 const EPISODE_ART_FOLDER = fileURLToPath(new URL('./public/art/episodes', import.meta.url))
+const SPRITES_FOLDER = fileURLToPath(new URL('./public/art/sprites', import.meta.url))
 const EPISODE_CARDS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/episodeCards.json', import.meta.url))
 const catalogueCardIds = () => JSON.parse(readFileSync(EPISODE_CARDS_FILE, 'utf8')).cards.map((card) => card.id)
 // Root maps/ only: a '**/maps/**' glob would also stop watching the src/maps source code.
@@ -158,6 +160,24 @@ const musicListEndpoint = () =>
         : [],
   })
 
+// Sprite Sheets editor: list / replace PNGs under public/art/sprites. Quiet hotUpdate so Import does not reload the app.
+const spriteFilesEndpoint = () => {
+  let savedAt = 0
+  const endpoint = jsonEndpoint('sprite-files-endpoint', '/__sprites', {
+    GET: () => listSprites(SPRITES_FOLDER),
+    PUT: (body) => {
+      savedAt = Date.now()
+      return putSprite(SPRITES_FOLDER, body)
+    },
+  })
+  return {
+    ...endpoint,
+    hotUpdate({ file }) {
+      if (toSlashes(file).startsWith(`${toSlashes(SPRITES_FOLDER)}/`) && Date.now() - savedAt < 2000) return []
+    },
+  }
+}
+
 // Soundtrack files stay in music/ (gitignored). Dev and preview stream them at /music/; a build copies the mp3s
 // into dist/music so the Electron app can fetch the same path. A missing folder leaves the game silent.
 function musicFiles() {
@@ -243,6 +263,7 @@ export default defineConfig({
     wallVariantsEndpoint(),
     storyEndpoint(),
     authoredCharactersEndpoint(),
+    spriteFilesEndpoint(),
   ],
   // Relative asset paths so the built app also loads from disk inside the Electron .exe.
   base: './',

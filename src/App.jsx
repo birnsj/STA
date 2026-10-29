@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { setMusicVolume, setViewCue } from './audio/music.js'
-import { installUiSounds, setEffectsVolume } from './audio/uiSounds.js'
+import { installUiSounds, setEffectsVolume, setUiSoundsMuted } from './audio/uiSounds.js'
 import { CharacterProvider } from './character/CharacterContext.jsx'
 import { tryCreateRestoredState } from './character/characterReducer.js'
 import { useCharacter } from './character/useCharacter.js'
@@ -29,10 +29,11 @@ const EpisodeSelectScreen = lazy(() => import('./screens/EpisodeSelectScreen.jsx
 const CombatScreen = lazy(() => import('./screens/CombatScreen.jsx'))
 const ExplorationScreen = lazy(() => import('./screens/ExplorationScreen.jsx'))
 const MapEditorScreen = lazy(() => import('./screens/MapEditorScreen.jsx'))
+const SpriteSheetsScreen = lazy(() => import('./screens/SpriteSheetsScreen.jsx'))
 
 const { steps } = creationSteps
 
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'exploration', 'mapEditor']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'exploration', 'mapEditor', 'spriteSheets']
 // The prototypes Load Episode can open (a saved choice of one since removed falls back to the first).
 const EPISODE_MODES = ['combat', 'exploration']
 
@@ -44,8 +45,20 @@ function initialView({ view, episode }) {
 
 // The music cue each view plays (see src/audio/music.js). Load Episode and Settings keep the main-menu cue, so that
 // track plays straight through. A fight inside the exploration view plays the combat cue over it (Battle in
-// CombatScreen.jsx) and the exploration cue returns when the fight is over.
-const VIEW_CUES = { menu: 'menu', episodeSelect: 'menu', settings: 'menu', creator: 'creation', exploration: 'exploration', combat: 'combat' }
+// CombatScreen.jsx) and the exploration cue returns when the fight is over. Map editor and Sprite Sheets stay silent
+// (no menu music, no UI chirps — see setUiSoundsMuted).
+const VIEW_CUES = {
+  menu: 'menu',
+  episodeSelect: 'menu',
+  settings: 'menu',
+  creator: 'creation',
+  exploration: 'exploration',
+  combat: 'combat',
+  mapEditor: null,
+  spriteSheets: null,
+}
+
+const QUIET_DEV_VIEWS = new Set(['mapEditor', 'spriteSheets'])
 
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
@@ -93,6 +106,7 @@ function Views() {
   useEffect(() => setViewCue(VIEW_CUES[view] ?? null), [view])
 
   useEffect(() => setEffectsVolume(audioSettings.effects / 100), [audioSettings.effects])
+  useEffect(() => setUiSoundsMuted(QUIET_DEV_VIEWS.has(view)), [view])
   useEffect(() => installUiSounds(), [])
 
   // Create Character always starts a fresh character; saved characters are kept.
@@ -217,6 +231,12 @@ function Views() {
       {view === 'mapEditor' && (
         <ScaledStage {...MENU_STAGE} settings={displaySettings} titleTips={false}>
           <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
+          {settingsLayer}
+        </ScaledStage>
+      )}
+      {view === 'spriteSheets' && (
+        <ScaledStage {...MENU_STAGE} settings={displaySettings} titleTips={false}>
+          <SpriteSheetsScreen onBack={openMenu} />
           {settingsLayer}
         </ScaledStage>
       )}

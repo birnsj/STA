@@ -79,10 +79,15 @@ export default function MainMenuScreen({ width, height, savedCharacters, savedSh
           })}
         </nav>
       </CoverArt>
-      {/* Dev tools sit in the corner, outside the painted menu list (which has no room for a ninth row). */}
-      <button type="button" className="main-menu-dev" inert={Boolean(popup)} onClick={() => onOpen('mapEditor')}>
-        Dev Edit
-      </button>
+      {/* Dev tools sit in the corner, outside the painted menu list (which has no room for more rows). */}
+      <div className="main-menu-dev-row" inert={popup ? true : undefined}>
+        <button type="button" className="main-menu-dev" onClick={() => onOpen('spriteSheets')}>
+          Sprites
+        </button>
+        <button type="button" className="main-menu-dev" onClick={() => onOpen('mapEditor')}>
+          Dev Edit
+        </button>
+      </div>
       {popup === 'newCharacter' && (
         <NewCharacterNotice savedCount={savedCharacters.length} onContinue={() => onOpen('creator')} onCancel={closePopup} />
       )}

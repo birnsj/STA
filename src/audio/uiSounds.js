@@ -22,9 +22,13 @@ const PRESS_TARGETS = 'button, [role="option"], [role="radio"], [role="checkbox"
 
 let context = null
 let level = 1
+// Dev map editor: no hover/press chirps while authoring (music is already off via VIEW_CUES).
+let muted = false
 let lastHoverAt = 0
 let lastPressAt = 0
 let uninstall = null
+
+const soundsOn = () => level > 0 && !muted
 
 function getContext() {
   if (!context) {
@@ -764,6 +768,11 @@ export function setEffectsVolume(nextLevel) {
   level = Math.min(Math.max(nextLevel, 0), 1)
 }
 
+// True = silence UI hover/press (and board equivalents). Used by the map editor.
+export function setUiSoundsMuted(next) {
+  muted = Boolean(next)
+}
+
 // Inventory pickup / drop (exploration). Gains sit under UI beeps and well under music.
 const ITEM_PICKUP_GAIN = 0.08
 const ITEM_DROP_GAIN = 0.09
@@ -873,7 +882,7 @@ export function playItemDrop() {
 // data-ui-sound (or, press only, data-ui-press) element gets from the listeners below.
 export function playBoardHover() {
   const now = performance.now()
-  if (level === 0 || context?.state !== 'running') return
+  if (!soundsOn() || context?.state !== 'running') return
   if (now - lastPressAt < HOVER_QUIET_AFTER_PRESS_MS || now - lastHoverAt < MIN_HOVER_GAP_MS) return
   lastHoverAt = now
   playHoverBlip(context)
@@ -881,7 +890,7 @@ export function playBoardHover() {
 
 export function playBoardPress() {
   lastPressAt = performance.now()
-  if (level > 0) withRunningContext(playPressBeep)
+  if (soundsOn()) withRunningContext(playPressBeep)
 }
 
 // Delegated listeners for the whole app, so components don't each need sound code.
@@ -909,7 +918,7 @@ export function installUiSounds(root = document) {
     hovered = target
     if (!moved) return
     const now = performance.now()
-    if (!target || level === 0 || context?.state !== 'running') return
+    if (!target || !soundsOn() || context?.state !== 'running') return
     if (now - lastPressAt < HOVER_QUIET_AFTER_PRESS_MS || now - lastHoverAt < MIN_HOVER_GAP_MS) return
     lastHoverAt = now
     playHoverBlip(context)
@@ -918,7 +927,7 @@ export function installUiSounds(root = document) {
   const press = (target) => {
     lastPressAt = performance.now()
     hovered = target.closest(HOVER_TARGETS)
-    if (level > 0) withRunningContext(playPressBeep)
+    if (soundsOn()) withRunningContext(playPressBeep)
   }
 
   const onPointerDown = (event) => {
@@ -937,7 +946,7 @@ export function installUiSounds(root = document) {
   // iPad/iPhone Safari refuse to start audio on pointerdown; the end of the same tap is allowed, so the first tap
   // unlocks audio here (its beep is then heard slightly late, every later one on time).
   const onTapEnd = () => {
-    if (level > 0 && context?.state !== 'running') getContext().resume().catch(() => {})
+    if (soundsOn() && context?.state !== 'running') getContext().resume().catch(() => {})
   }
 
   root.addEventListener('pointermove', onMove, { passive: true })
