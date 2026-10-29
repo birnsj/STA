@@ -245,19 +245,33 @@
 .ss-anim-preview {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 6px 8px;
   border: 1px solid #1e3a42;
   background: #0a1418;
+}
+
+.ss-anim-preview-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .ss-anim-preview canvas {
   width: 80px;
   height: auto;
   image-rendering: pixelated;
-  background: #122228;
+  /* Checkerboard so transparent sheet pixels read as alpha, not a solid fill. */
+  background-color: #1c2a2e;
+  background-image:
+    linear-gradient(45deg, #24383e 25%, transparent 25%),
+    linear-gradient(-45deg, #24383e 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #24383e 75%),
+    linear-gradient(-45deg, transparent 75%, #24383e 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
   border: 1px solid #1e3a42;
 }
 
@@ -266,6 +280,42 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.ss-anim-scrub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ss-anim-scrub-track {
+  display: inline-flex;
+  flex: 1;
+  min-width: 120px;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ss-anim-scrub-track input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  accent-color: #f2a33a;
+  cursor: pointer;
+}
+
+.ss-anim-scrub-label {
+  flex: none;
+  min-width: 3.2em;
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .ss-status {

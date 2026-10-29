@@ -174,7 +174,7 @@ export default function SpriteSheetsScreen({ onBack }) {
     try {
       setBusy(true)
       await downloadSprite(selected.path)
-      setStatus(`Exported ${selected.name}.`)
+      setStatus(`Exported ${selected.name} (transparent PNG).`)
     } catch (error) {
       setStatus(error.message || String(error))
     } finally {

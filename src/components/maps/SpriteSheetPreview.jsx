@@ -12,8 +12,6 @@ import {
   strokeTileClipBox,
   tileClipBox,
 } from './isoFloorPattern.js'
-import { frameColumn, startTiming } from './spriteTiming.js'
-
 const FACINGS = getSpriteMetrics().directions
 const MIN_ZOOM = 0.05
 const MAX_ZOOM = 8
@@ -34,7 +32,7 @@ function loadImage(src) {
   })
 }
 
-function paintSheet(canvas, image, grid, spritePath = null) {
+function paintSheet(canvas, image, grid, spritePath = null, animRange = null) {
   if (!canvas || !image) return null
   const sheetW = image.naturalWidth
   const sheetH = image.naturalHeight
@@ -58,6 +56,20 @@ function paintSheet(canvas, image, grid, spritePath = null) {
     const cellH = sheetH / grid.rows
     const ox = layout.marginX
     const oy = layout.marginY
+    // Highlight the selected animation's columns (all facing rows) so the preview matches the sheet.
+    if (animRange?.frames > 0) {
+      const startCol = Math.max(0, Math.min(grid.columns - 1, animRange.start ?? 0))
+      const endCol = Math.max(startCol + 1, Math.min(grid.columns, startCol + animRange.frames))
+      const hx = ox + startCol * cellW
+      const hw = (endCol - startCol) * cellW
+      ctx.save()
+      ctx.fillStyle = 'rgba(255, 180, 40, 0.22)'
+      ctx.fillRect(hx, oy, hw, sheetH)
+      ctx.strokeStyle = 'rgba(255, 210, 90, 0.95)'
+      ctx.lineWidth = Math.max(2 / previewScale, Math.round(Math.min(cellW, cellH) / 40))
+      ctx.strokeRect(hx + 0.5, oy + 0.5, hw - 1, sheetH - 1)
+      ctx.restore()
+    }
     ctx.save()
     ctx.strokeStyle = 'rgba(255, 200, 80, 0.85)'
     ctx.lineWidth = Math.max(1 / previewScale, Math.round(Math.min(cellW, cellH) / 80))
@@ -115,6 +127,16 @@ export default function SpriteSheetPreview({
   const [stage, setStage] = useState({ width: 0, height: 0, sheetW: 0, sheetH: 0 })
   const [failed, setFailed] = useState(false)
   const [inferredGrid, setInferredGrid] = useState(null)
+  // Preview playhead 0..frames-1; scrub or Pause freezes; Play resumes from the current frame.
+  const [animFrame, setAnimFrame] = useState(0)
+  const [animPlaying, setAnimPlaying] = useState(true)
+  const animPlaybackRef = useRef({
+    scrubbing: false,
+    playing: true,
+    playStart: 0,
+    baseFrame: 0,
+    frame: 0,
+  })
   // Always a number so every category can pan (fit is just a zoom value, not a separate layout mode).
   const [zoom, setZoom] = useState(1)
   const [fit, setFit] = useState(1)
@@ -183,22 +205,31 @@ export default function SpriteSheetPreview({
     wrap.scrollTop = canvasContentTop + oy * scale - mouseY
   }
 
-  const applyPaint = (image) => {
+  const paintLoadedSheet = (image, { recenter = false, fitToView = false } = {}) => {
     const paintGrid = character?.grid ?? inferCharacterSheetGrid(path, image.naturalWidth, image.naturalHeight)
     setInferredGrid(character?.grid ? null : paintGrid)
-    const layout = paintSheet(sheetCanvasRef.current, image, paintGrid, path)
+    const highlight =
+      sheetAnim && !character?.isMask
+        ? { start: sheetAnim.start ?? 0, frames: Math.max(1, sheetAnim.frames ?? 1) }
+        : null
+    const layout = paintSheet(sheetCanvasRef.current, image, paintGrid, path, highlight)
     if (!layout) return
     layoutRef.current = layout
     const nextStage = { width: layout.stageW, height: layout.stageH, sheetW: layout.sheetW, sheetH: layout.sheetH }
     stageRef.current = nextStage
     setStage(nextStage)
-    const wrap = wrapRef.current
-    const nextFit = wrap
-      ? fitZoom(layout.stageW, layout.stageH, wrap.clientWidth, wrap.clientHeight)
-      : 1
-    setFit(nextFit)
-    setZoomBoth(nextFit)
-    applyCanvasSize(nextFit)
+    if (fitToView) {
+      const wrap = wrapRef.current
+      const nextFit = wrap
+        ? fitZoom(layout.stageW, layout.stageH, wrap.clientWidth, wrap.clientHeight)
+        : 1
+      setFit(nextFit)
+      setZoomBoth(nextFit)
+      applyCanvasSize(nextFit)
+    } else {
+      applyCanvasSize(zoomRef.current)
+    }
+    if (!recenter) return
     // Centre the sheet in the stage after layout.
     requestAnimationFrame(() => {
       const el = wrapRef.current
@@ -227,7 +258,7 @@ export default function SpriteSheetPreview({
         return
       }
       try {
-        applyPaint(image)
+        paintLoadedSheet(image, { recenter: true, fitToView: true })
         setFailed(false)
       } catch {
         setFailed(true)
@@ -246,6 +277,17 @@ export default function SpriteSheetPreview({
       cancelled = true
     }
   }, [src, gridKey, path])
+
+  // Re-tint the sheet grid when Anim changes without reloading the PNG or resetting zoom.
+  useEffect(() => {
+    const image = sheetImageRef.current
+    if (!image || !sheetCanvasRef.current || failed) return
+    try {
+      paintLoadedSheet(image, { recenter: false, fitToView: false })
+    } catch {
+      /* keep prior paint */
+    }
+  }, [sheetAnim?.start, sheetAnim?.frames, sheetAnim?.name, animation])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -312,7 +354,14 @@ export default function SpriteSheetPreview({
     if (!sheetAnim || !src || character?.isMask) return undefined
     let cancelled = false
     let frameId = 0
-    let started = null
+    const playback = animPlaybackRef.current
+    playback.scrubbing = false
+    playback.playing = true
+    playback.baseFrame = 0
+    playback.frame = 0
+    playback.playStart = performance.now()
+    setAnimFrame(0)
+    setAnimPlaying(true)
     loadImage(src).then((image) => {
       if (cancelled) return
       const canvas = animCanvasRef.current
@@ -320,21 +369,34 @@ export default function SpriteSheetPreview({
       const ctx = canvas.getContext('2d')
       const { width, height } = sheetAnim.sheet.frame
       const res = sheetAnim.sheet.resolution ?? 1
+      const frames = Math.max(1, sheetAnim.frames)
       canvas.width = width
       canvas.height = height
       const row = Math.max(0, FACINGS.indexOf(facing))
-      const timing = {
-        seed: path,
-        playKey: `sheet-${animation}-${version}-${loop ? 'loop' : 'native'}`,
-        settled: false,
-        reverse: false,
-        speed: 1,
-      }
 
       const draw = (now) => {
         if (cancelled) return
-        if (!started) started = startTiming(sheetAnim, timing, now)
-        const col = frameColumn(sheetAnim, started, timing, now)
+        let local
+        if (playback.scrubbing || !playback.playing) {
+          local = Math.min(frames - 1, Math.max(0, playback.frame))
+        } else {
+          const elapsed = (now - playback.playStart) / 1000
+          let progress = playback.baseFrame / frames + elapsed / Math.max(0.001, sheetAnim.seconds)
+          if (sheetAnim.play === 'loop') progress = progress - Math.floor(progress)
+          else progress = Math.min(1, Math.max(0, progress))
+          local = Math.min(frames - 1, Math.floor(progress * frames))
+          if (sheetAnim.play !== 'loop' && progress >= 1) {
+            local = frames - 1
+            playback.playing = false
+            playback.frame = local
+            setAnimPlaying(false)
+            setAnimFrame(local)
+          } else if (playback.frame !== local) {
+            playback.frame = local
+            setAnimFrame(local)
+          }
+        }
+        const col = sheetAnim.start + local
         ctx.clearRect(0, 0, width, height)
         ctx.imageSmoothingEnabled = false
         ctx.drawImage(image, col * width * res, row * height * res, width * res, height * res, 0, 0, width, height)
@@ -347,6 +409,44 @@ export default function SpriteSheetPreview({
       cancelAnimationFrame(frameId)
     }
   }, [sheetAnim, src, facing, animation, version, path, loop, character?.isMask])
+
+  const animFrameCount = Math.max(1, sheetAnim?.frames ?? 1)
+  const onAnimScrub = (value) => {
+    const frame = Math.min(animFrameCount - 1, Math.max(0, Number(value) || 0))
+    const playback = animPlaybackRef.current
+    playback.scrubbing = true
+    playback.playing = false
+    playback.frame = frame
+    setAnimPlaying(false)
+    setAnimFrame(frame)
+  }
+  const onAnimScrubEnd = () => {
+    const playback = animPlaybackRef.current
+    playback.scrubbing = false
+    playback.baseFrame = playback.frame
+    playback.playStart = performance.now()
+  }
+  const toggleAnimPlay = () => {
+    const playback = animPlaybackRef.current
+    if (playback.playing) {
+      playback.playing = false
+      playback.baseFrame = playback.frame
+      setAnimPlaying(false)
+      return
+    }
+    // Restart from the beginning when a non-loop clip already finished on the last frame.
+    if (sheetAnim?.play !== 'loop' && playback.frame >= animFrameCount - 1) {
+      playback.frame = 0
+      playback.baseFrame = 0
+      setAnimFrame(0)
+    } else {
+      playback.baseFrame = playback.frame
+    }
+    playback.scrubbing = false
+    playback.playing = true
+    playback.playStart = performance.now()
+    setAnimPlaying(true)
+  }
 
   const expectedCell = grid
     ? {
@@ -512,51 +612,83 @@ export default function SpriteSheetPreview({
             File {stage.sheetW}×{stage.sheetH}
           </p>
           <p className="me-text ss-size-hint">
-            Iso floor extends past the sheet on every side. Yellow boxes mark single-tile clips or auto-detected strip
-            frames. Yellow lines on character sheets are animation frames. Export, paint, keep the same sheet size on
-            Import.
+            Iso floor extends past the sheet on every side (preview only). Yellow boxes mark single-tile clips or
+            auto-detected strip frames. Yellow lines on character sheets are animation frames. Export downloads the PNG
+            over transparency — no floor or guides. Paint, keep the same sheet size on Import.
           </p>
         </div>
       )}
       {sheetAnim && !character?.isMask && (
         <div className="ss-anim-preview" aria-label={`Animation ${animation}`}>
-          <canvas ref={animCanvasRef} width={sheetAnim.sheet.frame.width} height={sheetAnim.sheet.frame.height} />
-          <div className="ss-anim-controls">
-            {animNames.length > 0 && onAnimationChange && (
-              <label className="me-text">
-                Anim{' '}
-                <select
-                  className="me-select"
-                  value={animation ?? ''}
-                  onChange={(event) => onAnimationChange(event.target.value || null)}
+          <div className="ss-anim-preview-main">
+            <canvas ref={animCanvasRef} width={sheetAnim.sheet.frame.width} height={sheetAnim.sheet.frame.height} />
+            <div className="ss-anim-controls">
+              {animNames.length > 0 && onAnimationChange && (
+                <label className="me-text">
+                  Anim{' '}
+                  <select
+                    className="me-select"
+                    value={animation ?? ''}
+                    onChange={(event) => onAnimationChange(event.target.value || null)}
+                  >
+                    {animNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {onLoopChange && (
+                <label className="me-text ss-loop-check">
+                  <input type="checkbox" checked={loop} onChange={(event) => onLoopChange(event.target.checked)} />{' '}
+                  Loop
+                </label>
+              )}
+              {onFacingChange && (
+                <button
+                  type="button"
+                  className="me-button"
+                  title="Cycle preview facing"
+                  onClick={() => {
+                    const i = Math.max(0, FACINGS.indexOf(facing))
+                    onFacingChange(FACINGS[(i + 1) % FACINGS.length])
+                  }}
                 >
-                  {animNames.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {onLoopChange && (
-              <label className="me-text ss-loop-check">
-                <input type="checkbox" checked={loop} onChange={(event) => onLoopChange(event.target.checked)} />{' '}
-                Loop
-              </label>
-            )}
-            {onFacingChange && (
-              <button
-                type="button"
-                className="me-button"
-                title="Cycle preview facing"
-                onClick={() => {
-                  const i = Math.max(0, FACINGS.indexOf(facing))
-                  onFacingChange(FACINGS[(i + 1) % FACINGS.length])
-                }}
-              >
-                Angle {facing}
-              </button>
-            )}
+                  Angle {facing}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="ss-anim-scrub me-sliders">
+            <button
+              type="button"
+              className={`me-button${animPlaying ? ' is-on' : ''}`}
+              aria-pressed={animPlaying}
+              title={animPlaying ? 'Pause' : 'Play'}
+              onClick={toggleAnimPlay}
+            >
+              {animPlaying ? 'Pause' : 'Play'}
+            </button>
+            <label className="ss-anim-scrub-track me-text">
+              Frame
+              <input
+                type="range"
+                min={0}
+                max={animFrameCount - 1}
+                step={1}
+                value={Math.min(animFrame, animFrameCount - 1)}
+                aria-label="Animation frame"
+                onChange={(event) => onAnimScrub(event.target.value)}
+                onPointerDown={(event) => onAnimScrub(event.currentTarget.value)}
+                onPointerUp={onAnimScrubEnd}
+                onPointerCancel={onAnimScrubEnd}
+                onKeyUp={onAnimScrubEnd}
+              />
+            </label>
+            <span className="me-text ss-anim-scrub-label">
+              {Math.min(animFrame, animFrameCount - 1) + 1}/{animFrameCount}
+            </span>
           </div>
         </div>
       )}

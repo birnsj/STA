@@ -45,10 +45,12 @@ export async function importSprite(path, file) {
   return result
 }
 
+// Exact source PNG bytes as image/png — alpha stays intact; the editor's iso floor / guides are never baked in.
 export async function downloadSprite(path) {
   const response = await fetch(spriteUrl(path), { cache: 'no-store' })
   if (!response.ok) throw new Error(`Could not download ${path}`)
-  const blob = await response.blob()
+  const buffer = await response.arrayBuffer()
+  const blob = new Blob([buffer], { type: 'image/png' })
   const name = path.slice(path.lastIndexOf('/') + 1) || 'sprite.png'
   const href = URL.createObjectURL(blob)
   const link = document.createElement('a')
