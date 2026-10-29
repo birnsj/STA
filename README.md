@@ -121,5 +121,6 @@ reference/           the rulebook PDFs (not committed)
 | `docs/combat-architecture.md` | Combat actions, encounters, reducer |
 | `docs/character-controllers.md` | Player / NPC / enemy controllers |
 | `docs/tiles.md` | Tile catalogue fields and symbols |
+| `docs/sprites.md` | Character map sprites: grid, sheets, playback, editor, Showcase lab |
 | `docs/editor-authoring-summary.md` | What Dev Edit can author vs JSON-only gaps |
 | `docs/performance.md` | Frame-rate measurements and probe tools |

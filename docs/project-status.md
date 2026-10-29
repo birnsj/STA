@@ -71,9 +71,9 @@ Where: `src/conversation/`, `conversations/`, `docs/design-tracker.md` (Klingon 
 
 Paint maps, layers / Null / floorUnder, NPCs, objectives, destructibles, hazards, ground items, conversations, story, Generator Editor, music cues per map, playtest. Multi-deck Levels UI is still a placeholder. Item / hazard / destructible **catalogues** and standalone Combat encounter authoring still need JSON edits (`editor-authoring-summary.md`: ~41 complete / 7 partial / 7 hardcoded / 2 missing as of last audit).
 
-**Sprites** (main-menu corner, 2026-10-28): browse/preview/import-export PNGs under `public/art/sprites/` with iso floor guides, yellow clip/strip boxes, and character frame grids. DEV listing + Import via `/__sprites`. See `design-tracker.md` (Sprite Sheets editor).
+**Sprites** (main-menu corner, 2026-10-28; grid migration + editor preview 2026-10-29): character figures use catalogue sheets in `characterSprites.json` (64×128 @ ×4 for walk/run/stand/fidgets/combat/reaction/sneak/surrender/panic; fall/getup wider). Sprites editor: iso floor, yellow grids (inferred for split pages), anim Loop/Angle preview. Lab map **Sprite Showcase**. DEV listing + Import via `/__sprites`. How-to: `docs/sprites.md`; decisions: `design-tracker.md`.
 
-Where: `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/editor-authoring-summary.md`; Sprites: `SpriteSheetsScreen.jsx`, `spriteCatalogue.js`, `tools/spriteStore.cjs`.
+Where: `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/editor-authoring-summary.md`, `docs/sprites.md`; Sprites: `SpriteSheetsScreen.jsx`, `spriteCatalogue.js`, `characterSprites.json`, `tools/spriteStore.cjs`, `tools/buildSpriteShowcaseMap.mjs`.
 
 ### 7. Music / audio — SHIPPED
 
