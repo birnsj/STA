@@ -71,7 +71,9 @@ Where: `src/conversation/`, `conversations/`, `docs/design-tracker.md` (Klingon 
 
 Paint maps, layers / Null / floorUnder, NPCs, objectives, destructibles, hazards, ground items, conversations, story, Generator Editor, music cues per map, playtest. Multi-deck Levels UI is still a placeholder. Item / hazard / destructible **catalogues** and standalone Combat encounter authoring still need JSON edits (`editor-authoring-summary.md`: ~41 complete / 7 partial / 7 hardcoded / 2 missing as of last audit).
 
-Where: `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/editor-authoring-summary.md`.
+**Sprites** (main-menu corner, 2026-10-28): browse/preview/import-export PNGs under `public/art/sprites/` with iso floor guides, yellow clip/strip boxes, and character frame grids. DEV listing + Import via `/__sprites`. See `design-tracker.md` (Sprite Sheets editor).
+
+Where: `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/editor-authoring-summary.md`; Sprites: `SpriteSheetsScreen.jsx`, `spriteCatalogue.js`, `tools/spriteStore.cjs`.
 
 ### 7. Music / audio — SHIPPED
 
@@ -110,6 +112,7 @@ Where: `src/rules/task*.js`, `missionResources.js`, `docs/prototype-rules.md` §
 | Settings | Enabled |
 | Exit | Disabled |
 | Dev Edit | Always (corner button) |
+| Sprites | Always (corner button; full folder list + Import need Vite DEV) |
 
 ---
 
