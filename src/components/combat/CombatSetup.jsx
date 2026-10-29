@@ -89,7 +89,7 @@ export default function CombatSetup({ savedCharacters, initialParty, initialSeed
       <div className="combat-panel lcars-frame combat-setup-panel">
         <h2 className="combat-setup-title">Load Episode: {map ? episodeTitle(map) : 'Combat Test'}</h2>
         <p className="combat-setup-text">
-          Choose up to {maxPartySize} characters for your party. Saved characters, imported JSON and the playtest redshirt ensigns are listed; combat uses each character's values.
+          Choose up to {maxPartySize} characters for your party. Saved characters, imported JSON and the playtest redshirt ensigns are listed; combat uses each character&apos;s values.
         </p>
         <div className="combat-setup-map">
           {map && <span className="combat-setup-location">Location: {map.name}</span>}

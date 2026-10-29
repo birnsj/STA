@@ -22,6 +22,28 @@
   pointer-events: none;
 }
 
+/* Debug: the screen-edge band that pans the camera (useCamera EDGE_MARGIN). */
+.edge-scroll-debug {
+  position: fixed;
+  pointer-events: none;
+  z-index: 6;
+  outline: 1px solid rgba(255, 140, 0, 0.75);
+  box-sizing: border-box;
+}
+
+.edge-scroll-debug-label {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(20, 10, 0, 0.75);
+  color: #ffb060;
+  font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .pixi-board-host > canvas {
   display: block;
 }

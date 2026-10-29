@@ -1,18 +1,38 @@
-import { useState } from 'react'
-import { partyPickerRoster } from '../../character/partyRoster.js'
+import { useMemo, useState } from 'react'
+import { partyPickerRoster, ROSTER_GROUP_LABELS } from '../../character/partyRoster.js'
 import { maxAwayTeamSize } from '../../exploration/awayTeam.js'
 import { episodeTitle } from '../../maps/mapFormat.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 import CharacterSheetPanel from './CharacterSheetPanel.jsx'
 import useEpisodeMap from '../maps/useEpisodeMap.js'
 
-// Picks the away team from saved characters plus authored playtest redshirts (up to MAX_AWAY_TEAM). Each member is a
+const GROUP_ORDER = ['saved', 'playtest', 'file']
+
+function groupRoster(roster) {
+  return GROUP_ORDER.map((group) => ({
+    group,
+    label: ROSTER_GROUP_LABELS[group],
+    entries: roster.filter((entry) => entry.group === group),
+  })).filter((section) => section.entries.length)
+}
+
+// Footer chips use the last name so eight portraits fit on the 1024-wide stage.
+function lastName(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  return parts[parts.length - 1] || name || '?'
+}
+
+// Picks the away team from saved characters and authored playtest redshirts (up to MAX_AWAY_TEAM). Each member is a
 // RuntimeCharacter; exploration adds no stats of its own. Extra members beyond the map's player starts stand nearby.
 export default function ExplorationSetup({ savedCharacters, initialParty, mapId, onStart, onBack }) {
   const { map, problem } = useEpisodeMap(mapId)
   const maxPartySize = maxAwayTeamSize(map)
   const [party, setParty] = useState(initialParty)
-  const roster = partyPickerRoster(savedCharacters)
+  const roster = useMemo(() => partyPickerRoster(savedCharacters), [savedCharacters])
+  const sections = useMemo(() => groupRoster(roster), [roster])
   // UI state: whose sheet is shown beside the roster (the last one hovered or clicked).
   const [viewedId, setViewedId] = useState(initialParty[0]?.id ?? null)
   const viewed = roster.find((entry) => entry.id === viewedId && entry.character) ?? null
@@ -39,26 +59,33 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
         </div>
         <div className="combat-setup-body">
           <ul className="combat-setup-list explore-setup-list">
-            {roster.map((entry) => {
-              const position = party.findIndex((member) => member.id === entry.id)
-              const disabled = !entry.character || (position < 0 && full)
-              return (
-                <li key={entry.id}>
-                  <button
-                    type="button"
-                    className={`combat-setup-entry ui-row${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
-                    aria-pressed={position >= 0}
-                    title={entry.error ?? undefined}
-                    onClick={() => toggle(entry)}
-                    onMouseEnter={() => entry.character && setViewedId(entry.id)}
-                    onFocus={() => entry.character && setViewedId(entry.id)}
-                  >
-                    <span>{entry.label}</span>
-                    {position >= 0 && <span className="combat-setup-slot">{position + 1}</span>}
-                  </button>
-                </li>
-              )
-            })}
+            {sections.map((section) => (
+              <li key={section.group} className="explore-setup-group">
+                <p className="explore-setup-group-label">{section.label}</p>
+                <ul className="explore-setup-group-list">
+                  {section.entries.map((entry) => {
+                    const position = party.findIndex((member) => member.id === entry.id)
+                    const disabled = !entry.character || (position < 0 && full)
+                    return (
+                      <li key={entry.id}>
+                        <button
+                          type="button"
+                          className={`combat-setup-entry ui-row${position >= 0 ? ' is-selected' : ''}${disabled ? ' is-unavailable' : ''}`}
+                          aria-pressed={position >= 0}
+                          title={entry.error ?? undefined}
+                          onClick={() => toggle(entry)}
+                          onMouseEnter={() => entry.character && setViewedId(entry.id)}
+                          onFocus={() => entry.character && setViewedId(entry.id)}
+                        >
+                          <span>{entry.label}</span>
+                          {position >= 0 && <span className="combat-setup-slot">{position + 1}</span>}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </li>
+            ))}
             {!roster.length && <li className="combat-setup-text">No characters available. Create one or check the playtest party.</li>}
           </ul>
           {viewed ? (
@@ -73,9 +100,9 @@ export default function ExplorationSetup({ savedCharacters, initialParty, mapId,
               Away Team {party.length} / {maxPartySize}
             </span>
             {party.map((member) => (
-              <button key={member.id} type="button" className="combat-setup-member ui-row" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
+              <button key={member.id} type="button" className="combat-setup-member explore-setup-member ui-row" title={`Remove ${member.name}`} onClick={() => setParty(party.filter((other) => other.id !== member.id))}>
                 <CombatPortrait character={member} className="combat-setup-member-portrait" />
-                <span>{member.name}</span>
+                <span>{lastName(member.name)}</span>
               </button>
             ))}
           </div>

@@ -25,6 +25,7 @@ import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
 import useStableSet from '../maps/useStableSet.js'
 import useWallFade from '../maps/useWallFade.js'
+import EdgeScrollDebugOverlay from '../maps/EdgeScrollDebugOverlay.jsx'
 import { DebugOverlay, NpcDebugOverlay, PerceptionDebugOverlay } from './BoardDebugOverlays.jsx'
 import {
   artBoxes,
@@ -803,6 +804,7 @@ export default function PixiExplorationBoard(props) {
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
+      {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}
       <svg
         className="battlefield exploration-board"
         viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}

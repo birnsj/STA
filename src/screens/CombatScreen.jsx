@@ -717,6 +717,7 @@ export function Battle({
           followCamera={followCamera}
           onCameraPan={() => setFollowCamera(false)}
           onCameraFollow={() => setFollowCamera(true)}
+          debug={debugOpen}
           bystanders={bystanders}
           snapMarks={snapMarks}
           hiddenIds={hiddenIds}

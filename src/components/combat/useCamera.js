@@ -5,14 +5,14 @@ import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 // or (when edge scrolling is on) holding the pointer at the map's edge pans; the mouse wheel zooms. When focus.key
 // changes (a new turn, or a unit finished a move) the camera glides to centre focus.point. Never touches combat state.
 const PAN_SPEED = 700
-// Screen pixels at the map's edge that pan the camera. Wide enough that the pointer starts the pan before it
-// reaches the bezel. Speed ramps from still at the inner side to PAN_SPEED at the rim.
-const EDGE_MARGIN = 120
-// Share of the remaining gap closed per 60 Hz frame. Soft enough that the view lags the focus and
-// visibly eases in after the followed unit stops (~0.9 s).
-const GLIDE = 0.045
-// Gentler still, for the glide back to focus.point when following is turned back on (~1.2 s).
-const RETURN_GLIDE = 0.03
+// Screen pixels at the map's edge that pan the camera (debug paints this band when Debug is on).
+// Kept narrow so it does not fight Camera Follow across half the board.
+export const EDGE_MARGIN = 48
+// Share of the remaining gap closed per 60 Hz frame. High enough that follow stays on a walking
+// character (~0.1 s lag) instead of drifting a half-second behind.
+const GLIDE = 0.18
+// Slightly softer when following is turned back on after a free pan (~0.2 s).
+const RETURN_GLIDE = 0.12
 // After WASD / drag release: keep coasting, then slow each 60 Hz frame by this factor.
 const COAST_FRICTION = 0.92
 const COAST_STOP = 12

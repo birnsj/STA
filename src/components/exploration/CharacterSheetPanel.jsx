@@ -4,16 +4,19 @@ import { getCharacterWeapons, getInjuryMode } from '../../combat/weaponSystem.js
 import { fatigueText, getMaxStress, getProtection, injuryText, normalizeCondition } from '../../rules/personalCondition.js'
 import CombatPortrait from '../combat/CombatPortrait.jsx'
 
-// short: three-letter labels (the full name on hover), for the compact sheet.
-function ScoreGrid({ ids, values, nameOf, short }) {
+// Vertical score bars like the creator's Character Complete / step-summary lists (.summary-snapshot-score).
+function ScoreColumn({ title, ids, values, nameOf }) {
   return (
-    <div className="sheet-scores">
-      {ids.map((id) => (
-        <div key={id} className="sheet-score" title={nameOf(id)}>
-          <span className="sheet-score-name">{short ? nameOf(id).slice(0, 3).toUpperCase() : nameOf(id)}</span>
-          <span className="sheet-score-value">{values[id] ?? 0}</span>
-        </div>
-      ))}
+    <div className="sheet-score-column">
+      <h4 className="sheet-heading ui-heading">{title}</h4>
+      <ul className="sheet-score-list">
+        {ids.map((id) => (
+          <li key={id} title={nameOf(id)}>
+            <span>{nameOf(id)}</span>
+            <strong>{values[id] ?? 0}</strong>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -38,15 +41,15 @@ function Chips({ items }) {
   )
 }
 
-// A named rule with its text underneath (talents, species ability, role benefit).
-function RuleList({ entries }) {
+// Named rules: full text in the open sheet; name only (full text on hover) when compact.
+function RuleList({ entries, compact }) {
   if (!entries.length) return <p className="sheet-empty">None</p>
   return (
     <ul className="sheet-rules">
       {entries.map((entry) => (
         <li key={entry.key} title={entry.description ? `${entry.name}: ${entry.description}` : entry.name}>
           <span className="sheet-rule-name">{entry.name}</span>
-          {entry.description && <span className="sheet-rule-text">{entry.description}</span>}
+          {!compact && entry.description && <span className="sheet-rule-text">{entry.description}</span>}
         </li>
       ))}
     </ul>
@@ -64,16 +67,15 @@ const weaponLine = (weapon) =>
     .join(' · ')
 
 // One character's full record, laid out as a character sheet. Read-only. className places it (e.g. floating on the
-// map); onClose (optional) adds the close button. compact: everything packed into a fixed box (labels beside their
-// content, one line per rule with the full text on hover).
+// map); onClose (optional) adds the close button. compact: setup preview — scores + core sheet, no weapons/gear.
 export default function CharacterSheetPanel({ character, condition = null, className = '', onClose = null, compact = false }) {
   const current = normalizeCondition(condition)
   const weapons = getCharacterWeapons(armedForWorldCombat(character))
   const subtitle = [character.rank?.name, character.role?.name ?? character.assignment?.name].filter(Boolean).join(' · ')
   const origin = [character.species?.name, character.department?.name].filter(Boolean).join(' / ')
   const abilities = [
-    ...(character.speciesAbility ? [{ key: 'species', name: `${character.speciesAbility.name} (species)`, description: character.speciesAbility.description }] : []),
-    ...(character.role?.benefit.name ? [{ key: 'role', name: `${character.role.benefit.name} (role)`, description: character.role.benefit.description }] : []),
+    ...(character.speciesAbility ? [{ key: 'species', name: character.speciesAbility.name, description: character.speciesAbility.description }] : []),
+    ...(character.role?.benefit.name ? [{ key: 'role', name: character.role.benefit.name, description: character.role.benefit.description }] : []),
   ]
   const talents = character.talents.map((talent) => ({
     key: talent.id,
@@ -120,12 +122,11 @@ export default function CharacterSheetPanel({ character, condition = null, class
           </span>
         </div>
 
-        <Section title="Attributes">
-          <ScoreGrid ids={ATTRIBUTE_IDS} values={character.attributes} nameOf={getAttributeName} short={compact} />
-        </Section>
-        <Section title="Departments">
-          <ScoreGrid ids={DISCIPLINE_IDS} values={character.disciplines} nameOf={getDisciplineName} short={compact} />
-        </Section>
+        <div className="sheet-score-columns">
+          <ScoreColumn title="Attributes" ids={ATTRIBUTE_IDS} values={character.attributes} nameOf={getAttributeName} />
+          <ScoreColumn title="Departments" ids={DISCIPLINE_IDS} values={character.disciplines} nameOf={getDisciplineName} />
+        </div>
+
         <Section title="Focuses">
           <Chips items={character.focuses} />
         </Section>
@@ -133,7 +134,9 @@ export default function CharacterSheetPanel({ character, condition = null, class
           {character.values.length ? (
             <ul className="sheet-values">
               {character.values.map((value) => (
-                <li key={value}>{value}</li>
+                <li key={value} title={value}>
+                  {value}
+                </li>
               ))}
             </ul>
           ) : (
@@ -144,21 +147,25 @@ export default function CharacterSheetPanel({ character, condition = null, class
           <Chips items={character.traits.map((trait) => trait.name).filter(Boolean)} />
         </Section>
         <Section title="Abilities">
-          <RuleList entries={abilities} />
+          <RuleList entries={abilities} compact={compact} />
         </Section>
         <Section title="Talents">
-          <RuleList entries={talents} />
+          <RuleList entries={talents} compact={compact} />
         </Section>
-        <Section title="Weapons">
-          <RuleList entries={weapons.map((weapon) => ({ key: weapon.id, name: weapon.name, description: weaponLine(weapon) }))} />
-        </Section>
-        <Section title="Equipment">
-          <Chips items={character.equipment.map((item) => item.name)} />
-        </Section>
-        {Array.isArray(character.carried) && (
-          <Section title="Carried">
-            <Chips items={character.carried.map((item) => item.name)} />
-          </Section>
+        {!compact && (
+          <>
+            <Section title="Weapons">
+              <RuleList entries={weapons.map((weapon) => ({ key: weapon.id, name: weapon.name, description: weaponLine(weapon) }))} />
+            </Section>
+            <Section title="Equipment">
+              <Chips items={character.equipment.map((item) => item.name)} />
+            </Section>
+            {Array.isArray(character.carried) && (
+              <Section title="Carried">
+                <Chips items={character.carried.map((item) => item.name)} />
+              </Section>
+            )}
+          </>
         )}
       </div>
     </aside>

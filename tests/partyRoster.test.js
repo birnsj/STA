@@ -1,4 +1,4 @@
-// Party picker roster includes authored playtest redshirts with saved characters.
+// Party picker roster: saved characters plus authored playtest redshirts.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { listPlaytestPartyIds } from '../src/character/authoredCharacters.js'
@@ -13,7 +13,7 @@ describe('partyPickerRoster', () => {
     playtestIds.forEach((id) => {
       const entry = roster.find((row) => row.id === id)
       assert.ok(entry?.character, id)
-      assert.ok(entry.label)
+      assert.equal(entry.group, 'playtest')
     })
   })
 
@@ -22,6 +22,14 @@ describe('partyPickerRoster', () => {
     // normalize of null record yields error / no character — still listed first by id.
     const roster = partyPickerRoster(saved)
     assert.equal(roster[0].id, 'saved-1')
+    assert.equal(roster[0].group, 'saved')
     assert.ok(roster.some((entry) => entry.id === 'redshirtMallory' && entry.character))
+  })
+
+  it('does not list authored main cast officers', () => {
+    const roster = partyPickerRoster([])
+    ;['stationEngineer', 'sfSecurityReyes', 'sfEngineerChen', 'sfScienceVoss'].forEach((id) => {
+      assert.ok(!roster.some((entry) => entry.id === id), id)
+    })
   })
 })

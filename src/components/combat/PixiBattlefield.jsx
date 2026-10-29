@@ -26,6 +26,7 @@ import useActionSounds from './useActionSounds.js'
 import { startBattleScene } from './pixi/battleScene.js'
 import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionView.js'
 import UnitActionRing from './UnitActionRing.jsx'
+import EdgeScrollDebugOverlay from '../maps/EdgeScrollDebugOverlay.jsx'
 import useCamera from './useCamera.js'
 
 // The combat board, drawn with PixiJS (WebGL). The map, the floor highlights, the combatants, the action effects
@@ -86,6 +87,7 @@ export default function PixiBattlefield(props) {
     onDestructibleClick = () => {},
     beamIn = 'done',
     beamOut = false,
+    debug = false,
   } = props
   const { map } = state
   const walking = useMoveAnimation(state.lastMove, msPerTile)
@@ -421,6 +423,7 @@ export default function PixiBattlefield(props) {
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
+      {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}
       <svg
         className="battlefield"
         viewBox={`${camera.x} ${camera.y} ${camera.width} ${camera.height}`}
