@@ -375,6 +375,8 @@ function frameScene(shapes, angle) {
 function renderFrame(scene, metrics, sheet, mask, column, row, width) {
   const samples = SUBSAMPLES * SUBSAMPLES
   const res = metrics.resolution
+  // paintScale: bake-only — sizes the placeholder model to the cell. Runtime still draws file pixels 1:1.
+  const paint = metrics.paintScale > 0 ? metrics.paintScale : 1
   const frameW = metrics.frame.width * res
   const frameH = metrics.frame.height * res
   for (let oy = 0; oy < frameH; oy++) {
@@ -384,8 +386,8 @@ function renderFrame(scene, metrics, sheet, mask, column, row, width) {
       let shirt = 0
       for (let sy = 0; sy < SUBSAMPLES; sy++) {
         for (let sx = 0; sx < SUBSAMPLES; sx++) {
-          const px = (ox + (sx + 0.5) / SUBSAMPLES) / res - metrics.anchor.x
-          const py = (oy + (sy + 0.5) / SUBSAMPLES) / res - metrics.anchor.y
+          const px = ((ox + (sx + 0.5) / SUBSAMPLES) / res - metrics.anchor.x) / paint
+          const py = ((oy + (sy + 0.5) / SUBSAMPLES) / res - metrics.anchor.y) / paint
           const result = scene(px, py)
           if (!result) continue
           hits++
@@ -739,14 +741,14 @@ function poseFor(animation, frame, frames) {
   const phase = (frame / frames) * Math.PI * 2
   const swing = Math.sin(phase)
   if (animation === 'run') {
-    // Longer stride, the back leg folding high behind, arms bent and pumping, a lean, and a lift between footfalls.
+    // Longer stride, the back leg folding high behind, arms bent and pumping, a lean. No bounce: feet stay on the
+    // same ground line as walk so switching gait does not pop the figure up/down.
     return {
       thigh: [deg(36) * swing, -deg(36) * swing],
       knee: [deg(14 + 76 * Math.max(0, Math.cos(phase))), deg(14 + 76 * Math.max(0, -Math.cos(phase)))],
       arm: [-deg(10) - deg(32) * swing, -deg(10) + deg(32) * swing],
       elbow: [deg(72), deg(72)],
       breathe: 0,
-      bounce: 1.6 * Math.abs(swing),
       lean: deg(9),
     }
   }
@@ -787,7 +789,7 @@ function makeSheet(set, sheetId) {
   console.log(`${set.id}: wrote ${path.relative(ROOT, out)} (${width} x ${height})${mask ? ' and its uniform mask' : ''}`)
 }
 
-// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|combat|fall|sneak|idle|surrender|getup|panic] [--force]
+// node scripts/makeCharacterSprites.mjs [set id ...] [--sheet=base|walk|run|idle|fidgets|combat|fall|sneak|surrender|getup|panic|reaction] [--force]
 const args = process.argv.slice(2)
 const sheetArg = args.find((arg) => arg.startsWith('--sheet='))?.slice('--sheet='.length)
 const sheetIds = sheetArg ? [sheetArg] : Object.keys(DATA.sheets)

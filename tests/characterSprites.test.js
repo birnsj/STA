@@ -26,13 +26,16 @@ import { project } from '../src/maps/iso.js'
 import { decodePng } from '../scripts/png.mjs'
 
 const { directions } = spriteData
-const readPng = (src) => decodePng(fs.readFileSync(`public${src}`))
+const diskPath = (src) => `public${String(src).split('?')[0]}`
+const readPng = (src) => decodePng(fs.readFileSync(diskPath(src)))
 
 describe('character sprite sheets (Prototype)', () => {
   for (const set of spriteData.sets) {
     for (const [sheetId, metrics] of Object.entries(spriteData.sheets)) {
+      const sheetPath = spriteSheetFile(set, sheetId)
+      if ((sheetId === 'run' || sheetId === 'idle') && !fs.existsSync(diskPath(sheetPath))) continue
       describe(`${set.id} ${sheetId}`, () => {
-        const sheet = readPng(spriteSheetFile(set, sheetId))
+        const sheet = readPng(sheetPath)
         const cellWidth = metrics.frame.width * metrics.resolution
         const cellHeight = metrics.frame.height * metrics.resolution
         const columns = spriteSheetColumns(sheetId)
@@ -43,6 +46,8 @@ describe('character sprite sheets (Prototype)', () => {
         })
 
         it('draws a figure in every frame', () => {
+          // Legacy 160×256 and walk 256×512 (64×128 at resolution 4) use 300; smaller cells use 40.
+          const minOpaque = cellWidth * cellHeight >= 20000 ? 300 : 40
           for (let row = 0; row < directions.length; row++) {
             for (let column = 0; column < columns; column++) {
               let opaque = 0
@@ -51,7 +56,7 @@ describe('character sprite sheets (Prototype)', () => {
                   if (sheet.bytes[(y * sheet.width + x) * 4 + 3] > 0) opaque++
                 }
               }
-              assert.ok(opaque > 300, `${directions[row]} frame ${column} is empty`)
+              assert.ok(opaque > minOpaque, `${directions[row]} frame ${column} is empty (${opaque} ≤ ${minOpaque})`)
             }
           }
         })
@@ -78,11 +83,38 @@ describe('character sprite sheets (Prototype)', () => {
 describe('sprite sheets and animations (Prototype)', () => {
   it('each sheet is the base sheet path with its suffix, and its mask beside it', () => {
     const set = getSpriteSetById('human-male')
-    assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human/male/human-male.png')
-    assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human/male/human-male-combat.png')
-    assert.equal(spriteSheetFile(set, 'reaction'), '/art/sprites/characters/human/male/human-male-reaction.png')
-    assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human/male/human-male-fall-uniform.png')
+    assert.equal(spriteSheetFile(set, 'base'), '/art/sprites/characters/human/male/human-male.png?v=4-1-40x64')
+    assert.equal(spriteSheetFile(set, 'walk'), '/art/sprites/characters/human/male/human-male-walk.png?v=4-1.25-64x128')
+    assert.equal(spriteSheetFile(set, 'run'), '/art/sprites/characters/human/male/human-male-run.png?v=4-1.37-64x128')
+    assert.equal(spriteSheetFile(set, 'idle'), '/art/sprites/characters/human/male/human-male-stand.png?v=4-1.25-64x128')
+    assert.equal(spriteSheetFile(set, 'combat'), '/art/sprites/characters/human/male/human-male-combat.png?v=4-1.25-64x128')
+    assert.equal(spriteSheetFile(set, 'reaction'), '/art/sprites/characters/human/male/human-male-reaction.png?v=4-1.25-64x128')
+    assert.equal(spriteMaskFile(set, 'fall'), '/art/sprites/characters/human/male/human-male-fall-uniform.png?v=3-1-112x96')
     assert.equal(spriteMaskFile(getSpriteSetById('klingon-male'), 'combat'), null)
+  })
+
+  it('puts walk, run, and idle on separate 64×128 pages', () => {
+    for (const id of ['walk', 'run']) {
+      const page = spriteData.sheets[id]
+      assert.deepEqual(page.frame, { width: 64, height: 128 })
+      assert.equal(page.resolution, 4)
+      assert.equal(page.animations[id].start, 0)
+      assert.equal(page.animations[id].frames, 16)
+      assert.equal(getSpriteAnimation(id)?.sheetId, id)
+    }
+    const idle = spriteData.sheets.idle
+    assert.deepEqual(idle.frame, { width: 64, height: 128 })
+    assert.equal(idle.resolution, 4)
+    assert.equal(idle.suffix, '-stand')
+    assert.equal(idle.paintScale, 1.25)
+    assert.equal(idle.animations.idle.frames, 8)
+    assert.equal(getSpriteAnimation('idle')?.sheetId, 'idle')
+    assert.equal(spriteData.sheets.walk.paintScale, 1.25)
+    assert.equal(spriteData.sheets.run.paintScale, 1.37)
+    assert.equal(spriteData.displayScale, 1)
+    assert.equal(spriteData.sheets.fidgets.suffix, '-idle')
+    assert.deepEqual(spriteData.sheets.fidgets.frame, { width: 64, height: 128 })
+    assert.equal(spriteData.sheets.fidgets.paintScale, 1.25)
   })
 
   it('puts every species and gender in its own directory, and every sheet is on disk', () => {
@@ -96,18 +128,19 @@ describe('sprite sheets and animations (Prototype)', () => {
       for (const sheetId of Object.keys(spriteData.sheets)) {
         const sheet = spriteSheetFile(set, sheetId)
         assert.ok(sheet.startsWith(`${dir}/`), sheet)
-        assert.equal(fs.existsSync(`public${sheet}`), true, sheet)
+        assert.equal(fs.existsSync(diskPath(sheet)), true, sheet)
         files++
         const mask = spriteMaskFile(set, sheetId)
         if (set.uniformMask) {
-          assert.equal(fs.existsSync(`public${mask}`), true, mask)
+          assert.equal(fs.existsSync(diskPath(mask)), true, mask)
           files++
         } else {
           assert.equal(mask, null)
         }
       }
     }
-    assert.equal(files, 234)
+    // 14 sets × 12 catalogue sheets = 168; 12 Starfleet sets × 12 masks = 144 → 312.
+    assert.equal(files, 312)
   })
 
   it('keeps the old flat character-sprite paths out of the code', () => {
@@ -123,11 +156,17 @@ describe('sprite sheets and animations (Prototype)', () => {
   })
 
   it('every animation name is unique across the sheets and found with its sheet', () => {
+    // walk / run / idle may appear on both the dedicated page and base (legacy fallback).
     const names = Object.values(spriteData.sheets).flatMap((sheet) => Object.keys(sheet.animations))
-    assert.equal(new Set(names).size, names.length)
+    const unique = names.filter((name) => name !== 'walk' && name !== 'run' && name !== 'idle')
+    assert.equal(new Set(unique).size, unique.length)
+    assert.equal(getSpriteAnimation('walk').sheetId, 'walk')
+    assert.equal(getSpriteAnimation('run').sheetId, 'run')
+    assert.equal(getSpriteAnimation('idle').sheetId, 'idle')
     assert.equal(getSpriteAnimation('melee').sheetId, 'combat')
     assert.equal(getSpriteAnimation('fallSpin').play, 'hold')
     assert.equal(getSpriteAnimation('idle').play, 'loop')
+    assert.equal(getSpriteAnimation('idleLookAround').sheetId, 'fidgets')
     assert.equal(getSpriteAnimation('nope'), null)
   })
 

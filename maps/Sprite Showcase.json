@@ -1,0 +1,427 @@
+{
+  "schemaVersion": 1,
+  "name": "Sprite Showcase",
+  "episodeName": "Sprite Showcase",
+  "card": null,
+  "mapType": "starshipDeck",
+  "biome": "temperate",
+  "weather": "clear",
+  "ambient": 100,
+  "rows": [
+    "#############D############",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "#..ccc...........Ehhhhh..#",
+    "#.................hhhhh..#",
+    "#..c.c...................#",
+    "#........................#",
+    "#........................#",
+    "#........................#",
+    "##########################"
+  ],
+  "areas": [
+    {
+      "name": "Species Lineup",
+      "position": [
+        9,
+        4
+      ]
+    },
+    {
+      "name": "Cover Bay",
+      "position": [
+        4,
+        12
+      ]
+    },
+    {
+      "name": "Hazard Strip",
+      "position": [
+        20,
+        11
+      ]
+    },
+    {
+      "name": "Combat Pocket",
+      "position": [
+        19,
+        14
+      ]
+    }
+  ],
+  "markers": {
+    "playerStarts": [
+      [
+        10,
+        12,
+        315
+      ],
+      [
+        11,
+        13,
+        315
+      ],
+      [
+        12,
+        12,
+        315
+      ],
+      [
+        11,
+        11,
+        315
+      ],
+      [
+        9,
+        13,
+        0
+      ],
+      [
+        13,
+        13,
+        270
+      ]
+    ],
+    "enemySpawns": [
+      [
+        19,
+        14,
+        315
+      ],
+      [
+        21,
+        15,
+        270
+      ],
+      [
+        17,
+        15,
+        0
+      ],
+      [
+        20,
+        13,
+        225
+      ]
+    ]
+  },
+  "npcs": [
+    {
+      "id": "showHumanM",
+      "characterId": "spriteHumanMale",
+      "position": [
+        3,
+        3
+      ],
+      "facing": 90,
+      "name": "Human Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showHumanF",
+      "characterId": "spriteHumanFemale",
+      "position": [
+        5,
+        3
+      ],
+      "facing": 90,
+      "name": "Human Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showVulcanM",
+      "characterId": "spriteVulcanMale",
+      "position": [
+        7,
+        3
+      ],
+      "facing": 90,
+      "name": "Vulcan Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showVulcanF",
+      "characterId": "spriteVulcanFemale",
+      "position": [
+        9,
+        3
+      ],
+      "facing": 90,
+      "name": "Vulcan Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showAndorianM",
+      "characterId": "spriteAndorianMale",
+      "position": [
+        11,
+        3
+      ],
+      "facing": 90,
+      "name": "Andorian Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showAndorianF",
+      "characterId": "spriteAndorianFemale",
+      "position": [
+        13,
+        3
+      ],
+      "facing": 90,
+      "name": "Andorian Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showTellariteM",
+      "characterId": "spriteTellariteMale",
+      "position": [
+        15,
+        3
+      ],
+      "facing": 90,
+      "name": "Tellarite Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showTellariteF",
+      "characterId": "spriteTellariteFemale",
+      "position": [
+        3,
+        6
+      ],
+      "facing": 90,
+      "name": "Tellarite Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showTrillM",
+      "characterId": "spriteTrillMale",
+      "position": [
+        5,
+        6
+      ],
+      "facing": 90,
+      "name": "Trill Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showTrillF",
+      "characterId": "spriteTrillFemale",
+      "position": [
+        7,
+        6
+      ],
+      "facing": 90,
+      "name": "Trill Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showCaitianM",
+      "characterId": "spriteCaitianMale",
+      "position": [
+        9,
+        6
+      ],
+      "facing": 90,
+      "name": "Caitian Male",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showCaitianF",
+      "characterId": "spriteCaitianFemale",
+      "position": [
+        11,
+        6
+      ],
+      "facing": 90,
+      "name": "Caitian Female",
+      "disposition": "neutral"
+    },
+    {
+      "id": "showKlingonM",
+      "characterId": "klingonGuardKorath",
+      "position": [
+        13,
+        6
+      ],
+      "facing": 90,
+      "name": "Klingon Male",
+      "disposition": "neutral",
+      "gender": "male",
+      "portraitId": "klingon-male-1"
+    },
+    {
+      "id": "showKlingonF",
+      "characterId": "klingonSentryTorak",
+      "position": [
+        15,
+        6
+      ],
+      "facing": 90,
+      "name": "Klingon Female",
+      "disposition": "neutral",
+      "gender": "female",
+      "portraitId": "klingon-female-1"
+    },
+    {
+      "id": "fightKlingonM",
+      "characterId": "klingonWarrior1",
+      "position": [
+        19,
+        14
+      ],
+      "facing": 315,
+      "name": "Hostile Klingon M",
+      "disposition": "hostile",
+      "gender": "male",
+      "portraitId": "klingon-male-3"
+    },
+    {
+      "id": "fightKlingonF",
+      "characterId": "klingonWarrior2",
+      "position": [
+        21,
+        15
+      ],
+      "facing": 270,
+      "name": "Hostile Klingon F",
+      "disposition": "aggressive",
+      "gender": "female",
+      "portraitId": "klingon-female-3"
+    },
+    {
+      "id": "fightAndorian",
+      "characterId": "spriteFightAndorian",
+      "position": [
+        17,
+        15
+      ],
+      "facing": 0,
+      "name": "Hostile Andorian",
+      "disposition": "hostile"
+    },
+    {
+      "id": "fightHuman",
+      "characterId": "spriteFightHuman",
+      "position": [
+        20,
+        13
+      ],
+      "facing": 225,
+      "name": "Hostile Human",
+      "disposition": "aggressive"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "reviewSprites",
+      "title": "Review every sprite set",
+      "description": "Walk the lineup (idle/fidgets/facing). Sneak and run past them. Use cover crates, the fire strip for panic, explosives for blast/get-up, and the combat pocket for attack/melee/reactions.",
+      "startsActive": true
+    }
+  ],
+  "destructibles": [
+    {
+      "id": "gas1",
+      "type": "gasCylinder",
+      "position": [
+        16,
+        10
+      ]
+    },
+    {
+      "id": "gas2",
+      "type": "gasCylinder",
+      "position": [
+        17,
+        10
+      ]
+    },
+    {
+      "id": "plasma1",
+      "type": "plasmaJunction",
+      "position": [
+        16,
+        12
+      ]
+    },
+    {
+      "id": "eps1",
+      "type": "epsConduit",
+      "position": [
+        15,
+        14
+      ]
+    }
+  ],
+  "hazards": [
+    {
+      "id": "labFire",
+      "type": "fire",
+      "tiles": [
+        [
+          18,
+          11,
+          2
+        ],
+        [
+          19,
+          11,
+          2
+        ],
+        [
+          20,
+          11,
+          1
+        ],
+        [
+          21,
+          11,
+          2
+        ],
+        [
+          22,
+          11,
+          1
+        ],
+        [
+          18,
+          12,
+          1
+        ],
+        [
+          19,
+          12,
+          2
+        ],
+        [
+          20,
+          12,
+          2
+        ],
+        [
+          21,
+          12,
+          1
+        ],
+        [
+          22,
+          12,
+          1
+        ]
+      ],
+      "spreadChance": 0
+    }
+  ],
+  "briefing": "Animation lab: every species/gender sprite set stands in the north lineup. No mission stakes — walk, run, sneak, take cover, step into the fire strip, shoot the cylinders, and fight the combat pocket.",
+  "stardate": 9999.2
+}

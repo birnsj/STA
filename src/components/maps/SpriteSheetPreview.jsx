@@ -1,6 +1,7 @@
 // Sheet preview for SpriteSheetsScreen: PNG on an extended iso floor, wheel zoom at cursor, left-drag pan.
-import { useEffect, useRef, useState } from 'react'
-import { getSpriteAnimation, getSpriteMetrics } from '../../rules/appearance.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { getSpriteMetrics } from '../../rules/appearance.js'
+import { inferCharacterSheetGrid, resolvePreviewAnimation } from '../../rules/spriteCatalogue.js'
 import { spriteUrl } from '../../maps/spriteFiles.js'
 import {
   detectStripLayout,
@@ -16,12 +17,18 @@ import { frameColumn, startTiming } from './spriteTiming.js'
 const FACINGS = getSpriteMetrics().directions
 const MIN_ZOOM = 0.05
 const MAX_ZOOM = 8
+// Browsers reject canvases past ~16k–32k on a side. Migrated fidget/fall sheets are wider than that
+// (e.g. 23552×2560), so the preview paints at a shrink that still fits.
+const MAX_PREVIEW_EDGE = 8192
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const image = new Image()
-    image.decoding = 'async'
-    image.onload = () => resolve(image)
+    image.onload = () => {
+      // SPA HTML fallbacks decode as a broken/"empty" image — treat as failure so we do not paint a blank stage.
+      if (!image.naturalWidth || !image.naturalHeight) reject(new Error('not an image'))
+      else resolve(image)
+    }
     image.onerror = () => reject(new Error('load failed'))
     image.src = src
   })
@@ -31,12 +38,18 @@ function paintSheet(canvas, image, grid, spritePath = null) {
   if (!canvas || !image) return null
   const sheetW = image.naturalWidth
   const sheetH = image.naturalHeight
+  if (!sheetW || !sheetH) return null
   const layout = floorLayout(sheetW, sheetH, grid, spritePath)
+  const previewScale = Math.min(1, MAX_PREVIEW_EDGE / layout.stageW, MAX_PREVIEW_EDGE / layout.stageH)
+  const stageW = Math.max(1, Math.round(layout.stageW * previewScale))
+  const stageH = Math.max(1, Math.round(layout.stageH * previewScale))
   // Assigning width/height resets the bitmap; only do it here, never via React props after paint.
-  canvas.width = layout.stageW
-  canvas.height = layout.stageH
+  canvas.width = stageW
+  canvas.height = stageH
   const ctx = canvas.getContext('2d')
-  ctx.imageSmoothingEnabled = false
+  if (!ctx) return null
+  ctx.setTransform(previewScale, 0, 0, previewScale, 0, 0)
+  ctx.imageSmoothingEnabled = previewScale < 1
   ctx.clearRect(0, 0, layout.stageW, layout.stageH)
   paintIsoFloor(ctx, layout, grid, spritePath)
   ctx.drawImage(image, layout.marginX, layout.marginY)
@@ -47,7 +60,7 @@ function paintSheet(canvas, image, grid, spritePath = null) {
     const oy = layout.marginY
     ctx.save()
     ctx.strokeStyle = 'rgba(255, 200, 80, 0.85)'
-    ctx.lineWidth = Math.max(1, Math.round(Math.min(cellW, cellH) / 80))
+    ctx.lineWidth = Math.max(1 / previewScale, Math.round(Math.min(cellW, cellH) / 80))
     ctx.beginPath()
     for (let i = 0; i <= grid.columns; i += 1) {
       const x = Math.round(ox + i * cellW) + (i === grid.columns ? -0.5 : 0.5)
@@ -66,7 +79,8 @@ function paintSheet(canvas, image, grid, spritePath = null) {
     if (strip) strokeStripGrid(ctx, layout, strip)
     else strokeTileClipBox(ctx, tileClipBox(layout, spritePath))
   }
-  return layout
+  // Zoom/fit use the painted bitmap size; guides stay in full sheet space via previewScale.
+  return { ...layout, stageW, stageH, previewScale }
 }
 
 function clampZoom(value) {
@@ -84,7 +98,12 @@ export default function SpriteSheetPreview({
   version,
   character = null,
   animation = null,
+  animNames = [],
+  onAnimationChange = null,
   facing = 's',
+  onFacingChange = null,
+  loop = false,
+  onLoopChange = null,
 }) {
   const wrapRef = useRef(null)
   const sheetCanvasRef = useRef(null)
@@ -95,13 +114,35 @@ export default function SpriteSheetPreview({
   const stageRef = useRef({ width: 0, height: 0, sheetW: 0, sheetH: 0 })
   const [stage, setStage] = useState({ width: 0, height: 0, sheetW: 0, sheetH: 0 })
   const [failed, setFailed] = useState(false)
+  const [inferredGrid, setInferredGrid] = useState(null)
   // Always a number so every category can pan (fit is just a zoom value, not a separate layout mode).
   const [zoom, setZoom] = useState(1)
   const [fit, setFit] = useState(1)
   const src = spriteUrl(path, version)
-  const grid = character?.grid ?? null
-  const sheetAnim = animation && character ? getSpriteAnimation(animation) : null
-
+  const grid = character?.grid ?? inferredGrid
+  // Stable dep so parent re-renders do not reload the PNG (grid is a new object each enrich).
+  const gridKey = character?.grid
+    ? `${character.grid.columns}x${character.grid.rows}@${character.grid.resolution}:${character.grid.frame?.width}x${character.grid.frame?.height}`
+    : `infer:${path}`
+  const sheetAnim = useMemo(() => {
+    const base = animation ? resolvePreviewAnimation(path, animation, grid, character) : null
+    if (!base) return null
+    // Editor-only: Loop checkbox forces repeat even when the sheet anim is once/hold.
+    return loop ? { ...base, play: 'loop' } : base
+  }, [
+    animation,
+    path,
+    character,
+    loop,
+    // grid object identity changes; key on the cell layout that affects frame slicing
+    grid?.columns,
+    grid?.rows,
+    grid?.resolution,
+    grid?.frame?.width,
+    grid?.frame?.height,
+    grid?.anchor?.x,
+    grid?.anchor?.y,
+  ])
   const setZoomBoth = (next) => {
     zoomRef.current = next
     setZoom(next)
@@ -143,7 +184,9 @@ export default function SpriteSheetPreview({
   }
 
   const applyPaint = (image) => {
-    const layout = paintSheet(sheetCanvasRef.current, image, grid, path)
+    const paintGrid = character?.grid ?? inferCharacterSheetGrid(path, image.naturalWidth, image.naturalHeight)
+    setInferredGrid(character?.grid ? null : paintGrid)
+    const layout = paintSheet(sheetCanvasRef.current, image, paintGrid, path)
     if (!layout) return
     layoutRef.current = layout
     const nextStage = { width: layout.stageW, height: layout.stageH, sheetW: layout.sheetW, sheetH: layout.sheetH }
@@ -168,13 +211,33 @@ export default function SpriteSheetPreview({
 
   useEffect(() => {
     let cancelled = false
+    let retries = 0
     setFailed(false)
+    setInferredGrid(null)
     sheetImageRef.current = null
+    const paintWhenReady = (image) => {
+      if (cancelled) return
+      // When the previous sheet failed, the canvas was unmounted; wait for it to remount.
+      if (!sheetCanvasRef.current) {
+        if (retries++ < 30) {
+          requestAnimationFrame(() => paintWhenReady(image))
+          return
+        }
+        setFailed(true)
+        return
+      }
+      try {
+        applyPaint(image)
+        setFailed(false)
+      } catch {
+        setFailed(true)
+      }
+    }
     loadImage(src)
       .then((image) => {
         if (cancelled) return
         sheetImageRef.current = image
-        applyPaint(image)
+        paintWhenReady(image)
       })
       .catch(() => {
         if (!cancelled) setFailed(true)
@@ -182,7 +245,7 @@ export default function SpriteSheetPreview({
     return () => {
       cancelled = true
     }
-  }, [src, grid, path])
+  }, [src, gridKey, path])
 
   useEffect(() => {
     const wrap = wrapRef.current
@@ -260,7 +323,13 @@ export default function SpriteSheetPreview({
       canvas.width = width
       canvas.height = height
       const row = Math.max(0, FACINGS.indexOf(facing))
-      const timing = { seed: path, playKey: `sheet-${animation}-${version}`, settled: false, reverse: false, speed: 1 }
+      const timing = {
+        seed: path,
+        playKey: `sheet-${animation}-${version}-${loop ? 'loop' : 'native'}`,
+        settled: false,
+        reverse: false,
+        speed: 1,
+      }
 
       const draw = (now) => {
         if (cancelled) return
@@ -277,7 +346,7 @@ export default function SpriteSheetPreview({
       cancelled = true
       cancelAnimationFrame(frameId)
     }
-  }, [sheetAnim, src, facing, animation, version, path, character?.isMask])
+  }, [sheetAnim, src, facing, animation, version, path, loop, character?.isMask])
 
   const expectedCell = grid
     ? {
@@ -381,16 +450,15 @@ export default function SpriteSheetPreview({
         <span className="me-text ss-zoom-hint">Wheel zooms at cursor · left-drag pans under cursor</span>
       </div>
       <div ref={wrapRef} className="ss-sheet-wrap">
-        {failed ? (
-          <p className="me-text">Could not load this PNG.</p>
-        ) : (
-          <canvas
-            ref={sheetCanvasRef}
-            className="ss-sheet-canvas"
-            style={canvasStyle}
-            aria-label="Sprite sheet with iso floor grid"
-          />
+        {failed && (
+          <p className="me-text ss-preview-error">Could not load or preview this PNG.</p>
         )}
+        <canvas
+          ref={sheetCanvasRef}
+          className="ss-sheet-canvas"
+          style={{ ...canvasStyle, display: failed ? 'none' : undefined }}
+          aria-label="Sprite sheet with iso floor grid"
+        />
       </div>
       {stage.sheetW > 0 && (
         <div className="ss-size-block">
@@ -453,7 +521,43 @@ export default function SpriteSheetPreview({
       {sheetAnim && !character?.isMask && (
         <div className="ss-anim-preview" aria-label={`Animation ${animation}`}>
           <canvas ref={animCanvasRef} width={sheetAnim.sheet.frame.width} height={sheetAnim.sheet.frame.height} />
-          <span className="me-text">{animation}</span>
+          <div className="ss-anim-controls">
+            {animNames.length > 0 && onAnimationChange && (
+              <label className="me-text">
+                Anim{' '}
+                <select
+                  className="me-select"
+                  value={animation ?? ''}
+                  onChange={(event) => onAnimationChange(event.target.value || null)}
+                >
+                  {animNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {onLoopChange && (
+              <label className="me-text ss-loop-check">
+                <input type="checkbox" checked={loop} onChange={(event) => onLoopChange(event.target.checked)} />{' '}
+                Loop
+              </label>
+            )}
+            {onFacingChange && (
+              <button
+                type="button"
+                className="me-button"
+                title="Cycle preview facing"
+                onClick={() => {
+                  const i = Math.max(0, FACINGS.indexOf(facing))
+                  onFacingChange(FACINGS[(i + 1) % FACINGS.length])
+                }}
+              >
+                Angle {facing}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

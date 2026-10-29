@@ -160,6 +160,38 @@ const musicListEndpoint = () =>
         : [],
   })
 
+// Serve /art/sprites/* straight from disk. Vite's public/ static cache can keep serving SPA HTML for PNGs that were
+// added after the dev server started (new *-stand / *-run / split anim pages), so the sprite editor "can't load" them.
+const spriteStaticFiles = () => ({
+  name: 'sprite-static-files',
+  apply: 'serve',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+      const urlPath = decodeURIComponent((req.url ?? '').split('?')[0])
+      if (!urlPath.startsWith('/art/sprites/')) return next()
+      const rel = urlPath.slice('/art/sprites/'.length)
+      if (!rel || rel.includes('..') || path.isAbsolute(rel)) return next()
+      const file = path.join(SPRITES_FOLDER, rel)
+      const root = toSlashes(SPRITES_FOLDER)
+      if (!toSlashes(file).startsWith(`${root}/`) && toSlashes(file) !== root) return next()
+      if (!existsSync(file) || !statSync(file).isFile()) return next()
+      const { size } = statSync(file)
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Cache-Control', 'no-cache')
+      res.setHeader('Content-Length', size)
+      if (req.method === 'HEAD') {
+        res.end()
+        return
+      }
+      const stream = createReadStream(file)
+      stream.on('error', () => res.destroy())
+      res.on('close', () => stream.destroy())
+      stream.pipe(res)
+    })
+  },
+})
+
 // Sprite Sheets editor: list / replace PNGs under public/art/sprites. Quiet hotUpdate so Import does not reload the app.
 const spriteFilesEndpoint = () => {
   let savedAt = 0
@@ -251,6 +283,7 @@ function musicFiles() {
 export default defineConfig({
   plugins: [
     react(),
+    spriteStaticFiles(),
     musicFiles(),
     musicListEndpoint(),
     characterFilesEndpoint(),

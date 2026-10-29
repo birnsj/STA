@@ -10,7 +10,8 @@
     "Klingon Values (final.values, the same list of strings the creator exports): four per character, chosen by the designer (Oct 2026) from book examples only: the Klingon species sample Values (Book: Core p.108), the Klingon Veteran (p.355) and Moq'var, Son of Koloth (p.356). sourceClassification.valueSources records where each came from (metadata only). No Value rules (Determination) are implemented.",
     "Station Engineer (Book: STA 2e Core p.352, Starfleet Officer, Minor NPC): stat block Control 10, Daring 10, Fitness 8, Insight 8, Presence 9, Reason 9 before species ('add 3 points to attributes based on species'); every department 1; traits Species, Starfleet Officer; Unarmed Strike, Phaser Type-1. GM note: add 1 point to two different departments to make a type. Implementer picks for the NPC and conversation test encounter (Oct 2026), open for review: Human (Core p.98: +1 to three attributes) taking Control, Insight and Reason; the engineer type takes +1 Engineering and +1 Science; name Lt. Mara Okafor; her own painted portrait (public/art/portraits/npc/stationEngineer.png, Oct 2026, shown as drawn, no uniform recolour), with portrait id human-female-3 kept for her map sprite set. No values, focuses or talents (the Minor NPC stat block has none); Intensive Training (p.351) is not implemented. Prototype (designer decision, 2026-10-20): npcCategory Major — Deck 10's main NPC (full dialogue graph); Personal Threat 6 (book typical for Major).",
     "Redshirt Ensigns (Prototype playtest party, designer 2026-10-15; expanded 2026-10-20): eight Starfleet ensigns marked playtestParty for the map editor Play away team (mixed gender, varied human portraits). Same Starfleet Officer Minor NPC base (Core p.352), Human bonuses into Daring, Fitness and Presence, security type (+1 Security, +1 Conn). Operations-division red shirts (uniforms.json). Disposable away-team fillers, not book individuals.",
-    "Deck 10 Brig authoring test NPCs (2026-10-18; looks refreshed 2026-10-20): sfSecurityReyes (Andorian), sfEngineerChen (Tellarite), sfScienceVoss (Vulcan), klingonGuardKorath, klingonSentryTorak, klingonWarriorKrel. Starfleet officers use Core p.352 base with department typing; Klingons use Core p.354 Klingon Warrior. Mixed species/portraits for map variety; Klingon gender and portraitId are set on the map. Reuse existing portraits/sprites only."
+    "Deck 10 Brig authoring test NPCs (2026-10-18; looks refreshed 2026-10-20): sfSecurityReyes (Andorian), sfEngineerChen (Tellarite), sfScienceVoss (Vulcan), klingonGuardKorath, klingonSentryTorak, klingonWarriorKrel. Starfleet officers use Core p.352 base with department typing; Klingons use Core p.354 Klingon Warrior. Mixed species/portraits for map variety; Klingon gender and portraitId are set on the map. Reuse existing portraits/sprites only.",
+    "Sprite Showcase map (2026-10-29): sprite* lab NPCs for maps/Sprite Showcase.json — one Starfleet shell per species/gender plus combat hostiles; departments cycle command/conn/engineering/security/science/medicine so shirt colours (gold/red/blue) vary on the lineup."
   ],
   "characters": [
     {
@@ -2346,6 +2347,1686 @@
         "department": {
           "id": "security",
           "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteVulcanMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "vulcan",
+          "name": "Vulcan",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "reason",
+              "name": "Reason",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "vulcan",
+              "name": "Vulcan"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "engineering",
+            "name": "Engineering"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Solok",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "vulcan-male-1",
+            "name": "Ensign Solok"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 10,
+          "insight": 9,
+          "presence": 9,
+          "reason": 10
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 2,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "vulcan",
+            "name": "Vulcan"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "engineering",
+          "name": "Engineering"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteAndorianMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "andorian",
+          "name": "Andorian",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "andorian",
+              "name": "Andorian"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "medicine",
+            "name": "Medicine"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Tharen",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "andorian-male-1",
+            "name": "Ensign Tharen"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 10,
+          "fitness": 9,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 2
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "andorian",
+            "name": "Andorian"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "medicine",
+          "name": "Medicine"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteTellariteFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "tellarite",
+          "name": "Tellarite",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "insight",
+              "name": "Insight",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "tellarite",
+              "name": "Tellarite"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "science",
+            "name": "Science"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Grix",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "tellarite-female-1",
+            "name": "Ensign Grix"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 10,
+          "insight": 10,
+          "presence": 9,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 2,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "tellarite",
+            "name": "Tellarite"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "science",
+          "name": "Science"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteTrillMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "trill",
+          "name": "Trill",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            },
+            {
+              "id": "reason",
+              "name": "Reason",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "trill",
+              "name": "Trill"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "engineering",
+            "name": "Engineering"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Jorel",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "trill-male-1",
+            "name": "Ensign Jorel"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 9,
+          "insight": 9,
+          "presence": 10,
+          "reason": 10
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 2,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "trill",
+            "name": "Trill"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "engineering",
+          "name": "Engineering"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteTrillFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "trill",
+          "name": "Trill",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            },
+            {
+              "id": "reason",
+              "name": "Reason",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "trill",
+              "name": "Trill"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "conn",
+            "name": "Conn"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Lenara",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "trill-female-1",
+            "name": "Ensign Lenara"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 9,
+          "insight": 9,
+          "presence": 10,
+          "reason": 10
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "trill",
+            "name": "Trill"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "conn",
+          "name": "Conn"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteCaitianMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "caitian",
+          "name": "Caitian",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "insight",
+              "name": "Insight",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "caitian",
+              "name": "Caitian"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "medicine",
+            "name": "Medicine"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Mrr'shan",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "caitian-male-1",
+            "name": "Ensign Mrr'shan"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 9,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 10,
+          "presence": 9,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 2
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "caitian",
+            "name": "Caitian"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "medicine",
+          "name": "Medicine"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteCaitianFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "caitian",
+          "name": "Caitian",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "insight",
+              "name": "Insight",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "caitian",
+              "name": "Caitian"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Sh'ra",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "caitian-female-1",
+            "name": "Ensign Sh'ra"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 9,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 10,
+          "presence": 9,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "caitian",
+            "name": "Caitian"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteHumanMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "command",
+            "name": "Command"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Mallory",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-1",
+            "name": "Ensign Mallory"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 9,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 2,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "command",
+          "name": "Command"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteHumanFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "science",
+            "name": "Science"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Okafor",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "human-female-3",
+            "name": "Ensign Okafor"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 9,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 2,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "science",
+          "name": "Science"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteVulcanFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "vulcan",
+          "name": "Vulcan",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "reason",
+              "name": "Reason",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "vulcan",
+              "name": "Vulcan"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "conn",
+            "name": "Conn"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign T'Prena",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "vulcan-female-1",
+            "name": "Ensign T'Prena"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 10,
+          "insight": 9,
+          "presence": 9,
+          "reason": 10
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 2,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "vulcan",
+            "name": "Vulcan"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "conn",
+          "name": "Conn"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteAndorianFemale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "andorian",
+          "name": "Andorian",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "andorian",
+              "name": "Andorian"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "security",
+            "name": "Security"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Reyes",
+          "pronouns": "She / her",
+          "gender": {
+            "id": "female",
+            "name": "Female"
+          },
+          "portrait": {
+            "id": "andorian-female-2",
+            "name": "Ensign Reyes"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 10,
+          "fitness": 9,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 2,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "andorian",
+            "name": "Andorian"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "security",
+          "name": "Security"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteTellariteMale",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "tellarite",
+          "name": "Tellarite",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "insight",
+              "name": "Insight",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "tellarite",
+              "name": "Tellarite"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "command",
+            "name": "Command"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Ensign Chen",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "tellarite-male-3",
+            "name": "Ensign Chen"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 9,
+          "fitness": 10,
+          "insight": 10,
+          "presence": 9,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 2,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "tellarite",
+            "name": "Tellarite"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "command",
+          "name": "Command"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteFightAndorian",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "andorian",
+          "name": "Andorian",
+          "attributeBonuses": [
+            {
+              "id": "control",
+              "name": "Control",
+              "value": 1
+            },
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "andorian",
+              "name": "Andorian"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "science",
+            "name": "Science"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Hostile Andorian",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "andorian-male-2",
+            "name": "Hostile Andorian"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 10,
+          "daring": 10,
+          "fitness": 9,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 1,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 2,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "andorian",
+            "name": "Andorian"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "science",
+          "name": "Science"
+        },
+        "assignment": null,
+        "role": null
+      }
+    },
+    {
+      "id": "spriteFightHuman",
+      "sourceClassification": {
+        "book": "Star Trek Adventures 2E Core Rulebook",
+        "page": 352,
+        "statBlock": "Starfleet Officer",
+        "npcCategory": "minor",
+        "personalThreat": 0,
+        "protection": 0,
+        "note": "Sprite Showcase lab NPC (map sprite variety + department shirt colours; presentation only)."
+      },
+      "character": {
+        "faction": {
+          "id": "federation",
+          "name": "Federation"
+        },
+        "species": {
+          "id": "human",
+          "name": "Human",
+          "attributeBonuses": [
+            {
+              "id": "daring",
+              "name": "Daring",
+              "value": 1
+            },
+            {
+              "id": "fitness",
+              "name": "Fitness",
+              "value": 1
+            },
+            {
+              "id": "presence",
+              "name": "Presence",
+              "value": 1
+            }
+          ],
+          "traits": [
+            {
+              "id": "human",
+              "name": "Human"
+            }
+          ]
+        },
+        "career": {
+          "department": {
+            "id": "command",
+            "name": "Command"
+          },
+          "rank": {
+            "id": "ensign",
+            "name": "Ensign"
+          },
+          "assignment": null
+        },
+        "identity": {
+          "name": "Hostile Human",
+          "pronouns": "He / him",
+          "gender": {
+            "id": "male",
+            "name": "Male"
+          },
+          "portrait": {
+            "id": "human-male-2",
+            "name": "Hostile Human"
+          }
+        },
+        "equipment": [
+          {
+            "itemId": "standardUniform"
+          },
+          {
+            "itemId": "communicator"
+          },
+          {
+            "itemId": "phaserType2"
+          }
+        ]
+      },
+      "final": {
+        "attributes": {
+          "control": 9,
+          "daring": 10,
+          "fitness": 10,
+          "insight": 9,
+          "presence": 10,
+          "reason": 9
+        },
+        "disciplines": {
+          "command": 2,
+          "conn": 1,
+          "engineering": 1,
+          "security": 1,
+          "science": 1,
+          "medicine": 1
+        },
+        "values": [],
+        "focuses": [],
+        "traits": [
+          {
+            "id": "human",
+            "name": "Human"
+          },
+          {
+            "id": "starfleetOfficer",
+            "name": "Starfleet Officer"
+          }
+        ],
+        "talents": [],
+        "rank": {
+          "id": "ensign",
+          "name": "Ensign"
+        },
+        "department": {
+          "id": "command",
+          "name": "Command"
         },
         "assignment": null,
         "role": null

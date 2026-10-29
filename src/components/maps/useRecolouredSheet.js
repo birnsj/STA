@@ -93,7 +93,8 @@ export function loadSheet(file, mask, division, colour) {
           (src) =>
             new Promise((resolve) => {
               const element = new Image()
-              element.onload = () => resolve(element)
+              // SPA fallbacks return HTML with 200; treat non-bitmap / empty decode as failure so walk can retry.
+              element.onload = () => resolve(element.naturalWidth > 0 && element.naturalHeight > 0 ? element : null)
               element.onerror = () => resolve(null)
               element.src = src
             }),

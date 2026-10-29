@@ -8,6 +8,9 @@ import {
   explosionKnockback,
   explosionKnockbackFromReact,
   getIdleFidgets,
+  getLegacyIdleAnimation,
+  getLegacyRunAnimation,
+  getLegacyWalkAnimation,
   getSpriteAnimation,
   getSpriteMetrics,
   getSpriteSetById,
@@ -146,21 +149,36 @@ export class SheetStore {
     if (!this.sheets.has(key)) {
       const entry = { key, texture: null, image: null, chunked: false, failed: false, failedAt: null }
       this.sheets.set(key, entry)
+      // Raw file first so a second big page (e.g. *-run) can play before uniform recolour finishes.
+      const raw = new Image()
+      raw.onload = () => {
+        if (this.destroyed || entry.image || raw.naturalWidth <= 0) return
+        entry.image = raw
+        entry.chunked = true
+      }
+      raw.onerror = () => {}
+      raw.src = file
       loadSheet(file, spriteMaskFile(set, sheetId), set.uniformDivision, colour).then((image) => {
         if (this.destroyed) return
         if (!image) {
-          entry.failed = true
-          entry.failedAt = performance.now()
+          if (!entry.image) {
+            entry.failed = true
+            entry.failedAt = performance.now()
+          }
           return
         }
         const wide = image.naturalWidth > MAX_SHEET_TEXTURE || image.naturalHeight > MAX_SHEET_TEXTURE
-        if (wide) {
-          // Keep the full bitmap in CPU memory; frame() uploads one cell at a time.
-          entry.image = image
-          entry.chunked = true
-        } else {
-          entry.texture = textureOf(image)
+        // Drop frame cuts taken from the unrecoloured preview so the next draw uses this uniform colour.
+        for (const frameKey of [...this.frames.keys()]) {
+          if (!frameKey.startsWith(`${entry.key}|`)) continue
+          const { texture, ownsSource } = this.frames.get(frameKey)
+          texture.destroy(ownsSource)
+          this.frames.delete(frameKey)
         }
+        entry.image = image
+        entry.chunked = true
+        entry.texture?.destroy(true)
+        entry.texture = wide ? null : textureOf(image)
       })
     }
     return this.sheets.get(key)
@@ -702,7 +720,7 @@ export class FigureView {
   // Once the idle sheet has loaded, a fidget at random every gapSeconds apart, never the same twice.
   updateFidget(figure, now) {
     const set = getSpriteSetById(figure.spriteSet)
-    if (!this.sheets.loaded(set, 'idle', figure.colour)) return
+    if (!this.sheets.loaded(set, 'fidgets', figure.colour)) return
     const { animations, gapSeconds: [minGap, maxGap] } = getIdleFidgets()
     const gap = () => (minGap + Math.random() * (maxGap - minGap)) * 1000
     if (this.fidget && now >= this.fidget.endsAt) {
@@ -728,16 +746,39 @@ export class FigureView {
     // blasts). preload (combat) asks up front so MapFadeIn waits.
     if (figure.preload || this.sheets.ready(base) || base.failed || revealed) {
       const order = blasting
-        ? ['getup', 'fall', 'reaction', 'combat', 'sneak', 'surrender', 'idle']
-        : ['reaction', 'combat', 'fall', 'getup', 'sneak', 'surrender', 'idle']
+        ? ['getup', 'fall', 'walk', 'run', 'idle', 'fidgets', 'reaction', 'combat', 'sneak', 'surrender']
+        : ['walk', 'run', 'idle', 'fidgets', 'reaction', 'combat', 'fall', 'getup', 'sneak', 'surrender']
       for (const sheetId of order) this.sheets.sheet(set, sheetId, figure.colour)
     }
     // Panic sheet while burning / afflicted (and with combat preload so MapFadeIn can wait when already on fire).
     if (figure.panic || figure.hazardOverlay) this.sheets.sheet(set, 'panic', figure.colour)
 
-    const { animation, timing: wanted } = this.wantedAnimation(figure, now)
+    let { animation, timing: wanted } = this.wantedAnimation(figure, now)
     const timing = { seed: figure.seed, phase: null, playKey: 0, settled: false, reverse: false, speed: 1, ...wanted }
-    const entry = this.sheets.sheet(set, animation?.sheetId, figure.colour)
+    let entry = this.sheets.sheet(set, animation?.sheetId, figure.colour)
+    // Dedicated walk/run/idle still loading or missing: same anim on the base sheet. Draw path size-matches base
+    // clips and scales the foot offset with it so the figure neither shrinks nor pops.
+    if (animation?.sheetId === 'walk' && !this.sheets.ready(entry)) {
+      const legacy = getLegacyWalkAnimation()
+      if (legacy) {
+        animation = legacy
+        entry = this.sheets.sheet(set, legacy.sheetId, figure.colour)
+      }
+    }
+    if (animation?.sheetId === 'run' && !this.sheets.ready(entry)) {
+      const legacy = getLegacyRunAnimation()
+      if (legacy) {
+        animation = legacy
+        entry = this.sheets.sheet(set, legacy.sheetId, figure.colour)
+      }
+    }
+    if (animation?.sheetId === 'idle' && !this.sheets.ready(entry)) {
+      const legacy = getLegacyIdleAnimation()
+      if (legacy) {
+        animation = legacy
+        entry = this.sheets.sheet(set, legacy.sheetId, figure.colour)
+      }
+    }
     // Don't start the fall clock until that sheet can draw — otherwise the timer ends on an idle/fall-miss frame.
     if (this.staggerPlay && this.staggerPlay.phase === 'fall' && this.staggerPlay.startedAt == null) {
       this.sheets.sheet(set, 'fall', figure.colour)
@@ -795,14 +836,19 @@ export class FigureView {
     const { row, mirror } = directionFor(facing)
     this.sheet.visible = true
     this.sheet.texture = this.sheets.frame(shownEntry, sheet, column, row)
-    const scale = 1 / sheet.resolution
+    // Migrated walk/run/idle body ~65 design px; legacy base clips ~51. Boost base walk/run/idle to that height, and
+    // multiply the foot offset by the same factor — scale alone left the feet behind and read as a position pop.
+    const sizeMatch =
+      shownAnimation.sheetId === 'base' && (LOCOMOTION.has(shownAnimation.name) || shownAnimation.name === 'idle')
+        ? 65 / 51
+        : 1
+    const scale = (1 / sheet.resolution) * sizeMatch
     this.sheet.scale.set(mirror ? -scale : scale, scale)
     // Fall / getup frames are taller than idle; pin the body to the ground ring so prone isn't floating.
     const floorNudge = this.proneFloorNudge(shownAnimation, started, shownTiming, now)
-    this.sheet.position.set(
-      mirror ? sheet.frame.width - sheet.anchor.x : -sheet.anchor.x,
-      -sheet.anchor.y + floorNudge,
-    )
+    const footX = mirror ? sheet.frame.width - sheet.anchor.x : -sheet.anchor.x
+    const footY = -sheet.anchor.y + floorNudge
+    this.sheet.position.set(footX * sizeMatch, footY * sizeMatch)
 
     // Exploration get-up finishes only when the last get-up frame has been displayed.
     if (this.staggerPlay?.phase === 'up') {

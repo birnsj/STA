@@ -10,9 +10,9 @@
     "The sheets are generated placeholders (scripts/makeCharacterSprites.mjs, which never overwrites a file without --force); replace a PNG with real art of the same grid to swap it.",
     "Idle fidgets (designer request, 2026-10-11; implementer picks for review): the idle sheet's one-off animations (look around, shift weight, turn in place, check the phaser, scratch the head; at the designer's request turn in place replaced a stretch, and check the phaser replaced checking a PADD). In exploration a figure standing still (not walking, running or sneaking) plays one picked at random, never the same twice running, every gapSeconds [min, max] apart, then goes back to its idle loop. Each starts and ends on the idle pose.",
     "Surrender (designer request, 2026-10-12; pose an implementer pick): in combat, a character that surrenders (combatSocial.js) puts its weapon away and raises both hands, then holds them up (already standing so if it surrendered before the board appeared).",
-    "displayScale: every figure (and its shadow and click area) is drawn this much larger than its frame, scaled from the feet. Designer requests (Oct 2026): 15% bigger, then 10% bigger again (1.15 x 1.1)."
+    "Sprite grid (designer 2026-10-29): one cell = 64×128 design px (iso floor 64×32 at the feet). Migrated sheets use resolution 4 (file cell 256×512) so board zoom stays sharp; Pixi draws at 1/resolution. Walk/stand/fidgets paintScale 1.25; run 1.37 (lean compensation). displayScale 1. One loop per page where practical (*-walk, *-run, *-stand); fidgets share *-idle on the same grid (sheets.fidgets). Walk/run/stand/fidgets and combat/reaction/sneak/surrender/panic PNGs are on that grid; getup is 112×96 at resolution 4; fall is still 112×96 at resolution 3. Split one-anim pages (*-attack, …) exist for editor review but are not catalogue sheets yet."
   ],
-  "displayScale": 1.265,
+  "displayScale": 1,
   "directions": ["s", "se", "e", "ne", "n"],
   "mirrored": { "sw": "se", "w": "e", "nw": "ne" },
   "sheets": {
@@ -27,11 +27,42 @@
         "run": { "start": 24, "frames": 16, "seconds": 0.6, "play": "loop" }
       }
     },
+    "walk": {
+      "suffix": "-walk",
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
+      "resolution": 4,
+      "paintScale": 1.25,
+      "animations": {
+        "walk": { "start": 0, "frames": 16, "seconds": 0.8, "play": "loop" }
+      }
+    },
+    "run": {
+      "suffix": "-run",
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
+      "resolution": 4,
+      "paintScale": 1.37,
+      "animations": {
+        "run": { "start": 0, "frames": 16, "seconds": 0.6, "play": "loop" }
+      }
+    },
+    "idle": {
+      "suffix": "-stand",
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
+      "resolution": 4,
+      "paintScale": 1.25,
+      "animations": {
+        "idle": { "start": 0, "frames": 8, "seconds": 2.4, "play": "loop" }
+      }
+    },
     "combat": {
       "suffix": "-combat",
-      "frame": { "width": 56, "height": 64 },
-      "anchor": { "x": 28, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "attack": { "start": 0, "frames": 12, "seconds": 0.7, "play": "once" },
         "melee": { "start": 12, "frames": 12, "seconds": 0.6, "play": "once" },
@@ -40,9 +71,10 @@
     },
     "reaction": {
       "suffix": "-reaction",
-      "frame": { "width": 64, "height": 64 },
-      "anchor": { "x": 32, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "punch": { "start": 0, "frames": 12, "seconds": 0.55, "play": "once" },
         "kick": { "start": 12, "frames": 12, "seconds": 0.65, "play": "once" },
@@ -67,19 +99,21 @@
     },
     "sneak": {
       "suffix": "-sneak",
-      "frame": { "width": 40, "height": 64 },
-      "anchor": { "x": 20, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "sneakIdle": { "start": 0, "frames": 8, "seconds": 2.8, "play": "loop" },
         "sneakWalk": { "start": 8, "frames": 16, "seconds": 1.1, "play": "loop" }
       }
     },
-    "idle": {
+    "fidgets": {
       "suffix": "-idle",
-      "frame": { "width": 40, "height": 64 },
-      "anchor": { "x": 20, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "idleLookAround": { "start": 0, "frames": 20, "seconds": 2.6, "play": "once" },
         "idleShiftWeight": { "start": 20, "frames": 16, "seconds": 2.2, "play": "once" },
@@ -90,9 +124,10 @@
     },
     "surrender": {
       "suffix": "-surrender",
-      "frame": { "width": 40, "height": 64 },
-      "anchor": { "x": 20, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "surrender": { "start": 0, "frames": 12, "seconds": 0.8, "play": "hold" }
       }
@@ -101,16 +136,17 @@
       "suffix": "-getup",
       "frame": { "width": 112, "height": 96 },
       "anchor": { "x": 56, "y": 64 },
-      "resolution": 3,
+      "resolution": 4,
       "animations": {
         "getUp": { "start": 0, "frames": 16, "seconds": 1.2, "play": "once" }
       }
     },
     "panic": {
       "suffix": "-panic",
-      "frame": { "width": 40, "height": 64 },
-      "anchor": { "x": 20, "y": 60 },
+      "frame": { "width": 64, "height": 128 },
+      "anchor": { "x": 32, "y": 120 },
       "resolution": 4,
+      "paintScale": 1.25,
       "animations": {
         "hazardPanic": { "start": 0, "frames": 16, "seconds": 1.0, "play": "loop" }
       }

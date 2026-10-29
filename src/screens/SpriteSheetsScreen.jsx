@@ -14,14 +14,11 @@ import {
   enrichSpriteEntry,
   expectedSpriteSize,
   filterSpriteEntries,
-  sheetAnimationNames,
+  listPreviewAnimations,
   SPRITE_TYPE_ORDER,
   spriteGroupLabel,
 } from '../rules/spriteCatalogue.js'
-import { getSpriteMetrics } from '../rules/appearance.js'
 import '../components/maps/spriteSheets.css'
-
-const FACINGS = getSpriteMetrics().directions
 
 function SpriteCategoryTabs({ categories, activeId, onSelect }) {
   return (
@@ -83,6 +80,7 @@ export default function SpriteSheetsScreen({ onBack }) {
   const [version, setVersion] = useState(spriteCacheVersion)
   const [animation, setAnimation] = useState(null)
   const [facing, setFacing] = useState('s')
+  const [loopPreview, setLoopPreview] = useState(true)
   const [busy, setBusy] = useState(false)
   const [typeId, setTypeId] = useState('characters')
   const [openSubgroups, setOpenSubgroups] = useState(() => new Set())
@@ -151,11 +149,11 @@ export default function SpriteSheetsScreen({ onBack }) {
   const selected = useMemo(() => entries.find((entry) => entry.path === selectedPath) ?? null, [entries, selectedPath])
 
   useEffect(() => {
-    if (!selected?.character) {
+    if (!selected) {
       setAnimation(null)
       return
     }
-    const names = sheetAnimationNames(selected.character.sheetId)
+    const names = listPreviewAnimations(selected.path, selected.character)
     setAnimation((current) => (names.includes(current) ? current : names[0] ?? null))
   }, [selected])
 
@@ -216,7 +214,8 @@ export default function SpriteSheetsScreen({ onBack }) {
     }
   }
 
-  const animNames = selected?.character ? sheetAnimationNames(selected.character.sheetId) : []
+  const animNames = selected ? listPreviewAnimations(selected.path, selected.character) : []
+  const animPreviewBlocked = Boolean(selected?.character?.isMask || (selected?.path || '').includes('-uniform.png'))
 
   return (
     <EditorSubScreen
@@ -288,39 +287,18 @@ export default function SpriteSheetsScreen({ onBack }) {
                     </p>
                   )}
                 </div>
-                <div className="ss-detail-controls">
-                  {animNames.length > 0 && !selected.character?.isMask && (
-                    <>
-                      <label className="me-text">
-                        Anim{' '}
-                        <select className="me-select" value={animation ?? ''} onChange={(event) => setAnimation(event.target.value || null)}>
-                          {animNames.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="me-text">
-                        Facing{' '}
-                        <select className="me-select" value={facing} onChange={(event) => setFacing(event.target.value)}>
-                          {FACINGS.map((id) => (
-                            <option key={id} value={id}>
-                              {id}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </>
-                  )}
-                </div>
               </div>
               <SpriteSheetPreview
                 path={selected.path}
                 version={version}
                 character={selected.character}
                 animation={animation}
+                animNames={animPreviewBlocked ? [] : animNames}
+                onAnimationChange={setAnimation}
                 facing={facing}
+                onFacingChange={setFacing}
+                loop={loopPreview}
+                onLoopChange={setLoopPreview}
               />
             </>
           ) : (

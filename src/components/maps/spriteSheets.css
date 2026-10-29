@@ -145,6 +145,18 @@
   gap: 8px;
 }
 
+.ss-loop-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.ss-loop-check input {
+  margin: 0;
+}
+
 .ss-preview-visual {
   flex: 1;
   min-height: 0;
@@ -233,7 +245,8 @@
 .ss-anim-preview {
   flex: none;
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 10px;
   padding: 6px 8px;
   border: 1px solid #1e3a42;
@@ -246,6 +259,13 @@
   image-rendering: pixelated;
   background: #122228;
   border: 1px solid #1e3a42;
+}
+
+.ss-anim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .ss-status {

@@ -1,6 +1,26 @@
 // Classify sprite paths and attach character-sheet grid metadata from characterSprites.json.
 import spriteData from '../data/adaptation/characterSprites.json'
-import { getSpriteMetrics, spriteSheetColumns, spriteSheetFile, spriteMaskFile } from './appearance.js'
+import {
+  getSpriteAnimation,
+  getSpriteMetrics,
+  spriteSheetColumns,
+  spriteSheetFile,
+  spriteMaskFile,
+} from './appearance.js'
+
+// One-anim split pages on disk (not catalogue sheets). Editor preview only — does not change game loading.
+// Longest suffix first so -sneak-idle wins over a shorter match.
+const SPLIT_PREVIEW_SUFFIXES = [
+  { suffix: '-sneak-walk', anim: 'sneakWalk' },
+  { suffix: '-sneak-idle', anim: 'sneakIdle' },
+  { suffix: '-gethit', anim: 'getHit' },
+  { suffix: '-attack', anim: 'attack' },
+  { suffix: '-melee', anim: 'melee' },
+  { suffix: '-cover', anim: 'cover' },
+  { suffix: '-punch', anim: 'punch' },
+  { suffix: '-kick', anim: 'kick' },
+  { suffix: '-dodge', anim: 'dodge' },
+]
 
 const GROUP_LABELS = {
   characters: 'Characters',
@@ -64,7 +84,7 @@ function buildCharacterIndex() {
   const byPath = new Map()
   for (const set of spriteData.sets) {
     for (const sheetId of Object.keys(spriteData.sheets)) {
-      const sheetPath = spriteSheetFile(set, sheetId)
+      const sheetPath = spriteSheetFile(set, sheetId).split('?')[0]
       byPath.set(sheetPath, {
         kind: 'character',
         setId: set.id,
@@ -73,7 +93,7 @@ function buildCharacterIndex() {
         grid: pixelSize(sheetId),
         animations: Object.keys(spriteData.sheets[sheetId].animations),
       })
-      const maskPath = spriteMaskFile(set, sheetId)
+      const maskPath = spriteMaskFile(set, sheetId)?.split('?')[0]
       if (maskPath) {
         byPath.set(maskPath, {
           kind: 'character',
@@ -94,6 +114,43 @@ const characterIndex = buildCharacterIndex()
 export function characterSpriteMeta(path) {
   const clean = String(path || '').split('?')[0]
   return characterIndex.get(clean) ?? null
+}
+
+// Split pages (*-attack, *-dodge, …) are not always in characterSprites.json yet. If the PNG sits under
+// characters/ and matches a known frame×resolution×5-direction layout, use that grid so the editor iso floor
+// lines up the same as walk/stand (resolution 4 → 256×512 cells, not 64×32 diamonds).
+export function inferCharacterSheetGrid(path, sheetW, sheetH) {
+  const clean = String(path || '').split('?')[0]
+  if (!clean.includes('/art/sprites/characters/') || !(sheetW > 0) || !(sheetH > 0)) return null
+  const rows = spriteData.directions?.length ?? 5
+  let best = null
+  for (const sheet of Object.values(spriteData.sheets)) {
+    const resolution = sheet.resolution ?? 1
+    const cellW = sheet.frame.width * resolution
+    const cellH = sheet.frame.height * resolution
+    if (cellW < 1 || cellH < 1) continue
+    if (sheetH !== cellH * rows) continue
+    if (sheetW % cellW !== 0) continue
+    const columns = sheetW / cellW
+    if (columns < 1 || columns > 128) continue
+    const score = resolution * 10 + sheet.frame.height
+    if (!best || score > best.score) {
+      best = {
+        score,
+        width: sheetW,
+        height: sheetH,
+        columns,
+        rows,
+        frame: { ...sheet.frame },
+        anchor: { ...sheet.anchor },
+        resolution,
+        animations: [],
+      }
+    }
+  }
+  if (!best) return null
+  const { score: _score, ...grid } = best
+  return grid
 }
 
 export function enrichSpriteEntry(entry) {
@@ -191,4 +248,51 @@ export function expectedSpriteSize(path) {
 
 export function sheetAnimationNames(sheetId) {
   return Object.keys(getSpriteMetrics().sheets[sheetId]?.animations ?? {})
+}
+
+function splitPreviewMatch(path) {
+  const clean = String(path || '').split('?')[0]
+  if (!clean.includes('/art/sprites/characters/')) return null
+  if (/-uniform\.png$/i.test(clean)) return { isMask: true, anim: null }
+  const base = clean.split('/').pop()?.replace(/\.png$/i, '') ?? ''
+  for (const entry of SPLIT_PREVIEW_SUFFIXES) {
+    if (base.endsWith(entry.suffix)) return { isMask: false, anim: entry.anim }
+  }
+  return null
+}
+
+// Anim names the sprite editor can play for this path (catalogue sheet or known split page).
+export function listPreviewAnimations(path, character = characterSpriteMeta(path)) {
+  if (character?.isMask) return []
+  if (character?.sheetId) return sheetAnimationNames(character.sheetId)
+  const split = splitPreviewMatch(path)
+  if (!split || split.isMask || !split.anim) return []
+  return [split.anim]
+}
+
+// Timing + frame size for the editor corner preview. Split pages use start 0 and column count from the
+// PNG when known, so shrinking a sheet still plays every cell without registering it in characterSprites.
+export function resolvePreviewAnimation(path, animName, grid = null, character = characterSpriteMeta(path)) {
+  if (!animName) return null
+  if (character?.isMask) return null
+  if (character?.sheetId) return getSpriteAnimation(animName)
+
+  const split = splitPreviewMatch(path)
+  if (!split?.anim || split.anim !== animName) return null
+  const source = getSpriteAnimation(animName)
+  if (!source) return null
+  const walk = spriteData.sheets.walk
+  const frameSheet = grid?.frame && grid.resolution
+    ? { frame: grid.frame, resolution: grid.resolution, anchor: grid.anchor ?? walk?.anchor }
+    : walk
+  if (!frameSheet?.frame) return null
+  return {
+    name: animName,
+    sheetId: 'editor-split',
+    sheet: frameSheet,
+    start: 0,
+    frames: grid?.columns > 0 ? grid.columns : source.frames,
+    seconds: source.seconds,
+    play: source.play,
+  }
 }

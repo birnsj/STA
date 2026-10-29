@@ -92,16 +92,48 @@ export function getSpriteSet(portraitId) {
 
 // A set's PNG for one of characterSprites.json's sheets: the base sheet path with the sheet's suffix (and its uniform
 // mask beside it, or null when the set has none). The base path already includes characters/{species}/{gender}/.
+// ?v= busts a stale browser/Vite cache after paintScale / grid changes (a cached 404 or old bake reads as a shrink).
 const withSuffix = (file, suffix) => file.replace(/(-uniform)?\.png$/, `${suffix}$1.png`)
-export const spriteSheetFile = (set, sheetId) => withSuffix(set.sheet, spriteData.sheets[sheetId].suffix)
-export const spriteMaskFile = (set, sheetId) => (set.uniformMask ? withSuffix(set.uniformMask, spriteData.sheets[sheetId].suffix) : null)
+const sheetCacheTag = (sheetId) => {
+  const sheet = spriteData.sheets[sheetId]
+  return `v=${sheet.resolution}-${sheet.paintScale ?? 1}-${sheet.frame.width}x${sheet.frame.height}`
+}
+export const spriteSheetFile = (set, sheetId) => `${withSuffix(set.sheet, spriteData.sheets[sheetId].suffix)}?${sheetCacheTag(sheetId)}`
+export const spriteMaskFile = (set, sheetId) =>
+  set.uniformMask ? `${withSuffix(set.uniformMask, spriteData.sheets[sheetId].suffix)}?${sheetCacheTag(sheetId)}` : null
 
 // An animation by name with the sheet that draws it: { name, sheetId, sheet, start, frames, seconds, play }, or null.
+// Prefer a dedicated sheet whose id matches the animation (walk → sheets.walk) so one-anim pages win over a legacy
+// copy left on base for fallback.
 export function getSpriteAnimation(name) {
+  const dedicated = spriteData.sheets[name]
+  if (dedicated?.animations?.[name]) return { name, sheetId: name, sheet: dedicated, ...dedicated.animations[name] }
   for (const [sheetId, sheet] of Object.entries(spriteData.sheets)) {
     if (sheet.animations[name]) return { name, sheetId, sheet, ...sheet.animations[name] }
   }
   return null
+}
+
+// Walk / run / idle columns still painted on the base sheet — used if the dedicated page is missing or still loading.
+export function getLegacyWalkAnimation() {
+  const sheet = spriteData.sheets.base
+  const anim = sheet?.animations?.walk
+  if (!anim) return null
+  return { name: 'walk', sheetId: 'base', sheet, ...anim }
+}
+
+export function getLegacyRunAnimation() {
+  const sheet = spriteData.sheets.base
+  const anim = sheet?.animations?.run
+  if (!anim) return null
+  return { name: 'run', sheetId: 'base', sheet, ...anim }
+}
+
+export function getLegacyIdleAnimation() {
+  const sheet = spriteData.sheets.base
+  const anim = sheet?.animations?.idle
+  if (!anim) return null
+  return { name: 'idle', sheetId: 'base', sheet, ...anim }
 }
 
 // Columns in one of the sheets (its animations end to end).
