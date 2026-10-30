@@ -78,8 +78,9 @@ export default function useMissionEnding({ state, dispatch, inCombat, talking })
     dismiss: () => setEnding('dismissed'),
     beaming,
     outro,
-    // The world stops while the banner is up and once the outro shows.
-    paused: ending === 'accomplished' || ending === 'failed' || outro,
+    // The world stops while the banner is up, while Exit Mission is beaming everyone out (so a rematch cannot
+    // cancel the beam), and once the outro shows.
+    paused: ending === 'accomplished' || ending === 'failed' || ending === 'exiting' || outro,
     confirmExit,
     askExitMission,
     cancelExit: () => setConfirmExit(false),

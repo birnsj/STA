@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isPlayerControlled } from '../actors/controllers.js'
 import { useEpisodeMusic, useMusicScene } from '../audio/useMusicScene.js'
@@ -664,12 +664,16 @@ export function Battle({
   }, [beamOutKey, effectSpeed])
   // Exit Mission on the result (a Load Episode fight): the away team beams up, then back to the menu.
   const [partyBeamingOut, setPartyBeamingOut] = useState(false)
+  const onExitRef = useRef(onExit)
+  useEffect(() => {
+    onExitRef.current = onExit
+  }, [onExit])
   useEffect(() => {
     if (!partyBeamingOut) return undefined
     playBeamOutSound(BEAM_OUT_MS / 1000)
-    const timer = setTimeout(onExit, BEAM_OUT_MS)
+    const timer = setTimeout(() => onExitRef.current?.(), BEAM_OUT_MS)
     return () => clearTimeout(timer)
-  }, [partyBeamingOut, onExit])
+  }, [partyBeamingOut])
   const resultShown = Boolean(state.outcome) && (!beamOutKey || beamOutDoneKey === beamOutKey) && !partyBeamingOut
 
   // During an unseen enemy's turn the camera stays where it was, so it never points at what the party can't perceive.

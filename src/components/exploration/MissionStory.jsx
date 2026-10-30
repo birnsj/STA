@@ -31,13 +31,18 @@ function useAdvanceKeys(advance) {
 }
 
 // Leaving fades to black, then onLeave. Returns [leaving, leave].
+// onLeave is read from a ref so a new callback identity (e.g. openMenu each render) does not reset the fade timer.
 function useFadeOut(onLeave) {
   const [leaving, setLeaving] = useState(false)
+  const onLeaveRef = useRef(onLeave)
+  useEffect(() => {
+    onLeaveRef.current = onLeave
+  }, [onLeave])
   useEffect(() => {
     if (!leaving) return
-    const timer = setTimeout(onLeave, FADE_OUT_MS)
+    const timer = setTimeout(() => onLeaveRef.current?.(), FADE_OUT_MS)
     return () => clearTimeout(timer)
-  }, [leaving, onLeave])
+  }, [leaving])
   return [leaving, () => setLeaving(true)]
 }
 
@@ -236,7 +241,6 @@ export function MissionOutro({ map, time, entries, result = 'accomplished', fail
     if (bottom > log.scrollTop) log.scrollTo({ top: bottom, behavior: 'smooth' })
   }, [step, lineCount])
 
-  const [leaving, leave] = useFadeOut(onDone)
   const advance = useCallback(() => setStep(lineCount + 1), [lineCount])
   useAdvanceKeys(advance)
 
@@ -245,10 +249,10 @@ export function MissionOutro({ map, time, entries, result = 'accomplished', fail
       map={map}
       label={`${map.episodeName || map.name}: mission report`}
       onClick={done ? undefined : advance}
-      leaving={leaving}
+      leaving={false}
       bottom={
         done ? (
-          <button type="button" className="combat-button is-primary mission-intro-begin" onClick={leave} autoFocus>
+          <button type="button" className="combat-button is-primary mission-intro-begin" onClick={onDone} autoFocus>
             {exitLabel}
           </button>
         ) : (

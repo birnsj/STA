@@ -79,7 +79,7 @@ function Views() {
     return EPISODE_MODES.includes(saved.mode) ? saved : { ...saved, mode: EPISODE_MODES[0] }
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const openMenu = () => setView('menu')
+  const openMenu = useCallback(() => setView('menu'), [])
   const handleConfirmed = (characters) => {
     setSavedCharacters(characters)
     openMenu()

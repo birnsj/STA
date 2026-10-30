@@ -525,7 +525,8 @@
 .mission-intro {
   position: absolute;
   inset: 0;
-  z-index: 60;
+  /* Above MapFadeIn's cover (z-index 1000): the outro must stay clickable if a beam-out races the map reveal. */
+  z-index: 1100;
   overflow: hidden;
   cursor: var(--cursor-pointer);
   background: #000;

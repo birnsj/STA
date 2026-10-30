@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { samePosition } from '../combat/battleMap.js'
 import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
@@ -112,10 +113,37 @@ function transporterCandidates(party, savedCharacters) {
   return candidates
 }
 
-// savedCharacters: the saved characters the transporter can beam down.
-function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
+// Leave the mission report (or the menu) outside MapFadeIn — its black cover sits above the outro and would hang
+// the screen if the away team beams out before the board has lifted it.
+function MissionEndScreen({ state, exitLabel, playOutro, onExit }) {
+  const onExitRef = useRef(onExit)
+  useEffect(() => {
+    onExitRef.current = onExit
+  }, [onExit])
+  useLayoutEffect(() => {
+    if (!playOutro) onExitRef.current?.()
+  }, [playOutro])
+  if (!playOutro) return null
   const { party, world } = state
-  const { helpHints: showHints, objectivePulse: pulseObjectives, missionOutro: playOutro, cameraFollow } = useDisplaySettings()
+  return (
+    <MissionOutro
+      map={party.map}
+      time={world.time}
+      entries={state.missionLog?.entries ?? []}
+      result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'}
+      failedNames={failedNpcNames(state)}
+      partyLost={partyLostFight(state)}
+      exitLabel={exitLabel}
+      onDone={onExit}
+    />
+  )
+}
+
+// savedCharacters: the saved characters the transporter can beam down.
+// onOutro: party has beamed out — parent shows the mission report outside MapFadeIn.
+function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
+  const { party, world } = state
+  const { helpHints: showHints, objectivePulse: pulseObjectives, cameraFollow } = useDisplaySettings()
   const { open: settingsOpen, openSettings } = useOpenSettings()
   const [followCamera, setFollowCamera] = useState(cameraFollow)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
@@ -185,9 +213,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     }
     return ''
   }, [])
-  // Enter combat: snapshot explore while it is still mounted, then swap.
+  // Enter combat: snapshot explore while it is still mounted, then swap. Also recovers if a fight starts during a
+  // to-explore handoff (otherwise inCombat is true but WorldCombat stays unmounted).
   useLayoutEffect(() => {
-    if (!(inCombat && boardSurface === 'explore')) return
+    if (!inCombat || boardSurface === 'combat' || boardSurface === 'to-combat') return
     setHandoffCover(freezeBoard(exploreRootRef.current))
     setBoardSurface('to-combat')
   }, [inCombat, boardSurface, freezeBoard])
@@ -200,6 +229,17 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     beginReturnToExplore()
     dispatch({ type: 'endCombat' })
   }, [beginReturnToExplore, dispatch])
+  const onCombatBoardReady = useCallback(() => {
+    setBoardSurface('combat')
+    setHandoffCover(null)
+  }, [])
+  const onExploreBoardReady = useCallback(() => {
+    setBoardSurface((surface) => {
+      if (surface !== 'to-explore') return surface
+      setHandoffCover(null)
+      return 'explore'
+    })
+  }, [])
   useExplorationFootsteps(members, !inCombat)
   useExplorationFootsteps(getNpcs(world).filter((npc) => partyHearsWalker(party.map, members, npc)), !inCombat)
   // The away team beams in as the mission starts; move orders wait until they are all here.
@@ -258,10 +298,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
     beginReturnToExplore()
     ending.exitMissionFromFight()
   }, [beginReturnToExplore, ending])
-  // With the outro off in Settings, beaming everyone out leaves the mission as the outro's exit button would.
-  useEffect(() => {
-    if (outro && !playOutro) onExit()
-  }, [outro, playOutro, onExit])
+  // Hand the mission report to the parent so it is not trapped under MapFadeIn's black cover.
+  useLayoutEffect(() => {
+    if (outro && !inCombat) onOutro?.()
+  }, [outro, inCombat, onOutro])
   useWorldClock(dispatch, !ending.paused && !settingsOpen)
   // UI state: the transporter's picker is open (the last fight's id when opened; a fight since closes it).
   const beamIn = useTransporter(dispatch)
@@ -728,24 +768,11 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       : `Click or hold the left button to move. Click a ground item to walk over and pick it up; hold for Pick Up / Go To; drag it to carry it. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
-  if (outro && !inCombat) {
-    if (!playOutro) return null
-    return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} partyLost={partyLostFight(state)} exitLabel={exitLabel} onDone={onExit} />
-  }
+  // Parent swaps to MissionEndScreen once onOutro runs (must not return before hooks above).
+  if (outro && !inCombat) return null
   const showExploration = boardSurface === 'explore' || boardSurface === 'to-explore'
   const mountCombat = boardSurface === 'to-combat' || boardSurface === 'combat'
   const showHandoffCover = boardSurface === 'to-combat' || boardSurface === 'to-explore'
-  const onCombatBoardReady = useCallback(() => {
-    setBoardSurface('combat')
-    setHandoffCover(null)
-  }, [])
-  const onExploreBoardReady = useCallback(() => {
-    setBoardSurface((surface) => {
-      if (surface !== 'to-explore') return surface
-      setHandoffCover(null)
-      return 'explore'
-    })
-  }, [])
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {mountCombat && (
@@ -972,7 +999,13 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   const [team, setTeam] = useState([])
   const [state, dispatch] = useReducer(reducer, null)
   const [phase, setPhase] = useState('setup')
-  const playIntro = useDisplaySettings().missionIntro
+  // UI state: the away team has beamed out; the report (or exit) plays outside MapFadeIn.
+  const [missionEnded, setMissionEnded] = useState(false)
+  // flushSync: swap off MapFadeIn before paint so a finished beam-out never leaves a black frame.
+  const onOutro = useCallback(() => {
+    flushSync(() => setMissionEnded(true))
+  }, [])
+  const { missionIntro: playIntro, missionOutro: playOutro } = useDisplaySettings()
   // The episode's own tracks (map.music) once its map is on: the intro, exploration, fights and the outro.
   useEpisodeMusic(state?.party.map.music ?? null)
 
@@ -993,9 +1026,12 @@ export default function ExplorationScreen({ savedCharacters, mapId, onBack, onEx
   }
   // The map isn't mounted until the intro is closed, so the world (and the beam-in) starts then.
   if (phase === 'intro') return <MissionIntro map={state.party.map} onBegin={() => setPhase('explore')} />
+  if (missionEnded) {
+    return <MissionEndScreen state={state} exitLabel="Return to Menu" playOutro={playOutro} onExit={onExit} />
+  }
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} exitLabel="Return to Menu" />
+      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} onOutro={onOutro} />
     </MapFadeIn>
   )
 }
@@ -1007,12 +1043,19 @@ export function ExplorationPlaytest({ map, characters, savedCharacters = [], ene
     createExplorationState(map, characters, Math.floor(Math.random() * MAX_SEED), { enemiesActive }),
   )
   // UI state: whether the Captain's Log intro is still showing (never, with it off in Settings).
-  const playIntro = useDisplaySettings().missionIntro
+  const { missionIntro: playIntro, missionOutro: playOutro } = useDisplaySettings()
   const [intro, setIntro] = useState(playIntro)
+  const [missionEnded, setMissionEnded] = useState(false)
+  const onOutro = useCallback(() => {
+    flushSync(() => setMissionEnded(true))
+  }, [])
   if (intro) return <MissionIntro map={state.party.map} onBegin={() => setIntro(false)} />
+  if (missionEnded) {
+    return <MissionEndScreen state={state} exitLabel="Return to Editor" playOutro={playOutro} onExit={onExit} />
+  }
   return (
     <MapFadeIn>
-      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} exitLabel="Return to Editor" />
+      <Exploration state={state} dispatch={dispatch} savedCharacters={savedCharacters} onExit={onExit} onOutro={onOutro} />
     </MapFadeIn>
   )
 }
