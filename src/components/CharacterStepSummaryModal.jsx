@@ -10,6 +10,8 @@ import { useInfoTip } from './useInfoTip.js'
 
 // These steps show portrait-shaped pictures on their own screens; the rest use the wide card shape.
 const TALL_PORTRAIT_STEPS = new Set(['species', 'finishingTouches'])
+// Career length art is 180:114 (same as the Career screen carousel). Other wide cards are 16:9.
+const CLASSIC_CARD_STEPS = new Set(['career'])
 
 const signed = (value) => (value > 0 ? `+${value}` : value < 0 ? `\u2212${-value}` : '\u00b10')
 
@@ -289,7 +291,13 @@ export default function CharacterStepSummaryModal({ summary, onClose }) {
                 image={summary.image.src}
                 uniform={summary.image.uniform}
                 backdrop={summary.image.backdrop}
-                className={`summary-portrait${TALL_PORTRAIT_STEPS.has(summary.stepId) ? ' summary-portrait-tall' : ''}`}
+                className={[
+                  'summary-portrait',
+                  TALL_PORTRAIT_STEPS.has(summary.stepId) && 'summary-portrait-tall',
+                  CLASSIC_CARD_STEPS.has(summary.stepId) && 'summary-portrait-classic',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               />
             )}
             <div className="summary-intro-text">

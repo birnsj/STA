@@ -142,11 +142,11 @@
   align-items: flex-start;
 }
 
-/* Same shapes as the creator screens: 180 × 114 detail cards, and 4:5 for species and character portraits. */
+/* Wide choice cards are 640×360 (16:9). Career length cards are 640×406 (180:114). Species / portrait steps use 4:5. */
 .summary-portrait {
   width: 190px;
   height: auto;
-  aspect-ratio: 180 / 114;
+  aspect-ratio: 16 / 9;
 }
 
 .summary-portrait.ship-art {
@@ -172,10 +172,15 @@
   aspect-ratio: 4 / 5;
 }
 
+/* Career length art matches the creator carousel (180:114), not the 16:9 option cards. */
+.summary-portrait-classic {
+  aspect-ratio: 180 / 114;
+}
+
 .summary-portrait-small {
   width: 150px;
   height: auto;
-  aspect-ratio: 180 / 114;
+  aspect-ratio: 16 / 9;
 }
 
 .summary-portrait-small .portrait-label {
