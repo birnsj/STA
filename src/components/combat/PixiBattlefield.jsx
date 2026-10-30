@@ -309,9 +309,14 @@ export default function PixiBattlefield(props) {
   })
   const onMapReady = useContext(MapReadyContext)
   const onMapReadyRef = useRef(onMapReady)
+  const onBoardReady = props.onBoardReady
+  const onBoardReadyRef = useRef(onBoardReady)
   useEffect(() => {
     onMapReadyRef.current = onMapReady
   }, [onMapReady])
+  useEffect(() => {
+    onBoardReadyRef.current = onBoardReady
+  }, [onBoardReady])
 
   const { hostRef, failed } = usePixiScene((host, isCancelled) => {
     const read = () => {
@@ -325,7 +330,15 @@ export default function PixiBattlefield(props) {
         : []
       return board
     }
-    return startBattleScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
+    return startBattleScene(
+      host,
+      read,
+      () => {
+        onMapReadyRef.current?.()
+        onBoardReadyRef.current?.()
+      },
+      isCancelled,
+    )
   })
 
   // ---------------------------------------------------------------- input (units, objects and floor)

@@ -17,7 +17,8 @@ import { Battle } from './CombatScreen.jsx'
 // Combat over the same world: the exploration view is swapped for the combat battlefield on the same map, with
 // everyone where they stood. Exploration stays frozen underneath until the result's Return to Exploration.
 // onExitMission: ends the fight and beams the away team out (the result offers it when the fight failed the mission).
-export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit, onExitMission }) {
+export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExit, onExitMission, onBoardReady = null, onEndCombat = null }) {
+  const endCombat = onEndCombat ?? (() => dispatch({ type: 'endCombat' }))
   const { combat, link, world } = state
   const combatDispatch = useCallback((action) => dispatch({ type: 'combat', action }), [dispatch])
   // The battlefield shows what the away team sees; burning / afflicted enemies and bodies that have fallen stay on the
@@ -90,7 +91,7 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
       showHelpOnStart={false}
       onHelpSeen={() => {}}
       onExit={onExit}
-      onContinue={() => dispatch({ type: 'endCombat' })}
+      onContinue={endCombat}
       failedNames={failedNames}
       onExitMission={onExitMission}
       bystanders={bystanders}
@@ -105,10 +106,11 @@ export default function WorldCombat({ state, dispatch, debugOpen, onDebug, onExi
       environment={environment}
       doors={doors}
       worldActors={debugOpen ? Object.fromEntries(getNpcs(world).map((npc) => [npc.id, { disposition: dispositionName(npc.disposition), awareness: stateName(npc.state) }])) : null}
+      onBoardReady={onBoardReady}
     >
       {diagnostics && (
         <div className="world-combat-debug">
-          <CombatLinkPanel diagnostics={diagnostics} onForceEnd={() => dispatch({ type: 'endCombat' })} />
+          <CombatLinkPanel diagnostics={diagnostics} onForceEnd={endCombat} />
         </div>
       )}
     </Battle>

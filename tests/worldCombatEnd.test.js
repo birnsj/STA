@@ -67,9 +67,18 @@ describe('a world fight ends only when every enemy in it is down or surrendered'
     assert.equal(ended.world.npcs.guardA.responseType, null)
 
     // Guard B walks into the party's room facing them. Made Neutral (which only observes), it attacks only with the
-    // after-the-fight override; Wary (which confronts) attacks on sight anyway (designer decision, Oct 2026).
-    const seeParty = (disposition, responseType) => {
-      const guardB = { ...ended.world.npcs.guardB, disposition, responseType, position: { x: 7.5, y: 6.5 }, heading: Math.PI, patrol: null }
+    // after-the-fight override. Wary (confront) attacks on sight only with nothing to say; a Klingon faction default
+    // conversation holds the fight so Talk can happen first.
+    const seeParty = (disposition, responseType, talk = {}) => {
+      const guardB = {
+        ...ended.world.npcs.guardB,
+        disposition,
+        responseType,
+        position: { x: 7.5, y: 6.5 },
+        heading: Math.PI,
+        patrol: null,
+        ...talk,
+      }
       let state = { ...ended, world: { ...ended.world, npcs: { ...ended.world.npcs, guardB } } }
       for (let i = 0; i < 100 && state.mode !== MODE.COMBAT; i++) state = explorationReducer(state, { type: 'tick', seconds: 0.1 })
       return state
@@ -78,7 +87,8 @@ describe('a world fight ends only when every enemy in it is down or surrendered'
     assert.equal(attacked.mode, MODE.COMBAT)
     assert.equal(attacked.link.trigger.npcId, 'guardB')
     assert.equal(seeParty('neutral', null).mode, MODE.EXPLORATION)
-    assert.equal(seeParty('wary', null).mode, MODE.COMBAT)
+    assert.equal(seeParty('wary', null, { faction: null, conversationId: null }).mode, MODE.COMBAT)
+    assert.equal(seeParty('wary', null).mode, MODE.EXPLORATION)
   })
 })
 

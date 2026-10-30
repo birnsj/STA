@@ -33,7 +33,16 @@ export function reconcile(views, items, container, make, update) {
 // stage.onFrame(fn) and calls stage.frame(svg) and stage.syncMap(...) from it.
 export async function startPixiStage(host, isCancelled) {
   const app = new Application()
-  await app.init({ backgroundAlpha: 0, antialias: true, autoDensity: true, resolution: window.devicePixelRatio || 1, resizeTo: host, preference: 'webgl' })
+  // preserveDrawingBuffer: explore→combat freezes the last frame with toDataURL before the fight's WebGL starts.
+  await app.init({
+    backgroundAlpha: 0,
+    antialias: true,
+    autoDensity: true,
+    resolution: window.devicePixelRatio || 1,
+    resizeTo: host,
+    preference: 'webgl',
+    preserveDrawingBuffer: true,
+  })
   if (isCancelled()) {
     app.destroy(true, { children: true })
     return null

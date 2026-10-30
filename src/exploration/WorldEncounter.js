@@ -164,9 +164,15 @@ function withPartyPerception(state, { perceive = true } = {}) {
 
 // ---------- start ----------
 
+// Seconds of exploration time after a fight before COMBAT_READY can start another (so Return to Exploration is not
+// instantly another fight with a survivor still looking at the party).
+const POST_COMBAT_GRACE = 2
+
 // The COMBAT_READY hand-off: the first NPC that is ready starts the fight; any others join it as already alerted.
+// A conversation holds the hand-off so Talk is not wiped by a nearby alert (Attack and conversation startCombat still start the fight).
 export function requestCombat(state) {
-  if (state.mode === MODE.COMBAT) return state
+  if (state.mode === MODE.COMBAT || state.conversation) return state
+  if (state.combatResumeAt != null && state.world.time < state.combatResumeAt) return state
   const ready = getCombatReady(state.world)[0]
   return ready ? worldEncounter.start(state, { triggerNpcId: ready.npcId, triggerTargetId: ready.targetId, source: 'COMBAT_READY' }) : state
 }
@@ -690,6 +696,11 @@ export class WorldEncounter extends CombatEncounter {
       flags: Object.keys(defeatedFlags).length ? { ...state.scenario.flags, ...defeatedFlags } : state.scenario.flags,
       objects: Object.fromEntries(Object.entries(state.scenario.objects).map(([id, object]) => [id, object.combatLocks ? { ...object, combatLocks: {} } : object])),
     }
+    // Drop every combatReady latch (fighters and bystanders frozen during the fight) so a stale ready does not
+    // restart combat on the first exploration tick. Survivors still re-engage on sight after the grace below.
+    Object.keys(npcs).forEach((id) => {
+      if (npcs[id].combatReady) npcs[id] = { ...npcs[id], combatReady: null }
+    })
     // The fight's objects and hazards carry on in the world from where the last round left them.
     return withEnvironment(
       {
@@ -701,6 +712,8 @@ export class WorldEncounter extends CombatEncounter {
         combat: null,
         link: null,
         lastCombat,
+        // World time is frozen during the fight, so this is "grace seconds of exploration after return".
+        combatResumeAt: world.time + POST_COMBAT_GRACE,
         resources: combat.resources,
       },
       combat.environment,

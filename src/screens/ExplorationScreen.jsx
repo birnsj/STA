@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import { samePosition } from '../combat/battleMap.js'
 import { useDisplaySettings, useOpenSettings } from '../settings/DisplaySettingsContext.js'
 import ResourceIndicators from '../components/combat/ResourceIndicators.jsx'
@@ -120,6 +120,12 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [followCamera, setFollowCamera] = useState(cameraFollow)
   const stopFollowing = useCallback(() => setFollowCamera(false), [])
   const startFollowing = useCallback(() => setFollowCamera(true), [])
+  // Board handoff: freeze one WebGL canvas, swap boards, lift the freeze when the other has painted.
+  // explore → to-combat → combat → to-explore → explore (never two Pixi boards at once).
+  const exploreRootRef = useRef(null)
+  const combatRootRef = useRef(null)
+  const [boardSurface, setBoardSurface] = useState('explore')
+  const [handoffCover, setHandoffCover] = useState(null)
   const [debugOpen, setDebugOpen] = useState(false)
   const [minimapOpen, setMinimapOpen] = useState(true)
   const [noiseTool, setNoiseTool] = useState(false)
@@ -170,6 +176,30 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   const [pendingPickup, setPendingPickup] = useState(null)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
+  const freezeBoard = useCallback((root) => {
+    const canvas = root?.querySelector('.pixi-board-host canvas')
+    try {
+      if (canvas?.width) return canvas.toDataURL('image/jpeg', 0.92)
+    } catch {
+      /* canvas unread or lost */
+    }
+    return ''
+  }, [])
+  // Enter combat: snapshot explore while it is still mounted, then swap.
+  useLayoutEffect(() => {
+    if (!(inCombat && boardSurface === 'explore')) return
+    setHandoffCover(freezeBoard(exploreRootRef.current))
+    setBoardSurface('to-combat')
+  }, [inCombat, boardSurface, freezeBoard])
+  // Leave combat: snapshot the fight board before endCombat clears it (WorldCombat crashes without combat state).
+  const beginReturnToExplore = useCallback(() => {
+    setHandoffCover(freezeBoard(combatRootRef.current))
+    setBoardSurface('to-explore')
+  }, [freezeBoard])
+  const endCombatWithHandoff = useCallback(() => {
+    beginReturnToExplore()
+    dispatch({ type: 'endCombat' })
+  }, [beginReturnToExplore, dispatch])
   useExplorationFootsteps(members, !inCombat)
   useExplorationFootsteps(getNpcs(world).filter((npc) => partyHearsWalker(party.map, members, npc)), !inCombat)
   // The away team beams in as the mission starts; move orders wait until they are all here.
@@ -224,6 +254,10 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
   // Mission Accomplished, Exit Mission, Beam Out and the outro (useMissionEnding.js); the world stops at the end.
   const ending = useMissionEnding({ state, dispatch, inCombat, talking })
   const { beaming, outro } = ending
+  const exitMissionFromFight = useCallback(() => {
+    beginReturnToExplore()
+    ending.exitMissionFromFight()
+  }, [beginReturnToExplore, ending])
   // With the outro off in Settings, beaming everyone out leaves the mission as the outro's exit button would.
   useEffect(() => {
     if (outro && !playOutro) onExit()
@@ -694,13 +728,53 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
       : `Click or hold the left button to move. Click a ground item to walk over and pick it up; hold for Pick Up / Go To; drag it to carry it. Click a portrait (or 1-${members.length}) to select one; Shift + click to add or remove. Right-drag a box to select several (Ctrl adds). C: character sheet. I: inventory. L: Captain's Log. Click a character for their actions; click someone else to talk to them.`
   const hintFaded = useFadeAfter(hint)
 
-  if (inCombat) return <WorldCombat key={state.link.id} state={state} dispatch={dispatch} debugOpen={debugOpen} onDebug={() => setDebugOpen(!debugOpen)} onExit={onExit} onExitMission={ending.exitMissionFromFight} />
-  if (outro) {
+  if (outro && !inCombat) {
     if (!playOutro) return null
     return <MissionOutro map={party.map} time={world.time} entries={state.missionLog?.entries ?? []} result={isMissionFailed(state) ? 'failed' : isMissionAccomplished(state) ? 'accomplished' : 'abandoned'} failedNames={failedNpcNames(state)} partyLost={partyLostFight(state)} exitLabel={exitLabel} onDone={onExit} />
   }
+  const showExploration = boardSurface === 'explore' || boardSurface === 'to-explore'
+  const mountCombat = boardSurface === 'to-combat' || boardSurface === 'combat'
+  const showHandoffCover = boardSurface === 'to-combat' || boardSurface === 'to-explore'
+  const onCombatBoardReady = useCallback(() => {
+    setBoardSurface('combat')
+    setHandoffCover(null)
+  }, [])
+  const onExploreBoardReady = useCallback(() => {
+    setBoardSurface((surface) => {
+      if (surface !== 'to-explore') return surface
+      setHandoffCover(null)
+      return 'explore'
+    })
+  }, [])
   return (
-    <div className="combat-screen exploration-screen">
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {mountCombat && (
+        <div ref={combatRootRef} style={{ position: 'absolute', inset: 0, zIndex: 0 }} aria-hidden={boardSurface !== 'combat' || undefined}>
+          <WorldCombat
+            key={state.link?.id ?? 'combat'}
+            state={state}
+            dispatch={dispatch}
+            debugOpen={debugOpen}
+            onDebug={() => setDebugOpen(!debugOpen)}
+            onExit={onExit}
+            onExitMission={exitMissionFromFight}
+            onBoardReady={onCombatBoardReady}
+            onEndCombat={endCombatWithHandoff}
+          />
+        </div>
+      )}
+      {showHandoffCover && (
+        <div className="combat-handoff-cover" aria-hidden="true">
+          {handoffCover ? <img src={handoffCover} alt="" /> : null}
+        </div>
+      )}
+      {showExploration && (
+    <div
+      ref={exploreRootRef}
+      className="combat-screen exploration-screen"
+      style={boardSurface === 'to-explore' ? { position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' } : undefined}
+      aria-hidden={boardSurface === 'to-explore' || undefined}
+    >
       <PerfProfiler id="exploration.board">
         <Board
           state={party}
@@ -741,6 +815,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
           menu={memberMenu || npcMenu || objectMenu || destructibleMenu || groundItemMenu}
           beamIn={beamPhase}
           scanPulse={scanPulse}
+          onBoardReady={onExploreBoardReady}
         />
       </PerfProfiler>
       {scanShown && (
@@ -884,6 +959,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, exitLabel }) {
         </div>
       )}
       <MissionEndDialogs state={state} ending={ending} />
+    </div>
+      )}
     </div>
   )
 }

@@ -118,6 +118,8 @@ export function Battle({
   knowledge = null,
   environment = null,
   doors = [],
+  // World fights: exploration stays under the board until the combat map has painted (avoids a black gap).
+  onBoardReady = null,
   children = null,
 }) {
   // Settings > Help Hints off: the hint text goes, and How to Play does not open by itself (the How to Play button still works).
@@ -740,6 +742,7 @@ export function Battle({
             setRingId(ringId === `destructible:${objectId}` ? null : `destructible:${objectId}`)
           }}
           onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
+          onBoardReady={onBoardReady}
         />
       </PerfProfiler>
       <WeatherFx fx={weatherFor(state.weather).fx} follow=".battlefield" />

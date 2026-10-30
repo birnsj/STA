@@ -168,8 +168,13 @@ export class NPCController extends CharacterController {
         if (responseType === 'confront') emit({ type: 'CONFRONTATION_READY', npcId: npc.id, targetId: focusId })
         if (responseType === 'observe') emit({ type: 'OBSERVING', npcId: npc.id, targetId: focusId })
       }
-      // Designer decision (Oct 2026): until confrontation is designed, a confronting NPC attacks on sight.
-      if (responseType === 'combat' || responseType === 'confront' || (responseType === 'alarm' && time - alarmAt >= T.alarmSeconds)) {
+      // A conversation + confront/alarm: wait for Talk or Attack (designer: Talk before the Klingon fight). No
+      // conversation, or responseType combat (aggressive / left standing after a fight): engage on sight.
+      const holdForTalk = Boolean(conversationIdFor(npc)) && responseType !== 'combat'
+      if (
+        !holdForTalk &&
+        (responseType === 'combat' || responseType === 'confront' || (responseType === 'alarm' && time - alarmAt >= T.alarmSeconds))
+      ) {
         combatReady = { targetId: focusId, time }
         emit({ type: 'COMBAT_READY', npcId: npc.id, targetId: focusId })
       }

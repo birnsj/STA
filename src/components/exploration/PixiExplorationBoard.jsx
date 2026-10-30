@@ -503,9 +503,14 @@ export default function PixiExplorationBoard(props) {
   })
   const onMapReady = useContext(MapReadyContext)
   const onMapReadyRef = useRef(onMapReady)
+  const onBoardReady = props.onBoardReady
+  const onBoardReadyRef = useRef(onBoardReady)
   useEffect(() => {
     onMapReadyRef.current = onMapReady
   }, [onMapReady])
+  useEffect(() => {
+    onBoardReadyRef.current = onBoardReady
+  }, [onBoardReady])
 
   // Hold Left Alt to light up every world prop outline (challenges, destructibles, ground loot).
   useEffect(() => {
@@ -563,7 +568,15 @@ export default function PixiExplorationBoard(props) {
       })
       return { ...board, svg: svgRef.current, highlights: [...objectOutlines, ...destructibleOutlines], groundLoot, markers }
     }
-    return startBoardScene(host, read, () => onMapReadyRef.current?.(), isCancelled)
+    return startBoardScene(
+      host,
+      read,
+      () => {
+        onMapReadyRef.current?.()
+        onBoardReadyRef.current?.()
+      },
+      isCancelled,
+    )
   })
 
   // ---------------------------------------------------------------- input
