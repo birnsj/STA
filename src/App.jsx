@@ -37,10 +37,9 @@ const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'c
 // The prototypes Load Episode can open (a saved choice of one since removed falls back to the first).
 const EPISODE_MODES = ['combat', 'exploration']
 
-// A refresh returns to the saved view, except an episode with no map picked, which has nothing to open.
-function initialView({ view, episode }) {
-  if (!VIEWS.includes(view)) return 'menu'
-  return EPISODE_MODES.includes(view) && !episode?.mapId ? 'episodeSelect' : view
+// Always open on the main menu; the last view is still saved for in-session use but is not restored on launch.
+function initialView() {
+  return 'menu'
 }
 
 // The music cue each view plays (see src/audio/music.js). Load Episode and Settings keep the main-menu cue, so that
@@ -66,8 +65,8 @@ const MENU_STAGE = { width: 1024, height: 576 }
 
 function Views() {
   const { dispatch } = useCharacter()
-  // UI state only: which top-level view is showing. Saved (never exported) so a refresh returns to it.
-  const [view, setView] = useState(() => initialView(loadLocation()))
+  // UI state only: which top-level view is showing. Launch always opens the menu; the value is still saved while navigating.
+  const [view, setView] = useState(initialView)
   const [displaySettings, setDisplaySettings] = useState(() => normalizeDisplaySettings(loadSettings()?.display))
   const [audioSettings, setAudioSettings] = useState(() => normalizeAudioSettings(loadSettings()?.audio))
   const [savedCharacters, setSavedCharacters] = useState(getSavedCharacters)
