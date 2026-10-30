@@ -11,7 +11,7 @@ import {
   isMixedHeritage,
 } from '../rules/species.js'
 import { getGenders } from '../rules/appearance.js'
-import { getSpeciesArt } from '../rules/choiceArt.js'
+import { getEmptySpeciesArt, getSpeciesArt } from '../rules/choiceArt.js'
 import { areAllMet, getLockedSections } from '../rules/requirements.js'
 import AttributeAdjustments from '../components/AttributeAdjustments.jsx'
 import CardCarousel from '../components/CardCarousel.jsx'
@@ -68,7 +68,11 @@ export default function SpeciesScreen({ step, navigation }) {
       />
 
       <div className="species-details panel">
-        <Portrait label={species?.name} image={getSpeciesArt(species?.id, gender?.id)} className="portrait-detail" />
+        <Portrait
+          label={species?.name ?? 'None selected'}
+          image={species ? getSpeciesArt(species.id, gender?.id) : getEmptySpeciesArt()}
+          className="portrait-detail"
+        />
         <div className="species-details-text">
           <h2 className={`species-details-name${requirements.species ? '' : ' is-missing'}`}>
             {species?.name ?? 'No species selected'}

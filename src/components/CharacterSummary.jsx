@@ -12,6 +12,7 @@ import { getRequiredTalentCount, getTalentById, getTalentEntries, getTalentLabel
 import { getRoleBenefitName, getRoleById } from '../rules/roles.js'
 import { getUniformColour } from '../rules/uniform.js'
 import { getCharacterBackdrop } from '../rules/appearance.js'
+import { getEmptyPortraitArt } from '../rules/choiceArt.js'
 import Portrait from './Portrait.jsx'
 
 const EMPTY = '—'
@@ -79,12 +80,21 @@ export default function CharacterSummary({ character }) {
   const values = getCharacterValues(character)
   const focuses = getCharacterFocuses(character)
   const role = getRoleById(career.role?.id)
+  const summaryImage = portrait?.image ?? getEmptyPortraitArt()
+  const summaryUniform = portrait?.image ? getUniformColour(career.department?.id) : null
+  const summaryBackdrop = portrait?.image ? getCharacterBackdrop(identity, career.department?.id).image : null
 
   return (
     <aside className="summary panel">
       <h2 className="summary-heading">Character Summary</h2>
       <div className="portrait-carousel portrait-summary">
-        <Portrait label={portrait?.name ?? (identity.name.trim() || speciesName)} image={portrait?.image ?? null} uniform={getUniformColour(career.department?.id)} backdrop={getCharacterBackdrop(identity, career.department?.id).image} className="portrait-carousel-image" />
+        <Portrait
+          label={portrait?.name ?? (identity.name.trim() || speciesName || 'None selected')}
+          image={summaryImage}
+          uniform={summaryUniform}
+          backdrop={summaryBackdrop}
+          className="portrait-carousel-image"
+        />
       </div>
       <SummaryGroup
         rows={[

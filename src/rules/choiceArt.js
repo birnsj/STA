@@ -9,5 +9,16 @@ export function getChoiceArt(kind, id) {
 
 export const withChoiceArt = (kind, entries) => entries.map((entry) => ({ ...entry, image: getChoiceArt(kind, entry.id) }))
 
-// Species art follows the chosen gender (presentation only); with no gender chosen the default art is used.
-export const getSpeciesArt = (speciesId, genderId) => getChoiceArt(genderId === 'female' ? 'speciesFemale' : 'species', speciesId)
+// Species card / detail art is gender-neutral. Gender only filters portraits later (Finishing Touches).
+// genderId is ignored; kept so existing call sites need not change.
+export const getSpeciesArt = (speciesId, _genderId = null) => getChoiceArt('species', speciesId)
+
+// Screen 01 Species Details when no species is selected (custom empty art instead of the hatched placeholder).
+export function getEmptySpeciesArt() {
+  return summaryCopy.images.emptySpecies || null
+}
+
+// Character Summary portrait when none is chosen yet (right-hand column on every creator screen).
+export function getEmptyPortraitArt() {
+  return summaryCopy.images.emptyPortrait || null
+}

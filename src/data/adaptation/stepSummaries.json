@@ -38,9 +38,11 @@
     }
   },
   "images": {
-    "note": "Optional popup art, as paths into public/ with {id} replaced by the chosen card's id. Missing files show the placeholder. Career and Career History reuse their screens' art; Finishing Touches shows the chosen portrait.",
+    "note": "Optional popup art, as paths into public/ with {id} replaced by the chosen card's id. Missing files show the placeholder. Career and Career History reuse their screens' art; Finishing Touches shows the chosen portrait. Species card art is gender-neutral (speciesFemale paths unused). emptySpecies: Screen 01 Species Details with no species (157×197). emptyPortrait: Character Summary with no portrait yet (278×349).",
     "species": "/art/summary/species/{id}.png",
     "speciesFemale": "/art/summary/species/{id}-female.png",
+    "emptySpecies": "/art/summary/species/none.png",
+    "emptyPortrait": "/art/summary/ui/empty-portrait.png",
     "environment": "/art/summary/environment/{id}.png",
     "earlyOutlook": "/art/summary/early-outlook/{id}.png",
     "education": "/art/summary/education/{id}.png",
