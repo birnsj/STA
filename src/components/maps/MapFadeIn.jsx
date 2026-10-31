@@ -27,16 +27,20 @@ export default function MapFadeIn({ children }) {
   const onMapReady = useCallback(() => {
     if (started.current) return
     // A frame first, so the figures mounted with the map have asked for their sheets; then two more after they have
-    // settled, so the recoloured figures are drawn before the cover lifts.
-    nextFrame()
+    // settled, so the recoloured figures are drawn before the cover lifts. Race a ceiling so a stuck worker cannot
+    // hold the cover forever — but do not start that ceiling at mount (that used to lift black while ops/sci shirts
+    // were still recoloured, leaving those party members missing on beam-in).
+    const ready = nextFrame()
       .then(sheetsSettled)
       .then(nextFrame)
       .then(nextFrame)
-      .then(reveal)
+    const ceiling = new Promise((resolve) => setTimeout(resolve, MAX_WAIT_MS))
+    Promise.race([ready, ceiling]).then(reveal)
   }, [reveal])
 
   useEffect(() => {
-    const timer = setTimeout(reveal, MAX_WAIT_MS)
+    // Only if the board never reports ready (no onMapReady).
+    const timer = setTimeout(reveal, MAX_WAIT_MS + 2000)
     return () => clearTimeout(timer)
   }, [reveal])
 

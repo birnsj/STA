@@ -40,7 +40,10 @@ function metricsDelta(before, after) {
 
 function summarise(report) {
   const timer = (name) => report.timers[name]?.perFrameMs ?? 0
-  return `fps ${report.frames.fps} mean ${report.frames.meanMs}ms p95 ${report.frames.p95Ms}ms >33ms:${report.frames.over33ms} gc/min ${report.memory.collectionsPerMinute} busy ${report.browser.mainThreadBusyPct}% script ${report.browser.scriptPct}% layout ${report.browser.layoutPct}% style ${report.browser.styleRecalcPct}% | frame ${timer('world.frame')} tick ${timer('sim.tickTotal')} pixi ${timer('pixi.frame')} board.render ${timer('board.wallFade')}+${timer('board.figureWindows')} draw ${timer('canvas.drawBoard')} dark ${timer('canvas.drawDarkness')} anim ${timer('anim.poll')}+${timer('anim.redraw')}`
+  const top = (report.load?.sheets ?? report.sheets ?? []).slice(0, 3).map((s) => `${s.file}:${s.cuts}c/${s.discards}d/${s.cutMs}ms`).join(' ')
+  const steadyCuts = report.counters?.['sheet.cutFrame']?.total ?? 0
+  const loadCuts = report.load?.counters?.cut?.total ?? 0
+  return `fps ${report.frames.fps} mean ${report.frames.meanMs}ms p95 ${report.frames.p95Ms}ms p99 ${report.frames.p99Ms}ms >33ms:${report.frames.over33ms} gc/min ${report.memory.collectionsPerMinute} busy ${report.browser.mainThreadBusyPct}% | cut load/steady ${loadCuts}/${steadyCuts} | ${timer('pixi.frame')}px ${top}`
 }
 
 async function runOnce(name, runIndex) {
@@ -50,11 +53,23 @@ async function runOnce(name, runIndex) {
     await scenario.setup(b)
     const drive = scenario.makeDrive ? scenario.makeDrive() : scenario.drive
     const before = await viewBoxOf(b)
+    // Warm-up window keeps sheet-cut stats (initial loads / recolour discards); sample window is steady play.
     await b.evaluate('window.__perf.reset()')
     await drive(b, warmup)
+    const loadReport = await b.evaluate('window.__perf.report()')
     await b.evaluate('window.__perf.reset()')
     await drive(b, sample)
     const report = await b.evaluate('window.__perf.report()')
+    report.load = {
+      frames: loadReport.frames,
+      sheets: loadReport.sheets,
+      counters: {
+        cut: loadReport.counters?.['sheet.cutFrame'] ?? null,
+        rect: loadReport.counters?.['sheet.rectFrame'] ?? null,
+        discard: loadReport.counters?.['sheet.discardFrame'] ?? null,
+      },
+      cutTimer: loadReport.timers?.['sheet.cutFrame'] ?? null,
+    }
     // A separate window with the DevTools Performance domain on: it costs about 15% fps, so it must not overlap the
     // fps sample above.
     await b.send('Performance.enable')

@@ -23,8 +23,10 @@ import { HAZARD_FRAMES, characterHazardOverlayLook } from '../environmentArt.js'
 import { resolveHazardOverlayDisplay } from '../../../world/characterHazardOverlay.js'
 import { FIGURE_CAST } from '../../../maps/mapShadows.js'
 import { frameColumn, LOCOMOTION, playbackProgress, restColumn, startTiming, steadyGait } from '../spriteTiming.js'
+import { getDivisionColour } from '../../../rules/uniform.js'
 import { uniformImageUrl } from '../../useUniformImage.js'
 import { stripFrames } from './effectTextures.js'
+import { PERF, perfCount, perfEnd, perfSheetOp, perfStart } from '../../../dev/perfProbe.js'
 import { cssFilterMatrix, drawnCanvas, makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 
 // Character hazard overlay (fire / plasma / … on the figure while on a tile or still afflicted).
@@ -113,12 +115,44 @@ function sheetFrameSize(sheet) {
   return { width: sheet.frame.width * sheet.resolution, height: sheet.frame.height * sheet.resolution }
 }
 
-function cutFrameTexture(image, column, row, width, height) {
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  canvas.getContext('2d').drawImage(image, column * width, row * height, width, height, 0, 0, width, height)
-  return textureOf(canvas)
+// Oversized sheets: upload ≤MAX_SHEET_TEXTURE-wide strips once, then Rectangle-slice frames (avoids a canvas+texImage
+// per idle/fall/reaction cell every time a new column plays).
+function buildSheetStrips(image, cellWidth, meta = null) {
+  const started = perfStart()
+  const colsPerStrip = Math.max(1, Math.floor(MAX_SHEET_TEXTURE / cellWidth))
+  const stripPx = colsPerStrip * cellWidth
+  const height = image.naturalHeight || image.height
+  const width = image.naturalWidth || image.width
+  const strips = []
+  for (let x = 0; x < width; x += stripPx) {
+    const sw = Math.min(stripPx, width - x)
+    const canvas = document.createElement('canvas')
+    canvas.width = sw
+    canvas.height = height
+    canvas.getContext('2d').drawImage(image, x, 0, sw, height, 0, 0, sw, height)
+    strips.push({ x, width: sw, texture: textureOf(canvas) })
+  }
+  if (PERF) {
+    const ms = started ? performance.now() - started : 0
+    perfCount('sheet.stripBuild')
+    perfEnd('sheet.stripBuild', started)
+    if (meta?.file) {
+      perfSheetOp(meta.file, 'cut', ms, {
+        phase: meta.phase ? `${meta.phase}:strips` : 'strips',
+        width,
+        height,
+      })
+    }
+  }
+  return { strips, colsPerStrip, cellWidth }
+}
+
+function destroySheetStrips(entry) {
+  if (!entry?.strips) return
+  for (const strip of entry.strips) strip.texture.destroy(true)
+  entry.strips = null
+  entry.stripCellWidth = null
+  entry.colsPerStrip = null
 }
 
 // Frame textures cut into their own canvases own those CanvasSources. Rectangle textures are only views onto a whole
@@ -147,38 +181,72 @@ export class SheetStore {
       this.sheets.delete(key)
     }
     if (!this.sheets.has(key)) {
-      const entry = { key, texture: null, image: null, chunked: false, failed: false, failedAt: null }
-      this.sheets.set(key, entry)
-      // Raw file first so a second big page (e.g. *-run) can play before uniform recolour finishes.
-      const raw = new Image()
-      raw.onload = () => {
-        if (this.destroyed || entry.image || raw.naturalWidth <= 0) return
-        entry.image = raw
-        entry.chunked = true
+      const entry = {
+        key,
+        file,
+        texture: null,
+        image: null,
+        chunked: false,
+        failed: false,
+        failedAt: null,
+        // null until a bitmap is published; 'raw' = painted sheet; 'recolour' = masked uniform (perfSheetOp phases).
+        phase: null,
       }
-      raw.onerror = () => {}
-      raw.src = file
-      loadSheet(file, spriteMaskFile(set, sheetId), set.uniformDivision, colour).then((image) => {
-        if (this.destroyed) return
-        if (!image) {
-          if (!entry.image) {
-            entry.failed = true
-            entry.failedAt = performance.now()
-          }
-          return
-        }
+      this.sheets.set(key, entry)
+      const mask = spriteMaskFile(set, sheetId)
+      const needsRecolour = Boolean(mask && colour && colour !== getDivisionColour(set.uniformDivision))
+      const publish = (image, phase) => {
+        if (this.destroyed || !image || image.naturalWidth <= 0) return
+        // Never replace a finished uniform with the painted preview.
+        if (entry.phase === 'recolour' && phase !== 'recolour') return
         const wide = image.naturalWidth > MAX_SHEET_TEXTURE || image.naturalHeight > MAX_SHEET_TEXTURE
-        // Drop frame cuts taken from the unrecoloured preview so the next draw uses this uniform colour.
+        // Oversized painted previews are skipped: strip builds would be discarded when recolour arrives.
+        if (wide && phase === 'raw' && needsRecolour) return
+        let discarded = 0
         for (const frameKey of [...this.frames.keys()]) {
           if (!frameKey.startsWith(`${entry.key}|`)) continue
           const { texture, ownsSource } = this.frames.get(frameKey)
           texture.destroy(ownsSource)
           this.frames.delete(frameKey)
+          discarded += 1
         }
+        if (PERF && discarded && phase === 'recolour') {
+          perfSheetOp(file, 'discard', 0, { phase: 'recolour', width: image.naturalWidth, height: image.naturalHeight })
+          perfCount('sheet.discardFrame', discarded)
+        }
+        destroySheetStrips(entry)
         entry.image = image
-        entry.chunked = true
+        entry.chunked = wide
         entry.texture?.destroy(true)
         entry.texture = wide ? null : textureOf(image)
+        entry.phase = phase
+        entry.failed = false
+        entry.failedAt = null
+      }
+      // Non-wide painted decode: only used if recolour is not needed, or as a last-resort visibility fallback when
+      // loadSheet fails. Waiting on the uniform avoids a gold→red flash on beam-in (security/ops).
+      if (!needsRecolour) {
+        const painted = new Image()
+        painted.onload = () => publish(painted, 'raw')
+        painted.onerror = () => {}
+        painted.src = file
+      }
+      loadSheet(file, mask, set.uniformDivision, colour).then((image) => {
+        if (this.destroyed) return
+        if (image) {
+          publish(image, needsRecolour ? 'recolour' : 'raw')
+          return
+        }
+        if (!entry.image) {
+          const painted = new Image()
+          painted.onload = () => publish(painted, 'raw')
+          painted.onerror = () => {
+            if (this.destroyed || entry.image) return
+            entry.failed = true
+            entry.failedAt = performance.now()
+          }
+          painted.src = file
+        }
       })
     }
     return this.sheets.get(key)
@@ -199,9 +267,34 @@ export class SheetStore {
     const key = `${entry.key}|${column}|${row}`
     if (!this.frames.has(key)) {
       const { width, height } = sheetFrameSize(sheet)
+      // Oversized: strip textures + Rectangle. Non-wide: one sheet texture + Rectangle.
       if (entry.chunked && entry.image) {
-        this.frames.set(key, { texture: cutFrameTexture(entry.image, column, row, width, height), ownsSource: true })
+        if (!entry.strips || entry.stripCellWidth !== width) {
+          destroySheetStrips(entry)
+          const built = buildSheetStrips(entry.image, width, { file: entry.file, phase: entry.phase || 'play' })
+          entry.strips = built.strips
+          entry.colsPerStrip = built.colsPerStrip
+          entry.stripCellWidth = width
+        }
+        const stripIndex = Math.min(entry.strips.length - 1, Math.floor(column / entry.colsPerStrip))
+        const strip = entry.strips[stripIndex]
+        const localCol = column - stripIndex * entry.colsPerStrip
+        if (PERF) {
+          perfCount('sheet.rectFrame')
+          perfSheetOp(entry.file, 'rect', 0, { phase: entry.phase || 'play' })
+        }
+        this.frames.set(key, {
+          texture: new Texture({
+            source: strip.texture.source,
+            frame: new Rectangle(localCol * width, row * height, width, height),
+          }),
+          ownsSource: false,
+        })
       } else {
+        if (PERF) {
+          perfCount('sheet.rectFrame')
+          perfSheetOp(entry.file, 'rect', 0, { phase: entry.phase || 'play' })
+        }
         this.frames.set(key, { texture: new Texture({ source: entry.texture.source, frame: new Rectangle(column * width, row * height, width, height) }), ownsSource: false })
       }
     }
@@ -211,7 +304,10 @@ export class SheetStore {
   destroy() {
     this.destroyed = true
     destroyOwnedFrameTextures(this.frames)
-    for (const entry of this.sheets.values()) entry.texture?.destroy(true)
+    for (const entry of this.sheets.values()) {
+      destroySheetStrips(entry)
+      entry.texture?.destroy(true)
+    }
     this.shadow.destroy(true)
     this.sheets.clear()
   }
@@ -742,9 +838,9 @@ export class FigureView {
     // Prefetch getup first while blasting so oversized fall recolours are less likely to starve the stand clip.
     const blasting = Boolean(this.staggerPlay || figure.blastReact || figure.pose?.animation === 'getUp')
     if (blasting) this.sheets.sheet(set, 'getup', figure.colour)
-    // Ask for the other sheets as soon as the base is in (fall is ~28k px wide and must start loading early for
-    // blasts). preload (combat) asks up front so MapFadeIn waits.
-    if (figure.preload || this.sheets.ready(base) || base.failed || revealed) {
+    // Other pages wait until base can draw. preload used to queue walk/fall immediately and starve uniform workers, so
+    // security/ops stood invisible (or gold) through beam-in while MapFadeIn's wait raced the wrong sheets.
+    if (this.sheets.ready(base) || base.failed || revealed) {
       const order = blasting
         ? ['getup', 'fall', 'walk', 'run', 'idle', 'fidgets', 'reaction', 'combat', 'sneak', 'surrender']
         : ['walk', 'run', 'idle', 'fidgets', 'reaction', 'combat', 'fall', 'getup', 'sneak', 'surrender']

@@ -1,7 +1,9 @@
+import { memo } from 'react'
+
 // objectives: [{ id, text, complete (optional: this one is done), pending (optional: not started yet, shown greyed) }];
 // complete: every objective is done. showAll (optional; undefined hides the toggle): whether the not-started
 // objectives are listed, flipped by onShowAll.
-export default function ObjectivesPanel({ objectives, complete, showAll, onShowAll }) {
+function ObjectivesPanel({ objectives, complete, showAll, onShowAll }) {
   return (
     <section className="combat-panel objectives-panel">
       <div className="objectives-header">
@@ -23,3 +25,5 @@ export default function ObjectivesPanel({ objectives, complete, showAll, onShowA
     </section>
   )
 }
+
+export default memo(ObjectivesPanel)

@@ -13,6 +13,7 @@ export function tickWorld(world, party, rawSeconds) {
   const emit = (event) => events.push(event)
   const npcs = {}
   const alerts = []
+  let npcsChanged = false
   world.npcIds.forEach((id) => {
     if (isDown(world.npcs[id])) {
       npcs[id] = world.npcs[id]
@@ -22,9 +23,16 @@ export function tickWorld(world, party, rawSeconds) {
     const npc = world.npcs[id]
     const result = controllerFor(npc).exploreTick(npc, { map: world.map, members, others, time, seconds, emit })
     npcs[id] = result.npc
+    if (result.npc !== npc) npcsChanged = true
     alerts.push(...result.alerts)
   })
-  let next = appendWorldEvents({ ...world, time, npcs, noises: world.noises.filter((noise) => time - noise.time < NOISE_SHOW_SECONDS) }, events)
+  const noises = world.noises.filter((noise) => time - noise.time < NOISE_SHOW_SECONDS)
+  const noisesChanged = noises.length !== world.noises.length
+  // Calm frame: only the clock advanced. Keep the previous npcs/noises object graph so callers can skip React work.
+  if (!npcsChanged && !events.length && !alerts.length && !noisesChanged) {
+    return time === world.time ? world : { ...world, time }
+  }
+  let next = appendWorldEvents({ ...world, time, npcs: npcsChanged ? npcs : world.npcs, noises }, events)
   alerts.forEach((alert) => {
     next = alertGroup(next, alert.groupId, alert)
   })

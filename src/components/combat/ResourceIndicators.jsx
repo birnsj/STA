@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { playMomentumLossSound, playMomentumSound } from '../../audio/uiSounds.js'
 import { THREAT_EXPLAINED } from '../task/taskText.js'
@@ -6,7 +6,7 @@ import { THREAT_EXPLAINED } from '../task/taskText.js'
 // The mission's group Momentum (0-6) and Threat pools (rules/missionResources.js), shown in exploration and combat alike.
 // When Momentum goes up, the newly lit pips pop, the bar flashes and a chime plays; when it goes down, a short falling
 // tone plays. The amount the pool opened with doesn't sound.
-export default function ResourceIndicators({ momentum, threat, canCancelThreat = false, onCancelThreat }) {
+function ResourceIndicators({ momentum, threat, canCancelThreat = false, onCancelThreat }) {
   const [change, setChange] = useState({ seen: momentum, from: momentum, key: 0 })
   // Adjusted while rendering so the pop starts on the same frame the pip lights.
   let next = change
@@ -64,3 +64,5 @@ export default function ResourceIndicators({ momentum, threat, canCancelThreat =
     </div>
   )
 }
+
+export default memo(ResourceIndicators)

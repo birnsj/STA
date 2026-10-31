@@ -74,6 +74,55 @@ function keepClear(map, position, bodies) {
 // What it does once it has identified someone: its own responseType, else its disposition's.
 const responseTypeOf = (npc) => npc.responseType ?? dispositionOf(npc).response
 
+const samePos = (a, b) => a === b || (a && b && a.x === b.x && a.y === b.y)
+const sameIds = (a, b) => a === b || (a && b && a.length === b.length && a.every((id, i) => id === b[i]))
+const sameAwareness = (a, b) => {
+  if (a === b) return true
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((id) => {
+    const left = a[id]
+    const right = b[id]
+    return (
+      left === right ||
+      (left &&
+        right &&
+        left.state === right.state &&
+        left.confidence === right.confidence &&
+        left.lastSeenTime === right.lastSeenTime &&
+        left.reported === right.reported &&
+        left.searched === right.searched &&
+        samePos(left.lastKnownPosition, right.lastKnownPosition))
+    )
+  })
+}
+
+// Fully unchanged NPC: reuse the previous object (GC). Patrol wait / waypoint fidget clocks change every frame on
+// Deck 10, so this mainly helps truly static posts.
+const sameNpcFrame = (a, b) =>
+  a === b ||
+  (a.heading === b.heading &&
+    a.moving === b.moving &&
+    a.state === b.state &&
+    a.suspicion === b.suspicion &&
+    a.focusId === b.focusId &&
+    a.groupAlerted === b.groupAlerted &&
+    a.alarmAt === b.alarmAt &&
+    a.combatReady === b.combatReady &&
+    a.response === b.response &&
+    a.investigation === b.investigation &&
+    a.glance === b.glance &&
+    a.patrol === b.patrol &&
+    a.hearing === b.hearing &&
+    a.waypointAnim === b.waypointAnim &&
+    a.path === b.path &&
+    a.pathGoal === b.pathGoal &&
+    a.stuck === b.stuck &&
+    samePos(a.position, b.position) &&
+    sameIds(a.visibleIds, b.visibleIds) &&
+    sameAwareness(a.awareness, b.awareness))
+
 export class NPCController extends CharacterController {
   // One exploration frame. ctx: { map, members (the party members still up), others (the other NPCs as they stood last
   // frame; only their bodies matter), time, seconds, emit (adds a world event) }. Returns { npc, alerts } (alerts: group
@@ -81,7 +130,9 @@ export class NPCController extends CharacterController {
   exploreTick(npc, ctx) {
     const sensed = this.perceive(npc, ctx)
     const { npc: reacted, alerts } = this.react(npc, sensed, ctx)
-    return { npc: this.behave(reacted, ctx), alerts }
+    const next = this.behave(reacted, ctx)
+    if (!alerts.length && sameNpcFrame(npc, next)) return { npc, alerts }
+    return { npc: next, alerts }
   }
 
   // 1. What it sees of each party member (and, for those out of sight, what it remembers), then the footsteps it hears
@@ -102,10 +153,23 @@ export class NPCController extends CharacterController {
         let state = record.state
         if (confidence >= 1) state = STATE.ALERTED
         else if (state === STATE.UNAWARE) state = STATE.SUSPICIOUS
-        record = { state, confidence, lastKnownPosition: { ...member.position }, lastSeenTime: time, reported: false, searched: false }
+        // Reuse the record while still watching the same place at the same confidence. Stamping lastSeenTime every
+        // tick forced a new NPC object sixty times a second; stamp it again when sight is lost (branch below).
+        if (
+          record.state === state &&
+          record.confidence === confidence &&
+          !record.reported &&
+          !record.searched &&
+          samePos(record.lastKnownPosition, member.position)
+        ) {
+          // keep record
+        } else {
+          record = { state, confidence, lastKnownPosition: { ...member.position }, lastSeenTime: time, reported: false, searched: false }
+        }
         if (investigation?.targetId === member.id) investigation = state === STATE.ALERTED ? null : { ...investigation, position: { ...member.position } }
       } else if (record.state !== STATE.UNAWARE) {
-        ;({ record, investigation } = whileUnseen(record, member.id, npc, disposition, time, seconds, investigation))
+        const lost = record.lastSeenTime === time ? record : { ...record, lastSeenTime: time }
+        ;({ record, investigation } = whileUnseen(lost, member.id, npc, disposition, time, seconds, investigation))
       }
       awareness[member.id] = record
     })

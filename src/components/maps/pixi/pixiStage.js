@@ -78,12 +78,26 @@ export async function startPixiStage(host, isCancelled) {
   }
 
   // The app scales its whole stage to fit the window (a CSS transform), so the canvas is drawn at that scale times the
-  // screen's density to stay as sharp as the SVG.
+  // screen's density to stay as sharp as the SVG. getBoundingClientRect forces layout — only re-read when size/scale
+  // may have changed (resize / ResizeObserver), not every Pixi frame.
+  let resolutionDirty = true
+  let cachedResolution = 0
+  let cachedCssWidth = 0
+  const markResolutionDirty = () => {
+    resolutionDirty = true
+  }
+  // Window resize only — do not ResizeObserver(host): Pixi's resizeTo:host mutates the canvas and would re-dirty every frame.
+  window.addEventListener('resize', markResolutionDirty)
   const syncResolution = () => {
     const width = host.clientWidth
+    const height = host.clientHeight
     if (!width) return
-    const resolution = (window.devicePixelRatio || 1) * (host.getBoundingClientRect().width / width)
-    if (Math.abs(resolution - app.renderer.resolution) > 0.01) app.renderer.resize(width, host.clientHeight, resolution)
+    if (resolutionDirty || width !== cachedCssWidth) {
+      resolutionDirty = false
+      cachedCssWidth = width
+      cachedResolution = (window.devicePixelRatio || 1) * (host.getBoundingClientRect().width / width)
+    }
+    if (Math.abs(cachedResolution - app.renderer.resolution) > 0.01) app.renderer.resize(width, height, cachedResolution)
   }
 
   return {
@@ -139,6 +153,7 @@ export async function startPixiStage(host, isCancelled) {
       app.ticker.add(timed, null, UPDATE_PRIORITY.HIGH)
     },
     destroy() {
+      window.removeEventListener('resize', markResolutionDirty)
       for (const fn of frames) app.ticker.remove(fn)
       map?.destroy()
       app.destroy(true, { children: true })

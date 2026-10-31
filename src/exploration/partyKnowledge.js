@@ -30,9 +30,24 @@ export const seesVisually = (map, from, to, { hostile = false } = {}) => {
   return !needLos || hasLineOfSight(map, from, to)
 }
 
+const sameIds = (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+const samePos = (a, b) => a && b && a.x === b.x && a.y === b.y
+const sameEntry = (a, b) =>
+  a === b ||
+  (a &&
+    b &&
+    a.state === b.state &&
+    a.source === b.source &&
+    a.identified === b.identified &&
+    a.lastSeenTime === b.lastSeenTime &&
+    a.lastObserverId === b.lastObserverId &&
+    sameIds(a.observerIds, b.observerIds) &&
+    samePos(a.lastKnownPosition, b.lastKnownPosition))
+
 // observers: [{ id, position }] party members able to perceive; entities: [{ id, position, hostile? }] NPCs; time: world seconds.
 export function updatePartyKnowledge(knowledge, map, observers, entities, time) {
   const sightings = Object.fromEntries(observers.map((observer) => [observer.id, []]))
+  let entriesChanged = false
   const entries = { ...knowledge.entities }
   entities.forEach((entity) => {
     const observerIds = observers
@@ -40,21 +55,47 @@ export function updatePartyKnowledge(knowledge, map, observers, entities, time) 
       .map((observer) => observer.id)
     observerIds.forEach((id) => sightings[id].push(entity.id))
     const entry = entries[entity.id]
+    let next = entry
     if (observerIds.length) {
-      entries[entity.id] = {
-        state: KNOWLEDGE.VISIBLE,
-        observerIds,
-        source: 'visual',
-        identified: true,
-        lastKnownPosition: { ...entity.position },
-        lastSeenTime: time,
-        lastObserverId: observerIds.includes(entry?.lastObserverId) ? entry.lastObserverId : observerIds[0],
+      const lastObserverId = observerIds.includes(entry?.lastObserverId) ? entry.lastObserverId : observerIds[0]
+      // Keep the same entry while still visible at the same place with the same observers. Stamping lastSeenTime every
+      // tick forced a new knowledge object (and React commit props) sixty times a second with no gameplay change.
+      if (
+        entry?.state === KNOWLEDGE.VISIBLE &&
+        entry.source === 'visual' &&
+        entry.identified === true &&
+        entry.lastObserverId === lastObserverId &&
+        sameIds(entry.observerIds, observerIds) &&
+        samePos(entry.lastKnownPosition, entity.position)
+      ) {
+        next = entry
+      } else {
+        next = {
+          state: KNOWLEDGE.VISIBLE,
+          observerIds,
+          source: 'visual',
+          identified: true,
+          lastKnownPosition: { ...entity.position },
+          lastSeenTime: time,
+          lastObserverId,
+        }
       }
     } else if (entry && entry.state === KNOWLEDGE.VISIBLE) {
-      entries[entity.id] = { ...entry, state: KNOWLEDGE.KNOWN, observerIds: [] }
+      next = { ...entry, state: KNOWLEDGE.KNOWN, observerIds: [], lastSeenTime: time }
+    }
+    if (next !== entry) {
+      if (sameEntry(entry, next)) {
+        entries[entity.id] = entry
+      } else {
+        entries[entity.id] = next
+        entriesChanged = true
+      }
     }
   })
-  return { ...knowledge, entities: entries, sightings }
+  const prevSightings = knowledge.sightings ?? {}
+  const sightingsChanged = observers.some((observer) => !sameIds(sightings[observer.id] ?? [], prevSightings[observer.id] ?? []))
+  if (!entriesChanged && !sightingsChanged) return knowledge
+  return { ...knowledge, entities: entriesChanged ? entries : knowledge.entities, sightings }
 }
 
 // A non-visual detection (sensor, tricorder, scripted): the party learns where something is now, without seeing it.

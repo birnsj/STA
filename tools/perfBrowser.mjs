@@ -12,11 +12,21 @@ const CHROME_PATHS = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export async function launchBrowser({ port = 9333, width = 1280, height = 720, profile = path.join(tmpdir(), 'st-perf-chrome-profile') } = {}) {
+export async function launchBrowser({
+  port = 9333,
+  width = 1280,
+  height = 720,
+  // Unique dir per launch: a shared path can still be locked from the previous Chrome on Windows (EPERM on rmSync).
+  profile = path.join(tmpdir(), `st-perf-chrome-profile-${process.pid}-${Date.now()}`),
+} = {}) {
   const exe = CHROME_PATHS.find((candidate) => existsSync(candidate))
   if (!exe) throw new Error('No Chrome or Edge found')
   const profileDir = path.resolve(profile)
-  rmSync(profileDir, { recursive: true, force: true })
+  try {
+    rmSync(profileDir, { recursive: true, force: true })
+  } catch {
+    /* prior Chrome may still hold the folder; a fresh timestamped path avoids the clash */
+  }
   mkdirSync(profileDir, { recursive: true })
   const child = spawn(
     exe,

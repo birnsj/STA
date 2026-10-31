@@ -31,6 +31,8 @@ const SAMPLE_CAP = 20000
 let timers = new Map()
 let counters = new Map()
 let profilers = new Map()
+// Per-sprite-sheet cut/rect/discard stats (SheetStore → perfSheetOp). Cleared on reset().
+let sheets = new Map()
 let frames = []
 let heap = []
 let windowStart = typeof performance !== 'undefined' ? performance.now() : 0
@@ -45,6 +47,26 @@ const record = (bucket, value) => {
   bucket.total += value
   if (value > bucket.max) bucket.max = value
   if (bucket.samples.length < SAMPLE_CAP) bucket.samples.push(value)
+}
+
+// One cut/rect/discard against a sheet file (figures.js SheetStore). phase: 'raw' | 'recolour' | 'play'.
+export function perfSheetOp(file, op, ms = 0, detail = null) {
+  if (!PERF) return
+  const name = String(file || '?').replace(/\?.*$/, '').split('/').pop()
+  let row = sheets.get(name)
+  if (!row) {
+    row = { file: name, cuts: 0, cutMs: 0, cutMaxMs: 0, rects: 0, discards: 0, width: null, height: null, phases: {} }
+    sheets.set(name, row)
+  }
+  if (detail?.width) row.width = detail.width
+  if (detail?.height) row.height = detail.height
+  if (op === 'cut') {
+    row.cuts += 1
+    row.cutMs += ms
+    if (ms > row.cutMaxMs) row.cutMaxMs = ms
+  } else if (op === 'rect') row.rects += 1
+  else if (op === 'discard') row.discards += 1
+  if (detail?.phase) row.phases[detail.phase] = (row.phases[detail.phase] ?? 0) + 1
 }
 
 // perfStart() then perfEnd(name, started): times a stretch of code. started is 0 while the probe is off.
@@ -92,6 +114,16 @@ function report() {
     timers: Object.fromEntries([...timers].map(([name, bucket]) => [name, { ...summarise(bucket), perFrameMs: round(deltas.length ? bucket.total / deltas.length : 0) }])),
     counters: Object.fromEntries([...counters].map(([name, bucket]) => [name, { total: bucket.count, perFrame: round(deltas.length ? bucket.count / deltas.length : 0) }])),
     profilers: Object.fromEntries([...profilers].map(([name, bucket]) => [name, { ...summarise(bucket), commitsPerSecond: round(seconds ? bucket.count / seconds : 0) }])),
+    // Top sprite sheets by cut cost this window (SheetStore instrumentation).
+    sheets: [...sheets.values()]
+      .map((row) => ({
+        ...row,
+        cutMs: round(row.cutMs),
+        cutMaxMs: round(row.cutMaxMs),
+        cutMeanMs: round(row.cuts ? row.cutMs / row.cuts : 0),
+      }))
+      .sort((a, b) => b.cutMs - a.cutMs || b.cuts - a.cuts)
+      .slice(0, 40),
     memory: {
       usedMB: heap.length ? round(heap[heap.length - 1] / 1048576) : null,
       collections,
@@ -107,6 +139,7 @@ function reset() {
   timers = new Map()
   counters = new Map()
   profilers = new Map()
+  sheets = new Map()
   frames = []
   heap = []
   windowStart = performance.now()

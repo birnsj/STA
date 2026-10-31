@@ -6,8 +6,18 @@ How full-body isometric figures work on exploration and combat boards (presentat
 
 - One **set** per species × gender (Human, Vulcan, Andorian, Tellarite, Trill, Caitian, Klingon).
 - Chosen from the character’s **portrait** (`getSpriteSet` in `src/rules/appearance.js`). Klingon warrior portrait ids map through `portraitSets`. No matching set → portrait token (and a flat fallen body when down).
-- Starfleet sets have a **uniform mask** per sheet; the shirt is recoloured to the department colour (`uniforms.json` divisions: command/conn gold, engineering/security red, science/medicine blue). Klingons keep armour (no mask).
+- Starfleet sets have a **uniform mask** per sheet; the shirt is recoloured to the department colour (`uniforms.json` divisions: command/conn gold, engineering/security red, science/medicine blue). Klingons keep armour (no mask). Sheets are **painted command gold** (`uniformDivision: "command"`); other departments wait on a masked recolour before that colour is shown.
 - Nothing about sprites is stored in the character JSON.
+
+## Uniform load (Pixi `SheetStore`)
+
+Where: `src/components/maps/pixi/figures.js` (`SheetStore`), `src/components/maps/useRecolouredSheet.js` (workers), `src/components/maps/MapFadeIn.jsx`.
+
+- **Recolour** runs off the main thread (`recolourWorker.js`, two workers). Portraits use the same mask rule via `useRecolouredSheet` / `useUniformImage.js` and stay null until ready so they never flash the wrong shirt.
+- **Board figures:** `loadSheet` publishes the masked bitmap when the department colour differs from the sheet’s painted division. If recolour fails, the painted PNG is used so the figure is not blank.
+- **Oversized sheets** (wider/taller than the WebGL texture limit, e.g. fall): no painted preview — strip textures are built only from the final image so throwaway strip uploads are avoided.
+- **Load order (2026-10-31):** `updateSprite` asks for **base** (and getup while blasting) first. Walk / run / idle / fall / … start only after base can draw. Asking for every preload page up front starved the workers, so security/ops base shirts finished late and those party members were missing (or gold) through exploration beam-in.
+- **MapFadeIn** waits for in-flight sheet promises (`sheetsSettled`) after the board’s first frame, then races a ceiling so a stuck worker cannot hold black forever. The ceiling must not start at mount alone (that lifted the cover while uniforms were still queued).
 
 ## Grid
 

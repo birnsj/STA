@@ -45,7 +45,8 @@ function perceive(state) {
     .filter(isUp)
     .map((member) => ({ id: member.id, position: member.position }))
   const entities = getNpcs(state.world).map((npc) => ({ id: npc.id, position: npc.position, hostile: isHostile(npc) }))
-  return { ...state, partyKnowledge: updatePartyKnowledge(state.partyKnowledge, state.party.map, observers, entities, state.world.time) }
+  const partyKnowledge = updatePartyKnowledge(state.partyKnowledge, state.party.map, observers, entities, state.world.time)
+  return partyKnowledge === state.partyKnowledge ? state : { ...state, partyKnowledge }
 }
 
 // Each world actor uses an authored character (characterId) and keeps it as its own for the whole mission: the same
@@ -268,7 +269,9 @@ function reduceExploration(state, action) {
       const tick = { ...action, seconds }
       const party = partyReducer(state.party, tick)
       // The clock still runs (challenge-object locks expire on it); only the NPCs stand still.
-      if (state.enemiesActive === false) return endConversationOutOfRange(tickHazards(perceive({ ...state, party, world: { ...state.world, time: state.world.time + seconds } }), seconds))
+      if (state.enemiesActive === false) {
+        return endConversationOutOfRange(tickHazards(perceive({ ...state, party, world: { ...state.world, time: state.world.time + seconds } }), seconds))
+      }
       const next = requestCombat(tickHazards(perceive({ ...state, party, world: tickWorld(state.world, party, seconds) }), seconds))
       // A fight breaking out ends any conversation.
       return next.mode === MODE.COMBAT && next.conversation ? { ...next, conversation: null } : endConversationOutOfRange(next)

@@ -4,7 +4,7 @@ Measured Oct 2026 on one Windows PC, a ~170 Hz monitor (so "fps" tops out near 1
 Deck 10 Brig map, the 4-member party. Tools: `tools/perfRun.mjs`, `tools/perfScenarios.mjs`, `tools/perfSummary.mjs`,
 `tools/perfProfile.mjs`; the browser-side probe is `src/dev/perfProbe.js`.
 
-**Doc status (2026-10-16):** Pixi-only boards are current. Tables that compare Pixi to SVG are historical (measured while both existed); they cannot be re-run. Away team may now be up to 8; the numbers below used 4.
+**Doc status (2026-10-31):** Pixi-only boards are current. Tables that compare Pixi to SVG are historical (measured while both existed); they cannot be re-run. Away team may now be up to 8; the numbers below used 4. Added “Exploration world clock vs React” (2026-10-30/31); uniform sheet load order is in `docs/sprites.md`.
 
 **Note:** the probe's hooks in the game code (timers, Profiler wrappers, `?off=` flags) were lost in an accidental
 `git checkout` on 2026-10-13 and re-added on 2026-10-14, now covering the Pixi boards too (`pixi.frame`, and `filters`
@@ -213,3 +213,32 @@ The editor's style recalculation (about 47% of the main thread) is the same in t
 Every scenario plays Deck 10 Brig (its episode is "Shadows on Deck Twelve"), so the M7 rows include the five standing
 objects and the control rows don't. Not measured: the heap after hazards expire (the plan's cleanup check); the browser's heap figure
 swung by more than 20 MB between windows of the same page, too noisy for a 5% test.
+
+## Exploration world clock vs React (2026-10-30/31)
+
+Protocol: `node tools/perfRun.mjs explore-idle|explore-move --runs 3 --tag …` on Vite dev (`?perf=1`), Deck 10 Brig /
+Shadows on Deck Ten, 1280×720 DPR 1. Tags `clock-base` and `clock-tickoff` (`?off=tick`).
+
+| Scenario | Tag | FPS (mean of 3) | p99 (mean) | >33 ms stalls (mean) |
+| --- | --- | --- | --- | --- |
+| explore-idle | clock-base | ~108 | ~66 ms | ~26 |
+| explore-idle | clock-tickoff | ~165 | ~9 ms | ~12 |
+| explore-move | clock-base | ~99 | ~39 ms | ~13 |
+| explore-move | clock-tickoff | ~163 | ~8 ms | ~13 |
+
+Attribution (idle baseline timers / React Profiler):
+
+| Layer | Cost |
+| --- | --- |
+| `sim.tickTotal` (reducer: party, NPCs, perception) | ~0.23 ms / tick |
+| `world.frame` (`flushSync` dispatch in `useWorldClock`) | ~5.5–5.9 ms mean |
+| `exploration.board` Profiler | ~0.48 ms |
+| `pixi.frame` | ~1.8–2.5 ms |
+
+**Finding:** hitching is the exploration **React tree** committing under `flushSync` at the world-clock rate, not the simulation and not Pixi. `?off=tick` removes both sim and those commits; it is an upper bound, not “React only.”
+
+**Tried / stopped:** dropping `flushSync` improved some idle samples but worsened move pacing (camera vs figures — the reason `flushSync` exists). Returning the same exploration state on “presentation-stable” ticks (idle fidget clocks only) did not beat baseline past run variance once `flushSync` stayed. Stop criteria: no further speculative clock/React changes without a board live-ref or similar architecture change.
+
+**Kept (hygiene, not a measured fps win):** party-knowledge and NPC awareness structural sharing when sight/pose are unchanged; `memo` on `ResourceIndicators` / `ObjectivesPanel`. Sprite pipeline not revisited in that pass.
+
+Sheet load / uniform worker ordering that affects perceived hitching on beam-in is documented in `docs/sprites.md` (Uniform load).

@@ -25,6 +25,15 @@ async function click(b, text, { wait = 800, required = true } = {}) {
   return ok
 }
 
+async function clickAria(b, label, { wait = 800, required = true } = {}) {
+  const ok = await b.evaluate(
+    `(()=>{const x=[...document.querySelectorAll('button')].find(x=>x.getAttribute('aria-label')===${JSON.stringify(label)}&&!x.disabled); if(x) x.click(); return !!x})()`,
+  )
+  if (!ok && required) throw new Error(`Button aria-label not found: ${label}`)
+  await sleep(wait)
+  return ok
+}
+
 // The probe's frame and heap sampler, injected when the app hasn't installed it (a production build made without
 // VITE_PERF_PROBE=1): its module text run as a script with the build-mode test forced on.
 const PROBE_SCRIPT = `(() => {${readFileSync(new URL('../src/dev/perfProbe.js', import.meta.url), 'utf8')
@@ -43,8 +52,10 @@ async function openPage(b) {
 async function enterExploration(b) {
   await openPage(b)
   await click(b, 'Load Episode')
-  await click(b, 'Game')
-  await click(b, 'Shadows on Deck Twelve')
+  await click(b, 'Exploration')
+  // Episode card label is episodeName (maps/Deck 10 Brig.json); then Begin opens away-team setup.
+  await click(b, 'Shadows on Deck Ten')
+  await click(b, 'Begin', { wait: 1000 })
   for (const name of PARTY) await click(b, name, { wait: 150 })
   await click(b, 'Start Exploration', { wait: 1500 })
   await click(b, 'Skip Intro', { wait: 6000, required: false })
@@ -76,7 +87,8 @@ async function enterCombat(b) {
   await openPage(b)
   await click(b, 'Load Episode')
   await click(b, 'Combat')
-  await click(b, 'Shadows on Deck Twelve')
+  await click(b, 'Shadows on Deck Ten')
+  await click(b, 'Begin', { wait: 1000 })
   for (const name of PARTY) await click(b, name, { wait: 150 })
   await click(b, 'Start Combat', { wait: 3000 })
   await click(b, 'Got it', { wait: 500, required: false })
@@ -87,7 +99,7 @@ function combatAuto() {
   let started = false
   return async (b, seconds) => {
     if (!started) {
-      await click(b, 'Auto Combat', { wait: 0 })
+      await clickAria(b, 'Auto Combat', { wait: 0 })
       started = true
     }
     await sleep(seconds * 1000)
