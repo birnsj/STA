@@ -17,7 +17,7 @@ const MENU_ITEMS = [
   { id: 'createCharacter', label: 'Create Character', accent: 'yellow', primary: true, action: 'creator', enabled: true, checkedAfterCharacter: true },
   { id: 'importCharacter', label: 'Import Character', accent: 'cyan', popup: 'import', enabled: 'afterCharacter' },
   { id: 'buildShip', label: 'Build Ship', accent: 'blue', action: 'shipBuilder', enabled: 'afterCharacter' },
-  { id: 'importShip', label: 'Import Ship', accent: 'blue', popup: 'importShip', enabled: false },
+  { id: 'importShip', label: 'Import Ship', accent: 'cyan', popup: 'importShip', enabled: true },
   // For now Load Episode picks which combat prototype to test (designer decision).
   { id: 'loadEpisode', label: 'Load Episode', accent: 'red', action: 'episodeSelect', enabled: 'afterCharacter' },
   { id: 'settings', label: 'Settings', accent: 'yellow', action: 'settings', enabled: true },

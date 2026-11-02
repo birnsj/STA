@@ -228,7 +228,9 @@ function Views() {
         </ScaledStage>
       )}
       {view === 'mapEditor' && (
-        <ScaledStage {...MENU_STAGE} settings={displaySettings} titleTips={false}>
+        // Full design size (not the 1024 menu stage): native <select> popups ignore CSS scale, so on the
+        // small stage they look huge next to the scaled chrome. 1920×1080 keeps scale near 1:1.
+        <ScaledStage settings={displaySettings} titleTips={false}>
           <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
           {settingsLayer}
         </ScaledStage>

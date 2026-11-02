@@ -292,32 +292,25 @@
   animation: none;
 }
 
-.ship-import {
-  width: 520px;
-  text-align: left;
+/* Ship import reuses .import-carousel; class art fills the portrait slot on the card. */
+.ship-import-card-art {
+  flex: 0 0 auto;
+  width: 172px;
+  align-self: flex-start;
 }
 
-.ship-import-list {
+.ship-import-card-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.import-card-lists-stack {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 280px;
-  margin: 0;
-  padding: 0;
-  overflow: auto;
-  list-style: none;
-}
-
-.ship-import-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.ship-import-row span {
-  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
