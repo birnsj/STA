@@ -5,6 +5,7 @@ import {
   npcRulesFor,
   subscribeAuthoredCatalogue,
 } from '../../character/authoredCharacters.js'
+import EditorSelect from './EditorSelect.jsx'
 import { npcPortraitOptions } from '../../character/npcAppearance.js'
 import { getGenders, getNpcBackdropById } from '../../rules/appearance.js'
 import { dialogueMismatchWarning, dialogueTierLabel, dialogueTierOf } from '../../conversation/dialogueTier.js'
@@ -71,24 +72,24 @@ function AppearanceFields({ npc, appearance, onChange }) {
   return (
     <>
       <Field label="Gender">
-        <select className="me-select me-wide" value={npc.gender ?? ''} onChange={setGender}>
+        <EditorSelect className="me-select me-wide" value={npc.gender ?? ''} onChange={setGender}>
           <option value="">Auto</option>
           {genders.map((gender) => (
             <option key={gender.id} value={gender.id}>
               {gender.name}
             </option>
           ))}
-        </select>
+        </EditorSelect>
       </Field>
       <Field label="Portrait">
-        <select className="me-select me-wide" value={npc.portraitId ?? ''} onChange={(event) => onChange({ portraitId: event.target.value || null })}>
+        <EditorSelect className="me-select me-wide" value={npc.portraitId ?? ''} onChange={(event) => onChange({ portraitId: event.target.value || null })}>
           <option value="">Auto{auto ? ` (${auto.name})` : ''}</option>
           {shown.map((portrait) => (
             <option key={portrait.id} value={portrait.id}>
               {portrait.name}
             </option>
           ))}
-        </select>
+        </EditorSelect>
       </Field>
       {current && (
         <img
@@ -220,7 +221,7 @@ function PatrolFields({
             />
           </Field>
           <Field label="Facing while waiting">
-            <select
+            <EditorSelect
               className="me-select me-wide"
               value={selected.facing == null ? '' : snapFacing(selected.facing)}
               onChange={(event) => onChangeWaypoint(selectedIndex, { facing: event.target.value === '' ? null : Number(event.target.value) })}
@@ -231,10 +232,10 @@ function PatrolFields({
                   {entry.degrees}° {entry.label}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
           </Field>
           <Field label="Animation while waiting">
-            <select
+            <EditorSelect
               className="me-select me-wide"
               value={selected.animation ?? ''}
               onChange={(event) => {
@@ -255,7 +256,7 @@ function PatrolFields({
                   {entry.label} ({entry.seconds}s)
                 </option>
               ))}
-            </select>
+            </EditorSelect>
           </Field>
           {selected.animation && (
             <>
@@ -395,50 +396,50 @@ export default function NpcInspector({
     <div className="me-inspector">
       <PropertySection id="npc" title={`NPC ${npc.id} · ${npc.position.x}, ${npc.position.y}`}>
         <Field label="Character">
-          <select className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
+          <EditorSelect className="me-select me-wide" value={npc.characterId ?? ''} onChange={setCharacter}>
             {!character && <option value="">Choose a character</option>}
             {characters.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.name}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <AppearanceFields npc={npc} appearance={appearance} onChange={onChange} />
         <Field label="Name">
           <input className="me-name me-wide" value={npc.name ?? ''} placeholder={character?.name ?? 'The character’s name'} onChange={text('name')} />
         </Field>
         <Field label="Faction">
-          <select className="me-select me-wide" value={npc.faction ?? ''} onChange={select('faction')}>
+          <EditorSelect className="me-select me-wide" value={npc.faction ?? ''} onChange={select('faction')}>
             <option value="">The character’s</option>
             {factionData.factions.map((faction) => (
               <option key={faction.id} value={faction.id}>
                 {faction.name}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <Field label="Disposition">
-          <select className="me-select me-wide" value={npc.disposition ?? 'neutral'} onChange={select('disposition')}>
+          <EditorSelect className="me-select me-wide" value={npc.disposition ?? 'neutral'} onChange={select('disposition')}>
             {awareness.dispositions.map((disposition) => (
               <option key={disposition.id} value={disposition.id}>
                 {disposition.name}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <Field label="Response when identified">
-          <select className="me-select me-wide" value={npc.responseType ?? ''} onChange={select('responseType')}>
+          <EditorSelect className="me-select me-wide" value={npc.responseType ?? ''} onChange={select('responseType')}>
             <option value="">Default ({RESPONSE_TYPES.find((entry) => entry.id === defaultResponse)?.label ?? defaultResponse})</option>
             {RESPONSE_TYPES.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.label}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <Field label="Conversation">
-          <select className="me-select me-wide" value={npc.conversationId ?? ''} onChange={select('conversationId')}>
+          <EditorSelect className="me-select me-wide" value={npc.conversationId ?? ''} onChange={select('conversationId')}>
             <option value="">{factionConversation ? `Faction default (${factionConversation})` : 'None'}</option>
             {npc.conversationId && !conversations.some((entry) => entry.id === npc.conversationId) && <option value={npc.conversationId}>{npc.conversationId} (missing)</option>}
             {conversations.map((entry) => (
@@ -446,7 +447,7 @@ export default function NpcInspector({
                 {entry.name}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         {npc.conversationId && (
           <button type="button" className="me-button me-generate" onClick={() => onEditConversation(npc.conversationId)}>
@@ -455,22 +456,22 @@ export default function NpcInspector({
         )}
         {dialogueWarning && <p className="me-text is-warning">{dialogueWarning}</p>}
         <Field label="Facing">
-          <select className="me-select me-wide" value={snapFacing(npc.facing ?? 0)} onChange={(event) => onFacing(Number(event.target.value))}>
+          <EditorSelect className="me-select me-wide" value={snapFacing(npc.facing ?? 0)} onChange={(event) => onFacing(Number(event.target.value))}>
             {FACINGS.map((entry) => (
               <option key={entry.degrees} value={entry.degrees}>
                 {entry.degrees}° {entry.label}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <Field label="NPC rules">
-          <select className="me-select me-wide" value={npc.npcRules ?? ''} onChange={select('npcRules')}>
+          <EditorSelect className="me-select me-wide" value={npc.npcRules ?? ''} onChange={select('npcRules')}>
             {NPC_RULES.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.id === '' ? `${entry.label} (${statBlockCategory ?? 'full character rules'})` : entry.label}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <p className="me-text">
           Dialogue depth from NPC rules: {dialogueTierLabel(dialogueTier)}
@@ -498,14 +499,14 @@ export default function NpcInspector({
           <input className="me-name me-wide" value={npc.alertGroupId ?? ''} placeholder="None" onChange={text('alertGroupId')} />
         </Field>
         <Field label="Alert method">
-          <select className="me-select me-wide" value={npc.alertMethod ?? ''} onChange={select('alertMethod')}>
+          <EditorSelect className="me-select me-wide" value={npc.alertMethod ?? ''} onChange={select('alertMethod')}>
             <option value="">Default ({awareness.defaultAlertMethod})</option>
             {awareness.alertMethods.map((method) => (
               <option key={method.id} value={method.id}>
                 {method.name}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <div className="me-inspector-actions">
           <button type="button" className={`me-button${moving ? ' is-primary' : ''}`} aria-pressed={moving} onClick={onMove}>

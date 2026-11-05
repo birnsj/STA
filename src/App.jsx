@@ -15,6 +15,7 @@ import {
 } from './character/savedCharacters.js'
 import creationSteps from './data/adaptation/creationSteps.json'
 import ScaledStage from './components/ScaledStage.jsx'
+import { editorStageSize, loadEditorViewScale, saveEditorViewScale } from './maps/editorViewScale.js'
 import { normalizeAudioSettings } from './settings/audioSettings.js'
 import { normalizeDisplaySettings } from './settings/displaySettings.js'
 import { DisplaySettingsContext, OpenSettingsProvider, UpdateDisplaySettingsProvider } from './settings/DisplaySettingsContext.js'
@@ -79,6 +80,12 @@ function Views() {
     return EPISODE_MODES.includes(saved.mode) ? saved : { ...saved, mode: EPISODE_MODES[0] }
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Map editor only: enlarges chrome by shrinking the ScaledStage design size (see editorViewScale.js).
+  const [editorViewScale, setEditorViewScale] = useState(loadEditorViewScale)
+  const onEditorViewScale = useCallback((percent) => {
+    saveEditorViewScale(percent)
+    setEditorViewScale(percent)
+  }, [])
   const openMenu = useCallback(() => setView('menu'), [])
   const handleConfirmed = (characters) => {
     setSavedCharacters(characters)
@@ -228,15 +235,17 @@ function Views() {
         </ScaledStage>
       )}
       {view === 'mapEditor' && (
-        // Full design size (not the 1024 menu stage): native <select> popups ignore CSS scale, so on the
-        // small stage they look huge next to the scaled chrome. 1920×1080 keeps scale near 1:1.
-        <ScaledStage settings={displaySettings} titleTips={false}>
-          <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} />
+        // Default design is 1920×1080; View → View scale can shrink that design size to enlarge the UI.
+        // Dropdowns use EditorSelect (menus inside .stage) so they stay sized under CSS scale. Always fill
+        // the window (ignore Fit 16:9) so Dev Edit does not sit in letterbox bars.
+        <ScaledStage {...editorStageSize(editorViewScale)} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
+          <MapEditorScreen savedCharacters={savedCharacters} onBack={openMenu} viewScale={editorViewScale} onViewScale={onEditorViewScale} />
           {settingsLayer}
         </ScaledStage>
       )}
       {view === 'spriteSheets' && (
-        <ScaledStage {...MENU_STAGE} settings={displaySettings} titleTips={false}>
+        // Same as Dev Edit: always fill, even when Settings is Fit 16:9.
+        <ScaledStage {...MENU_STAGE} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
           <SpriteSheetsScreen onBack={openMenu} />
           {settingsLayer}
         </ScaledStage>

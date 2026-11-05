@@ -6,6 +6,7 @@ import {
   listAuthoredCharacters,
   subscribeAuthoredCatalogue,
 } from '../character/authoredCharacters.js'
+import EditorSelect from '../components/maps/EditorSelect.jsx'
 import { withCreatorShape } from '../character/characterImport.js'
 import { createEmptyCharacter } from '../character/characterModel.js'
 import {
@@ -242,38 +243,38 @@ export default function CharacterLibraryScreen({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <select className="me-select me-wide" value={faction} onChange={(e) => setFaction(e.target.value)}>
+            <EditorSelect className="me-select me-wide" value={faction} onChange={(e) => setFaction(e.target.value)}>
               <option value="">All factions</option>
               {filterOptions.factions.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
                 </option>
               ))}
-            </select>
-            <select className="me-select me-wide" value={species} onChange={(e) => setSpecies(e.target.value)}>
+            </EditorSelect>
+            <EditorSelect className="me-select me-wide" value={species} onChange={(e) => setSpecies(e.target.value)}>
               <option value="">All species</option>
               {filterOptions.species.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
                 </option>
               ))}
-            </select>
-            <select className="me-select me-wide" value={rank} onChange={(e) => setRank(e.target.value)}>
+            </EditorSelect>
+            <EditorSelect className="me-select me-wide" value={rank} onChange={(e) => setRank(e.target.value)}>
               <option value="">All ranks</option>
               {filterOptions.ranks.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
                 </option>
               ))}
-            </select>
-            <select className="me-select me-wide" value={department} onChange={(e) => setDepartment(e.target.value)}>
+            </EditorSelect>
+            <EditorSelect className="me-select me-wide" value={department} onChange={(e) => setDepartment(e.target.value)}>
               <option value="">All departments</option>
               {filterOptions.departments.map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
           </div>
           <ul className="cl-list">
             {filtered.map((entry) => (

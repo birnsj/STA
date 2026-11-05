@@ -990,6 +990,7 @@
 .ed-seg > .me-button,
 .ed-seg > .me-number,
 .ed-seg > .me-select,
+.ed-seg > .ed-select,
 .ed-seg > .ed-size-label,
 .ed-seg > .ed-size-x {
   border-radius: 0;
@@ -2076,4 +2077,153 @@
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+}
+
+/* Custom select: menu lives in .stage so ScaledStage scale applies (native <select> popups do not). */
+.ed-select {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.me-field > .ed-select,
+.ed-map-props .ed-select,
+.ed-select:has(.me-wide),
+.ed-select:has(.me-card-select) {
+  display: block;
+  width: 100%;
+}
+
+.ed-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.ed-select-trigger:disabled {
+  opacity: 0.4;
+  cursor: var(--cursor-default);
+}
+
+.ed-select-value {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-select-caret {
+  flex-shrink: 0;
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid currentColor;
+  opacity: 0.7;
+}
+
+.ed-select.is-open .ed-select-caret {
+  transform: rotate(180deg);
+}
+
+.ed-select-menu {
+  position: absolute;
+  z-index: 400;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--ed-border, #3f6f78);
+  border-radius: 2px;
+  background: #1a1f27;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  color: var(--ed-text, #d6e4e8);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ed-select-group {
+  padding: 4px 8px 2px;
+  color: var(--ed-muted, #8fb4ba);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ed-select-option {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.ed-select-option:hover:not(:disabled),
+.ed-select-option:focus-visible {
+  background: #2d3440;
+  color: #fff;
+  outline: none;
+}
+
+.ed-select-option.is-selected {
+  background: #2a5080;
+  color: #fff;
+}
+
+.ed-select-option:disabled {
+  opacity: 0.4;
+  cursor: var(--cursor-default);
+}
+
+.ed-seg > .ed-select {
+  display: inline-flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.ed-seg > .ed-select > .ed-select-trigger {
+  border-radius: 0;
+  border-right-width: 0;
+}
+
+.ed-seg > .ed-select:first-child > .ed-select-trigger {
+  border-radius: 2px 0 0 2px;
+}
+
+.ed-seg > .ed-select:last-child > .ed-select-trigger {
+  border-radius: 0 2px 2px 0;
+  border-right-width: 1px;
+}
+
+.ed-seg > .ed-select:only-child > .ed-select-trigger {
+  border-radius: 2px;
+  border-right-width: 1px;
+}
+
+.ed-seg > .ed-select .ed-grid-select {
+  height: 22px;
+  min-width: 64px;
+  padding: 0 4px;
+  line-height: 20px;
 }

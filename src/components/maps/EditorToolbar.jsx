@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAX_SIZE, MIN_SIZE } from '../../maps/mapFormat.js'
 import { EDITOR_GRID_SIZES } from './editorGrid.js'
+import EditorSelect from './EditorSelect.jsx'
 
 // Slim toolbar under the menu bar. Mission generate actions also sit as icon buttons
 // before Enemies (Mission menu keeps the same commands).
@@ -180,7 +181,7 @@ export default function EditorToolbar({
           >
             Grid
           </button>
-          <select
+          <EditorSelect
             className="me-select ed-grid-select"
             value={gridSize}
             aria-label="Grid size"
@@ -193,7 +194,7 @@ export default function EditorToolbar({
                 {size}px
               </option>
             ))}
-          </select>
+          </EditorSelect>
           <button type="button" className="me-button ed-icon-btn" title="Grid options" aria-label="Grid options" onClick={() => onGridOptions?.()}>
             <svg className="ed-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
               <path

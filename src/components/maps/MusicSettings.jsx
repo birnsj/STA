@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_CUE_FILES, EPISODE_CUES, emptyMusic } from '../../audio/musicCues.js'
 import { listMusicFiles } from '../../audio/musicFiles.js'
+import EditorSelect from './EditorSelect.jsx'
 
 // The episode's music: the tracks its intro, exploration, fights and outro play (map.music). A cue left alone plays the
 // default. Exploration and Combat take several files and play them in random order.
@@ -48,14 +49,14 @@ export default function MusicSettings({ map, edit }) {
         ) : (
           <label key={cue.id} className="me-field">
             {cue.label}
-            <select className="me-select me-wide" value={chosen[0] ?? ''} aria-label={cue.label} onChange={(event) => setCue(cue.id, event.target.value || null)}>
+            <EditorSelect className="me-select me-wide" value={chosen[0] ?? ''} aria-label={cue.label} onChange={(event) => setCue(cue.id, event.target.value || null)}>
               <option value="">Default ({defaults})</option>
               {names.map((name) => (
                 <option key={name} value={name}>
                   {label(name)}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
           </label>
         )
       })}

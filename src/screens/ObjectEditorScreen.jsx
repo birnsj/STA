@@ -6,6 +6,7 @@ import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
 import { definitionProblemsFor } from '../exploration/challengeObjects.js'
 import { TILES } from '../maps/mapFormat.js'
+import EditorSelect from '../components/maps/EditorSelect.jsx'
 import {
   createAction,
   createObject,
@@ -110,14 +111,14 @@ function ObjectFields({ object, map, otherIds, onChange }) {
         </label>
         <label className="ce-toolbar-field">
           Starts
-          <select className="ce-input" value={object.state} onChange={(event) => set({ state: event.target.value })}>
+          <EditorSelect className="ce-input" value={object.state} onChange={(event) => set({ state: event.target.value })}>
             {!object.states[object.state] && <option value={object.state}>{object.state || '(none)'}</option>}
             {Object.entries(object.states).map(([id, state]) => (
               <option key={id} value={id}>
                 {state.label || id}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </label>
       </div>
       <span className="ce-field-label">States (a tile replaces the map&apos;s tile there while in that state)</span>

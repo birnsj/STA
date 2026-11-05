@@ -1,6 +1,7 @@
 import { FACINGS, snapFacing } from '../../maps/facing.js'
 import { Field } from './NpcInspector.jsx'
 import { PropertySection } from './PropertySections.jsx'
+import EditorSelect from './EditorSelect.jsx'
 
 // The map editor's inspector for the selected player start or enemy spawn: its facing, or Default (toward the middle of
 // the map, as unturned starts and spawns have always faced). marker: { kind: 'playerStarts' | 'enemySpawns', label,
@@ -12,7 +13,7 @@ export default function MarkerInspector({ marker, defaultFacing, onFacing, onDel
     <div className="me-inspector">
       <PropertySection id="marker" title={`${kindName} ${marker.label} · ${marker.x}, ${marker.y}`}>
       <Field label="Facing">
-        <select
+        <EditorSelect
           className="me-select me-wide"
           value={marker.facing == null ? '' : snapFacing(marker.facing)}
           onChange={(event) => onFacing(event.target.value === '' ? null : Number(event.target.value))}
@@ -23,7 +24,7 @@ export default function MarkerInspector({ marker, defaultFacing, onFacing, onDel
               {entry.degrees}° {entry.label}
             </option>
           ))}
-        </select>
+        </EditorSelect>
       </Field>
       <p className="me-text">Right click on the map also turns it. Move (toolbar) drags it to another tile.</p>
       <div className="me-inspector-actions">

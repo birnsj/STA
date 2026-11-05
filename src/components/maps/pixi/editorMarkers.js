@@ -81,8 +81,9 @@ export class EditorMarkerView {
 }
 
 // Optional authoring guide: iso lines every size world-pixels (TILE_W = one tile). board: { show, size, width, height }.
-// Lines pass through the same tile-space snap points (multiples of size/TILE_W). view: the camera's world rect — the
-// grid covers the whole map window (not only the map footprint), so empty margin around the tiles stays gridded.
+// Fine sizes (step divides half a tile) pass through item snap points and already hit tile edges. Coarse sizes (64+)
+// start on tile edges (−0.5) so the grid matches floor diamonds and the map boundary. view: the camera's world rect —
+// the grid covers the whole map window (not only the map footprint), so empty margin around the tiles stays gridded.
 export class EditorGridView {
   constructor(layer) {
     this.graphics = new Graphics()
@@ -129,21 +130,23 @@ export class EditorGridView {
       xMax = Math.max(...corners.map((c) => c.x))
       yMax = Math.max(...corners.map((c) => c.y))
     }
-    const i0 = Math.ceil(xMin / step - 1e-9)
-    const i1 = Math.floor(xMax / step + 1e-9)
-    const j0 = Math.ceil(yMin / step - 1e-9)
-    const j1 = Math.floor(yMax / step + 1e-9)
+    // When step does not land on tile edges (64 / 128 / 256), shift so lines share −0.5 with the map boundary.
+    const origin = Math.abs(0.5 / step - Math.round(0.5 / step)) > 1e-9 ? -0.5 : 0
+    const i0 = Math.ceil((xMin - origin) / step - 1e-9)
+    const i1 = Math.floor((xMax - origin) / step + 1e-9)
+    const j0 = Math.ceil((yMin - origin) / step - 1e-9)
+    const j1 = Math.floor((yMax - origin) / step + 1e-9)
     const line = (ax, ay, bx, by) => {
       const a = project({ x: ax, y: ay })
       const b = project({ x: bx, y: by })
       this.graphics.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke(GRID_STROKE)
     }
     for (let i = i0; i <= i1; i++) {
-      const x = i * step
+      const x = origin + i * step
       line(x, yMin, x, yMax)
     }
     for (let j = j0; j <= j1; j++) {
-      const y = j * step
+      const y = origin + j * step
       line(xMin, y, xMax, y)
     }
   }

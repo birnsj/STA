@@ -2,6 +2,7 @@ import { DISPOSITION_IDS, ACTION_TYPES, getActionType } from '../../conversation
 import { getNpcProperty, NPC_PROPERTIES } from '../../conversation/conversationScope.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { CHANGE_OPS, CONDITION_OPS, flagValueText, OBJECTIVE_STATUSES, parseFlagValue } from '../../exploration/missionFlags.js'
+import EditorSelect from '../maps/EditorSelect.jsx'
 
 // Editors for the parts of a conversation node that are lists of small objects: flag conditions and actions
 // (conversationActions.js). map: the map open in the editor, for the objective and challenge object pickers.
@@ -26,22 +27,22 @@ export function ConditionsEditor({ conditions, onChange }) {
         const source = condition.npc ?? FLAG_SOURCE
         return (
           <div key={index} className="ce-row">
-            <select className="ce-input" value={source} aria-label="What the condition reads" onChange={(event) => onChange(replaceAt(conditions, index, withSource(condition, event.target.value)))}>
+            <EditorSelect className="ce-input" value={source} aria-label="What the condition reads" onChange={(event) => onChange(replaceAt(conditions, index, withSource(condition, event.target.value)))}>
               <option value={FLAG_SOURCE}>Flag</option>
               {NPC_PROPERTIES.map((property) => (
                 <option key={property.id} value={property.id}>
                   {property.label}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
             {!condition.npc && <input className="ce-input ce-flag" value={condition.flag} placeholder="flag ({npc} / {group} allowed)" onChange={(event) => onChange(replaceAt(conditions, index, { ...condition, flag: event.target.value.trim() }))} />}
-            <select className="ce-input" value={op.id} onChange={(event) => onChange(replaceAt(conditions, index, { ...condition, op: event.target.value }))}>
+            <EditorSelect className="ce-input" value={op.id} onChange={(event) => onChange(replaceAt(conditions, index, { ...condition, op: event.target.value }))}>
               {CONDITION_OPS.map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.label}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
             {op.needsValue && <ValueInput value={condition.value} onChange={(value) => onChange(replaceAt(conditions, index, { ...condition, value }))} />}
             <button type="button" className="ce-button is-small" aria-label="Remove condition" onClick={() => onChange(removeAt(conditions, index))}>
               ×
@@ -60,14 +61,14 @@ function ActionField({ field, action, map, onChange }) {
   const value = action[field.key]
   const set = (next) => onChange({ ...action, [field.key]: next })
   const options = (list) => (
-    <select className="ce-input" value={value ?? ''} title={field.label} aria-label={field.label} onChange={(event) => set(event.target.value)}>
+    <EditorSelect className="ce-input" value={value ?? ''} title={field.label} aria-label={field.label} onChange={(event) => set(event.target.value)}>
       {!list.some((entry) => entry.id === value) && <option value={value ?? ''}>{value ? `${value} (unknown)` : 'Choose…'}</option>}
       {list.map((entry) => (
         <option key={entry.id} value={entry.id}>
           {entry.label}
         </option>
       ))}
-    </select>
+    </EditorSelect>
   )
   switch (field.kind) {
     case 'number':
@@ -111,14 +112,14 @@ export function ActionsEditor({ actions, map, onChange }) {
         const type = getActionType(action.type)
         return (
           <div key={index} className="ce-row is-action">
-            <select className="ce-input" value={action.type} onChange={(event) => onChange(replaceAt(actions, index, getActionType(event.target.value).create()))}>
+            <EditorSelect className="ce-input" value={action.type} onChange={(event) => onChange(replaceAt(actions, index, getActionType(event.target.value).create()))}>
               {!type && <option value={action.type}>{action.type} (unknown)</option>}
               {ACTION_TYPES.map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.label}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
             {type?.fields.map((field) => (
               <ActionField key={field.key} field={field} action={action} map={map} onChange={(next) => onChange(replaceAt(actions, index, next))} />
             ))}

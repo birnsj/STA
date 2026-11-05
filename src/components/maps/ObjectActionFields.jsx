@@ -7,6 +7,7 @@ import { CHANGE_OPS, flagValueText, parseFlagValue } from '../../exploration/mis
 import { RESPONSE_TYPES } from '../../maps/mapFormat.js'
 import { EFFECT_TYPES, getEffectType, OUTCOME_LISTS } from '../../world/objectAuthoring.js'
 import IdInput from './IdInput.jsx'
+import EditorSelect from './EditorSelect.jsx'
 
 // The Object Editor's fields for one challenge-object action (challenges.json notes): what it is, when it's offered,
 // its task, assists, combat cost and outcomes. object: the object it belongs to (its states and other actions).
@@ -27,7 +28,7 @@ function Field({ label, children }) {
 
 function Choice({ value, options, onChange, blank, label }) {
   return (
-    <select className="ce-input" value={value ?? ''} aria-label={label} onChange={(event) => onChange(event.target.value || undefined)}>
+    <EditorSelect className="ce-input" value={value ?? ''} aria-label={label} onChange={(event) => onChange(event.target.value || undefined)}>
       {blank !== undefined && <option value="">{blank}</option>}
       {value && !options.some((option) => option.id === value) && <option value={value}>{value} (unknown)</option>}
       {options.map((option) => (
@@ -35,7 +36,7 @@ function Choice({ value, options, onChange, blank, label }) {
           {option.name ?? option.label ?? option.id}
         </option>
       ))}
-    </select>
+    </EditorSelect>
   )
 }
 
@@ -434,14 +435,14 @@ function EffectsEditor({ effects, object, onChange }) {
         const type = getEffectType(effect.type)
         return (
           <div key={index} className="ce-row is-action">
-            <select className="ce-input" value={effect.type} aria-label="Effect" onChange={(event) => onChange(replaceAt(effects, index, getEffectType(event.target.value).create(object)))}>
+            <EditorSelect className="ce-input" value={effect.type} aria-label="Effect" onChange={(event) => onChange(replaceAt(effects, index, getEffectType(event.target.value).create(object)))}>
               {!type && <option value={effect.type}>{effect.type} (unknown)</option>}
               {EFFECT_TYPES.map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.label}
                 </option>
               ))}
-            </select>
+            </EditorSelect>
             {type?.fields.map((field) => (
               <EffectField key={field.key} field={field} effect={effect} object={object} onChange={(next) => onChange(replaceAt(effects, index, next))} />
             ))}

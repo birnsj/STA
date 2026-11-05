@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import attributeData from '../../data/source/attributes.json'
 import disciplineData from '../../data/source/disciplines.json'
+import EditorSelect from './EditorSelect.jsx'
 
 const ATTRIBUTES = attributeData.attributes
 const DEPARTMENTS = disciplineData.disciplines
@@ -69,7 +70,7 @@ export default function NeutralizeTaskFields({ value = null, fallback, onChange 
       </label>
       <label className="me-field">
         Attribute
-        <select
+        <EditorSelect
           className="me-select me-wide"
           value={override.attribute ?? ''}
           onChange={(event) => set({ attribute: event.target.value || null })}
@@ -80,11 +81,11 @@ export default function NeutralizeTaskFields({ value = null, fallback, onChange 
               {attribute.name}
             </option>
           ))}
-        </select>
+        </EditorSelect>
       </label>
       <label className="me-field">
         Department
-        <select
+        <EditorSelect
           className="me-select me-wide"
           value={override.department ?? ''}
           onChange={(event) => set({ department: event.target.value || null })}
@@ -95,7 +96,7 @@ export default function NeutralizeTaskFields({ value = null, fallback, onChange 
               {department.name}
             </option>
           ))}
-        </select>
+        </EditorSelect>
       </label>
       <label className="me-field">
         Difficulty

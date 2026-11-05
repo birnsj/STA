@@ -5,6 +5,7 @@ import {
   HAZARD_TYPES,
   OBJECT_ATTACK_DIFFICULTY,
 } from '../../world/environment.js'
+import EditorSelect from './EditorSelect.jsx'
 import { PropertySection } from './PropertySections.jsx'
 
 // A number box for an override: blank goes back to the type's value (shown as the placeholder).
@@ -30,14 +31,14 @@ export function OverrideSelect({ label, value, fallbackLabel, options, onChange 
   return (
     <label className="me-field">
       {label}
-      <select className="me-name me-wide" value={value ?? ''} onChange={(event) => onChange(event.target.value === '' ? null : event.target.value)}>
+      <EditorSelect className="me-name me-wide" value={value ?? ''} onChange={(event) => onChange(event.target.value === '' ? null : event.target.value)}>
         <option value="">{fallbackLabel} (type)</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
-      </select>
+      </EditorSelect>
     </label>
   )
 }
@@ -100,13 +101,13 @@ export default function DestructibleInspector({ object, moving, linking, onChang
         <OverrideField label="Resistance" value={object.resistance} fallback={info.resistance} onChange={(resistance) => onChange({ resistance })} />
         <label className="me-field">
           Starts
-          <select className="me-name me-wide" value={object.initialState ?? 'intact'} onChange={(event) => onChange({ initialState: event.target.value === 'intact' ? null : event.target.value })}>
+          <EditorSelect className="me-name me-wide" value={object.initialState ?? 'intact'} onChange={(event) => onChange({ initialState: event.target.value === 'intact' ? null : event.target.value })}>
             {DESTRUCTIBLE_STATES.map((state) => (
               <option key={state} value={state}>
                 {STATE_LABELS[state] ?? state}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </label>
         <label className="me-check">
           <input type="checkbox" checked={object.attackable !== false} onChange={(event) => onChange({ attackable: event.target.checked ? null : false })} />

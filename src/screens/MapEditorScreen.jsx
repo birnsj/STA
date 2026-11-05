@@ -9,6 +9,7 @@ import EditorLayersWindow from '../components/maps/EditorLayersWindow.jsx'
 import EditorLevelsWindow from '../components/maps/EditorLevelsWindow.jsx'
 import EditorOverviewWindow from '../components/maps/EditorOverviewWindow.jsx'
 import EditorMenuBar from '../components/maps/EditorMenuBar.jsx'
+import EditorViewScale from '../components/maps/EditorViewScale.jsx'
 import EditorPalette from '../components/maps/EditorPalette.jsx'
 import EditorPropertiesPanel from '../components/maps/EditorPropertiesPanel.jsx'
 import { hasAssetSelection, hasBoardSelection } from '../components/maps/editorSelection.js'
@@ -50,7 +51,7 @@ function playAwayTeam(savedCharacters) {
   return [...saved, ...authored].slice(0, MAX_AWAY_TEAM)
 }
 
-export default function MapEditorScreen({ savedCharacters = [], onBack }) {
+export default function MapEditorScreen({ savedCharacters = [], onBack, viewScale = 100, onViewScale }) {
   const { itemPlacementPreview } = useDisplaySettings()
   const updateDisplaySettings = useUpdateDisplaySettings()
   const shellRef = useRef(null)
@@ -69,6 +70,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
   const [showBounds, setShowBounds] = useState(true)
   const [showCentre, setShowCentre] = useState(false)
   const [showGridOptions, setShowGridOptions] = useState(false)
+  const [showViewScale, setShowViewScale] = useState(false)
   const [overviewOpen, setOverviewOpen] = useState(false)
   const [layersOpen, setLayersOpen] = useState(false)
   const [levelsOpen, setLevelsOpen] = useState(false)
@@ -225,6 +227,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
         return setShowGrid((value) => !value)
       case 'gridOptions':
         return setShowGridOptions(true)
+      case 'viewScale':
+        return setShowViewScale(true)
       case 'overview':
         return setOverviewOpen((value) => !value)
       case 'layers':
@@ -530,6 +534,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack }) {
             onShowBounds={setShowBounds}
             showCentre={showCentre}
             onShowCentre={setShowCentre}
+          />
+          <EditorViewScale
+            show={showViewScale}
+            onClose={() => setShowViewScale(false)}
+            viewScale={viewScale}
+            onViewScale={(percent) => {
+              onViewScale?.(percent)
+              setShowViewScale(false)
+            }}
           />
           {hoverTile && !boardBlocked && (
             <div className="ed-coord-hud" aria-live="polite">

@@ -2,6 +2,7 @@ import { ATTRIBUTE_IDS, DISCIPLINE_IDS, getAttributeName, getDisciplineName } fr
 import { createOption, nextId, nodeTypeLabel, outputsOf, withLink } from '../../conversation/conversationFormat.js'
 import { MAX_COMPLICATION_RANGE } from '../../rules/taskResolver.js'
 import { ActionsEditor, ConditionsEditor } from './ConversationFields.jsx'
+import EditorSelect from '../maps/EditorSelect.jsx'
 
 // The conversation editor's inspector for the selected node: every field of its type, and where each output leads.
 
@@ -17,7 +18,7 @@ function Field({ label, children }) {
 // Where one output leads: any other node, or nowhere (the conversation ends there).
 function LinkSelect({ nodes, value, selfId, onChange }) {
   return (
-    <select className="ce-input" value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+    <EditorSelect className="ce-input" value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
       <option value="">Nowhere (ends)</option>
       {nodes
         .filter((node) => node.id !== selfId)
@@ -26,7 +27,7 @@ function LinkSelect({ nodes, value, selfId, onChange }) {
             {node.id} · {nodeTypeLabel(node.type)}
           </option>
         ))}
-    </select>
+    </EditorSelect>
   )
 }
 
@@ -38,22 +39,22 @@ function CheckFields({ node, map, update }) {
       </Field>
       <div className="ce-row">
         <Field label="Attribute">
-          <select className="ce-input" value={node.attribute} onChange={(event) => update({ attribute: event.target.value })}>
+          <EditorSelect className="ce-input" value={node.attribute} onChange={(event) => update({ attribute: event.target.value })}>
             {ATTRIBUTE_IDS.map((id) => (
               <option key={id} value={id}>
                 {getAttributeName(id)}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
         <Field label="Department">
-          <select className="ce-input" value={node.department} onChange={(event) => update({ department: event.target.value })}>
+          <EditorSelect className="ce-input" value={node.department} onChange={(event) => update({ department: event.target.value })}>
             {DISCIPLINE_IDS.map((id) => (
               <option key={id} value={id}>
                 {getDisciplineName(id)}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </Field>
       </div>
       <div className="ce-row">
@@ -155,10 +156,10 @@ export default function NodeInspector({ node, nodes, isStart, map, onChange, onD
       {node.type === 'condition' && (
         <>
           <Field label="True when">
-            <select className="ce-input" value={node.match} onChange={(event) => update({ match: event.target.value })}>
+            <EditorSelect className="ce-input" value={node.match} onChange={(event) => update({ match: event.target.value })}>
               <option value="all">every condition holds</option>
               <option value="any">any condition holds</option>
-            </select>
+            </EditorSelect>
           </Field>
           <ConditionsEditor conditions={node.conditions} onChange={(conditions) => update({ conditions })} />
         </>

@@ -3,6 +3,7 @@ import {
   HAZARD_LAYERS,
   HAZARD_MOVEMENTS,
 } from '../../maps/mapFormat.js'
+import EditorSelect from './EditorSelect.jsx'
 import { HAZARD_TYPES, THICK_INTENSITY, hazardValue } from '../../world/environment.js'
 import { OverrideField, OverrideSelect } from './DestructibleInspector.jsx'
 import NeutralizeTaskFields from './NeutralizeTaskFields.jsx'
@@ -58,12 +59,12 @@ export default function HazardInspector({ region, onChange, onDelete }) {
         </p>
         <label className="me-field">
           Intensity (whole region)
-          <select className="me-name me-wide" value={uniform} onChange={(event) => onChange({ intensity: Number(event.target.value) })}>
+          <EditorSelect className="me-name me-wide" value={uniform} onChange={(event) => onChange({ intensity: Number(event.target.value) })}>
             {uniform === '' && <option value="">Mixed</option>}
             <option value={1}>1 · Thin</option>
             <option value={2}>2 · Thick</option>
             <option value={3}>3 · Dense</option>
-          </select>
+          </EditorSelect>
         </label>
         <OverrideField label="Severity" value={region.severity} fallback={info.severity} min={0} max={10} onChange={(severity) => onChange({ severity })} />
         <OverrideField label="Duration (rounds; blank: until it dissipates)" value={region.duration} fallback={null} min={1} max={99} onChange={(duration) => onChange({ duration })} />

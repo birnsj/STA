@@ -38,6 +38,7 @@ const MENUS = [
       { id: 'weatherFx', label: 'Weather FX' },
       { id: 'grid', label: 'Grid' },
       { id: 'gridOptions', label: 'Grid options…' },
+      { id: 'viewScale', label: 'View scale…' },
       { sep: true },
       { id: 'overview', label: 'Overview window' },
       { id: 'layers', label: 'Layers window' },

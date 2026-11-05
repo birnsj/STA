@@ -1,5 +1,6 @@
 import WeatherFx from '../../effects/WeatherFx.jsx'
 import { CARD_WEATHER_WIDTH, cardFor, EPISODE_CARDS, isDrawnCard } from '../../maps/episodeCards.js'
+import EditorSelect from './EditorSelect.jsx'
 
 // The map editor's Episode Card section: a preview of the episode's Load Episode picture, a list of the catalogue cards
 // (plus the episode's own generated picture), and Generate Card (onGenerate draws a new picture for the map, with its
@@ -13,7 +14,7 @@ export default function EpisodeCardPicker({ cardId, weatherFx, canGenerate, busy
         {card ? <img key={card.image} src={card.image} alt={card.label} onError={(event) => (event.currentTarget.hidden = true)} /> : <span>{cardId ? `Missing card: ${cardId}` : 'No card'}</span>}
         {card && !isDrawnCard(cardId) && <WeatherFx fx={weatherFx} virtualWidth={CARD_WEATHER_WIDTH} />}
       </div>
-      <select className="me-select me-card-select" value={card ? card.id : ''} aria-label="Episode card" onChange={(event) => onCard(event.target.value || null)}>
+      <EditorSelect className="me-select me-card-select" value={card ? card.id : ''} aria-label="Episode card" onChange={(event) => onCard(event.target.value || null)}>
         <option value="">No card</option>
         {isDrawnCard(cardId) && <option value={cardId}>Generated picture</option>}
         {EPISODE_CARDS.map((option) => (
@@ -21,7 +22,7 @@ export default function EpisodeCardPicker({ cardId, weatherFx, canGenerate, busy
             {option.label}
           </option>
         ))}
-      </select>
+      </EditorSelect>
       <button
         type="button"
         className="me-button me-generate"

@@ -1,5 +1,6 @@
 // Sheet preview for SpriteSheetsScreen: PNG on an extended iso floor, wheel zoom at cursor, left-drag pan.
 import { useEffect, useMemo, useRef, useState } from 'react'
+import EditorSelect from './EditorSelect.jsx'
 import { getSpriteMetrics } from '../../rules/appearance.js'
 import { inferCharacterSheetGrid, resolvePreviewAnimation } from '../../rules/spriteCatalogue.js'
 import { spriteUrl } from '../../maps/spriteFiles.js'
@@ -626,7 +627,7 @@ export default function SpriteSheetPreview({
               {animNames.length > 0 && onAnimationChange && (
                 <label className="me-text">
                   Anim{' '}
-                  <select
+                  <EditorSelect
                     className="me-select"
                     value={animation ?? ''}
                     onChange={(event) => onAnimationChange(event.target.value || null)}
@@ -636,7 +637,7 @@ export default function SpriteSheetPreview({
                         {name}
                       </option>
                     ))}
-                  </select>
+                  </EditorSelect>
                 </label>
               )}
               {onLoopChange && (

@@ -6,6 +6,7 @@ import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
 import { canSaveConversations, conversationFileId, deleteConversation, listConversations, loadConversation, saveConversation } from '../conversation/conversationFiles.js'
 import { dialogueTierWarnings } from '../conversation/dialogueTier.js'
 import { createConversation, createNode, getNode, nextId, NODE_TYPES, removeNode, validateConversation, withLink } from '../conversation/conversationFormat.js'
+import EditorSelect from '../components/maps/EditorSelect.jsx'
 
 // Dev conversation editor (opened from the map editor): authors the node graphs NPCs open in exploration and saves
 // them as conversations/{id}.json. map: the map open in the map editor, for its objectives and challenge objects.
@@ -147,14 +148,14 @@ export default function ConversationEditorScreen({ initialId = null, map = null,
         <button type="button" className="ce-button" onClick={async () => (await confirmDiscard()) && onBack()}>
           Back to Map
         </button>
-        <select className="ce-input" value={fileId ?? ''} aria-label="Open conversation" onChange={(event) => onOpen(event.target.value)}>
+        <EditorSelect className="ce-input" value={fileId ?? ''} aria-label="Open conversation" onChange={(event) => onOpen(event.target.value)}>
           <option value="">{fileId ? 'Open…' : 'Not saved yet'}</option>
           {files.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.name} ({entry.id})
             </option>
           ))}
-        </select>
+        </EditorSelect>
         <button type="button" className="ce-button" onClick={onNew}>
           New
         </button>

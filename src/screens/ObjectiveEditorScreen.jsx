@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ConditionsEditor } from '../components/conversation/ConversationFields.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import EditorSelect from '../components/maps/EditorSelect.jsx'
 
 // Dev objective editor (opened from the map editor): the open map's objectives (mapFormat.js objectives), listed on the
 // left, the selected one edited on the right. Edits go straight into the map, so the map editor's Save keeps them.
@@ -33,7 +34,7 @@ function warningsFor(objectives) {
 // Marked on a challenge object (the marker follows it) or on a tile of its own.
 function LinkField({ objective, objects, onChange }) {
   return (
-    <select className="ce-input" value={objective.objectId ?? ''} aria-label="Marked on" onChange={(event) => onChange({ objectId: event.target.value || null })}>
+    <EditorSelect className="ce-input" value={objective.objectId ?? ''} aria-label="Marked on" onChange={(event) => onChange({ objectId: event.target.value || null })}>
       <option value="">A tile of its own (below)</option>
       {objective.objectId && !objects.some((object) => object.id === objective.objectId) && <option value={objective.objectId}>{objective.objectId} (not on this map)</option>}
       {objects.map((object) => (
@@ -41,7 +42,7 @@ function LinkField({ objective, objects, onChange }) {
           {object.name} ({object.id}) at {object.position[0]}, {object.position[1]}
         </option>
       ))}
-    </select>
+    </EditorSelect>
   )
 }
 

@@ -9,6 +9,7 @@ import EditorControlsHelp from './EditorControlsHelp.jsx'
 import EpisodeCardPicker from './EpisodeCardPicker.jsx'
 import MusicSettings from './MusicSettings.jsx'
 import { PropertySection } from './PropertySections.jsx'
+import EditorSelect from './EditorSelect.jsx'
 
 // Map-level properties for the right Properties panel when nothing is selected (or Map tab is forced).
 // Map-level fields shown in the editor's right Properties panel.
@@ -64,7 +65,7 @@ export default function MapProperties({
       <PropertySection id="map" title="Map">
         <label className="me-field">
           Location
-          <select className="me-select me-wide" value={map.mapType} aria-label="Location" onChange={(event) => onMapType(event.target.value)}>
+          <EditorSelect className="me-select me-wide" value={map.mapType} aria-label="Location" onChange={(event) => onMapType(event.target.value)}>
             {LOCATION_GROUPS.map((group) => (
               <optgroup key={group.id} label={group.label}>
                 {MAP_GENERATORS.filter((generator) => generator.group === group.id).map((generator) => (
@@ -74,11 +75,11 @@ export default function MapProperties({
                 ))}
               </optgroup>
             ))}
-          </select>
+          </EditorSelect>
         </label>
         <label className="me-field">
           Biome
-          <select
+          <EditorSelect
             className="me-select me-wide"
             value={map.biome}
             disabled={biomeless}
@@ -94,11 +95,11 @@ export default function MapProperties({
                 ))}
               </optgroup>
             ))}
-          </select>
+          </EditorSelect>
         </label>
         <label className="me-field">
           Weather
-          <select
+          <EditorSelect
             className="me-select me-wide"
             value={map.weather}
             disabled={weatherList.length === 1}
@@ -110,14 +111,14 @@ export default function MapProperties({
                 {weather.label}
               </option>
             ))}
-          </select>
+          </EditorSelect>
         </label>
         <label className="me-check" title="Show the weather effect over the map">
           <input type="checkbox" checked={showWeather} onChange={(event) => onShowWeather(event.target.checked)} /> Weather FX
         </label>
         <label className="me-field">
           Size preset
-          <select className="me-select me-wide" value={sizeId} aria-label="Map size" onChange={(event) => onSize(event.target.value)}>
+          <EditorSelect className="me-select me-wide" value={sizeId} aria-label="Map size" onChange={(event) => onSize(event.target.value)}>
             {MAP_SIZES.map((size) => {
               const { width, height } = sizeFor(map.mapType, size.id)
               return (
@@ -131,7 +132,7 @@ export default function MapProperties({
                 Custom
               </option>
             )}
-          </select>
+          </EditorSelect>
         </label>
         <label className="me-ambient" title="Ambient light: how dark the map is. Glowing tiles stay lit in the dark.">
           Light

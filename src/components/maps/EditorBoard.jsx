@@ -162,7 +162,7 @@ function selectionOutlines(map, environment, destructibleId, hazardId, selectedN
 // challenge object in its inspector (challenge objects are drawn as C markers where the map places them). moveFrom: the tile the Move tool is carrying ({ x, y, markers: true when it carries the
 // tile's markers rather than the tile }), or null.
 // lighting: draw contact/cast shadows and the map's darkness. animate: animated tiles play (off: each holds its first
-// frame). showGrid / gridSize: optional iso guide grid (world pixels; 64 = one tile). erasing: the Erase Marker tool is
+// frame). showGrid / gridSize: optional iso guide grid (world pixels; 64 = tile edges). erasing: the Erase Marker tool is
 // held, so the markers and label on the hovered tile are highlighted as the ones a click removes. selectedNpcId: the
 // NPC the inspector shows. selectedWaypointIndex: patrol waypoint index while editing that NPC's route (null: none).
 export default function EditorBoard({

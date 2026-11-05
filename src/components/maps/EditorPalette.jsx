@@ -268,6 +268,9 @@ export default function EditorPalette({
       <div className="ed-asset-body">
         {tab === 'tiles' && (
           <>
+            <ToolGroup id="tiles:templates" label="Template Pieces" count={0} open={open} onToggle={toggle}>
+              <p className="me-text">No template pieces added yet.</p>
+            </ToolGroup>
             {filteredGroups.map((group, index) => {
               const isOpen = open.has(group.id) || Boolean(q)
               const startsSection = group.section && group.section !== filteredGroups[index - 1]?.section
