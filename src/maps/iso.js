@@ -32,10 +32,12 @@ export function tileImageBox(position, size = TILE_IMAGE) {
   return { x: c.x - size.width / 2, y: c.y + TILE_H / 2 - size.height, width: size.width, height: size.height }
 }
 
-// A dropped prop. `position` is the bottom corner of the iso graphic (the front tip, bottom centre of the PNG).
-export function propImageBox(position, size) {
+// A dropped prop. `position` is the south tip of the footprint. By default that tip is the bottom centre of the PNG;
+// Template Pieces with a non-square footprint pass `anchorX` (design px from the left of the image to that tip).
+export function propImageBox(position, size, anchorX = size.width / 2) {
   const c = project(position)
-  return { x: c.x - size.width / 2, y: c.y - size.height, width: size.width, height: size.height }
+  const pivotX = Number.isFinite(anchorX) ? anchorX : size.width / 2
+  return { x: c.x - pivotX, y: c.y - size.height, width: size.width, height: size.height }
 }
 
 // World rectangle around a map with some margin, for the camera.

@@ -47,6 +47,10 @@
 // Fractional x/y are allowed for the 32×32 drop grid. name overrides the hover label; pickable/visible default true and
 // are left out on disk when true. on: { tile: [x, y] } or { placement: id } when elevated on a support surface; omitted
 // on the floor. Entries missing id get one on parse. Runtime drops never write back into the map file.
+// templatePiecePlacements: [{ id, pieceId (templatePieces.json), position: [x, y], rotation?, scale?, order }] — modular
+// Starship-look overlays (not tiles). Sit on the deck underlay; pathing/sight use underlay tiles. Pieces snap to the
+// editor guide grid. rotation degrees in 90° steps (omit when 0); scale (omit when 1, UI locks to 1); order (lower behind).
+// Placing an overlay never writes tiles / stackOver.
 // stackOver: sparse { "x,y": [tileId, ...] } — furniture stacked on a surface tile (bottom → top), same pattern as
 // floorUnder. Written only when non-empty; bumps schema to 2.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, ambientColour, width, height, tiles: tile id grid [y][x],
@@ -206,7 +210,13 @@ function assertMapFileStructure(file) {
       }
     }
   })
-  ;['npcs', 'objectives', 'objects', 'destructibles', 'hazards', 'groundItemPlacements'].forEach((path) =>
+  ;(file.templatePiecePlacements ?? []).forEach((placement, index) => {
+    if (placement?.position != null) assertTuple(placement.position, `templatePiecePlacements[${index}].position`)
+    if (placement?.pieceId != null && (typeof placement.pieceId !== 'string' || !placement.pieceId)) {
+      invalidMap(`templatePiecePlacements[${index}].pieceId`, 'expected a non-empty piece id')
+    }
+  })
+  ;['npcs', 'objectives', 'objects', 'destructibles', 'hazards', 'groundItemPlacements', 'templatePiecePlacements'].forEach((path) =>
     assertUniqueAuthoredIds(file[path], path),
   )
 }
@@ -256,6 +266,7 @@ function blankFields(name, width, height, tiles) {
     destructibles: [],
     hazards: [],
     groundItemPlacements: [],
+    templatePiecePlacements: [],
     briefing: '',
     outro: '',
     outroAbandoned: '',
@@ -372,6 +383,46 @@ function serializeGroundItemPlacement(entry) {
   if (entry.visible === false) record.visible = false
   if (entry.on?.tile) record.on = { tile: entry.on.tile }
   else if (entry.on?.placement) record.on = { placement: entry.on.placement }
+  return record
+}
+
+function freeTemplatePieceId(pieceId, used) {
+  let index = 1
+  while (used.has(`${pieceId}${index}`)) index += 1
+  return `${pieceId}${index}`
+}
+
+// Rotation is authored in 90° steps; anything else snaps to the nearest quarter turn.
+export function normalizeTemplateRotation(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 0
+  return (((Math.round(n / 90) * 90) % 360) + 360) % 360
+}
+
+// Tip may sit on the outer rim (x/y === width/height); content runs into −X/−Y from the tip.
+function templatePieceInside(width, height, { x, y }) {
+  return x >= 0 && y >= 0 && x <= width && y <= height
+}
+
+function parseTemplatePiecePlacement(raw, width, height, usedIds) {
+  if (!raw || raw.pieceId == null || !Array.isArray(raw.position)) return null
+  const position = toPosition(raw.position)
+  if (!templatePieceInside(width, height, position)) return null
+  const pieceId = String(raw.pieceId)
+  let id = typeof raw.id === 'string' && raw.id ? raw.id : null
+  if (!id) id = freeTemplatePieceId(pieceId, usedIds)
+  usedIds.add(id)
+  const rotation = normalizeTemplateRotation(raw.rotation)
+  const scale = Number.isFinite(raw.scale) && raw.scale > 0 ? raw.scale : 1
+  const order = Number.isFinite(raw.order) && raw.order >= 0 ? Math.floor(raw.order) : 0
+  return { id, pieceId, position, rotation, scale, order }
+}
+
+function serializeTemplatePiecePlacement(entry) {
+  const record = { id: entry.id, pieceId: entry.pieceId, position: fromPosition(entry.position) }
+  if (entry.rotation) record.rotation = entry.rotation
+  if (entry.scale != null && entry.scale !== 1) record.scale = entry.scale
+  if (entry.order) record.order = entry.order
   return record
 }
 
@@ -705,6 +756,12 @@ export function parseMapFile(file, id) {
     groundItemPlacements: (file.groundItemPlacements ?? [])
       .map((raw) => parseGroundItemPlacement(raw, inside, groundItemIds))
       .filter(Boolean),
+    templatePiecePlacements: (() => {
+      const used = new Set()
+      return (file.templatePiecePlacements ?? [])
+        .map((raw) => parseTemplatePiecePlacement(raw, width, rows.length, used))
+        .filter(Boolean)
+    })(),
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     outro: typeof file.outro === 'string' ? file.outro : '',
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
@@ -758,6 +815,9 @@ export function serializeMap(map) {
     ...(map.groundItemPlacements?.length
       ? { groundItemPlacements: map.groundItemPlacements.map(serializeGroundItemPlacement) }
       : {}),
+    ...(map.templatePiecePlacements?.length
+      ? { templatePiecePlacements: map.templatePiecePlacements.map(serializeTemplatePiecePlacement) }
+      : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),
@@ -800,6 +860,9 @@ export function resizeMap(map, width, height, { fill } = {}) {
       .map((object) => (object.linkedTiles ? { ...object, linkedTiles: object.linkedTiles.filter(inside) } : object)),
     hazards: (map.hazards ?? []).map((hazard) => hazardInside(hazard, inside)).filter((hazard) => Object.keys(hazard.tiles).length),
     groundItemPlacements: (map.groundItemPlacements ?? []).filter((entry) => inside(entry.position)),
+    templatePiecePlacements: (map.templatePiecePlacements ?? []).filter((entry) =>
+      templatePieceInside(w, h, entry.position),
+    ),
   }
 }
 

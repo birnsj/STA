@@ -14,8 +14,13 @@ import {
   placementProbeState,
   previewGroundItem,
   swapTiles,
+  templatePieceFits,
+  templatePieceSprites,
+  templatePieceTargetAt,
 } from '../../maps/mapEdits.js'
 import { getTile } from '../../maps/mapFormat.js'
+import { editorPropFadeIds } from '../../maps/propPick.js'
+import { getTemplatePiece } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
 import { propSpriteSize, stackFootprint, stackSizeOf, surfaceTileAtBoard } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
@@ -23,6 +28,7 @@ import useCamera from '../combat/useCamera.js'
 import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import './alphaMasks.js' // installs the alpha masks that ground-item picking reads
 import { boardLayout } from './canvasTiles.js'
+import { nearestGuideSnap } from './pixi/editorMarkers.js'
 import { startMapScene } from './pixi/mapScene.js'
 import usePixiScene from './pixi/usePixiScene.js'
 import WebglUnavailable from './pixi/WebglUnavailable.jsx'
@@ -30,7 +36,8 @@ import WebglUnavailable from './pixi/WebglUnavailable.jsx'
 // The map editor's board: the map drawn as exploration and combat draw it (with PixiJS behind the SVG, pixi/mapScene.js)
 // under one clickable floor-level outline of the whole map. The tile under the pointer is the floor cell, except a
 // prop brush on a raised top, which uses that stack's cell. Room labels, markers and tile previews are drawn by the
-// Pixi scene; the hover outline is SVG on top. Nothing fades here; See-through blocks shows what is behind blocks.
+// Pixi scene; the hover outline is SVG on top. Authored props fade under the pointer / when placing behind them
+// (propPick editorPropFadeIds). See-through blocks still ghosts every tile block.
 const VIEW = { width: 900, height: 700 }
 const MARGIN = 200
 
@@ -63,6 +70,12 @@ function itemAt(event, map, gridSize) {
   return tile.x >= 0 && tile.y >= 0 && tile.x < map.width && tile.y < map.height ? position : null
 }
 
+// Template Piece tools: snap to the editor guide grid (same as inventory). Tip may sit on the outer rim.
+function templateAt(event, map, gridSize) {
+  const position = templatePieceTargetAt(boardPointOf(event), gridSize)
+  return templatePieceFits(map, position) ? position : null
+}
+
 const sameHover = (a, b) => a?.x === b?.x && a?.y === b?.y
 
 // The placement picture's foot sits on the pointer. The green square stays on the cell a click will fill.
@@ -79,9 +92,12 @@ function seatGhostOnCursor(scene, client) {
   ghost.depth = world.x + world.y + 1000
 }
 
-function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
-  // The same list the editor picks from (mapEdits groundItemSprites), so a click lands on what is drawn.
-  const list = groundItemSprites(map).map((sprite) => ({ ...sprite, hovered: sprite.id === selectedGroundItemId, inReach: true }))
+function groundLootViews(map, selectedGroundItemId, inventoryTool, hover, selectedTemplatePieceId, templateTool, templateHover, templateRotation = 0) {
+  // The same list the editor picks from (mapEdits groundItemSprites / templatePieceSprites), so a click lands on what is drawn.
+  const list = [
+    ...groundItemSprites(map).map((sprite) => ({ ...sprite, hovered: sprite.id === selectedGroundItemId, inReach: true })),
+    ...templatePieceSprites(map).map((sprite) => ({ ...sprite, hovered: sprite.id === selectedTemplatePieceId, inReach: true })),
+  ]
   if (inventoryTool && hover) {
     const probe = placementProbeState(map)
     const def = getItemById(inventoryTool)
@@ -100,6 +116,24 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover) {
         spriteSize: propSpriteSize(def),
         category: def.category,
         depth: (live.depth ?? hover.x + hover.y) + 0.001,
+        hovered: false,
+        inReach: true,
+      })
+    }
+  }
+  if (templateTool && templateHover) {
+    const def = getTemplatePiece(templateTool)
+    if (def) {
+      list.push({
+        id: '__ghost',
+        position: templateHover,
+        z: 0,
+        rotation: templateRotation,
+        worldImage: def.href,
+        spriteSize: def.size,
+        spriteAnchorX: Number.isFinite(def.anchorX) ? def.anchorX : def.size.width / 2,
+        category: def.tags?.includes('wall') ? 'wall' : 'template',
+        depth: templateHover.x + templateHover.y + 1000,
         hovered: false,
         inReach: true,
       })
@@ -157,8 +191,9 @@ function selectionOutlines(map, environment, destructibleId, hazardId, selectedN
 // onPaint(position, { first }): a left press on a tile (first) or dragging onto another tile while held.
 // onPaintEnd(position or null): the left button released after a press on the map, over that tile (null: off the map).
 // onHover(position or null): the tile under the pointer. brush: the tile id being painted, or null (no tile tool).
-// rotated: the brush paints tiles rotated (mapFormat.js rotated). onRightClick(position or null): a right click without
-// dragging, over that tile. selectedMarker: the player start or enemy spawn in its inspector ({ kind, x, y }). selectedObjectId: the
+// rotated: the brush paints tiles rotated (mapFormat.js rotated). onRightClick(position or null, boardPoint or null): a
+// right click without dragging; boardPoint is the pointer in board px (sprite hit for Template Piece / Inventory paint).
+// selectedMarker: the player start or enemy spawn in its inspector ({ kind, x, y }). selectedObjectId: the
 // challenge object in its inspector (challenge objects are drawn as C markers where the map places them). moveFrom: the tile the Move tool is carrying ({ x, y, markers: true when it carries the
 // tile's markers rather than the tile }), or null.
 // lighting: draw contact/cast shadows and the map's darkness. animate: animated tiles play (off: each holds its first
@@ -188,6 +223,10 @@ export default function EditorBoard({
   selectedHazardId = null,
   selectedGroundItemId = null,
   movingGroundItem = false,
+  selectedTemplatePieceId = null,
+  movingTemplatePiece = false,
+  templateTool = null,
+  templateRotation = 0,
   inventoryTool = null,
   moveFrom = null,
   onPaint,
@@ -216,13 +255,42 @@ export default function EditorBoard({
   )
   const centre = project({ x: map.width / 2, y: map.height / 2 })
   const hoverRef = useRef(null)
-  const { camera, dragHandlers } = useCamera(mapBounds(map, MARGIN), VIEW, { key: 'editor', point: centre }, false, () => onRightClick?.(hoverRef.current), true, null, null, false)
+  const boardPointRef = useRef(null)
+  const { camera, dragHandlers } = useCamera(
+    mapBounds(map, MARGIN),
+    VIEW,
+    { key: 'editor', point: centre },
+    false,
+    () => onRightClick?.(hoverRef.current, boardPointRef.current),
+    true,
+    null,
+    null,
+    false,
+  )
   const sceneRef = useRef(null)
   const cursorClientRef = useRef(null)
   const { hostRef, failed } = usePixiScene((host, isCancelled) => startMapScene(host, () => {
     const scene = sceneRef.current
-    seatGhostOnCursor(scene, cursorClientRef.current)
-    return scene
+    if (!scene) return null
+    // Inventory ghosts follow the free cursor; Template Piece ghosts stay on the snapped guide cell.
+    if (scene.groundLoot?.some((item) => item.id === '__ghost' && !item.pieceId && item.spriteAnchorX == null)) {
+      seatGhostOnCursor(scene, cursorClientRef.current)
+    }
+    const loot = scene.groundLoot ?? []
+    const ghost = loot.find((item) => item.id === '__ghost') ?? null
+    const faded = editorPropFadeIds(loot, { boardPoint: boardPointRef.current, ghost })
+    // Placement tip when painting props; otherwise the guide intersection nearest the cursor (grid on).
+    let snap = scene.grid?.placementSnap ?? null
+    if (!snap && scene.grid?.show && boardPointRef.current) {
+      snap = nearestGuideSnap(boardPointRef.current, scene.grid.size)
+    }
+    const grid = { ...scene.grid, snap }
+    if (!faded.size) return { ...scene, grid }
+    return {
+      ...scene,
+      grid,
+      groundLoot: loot.map((item) => (item.id !== '__ghost' && faded.has(item.id) ? { ...item, faded: true } : item)),
+    }
   }, isCancelled))
   const [hover, setHoverState] = useState(null)
   // Only a move onto another cell counts, so the board re-renders once per grid step rather than per pointer move.
@@ -235,7 +303,11 @@ export default function EditorBoard({
   const painting = useRef(false)
   // Moving an item uses the same lid hit as placing one. The floor tile under a raised top is the
   // cell behind it, and that cell rejects a move onto another spot of the surface.
-  const pointerAt = (event) => (inventoryTool || movingGroundItem ? itemAt(event, map, gridSize) : tileAt(event, map, brush))
+  const pointerAt = (event) => {
+    if (inventoryTool || movingGroundItem) return itemAt(event, map, gridSize)
+    if (templateTool || movingTemplatePiece) return templateAt(event, map, gridSize)
+    return tileAt(event, map, brush)
+  }
 
   useEffect(() => {
     const stop = () => {
@@ -318,12 +390,31 @@ export default function EditorBoard({
       : []),
   ]
   const { itemPlacementPreview } = useDisplaySettings()
-  const preview = useMemo(() => (inventoryTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)), [map, hover, brush, rotated, moveFrom, inventoryTool])
-  const surfaces = useMemo(() => (showSurfaces ? surfaceOverlayMarks(map) : null), [map, showSurfaces])
-  const groundLoot = useMemo(
-    () => (layerShown('furniture') ? groundLootViews(map, selectedGroundItemId, inventoryTool, inventoryTool ? hover : null) : []),
-    [map, selectedGroundItemId, inventoryTool, hover, layerShown],
+  const preview = useMemo(
+    () => (inventoryTool || templateTool ? null : tilePreview(map, hover, brush, rotated, moveFrom)),
+    [map, hover, brush, rotated, moveFrom, inventoryTool, templateTool],
   )
+  const surfaces = useMemo(() => (showSurfaces ? surfaceOverlayMarks(map) : null), [map, showSurfaces])
+  const groundLoot = useMemo(() => {
+    const showFurniture = layerShown('furniture')
+    const showWalls = layerShown('walls')
+    if (!showFurniture && !showWalls) return []
+    const full = groundLootViews(
+      map,
+      selectedGroundItemId,
+      showFurniture ? inventoryTool : null,
+      showFurniture && inventoryTool ? hover : null,
+      selectedTemplatePieceId,
+      showWalls ? templateTool : null,
+      showWalls && templateTool ? hover : null,
+      templateRotation,
+    )
+    return full.filter((entry) => {
+      if (entry.id === '__ghost') return true
+      if (entry.pieceId) return showWalls
+      return showFurniture
+    })
+  }, [map, selectedGroundItemId, selectedTemplatePieceId, inventoryTool, templateTool, templateRotation, hover, layerShown])
   // The cell a click would fill, drawn on the board while an inventory item is the tool.
   const itemPlaceMark = useMemo(() => {
     if (!itemPlacementPreview || !inventoryTool || !hover) return null
@@ -347,7 +438,15 @@ export default function EditorBoard({
       groundLoot,
       outlines,
       preview,
-      grid: { show: showGrid, size: gridSize, width: map.width, height: map.height },
+      grid: {
+        show: showGrid,
+        size: gridSize,
+        width: map.width,
+        height: map.height,
+        // Tip the brush will use (Template Piece / Inventory); otherwise the frame loop picks the nearest guide point.
+        placementSnap:
+          (templateTool || inventoryTool || movingTemplatePiece || movingGroundItem) && hover ? hover : null,
+      },
       bounds: { showBounds, showCentre, width: map.width, height: map.height },
       surfaces,
       layerVisibility,
@@ -378,6 +477,7 @@ export default function EditorBoard({
         {...dragHandlers}
         onPointerLeave={() => {
           cursorClientRef.current = null
+          boardPointRef.current = null
           setHover(null)
         }}
       >
@@ -386,14 +486,16 @@ export default function EditorBoard({
           points={outline}
           onPointerDown={(event) => {
             cursorClientRef.current = { x: event.clientX, y: event.clientY }
+            boardPointRef.current = boardPointOf(event)
             const position = event.button === 0 ? pointerAt(event) : null
             if (!position) return
             painting.current = true
             setHover(position)
-            onPaint(position, { first: true, boardPoint: boardPointOf(event) })
+            onPaint(position, { first: true, boardPoint: boardPointRef.current })
           }}
           onPointerMove={(event) => {
             cursorClientRef.current = { x: event.clientX, y: event.clientY }
+            boardPointRef.current = boardPointOf(event)
             const position = pointerAt(event)
             const moved = !sameHover(position, hover)
             setHover(position)
@@ -401,12 +503,13 @@ export default function EditorBoard({
           }}
           onPointerLeave={() => {
             cursorClientRef.current = null
+            boardPointRef.current = null
             setHover(null)
           }}
         />
         <g className="me-overlay">
-          {moveFrom && !inventoryTool && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
-          {hover && !inventoryTool && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
+          {moveFrom && !inventoryTool && !templateTool && <polygon className="me-hover is-move-source" points={pts(diamond(moveFrom))} />}
+          {hover && !inventoryTool && !templateTool && <polygon className={`me-hover${erasesSomething ? ' is-erase' : ''}`} points={pts(diamond(hover))} />}
           {inventoryTool && hover && itemPlaceMark && (
             <polygon className={`me-hover is-place${itemPlaceMark.ok ? '' : ' is-invalid'}`} points={itemPlaceMark.points} />
           )}

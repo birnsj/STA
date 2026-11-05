@@ -30,7 +30,7 @@ export default function EditorPropertiesPanel({
   const sectionsKey = showMap
     ? 'map'
     : boardSelected
-      ? `board:${selection?.npc?.id ?? ''}:${selection?.object?.id ?? ''}:${selection?.destructible?.id ?? ''}:${selection?.hazard?.id ?? ''}:${selection?.groundItem?.id ?? ''}:${selection?.marker?.kind ?? ''}:${selection?.marker?.label ?? ''}`
+      ? `board:${selection?.npc?.id ?? ''}:${selection?.object?.id ?? ''}:${selection?.destructible?.id ?? ''}:${selection?.hazard?.id ?? ''}:${selection?.groundItem?.id ?? ''}:${selection?.templatePiece?.id ?? ''}:${selection?.marker?.kind ?? ''}:${selection?.marker?.label ?? ''}`
       : `asset:${tool ?? ''}`
 
   return (

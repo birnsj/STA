@@ -76,13 +76,16 @@ The frames are baked by `scripts/makeTileFrames.mjs` from the tile's own art and
 
 Map rotation (tiles turned with the editor's right click) is described in `src/maps/mapFormat.js`.
 
+- **Template Pieces** (modular overlays, not tiles): catalogue `src/data/adaptation/maps/templatePieces.json`, art under `public/art/sprites/environment/templates/` (generator `scripts/makeTemplatePieces.mjs` + `scripts/v2/templateDraw.mjs` / `templateWallFaces.mjs` / `templateStarshipProps.mjs`). **Overlay duplicate of the Starship & Station palette**: 32-thick walls (plain / window / fittings / long / corner), half bulkheads (8 thick), floors (deck / doorway / grating), props (machinery / crate / epsControl). Does **not** change Generate Map, `makeTilesV2`, or halfWalls generation. Map field `templatePiecePlacements` stores `{ id, pieceId, position, rotation?, scale?, order }`. Catalogue `anchorX` is the south-tip X in the PNG so asymmetric walls sit on the snap point. Tips snap to the editor guide grid. Paste overwrites a Template Piece on the same tip or under the pointer (neighbours beside it stay). Rotation is 90° only (R). Visual only for pathing/sight (underlay tiles). Placing an overlay never writes `tiles` / `stackOver`. Drawn via `GroundLootView` (editor + exploration).
+
 - **Calibration** (`calFloor` through `calShelf`, palette section Calibration): a development-only tileset for the Object Systems Regression map (`maps/Object Systems Regression.json`). Flat colours and reference marks, same 64×32 diamond and 4× file scale as the rest of the catalogue. `height` is the authored physical height; `imageHeight` is only the picture (the 92-tall wall and block use a 128-tall picture, the same split as Bulkhead). The existing Null tile is listed in the Floors group so the boundary cell can be painted; it is still the authoring Null (`ġ`), not a second empty tile. Footprints smaller than a tile, and the selection fixtures, are calibration items (`category: calibration` in `items.json`), not tiles. They are left out of the starting loadout. Square ones are drawn so the measured stack size matches the label. `stackSizeOf` still derives item size from the opaque picture and forces a square footprint, so Cal Wide Low and Cal Irregular do not keep a non-square footprint. One cell has one support height; a multi-level stack is `stackOver` (capped at 3 extra props). The Furniture group is mock scenery (chair, stool, bench, bed, console, locker, shelf): the authored height is the usable top (seat, mattress, desktop, or top shelf), and a taller back or screen is only drawn. Art: `scripts/makeCalibration.mjs`.
 
 ## Where the behaviour lives
 
 | Concern | Code |
 |---|---|
-| Loading, symbols, rotation, ambient / ambientColour, stackOver, placement `on` | `src/maps/mapFormat.js` |
+| Loading, symbols, rotation, ambient / ambientColour, stackOver, placement `on`, template pieces | `src/maps/mapFormat.js` |
+| Template Pieces | Catalogue `templatePieces.json`; art `scripts/makeTemplatePieces.mjs`; placements in `mapFormat.js` / `mapEdits.js`; draw via `GroundLootView` (editor + exploration) |
 | Support surfaces / elevated drops | `src/rules/placement.js`; tile `surface` in this catalogue |
 | Tile glows, flipbooks, darkness spill, emissive | `src/maps/tileArt.js`, `src/data/adaptation/maps/tileEffects.json` |
 | Character foot-shadow direction | `src/maps/mapShadows.js` |

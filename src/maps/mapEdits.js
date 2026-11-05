@@ -24,9 +24,11 @@ import {
   HAZARD_TEXT_OVERRIDES,
   isEmptyTile,
   isRotated,
+  normalizeTemplateRotation,
   NULL_TILE,
   resizeMap as resizeMapGeometry,
 } from './mapFormat.js'
+import { getTemplatePiece } from './templatePieces.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
@@ -131,6 +133,8 @@ export function popStackOver(map, position) {
 // rotated: the tile is painted turned (mapFormat.js rotated).
 // When painting a wall or prop over a floor/Null cell, the previous id is stored in floorUnder so erase can restore it.
 // Painting a prop onto a cell that already has a support surface appends to stackOver instead of replacing the base.
+// Walls / furniture do not replace another tile on the same editor layer (erase first). Ground may still overwrite ground.
+// Same catalogue id with a new rotation is allowed (reorient in place).
 export function paintTile(map, { x, y }, tileId, rotated = false, objectDefinitions = []) {
   const previousId = map.tiles[y][x]
   const previous = getTile(previousId)
@@ -144,6 +148,9 @@ export function paintTile(map, { x, y }, tileId, rotated = false, objectDefiniti
     if (stackOverOf(map)[cellKey({ x, y })]?.length) return map
   }
   if (map.tiles[y][x] === tileId && isRotated(map, { x, y }) === rotated) return map
+  const previousLayer = layerOfTile(previousId)
+  const nextLayer = layerOfTile(tileId)
+  if (previousLayer === nextLayer && previousLayer !== 'ground' && previousId !== tileId) return map
   if (next.solid) {
     const blockers = dependentsAt(map, { x, y }, objectDefinitions).filter((entry) => entry.kind !== 'prop' && entry.kind !== 'object')
     if (blockers.length) return map
@@ -354,6 +361,10 @@ export function selectionCandidates(map, objectDefinitions, position, { cellPx =
   // only for callers with no pointer position.
   const groundItem = boardPoint ? groundItemAtBoard(map, boardPoint, pickOptions) : groundItemAt(map, position, { cellPx })
   if (groundItem) candidates.push({ kind: 'groundItem', layer: layerOfSelection('groundItem'), groundItem })
+  const templatePiece = boardPoint
+    ? templatePieceAtBoard(map, boardPoint)
+    : templatePieceAt(map, position, { cellPx })
+  if (templatePiece) candidates.push({ kind: 'templatePiece', layer: layerOfSelection('templatePiece'), templatePiece })
   const area = areaAt(map, position)
   if (area) candidates.push({ kind: 'area', layer: layerOfSelection('area'), area })
   const objective = (map.objectives ?? []).find((entry) => entry.position && same(entry.position, position))
@@ -1055,3 +1066,133 @@ export function updateHazard(map, id, { intensity, ...overrides } = {}) {
 }
 
 export const removeHazard = (map, id) => ({ ...map, hazards: (map.hazards ?? []).filter((region) => region.id !== id) })
+
+// ---------- Template Pieces (mapFormat.js templatePiecePlacements; visual overlays on deck underlay) ----------
+
+export function sortTemplatePiecePlacements(list) {
+  return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+}
+
+function nextTemplateOrder(map) {
+  const list = map.templatePiecePlacements ?? []
+  if (!list.length) return 0
+  return Math.max(...list.map((entry) => entry.order ?? 0)) + 1
+}
+
+// Default snap matches a half-tile wall module; the editor passes the guide grid size so tips follow that grid.
+export const TEMPLATE_PIECE_CELL_PX = 32
+
+export function snapTemplatePiecePosition(point, cellPx = TEMPLATE_PIECE_CELL_PX) {
+  const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
+  return snapItemPosition(point, size)
+}
+
+export function templatePieceTargetAt(boardPoint, cellPx = TEMPLATE_PIECE_CELL_PX) {
+  return snapTemplatePiecePosition(unproject(boardPoint), cellPx)
+}
+
+// Tip may sit on the outer rim (x/y === width/height). Content runs into −X/−Y from the tip, so that edges the map.
+export const templatePieceFits = (map, position) =>
+  position.x >= 0 && position.y >= 0 && position.x <= map.width && position.y <= map.height
+
+export function templatePieceAt(map, position, { excludeId = null, cellPx = TEMPLATE_PIECE_CELL_PX } = {}) {
+  const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
+  const key = itemGridKey(position, size)
+  return (
+    (map.templatePiecePlacements ?? []).find((entry) => {
+      if (excludeId && entry.id === excludeId) return false
+      return itemGridKey(entry.position, size) === key
+    }) ?? null
+  )
+}
+
+export function templatePieceSprites(map) {
+  return sortTemplatePiecePlacements(map.templatePiecePlacements ?? []).flatMap((entry) => {
+    const def = getTemplatePiece(entry.pieceId)
+    if (!def) return []
+    const depth = entry.position.x + entry.position.y + (entry.order ?? 0) * 0.001
+    return [
+      {
+        id: entry.id,
+        pieceId: entry.pieceId,
+        position: entry.position,
+        z: 0,
+        rotation: entry.rotation ?? 0,
+        scale: entry.scale ?? 1,
+        order: entry.order ?? 0,
+        worldImage: def.href,
+        spriteSize: def.size,
+        // South tip in the PNG (design px). Required for non-square walls so the tip sits on the snap point.
+        spriteAnchorX: Number.isFinite(def.anchorX) ? def.anchorX : def.size.width / 2,
+        depth,
+        category: def.tags?.includes('wall') ? 'wall' : 'template',
+      },
+    ]
+  })
+}
+
+export function templatePieceAtBoard(map, boardPoint) {
+  return pickProp(templatePieceSprites(map), boardPoint)
+}
+
+export function placeTemplatePiece(map, position, pieceId, cellPx = TEMPLATE_PIECE_CELL_PX, { rotation = 0, replaceIds = null } = {}) {
+  if (!getTemplatePiece(pieceId)) return null
+  const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
+  const snapped = snapTemplatePiecePosition(position, size)
+  if (!templatePieceFits(map, snapped)) return null
+  const rot = normalizeTemplateRotation(rotation)
+  const replace = new Set(replaceIds ?? [])
+  // Overwrite only the same tip or the sprite under the pointer — not neighbours that merely share a footprint edge.
+  const tipKey = itemGridKey(snapped, size)
+  let list = (map.templatePiecePlacements ?? []).filter((entry) => {
+    if (replace.has(entry.id)) return false
+    if (itemGridKey(entry.position, size) === tipKey) return false
+    return true
+  })
+  const object = {
+    id: freeId(pieceId, new Set(list.map((entry) => entry.id))),
+    pieceId,
+    position: snapped,
+    rotation: rot,
+    scale: 1,
+    order: nextTemplateOrder({ ...map, templatePiecePlacements: list }),
+  }
+  list = sortTemplatePiecePlacements([...list, object])
+  return { map: { ...map, templatePiecePlacements: list }, object }
+}
+
+export function moveTemplatePiece(map, id, position, cellPx = TEMPLATE_PIECE_CELL_PX) {
+  const object = (map.templatePiecePlacements ?? []).find((entry) => entry.id === id)
+  if (!object) return map
+  const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
+  const snapped = snapTemplatePiecePosition(position, size)
+  if (!templatePieceFits(map, snapped)) return map
+  const tipKey = itemGridKey(snapped, size)
+  const list = (map.templatePiecePlacements ?? [])
+    .filter((entry) => entry.id === id || itemGridKey(entry.position, size) !== tipKey)
+    .map((entry) => (entry.id === id ? { ...entry, position: snapped } : entry))
+  return {
+    ...map,
+    templatePiecePlacements: sortTemplatePiecePlacements(list),
+  }
+}
+
+export function updateTemplatePiece(map, id, changes) {
+  return {
+    ...map,
+    templatePiecePlacements: sortTemplatePiecePlacements(
+      (map.templatePiecePlacements ?? []).map((entry) => {
+        if (entry.id !== id) return entry
+        const next = { ...entry, ...changes, scale: 1 }
+        next.rotation = normalizeTemplateRotation(next.rotation)
+        if (!Number.isFinite(next.order) || next.order < 0) next.order = entry.order ?? 0
+        return next
+      }),
+    ),
+  }
+}
+
+export const removeTemplatePiece = (map, id) => ({
+  ...map,
+  templatePiecePlacements: (map.templatePiecePlacements ?? []).filter((entry) => entry.id !== id),
+})

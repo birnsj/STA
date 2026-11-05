@@ -3,7 +3,7 @@
 // The Pixi board (GroundLootView) and the picker below share spriteGeometry/spriteHref, so the pixels the player sees
 // and the pixels that answer a click cannot drift apart. The board sorts props by `depth` (container.zIndex); ties keep
 // the order they were added in, which is the order of the list the board is given. drawOrder reproduces exactly that.
-import { propImageBox } from './iso.js'
+import { project, propImageBox } from './iso.js'
 import { getTile, TILE_IMAGE } from './mapFormat.js'
 
 // Alpha (0-255) a pixel must exceed to take a click. Low enough that soft anti-aliased edges still count, high enough
@@ -16,13 +16,42 @@ export const BOUNDS_ALPHA_MASK = Symbol('bounds-alpha-mask')
 // The art a prop is drawn with: its own world picture, else its tile's picture, else the crate.
 export const spriteHref = (object) => object.worldImage || getTile(object.worldTile ?? 'crate')?.image || getTile('crate')?.image || null
 
-// The sprite's size, its world lift and the box it covers on the board (board px, origin at the bottom corner of the iso
-// graphic, raised by z). object: { position, z?, spriteSize? }. Size is the picture's design pixels; there is no per-item scale.
+// The sprite's size, its world lift and the box it covers on the board (board px, origin at the south tip of the
+// footprint, raised by z). object: { position, z?, spriteSize?, spriteAnchorX?, rotation? }. Size is the picture's
+// design pixels; there is no per-item scale. rotation is degrees around the south tip (Template Pieces).
 export function spriteGeometry(object) {
   const size = object.spriteSize ?? { width: TILE_IMAGE.width, height: TILE_IMAGE.height }
+  const pivotX = Number.isFinite(object.spriteAnchorX) ? object.spriteAnchorX : size.width / 2
   const z = Math.max(0, Number(object.z) || 0)
-  const base = propImageBox(object.position, size)
-  return { size, z, box: z ? { ...base, y: base.y - z } : base }
+  const rotation = Number(object.rotation) || 0
+  const base = propImageBox(object.position, size, pivotX)
+  const box = z ? { ...base, y: base.y - z } : base
+  return {
+    size,
+    z,
+    rotation,
+    box,
+    pivotX,
+    pivotFracX: pivotX / Math.max(1, size.width),
+    // World position of the south tip — Pixi and rotation both pivot here.
+    anchor: { x: box.x + pivotX, y: box.y + box.height },
+  }
+}
+
+// Map a board point into unrotated picture UVs (0-1). Rotation is around the south-tip footprint.
+export function spriteLocalUv(object, point) {
+  const { size, box, rotation, anchor, pivotX } = spriteGeometry(object)
+  if (!rotation) {
+    return { u: (point.x - box.x) / size.width, v: (point.y - box.y) / size.height }
+  }
+  const rad = (-rotation * Math.PI) / 180
+  const cos = Math.cos(rad)
+  const sin = Math.sin(rad)
+  const dx = point.x - anchor.x
+  const dy = point.y - anchor.y
+  const lx = dx * cos - dy * sin
+  const ly = dx * sin + dy * cos
+  return { u: (lx + pivotX) / size.width, v: (ly + size.height) / size.height }
 }
 
 // Back to front, as the board draws them.
@@ -65,9 +94,7 @@ export function pickProp(objects, point, { maskOf = (href) => maskSource(href), 
   const ordered = drawOrder(objects)
   for (let i = ordered.length - 1; i >= 0; i--) {
     const object = ordered[i]
-    const { box } = spriteGeometry(object)
-    const u = (point.x - box.x) / box.width
-    const v = (point.y - box.y) / box.height
+    const { u, v } = spriteLocalUv(object, point)
     if (u < 0 || v < 0 || u >= 1 || v >= 1) continue
     // The box is the broad phase. Only an opaque pixel of the art takes the click; a picture that has not loaded yet
     // (or failed) is skipped, so it cannot hide the sprite behind it. An unreadable loaded picture uses its bounds.
@@ -76,4 +103,44 @@ export function pickProp(objects, point, { maskOf = (href) => maskSource(href), 
     if (mask && alphaAt(mask, u, v) > threshold) return object
   }
   return null
+}
+
+const depthOf = (object) => object.depth ?? object.position.x + object.position.y
+
+const boxesOverlap = (a, b, pad = 0) =>
+  a.x - pad < b.x + b.width && a.x + a.width + pad > b.x && a.y - pad < b.y + b.height && a.y + a.height + pad > b.y
+
+// A placed prop sits in front of the ghost tip and covers it on screen (pixel hit or padded sprite boxes).
+function obscuresGhost(object, ghost) {
+  const ghostDepth = ghost.position.x + ghost.position.y
+  if (depthOf(object) <= ghostDepth) return false
+  const ghostGeo = spriteGeometry(ghost)
+  const objectBox = spriteGeometry(object).box
+  const samples = [
+    project(ghost.position),
+    ghostGeo.anchor,
+    { x: ghostGeo.box.x + ghostGeo.box.width * 0.5, y: ghostGeo.box.y + ghostGeo.box.height * 0.55 },
+  ]
+  for (const point of samples) {
+    if (pickProp([object], point)) return true
+  }
+  // Tall walls often miss a tight AABB against a small prop tip; a little pad still only fades front pieces.
+  return boxesOverlap(objectBox, ghostGeo.box, 20)
+}
+
+// Editor cutaway for authored props (Template Pieces / inventory): ids that should draw see-through while the pointer
+// is over them, or while a placement ghost sits behind them (ghost draw-depth may be bumped so it paints on top).
+export function editorPropFadeIds(objects, { boardPoint = null, ghost = null } = {}) {
+  const ids = new Set()
+  const placed = objects.filter((entry) => entry.id !== '__ghost')
+  if (boardPoint) {
+    const hit = pickProp(placed, boardPoint)
+    if (hit) ids.add(hit.id)
+  }
+  if (!ghost?.position) return ids
+  for (const object of placed) {
+    if (ids.has(object.id)) continue
+    if (obscuresGhost(object, ghost)) ids.add(object.id)
+  }
+  return ids
 }

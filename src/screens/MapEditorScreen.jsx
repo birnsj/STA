@@ -419,6 +419,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     onToggleGroundItemMove: tools.toggleGroundItemMove,
     onDuplicateGroundItem: tools.duplicateGroundItem,
     onGroundItemCleared: tools.clearGroundItem,
+    templatePieceMoving: tools.movingTemplatePiece,
+    onToggleTemplatePieceMove: tools.toggleTemplatePieceMove,
+    onTemplatePieceCleared: tools.clearTemplatePiece,
     onHazardCleared: tools.clearHazard,
     editingPatrol: tools.editingPatrol,
     movingWaypoint: tools.movingWaypoint,
@@ -515,6 +518,10 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
             selectedHazardId={tools.selectedHazardId}
             selectedGroundItemId={tools.selectedGroundItemId}
             movingGroundItem={tools.movingGroundItem}
+            selectedTemplatePieceId={tools.selectedTemplatePieceId}
+            movingTemplatePiece={tools.movingTemplatePiece}
+            templateTool={tool?.startsWith('template:') ? tool.slice('template:'.length) : null}
+            templateRotation={tools.templateRotation}
             inventoryTool={tool?.startsWith('inventory:') ? tool.slice('inventory:'.length) : null}
             moveFrom={tools.moveFrom}
             onPaint={boardBlocked ? undefined : tools.onPaint}

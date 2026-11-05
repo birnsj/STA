@@ -11,8 +11,28 @@ import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 const MARKER_FILLS = { player: 0x3fb6e8, enemy: 0xe5483a, npc: 0xb07ee8, objective: 0xe0a800, object: 0x1fa59a, patrol: 0xe8c44a }
 // Guide grid over the floor (world pixels; 64 = one tile). Drawn under markers so figures stay readable.
 const GRID_STROKE = { color: 0xb7dde4, width: 1, alpha: 0.45 }
+const GRID_SNAP_FILL = { color: 0xff2a3a, alpha: 0.95 }
+const GRID_SNAP_STROKE = { color: 0xff6a75, width: 1.5, alpha: 1 }
 const HIGHLIGHT = 0xffb347
 const OUTLINE = 0x03060e
+
+// Guide-line origin matching EditorGridView (tile edges at −0.5 for coarse 64+ steps).
+function guideOrigin(step) {
+  return Math.abs(0.5 / step - Math.round(0.5 / step)) > 1e-9 ? -0.5 : 0
+}
+
+// Nearest guide intersection to a board (SVG) point, for the red snap cursor.
+export function nearestGuideSnap(boardPoint, cellPx) {
+  const size = Number(cellPx) > 0 ? Number(cellPx) : TILE_W
+  const step = size / TILE_W
+  if (!(step > 0) || !boardPoint) return null
+  const origin = guideOrigin(step)
+  const tile = unproject(boardPoint)
+  return {
+    x: origin + Math.round((tile.x - origin) / step) * step,
+    y: origin + Math.round((tile.y - origin) / step) * step,
+  }
+}
 // Erase Marker: what a click would remove pulses between full and this opacity, 0.8 s each way.
 const DOOMED_MS = 800
 const DOOMED_LOW = 0.45
@@ -87,8 +107,11 @@ export class EditorMarkerView {
 export class EditorGridView {
   constructor(layer) {
     this.graphics = new Graphics()
+    this.snapMark = new Graphics()
     layer.addChild(this.graphics)
+    layer.addChild(this.snapMark)
     this.drawn = null
+    this.snapKey = null
   }
 
   update(board, view = null) {
@@ -108,51 +131,67 @@ export class EditorGridView {
           ].join(',')
         : 'map'
     const key = show ? `${size},${width},${height},${viewKey}` : 'off'
-    if (key === this.drawn) return
-    this.drawn = key
-    this.graphics.clear()
-    if (!show || size <= 0 || width <= 0 || height <= 0 || !(step > 0)) return
-    // Default: map floor diamonds on [-0.5, width-0.5] × [-0.5, height-0.5]. Prefer the visible camera so the grid
-    // fills the window (including margin past the map).
-    let xMin = -0.5
-    let yMin = -0.5
-    let xMax = width - 0.5
-    let yMax = height - 0.5
-    if (view?.width > 0 && view?.height > 0) {
-      const corners = [
-        unproject({ x: view.x, y: view.y }),
-        unproject({ x: view.x + view.width, y: view.y }),
-        unproject({ x: view.x, y: view.y + view.height }),
-        unproject({ x: view.x + view.width, y: view.y + view.height }),
-      ]
-      xMin = Math.min(...corners.map((c) => c.x))
-      yMin = Math.min(...corners.map((c) => c.y))
-      xMax = Math.max(...corners.map((c) => c.x))
-      yMax = Math.max(...corners.map((c) => c.y))
+    if (key !== this.drawn) {
+      this.drawn = key
+      this.graphics.clear()
+      if (show && size > 0 && width > 0 && height > 0 && step > 0) {
+        // Default: map floor diamonds on [-0.5, width-0.5] × [-0.5, height-0.5]. Prefer the visible camera so the grid
+        // fills the window (including margin past the map).
+        let xMin = -0.5
+        let yMin = -0.5
+        let xMax = width - 0.5
+        let yMax = height - 0.5
+        if (view?.width > 0 && view?.height > 0) {
+          const corners = [
+            unproject({ x: view.x, y: view.y }),
+            unproject({ x: view.x + view.width, y: view.y }),
+            unproject({ x: view.x, y: view.y + view.height }),
+            unproject({ x: view.x + view.width, y: view.y + view.height }),
+          ]
+          xMin = Math.min(...corners.map((c) => c.x))
+          yMin = Math.min(...corners.map((c) => c.y))
+          xMax = Math.max(...corners.map((c) => c.x))
+          yMax = Math.max(...corners.map((c) => c.y))
+        }
+        const origin = guideOrigin(step)
+        const i0 = Math.ceil((xMin - origin) / step - 1e-9)
+        const i1 = Math.floor((xMax - origin) / step + 1e-9)
+        const j0 = Math.ceil((yMin - origin) / step - 1e-9)
+        const j1 = Math.floor((yMax - origin) / step + 1e-9)
+        const line = (ax, ay, bx, by) => {
+          const a = project({ x: ax, y: ay })
+          const b = project({ x: bx, y: by })
+          this.graphics.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke(GRID_STROKE)
+        }
+        for (let i = i0; i <= i1; i++) {
+          const x = origin + i * step
+          line(x, yMin, x, yMax)
+        }
+        for (let j = j0; j <= j1; j++) {
+          const y = origin + j * step
+          line(xMin, y, xMax, y)
+        }
+      }
     }
-    // When step does not land on tile edges (64 / 128 / 256), shift so lines share −0.5 with the map boundary.
-    const origin = Math.abs(0.5 / step - Math.round(0.5 / step)) > 1e-9 ? -0.5 : 0
-    const i0 = Math.ceil((xMin - origin) / step - 1e-9)
-    const i1 = Math.floor((xMax - origin) / step + 1e-9)
-    const j0 = Math.ceil((yMin - origin) / step - 1e-9)
-    const j1 = Math.floor((yMax - origin) / step + 1e-9)
-    const line = (ax, ay, bx, by) => {
-      const a = project({ x: ax, y: ay })
-      const b = project({ x: bx, y: by })
-      this.graphics.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke(GRID_STROKE)
-    }
-    for (let i = i0; i <= i1; i++) {
-      const x = origin + i * step
-      line(x, yMin, x, yMax)
-    }
-    for (let j = j0; j <= j1; j++) {
-      const y = origin + j * step
-      line(xMin, y, xMax, y)
+
+    // Red mark on the snap / guide point closest to the cursor (board.snap in tile space).
+    const snap = board?.snap
+    const snapKey = snap && Number.isFinite(snap.x) && Number.isFinite(snap.y) ? `${snap.x},${snap.y}` : 'off'
+    if (snapKey !== this.snapKey) {
+      this.snapKey = snapKey
+      this.snapMark.clear()
+      if (snap) {
+        const p = project(snap)
+        this.snapMark.circle(p.x, p.y, 4).fill(GRID_SNAP_FILL)
+        this.snapMark.moveTo(p.x - 7, p.y).lineTo(p.x + 7, p.y).stroke(GRID_SNAP_STROKE)
+        this.snapMark.moveTo(p.x, p.y - 7).lineTo(p.x, p.y + 7).stroke(GRID_SNAP_STROKE)
+      }
     }
   }
 
   destroy() {
     this.graphics.destroy()
+    this.snapMark.destroy()
   }
 }
 

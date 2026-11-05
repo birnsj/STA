@@ -36,7 +36,7 @@ export default function EditorGridOptions({
         <input type="checkbox" checked={showCentre} onChange={(event) => onShowCentre?.(event.target.checked)} />
         Show map centre
       </label>
-      <p className="me-text">Spacing in world pixels. Ground items snap to this size (64 = one tile; 8 = fine item grid).</p>
+      <p className="me-text">Spacing in world pixels. Ground items and Template Pieces snap to this size (64 = one tile; 8 = fine item grid).</p>
       <label className="me-field">
         Grid size
         <EditorSelect className="me-select me-wide" value={gridSize} onChange={(event) => onGridSize(Number(event.target.value))}>

@@ -182,6 +182,27 @@ describe('resizeMap support integrity', () => {
   })
 })
 
+describe('same-layer paint', () => {
+  it('refuses wall-over-wall and furniture-over-furniture overwrite', () => {
+    let map = paintTile(blank(), { x: 2, y: 2 }, 'bulkhead')
+    assert.equal(paintTile(map, { x: 2, y: 2 }, 'plainBulkhead'), map)
+    assert.equal(map.tiles[2][2], 'bulkhead')
+
+    // machinery has no support surface, so a second furniture tile must not replace it (stacking is separate).
+    map = paintTile(blank(), { x: 1, y: 1 }, 'machinery')
+    assert.equal(paintTile(map, { x: 1, y: 1 }, 'epsControl'), map)
+    assert.equal(map.tiles[1][1], 'machinery')
+  })
+
+  it('still paints a wall onto floor and allows reorienting the same wall', () => {
+    let map = paintTile(blank(), { x: 2, y: 2 }, 'bulkhead', false)
+    assert.equal(map.tiles[2][2], 'bulkhead')
+    map = paintTile(map, { x: 2, y: 2 }, 'bulkhead', true)
+    assert.equal(map.tiles[2][2], 'bulkhead')
+    assert.equal(map.rotated[2][2], true)
+  })
+})
+
 describe('stack painting', () => {
   it('does not replace the base or erase the tower when the stack is full', () => {
     let map = paintTile(blank(), { x: 2, y: 2 }, 'crate')

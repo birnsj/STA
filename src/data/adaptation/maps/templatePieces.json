@@ -1,0 +1,451 @@
+{
+  "notes": [
+    "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props).",
+    "Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.",
+    "Does not change Generate Map, makeTilesV2, or halfWalls generation.",
+    "Walls 32 thick (64 / 128 run); half bulkheads 8 thick; floors 64×64 slabs; props match tile heights.",
+    "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer. R rotates 90°. Art via scripts/makeTemplatePieces.mjs"
+  ],
+  "pieces": [
+    {
+      "id": "tplStarshipWall32",
+      "label": "Bulkhead (No Windows) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipWall32Window",
+      "label": "Bulkhead (Windows) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Window.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "window",
+        "bulkhead"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "window"
+    },
+    {
+      "id": "tplStarshipWall32Lcars",
+      "label": "LCARS Wall 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Lcars.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "lcars",
+        "lcarsWall"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "lcars"
+    },
+    {
+      "id": "tplStarshipWall32Conduit",
+      "label": "EPS Conduit Wall 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Conduit.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "conduit",
+        "conduitWall"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "conduit"
+    },
+    {
+      "id": "tplStarshipWall32Hatch",
+      "label": "Jefferies Hatch Wall 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Hatch.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "hatch",
+        "hatchWall"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "hatch"
+    },
+    {
+      "id": "tplStarshipWall32Computer",
+      "label": "Computer Bank Wall 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Computer.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "computer",
+        "computerWall"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "computer"
+    },
+    {
+      "id": "tplStarshipWall32Corner",
+      "label": "Bulkhead Corner 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Corner.png",
+      "size": {
+        "width": 34,
+        "height": 109
+      },
+      "anchorX": 17,
+      "tags": [
+        "wall",
+        "starship",
+        "corner",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipWall32LcarsLong",
+      "label": "LCARS Wall (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32LcarsLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "lcars",
+        "lcarsPanel",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "lcars"
+    },
+    {
+      "id": "tplStarshipWall32ConduitLong",
+      "label": "EPS Conduit Wall (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32ConduitLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "conduit",
+        "conduitPanel",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "conduit"
+    },
+    {
+      "id": "tplStarshipWall32HatchLong",
+      "label": "Jefferies Hatch Wall (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32HatchLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "hatch",
+        "hatchPanel",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "hatch"
+    },
+    {
+      "id": "tplStarshipWall32ComputerLong",
+      "label": "Computer Bank Wall (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32ComputerLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "computer",
+        "computerPanel",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "face": "computer"
+    },
+    {
+      "id": "tplStarshipHalfBulkhead",
+      "label": "Half Bulkhead",
+      "href": "/art/sprites/environment/templates/tplStarshipHalfBulkhead.png",
+      "size": {
+        "width": 37,
+        "height": 111
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "halfBulkhead",
+        "thick8"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 8
+      },
+      "height": 92,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipHalfBulkheadCorner",
+      "label": "Half Bulkhead Corner",
+      "href": "/art/sprites/environment/templates/tplStarshipHalfBulkheadCorner.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "tags": [
+        "wall",
+        "starship",
+        "corner",
+        "halfBulkhead",
+        "thick8"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipFloor",
+      "label": "Deck Plating",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor.png",
+      "size": {
+        "width": 64,
+        "height": 35
+      },
+      "anchorX": 32,
+      "tags": [
+        "floor",
+        "starship",
+        "floor"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 3,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipDoorway",
+      "label": "Doorway",
+      "href": "/art/sprites/environment/templates/tplStarshipDoorway.png",
+      "size": {
+        "width": 64,
+        "height": 35
+      },
+      "anchorX": 32,
+      "tags": [
+        "floor",
+        "starship",
+        "doorway"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 3,
+      "material": "doorway"
+    },
+    {
+      "id": "tplStarshipGrating",
+      "label": "EPS Grating",
+      "href": "/art/sprites/environment/templates/tplStarshipGrating.png",
+      "size": {
+        "width": 64,
+        "height": 35
+      },
+      "anchorX": 32,
+      "tags": [
+        "floor",
+        "starship",
+        "grating"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 3,
+      "material": "grating"
+    },
+    {
+      "id": "tplStarshipMachinery",
+      "label": "Machinery",
+      "href": "/art/sprites/environment/templates/tplStarshipMachinery.png",
+      "size": {
+        "width": 64,
+        "height": 72
+      },
+      "anchorX": 32,
+      "tags": [
+        "prop",
+        "starship",
+        "machinery"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 40,
+      "material": "machinery"
+    },
+    {
+      "id": "tplStarshipCrate",
+      "label": "Crate / Low Console",
+      "href": "/art/sprites/environment/templates/tplStarshipCrate.png",
+      "size": {
+        "width": 64,
+        "height": 48
+      },
+      "anchorX": 32,
+      "tags": [
+        "prop",
+        "starship",
+        "crate"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 16,
+      "material": "crate"
+    },
+    {
+      "id": "tplStarshipEpsControl",
+      "label": "EPS Conduit Control",
+      "href": "/art/sprites/environment/templates/tplStarshipEpsControl.png",
+      "size": {
+        "width": 64,
+        "height": 54
+      },
+      "anchorX": 32,
+      "tags": [
+        "prop",
+        "starship",
+        "epsControl"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 22,
+      "material": "epsControl"
+    }
+  ]
+}

@@ -11,11 +11,13 @@ import {
 } from '../../maps/tileArt.js'
 import { tileSpriteInfo } from '../../maps/tileSpriteInfo.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
+import { getTemplatePiece } from '../../maps/templatePieces.js'
 import ItemSummary, { ItemStatSection } from './ItemSummary.jsx'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import { MARKER_HELP, parseTool } from './editorSelection.js'
 import { PropertySection } from './PropertySections.jsx'
+import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Properties for the Assets catalogue selection (active tool): large preview, sprite details, editable tile flags.
@@ -446,6 +448,33 @@ export default function AssetProperties({
           <ItemSummary itemId={asset.id} onStatus={onStatus} footer={<p className="me-text">Click the board to place this item on the ground.</p>} />
         </PropertySection>
         <ItemStatSection itemId={asset.id} />
+      </div>
+    )
+  }
+
+  if (asset.kind === 'template') {
+    const piece = getTemplatePiece(asset.id)
+    return (
+      <div className="ed-asset-props">
+        <PropertySection id="template" title="Template Piece">
+          <div className="ed-asset-preview">
+            {piece?.href ? (
+              <img className="ed-asset-preview-art" src={piece.href} alt="" />
+            ) : (
+              piece && <TemplatePieceThumbnail piece={piece} className="ed-asset-preview-art" large />
+            )}
+          </div>
+          <p className="ed-asset-name">{piece?.label ?? asset.id}</p>
+          <PropRows
+            rows={[
+              ['Id', asset.id],
+              ['Footprint', piece?.footprint ? `${piece.footprint.width}×${piece.footprint.depth}` : null],
+              ['Height', piece?.height != null ? String(piece.height) : null],
+              ['Tags', piece?.tags?.join(', ') ?? null],
+            ]}
+          />
+          <p className="me-text">Click the board to place this overlay. R rotates 90°. Visual only — underlay tiles still control pathing and sight.</p>
+        </PropertySection>
       </div>
     )
   }

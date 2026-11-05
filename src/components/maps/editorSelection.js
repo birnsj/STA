@@ -16,6 +16,7 @@ export function parseTool(tool) {
   if (tool.startsWith('tile:')) return { kind: 'tile', id: tool.slice('tile:'.length) }
   if (tool.startsWith('destructible:')) return { kind: 'destructible', id: tool.slice('destructible:'.length) }
   if (tool.startsWith('inventory:')) return { kind: 'item', id: tool.slice('inventory:'.length) }
+  if (tool.startsWith('template:')) return { kind: 'template', id: tool.slice('template:'.length) }
   if (tool.startsWith('hazard:')) return { kind: 'hazard', id: tool.slice('hazard:'.length) }
   if (tool === 'hazardErase') return { kind: 'hazardErase' }
   if (MARKER_HELP[tool]) return { kind: 'marker', id: tool }
@@ -31,6 +32,7 @@ export function hasBoardSelection(selection) {
       selection?.marker ||
       selection?.destructible ||
       selection?.hazard ||
-      selection?.groundItem,
+      selection?.groundItem ||
+      selection?.templatePiece,
   )
 }

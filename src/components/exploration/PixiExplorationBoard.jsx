@@ -6,6 +6,7 @@ import { getEntityKnowledge, isVisibleToParty, KNOWLEDGE } from '../../explorati
 import { fadeWholeBigObjects } from '../../maps/bigObjects.js'
 import { figureShapes, pickAt, rectOnGround } from '../../maps/boardHitTest.js'
 import { footprintDiamond, project, pts, TILE_H, TILE_W, unproject } from '../../maps/iso.js'
+import { templatePieceSprites } from '../../maps/mapEdits.js'
 import '../maps/alphaMasks.js'
 import { canPlaceAt, resolveItem } from '../../rules/inventory.js'
 import { stackFootprint, stackSizeOf } from '../../rules/placement.js'
@@ -356,7 +357,8 @@ export default function PixiExplorationBoard(props) {
   }
   // Runtime inventory drops (rules/inventory.js): isometric tile props + challenge-style name markers.
   // Elevated drops carry z (art pixels) and depth from placement.js so they sit on / sort with their support.
-  const groundLoot = []
+  // Template Piece overlays (authored visual walls) share the same GroundLootView path.
+  const groundLoot = templatePieceSprites(map).map((sprite) => ({ ...sprite, inReach: true, hovered: false }))
   for (const view of groundItems) {
     const inReach = groundReachableIds.includes(view.id)
     // Markers/depth use the containing map tile; the prop itself sits on the 32×32 sub-grid position.

@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite } from 'pixi.js'
 import { isBlock, project } from '../../../maps/iso.js'
 import { spriteGeometry, spriteHref } from '../../../maps/propPick.js'
 import { getCategoryHighlight } from '../../../rules/equipment.js'
-import { drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
+import { FADED_OPACITY, drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
 import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../boardGeometry.js'
 import { dashedEllipse, drawnCanvas, makeLabel, placeLabel, textureOf } from '../../maps/pixi/pixiDraw.js'
 import { perfOff } from '../../../dev/perfProbe.js'
@@ -250,33 +250,52 @@ export class GroundLootView {
 
   update(object) {
     // Shared with the editor's click picking (maps/propPick.js) so what is drawn is what answers a click.
-    const { size, z, box } = spriteGeometry(object)
+    const { size, z, rotation, anchor, pivotFracX } = spriteGeometry(object)
     this.container.zIndex = object.depth
-    this.container.alpha = 1
+    // Editor cutaway (propPick editorPropFadeIds): see-through while the pointer is over the prop or a ghost sits behind it.
+    this.container.alpha = object.faded ? FADED_OPACITY : 1
     const href = spriteHref(object)
     const hovered = Boolean(object.hovered)
     const highlight = getCategoryHighlight(object.category)
-    const look = `${object.position.x},${object.position.y}|${z}|${href}|${size.width}x${size.height}|${hovered ? 1 : 0}|${highlight}`
+    const look = `${object.position.x},${object.position.y}|${z}|${rotation}|${href}|${size.width}x${size.height}|${pivotFracX}|${hovered ? 1 : 0}|${highlight}`
     if (this.look === look) {
-      if (this.sprite) this.sprite.position.set(box.x - this.spritePad / PROP_RES, box.y - this.spritePad / PROP_RES)
+      if (this.sprite) this.placeSprite(anchor, rotation, pivotFracX)
       return
     }
     // Hover toggle only: reuse the cached prop art and rebuild the outline.
-    if (this.artCanvas && this.look?.startsWith(`${object.position.x},${object.position.y}|${z}|${href}|${size.width}x${size.height}|`)) {
+    if (this.artCanvas && this.look?.startsWith(`${object.position.x},${object.position.y}|${z}|${rotation}|${href}|${size.width}x${size.height}|${pivotFracX}|`)) {
       this.look = look
       if (hovered) {
         const outlined = propOutlineCanvas(this.artCanvas, highlight)
-        this.applySprite(outlined.canvas, box, outlined.pad)
+        this.applySprite(outlined.canvas, outlined.pad, anchor, rotation, pivotFracX)
       } else {
-        this.applySprite(this.artCanvas, box, 0)
+        this.applySprite(this.artCanvas, 0, anchor, rotation, pivotFracX)
       }
       return
     }
     this.look = look
-    this.paint(href, box, size, look, hovered, highlight)
+    this.paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX)
   }
 
-  applySprite(canvas, box, pad = 0) {
+  placeSprite(anchor, rotation = 0, pivotFracX = 0.5) {
+    if (!this.sprite) return
+    // South-tip footprint matches propImageBox / spriteLocalUv (Template Piece rotation).
+    let ax = pivotFracX
+    let ay = 1
+    if (this.spritePad) {
+      // Outlined art is padded equally; keep the tip on the unpadded south tip.
+      const tw = this.sprite.texture.width
+      const th = this.sprite.texture.height
+      const pad = this.spritePad
+      ax = (pivotFracX * (tw - 2 * pad) + pad) / tw
+      ay = 1 - pad / th
+    }
+    this.sprite.anchor.set(ax, ay)
+    this.sprite.position.set(anchor.x, anchor.y)
+    this.sprite.rotation = ((Number(rotation) || 0) * Math.PI) / 180
+  }
+
+  applySprite(canvas, pad = 0, anchor, rotation = 0, pivotFracX = 0.5) {
     // Copy into a display canvas so destroying the sprite texture never clears the cached prop art.
     const display = blank(canvas.width, canvas.height)
     display.getContext('2d').drawImage(canvas, 0, 0)
@@ -287,11 +306,11 @@ export class GroundLootView {
     this.spritePad = pad
     this.sprite = new Sprite(textureOf(display))
     this.sprite.scale.set(1 / PROP_RES)
-    this.sprite.position.set(box.x - pad / PROP_RES, box.y - pad / PROP_RES)
+    this.placeSprite(anchor, rotation, pivotFracX)
     this.container.addChild(this.sprite)
   }
 
-  async paint(href, box, size, look, hovered, highlight) {
+  async paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX) {
     const key = ++this.paintKey
     const prop = href ? await loadImage(href) : null
     if (key !== this.paintKey || this.look !== look) return
@@ -305,9 +324,9 @@ export class GroundLootView {
     this.artCanvas = canvas
     if (hovered) {
       const outlined = propOutlineCanvas(canvas, highlight)
-      this.applySprite(outlined.canvas, box, outlined.pad)
+      this.applySprite(outlined.canvas, outlined.pad, anchor, rotation, pivotFracX)
     } else {
-      this.applySprite(canvas, box, 0)
+      this.applySprite(canvas, 0, anchor, rotation, pivotFracX)
     }
   }
 

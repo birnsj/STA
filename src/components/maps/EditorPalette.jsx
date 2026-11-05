@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTile, PALETTE_GROUPS, TILES } from '../../maps/mapFormat.js'
+import { templatePieceGroups } from '../../maps/templatePieces.js'
 import { getCategoryName, getItems } from '../../rules/equipment.js'
 import { propSpriteSize } from '../../rules/placement.js'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import { EDITOR_ITEM_DRAG_TYPE } from './editorItemDrag.js'
+import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Left Asset Browser: tabbed catalogues (Tiles, Environment, Items, Markers, NPCs). Tool ids unchanged.
@@ -268,9 +270,34 @@ export default function EditorPalette({
       <div className="ed-asset-body">
         {tab === 'tiles' && (
           <>
-            <ToolGroup id="tiles:templates" label="Template Pieces" count={0} open={open} onToggle={toggle}>
-              <p className="me-text">No template pieces added yet.</p>
-            </ToolGroup>
+            {templatePieceGroups()
+              .map((group) => ({
+                ...group,
+                pieces: group.pieces.filter(
+                  (piece) => !q || matchesQuery(piece.label, q) || matchesQuery(piece.id, q) || (piece.tags ?? []).some((tag) => matchesQuery(tag, q)),
+                ),
+              }))
+              .filter((group) => group.pieces.length)
+              .map((group) => (
+                <ToolGroup key={group.id} id={`tiles:templates:${group.id}`} label={group.label} count={group.pieces.length} open={open} onToggle={toggle}>
+                  <div className="ed-asset-grid">
+                    {group.pieces.map((piece) => (
+                      <div key={piece.id} className="ed-asset-cell">
+                        <button
+                          type="button"
+                          className={`ed-thumb-btn${tool === `template:${piece.id}` ? ' is-selected' : ''}`}
+                          aria-pressed={tool === `template:${piece.id}`}
+                          title={piece.label}
+                          onClick={() => onTool(`template:${piece.id}`)}
+                        >
+                          <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" />
+                        </button>
+                        <span className="ed-thumb-label">{piece.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ToolGroup>
+              ))}
             {filteredGroups.map((group, index) => {
               const isOpen = open.has(group.id) || Boolean(q)
               const startsSection = group.section && group.section !== filteredGroups[index - 1]?.section

@@ -13,11 +13,14 @@ import {
   setFacing,
   toggleMarker,
   moveGroundItem,
+  moveTemplatePiece,
+  removeTemplatePiece,
   updateDestructible,
   updateGroundItem,
   updateHazard,
   updateNpc,
   updatePatrolWaypoint,
+  updateTemplatePiece,
 } from '../../maps/mapEdits.js'
 import DestructibleInspector from './DestructibleInspector.jsx'
 import GroundItemInspector from './GroundItemInspector.jsx'
@@ -25,6 +28,7 @@ import HazardInspector from './HazardInspector.jsx'
 import MarkerInspector from './MarkerInspector.jsx'
 import NpcInspector from './NpcInspector.jsx'
 import ObjectInspector from './ObjectInspector.jsx'
+import TemplatePieceInspector from './TemplatePieceInspector.jsx'
 
 // How an NPC looks in play ({ genderId, portraitId, backdropId } or null): the same picks exploration makes for the
 // whole map.
@@ -65,6 +69,9 @@ export default function EditorInspectors({
   onToggleGroundItemMove,
   onDuplicateGroundItem,
   onGroundItemCleared,
+  templatePieceMoving = false,
+  onToggleTemplatePieceMove,
+  onTemplatePieceCleared,
   onHazardCleared,
   editingPatrol = false,
   movingWaypoint = false,
@@ -76,12 +83,26 @@ export default function EditorInspectors({
   layers = null,
   onStatus = null,
 }) {
-  const { npc, object, marker, destructible, hazard, groundItem } = selection
+  const { npc, object, marker, destructible, hazard, groundItem, templatePiece } = selection
   const mutate = (layerId, change) => {
     if (canEditLayer(layers, layerId)) edit(change())
   }
   return (
     <>
+      {templatePiece && (
+        <TemplatePieceInspector
+          object={templatePiece}
+          moving={templatePieceMoving}
+          onChange={(changes) => mutate('walls', () => updateTemplatePiece(map, templatePiece.id, changes))}
+          onPositionChange={(position) => mutate('walls', () => moveTemplatePiece(map, templatePiece.id, position))}
+          onMove={onToggleTemplatePieceMove}
+          onDelete={() => {
+            if (!canEditLayer(layers, 'walls')) return
+            edit(removeTemplatePiece(map, templatePiece.id))
+            onTemplatePieceCleared()
+          }}
+        />
+      )}
       {destructible && (
         <DestructibleInspector
           object={destructible}

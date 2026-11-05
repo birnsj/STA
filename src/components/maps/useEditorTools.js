@@ -26,19 +26,27 @@ import {
   placeDestructible,
   placeGroundItem,
   placeNpc,
+  placeTemplatePiece,
   removeGroundItem,
   removePatrolWaypoint,
   selectionCandidates,
   setAreaLabel,
   swapTilesWithObjects,
+  templatePieceAt,
+  templatePieceAtBoard,
+  templatePieceTargetAt,
   toggleMarker,
   turnFacing,
   updateDestructible,
   updatePatrolWaypoint,
   updateNpc,
+  moveTemplatePiece,
+  removeTemplatePiece,
+  updateTemplatePiece,
 } from '../../maps/mapEdits.js'
 import { canEditLayer, layerOfTile, selectionPriority } from '../../maps/layers.js'
 import { cellKey, getTile, isEmptyTile, isRotated, NULL_TILE } from '../../maps/mapFormat.js'
+import { getTemplatePiece } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
@@ -141,6 +149,11 @@ export default function useEditorTools({
   // Inventory ground placements (tools 'inventory:{itemId}'): selected instance and Move mode.
   const [selectedGroundItemId, setSelectedGroundItemId] = useState(null)
   const [movingGroundItem, setMovingGroundItem] = useState(false)
+  // Template Piece overlays (tools 'template:{pieceId}'): selected instance and Move mode. Walls layer.
+  const [selectedTemplatePieceId, setSelectedTemplatePieceId] = useState(null)
+  const [movingTemplatePiece, setMovingTemplatePiece] = useState(false)
+  // Brush rotation for the next place (R steps 90° while a template tool is held).
+  const [templateRotation, setTemplateRotation] = useState(0)
 
   // A different map clears everything selected or half-done on the old one.
   const [seenBoardKey, setSeenBoardKey] = useState(boardKey)
@@ -164,6 +177,8 @@ export default function useEditorTools({
     setMoveFrom(null)
     setSelectedGroundItemId(null)
     setMovingGroundItem(false)
+    setSelectedTemplatePieceId(null)
+    setMovingTemplatePiece(false)
     setPendingCharacterId(null)
   }
 
@@ -180,6 +195,7 @@ export default function useEditorTools({
   const selectedDestructible = (map.destructibles ?? []).find((object) => object.id === selectedDestructibleId) ?? null
   const selectedHazard = (map.hazards ?? []).find((region) => region.id === selectedHazardId) ?? null
   const selectedGroundItem = (map.groundItemPlacements ?? []).find((entry) => entry.id === selectedGroundItemId) ?? null
+  const selectedTemplatePiece = (map.templatePiecePlacements ?? []).find((entry) => entry.id === selectedTemplatePieceId) ?? null
   const clearLayerSelection = (layerId) => {
     if (layerId === 'furniture') {
       setSelectedObjectId(null)
@@ -191,6 +207,10 @@ export default function useEditorTools({
       setSelectedHazardId(null)
       setSelectedGroundItemId(null)
       setMovingGroundItem(false)
+    }
+    if (layerId === 'walls') {
+      setSelectedTemplatePieceId(null)
+      setMovingTemplatePiece(false)
     }
     if (layerId === 'characters') {
       setSelectedNpcId(null)
@@ -245,6 +265,16 @@ export default function useEditorTools({
       }
       if ((event.key === 'r' || event.key === 'R') && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (placing && tool?.startsWith('tile:')) setRotated((value) => !value)
+        else if (selectedTemplatePiece) {
+          event.preventDefault()
+          if (!canEditLayer(layers, 'walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+          const next = (((selectedTemplatePiece.rotation ?? 0) + 90) % 360 + 360) % 360
+          edit(updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next }))
+          setStatus(`Rotated ${selectedTemplatePiece.id} to ${next}°.`)
+        } else if (tool?.startsWith('template:')) {
+          event.preventDefault()
+          setTemplateRotation((value) => (value + 90) % 360)
+        }
         return
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && editingPatrol && selectedNpc && selectedWaypointIndex != null) {
@@ -254,6 +284,15 @@ export default function useEditorTools({
         setSelectedWaypointIndex(null)
         setMovingWaypoint(false)
         setStatus('Removed patrol waypoint.')
+        return
+      }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedTemplatePiece) {
+        event.preventDefault()
+        if (!canEditLayer(layers, 'walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+        edit(removeTemplatePiece(map, selectedTemplatePiece.id))
+        setSelectedTemplatePieceId(null)
+        setMovingTemplatePiece(false)
+        setStatus(`Removed ${selectedTemplatePiece.id}.`)
         return
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedGroundItem) {
@@ -275,6 +314,7 @@ export default function useEditorTools({
       if (linkingDestructible) return setLinkingDestructible(false)
       if (movingDestructible) return setMovingDestructible(false)
       if (movingGroundItem) return setMovingGroundItem(false)
+      if (movingTemplatePiece) return setMovingTemplatePiece(false)
       if (placingObject) return setPlacingObject(false)
       if (editingObjectCovers) return setEditingObjectCovers(false)
       if (placingObjective !== null) {
@@ -371,6 +411,7 @@ export default function useEditorTools({
     setMovingDestructible(false)
     setLinkingDestructible(false)
     setMovingGroundItem(false)
+    setMovingTemplatePiece(false)
   }
 
   const applyCandidate = (candidate, position) => {
@@ -384,6 +425,7 @@ export default function useEditorTools({
     setSelectedDestructibleId(candidate?.kind === 'destructible' ? candidate.destructible.id : null)
     setSelectedHazardId(candidate?.kind === 'hazard' ? candidate.hazard.id : null)
     setSelectedGroundItemId(candidate?.kind === 'groundItem' ? candidate.groundItem.id : null)
+    setSelectedTemplatePieceId(candidate?.kind === 'templatePiece' ? candidate.templatePiece.id : null)
     if (candidate?.kind !== 'npc') {
       setEditingPatrol(false)
       setSelectedWaypointIndex(null)
@@ -410,7 +452,7 @@ export default function useEditorTools({
     // A click on a drawn item selects that item. The floor tile or crate under the same pointer is a different layer
     // entry and used to win when Ground was active, or tie with the item when Furniture was, so the box behind the
     // pointer was selected instead. Lock and hide still apply: a locked furniture layer has already dropped the item.
-    const drawnItem = editable.find((candidate) => candidate.kind === 'groundItem')
+    const drawnItem = editable.find((candidate) => candidate.kind === 'groundItem' || candidate.kind === 'templatePiece')
     if (boardPoint && drawnItem) {
       applyCandidate(drawnItem, position)
       return
@@ -428,6 +470,7 @@ export default function useEditorTools({
       if (candidate.kind === 'destructible') return candidate.destructible.id === selectedDestructibleId
       if (candidate.kind === 'hazard') return candidate.hazard.id === selectedHazardId
       if (candidate.kind === 'groundItem') return candidate.groundItem.id === selectedGroundItemId
+      if (candidate.kind === 'templatePiece') return candidate.templatePiece.id === selectedTemplatePieceId
       if (candidate.kind === 'playerStarts' || candidate.kind === 'enemySpawns') {
         return selectedMarker?.kind === candidate.kind && selectedMarker.x === position.x && selectedMarker.y === position.y
       }
@@ -462,6 +505,7 @@ export default function useEditorTools({
         : groundItemAt(map, position, { cellPx: itemGridSize })
       if (existing) {
         setSelectedGroundItemId(existing.id)
+        setSelectedTemplatePieceId(null)
         setSelectedDestructibleId(null)
         setSelectedHazardId(null)
         setSelectedNpcId(null)
@@ -473,10 +517,29 @@ export default function useEditorTools({
     }
     edit(placed.map)
     setSelectedGroundItemId(null)
+    setSelectedTemplatePieceId(null)
     setSelectedDestructibleId(null)
     setSelectedHazardId(null)
     const def = getItemById(itemId)
     setStatus(`Placed ${def?.name ?? itemId} (${placed.object.id}).`)
+  }
+
+  // Template Piece tools: snap to the guide grid. Paste overwrites the same tip or the sprite under the pointer only.
+  const onTemplateTool = (position, pieceId, boardPoint = null) => {
+    const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
+    const hit = boardPoint ? templatePieceAtBoard(map, boardPoint) : null
+    const placed = placeTemplatePiece(map, target, pieceId, itemGridSize, {
+      rotation: templateRotation,
+      replaceIds: hit ? [hit.id] : null,
+    })
+    if (!placed) return setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
+    edit(placed.map)
+    setSelectedTemplatePieceId(null)
+    setSelectedGroundItemId(null)
+    setSelectedDestructibleId(null)
+    setSelectedHazardId(null)
+    const def = getTemplatePiece(pieceId)
+    setStatus(`Placed ${def?.label ?? pieceId} (${placed.object.id}).`)
   }
 
   // boardPoint: the pointer in board px (EditorBoard), for picking items drawn on raised surfaces.
@@ -514,9 +577,24 @@ export default function useEditorTools({
       setMovingGroundItem(false)
       return
     }
+    if (movingTemplatePiece && selectedTemplatePiece) {
+      if (!first) return
+      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+      const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
+      const moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
+      if (moved === map) setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
+      else edit(moved)
+      setMovingTemplatePiece(false)
+      return
+    }
     if (tool?.startsWith('inventory:')) {
       if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
       if (first) onInventoryTool(position, tool.slice('inventory:'.length), boardPoint)
+      return
+    }
+    if (tool?.startsWith('template:')) {
+      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+      if (first) onTemplateTool(position, tool.slice('template:'.length), boardPoint)
       return
     }
     if (tool?.startsWith('destructible:')) {
@@ -602,8 +680,13 @@ export default function useEditorTools({
           else if (result.map !== map) edit(result.map)
         } else {
           const painted = paintBrush(map, position, tileId, rotated, objectDefinitions)
-          if (painted === map && getTile(tileId).solid && dependentsAt(map, position, objectDefinitions).some((entry) => entry.kind !== 'prop' && entry.kind !== 'object')) {
-            setStatus('Move or remove the occupants before painting a solid tile.')
+          if (painted === map) {
+            const currentId = map.tiles[position.y][position.x]
+            if (layerOfTile(currentId) === tileLayer && tileLayer !== 'ground' && currentId !== tileId) {
+              setStatus(`Cannot overwrite ${tileLayer} with another ${tileLayer} tile — erase first.`)
+            } else if (getTile(tileId).solid && dependentsAt(map, position, objectDefinitions).some((entry) => entry.kind !== 'prop' && entry.kind !== 'object')) {
+              setStatus('Move or remove the occupants before painting a solid tile.')
+            }
           } else {
             edit(painted)
           }
@@ -682,9 +765,35 @@ export default function useEditorTools({
     setStatus(`Swapped ${getTile(from).label} (${moveFrom.x}, ${moveFrom.y}) with ${getTile(to).label} (${position.x}, ${position.y})${swapped.carried.length ? ', with its challenge object' : ''}.`)
   }
 
-  // Right click: with Place Tiles on, the brush picks up the tile under the pointer, rotation included; otherwise an NPC,
-  // player start or enemy spawn there turns 45° clockwise.
-  const onRightClick = (position) => {
+  // Right click: Template Piece / Inventory paint removes the object under the pointer. With Place Tiles on, the brush
+  // picks up the tile under the pointer (rotation included). Otherwise an NPC, player start or enemy spawn turns 45°.
+  const onRightClick = (position, boardPoint = null) => {
+    if (tool?.startsWith('template:')) {
+      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+      const hit = boardPoint ? templatePieceAtBoard(map, boardPoint) : null
+      const existing = hit ?? (position ? templatePieceAt(map, position, { cellPx: itemGridSize }) : null)
+      if (!existing) return
+      edit(removeTemplatePiece(map, existing.id))
+      if (selectedTemplatePieceId === existing.id) {
+        setSelectedTemplatePieceId(null)
+        setMovingTemplatePiece(false)
+      }
+      setStatus(`Removed ${existing.id}.`)
+      return
+    }
+    if (tool?.startsWith('inventory:')) {
+      if (!layerAllowsTool('furniture')) return setStatus('Furniture / Scenery layer is locked or hidden.')
+      const hit = boardPoint ? groundItemAtBoard(map, boardPoint) : null
+      const existing = hit ?? (position ? groundItemAt(map, position, { cellPx: itemGridSize }) : null)
+      if (!existing) return
+      edit(removeGroundItem(map, existing.id))
+      if (selectedGroundItemId === existing.id) {
+        setSelectedGroundItemId(null)
+        setMovingGroundItem(false)
+      }
+      setStatus(`Removed ${existing.id}.`)
+      return
+    }
     if (!position) return
     if (!placing) {
       const turned = turnFacing(map, position)
@@ -723,6 +832,8 @@ export default function useEditorTools({
     setMovingWaypoint(false)
     setSelectedGroundItemId(null)
     setMovingGroundItem(false)
+    setSelectedTemplatePieceId(null)
+    setMovingTemplatePiece(false)
   }
 
   // Assets thumbnail pick: clear board selection so Properties shows the catalogue asset.
@@ -757,6 +868,7 @@ export default function useEditorTools({
       destructible: selectedDestructible,
       hazard: selectedHazard,
       groundItem: selectedGroundItem,
+      templatePiece: selectedTemplatePiece,
     },
     selectedNpcId,
     selectedObjectId,
@@ -797,6 +909,8 @@ export default function useEditorTools({
     selectedDestructibleId: selectedDestructible?.id ?? null,
     selectedHazardId: selectedHazard?.id ?? null,
     selectedGroundItemId: selectedGroundItem?.id ?? null,
+    selectedTemplatePieceId: selectedTemplatePiece?.id ?? null,
+    templateRotation,
     movingDestructible,
     toggleDestructibleMove: () => {
       setLinkingDestructible(false)
@@ -809,6 +923,8 @@ export default function useEditorTools({
     },
     movingGroundItem,
     toggleGroundItemMove: () => setMovingGroundItem((value) => !value),
+    movingTemplatePiece,
+    toggleTemplatePieceMove: () => setMovingTemplatePiece((value) => !value),
     duplicateDestructible: duplicateSelected,
     duplicateGroundItem: duplicateSelectedGroundItem,
     clearDestructible: () => {
@@ -819,6 +935,10 @@ export default function useEditorTools({
     clearGroundItem: () => {
       setSelectedGroundItemId(null)
       setMovingGroundItem(false)
+    },
+    clearTemplatePiece: () => {
+      setSelectedTemplatePieceId(null)
+      setMovingTemplatePiece(false)
     },
     clearHazard: () => setSelectedHazardId(null),
     hazardIntensity,

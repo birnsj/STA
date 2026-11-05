@@ -35,6 +35,7 @@ describe('layerOfSelection', () => {
     assert.equal(layerOfSelection('object'), 'furniture')
     assert.equal(layerOfSelection('groundItem'), 'furniture')
     assert.equal(layerOfSelection('hazard'), 'furniture')
+    assert.equal(layerOfSelection('templatePiece'), 'walls')
     assert.equal(layerOfSelection('area'), 'markers')
     assert.equal(layerOfSelection('objective'), 'markers')
     assert.equal(layerOfSelection('wall'), 'walls')

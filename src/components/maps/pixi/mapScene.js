@@ -4,8 +4,9 @@ import { AreaLabelView, EditorBoundsView, EditorGridView, EditorMarkerView, Edit
 import { HazardLayer } from './hazardLayer.js'
 import { reconcile, startPixiStage } from './pixiStage.js'
 
-// A Pixi scene of the map alone (the map editor's board, EditorBoard): the map with nothing fading, its hazards, and
-// the editor's room labels, markers, authored ground inventory props and tile previews over it. Presentation only.
+// A Pixi scene of the map alone (the map editor's board, EditorBoard): the map (tile blocks do not room-fade here),
+// its hazards, and the editor's room labels, markers, authored props (GroundLootView may fade under the pointer) and
+// tile previews over it. Presentation only.
 const NONE = new Set()
 
 // Starts the scene in host. read() returns the latest { layout, ghost, lighting, animate, environment, labels, markers,

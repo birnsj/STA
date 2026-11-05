@@ -43,6 +43,8 @@ export function layerOfSelection(kind) {
     case 'groundItem':
     case 'hazard':
       return 'furniture'
+    case 'templatePiece':
+      return 'walls'
     case 'npc':
     case 'playerStarts':
     case 'enemySpawns':
