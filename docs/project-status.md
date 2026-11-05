@@ -23,7 +23,7 @@ Status key: **SHIPPED** playable and intended for use · **PARTIAL** usable with
 ### Findings (priority)
 
 1. **P1 — Ship service-record test (fixed 2026-10-28).** `selectTimeframe(…, 'tmp')` keeps campaign year **2279** when moving from TOS. Excelsior launches **2285**, so the test now sets year 2285 before selecting Excelsior.
-2. **P2 — Dead placeholder.** `src/screens/ShipBuilderPlaceholder.jsx` is unused; `App.jsx` loads `ShipCreator`. Safe to delete when convenient.
+2. **P2 — Dead placeholder (done 2026-11-04).** Removed unused `src/screens/ShipBuilderPlaceholder.jsx`; `App.jsx` loads `ShipCreator`.
 3. **P2 — Docs drift (addressed by this file + README).** README still described the ship builder as a placeholder; design-tracker / prototype-rules header dates were stuck on 2026-10-16 while starship and inventory work shipped later.
 4. **P3 — Lint debt in ship creator.** Unused helpers in `shipModel.js` / tests, and several `useEffect` → `setState` patterns on appearance / service-record screens. Non-blocking; clean when touching those files.
 5. **P3 — Main menu stubs.** Continue and Exit remain disabled. Import Ship enables when any saved ship exists (overrides the static `enabled: false` in `MENU_ITEMS`).
@@ -133,6 +133,5 @@ Pulled from `design-tracker.md` Open (not exhaustive):
 
 ## Suggested next engineering passes (no design claims)
 
-1. Delete unused `ShipBuilderPlaceholder.jsx`.
-2. Trim unused ship-model helpers / lint warnings when next in those files.
-3. Keep this board’s date and commit SHA current when a major area lands.
+1. Trim unused ship-model helpers / lint warnings when next in those files.
+2. Keep this board’s date and commit SHA current when a major area lands.
