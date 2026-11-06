@@ -517,7 +517,10 @@ export function TemplatePieceDetails({ piece, ambient, ambientColour, onAmbient,
   const [emitColour, setEmitColour] = useState(() => templateOverlayEmitColour(piece.id))
   if (!info) return null
   const anim = info.animation
+  // Design size = world footprint (same units as tile cells: 64 = one tile). The iso PNG bounds are
+  // "Sprite" — calling those Design size was confusing next to tiles like Bulkhead (64×128 canvas).
   const footprint = info.footprint ? `${info.footprint.width}×${info.footprint.depth}` : null
+  const sprite = info.size ? `${info.size.width}×${info.size.height} px` : null
   return (
     <div className="ed-sprite-details" style={{ '--ed-emit-strength': String(emissive) }}>
       <PropertySection id="sprite" title="Sprite">
@@ -525,9 +528,9 @@ export function TemplatePieceDetails({ piece, ambient, ambientColour, onAmbient,
           rows={[
             ['Id', info.id],
             ['Group', info.group ? info.group.label : null],
-            ['Design size', info.size ? `${info.size.width}×${info.size.height} px` : null],
-            ['Footprint', footprint],
+            ['Design size', footprint],
             ['World height', info.height != null ? String(info.height) : null],
+            ['Sprite', sprite],
             ['Traits', info.traits.length ? info.traits.join(', ') : 'None'],
           ]}
         />

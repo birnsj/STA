@@ -113,10 +113,13 @@ export function templatePieceSpriteInfo(piece) {
   const traits = [...(piece.tags ?? [])]
   if (piece.cover) traits.push('Cover')
   if (piece.fade) traits.push('Fade')
+  const dimension = (piece.tags ?? []).includes('dimension')
   return {
     id: piece.id,
     label: piece.label,
-    group: { id: 'template-pieces', label: 'Template Pieces', section: null },
+    group: dimension
+      ? { id: 'template-dimension', label: 'Dimension', section: null }
+      : { id: 'template-pieces', label: 'Template Pieces', section: null },
     size: piece.size ? { width: piece.size.width, height: piece.size.height } : null,
     height: piece.height ?? null,
     footprint: piece.footprint ?? null,
@@ -168,7 +171,12 @@ export function templatePieceFootprint(def, rotation = 0) {
 
 export function templatePieceGroups() {
   if (!TEMPLATE_PIECES.length) return []
-  return [{ id: 'template-pieces', label: 'Template Pieces', pieces: TEMPLATE_PIECES }]
+  const starship = TEMPLATE_PIECES.filter((piece) => !(piece.tags ?? []).includes('dimension'))
+  const dimension = TEMPLATE_PIECES.filter((piece) => (piece.tags ?? []).includes('dimension'))
+  const groups = []
+  if (starship.length) groups.push({ id: 'template-pieces', label: 'Template Pieces', pieces: starship })
+  if (dimension.length) groups.push({ id: 'template-dimension', label: 'Dimension', pieces: dimension })
+  return groups
 }
 
 // True when a cover Template Piece's footprint overlaps the tile cell (combat standing-next-to cover).

@@ -23,6 +23,7 @@ import {
   templateOverlayEmissionAt,
   templatePieceArt,
   templatePieceFootprint,
+  templatePieceGroups,
   templatePieceSpriteInfo,
 } from '../src/maps/templatePieces.js'
 import { project, unproject } from '../src/maps/iso.js'
@@ -51,9 +52,10 @@ describe('templatePieces catalogue', () => {
       'tplStarshipCrate',
       'tplStarshipEpsControl',
     ]
-    assert.equal(TEMPLATE_PIECES.length, expected.length)
+    const starship = TEMPLATE_PIECES.filter((piece) => piece.tags?.includes('starship'))
+    assert.equal(starship.length, expected.length)
     for (const id of expected) assert.ok(getTemplatePiece(id), id)
-    for (const piece of TEMPLATE_PIECES) {
+    for (const piece of starship) {
       assert.ok(piece.href)
       assert.ok(piece.size?.width > 0 && piece.size?.height > 0)
       assert.ok(Number.isFinite(piece.anchorX), `${piece.id} needs anchorX`)
@@ -68,6 +70,26 @@ describe('templatePieces catalogue', () => {
     assert.deepEqual(getTemplatePiece('tplStarshipFloor').footprint, { width: 64, depth: 64 })
     assert.equal(getTemplatePiece('tplStarshipCrate').height, 16)
     assert.equal(getTemplatePiece('tplStarshipMachinery').height, 40)
+  })
+
+  it('ships a Dimension Kit separate from Starship templates', () => {
+    const dimension = TEMPLATE_PIECES.filter((piece) => piece.tags?.includes('dimension'))
+    assert.ok(dimension.length >= 80, `expected expanded Dimension templates, got ${dimension.length}`)
+    for (const piece of dimension) {
+      assert.ok(piece.id.startsWith('tplDim'))
+      assert.ok(Number.isFinite(piece.anchorX), `${piece.id} needs anchorX`)
+      assert.ok(piece.footprint?.width > 0 && piece.footprint?.depth > 0)
+      assert.equal(piece.tags?.includes('starship'), false)
+    }
+    assert.deepEqual(getTemplatePiece('tplDimWall32').footprint, { width: 64, depth: 32 })
+    assert.deepEqual(getTemplatePiece('tplDimFloor64x32').footprint, { width: 64, depth: 32 })
+    assert.deepEqual(getTemplatePiece('tplDimFloor256').footprint, { width: 256, depth: 256 })
+    assert.deepEqual(getTemplatePiece('tplDimPost32').footprint, { width: 32, depth: 32 })
+    assert.ok(getTemplatePiece('tplDimSteps6'))
+    assert.ok(getTemplatePiece('tplDimRampTall'))
+    const groups = templatePieceGroups()
+    assert.ok(groups.some((group) => group.id === 'template-pieces'))
+    assert.ok(groups.some((group) => group.id === 'template-dimension'))
   })
 
   it('exposes south-tip anchorX on wall sprites for grid alignment', () => {

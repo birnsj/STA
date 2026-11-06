@@ -52,8 +52,14 @@ const CALIBRATION_ITEM_GROUPS = [
   { id: 'cal-footprints', label: 'Footprints', tag: 'footprint' },
   { id: 'cal-selection', label: 'Selection', tag: 'selection' },
 ]
+const DIMENSION_ITEM_GROUPS = [
+  { id: 'dim-footprints', label: 'Footprints', tag: 'footprint' },
+  { id: 'dim-tiny', label: 'Tiny', tag: 'tiny' },
+  { id: 'dim-selection', label: 'Selection', tag: 'selection' },
+]
 const itemMatches = (item, q) => matchesQuery(item.name, q) || matchesQuery(item.id, q) || matchesQuery(getCategoryName(item.category), q)
 const calibrationItems = () => getItems().filter((item) => item.category === 'calibration')
+const dimensionItems = () => getItems().filter((item) => item.category === 'dimension')
 
 function setItemDragImage(event, item) {
   const tileImage = getTile(item.worldTile ?? 'crate')?.image
@@ -408,8 +414,23 @@ export default function EditorPalette({
                 </div>
               )
             })}
+            {DIMENSION_ITEM_GROUPS.map((group, index) => {
+              const items = dimensionItems().filter((item) => item.tags?.includes(group.tag) && itemMatches(item, q))
+              if (!items.length) return null
+              const earlier = DIMENSION_ITEM_GROUPS.slice(0, index).some((other) =>
+                dimensionItems().some((item) => item.tags?.includes(other.tag) && itemMatches(item, q)),
+              )
+              return (
+                <div key={group.id}>
+                  {!earlier && <p className="me-section">Dimension</p>}
+                  <ToolGroup id={group.id} label={group.label} count={items.length} open={q ? new Set([group.id]) : open} onToggle={toggle}>
+                    <ItemGrid items={items} tool={tool} onTool={onTool} onItemDragStart={onItemDragStart} onItemDragEnd={onItemDragEnd} />
+                  </ToolGroup>
+                </div>
+              )
+            })}
             <ItemGrid
-              items={getItems().filter((item) => item.category !== 'calibration' && itemMatches(item, q))}
+              items={getItems().filter((item) => item.category !== 'calibration' && item.category !== 'dimension' && itemMatches(item, q))}
               tool={tool}
               onTool={onTool}
               onItemDragStart={onItemDragStart}

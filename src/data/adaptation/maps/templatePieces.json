@@ -7,7 +7,8 @@
     "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.",
     "R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.",
     "Fitting / prop pieces include animation.overlay emission frames (blink), drawn over the base like wall tile overlays. Art via scripts/makeTemplatePieces.mjs",
-    "cover / fade match counterpart Starship tiles; animation.emissive / emitColour match wall overlay Properties (saved via /__templates)."
+    "cover / fade match counterpart Starship tiles; animation.emissive / emitColour match wall overlay Properties (saved via /__templates).",
+    "Dimension Kit (tplDim*): solid-but-lit AA size/footprint tests. Separate from Starship templates and Calibration tiles. Art via scripts/makeDimensionKit.mjs."
   ],
   "pieces": [
     {
@@ -1749,6 +1750,7424 @@
       "cover": true,
       "fade": false,
       "material": "epsControl"
+    },
+    {
+      "id": "tplDimWall4",
+      "label": "Dim Wall 4",
+      "href": "/art/sprites/environment/templates/tplDimWall4.png",
+      "size": {
+        "width": 35,
+        "height": 110
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall4_r90.png",
+          "size": {
+            "width": 35,
+            "height": 110
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall4_r180.png",
+          "size": {
+            "width": 35,
+            "height": 110
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall4_r270.png",
+          "size": {
+            "width": 35,
+            "height": 110
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 4
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall8",
+      "label": "Dim Wall 8",
+      "href": "/art/sprites/environment/templates/tplDimWall8.png",
+      "size": {
+        "width": 37,
+        "height": 111
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall8_r90.png",
+          "size": {
+            "width": 37,
+            "height": 111
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall8_r180.png",
+          "size": {
+            "width": 37,
+            "height": 111
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall8_r270.png",
+          "size": {
+            "width": 37,
+            "height": 111
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 8
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall12",
+      "label": "Dim Wall 12",
+      "href": "/art/sprites/environment/templates/tplDimWall12.png",
+      "size": {
+        "width": 39,
+        "height": 112
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall12_r90.png",
+          "size": {
+            "width": 39,
+            "height": 112
+          },
+          "anchorX": 6
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall12_r180.png",
+          "size": {
+            "width": 39,
+            "height": 112
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall12_r270.png",
+          "size": {
+            "width": 39,
+            "height": 112
+          },
+          "anchorX": 6
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 12
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall16",
+      "label": "Dim Wall 16",
+      "href": "/art/sprites/environment/templates/tplDimWall16.png",
+      "size": {
+        "width": 41,
+        "height": 113
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall16_r90.png",
+          "size": {
+            "width": 41,
+            "height": 113
+          },
+          "anchorX": 8
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall16_r180.png",
+          "size": {
+            "width": 41,
+            "height": 113
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall16_r270.png",
+          "size": {
+            "width": 41,
+            "height": 113
+          },
+          "anchorX": 8
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 16
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall24",
+      "label": "Dim Wall 24",
+      "href": "/art/sprites/environment/templates/tplDimWall24.png",
+      "size": {
+        "width": 45,
+        "height": 115
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall24_r90.png",
+          "size": {
+            "width": 45,
+            "height": 115
+          },
+          "anchorX": 12
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall24_r180.png",
+          "size": {
+            "width": 45,
+            "height": 115
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall24_r270.png",
+          "size": {
+            "width": 45,
+            "height": 115
+          },
+          "anchorX": 12
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 24
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall32",
+      "label": "Dim Wall 32",
+      "href": "/art/sprites/environment/templates/tplDimWall32.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall32_r90.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall32_r180.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall32_r270.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall48",
+      "label": "Dim Wall 48",
+      "href": "/art/sprites/environment/templates/tplDimWall48.png",
+      "size": {
+        "width": 57,
+        "height": 121
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall48_r90.png",
+          "size": {
+            "width": 57,
+            "height": 121
+          },
+          "anchorX": 24
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall48_r180.png",
+          "size": {
+            "width": 57,
+            "height": 121
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall48_r270.png",
+          "size": {
+            "width": 57,
+            "height": 121
+          },
+          "anchorX": 24
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 48
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall32Long",
+      "label": "Dim Wall 32 Long",
+      "href": "/art/sprites/environment/templates/tplDimWall32Long.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Long_r90.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Long_r180.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Long_r270.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall32XLong",
+      "label": "Dim Wall 32 XLong",
+      "href": "/art/sprites/environment/templates/tplDimWall32XLong.png",
+      "size": {
+        "width": 113,
+        "height": 149
+      },
+      "anchorX": 97,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall32XLong_r90.png",
+          "size": {
+            "width": 113,
+            "height": 149
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall32XLong_r180.png",
+          "size": {
+            "width": 113,
+            "height": 149
+          },
+          "anchorX": 97
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall32XLong_r270.png",
+          "size": {
+            "width": 113,
+            "height": 149
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight",
+        "long"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall32Half",
+      "label": "Dim Wall 32 Half",
+      "href": "/art/sprites/environment/templates/tplDimWall32Half.png",
+      "size": {
+        "width": 49,
+        "height": 71
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Half_r90.png",
+          "size": {
+            "width": 49,
+            "height": 71
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Half_r180.png",
+          "size": {
+            "width": 49,
+            "height": 71
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Half_r270.png",
+          "size": {
+            "width": 49,
+            "height": 71
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 46,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall32Short",
+      "label": "Dim Wall 32 Short",
+      "href": "/art/sprites/environment/templates/tplDimWall32Short.png",
+      "size": {
+        "width": 49,
+        "height": 49
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Short_r90.png",
+          "size": {
+            "width": 49,
+            "height": 49
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Short_r180.png",
+          "size": {
+            "width": 49,
+            "height": 49
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall32Short_r270.png",
+          "size": {
+            "width": 49,
+            "height": 49
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 24,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimWall16Half",
+      "label": "Dim Wall 16 Half",
+      "href": "/art/sprites/environment/templates/tplDimWall16Half.png",
+      "size": {
+        "width": 41,
+        "height": 67
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimWall16Half_r90.png",
+          "size": {
+            "width": 41,
+            "height": 67
+          },
+          "anchorX": 8
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimWall16Half_r180.png",
+          "size": {
+            "width": 41,
+            "height": 67
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimWall16Half_r270.png",
+          "size": {
+            "width": 41,
+            "height": 67
+          },
+          "anchorX": 8
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "straight"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 16
+      },
+      "height": 46,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost8",
+      "label": "Dim Post 8",
+      "href": "/art/sprites/environment/templates/tplDimPost8.png",
+      "size": {
+        "width": 10,
+        "height": 97
+      },
+      "anchorX": 5,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost8_r90.png",
+          "size": {
+            "width": 10,
+            "height": 97
+          },
+          "anchorX": 5
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost8_r180.png",
+          "size": {
+            "width": 10,
+            "height": 97
+          },
+          "anchorX": 5
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost8_r270.png",
+          "size": {
+            "width": 10,
+            "height": 97
+          },
+          "anchorX": 5
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost12",
+      "label": "Dim Post 12",
+      "href": "/art/sprites/environment/templates/tplDimPost12.png",
+      "size": {
+        "width": 14,
+        "height": 99
+      },
+      "anchorX": 7,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost12_r90.png",
+          "size": {
+            "width": 14,
+            "height": 99
+          },
+          "anchorX": 7
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost12_r180.png",
+          "size": {
+            "width": 14,
+            "height": 99
+          },
+          "anchorX": 7
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost12_r270.png",
+          "size": {
+            "width": 14,
+            "height": 99
+          },
+          "anchorX": 7
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 12,
+        "depth": 12
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost16",
+      "label": "Dim Post 16",
+      "href": "/art/sprites/environment/templates/tplDimPost16.png",
+      "size": {
+        "width": 18,
+        "height": 101
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost16_r90.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost16_r180.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost16_r270.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost24",
+      "label": "Dim Post 24",
+      "href": "/art/sprites/environment/templates/tplDimPost24.png",
+      "size": {
+        "width": 26,
+        "height": 105
+      },
+      "anchorX": 13,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost24_r90.png",
+          "size": {
+            "width": 26,
+            "height": 105
+          },
+          "anchorX": 13
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost24_r180.png",
+          "size": {
+            "width": 26,
+            "height": 105
+          },
+          "anchorX": 13
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost24_r270.png",
+          "size": {
+            "width": 26,
+            "height": 105
+          },
+          "anchorX": 13
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 24,
+        "depth": 24
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost32",
+      "label": "Dim Post 32",
+      "href": "/art/sprites/environment/templates/tplDimPost32.png",
+      "size": {
+        "width": 34,
+        "height": 109
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost32_r90.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost32_r180.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost32_r270.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost48",
+      "label": "Dim Post 48",
+      "href": "/art/sprites/environment/templates/tplDimPost48.png",
+      "size": {
+        "width": 50,
+        "height": 117
+      },
+      "anchorX": 25,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost48_r90.png",
+          "size": {
+            "width": 50,
+            "height": 117
+          },
+          "anchorX": 25
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost48_r180.png",
+          "size": {
+            "width": 50,
+            "height": 117
+          },
+          "anchorX": 25
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost48_r270.png",
+          "size": {
+            "width": 50,
+            "height": 117
+          },
+          "anchorX": 25
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost64",
+      "label": "Dim Post 64",
+      "href": "/art/sprites/environment/templates/tplDimPost64.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost64_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost64_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost64_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost96",
+      "label": "Dim Post 96",
+      "href": "/art/sprites/environment/templates/tplDimPost96.png",
+      "size": {
+        "width": 98,
+        "height": 141
+      },
+      "anchorX": 49,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost96_r90.png",
+          "size": {
+            "width": 98,
+            "height": 141
+          },
+          "anchorX": 49
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost96_r180.png",
+          "size": {
+            "width": 98,
+            "height": 141
+          },
+          "anchorX": 49
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost96_r270.png",
+          "size": {
+            "width": 98,
+            "height": 141
+          },
+          "anchorX": 49
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 96
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimPost32Half",
+      "label": "Dim Post 32 Half",
+      "href": "/art/sprites/environment/templates/tplDimPost32Half.png",
+      "size": {
+        "width": 34,
+        "height": 63
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimPost32Half_r90.png",
+          "size": {
+            "width": 34,
+            "height": 63
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimPost32Half_r180.png",
+          "size": {
+            "width": 34,
+            "height": 63
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimPost32Half_r270.png",
+          "size": {
+            "width": 34,
+            "height": 63
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "column"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 46,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCornerL8",
+      "label": "Dim Corner L 8",
+      "href": "/art/sprites/environment/templates/tplDimCornerL8.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL8_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL8_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL8_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "corner"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCornerL16",
+      "label": "Dim Corner L 16",
+      "href": "/art/sprites/environment/templates/tplDimCornerL16.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL16_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL16_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL16_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "corner"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCornerL32",
+      "label": "Dim Corner L 32",
+      "href": "/art/sprites/environment/templates/tplDimCornerL32.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL32_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL32_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCornerL32_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "corner"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTee",
+      "label": "Dim Tee",
+      "href": "/art/sprites/environment/templates/tplDimTee.png",
+      "size": {
+        "width": 72,
+        "height": 128
+      },
+      "anchorX": 40,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTee_r90.png",
+          "size": {
+            "width": 72,
+            "height": 128
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTee_r180.png",
+          "size": {
+            "width": 72,
+            "height": 128
+          },
+          "anchorX": 40
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTee_r270.png",
+          "size": {
+            "width": 72,
+            "height": 128
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "odd"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCross",
+      "label": "Dim Cross",
+      "href": "/art/sprites/environment/templates/tplDimCross.png",
+      "size": {
+        "width": 64,
+        "height": 124
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCross_r90.png",
+          "size": {
+            "width": 64,
+            "height": 124
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCross_r180.png",
+          "size": {
+            "width": 64,
+            "height": 124
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCross_r270.png",
+          "size": {
+            "width": 64,
+            "height": 124
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "odd"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimArch",
+      "label": "Dim Arch",
+      "href": "/art/sprites/environment/templates/tplDimArch.png",
+      "size": {
+        "width": 20,
+        "height": 102
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimArch_r90.png",
+          "size": {
+            "width": 20,
+            "height": 102
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimArch_r180.png",
+          "size": {
+            "width": 20,
+            "height": 102
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimArch_r270.png",
+          "size": {
+            "width": 20,
+            "height": 102
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 8
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimAlcove",
+      "label": "Dim Alcove",
+      "href": "/art/sprites/environment/templates/tplDimAlcove.png",
+      "size": {
+        "width": 44,
+        "height": 114
+      },
+      "anchorX": 24,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimAlcove_r90.png",
+          "size": {
+            "width": 44,
+            "height": 114
+          },
+          "anchorX": 20
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimAlcove_r180.png",
+          "size": {
+            "width": 44,
+            "height": 114
+          },
+          "anchorX": 24
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimAlcove_r270.png",
+          "size": {
+            "width": 44,
+            "height": 114
+          },
+          "anchorX": 20
+        }
+      },
+      "tags": [
+        "dimension",
+        "wall",
+        "odd"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 40
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor8",
+      "label": "Dim Floor 8",
+      "href": "/art/sprites/environment/templates/tplDimFloor8.png",
+      "size": {
+        "width": 10,
+        "height": 8
+      },
+      "anchorX": 5,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor8_r90.png",
+          "size": {
+            "width": 10,
+            "height": 8
+          },
+          "anchorX": 5
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor8_r180.png",
+          "size": {
+            "width": 10,
+            "height": 8
+          },
+          "anchorX": 5
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor8_r270.png",
+          "size": {
+            "width": 10,
+            "height": 8
+          },
+          "anchorX": 5
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor12",
+      "label": "Dim Floor 12",
+      "href": "/art/sprites/environment/templates/tplDimFloor12.png",
+      "size": {
+        "width": 14,
+        "height": 10
+      },
+      "anchorX": 7,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor12_r90.png",
+          "size": {
+            "width": 14,
+            "height": 10
+          },
+          "anchorX": 7
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor12_r180.png",
+          "size": {
+            "width": 14,
+            "height": 10
+          },
+          "anchorX": 7
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor12_r270.png",
+          "size": {
+            "width": 14,
+            "height": 10
+          },
+          "anchorX": 7
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 12,
+        "depth": 12
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor16",
+      "label": "Dim Floor 16",
+      "href": "/art/sprites/environment/templates/tplDimFloor16.png",
+      "size": {
+        "width": 18,
+        "height": 12
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor16_r90.png",
+          "size": {
+            "width": 18,
+            "height": 12
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor16_r180.png",
+          "size": {
+            "width": 18,
+            "height": 12
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor16_r270.png",
+          "size": {
+            "width": 18,
+            "height": 12
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor24",
+      "label": "Dim Floor 24",
+      "href": "/art/sprites/environment/templates/tplDimFloor24.png",
+      "size": {
+        "width": 26,
+        "height": 16
+      },
+      "anchorX": 13,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor24_r90.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 13
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor24_r180.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 13
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor24_r270.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 13
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 24,
+        "depth": 24
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor32",
+      "label": "Dim Floor 32",
+      "href": "/art/sprites/environment/templates/tplDimFloor32.png",
+      "size": {
+        "width": 34,
+        "height": 20
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32_r90.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32_r180.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32_r270.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor48",
+      "label": "Dim Floor 48",
+      "href": "/art/sprites/environment/templates/tplDimFloor48.png",
+      "size": {
+        "width": 50,
+        "height": 28
+      },
+      "anchorX": 25,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48_r90.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 25
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48_r180.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 25
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48_r270.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 25
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor64",
+      "label": "Dim Floor 64",
+      "href": "/art/sprites/environment/templates/tplDimFloor64.png",
+      "size": {
+        "width": 66,
+        "height": 36
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64_r90.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64_r180.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64_r270.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor96",
+      "label": "Dim Floor 96",
+      "href": "/art/sprites/environment/templates/tplDimFloor96.png",
+      "size": {
+        "width": 98,
+        "height": 52
+      },
+      "anchorX": 49,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96_r90.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 49
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96_r180.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 49
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96_r270.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 49
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 96
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor128",
+      "label": "Dim Floor 128",
+      "href": "/art/sprites/environment/templates/tplDimFloor128.png",
+      "size": {
+        "width": 130,
+        "height": 68
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128_r90.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 65
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128_r180.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128_r270.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 65
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor160",
+      "label": "Dim Floor 160",
+      "href": "/art/sprites/environment/templates/tplDimFloor160.png",
+      "size": {
+        "width": 162,
+        "height": 84
+      },
+      "anchorX": 81,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor160_r90.png",
+          "size": {
+            "width": 162,
+            "height": 84
+          },
+          "anchorX": 81
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor160_r180.png",
+          "size": {
+            "width": 162,
+            "height": 84
+          },
+          "anchorX": 81
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor160_r270.png",
+          "size": {
+            "width": 162,
+            "height": 84
+          },
+          "anchorX": 81
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 160,
+        "depth": 160
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor192",
+      "label": "Dim Floor 192",
+      "href": "/art/sprites/environment/templates/tplDimFloor192.png",
+      "size": {
+        "width": 194,
+        "height": 100
+      },
+      "anchorX": 97,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192_r90.png",
+          "size": {
+            "width": 194,
+            "height": 100
+          },
+          "anchorX": 97
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192_r180.png",
+          "size": {
+            "width": 194,
+            "height": 100
+          },
+          "anchorX": 97
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192_r270.png",
+          "size": {
+            "width": 194,
+            "height": 100
+          },
+          "anchorX": 97
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 192
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor256",
+      "label": "Dim Floor 256",
+      "href": "/art/sprites/environment/templates/tplDimFloor256.png",
+      "size": {
+        "width": 258,
+        "height": 132
+      },
+      "anchorX": 129,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor256_r90.png",
+          "size": {
+            "width": 258,
+            "height": 132
+          },
+          "anchorX": 129
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor256_r180.png",
+          "size": {
+            "width": 258,
+            "height": 132
+          },
+          "anchorX": 129
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor256_r270.png",
+          "size": {
+            "width": 258,
+            "height": 132
+          },
+          "anchorX": 129
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 256,
+        "depth": 256
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor64x32",
+      "label": "Dim Floor 64×32",
+      "href": "/art/sprites/environment/templates/tplDimFloor64x32.png",
+      "size": {
+        "width": 50,
+        "height": 28
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x32_r90.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x32_r180.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x32_r270.png",
+          "size": {
+            "width": 50,
+            "height": 28
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor64x16",
+      "label": "Dim Floor 64×16",
+      "href": "/art/sprites/environment/templates/tplDimFloor64x16.png",
+      "size": {
+        "width": 42,
+        "height": 24
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x16_r90.png",
+          "size": {
+            "width": 42,
+            "height": 24
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x16_r180.png",
+          "size": {
+            "width": 42,
+            "height": 24
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x16_r270.png",
+          "size": {
+            "width": 42,
+            "height": 24
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor64x48",
+      "label": "Dim Floor 64×48",
+      "href": "/art/sprites/environment/templates/tplDimFloor64x48.png",
+      "size": {
+        "width": 58,
+        "height": 32
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x48_r90.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 25
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x48_r180.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor64x48_r270.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 25
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 48
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor96x32",
+      "label": "Dim Floor 96×32",
+      "href": "/art/sprites/environment/templates/tplDimFloor96x32.png",
+      "size": {
+        "width": 66,
+        "height": 36
+      },
+      "anchorX": 49,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x32_r90.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x32_r180.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 49
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x32_r270.png",
+          "size": {
+            "width": 66,
+            "height": 36
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor96x16",
+      "label": "Dim Floor 96×16",
+      "href": "/art/sprites/environment/templates/tplDimFloor96x16.png",
+      "size": {
+        "width": 58,
+        "height": 32
+      },
+      "anchorX": 49,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x16_r90.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x16_r180.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 49
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x16_r270.png",
+          "size": {
+            "width": 58,
+            "height": 32
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor96x64",
+      "label": "Dim Floor 96×64",
+      "href": "/art/sprites/environment/templates/tplDimFloor96x64.png",
+      "size": {
+        "width": 82,
+        "height": 44
+      },
+      "anchorX": 49,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x64_r90.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x64_r180.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 49
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor96x64_r270.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor128x64",
+      "label": "Dim Floor 128×64",
+      "href": "/art/sprites/environment/templates/tplDimFloor128x64.png",
+      "size": {
+        "width": 98,
+        "height": 52
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x64_r90.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x64_r180.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x64_r270.png",
+          "size": {
+            "width": 98,
+            "height": 52
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor128x32",
+      "label": "Dim Floor 128×32",
+      "href": "/art/sprites/environment/templates/tplDimFloor128x32.png",
+      "size": {
+        "width": 82,
+        "height": 44
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x32_r90.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x32_r180.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x32_r270.png",
+          "size": {
+            "width": 82,
+            "height": 44
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor128x16",
+      "label": "Dim Floor 128×16",
+      "href": "/art/sprites/environment/templates/tplDimFloor128x16.png",
+      "size": {
+        "width": 74,
+        "height": 40
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x16_r90.png",
+          "size": {
+            "width": 74,
+            "height": 40
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x16_r180.png",
+          "size": {
+            "width": 74,
+            "height": 40
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor128x16_r270.png",
+          "size": {
+            "width": 74,
+            "height": 40
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor192x64",
+      "label": "Dim Floor 192×64",
+      "href": "/art/sprites/environment/templates/tplDimFloor192x64.png",
+      "size": {
+        "width": 130,
+        "height": 68
+      },
+      "anchorX": 97,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x64_r90.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x64_r180.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 97
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x64_r270.png",
+          "size": {
+            "width": 130,
+            "height": 68
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor192x32",
+      "label": "Dim Floor 192×32",
+      "href": "/art/sprites/environment/templates/tplDimFloor192x32.png",
+      "size": {
+        "width": 114,
+        "height": 60
+      },
+      "anchorX": 97,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x32_r90.png",
+          "size": {
+            "width": 114,
+            "height": 60
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x32_r180.png",
+          "size": {
+            "width": 114,
+            "height": 60
+          },
+          "anchorX": 97
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor192x32_r270.png",
+          "size": {
+            "width": 114,
+            "height": 60
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor32x16",
+      "label": "Dim Floor 32×16",
+      "href": "/art/sprites/environment/templates/tplDimFloor32x16.png",
+      "size": {
+        "width": 26,
+        "height": 16
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32x16_r90.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32x16_r180.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor32x16_r270.png",
+          "size": {
+            "width": 26,
+            "height": 16
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor48x24",
+      "label": "Dim Floor 48×24",
+      "href": "/art/sprites/environment/templates/tplDimFloor48x24.png",
+      "size": {
+        "width": 38,
+        "height": 22
+      },
+      "anchorX": 25,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x24_r90.png",
+          "size": {
+            "width": 38,
+            "height": 22
+          },
+          "anchorX": 13
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x24_r180.png",
+          "size": {
+            "width": 38,
+            "height": 22
+          },
+          "anchorX": 25
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x24_r270.png",
+          "size": {
+            "width": 38,
+            "height": 22
+          },
+          "anchorX": 13
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 24
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimFloor48x16",
+      "label": "Dim Floor 48×16",
+      "href": "/art/sprites/environment/templates/tplDimFloor48x16.png",
+      "size": {
+        "width": 34,
+        "height": 20
+      },
+      "anchorX": 25,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x16_r90.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x16_r180.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 25
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimFloor48x16_r270.png",
+          "size": {
+            "width": 34,
+            "height": 20
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "floor"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 16
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox16h4",
+      "label": "Dim Box 16 h4",
+      "href": "/art/sprites/environment/templates/tplDimBox16h4.png",
+      "size": {
+        "width": 18,
+        "height": 13
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h4_r90.png",
+          "size": {
+            "width": 18,
+            "height": 13
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h4_r180.png",
+          "size": {
+            "width": 18,
+            "height": 13
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h4_r270.png",
+          "size": {
+            "width": 18,
+            "height": 13
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox16h8",
+      "label": "Dim Box 16 h8",
+      "href": "/art/sprites/environment/templates/tplDimBox16h8.png",
+      "size": {
+        "width": 18,
+        "height": 17
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h8_r90.png",
+          "size": {
+            "width": 18,
+            "height": 17
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h8_r180.png",
+          "size": {
+            "width": 18,
+            "height": 17
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h8_r270.png",
+          "size": {
+            "width": 18,
+            "height": 17
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox16h16",
+      "label": "Dim Box 16 h16",
+      "href": "/art/sprites/environment/templates/tplDimBox16h16.png",
+      "size": {
+        "width": 18,
+        "height": 25
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h16_r90.png",
+          "size": {
+            "width": 18,
+            "height": 25
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h16_r180.png",
+          "size": {
+            "width": 18,
+            "height": 25
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h16_r270.png",
+          "size": {
+            "width": 18,
+            "height": 25
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox16h32",
+      "label": "Dim Box 16 h32",
+      "href": "/art/sprites/environment/templates/tplDimBox16h32.png",
+      "size": {
+        "width": 18,
+        "height": 41
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h32_r90.png",
+          "size": {
+            "width": 18,
+            "height": 41
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h32_r180.png",
+          "size": {
+            "width": 18,
+            "height": 41
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h32_r270.png",
+          "size": {
+            "width": 18,
+            "height": 41
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 32,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox16h48",
+      "label": "Dim Box 16 h48",
+      "href": "/art/sprites/environment/templates/tplDimBox16h48.png",
+      "size": {
+        "width": 18,
+        "height": 57
+      },
+      "anchorX": 9,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h48_r90.png",
+          "size": {
+            "width": 18,
+            "height": 57
+          },
+          "anchorX": 9
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h48_r180.png",
+          "size": {
+            "width": 18,
+            "height": 57
+          },
+          "anchorX": 9
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox16h48_r270.png",
+          "size": {
+            "width": 18,
+            "height": 57
+          },
+          "anchorX": 9
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 48,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h4",
+      "label": "Dim Box 32 h4",
+      "href": "/art/sprites/environment/templates/tplDimBox32h4.png",
+      "size": {
+        "width": 34,
+        "height": 21
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h4_r90.png",
+          "size": {
+            "width": 34,
+            "height": 21
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h4_r180.png",
+          "size": {
+            "width": 34,
+            "height": 21
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h4_r270.png",
+          "size": {
+            "width": 34,
+            "height": 21
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h8",
+      "label": "Dim Box 32 h8",
+      "href": "/art/sprites/environment/templates/tplDimBox32h8.png",
+      "size": {
+        "width": 34,
+        "height": 25
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h8_r90.png",
+          "size": {
+            "width": 34,
+            "height": 25
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h8_r180.png",
+          "size": {
+            "width": 34,
+            "height": 25
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h8_r270.png",
+          "size": {
+            "width": 34,
+            "height": 25
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h12",
+      "label": "Dim Box 32 h12",
+      "href": "/art/sprites/environment/templates/tplDimBox32h12.png",
+      "size": {
+        "width": 34,
+        "height": 29
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h12_r90.png",
+          "size": {
+            "width": 34,
+            "height": 29
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h12_r180.png",
+          "size": {
+            "width": 34,
+            "height": 29
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h12_r270.png",
+          "size": {
+            "width": 34,
+            "height": 29
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h16",
+      "label": "Dim Box 32 h16",
+      "href": "/art/sprites/environment/templates/tplDimBox32h16.png",
+      "size": {
+        "width": 34,
+        "height": 33
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h16_r90.png",
+          "size": {
+            "width": 34,
+            "height": 33
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h16_r180.png",
+          "size": {
+            "width": 34,
+            "height": 33
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h16_r270.png",
+          "size": {
+            "width": 34,
+            "height": 33
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h24",
+      "label": "Dim Box 32 h24",
+      "href": "/art/sprites/environment/templates/tplDimBox32h24.png",
+      "size": {
+        "width": 34,
+        "height": 41
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h24_r90.png",
+          "size": {
+            "width": 34,
+            "height": 41
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h24_r180.png",
+          "size": {
+            "width": 34,
+            "height": 41
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h24_r270.png",
+          "size": {
+            "width": 34,
+            "height": 41
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 24,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h32",
+      "label": "Dim Box 32 h32",
+      "href": "/art/sprites/environment/templates/tplDimBox32h32.png",
+      "size": {
+        "width": 34,
+        "height": 49
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h32_r90.png",
+          "size": {
+            "width": 34,
+            "height": 49
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h32_r180.png",
+          "size": {
+            "width": 34,
+            "height": 49
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h32_r270.png",
+          "size": {
+            "width": 34,
+            "height": 49
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 32,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h48",
+      "label": "Dim Box 32 h48",
+      "href": "/art/sprites/environment/templates/tplDimBox32h48.png",
+      "size": {
+        "width": 34,
+        "height": 65
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h48_r90.png",
+          "size": {
+            "width": 34,
+            "height": 65
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h48_r180.png",
+          "size": {
+            "width": 34,
+            "height": 65
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h48_r270.png",
+          "size": {
+            "width": 34,
+            "height": 65
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 48,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h64",
+      "label": "Dim Box 32 h64",
+      "href": "/art/sprites/environment/templates/tplDimBox32h64.png",
+      "size": {
+        "width": 34,
+        "height": 81
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h64_r90.png",
+          "size": {
+            "width": 34,
+            "height": 81
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h64_r180.png",
+          "size": {
+            "width": 34,
+            "height": 81
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h64_r270.png",
+          "size": {
+            "width": 34,
+            "height": 81
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 64,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox32h80",
+      "label": "Dim Box 32 h80",
+      "href": "/art/sprites/environment/templates/tplDimBox32h80.png",
+      "size": {
+        "width": 34,
+        "height": 97
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h80_r90.png",
+          "size": {
+            "width": 34,
+            "height": 97
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h80_r180.png",
+          "size": {
+            "width": 34,
+            "height": 97
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox32h80_r270.png",
+          "size": {
+            "width": 34,
+            "height": 97
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 80,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox64h8",
+      "label": "Dim Box 64 h8",
+      "href": "/art/sprites/environment/templates/tplDimBox64h8.png",
+      "size": {
+        "width": 66,
+        "height": 41
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h8_r90.png",
+          "size": {
+            "width": 66,
+            "height": 41
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h8_r180.png",
+          "size": {
+            "width": 66,
+            "height": 41
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h8_r270.png",
+          "size": {
+            "width": 66,
+            "height": 41
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox64h16",
+      "label": "Dim Box 64 h16",
+      "href": "/art/sprites/environment/templates/tplDimBox64h16.png",
+      "size": {
+        "width": 66,
+        "height": 49
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h16_r90.png",
+          "size": {
+            "width": 66,
+            "height": 49
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h16_r180.png",
+          "size": {
+            "width": 66,
+            "height": 49
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h16_r270.png",
+          "size": {
+            "width": 66,
+            "height": 49
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox64h32",
+      "label": "Dim Box 64 h32",
+      "href": "/art/sprites/environment/templates/tplDimBox64h32.png",
+      "size": {
+        "width": 66,
+        "height": 65
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h32_r90.png",
+          "size": {
+            "width": 66,
+            "height": 65
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h32_r180.png",
+          "size": {
+            "width": 66,
+            "height": 65
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h32_r270.png",
+          "size": {
+            "width": 66,
+            "height": 65
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 32,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox64h64",
+      "label": "Dim Box 64 h64",
+      "href": "/art/sprites/environment/templates/tplDimBox64h64.png",
+      "size": {
+        "width": 66,
+        "height": 97
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h64_r90.png",
+          "size": {
+            "width": 66,
+            "height": 97
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h64_r180.png",
+          "size": {
+            "width": 66,
+            "height": 97
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h64_r270.png",
+          "size": {
+            "width": 66,
+            "height": 97
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 64,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBox64h92",
+      "label": "Dim Box 64 h92",
+      "href": "/art/sprites/environment/templates/tplDimBox64h92.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h92_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h92_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBox64h92_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "dimension",
+        "box"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h2",
+      "label": "Dim Tiny 2×2×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h2.png",
+      "size": {
+        "width": 2,
+        "height": 3
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h2_r90.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h2_r180.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h2_r270.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h4",
+      "label": "Dim Tiny 2×2×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h4.png",
+      "size": {
+        "width": 2,
+        "height": 5
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h4_r90.png",
+          "size": {
+            "width": 2,
+            "height": 5
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h4_r180.png",
+          "size": {
+            "width": 2,
+            "height": 5
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h4_r270.png",
+          "size": {
+            "width": 2,
+            "height": 5
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h6",
+      "label": "Dim Tiny 2×2×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h6.png",
+      "size": {
+        "width": 2,
+        "height": 7
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h6_r90.png",
+          "size": {
+            "width": 2,
+            "height": 7
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h6_r180.png",
+          "size": {
+            "width": 2,
+            "height": 7
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h6_r270.png",
+          "size": {
+            "width": 2,
+            "height": 7
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h8",
+      "label": "Dim Tiny 2×2×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h8.png",
+      "size": {
+        "width": 2,
+        "height": 9
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h8_r90.png",
+          "size": {
+            "width": 2,
+            "height": 9
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h8_r180.png",
+          "size": {
+            "width": 2,
+            "height": 9
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h8_r270.png",
+          "size": {
+            "width": 2,
+            "height": 9
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h12",
+      "label": "Dim Tiny 2×2×12",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h12.png",
+      "size": {
+        "width": 2,
+        "height": 13
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h12_r90.png",
+          "size": {
+            "width": 2,
+            "height": 13
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h12_r180.png",
+          "size": {
+            "width": 2,
+            "height": 13
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h12_r270.png",
+          "size": {
+            "width": 2,
+            "height": 13
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny2h16",
+      "label": "Dim Tiny 2×2×16",
+      "href": "/art/sprites/environment/templates/tplDimTiny2h16.png",
+      "size": {
+        "width": 2,
+        "height": 17
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h16_r90.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h16_r180.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny2h16_r270.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h2",
+      "label": "Dim Tiny 4×4×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h2.png",
+      "size": {
+        "width": 4,
+        "height": 4
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h2_r90.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h2_r180.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h2_r270.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h4",
+      "label": "Dim Tiny 4×4×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h4.png",
+      "size": {
+        "width": 4,
+        "height": 6
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h4_r90.png",
+          "size": {
+            "width": 4,
+            "height": 6
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h4_r180.png",
+          "size": {
+            "width": 4,
+            "height": 6
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h4_r270.png",
+          "size": {
+            "width": 4,
+            "height": 6
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h6",
+      "label": "Dim Tiny 4×4×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h6.png",
+      "size": {
+        "width": 4,
+        "height": 8
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h6_r90.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h6_r180.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h6_r270.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h8",
+      "label": "Dim Tiny 4×4×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h8.png",
+      "size": {
+        "width": 4,
+        "height": 10
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h8_r90.png",
+          "size": {
+            "width": 4,
+            "height": 10
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h8_r180.png",
+          "size": {
+            "width": 4,
+            "height": 10
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h8_r270.png",
+          "size": {
+            "width": 4,
+            "height": 10
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h12",
+      "label": "Dim Tiny 4×4×12",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h12.png",
+      "size": {
+        "width": 4,
+        "height": 14
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h12_r90.png",
+          "size": {
+            "width": 4,
+            "height": 14
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h12_r180.png",
+          "size": {
+            "width": 4,
+            "height": 14
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h12_r270.png",
+          "size": {
+            "width": 4,
+            "height": 14
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4h16",
+      "label": "Dim Tiny 4×4×16",
+      "href": "/art/sprites/environment/templates/tplDimTiny4h16.png",
+      "size": {
+        "width": 4,
+        "height": 18
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h16_r90.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h16_r180.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4h16_r270.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h2",
+      "label": "Dim Tiny 6×6×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h2.png",
+      "size": {
+        "width": 6,
+        "height": 5
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h2_r90.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h2_r180.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h2_r270.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h4",
+      "label": "Dim Tiny 6×6×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h4.png",
+      "size": {
+        "width": 6,
+        "height": 7
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h4_r90.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h4_r180.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h4_r270.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h6",
+      "label": "Dim Tiny 6×6×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h6.png",
+      "size": {
+        "width": 6,
+        "height": 9
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h6_r90.png",
+          "size": {
+            "width": 6,
+            "height": 9
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h6_r180.png",
+          "size": {
+            "width": 6,
+            "height": 9
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h6_r270.png",
+          "size": {
+            "width": 6,
+            "height": 9
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h8",
+      "label": "Dim Tiny 6×6×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h8.png",
+      "size": {
+        "width": 6,
+        "height": 11
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h8_r90.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h8_r180.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h8_r270.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h12",
+      "label": "Dim Tiny 6×6×12",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h12.png",
+      "size": {
+        "width": 6,
+        "height": 15
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h12_r90.png",
+          "size": {
+            "width": 6,
+            "height": 15
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h12_r180.png",
+          "size": {
+            "width": 6,
+            "height": 15
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h12_r270.png",
+          "size": {
+            "width": 6,
+            "height": 15
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6h16",
+      "label": "Dim Tiny 6×6×16",
+      "href": "/art/sprites/environment/templates/tplDimTiny6h16.png",
+      "size": {
+        "width": 6,
+        "height": 19
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h16_r90.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h16_r180.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6h16_r270.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h2",
+      "label": "Dim Tiny 8×8×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h2.png",
+      "size": {
+        "width": 8,
+        "height": 6
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h2_r90.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h2_r180.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h2_r270.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h4",
+      "label": "Dim Tiny 8×8×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h4.png",
+      "size": {
+        "width": 8,
+        "height": 8
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h4_r90.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h4_r180.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h4_r270.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h6",
+      "label": "Dim Tiny 8×8×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h6.png",
+      "size": {
+        "width": 8,
+        "height": 10
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h6_r90.png",
+          "size": {
+            "width": 8,
+            "height": 10
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h6_r180.png",
+          "size": {
+            "width": 8,
+            "height": 10
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h6_r270.png",
+          "size": {
+            "width": 8,
+            "height": 10
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h8",
+      "label": "Dim Tiny 8×8×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h8.png",
+      "size": {
+        "width": 8,
+        "height": 12
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h8_r90.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h8_r180.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h8_r270.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h12",
+      "label": "Dim Tiny 8×8×12",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h12.png",
+      "size": {
+        "width": 8,
+        "height": 16
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h12_r90.png",
+          "size": {
+            "width": 8,
+            "height": 16
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h12_r180.png",
+          "size": {
+            "width": 8,
+            "height": 16
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h12_r270.png",
+          "size": {
+            "width": 8,
+            "height": 16
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8h16",
+      "label": "Dim Tiny 8×8×16",
+      "href": "/art/sprites/environment/templates/tplDimTiny8h16.png",
+      "size": {
+        "width": 8,
+        "height": 20
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h16_r90.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h16_r180.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8h16_r270.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8x4h2",
+      "label": "Dim Tiny 8×4×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny8x4h2.png",
+      "size": {
+        "width": 6,
+        "height": 5
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h2_r90.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h2_r180.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h2_r270.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 4
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8x4h4",
+      "label": "Dim Tiny 8×4×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny8x4h4.png",
+      "size": {
+        "width": 6,
+        "height": 7
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h4_r90.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h4_r180.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h4_r270.png",
+          "size": {
+            "width": 6,
+            "height": 7
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 4
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8x4h8",
+      "label": "Dim Tiny 8×4×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny8x4h8.png",
+      "size": {
+        "width": 6,
+        "height": 11
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h8_r90.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h8_r180.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x4h8_r270.png",
+          "size": {
+            "width": 6,
+            "height": 11
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 4
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8x2h2",
+      "label": "Dim Tiny 8×2×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny8x2h2.png",
+      "size": {
+        "width": 5,
+        "height": 5
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h2_r90.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h2_r180.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h2_r270.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 2
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny8x2h4",
+      "label": "Dim Tiny 8×2×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny8x2h4.png",
+      "size": {
+        "width": 5,
+        "height": 7
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h4_r90.png",
+          "size": {
+            "width": 5,
+            "height": 7
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h4_r180.png",
+          "size": {
+            "width": 5,
+            "height": 7
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny8x2h4_r270.png",
+          "size": {
+            "width": 5,
+            "height": 7
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 2
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4x2h2",
+      "label": "Dim Tiny 4×2×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny4x2h2.png",
+      "size": {
+        "width": 3,
+        "height": 4
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h2_r90.png",
+          "size": {
+            "width": 3,
+            "height": 4
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h2_r180.png",
+          "size": {
+            "width": 3,
+            "height": 4
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h2_r270.png",
+          "size": {
+            "width": 3,
+            "height": 4
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 2
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4x2h4",
+      "label": "Dim Tiny 4×2×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny4x2h4.png",
+      "size": {
+        "width": 3,
+        "height": 6
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h4_r90.png",
+          "size": {
+            "width": 3,
+            "height": 6
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h4_r180.png",
+          "size": {
+            "width": 3,
+            "height": 6
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h4_r270.png",
+          "size": {
+            "width": 3,
+            "height": 6
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 2
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny4x2h8",
+      "label": "Dim Tiny 4×2×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny4x2h8.png",
+      "size": {
+        "width": 3,
+        "height": 10
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h8_r90.png",
+          "size": {
+            "width": 3,
+            "height": 10
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h8_r180.png",
+          "size": {
+            "width": 3,
+            "height": 10
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny4x2h8_r270.png",
+          "size": {
+            "width": 3,
+            "height": 10
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 2
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny12x4h4",
+      "label": "Dim Tiny 12×4×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny12x4h4.png",
+      "size": {
+        "width": 8,
+        "height": 8
+      },
+      "anchorX": 6,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h4_r90.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h4_r180.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 6
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h4_r270.png",
+          "size": {
+            "width": 8,
+            "height": 8
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 12,
+        "depth": 4
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny12x4h8",
+      "label": "Dim Tiny 12×4×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny12x4h8.png",
+      "size": {
+        "width": 8,
+        "height": 12
+      },
+      "anchorX": 6,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h8_r90.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h8_r180.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 6
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x4h8_r270.png",
+          "size": {
+            "width": 8,
+            "height": 12
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 12,
+        "depth": 4
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny12x8h4",
+      "label": "Dim Tiny 12×8×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny12x8h4.png",
+      "size": {
+        "width": 10,
+        "height": 9
+      },
+      "anchorX": 6,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x8h4_r90.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x8h4_r180.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 6
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny12x8h4_r270.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 12,
+        "depth": 8
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny16x4h4",
+      "label": "Dim Tiny 16×4×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny16x4h4.png",
+      "size": {
+        "width": 10,
+        "height": 9
+      },
+      "anchorX": 8,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h4_r90.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h4_r180.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 8
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h4_r270.png",
+          "size": {
+            "width": 10,
+            "height": 9
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 4
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny16x4h8",
+      "label": "Dim Tiny 16×4×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny16x4h8.png",
+      "size": {
+        "width": 10,
+        "height": 13
+      },
+      "anchorX": 8,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h8_r90.png",
+          "size": {
+            "width": 10,
+            "height": 13
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h8_r180.png",
+          "size": {
+            "width": 10,
+            "height": 13
+          },
+          "anchorX": 8
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x4h8_r270.png",
+          "size": {
+            "width": 10,
+            "height": 13
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 4
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny16x8h4",
+      "label": "Dim Tiny 16×8×4",
+      "href": "/art/sprites/environment/templates/tplDimTiny16x8h4.png",
+      "size": {
+        "width": 12,
+        "height": 10
+      },
+      "anchorX": 8,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h4_r90.png",
+          "size": {
+            "width": 12,
+            "height": 10
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h4_r180.png",
+          "size": {
+            "width": 12,
+            "height": 10
+          },
+          "anchorX": 8
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h4_r270.png",
+          "size": {
+            "width": 12,
+            "height": 10
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 8
+      },
+      "height": 4,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny16x8h8",
+      "label": "Dim Tiny 16×8×8",
+      "href": "/art/sprites/environment/templates/tplDimTiny16x8h8.png",
+      "size": {
+        "width": 12,
+        "height": 14
+      },
+      "anchorX": 8,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h8_r90.png",
+          "size": {
+            "width": 12,
+            "height": 14
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h8_r180.png",
+          "size": {
+            "width": 12,
+            "height": 14
+          },
+          "anchorX": 8
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny16x8h8_r270.png",
+          "size": {
+            "width": 12,
+            "height": 14
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 8
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6x2h2",
+      "label": "Dim Tiny 6×2×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny6x2h2.png",
+      "size": {
+        "width": 4,
+        "height": 4
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h2_r90.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h2_r180.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h2_r270.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 2
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6x2h6",
+      "label": "Dim Tiny 6×2×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny6x2h6.png",
+      "size": {
+        "width": 4,
+        "height": 8
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h6_r90.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h6_r180.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x2h6_r270.png",
+          "size": {
+            "width": 4,
+            "height": 8
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 2
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6x4h2",
+      "label": "Dim Tiny 6×4×2",
+      "href": "/art/sprites/environment/templates/tplDimTiny6x4h2.png",
+      "size": {
+        "width": 5,
+        "height": 5
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h2_r90.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h2_r180.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h2_r270.png",
+          "size": {
+            "width": 5,
+            "height": 5
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 4
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTiny6x4h6",
+      "label": "Dim Tiny 6×4×6",
+      "href": "/art/sprites/environment/templates/tplDimTiny6x4h6.png",
+      "size": {
+        "width": 5,
+        "height": 9
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h6_r90.png",
+          "size": {
+            "width": 5,
+            "height": 9
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h6_r180.png",
+          "size": {
+            "width": 5,
+            "height": 9
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTiny6x4h6_r270.png",
+          "size": {
+            "width": 5,
+            "height": 9
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "box"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 4
+      },
+      "height": 6,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPad2",
+      "label": "Dim Tiny Pad 2",
+      "href": "/art/sprites/environment/templates/tplDimTinyPad2.png",
+      "size": {
+        "width": 2,
+        "height": 3
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad2_r90.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad2_r180.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad2_r270.png",
+          "size": {
+            "width": 2,
+            "height": 3
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "floor"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPost2",
+      "label": "Dim Tiny Post 2",
+      "href": "/art/sprites/environment/templates/tplDimTinyPost2.png",
+      "size": {
+        "width": 2,
+        "height": 17
+      },
+      "anchorX": 1,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost2_r90.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost2_r180.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost2_r270.png",
+          "size": {
+            "width": 2,
+            "height": 17
+          },
+          "anchorX": 1
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "column"
+      ],
+      "footprint": {
+        "width": 2,
+        "depth": 2
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPad4",
+      "label": "Dim Tiny Pad 4",
+      "href": "/art/sprites/environment/templates/tplDimTinyPad4.png",
+      "size": {
+        "width": 4,
+        "height": 4
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad4_r90.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad4_r180.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad4_r270.png",
+          "size": {
+            "width": 4,
+            "height": 4
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "floor"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPost4",
+      "label": "Dim Tiny Post 4",
+      "href": "/art/sprites/environment/templates/tplDimTinyPost4.png",
+      "size": {
+        "width": 4,
+        "height": 18
+      },
+      "anchorX": 2,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost4_r90.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost4_r180.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost4_r270.png",
+          "size": {
+            "width": 4,
+            "height": 18
+          },
+          "anchorX": 2
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "column"
+      ],
+      "footprint": {
+        "width": 4,
+        "depth": 4
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPad6",
+      "label": "Dim Tiny Pad 6",
+      "href": "/art/sprites/environment/templates/tplDimTinyPad6.png",
+      "size": {
+        "width": 6,
+        "height": 5
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad6_r90.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad6_r180.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad6_r270.png",
+          "size": {
+            "width": 6,
+            "height": 5
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "floor"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPost6",
+      "label": "Dim Tiny Post 6",
+      "href": "/art/sprites/environment/templates/tplDimTinyPost6.png",
+      "size": {
+        "width": 6,
+        "height": 19
+      },
+      "anchorX": 3,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost6_r90.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost6_r180.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost6_r270.png",
+          "size": {
+            "width": 6,
+            "height": 19
+          },
+          "anchorX": 3
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "column"
+      ],
+      "footprint": {
+        "width": 6,
+        "depth": 6
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPad8",
+      "label": "Dim Tiny Pad 8",
+      "href": "/art/sprites/environment/templates/tplDimTinyPad8.png",
+      "size": {
+        "width": 8,
+        "height": 6
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad8_r90.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad8_r180.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPad8_r270.png",
+          "size": {
+            "width": 8,
+            "height": 6
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "floor"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 2,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTinyPost8",
+      "label": "Dim Tiny Post 8",
+      "href": "/art/sprites/environment/templates/tplDimTinyPost8.png",
+      "size": {
+        "width": 8,
+        "height": 20
+      },
+      "anchorX": 4,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost8_r90.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost8_r180.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTinyPost8_r270.png",
+          "size": {
+            "width": 8,
+            "height": 20
+          },
+          "anchorX": 4
+        }
+      },
+      "tags": [
+        "dimension",
+        "tiny",
+        "column"
+      ],
+      "footprint": {
+        "width": 8,
+        "depth": 8
+      },
+      "height": 16,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimSteps2",
+      "label": "Dim Steps 2",
+      "href": "/art/sprites/environment/templates/tplDimSteps2.png",
+      "size": {
+        "width": 64,
+        "height": 64
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimSteps2_r90.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimSteps2_r180.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimSteps2_r270.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 32,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimSteps3",
+      "label": "Dim Steps 3",
+      "href": "/art/sprites/environment/templates/tplDimSteps3.png",
+      "size": {
+        "width": 64,
+        "height": 56
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimSteps3_r90.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimSteps3_r180.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimSteps3_r270.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 24,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimSteps4",
+      "label": "Dim Steps 4",
+      "href": "/art/sprites/environment/templates/tplDimSteps4.png",
+      "size": {
+        "width": 64,
+        "height": 64
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimSteps4_r90.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimSteps4_r180.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimSteps4_r270.png",
+          "size": {
+            "width": 64,
+            "height": 64
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 32,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimSteps5",
+      "label": "Dim Steps 5",
+      "href": "/art/sprites/environment/templates/tplDimSteps5.png",
+      "size": {
+        "width": 64,
+        "height": 72
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimSteps5_r90.png",
+          "size": {
+            "width": 64,
+            "height": 72
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimSteps5_r180.png",
+          "size": {
+            "width": 64,
+            "height": 72
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimSteps5_r270.png",
+          "size": {
+            "width": 64,
+            "height": 72
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 40,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimSteps6",
+      "label": "Dim Steps 6",
+      "href": "/art/sprites/environment/templates/tplDimSteps6.png",
+      "size": {
+        "width": 64,
+        "height": 80
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimSteps6_r90.png",
+          "size": {
+            "width": 64,
+            "height": 80
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimSteps6_r180.png",
+          "size": {
+            "width": 64,
+            "height": 80
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimSteps6_r270.png",
+          "size": {
+            "width": 64,
+            "height": 80
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 48,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimStepsWide",
+      "label": "Dim Steps Wide",
+      "href": "/art/sprites/environment/templates/tplDimStepsWide.png",
+      "size": {
+        "width": 96,
+        "height": 80
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimStepsWide_r90.png",
+          "size": {
+            "width": 96,
+            "height": 80
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimStepsWide_r180.png",
+          "size": {
+            "width": 96,
+            "height": 80
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimStepsWide_r270.png",
+          "size": {
+            "width": 96,
+            "height": 80
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "steps"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 32,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimRamp",
+      "label": "Dim Ramp",
+      "href": "/art/sprites/environment/templates/tplDimRamp.png",
+      "size": {
+        "width": 64,
+        "height": 56
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimRamp_r90.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimRamp_r180.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimRamp_r270.png",
+          "size": {
+            "width": 64,
+            "height": 56
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 24,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimRampTall",
+      "label": "Dim Ramp Tall",
+      "href": "/art/sprites/environment/templates/tplDimRampTall.png",
+      "size": {
+        "width": 68,
+        "height": 82
+      },
+      "anchorX": 32,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimRampTall_r90.png",
+          "size": {
+            "width": 68,
+            "height": 82
+          },
+          "anchorX": 36
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimRampTall_r180.png",
+          "size": {
+            "width": 68,
+            "height": 82
+          },
+          "anchorX": 32
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimRampTall_r270.png",
+          "size": {
+            "width": 68,
+            "height": 82
+          },
+          "anchorX": 36
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd",
+        "steps"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 72
+      },
+      "height": 48,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimL12",
+      "label": "Dim L 12",
+      "href": "/art/sprites/environment/templates/tplDimL12.png",
+      "size": {
+        "width": 32,
+        "height": 28
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimL12_r90.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimL12_r180.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimL12_r270.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimL24",
+      "label": "Dim L 24",
+      "href": "/art/sprites/environment/templates/tplDimL24.png",
+      "size": {
+        "width": 48,
+        "height": 48
+      },
+      "anchorX": 24,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimL24_r90.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimL24_r180.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimL24_r270.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 24,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimU",
+      "label": "Dim U",
+      "href": "/art/sprites/environment/templates/tplDimU.png",
+      "size": {
+        "width": 32,
+        "height": 32
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimU_r90.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimU_r180.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimU_r270.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimU48",
+      "label": "Dim U 48",
+      "href": "/art/sprites/environment/templates/tplDimU48.png",
+      "size": {
+        "width": 48,
+        "height": 48
+      },
+      "anchorX": 24,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimU48_r90.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimU48_r180.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimU48_r270.png",
+          "size": {
+            "width": 48,
+            "height": 48
+          },
+          "anchorX": 24
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 24,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimRing",
+      "label": "Dim Ring",
+      "href": "/art/sprites/environment/templates/tplDimRing.png",
+      "size": {
+        "width": 32,
+        "height": 24
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimRing_r90.png",
+          "size": {
+            "width": 32,
+            "height": 24
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimRing_r180.png",
+          "size": {
+            "width": 32,
+            "height": 24
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimRing_r270.png",
+          "size": {
+            "width": 32,
+            "height": 24
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 8,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimRing48",
+      "label": "Dim Ring 48",
+      "href": "/art/sprites/environment/templates/tplDimRing48.png",
+      "size": {
+        "width": 48,
+        "height": 36
+      },
+      "anchorX": 24,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimRing48_r90.png",
+          "size": {
+            "width": 48,
+            "height": 36
+          },
+          "anchorX": 24
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimRing48_r180.png",
+          "size": {
+            "width": 48,
+            "height": 36
+          },
+          "anchorX": 24
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimRing48_r270.png",
+          "size": {
+            "width": 48,
+            "height": 36
+          },
+          "anchorX": 24
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 12,
+      "cover": false,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimNotch",
+      "label": "Dim Notch",
+      "href": "/art/sprites/environment/templates/tplDimNotch.png",
+      "size": {
+        "width": 32,
+        "height": 32
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimNotch_r90.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimNotch_r180.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimNotch_r270.png",
+          "size": {
+            "width": 32,
+            "height": 32
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimZ",
+      "label": "Dim Z",
+      "href": "/art/sprites/environment/templates/tplDimZ.png",
+      "size": {
+        "width": 32,
+        "height": 28
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimZ_r90.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimZ_r180.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimZ_r270.png",
+          "size": {
+            "width": 32,
+            "height": 28
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "odd"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTable",
+      "label": "Dim Table",
+      "href": "/art/sprites/environment/templates/tplDimTable.png",
+      "size": {
+        "width": 56,
+        "height": 44
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTable_r90.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTable_r180.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTable_r270.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 56
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimTableLow",
+      "label": "Dim Table Low",
+      "href": "/art/sprites/environment/templates/tplDimTableLow.png",
+      "size": {
+        "width": 56,
+        "height": 38
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimTableLow_r90.png",
+          "size": {
+            "width": 56,
+            "height": 38
+          },
+          "anchorX": 28
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimTableLow_r180.png",
+          "size": {
+            "width": 56,
+            "height": 38
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimTableLow_r270.png",
+          "size": {
+            "width": 56,
+            "height": 38
+          },
+          "anchorX": 28
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 56
+      },
+      "height": 10,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimChair",
+      "label": "Dim Chair",
+      "href": "/art/sprites/environment/templates/tplDimChair.png",
+      "size": {
+        "width": 39,
+        "height": 48
+      },
+      "anchorX": 18,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimChair_r90.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 21
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimChair_r180.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 18
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimChair_r270.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 21
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 36,
+        "depth": 42
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimStool",
+      "label": "Dim Stool",
+      "href": "/art/sprites/environment/templates/tplDimStool.png",
+      "size": {
+        "width": 28,
+        "height": 30
+      },
+      "anchorX": 14,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimStool_r90.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimStool_r180.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimStool_r270.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 28,
+        "depth": 28
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBench",
+      "label": "Dim Bench",
+      "href": "/art/sprites/environment/templates/tplDimBench.png",
+      "size": {
+        "width": 42,
+        "height": 33
+      },
+      "anchorX": 30,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBench_r90.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 12
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBench_r180.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 30
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBench_r270.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 12
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 60,
+        "depth": 24
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBenchLong",
+      "label": "Dim Bench Long",
+      "href": "/art/sprites/environment/templates/tplDimBenchLong.png",
+      "size": {
+        "width": 60,
+        "height": 42
+      },
+      "anchorX": 48,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBenchLong_r90.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 12
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBenchLong_r180.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 48
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBenchLong_r270.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 12
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 24
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimBed",
+      "label": "Dim Bed",
+      "href": "/art/sprites/environment/templates/tplDimBed.png",
+      "size": {
+        "width": 56,
+        "height": 52
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimBed_r90.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimBed_r180.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimBed_r270.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 56
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimConsole",
+      "label": "Dim Console",
+      "href": "/art/sprites/environment/templates/tplDimConsole.png",
+      "size": {
+        "width": 55,
+        "height": 62
+      },
+      "anchorX": 30,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimConsole_r90.png",
+          "size": {
+            "width": 55,
+            "height": 62
+          },
+          "anchorX": 25
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimConsole_r180.png",
+          "size": {
+            "width": 55,
+            "height": 62
+          },
+          "anchorX": 30
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimConsole_r270.png",
+          "size": {
+            "width": 55,
+            "height": 62
+          },
+          "anchorX": 25
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 60,
+        "depth": 50
+      },
+      "height": 18,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimLocker",
+      "label": "Dim Locker",
+      "href": "/art/sprites/environment/templates/tplDimLocker.png",
+      "size": {
+        "width": 33,
+        "height": 69
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimLocker_r90.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimLocker_r180.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimLocker_r270.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 52,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimLockerWide",
+      "label": "Dim Locker Wide",
+      "href": "/art/sprites/environment/templates/tplDimLockerWide.png",
+      "size": {
+        "width": 44,
+        "height": 74
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimLockerWide_r90.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimLockerWide_r180.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimLockerWide_r270.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 32
+      },
+      "height": 52,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimShelf",
+      "label": "Dim Shelf",
+      "href": "/art/sprites/environment/templates/tplDimShelf.png",
+      "size": {
+        "width": 51,
+        "height": 63
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimShelf_r90.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 23
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimShelf_r180.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimShelf_r270.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 23
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 48
+      },
+      "height": 37,
+      "cover": true,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCrate",
+      "label": "Dim Crate",
+      "href": "/art/sprites/environment/templates/tplDimCrate.png",
+      "size": {
+        "width": 42,
+        "height": 37
+      },
+      "anchorX": 21,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCrate_r90.png",
+          "size": {
+            "width": 42,
+            "height": 37
+          },
+          "anchorX": 21
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCrate_r180.png",
+          "size": {
+            "width": 42,
+            "height": 37
+          },
+          "anchorX": 21
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCrate_r270.png",
+          "size": {
+            "width": 42,
+            "height": 37
+          },
+          "anchorX": 21
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 40,
+        "depth": 40
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
+    },
+    {
+      "id": "tplDimCrateTall",
+      "label": "Dim Crate Tall",
+      "href": "/art/sprites/environment/templates/tplDimCrateTall.png",
+      "size": {
+        "width": 42,
+        "height": 53
+      },
+      "anchorX": 21,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplDimCrateTall_r90.png",
+          "size": {
+            "width": 42,
+            "height": 53
+          },
+          "anchorX": 21
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplDimCrateTall_r180.png",
+          "size": {
+            "width": 42,
+            "height": 53
+          },
+          "anchorX": 21
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplDimCrateTall_r270.png",
+          "size": {
+            "width": 42,
+            "height": 53
+          },
+          "anchorX": 21
+        }
+      },
+      "tags": [
+        "dimension",
+        "furniture"
+      ],
+      "footprint": {
+        "width": 40,
+        "depth": 40
+      },
+      "height": 32,
+      "cover": true,
+      "fade": false,
+      "face": "plain"
     }
   ]
 }

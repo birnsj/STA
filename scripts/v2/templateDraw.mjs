@@ -191,15 +191,32 @@ function shiftToTip(prisms) {
   return { size, shifted }
 }
 
+// Flat albedo — iso lighting from shade() only. Used by Dimension Kit (solid but lit).
+export function solidMaterial(hex) {
+  const albedo = typeof hex === 'string' ? rgb(hex) : hex
+  return {
+    height: () => 0,
+    surface: (_u, _v, face) => ({
+      albedo: face === 'top' ? albedo : scale(albedo, face === 'end' ? 0.72 : face === 'left' ? 0.82 : 0.64),
+      spec: 0.2,
+      shininess: 26,
+      ao: face === 'top' ? 1 : 0.94,
+    }),
+  }
+}
+
 // face: wall look (templateWallFaces). material: floor/prop kind (templateStarshipProps). material wins when set.
+// colour: solid hex (or prism.colour) for Dimension Kit — skips wall/prop materials.
 // yawTurns: 0–3 quarter turns CCW around the tip (same as makeTemplatePieces yaw). Floors/props need this so
 // markings turn; walls also get correct face/UV after the prism yaw.
-export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material = null, yawTurns = 0 } = {}) {
+export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material = null, colour = null, yawTurns = 0, bloom = 0.45 } = {}) {
   const { size, shifted } = shiftToTip(prisms)
   const cx = size.anchorX
   const ih = size.h
   const turns = ((yawTurns % 4) + 4) % 4
   const materialOf = (prism) => {
+    if (prism.colour) return solidMaterial(prism.colour)
+    if (colour) return solidMaterial(colour)
     const h = Math.max(1, (prism.z1 ?? 0) - (prism.z0 ?? 0))
     const prop = material ? materialForKind(material) : null
     if (prop) return prop
@@ -218,8 +235,9 @@ export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material
   }
   const width = size.w * RESOLUTION
   const height = size.h * RESOLUTION
-  const bytes = render(scene, { width, height, subsamples, bloom: 0.45, bloomRadius: 3 })
-  return { png: encodePng(width, height, bytes), size: { w: size.w, h: size.h, anchorX: size.anchorX } }
+  // Solid Dimension pieces stay clean: less bloom than Starship fittings.
+  const bytes = render(scene, { width, height, subsamples, bloom: colour || prisms.some((p) => p.colour) ? Math.min(bloom, 0.28) : bloom, bloomRadius: 3 })
+  return { png: encodePng(width, height, bytes), bytes, size: { w: size.w, h: size.h, anchorX: size.anchorX }, width, height }
 }
 
 // Emission-only layer for Template Piece animation overlays (same size/anchor as paintPrismsAA).
