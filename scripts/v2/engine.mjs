@@ -101,8 +101,10 @@ export const FRAMES = {
 }
 
 // material: { height(u, v, face), surface(u, v, face) -> { albedo, spec, shininess, emit, ao } }
-export function shade(material, u, v, face) {
-  const frame = FRAMES[face]
+// lightFace: which world/screen side is being drawn (FRAMES). Defaults to face. Template yaw may sample a
+// different material face while keeping lighting locked to the visible side (square corners, props).
+export function shade(material, u, v, face, lightFace = face) {
+  const frame = FRAMES[lightFace] ?? FRAMES[face]
   const step = 0.2
   const h = (du, dv) => material.height?.(u + du, v + dv, face) ?? 0
   const hu = (h(step, 0) - h(-step, 0)) / (2 * step)

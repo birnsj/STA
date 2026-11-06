@@ -1,10 +1,28 @@
-import { getTemplatePiece } from '../../maps/templatePieces.js'
+import { getTemplatePiece, templatePieceArt } from '../../maps/templatePieces.js'
+import { TemplatePieceDetails } from './AssetProperties.jsx'
 import { PropertySection } from './PropertySections.jsx'
 import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 
 // Map editor panel for an authored Template Piece overlay (mapFormat.js templatePiecePlacements).
-export default function TemplatePieceInspector({ object, moving, onChange, onPositionChange, onMove, onDelete }) {
+export default function TemplatePieceInspector({
+  object,
+  moving,
+  onChange,
+  onPositionChange,
+  onMove,
+  onDelete,
+  animateTiles = true,
+  ambient,
+  ambientColour,
+  onAmbient,
+  onAmbientColour,
+  onStatus = null,
+}) {
   const def = getTemplatePiece(object.pieceId)
+  const art = templatePieceArt(def, object.rotation ?? 0)
+  const preview = def
+    ? { ...def, href: art?.href ?? def.href, animation: art?.animation ?? def.animation }
+    : null
   const pos = object.position
   const commitCoord = (axis, raw) => {
     const n = Number(raw)
@@ -19,10 +37,8 @@ export default function TemplatePieceInspector({ object, moving, onChange, onPos
     <div className="ed-asset-props">
       <PropertySection id="template-piece" title="Template Piece">
         <div className="ed-asset-preview">
-          {def?.href ? (
-            <img className="ed-asset-preview-art" src={def.href} alt="" />
-          ) : (
-            def && <TemplatePieceThumbnail piece={def} className="ed-asset-preview-art" large />
+          {preview && (
+            <TemplatePieceThumbnail piece={preview} className="ed-asset-preview-art" large animate={animateTiles} />
           )}
         </div>
         <p className="me-text">
@@ -94,6 +110,16 @@ export default function TemplatePieceInspector({ object, moving, onChange, onPos
           </button>
         </div>
       </PropertySection>
+      {def && (
+        <TemplatePieceDetails
+          piece={def}
+          onStatus={onStatus}
+          ambient={ambient}
+          ambientColour={ambientColour}
+          onAmbient={onAmbient}
+          onAmbientColour={onAmbientColour}
+        />
+      )}
     </div>
   )
 }

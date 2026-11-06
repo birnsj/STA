@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// File / Edit / View / Mission / Test menus. Mission generate actions also have toolbar icons before Enemies.
+// File / Edit / View / Mission / Test / Help menus. Mission generate actions also have toolbar icons before Enemies.
 
 const MENUS = [
   {
@@ -68,6 +68,15 @@ const MENUS = [
     items: [
       { id: 'play', label: 'Play' },
       { id: 'enemies', label: 'Toggle Enemies Active' },
+    ],
+  },
+  {
+    id: 'help',
+    label: 'Help',
+    items: [
+      { id: 'help', label: 'Keyboard Shortcuts…' },
+      { sep: true },
+      { id: 'about', label: 'About STA Builder' },
     ],
   },
 ]

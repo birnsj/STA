@@ -1,6 +1,7 @@
 // The hidden square logical grid under the battlefield. Positions are { x, y } (x = column, y = row).
 // The map comes from a shared map file (src/maps/mapFormat.js); what each tile does comes from the shared tile catalogue.
 import { getTile, WALL_TILE } from '../maps/mapFormat.js'
+import { templatePieceGivesCover } from '../maps/templatePieces.js'
 
 // Combat only needs the grid of a parsed map file, plus the tiles hazards mark (world/environment.js applyEnvironmentTiles).
 export const toBattleMap = (mapFile) => ({
@@ -36,7 +37,8 @@ export const blocksMovement = (map, position) => getTile(tileAt(map, position)).
 export const blocksLineOfFire = (map, position) => getTile(tileAt(map, position)).blocksSight || Boolean(map.sightBlockers?.[`${position.x},${position.y}`])
 // A slowing hazard (the coolant leak; map.slowKeys) makes a tile cost two steps of movement.
 export const isSlowTile = (map, position) => Boolean(map.slowKeys?.[`${position.x},${position.y}`])
-export const givesCover = (map, position) => getTile(tileAt(map, position)).cover
+export const givesCover = (map, position) =>
+  getTile(tileAt(map, position)).cover || templatePieceGivesCover(map, position)
 
 export const NEIGHBOUR_OFFSETS = [
   [0, -1], [1, 0], [0, 1], [-1, 0],

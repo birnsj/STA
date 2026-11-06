@@ -122,7 +122,7 @@ function machineryMaterial() {
     surface(u, v, face) {
       if (face === 'top') {
         const r = core(u, v)
-        if (r < 5) return { albedo: rgb('#ffe0a0'), emit: mix(rgb('#fff6d0'), ORANGE, smoothstep(0, 5, r)) }
+        if (r < 5) return { albedo: rgb('#ffe0a0'), emit: mix(rgb('#fff6d0'), ORANGE, smoothstep(0, 5, r)), tag: 'lights' }
         if (r < 6) return { albedo: rgb('#1a0c08'), ao: 0.5 }
         if (r < 9.5) return { albedo: STEEL, spec: 0.6, shininess: 40 }
         return { albedo: scale(body, 0.92 + noise(u / 5, v / 5, 81) * 0.1), spec: 0.25, shininess: 22 }
@@ -132,14 +132,16 @@ function machineryMaterial() {
       if (pipeAt(u) < 2.2 && z > 2 && z < H - 2) return { albedo: STEEL, spec: 0.75, shininess: 45, ao }
       if (face === 'left' && vent(u, z) > 0) {
         const slat = ((z % 2.6) + 2.6) % 2.6 < 1.2
-        return slat ? { albedo: rgb('#3a2a24'), spec: 0.3, shininess: 20, ao } : { albedo: rgb('#200c06'), emit: scale(ORANGE, 0.9) }
+        return slat ? { albedo: rgb('#3a2a24'), spec: 0.3, shininess: 20, ao } : { albedo: rgb('#200c06'), emit: scale(ORANGE, 0.9), tag: 'lights' }
       }
       if (face === 'right' && screen(u, z) > 0) {
         const cellU = Math.floor((u - 9) / 2.8)
         const cellZ = Math.floor((z - 18) / 2.6)
         const inCell = ((u - 9) % 2.8) < 1.4 && ((z - 18) % 2.6) < 1.2
         const state = hash(cellU, cellZ, 83)
-        if (inCell && state > 0.45) return { albedo: rgb('#0a0a0a'), emit: state > 0.8 ? rgb('#60ff90') : state > 0.6 ? rgb('#ffb040') : rgb('#40a0ff') }
+        if (inCell && state > 0.45) {
+          return { albedo: rgb('#0a0a0a'), emit: state > 0.8 ? rgb('#60ff90') : state > 0.6 ? rgb('#ffb040') : rgb('#40a0ff'), tag: 'lights' }
+        }
         return { albedo: rgb('#0c0f12'), spec: 0.8, shininess: 60 }
       }
       return { albedo: scale(body, 0.9 + brushed(u, z, 84, 'v') * 0.12), spec: 0.25, shininess: 22, ao }
@@ -203,15 +205,17 @@ function epsMaterial() {
         const e = inside(u, v, 0, 0, 32, 32)
         if (e < 3.5) return { albedo: rgb('#6888a8'), spec: 0.5, shininess: 34 }
         const r = Math.hypot(u - 16, v - 16)
-        if (r < 3.6) return { albedo: rgb('#d8f6ff'), emit: mix(rgb('#e8fbff'), SCREEN_BLUE, smoothstep(0, 3.6, r)) }
-        if (r < 4.6) return { albedo: rgb('#0a1c2c'), emit: scale(SCREEN_BLUE, 0.25) }
+        if (r < 3.6) return { albedo: rgb('#d8f6ff'), emit: mix(rgb('#e8fbff'), SCREEN_BLUE, smoothstep(0, 3.6, r)), tag: 'lights' }
+        if (r < 4.6) return { albedo: rgb('#0a1c2c'), emit: scale(SCREEN_BLUE, 0.25), tag: 'lights' }
         const bar = bars.find((item) => u > item.a[0] && u < item.a[1] && v > item.b[0] && v < item.b[1])
-        if (bar) return { albedo: scale(bar.colour, 0.5), emit: scale(bar.colour, 0.75) }
+        if (bar) return { albedo: scale(bar.colour, 0.5), emit: scale(bar.colour, 0.75), tag: 'lights' }
         return { albedo: rgb('#08141f'), spec: 0.9, shininess: 70 }
       }
       const z = v
       const ao = 0.62 + 0.38 * smoothstep(0, 8, z)
-      if (face === 'right' && Math.abs(z - 15) < 0.9 && u > 11 && u < 21) return { albedo: rgb('#402010'), emit: rgb('#ffa040') }
+      if (face === 'right' && Math.abs(z - 15) < 0.9 && u > 11 && u < 21) {
+        return { albedo: rgb('#402010'), emit: rgb('#ffa040'), tag: 'lights' }
+      }
       return { albedo: scale(rgb('#2f4e70'), 0.9 + brushed(u, z, 101, 'v') * 0.12), spec: 0.35, shininess: 30, ao }
     },
   }

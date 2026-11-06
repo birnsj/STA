@@ -2,6 +2,12 @@
 import effects from '../data/adaptation/maps/tileEffects.json'
 import { FULL_LIGHT, getTile, imageSize } from './mapFormat.js'
 import { TILE_H } from './iso.js'
+import {
+  getTemplatePiece,
+  templateEmissiveEpochOf,
+  templateOverlayEmitColour,
+  templateOverlayEmissive,
+} from './templatePieces.js'
 import { getWallPanels } from './wallPanels.js'
 
 // A flipbook: a tile's animation (tileEffects.json animations) for one of its images, as { id, loop, frameTime,
@@ -272,7 +278,7 @@ function windowFloorLight(map, tileKey, panel) {
 const darkLights = new WeakMap()
 export function darknessLights(map) {
   const cached = darkLights.get(map)
-  const epoch = `${effectsEpoch}|${emissiveEpoch}`
+  const epoch = `${effectsEpoch}|${emissiveEpoch}|${templateEmissiveEpochOf()}`
   if (cached && cached.epoch === epoch) return cached.lights
   const lights = []
   map.tiles.forEach((row, y) =>
@@ -310,6 +316,20 @@ export function darknessLights(map) {
   for (const [tileKey, panel] of getWallPanels(map)) {
     const hole = windowFloorLight(map, tileKey, panel)
     if (hole) lights.push(hole)
+  }
+  // Template Piece fittings / props: same floor spill as wall overlays (designer: settings match walls).
+  for (const entry of map.templatePiecePlacements ?? []) {
+    const def = getTemplatePiece(entry.pieceId)
+    if (!def?.animation?.overlay) continue
+    const emissive = templateOverlayEmissive(entry.pieceId)
+    if (!(emissive > 0)) continue
+    lights.push({
+      position: entry.position,
+      radius: 1.8 * emissive,
+      lift: TILE_H / 2,
+      strength: Math.min(1, emissive),
+      colour: templateOverlayEmitColour(entry.pieceId),
+    })
   }
   darkLights.set(map, { epoch, lights })
   return lights

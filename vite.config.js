@@ -15,6 +15,7 @@ import { setStoryTemplates } from './tools/storyStore.cjs'
 import { putDeckStyle } from './tools/deckGeneratorStore.cjs'
 import { applyEffectsChange } from './tools/effectsStore.cjs'
 import { setItemDescription } from './tools/itemStore.cjs'
+import { applyTemplatePieceChange } from './tools/templatePieceStore.cjs'
 import { setTileFlag } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
 import { listSprites, putSprite } from './tools/spriteStore.cjs'
@@ -26,6 +27,7 @@ const CONVERSATIONS_FOLDER = fileURLToPath(new URL('./conversations', import.met
 const TILES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tiles.json', import.meta.url))
 const ITEMS_FILE = fileURLToPath(new URL('./src/data/adaptation/items.json', import.meta.url))
 const EFFECTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tileEffects.json', import.meta.url))
+const TEMPLATE_PIECES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/templatePieces.json', import.meta.url))
 const DECK_GENERATORS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/deckGenerators.json', import.meta.url))
 const WALL_VARIANTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/generatedWallVariants.json', import.meta.url))
 const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploration/missionLog.json', import.meta.url))
@@ -118,6 +120,9 @@ const tileFilesEndpoint = () => quietDataEndpoint('tile-files-endpoint', '/__til
 const itemFilesEndpoint = () => quietDataEndpoint('item-files-endpoint', '/__items', ITEMS_FILE, setItemDescription)
 // Overlay emissive strength slider in Properties → Selection.
 const effectsFilesEndpoint = () => quietDataEndpoint('effects-files-endpoint', '/__effects', EFFECTS_FILE, applyEffectsChange)
+// Template Piece Cover / Fade / Emissive / Colour in Properties → Selection.
+const templatePieceFilesEndpoint = () =>
+  quietDataEndpoint('template-piece-files-endpoint', '/__templates', TEMPLATE_PIECES_FILE, applyTemplatePieceChange)
 // Generator Editor: deck Location tile / hazard styles.
 const deckGeneratorsEndpoint = () => quietDataEndpoint('deck-generators-endpoint', '/__deck-generators', DECK_GENERATORS_FILE, putDeckStyle)
 // Generator Editor: Generate Map wall fittings (share / panel / tile variants).
@@ -292,6 +297,7 @@ export default defineConfig({
     tileFilesEndpoint(),
     itemFilesEndpoint(),
     effectsFilesEndpoint(),
+    templatePieceFilesEndpoint(),
     deckGeneratorsEndpoint(),
     wallVariantsEndpoint(),
     storyEndpoint(),

@@ -11,7 +11,20 @@ import {
 } from '../../maps/tileArt.js'
 import { tileSpriteInfo } from '../../maps/tileSpriteInfo.js'
 import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
-import { getTemplatePiece } from '../../maps/templatePieces.js'
+import {
+  canEditTemplatePieces,
+  setTemplateOverlayEmitColour,
+  setTemplateOverlayEmissive,
+  setTemplatePieceFlag,
+} from '../../maps/templatePieceFiles.js'
+import {
+  getTemplatePiece,
+  setTemplateOverlayEmitColourLocal,
+  setTemplateOverlayEmissiveLocal,
+  templateOverlayEmitColour,
+  templateOverlayEmissive,
+  templatePieceSpriteInfo,
+} from '../../maps/templatePieces.js'
 import ItemSummary, { ItemStatSection } from './ItemSummary.jsx'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
@@ -26,6 +39,11 @@ import TileThumbnail from './TileThumbnail.jsx'
 const FLAG_BOXES = [
   { flag: 'cover', label: 'Cover', title: 'Standing next to this tile gives cover', on: 'now gives cover', off: 'no longer gives cover' },
   { flag: 'fade', label: 'Fade', title: 'Turns see-through when a party member is behind it (exploration and combat)', on: 'now fades', off: 'no longer fades' },
+]
+
+const TEMPLATE_FLAG_BOXES = [
+  { flag: 'cover', label: 'Cover', title: 'Standing next to this Template Piece gives cover', on: 'now gives cover', off: 'no longer gives cover' },
+  { flag: 'fade', label: 'Fade', title: 'Turns see-through when a party member is behind it (exploration)', on: 'now fades', off: 'no longer fades' },
 ]
 
 const INTENSITIES = [
@@ -50,6 +68,39 @@ function FlagBox({ tile, box, onStatus }) {
   return (
     <label className="me-cover ed-prop-flag" title={canEditTiles ? box.title : `${box.label} can only be changed in the dev build`}>
       <input type="checkbox" checked={value} disabled={!canEditTiles || saving} onChange={(event) => change(event.target.checked)} />
+      {box.label}
+    </label>
+  )
+}
+
+function TemplateFlagBox({ piece, box, onStatus }) {
+  const [value, setValue] = useState(Boolean(piece[box.flag]))
+  const [saving, setSaving] = useState(false)
+  const change = (next) => {
+    setSaving(true)
+    setTemplatePieceFlag(piece.id, box.flag, next)
+      .then(() => {
+        setValue(next)
+        onStatus?.(
+          canEditTemplatePieces
+            ? `${piece.label} ${next ? box.on : box.off} (saved to templatePieces.json).`
+            : `${piece.label} ${next ? box.on : box.off}.`,
+        )
+      })
+      .catch((error) => onStatus?.(`Could not change ${box.label.toLowerCase()} for ${piece.label}: ${error.message}`))
+      .finally(() => setSaving(false))
+  }
+  return (
+    <label
+      className="me-cover ed-prop-flag"
+      title={canEditTemplatePieces ? box.title : `${box.label} can only be changed in the dev build`}
+    >
+      <input
+        type="checkbox"
+        checked={value}
+        disabled={!canEditTemplatePieces || saving}
+        onChange={(event) => change(event.target.checked)}
+      />
       {box.label}
     </label>
   )
@@ -361,6 +412,202 @@ function SpriteDetails({ tile, onStatus, ambient, ambientColour, onAmbient, onAm
   )
 }
 
+function TemplateEmissiveControls({ pieceId, value, onValue, colour, fallbackColour, onColour, onStatus }) {
+  const scheduleStrength = useDebouncedSave((run) => {
+    setTemplateOverlayEmissive(pieceId, run)
+      .then((saved) => {
+        onValue(saved)
+        onStatus?.(
+          canEditTemplatePieces
+            ? `${pieceId} emissive ${saved} (saved to templatePieces.json).`
+            : `${pieceId} emissive ${saved}.`,
+        )
+      })
+      .catch((error) => onStatus?.(`Could not save emissive: ${error.message}`))
+  })
+  const scheduleColour = useDebouncedSave((run) => {
+    setTemplateOverlayEmitColour(pieceId, run)
+      .then((saved) => {
+        onColour(saved)
+        onStatus?.(
+          canEditTemplatePieces
+            ? saved
+              ? `${pieceId} emit colour ${saved} (saved to templatePieces.json).`
+              : `${pieceId} emit colour cleared (saved to templatePieces.json).`
+            : saved
+              ? `${pieceId} emit colour ${saved}.`
+              : `${pieceId} emit colour cleared.`,
+        )
+      })
+      .catch((error) => onStatus?.(`Could not save emit colour: ${error.message}`))
+  })
+  const shown = colour || fallbackColour || '#ffffff'
+  const [hex, setHex] = useState(shown)
+  const syncKey = `${pieceId}|${shown}`
+  const [syncedKey, setSyncedKey] = useState(syncKey)
+  if (syncedKey !== syncKey) {
+    setSyncedKey(syncKey)
+    setHex(shown)
+  }
+  const applyColour = (next) => {
+    try {
+      setTemplateOverlayEmitColourLocal(pieceId, next)
+      onColour(next)
+      setHex(next || fallbackColour || '#ffffff')
+      scheduleColour(next)
+    } catch (error) {
+      onStatus?.(`Could not set emit colour: ${error.message}`)
+    }
+  }
+  return (
+    <>
+      <label className="ed-emissive" title="Overlay light strength (0 = none, 1 = default, 2 = bright). Also scales floor spill.">
+        <span className="ed-emissive-label">Emissive</span>
+        <input
+          type="range"
+          min={OVERLAY_EMISSIVE_MIN}
+          max={OVERLAY_EMISSIVE_MAX}
+          step="0.1"
+          value={value}
+          aria-label="Emissive strength"
+          onChange={(event) => {
+            const next = Number(event.target.value)
+            onValue(next)
+            setTemplateOverlayEmissiveLocal(pieceId, next)
+            scheduleStrength(next)
+          }}
+        />
+        <span className="ed-emissive-value">{value.toFixed(1)}</span>
+      </label>
+      <label className="ed-emissive" title="Colour of the light spill on the floor. Clear to use the piece default.">
+        <span className="ed-emissive-label">Colour</span>
+        <input
+          className="ed-colour"
+          type="color"
+          value={toColourInput(hex)}
+          aria-label="Ground emit colour"
+          onChange={(event) => applyColour(event.target.value)}
+        />
+        <input
+          className="ed-colour-hex me-name"
+          value={colour ? hex : ''}
+          placeholder={fallbackColour || 'natural'}
+          aria-label="Ground emit colour hex"
+          onChange={(event) => {
+            const next = event.target.value.trim()
+            setHex(next || fallbackColour || '#ffffff')
+            if (next === '') applyColour(null)
+            else if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next)) applyColour(next)
+          }}
+        />
+      </label>
+      {colour && (
+        <button type="button" className="me-button" onClick={() => applyColour(null)}>
+          Clear colour
+        </button>
+      )}
+    </>
+  )
+}
+
+// Same Sprite / Light / Images / Animation / Emission sections as catalogue tiles, for Template Pieces.
+export function TemplatePieceDetails({ piece, ambient, ambientColour, onAmbient, onAmbientColour, onStatus }) {
+  const info = templatePieceSpriteInfo(piece)
+  const [emissive, setEmissive] = useState(() => templateOverlayEmissive(piece.id))
+  const [emitColour, setEmitColour] = useState(() => templateOverlayEmitColour(piece.id))
+  if (!info) return null
+  const anim = info.animation
+  const footprint = info.footprint ? `${info.footprint.width}×${info.footprint.depth}` : null
+  return (
+    <div className="ed-sprite-details" style={{ '--ed-emit-strength': String(emissive) }}>
+      <PropertySection id="sprite" title="Sprite">
+        <PropRows
+          rows={[
+            ['Id', info.id],
+            ['Group', info.group ? info.group.label : null],
+            ['Design size', info.size ? `${info.size.width}×${info.size.height} px` : null],
+            ['Footprint', footprint],
+            ['World height', info.height != null ? String(info.height) : null],
+            ['Traits', info.traits.length ? info.traits.join(', ') : 'None'],
+          ]}
+        />
+      </PropertySection>
+      {(anim?.overlay || piece.height > 0) && (
+        <AmbientLightControl
+          ambient={ambient}
+          ambientColour={ambientColour}
+          onAmbient={onAmbient}
+          onAmbientColour={onAmbientColour}
+        />
+      )}
+      <PropertySection id="images" title="Images" defaultOpen={false}>
+        <PropRows rows={info.images.map((entry) => [entry.label, entry.name, entry.href])} />
+      </PropertySection>
+      {anim ? (
+        <>
+          <PropertySection id="animation" title="Animation" defaultOpen={false}>
+            <PropRows
+              rows={[
+                ['Mode', anim.overlay ? 'Overlay lights' : 'Whole sprite'],
+                ['Frame time', anim.frameTime != null ? `${anim.frameTime}s` : null],
+                ['Steps', String(anim.steps)],
+                ['Loop', anim.loop != null ? `${anim.loop.toFixed(2)}s` : null],
+                ['Sprites', String(anim.uniqueSprites)],
+                ['Sequence', anim.sequence.length ? anim.sequence.join(' ') : null],
+              ]}
+            />
+          </PropertySection>
+          <PropertySection id="emission" title="Emission overlays">
+            {anim.overlay && (
+              <TemplateEmissiveControls
+                pieceId={piece.id}
+                value={emissive}
+                onValue={setEmissive}
+                colour={emitColour}
+                fallbackColour={anim.emitColour}
+                onColour={setEmitColour}
+                onStatus={onStatus}
+              />
+            )}
+            {anim.emissions.length > 0 ? (
+              <>
+                <p className="me-text is-muted">
+                  Lit overlay frames drawn over the piece. Emissive / Colour match wall overlays (glow + floor spill).
+                </p>
+                <div className="ed-emit-grid" role="list">
+                  {anim.emissions.map((item) => (
+                    <figure
+                      key={`${item.frame}:${item.href}`}
+                      className="ed-emit-cell"
+                      role="listitem"
+                      title={`${item.kind} · frame ${item.frame}\n${item.href}`}
+                    >
+                      <div className="ed-emit-thumb">
+                        {piece.href && <img className="ed-emit-base" src={piece.href} alt="" />}
+                        <img className="ed-emit-layer" src={item.href} alt="" />
+                      </div>
+                      <figcaption>
+                        <span className="ed-sprite-frame-index">{item.frame}</span>
+                        <span className="ed-emit-name">{item.name}</span>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="me-text is-muted">No emission layers on this flipbook.</p>
+            )}
+          </PropertySection>
+        </>
+      ) : (
+        <PropertySection id="animation" title="Animation" defaultOpen={false}>
+          <p className="me-text is-muted">No flipbook (static sprite).</p>
+        </PropertySection>
+      )}
+    </div>
+  )
+}
+
 export default function AssetProperties({
   tool,
   onStatus,
@@ -458,23 +705,34 @@ export default function AssetProperties({
       <div className="ed-asset-props">
         <PropertySection id="template" title="Template Piece">
           <div className="ed-asset-preview">
-            {piece?.href ? (
-              <img className="ed-asset-preview-art" src={piece.href} alt="" />
-            ) : (
-              piece && <TemplatePieceThumbnail piece={piece} className="ed-asset-preview-art" large />
+            {piece && (
+              <TemplatePieceThumbnail piece={piece} className="ed-asset-preview-art" large animate={animateTiles} />
             )}
           </div>
           <p className="ed-asset-name">{piece?.label ?? asset.id}</p>
-          <PropRows
-            rows={[
-              ['Id', asset.id],
-              ['Footprint', piece?.footprint ? `${piece.footprint.width}×${piece.footprint.depth}` : null],
-              ['Height', piece?.height != null ? String(piece.height) : null],
-              ['Tags', piece?.tags?.join(', ') ?? null],
-            ]}
-          />
-          <p className="me-text">Click the board to place this overlay. R rotates 90°. Visual only — underlay tiles still control pathing and sight.</p>
+          {piece && (
+            <div className="ed-prop-flags" role="group" aria-label="Template piece flags">
+              {TEMPLATE_FLAG_BOXES.map((box) => (
+                <TemplateFlagBox key={`${piece.id}:${box.flag}`} piece={piece} box={box} onStatus={onStatus} />
+              ))}
+            </div>
+          )}
+          {!canEditTemplatePieces && (
+            <p className="me-text is-muted">Cover and Fade can only be changed in the dev build.</p>
+          )}
+          <p className="me-text">Click the board to place this overlay. R rotates 90°. Pathing and sight still use the deck underlay.</p>
         </PropertySection>
+        {piece && (
+          <TemplatePieceDetails
+            key={piece.id}
+            piece={piece}
+            onStatus={onStatus}
+            ambient={ambient}
+            ambientColour={ambientColour}
+            onAmbient={onAmbient}
+            onAmbientColour={onAmbientColour}
+          />
+        )}
       </div>
     )
   }

@@ -7,7 +7,8 @@ const STEEL = rgb('#9aa3aa')
 const brushed = (u, v, seed, along = 'u') => (along === 'u' ? noise(u * 0.35, v * 5, seed) : noise(u * 5, v * 0.35, seed))
 const LCARS = { orange: rgb('#ff9c40'), peach: rgb('#ffcc66'), lilac: rgb('#c9a0dc'), blue: rgb('#99ccff'), red: rgb('#cc6666'), text: rgb('#a8c0ff') }
 const GLASS = { albedo: rgb('#04070b'), spec: 0.9, shininess: 80 }
-const glowing = (colour, strength = 0.9) => ({ albedo: scale(colour, 0.5), emit: scale(colour, strength) })
+// tag 'lights' marks emission for animation overlays (paintPrismsLightsAA / makeTemplatePieces).
+const glowing = (colour, strength = 0.9, tag = 'lights') => ({ albedo: scale(colour, 0.5), emit: scale(colour, strength), tag })
 const within = (value, from, to) => value >= from && value <= to
 
 // Same fittings as makeTilesV2 WALL_FITTINGS (base image, not light-layer alt).
@@ -140,7 +141,11 @@ function windowFitting(drawnHeight) {
   // windowFeature is laid out in panel P 0..64; map single-face u 0..32 across that span.
   return {
     height: (u, z) => win.height(u * 2, z),
-    surface: (u, z) => win.surface(u * 2, z),
+    surface(u, z) {
+      const sample = win.surface(u * 2, z)
+      if (!sample?.emit) return sample
+      return { ...sample, tag: 'lights' }
+    },
   }
 }
 
@@ -173,7 +178,8 @@ export function starshipWallMaterial(drawnHeight, fitting = null) {
     },
     surface(u, v, face) {
       if (face === 'top') return { albedo: scale(rgb('#7d8a94'), 0.92 + noise(u / 6, v / 6, 71) * 0.1), spec: 0.25, shininess: 22 }
-      if (face === 'end') return { albedo: scale(rgb('#6a767f'), 0.9 + brushed(u, v, 74, 'v') * 0.1), spec: 0.28, shininess: 26 }
+      // Brush across the thickness (along u), not up the wall — vertical grain looked like a stretched front edge.
+      if (face === 'end') return { albedo: scale(rgb('#6a767f'), 0.9 + brushed(u, v, 74, 'u') * 0.1), spec: 0.28, shininess: 26 }
       const z = v
       const ao = 0.62 + 0.38 * smoothstep(0, 16, z)
       const fitted = fitting?.surface?.(u, z, face) ?? fitting?.surface?.(u, z)

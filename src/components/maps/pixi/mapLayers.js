@@ -4,6 +4,7 @@ import { isBlock, project } from '../../../maps/iso.js'
 import { layerOfTile } from '../../../maps/layers.js'
 import { FULL_LIGHT, getTile } from '../../../maps/mapFormat.js'
 import { DARK_MARGIN, darknessOpacity, effectsEpochOf, emissiveEpochOf, frameAt, overlayEmissive } from '../../../maps/tileArt.js'
+import { templateEmissiveEpochOf } from '../../../maps/templatePieces.js'
 import {
   animatedArea,
   animatedTiles,
@@ -167,7 +168,7 @@ export class MapLayers {
     this.destroyed = false
     this.animated = animatedTiles(layout).map((item) => ({ ...item, shown: null }))
     this.emissive = new Set(emissiveTiles(layout).map((item) => item.key))
-    this.emissiveEpoch = emissiveEpochOf()
+    this.emissiveEpoch = `${emissiveEpochOf()}|${templateEmissiveEpochOf()}`
     this.effectsEpoch = effectsEpochOf()
     // Editor layer visibility (optional): { ground, walls, furniture, … }. Missing / null = all visible.
     this.layerVisibility = null
@@ -491,8 +492,9 @@ export class MapLayers {
       if (this.dark) this.dark.paintArea(view ?? this.darkBounds, { faded: fadeLevels(this.fade, now), time: this.time(now) })
     }
 
-    // Overlay emissive / emit colour: rebake overlay tiles, refresh floor spill + darkness holes.
-    const epoch = emissiveEpochOf()
+    // Overlay emissive / emit colour: rebake overlay tiles, refresh floor spill + darkness holes
+    // (includes Template Piece emissive epoch so /__templates slider updates world lighting).
+    const epoch = `${emissiveEpochOf()}|${templateEmissiveEpochOf()}`
     if (this.emissiveEpoch !== epoch) {
       this.emissiveEpoch = epoch
       for (const item of this.animated) {

@@ -82,6 +82,11 @@ export default function EditorInspectors({
   onWaypointCleared,
   layers = null,
   onStatus = null,
+  animateTiles = true,
+  ambient,
+  ambientColour,
+  onAmbient,
+  onAmbientColour,
 }) {
   const { npc, object, marker, destructible, hazard, groundItem, templatePiece } = selection
   const mutate = (layerId, change) => {
@@ -93,6 +98,12 @@ export default function EditorInspectors({
         <TemplatePieceInspector
           object={templatePiece}
           moving={templatePieceMoving}
+          animateTiles={animateTiles}
+          ambient={ambient}
+          ambientColour={ambientColour}
+          onAmbient={onAmbient}
+          onAmbientColour={onAmbientColour}
+          onStatus={onStatus}
           onChange={(changes) => mutate('walls', () => updateTemplatePiece(map, templatePiece.id, changes))}
           onPositionChange={(position) => mutate('walls', () => moveTemplatePiece(map, templatePiece.id, position))}
           onMove={onToggleTemplatePieceMove}

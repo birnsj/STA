@@ -57,7 +57,21 @@ export default function EditorPropertiesPanel({
           {showMap ? (
             <MapProperties {...mapProps} map={map} edit={edit} />
           ) : boardSelected ? (
-            <EditorInspectors map={map} edit={edit} tool={tool} conversations={conversations} selection={selection} layers={layers} {...inspectors} onStatus={onStatus} />
+            <EditorInspectors
+              map={map}
+              edit={edit}
+              tool={tool}
+              conversations={conversations}
+              selection={selection}
+              layers={layers}
+              {...inspectors}
+              onStatus={onStatus}
+              animateTiles={animateTiles}
+              ambient={map.ambient}
+              ambientColour={map.ambientColour}
+              onAmbient={mapProps?.onAmbient}
+              onAmbientColour={mapProps?.onAmbientColour}
+            />
           ) : (
             <AssetProperties
               tool={tool}

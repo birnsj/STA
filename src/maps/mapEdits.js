@@ -28,7 +28,7 @@ import {
   NULL_TILE,
   resizeMap as resizeMapGeometry,
 } from './mapFormat.js'
-import { getTemplatePiece } from './templatePieces.js'
+import { getTemplatePiece, templatePieceArt } from './templatePieces.js'
 
 const same = (a, b) => a.x === b.x && a.y === b.y
 const without = (list, position) => list.filter((other) => !same(other, position))
@@ -1110,6 +1110,8 @@ export function templatePieceSprites(map) {
   return sortTemplatePiecePlacements(map.templatePiecePlacements ?? []).flatMap((entry) => {
     const def = getTemplatePiece(entry.pieceId)
     if (!def) return []
+    // Yaw is baked into the PNG (templatePieceArt); do not screen-spin the sprite.
+    const art = templatePieceArt(def, entry.rotation ?? 0)
     const depth = entry.position.x + entry.position.y + (entry.order ?? 0) * 0.001
     return [
       {
@@ -1117,13 +1119,15 @@ export function templatePieceSprites(map) {
         pieceId: entry.pieceId,
         position: entry.position,
         z: 0,
-        rotation: entry.rotation ?? 0,
+        rotation: 0,
+        yaw: art.yaw,
         scale: entry.scale ?? 1,
         order: entry.order ?? 0,
-        worldImage: def.href,
-        spriteSize: def.size,
+        worldImage: art.href,
+        spriteSize: art.size,
         // South tip in the PNG (design px). Required for non-square walls so the tip sits on the snap point.
-        spriteAnchorX: Number.isFinite(def.anchorX) ? def.anchorX : def.size.width / 2,
+        spriteAnchorX: art.anchorX,
+        animation: art.animation,
         depth,
         category: def.tags?.includes('wall') ? 'wall' : 'template',
       },

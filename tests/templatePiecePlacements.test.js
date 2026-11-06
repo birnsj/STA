@@ -17,7 +17,14 @@ import {
   templatePieceTargetAt,
   updateTemplatePiece,
 } from '../src/maps/mapEdits.js'
-import { TEMPLATE_PIECES, getTemplatePiece } from '../src/maps/templatePieces.js'
+import {
+  TEMPLATE_PIECES,
+  getTemplatePiece,
+  templateOverlayEmissionAt,
+  templatePieceArt,
+  templatePieceFootprint,
+  templatePieceSpriteInfo,
+} from '../src/maps/templatePieces.js'
 import { project, unproject } from '../src/maps/iso.js'
 import { snapItemPosition } from '../src/rules/itemGrid.js'
 
@@ -70,6 +77,55 @@ describe('templatePieces catalogue', () => {
     const sprites = templatePieceSprites(placed.map)
     assert.equal(sprites.length, 1)
     assert.equal(sprites[0].spriteAnchorX, getTemplatePiece('tplStarshipWall32').anchorX)
+  })
+
+  it('yaws Template Piece art around the vertical (baked orients, no screen spin)', () => {
+    const wall = getTemplatePiece('tplStarshipWall32')
+    assert.ok(wall.orients?.['90']?.href)
+    assert.ok(wall.orients?.['180']?.href)
+    assert.ok(wall.orients?.['270']?.href)
+    const at0 = templatePieceArt(wall, 0)
+    const at90 = templatePieceArt(wall, 90)
+    assert.equal(at0.href, wall.href)
+    assert.notEqual(at90.href, wall.href)
+    assert.deepEqual(templatePieceFootprint(wall, 0), { width: 64, depth: 32 })
+    assert.deepEqual(templatePieceFootprint(wall, 90), { width: 32, depth: 64 })
+
+    const blank = createBlankMap({ width: 8, height: 8 })
+    const placed = placeTemplatePiece(blank, { x: 2, y: 3 }, 'tplStarshipWall32', 64, { rotation: 90 })
+    const sprites = templatePieceSprites(placed.map)
+    assert.equal(sprites[0].rotation, 0)
+    assert.equal(sprites[0].yaw, 90)
+    assert.equal(sprites[0].worldImage, at90.href)
+    assert.equal(sprites[0].spriteAnchorX, at90.anchorX)
+  })
+
+  it('exposes overlay emission frames for fitting pieces', () => {
+    const plain = getTemplatePiece('tplStarshipWall32')
+    assert.equal(plain.animation, undefined)
+    assert.equal(templateOverlayEmissionAt(plain.animation, 0), null)
+
+    const window = getTemplatePiece('tplStarshipWall32Window')
+    assert.ok(window.animation?.overlay)
+    assert.equal(window.animation.images.length, 2)
+    const frame0 = templateOverlayEmissionAt(window.animation, 0)
+    const frame1 = templateOverlayEmissionAt(window.animation, 0.5)
+    assert.equal(frame0, window.animation.images[0].emission)
+    assert.equal(frame1, window.animation.images[1].emission)
+
+    const info = templatePieceSpriteInfo(window)
+    assert.equal(info.animation.steps, 2)
+    assert.equal(info.animation.emissions.length, 2)
+    assert.ok(info.images.some((entry) => entry.label === 'Yaw 90°'))
+  })
+
+  it('matches Starship wall cover / fade defaults', () => {
+    assert.equal(getTemplatePiece('tplStarshipWall32Lcars').cover, false)
+    assert.equal(getTemplatePiece('tplStarshipWall32Lcars').fade, true)
+    assert.equal(getTemplatePiece('tplStarshipWall32Lcars').animation.emitColour, '#a8c0ff')
+    assert.equal(getTemplatePiece('tplStarshipCrate').cover, true)
+    assert.equal(getTemplatePiece('tplStarshipCrate').fade, false)
+    assert.equal(getTemplatePiece('tplStarshipFloor').fade, false)
   })
 })
 

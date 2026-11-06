@@ -1,7 +1,7 @@
 // Freeform Template Piece renderer — Starship 32-thick wall faces (overlays, not map tiles).
 // Footprint is item-space with the south tip at (0,0); PNG anchorX is that tip so board placement snaps correctly.
 import { encodePng } from '../png.mjs'
-import { RESOLUTION, render, shade, rgb, scale, clamp01 } from './engine.mjs'
+import { RESOLUTION, render, renderLights, shade, rgb, scale, clamp01 } from './engine.mjs'
 import { materialForKind } from './templateStarshipProps.mjs'
 import { fittingForFace, starshipWallMaterial } from './templateWallFaces.mjs'
 
@@ -66,17 +66,44 @@ function groundBottomY(px, x0, y0, x1, y1, cx, ih) {
   return Number.isFinite(maxY) ? maxY : null
 }
 
-function hitPrism(px, py, prism, cx, ih) {
+// Rotate top-face UVs (0–32) with the piece yaw so floors/props turn on the isometric floor, not only walls.
+function yawUv(u, v, turns) {
+  const n = ((turns % 4) + 4) % 4
+  let x = u
+  let y = v
+  for (let i = 0; i < n; i++) {
+    const nextX = y
+    const nextY = 32 - x
+    x = nextX
+    y = nextY
+  }
+  return [x, y]
+}
+
+// Screen left/right stay camera-locked after yaw+shiftToTip on a square; remap material faces so markings yaw too.
+// 0: as drawn; 90/180: swap left↔right; 270: as drawn (top UV still turns).
+function yawSideFace(face, turns) {
+  if (face !== 'left' && face !== 'right') return face
+  const n = ((turns % 4) + 4) % 4
+  if (n === 1 || n === 2) return face === 'left' ? 'right' : 'left'
+  return face
+}
+
+function hitPrism(px, py, prism, cx, ih, yawTurns = 0) {
   const { x0, y0, x1, y1, z0, z1 } = prism
   const top = invAtZ(px, py, z1, cx, ih)
   if (inRect(top.dx, top.dy, x0, y0, x1, y1)) {
     const w = Math.max(1e-6, Math.abs(x1 - x0))
     const d = Math.max(1e-6, Math.abs(y1 - y0))
     const alongX = w >= d
+    let u = alongX ? ((top.dy - Math.min(y0, y1)) / d) * 32 : ((top.dx - Math.min(x0, x1)) / w) * 32
+    let v = alongX ? ((top.dx - Math.min(x0, x1)) / w) * 32 : ((top.dy - Math.min(y0, y1)) / d) * 32
+    ;[u, v] = yawUv(u, v, yawTurns)
     return {
       face: 'top',
-      u: alongX ? ((top.dy - Math.min(y0, y1)) / d) * 32 : ((top.dx - Math.min(x0, x1)) / w) * 32,
-      v: alongX ? ((top.dx - Math.min(x0, x1)) / w) * 32 : ((top.dy - Math.min(y0, y1)) / d) * 32,
+      lightFace: 'top',
+      u,
+      v,
       depth: z1,
     }
   }
@@ -95,20 +122,41 @@ function hitPrism(px, py, prism, cx, ih) {
     const pad = 0.6
     if (mid.dx < xa - pad || mid.dx > xb + pad || mid.dy < ya - pad || mid.dy > yb + pad) return null
   }
-  const w = Math.abs(x1 - x0)
-  const d = Math.abs(y1 - y0)
+  const xa = Math.min(x0, x1)
+  const xb = Math.max(x0, x1)
+  const ya = Math.min(y0, y1)
+  const yb = Math.max(y0, y1)
+  const w = Math.max(1e-6, xb - xa)
+  const d = Math.max(1e-6, yb - ya)
   const alongX = w >= d
-  // Long faces = left/right; short ends get 'end' material.
-  const nearEnd =
-    alongX
-      ? mid.dx <= Math.min(x0, x1) + 0.75 || mid.dx >= Math.max(x0, x1) - 0.75
-      : mid.dy <= Math.min(y0, y1) + 0.75 || mid.dy >= Math.max(y0, y1) - 0.75
-  const face = nearEnd ? 'end' : px <= cx ? 'left' : 'right'
-  const span = Math.max(1e-6, alongX ? w : d)
-  const along = alongX ? mid.dx - Math.min(x0, x1) : mid.dy - Math.min(y0, y1)
+  // Nearest footprint edge decides the face. A fixed 0.75px "near end" threshold left the thick
+  // (32) tip face classified as left/right with u pinned at 0 or 32 — fittings smeared across the end.
+  const distMinX = mid.dx - xa
+  const distMaxX = xb - mid.dx
+  const distMinY = mid.dy - ya
+  const distMaxY = yb - mid.dy
+  const nearest = Math.min(distMinX, distMaxX, distMinY, distMaxY)
+  const onEnd = alongX ? nearest === distMinX || nearest === distMaxX : nearest === distMinY || nearest === distMaxY
+  // lightFace stays on the camera side; material face yaws so fittings move without breaking iso lighting.
+  const lightFace = onEnd ? 'end' : px <= cx ? 'left' : 'right'
+  const face = yawSideFace(lightFace, yawTurns)
+  // Long faces: u runs along the run. End caps: u runs across the thickness (was using run UV → stretch).
+  let u
+  if (onEnd) {
+    const across = alongX ? mid.dy - ya : mid.dx - xa
+    const span = alongX ? d : w
+    u = clamp01(across / span) * 32
+  } else {
+    const along = alongX ? mid.dx - xa : mid.dy - ya
+    const span = alongX ? w : d
+    u = clamp01(along / span) * 32
+  }
+  // Run UV along the face also turns with yaw so panel markings stay glued to the object.
+  if (yawTurns % 2 === 1) u = 32 - u
   return {
     face,
-    u: clamp01(along / span) * 32,
+    lightFace,
+    u,
     v: z - z0,
     depth: z,
   }
@@ -144,10 +192,13 @@ function shiftToTip(prisms) {
 }
 
 // face: wall look (templateWallFaces). material: floor/prop kind (templateStarshipProps). material wins when set.
-export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material = null } = {}) {
+// yawTurns: 0–3 quarter turns CCW around the tip (same as makeTemplatePieces yaw). Floors/props need this so
+// markings turn; walls also get correct face/UV after the prism yaw.
+export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material = null, yawTurns = 0 } = {}) {
   const { size, shifted } = shiftToTip(prisms)
   const cx = size.anchorX
   const ih = size.h
+  const turns = ((yawTurns % 4) + 4) % 4
   const materialOf = (prism) => {
     const h = Math.max(1, (prism.z1 ?? 0) - (prism.z0 ?? 0))
     const prop = material ? materialForKind(material) : null
@@ -157,16 +208,45 @@ export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material
   const scene = (px, py) => {
     let best = null
     for (const prism of shifted) {
-      const hit = hitPrism(px, py, prism, cx, ih)
+      const hit = hitPrism(px, py, prism, cx, ih, turns)
       if (!hit) continue
       if (!best || hit.depth > best.depth) best = { ...hit, material: materialOf(prism) }
     }
     if (!best) return null
-    return shade(best.material, best.u, best.v, best.face)
+    // Keep fitting emit on the base so thumbs and the board stay lit; the overlay blinks brighter on top.
+    return shade(best.material, best.u, best.v, best.face, best.lightFace ?? best.face)
   }
   const width = size.w * RESOLUTION
   const height = size.h * RESOLUTION
   const bytes = render(scene, { width, height, subsamples, bloom: 0.45, bloomRadius: 3 })
+  return { png: encodePng(width, height, bytes), size: { w: size.w, h: size.h, anchorX: size.anchorX } }
+}
+
+// Emission-only layer for Template Piece animation overlays (same size/anchor as paintPrismsAA).
+export function paintPrismsLightsAA(prisms, { face = 'plain', material = null, yawTurns = 0, gain = 1.2 } = {}) {
+  const { size, shifted } = shiftToTip(prisms)
+  const cx = size.anchorX
+  const ih = size.h
+  const turns = ((yawTurns % 4) + 4) % 4
+  const materialOf = (prism) => {
+    const h = Math.max(1, (prism.z1 ?? 0) - (prism.z0 ?? 0))
+    const prop = material ? materialForKind(material) : null
+    if (prop) return prop
+    return starshipWallMaterial(h, fittingForFace(face, h))
+  }
+  const scene = (px, py) => {
+    let best = null
+    for (const prism of shifted) {
+      const hit = hitPrism(px, py, prism, cx, ih, turns)
+      if (!hit) continue
+      if (!best || hit.depth > best.depth) best = { ...hit, material: materialOf(prism) }
+    }
+    if (!best) return null
+    return shade(best.material, best.u, best.v, best.face, best.lightFace ?? best.face)
+  }
+  const width = size.w * RESOLUTION
+  const height = size.h * RESOLUTION
+  const bytes = renderLights(scene, ['lights'], { width, height, gain, bloomRadius: 4 })
   return { png: encodePng(width, height, bytes), size: { w: size.w, h: size.h, anchorX: size.anchorX } }
 }
 

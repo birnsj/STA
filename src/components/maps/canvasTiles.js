@@ -24,6 +24,7 @@ import {
   tileFlipbook,
   wallVariant,
 } from '../../maps/tileArt.js'
+import { templateEmissiveEpochOf } from '../../maps/templatePieces.js'
 import { getWallPanels } from '../../maps/wallPanels.js'
 import { TALL_WALL_EXTRA } from '../../maps/wallFade.js'
 import { wallScarImage } from './environmentArt.js'
@@ -713,7 +714,7 @@ export async function drawLoneTiles(layout, positions, resolution, time = null) 
 const lightingCache = new WeakMap()
 function lightingOf(map) {
   const cached = lightingCache.get(map)
-  const epoch = `${effectsEpochOf()}|${emissiveEpochOf()}`
+  const epoch = `${effectsEpochOf()}|${emissiveEpochOf()}|${templateEmissiveEpochOf()}`
   if (cached && cached.epoch === epoch) return cached.lighting
   const blockAt = (x, y) => x >= 0 && y >= 0 && x < map.width && y < map.height && isBlock(map.tiles[y][x])
   const strips = []

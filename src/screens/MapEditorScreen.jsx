@@ -5,6 +5,7 @@ import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
+import EditorHelp, { STA_BUILDER_VERSION } from '../components/maps/EditorHelp.jsx'
 import EditorLayersWindow from '../components/maps/EditorLayersWindow.jsx'
 import EditorLevelsWindow from '../components/maps/EditorLevelsWindow.jsx'
 import EditorOverviewWindow from '../components/maps/EditorOverviewWindow.jsx'
@@ -71,6 +72,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   const [showCentre, setShowCentre] = useState(false)
   const [showGridOptions, setShowGridOptions] = useState(false)
   const [showViewScale, setShowViewScale] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [overviewOpen, setOverviewOpen] = useState(false)
   const [layersOpen, setLayersOpen] = useState(false)
   const [levelsOpen, setLevelsOpen] = useState(false)
@@ -259,6 +261,11 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         return onPlay()
       case 'enemies':
         return setEnemiesActive((value) => !value)
+      case 'help':
+        return setShowHelp(true)
+      case 'about':
+        setShowHelp(true)
+        return setStatus(STA_BUILDER_VERSION)
       default:
         return undefined
     }
@@ -551,6 +558,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
               setShowViewScale(false)
             }}
           />
+          <EditorHelp show={showHelp} onClose={() => setShowHelp(false)} />
           {hoverTile && !boardBlocked && (
             <div className="ed-coord-hud" aria-live="polite">
               Tile ({hoverTile.x}, {hoverTile.y})

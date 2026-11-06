@@ -3,6 +3,8 @@ import { isBlock, project } from '../../../maps/iso.js'
 import { spriteGeometry, spriteHref } from '../../../maps/propPick.js'
 import { getCategoryHighlight } from '../../../rules/equipment.js'
 import { FADED_OPACITY, drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
+import { OVERLAY_GLOW_BLUR } from '../../../maps/tileArt.js'
+import { templateOverlayEmissionAt, templateOverlayEmissive } from '../../../maps/templatePieces.js'
 import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../boardGeometry.js'
 import { dashedEllipse, drawnCanvas, makeLabel, placeLabel, textureOf } from '../../maps/pixi/pixiDraw.js'
 import { perfOff } from '../../../dev/perfProbe.js'
@@ -237,18 +239,22 @@ function propOutlineCanvas(art, colour) {
 // A dropped inventory item as a real isometric map prop (dedicated worldImage, else tiles.json worldTile — never the inventory icon).
 // Sized to the stack spot (spriteSize). The bottom corner of the iso graphic sits on
 // `position` (or on a support surface when object.z > 0 — world-space art pixels, same unit as tiles.json height).
-// object: { position, z?, worldImage?, worldTile?, spriteSize?, category?, inReach, depth, hovered }.
+// object: { position, z?, worldImage?, worldTile?, spriteSize?, category?, inReach, depth, hovered, animation? }.
 export class GroundLootView {
   constructor() {
     this.container = new Container()
     this.sprite = null
+    this.overlaySprite = null
     this.look = null
     this.paintKey = 0
     this.artCanvas = null
     this.spritePad = 0
+    this.animation = null
+    this.overlayHref = null
+    this.overlayPaintKey = 0
   }
 
-  update(object) {
+  update(object, now = 0, playing = true) {
     // Shared with the editor's click picking (maps/propPick.js) so what is drawn is what answers a click.
     const { size, z, rotation, anchor, pivotFracX } = spriteGeometry(object)
     this.container.zIndex = object.depth
@@ -257,9 +263,14 @@ export class GroundLootView {
     const href = spriteHref(object)
     const hovered = Boolean(object.hovered)
     const highlight = getCategoryHighlight(object.category)
-    const look = `${object.position.x},${object.position.y}|${z}|${rotation}|${href}|${size.width}x${size.height}|${pivotFracX}|${hovered ? 1 : 0}|${highlight}`
+    this.animation = object.animation ?? null
+    // Live catalogue read so Properties emissive slider updates without remounting the placement list.
+    this.emissive =
+      object.pieceId && this.animation?.overlay ? templateOverlayEmissive(object.pieceId) : Number.isFinite(object.emissive) ? object.emissive : 1
+    const look = `${object.position.x},${object.position.y}|${z}|${rotation}|${href}|${size.width}x${size.height}|${pivotFracX}|${hovered ? 1 : 0}|${highlight}|${this.animation?.images?.[0]?.emission ?? ''}|e${this.emissive}`
     if (this.look === look) {
-      if (this.sprite) this.placeSprite(anchor, rotation, pivotFracX)
+      if (this.sprite) this.placeSprite(this.sprite, anchor, rotation, pivotFracX)
+      this.syncOverlay(anchor, rotation, pivotFracX, now, playing)
       return
     }
     // Hover toggle only: reuse the cached prop art and rebuild the outline.
@@ -271,28 +282,30 @@ export class GroundLootView {
       } else {
         this.applySprite(this.artCanvas, 0, anchor, rotation, pivotFracX)
       }
+      this.syncOverlay(anchor, rotation, pivotFracX, now, playing)
       return
     }
     this.look = look
-    this.paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX)
+    this.paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX, now, playing)
   }
 
-  placeSprite(anchor, rotation = 0, pivotFracX = 0.5) {
-    if (!this.sprite) return
-    // South-tip footprint matches propImageBox / spriteLocalUv (Template Piece rotation).
+  placeSprite(sprite, anchor, rotation = 0, pivotFracX = 0.5) {
+    if (!sprite) return
+    // South-tip footprint matches propImageBox / spriteLocalUv. Template Piece yaw is baked into the PNG; rotation
+    // should be 0 for those (screen-spin would tumble iso art off the floor axis).
     let ax = pivotFracX
     let ay = 1
-    if (this.spritePad) {
+    if (this.spritePad && sprite === this.sprite) {
       // Outlined art is padded equally; keep the tip on the unpadded south tip.
-      const tw = this.sprite.texture.width
-      const th = this.sprite.texture.height
+      const tw = sprite.texture.width
+      const th = sprite.texture.height
       const pad = this.spritePad
       ax = (pivotFracX * (tw - 2 * pad) + pad) / tw
       ay = 1 - pad / th
     }
-    this.sprite.anchor.set(ax, ay)
-    this.sprite.position.set(anchor.x, anchor.y)
-    this.sprite.rotation = ((Number(rotation) || 0) * Math.PI) / 180
+    sprite.anchor.set(ax, ay)
+    sprite.position.set(anchor.x, anchor.y)
+    sprite.rotation = ((Number(rotation) || 0) * Math.PI) / 180
   }
 
   applySprite(canvas, pad = 0, anchor, rotation = 0, pivotFracX = 0.5) {
@@ -306,11 +319,79 @@ export class GroundLootView {
     this.spritePad = pad
     this.sprite = new Sprite(textureOf(display))
     this.sprite.scale.set(1 / PROP_RES)
-    this.placeSprite(anchor, rotation, pivotFracX)
-    this.container.addChild(this.sprite)
+    this.placeSprite(this.sprite, anchor, rotation, pivotFracX)
+    this.container.addChildAt(this.sprite, 0)
   }
 
-  async paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX) {
+  clearOverlay() {
+    this.overlayHref = null
+    if (!this.overlaySprite) return
+    this.container.removeChild(this.overlaySprite)
+    this.overlaySprite.destroy({ texture: true, textureSource: true })
+    this.overlaySprite = null
+  }
+
+  syncOverlay(anchor, rotation, pivotFracX, now, playing) {
+    const seconds = playing ? now / 1000 : 0
+    const emission = templateOverlayEmissionAt(this.animation, seconds)
+    if (!emission) {
+      this.clearOverlay()
+      return
+    }
+    if (this.overlayHref === emission && this.overlaySprite) {
+      this.placeSprite(this.overlaySprite, anchor, rotation, pivotFracX)
+      return
+    }
+    this.overlayHref = emission
+    this.paintOverlay(emission, anchor, rotation, pivotFracX)
+  }
+
+  async paintOverlay(href, anchor, rotation, pivotFracX) {
+    const key = ++this.overlayPaintKey
+    const image = await loadImage(href)
+    if (key !== this.overlayPaintKey || this.overlayHref !== href) return
+    if (!image) {
+      this.clearOverlay()
+      return
+    }
+    // Match the base prop's design size (sprite texture is PROP_RES × design).
+    const designW = this.sprite?.texture?.width ? this.sprite.texture.width / PROP_RES : image.naturalWidth || image.width
+    const designH = this.sprite?.texture?.height ? this.sprite.texture.height / PROP_RES : image.naturalHeight || image.height
+    const canvas = blank(Math.max(1, Math.round(designW * PROP_RES)), Math.max(1, Math.round(designH * PROP_RES)))
+    const context = canvas.getContext('2d')
+    context.imageSmoothingEnabled = false
+    context.setTransform(PROP_RES, 0, 0, PROP_RES, 0, 0)
+    const strength = Number.isFinite(this.emissive) ? this.emissive : 1
+    const draw = () => context.drawImage(image, 0, 0, designW, designH)
+    // Same emissive recipe as canvasTiles.drawEmissive (wall overlays): flat + lighter passes + blur halo.
+    draw()
+    if (strength > 0) {
+      context.save()
+      context.globalCompositeOperation = 'lighter'
+      let left = strength
+      while (left > 0) {
+        context.globalAlpha = Math.min(1, left)
+        context.filter = 'none'
+        draw()
+        left -= 1
+      }
+      context.globalAlpha = Math.min(1, strength)
+      context.filter = `blur(${OVERLAY_GLOW_BLUR}px)`
+      draw()
+      context.restore()
+    }
+    if (this.overlaySprite) {
+      this.container.removeChild(this.overlaySprite)
+      this.overlaySprite.destroy({ texture: true, textureSource: true })
+    }
+    this.overlaySprite = new Sprite(textureOf(canvas))
+    this.overlaySprite.scale.set(1 / PROP_RES)
+    this.overlaySprite.blendMode = 'add'
+    this.placeSprite(this.overlaySprite, anchor, rotation, pivotFracX)
+    this.container.addChild(this.overlaySprite)
+  }
+
+  async paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX, now, playing) {
     const key = ++this.paintKey
     const prop = href ? await loadImage(href) : null
     if (key !== this.paintKey || this.look !== look) return
@@ -328,11 +409,15 @@ export class GroundLootView {
     } else {
       this.applySprite(canvas, 0, anchor, rotation, pivotFracX)
     }
+    this.syncOverlay(anchor, rotation, pivotFracX, now, playing)
   }
 
   destroy() {
     this.paintKey += 1
+    this.overlayPaintKey += 1
     this.artCanvas = null
+    this.animation = null
+    this.overlayHref = null
     this.container.destroy({ children: true })
   }
 }

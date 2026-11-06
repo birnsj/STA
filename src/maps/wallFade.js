@@ -7,6 +7,7 @@ import tuning from '../data/adaptation/maps/wallFade.json'
 import { BIG_IMAGE } from './bigObjects.js'
 import { project, TILE_H, TILE_W } from './iso.js'
 import { getTile, imageSize, TILE_IMAGE, TILES } from './mapFormat.js'
+import { getTemplatePiece } from './templatePieces.js'
 
 // How far above a standing figure's feet it is drawn (a full-body sprite or the portrait token is about 52px tall,
 // Andorian antennae a little more, the lead badge above it), times characterSprites.json displayScale.
@@ -262,4 +263,26 @@ export function fadedBlockKeys(map, points, bigGroups = null) {
     points.map((position, index) => ({ id: index, position })),
     bigGroups,
   ).keys
+}
+
+// Template Piece placement ids that should draw see-through (same hide test as fading wall tiles).
+export function templatePieceFadeIds(map, figures, previousIds = new Set()) {
+  const ids = new Set()
+  if (!figures?.length) return ids
+  for (const entry of map.templatePiecePlacements ?? []) {
+    const def = getTemplatePiece(entry.pieceId)
+    if (!def?.fade || !(def.height > 0)) continue
+    const tip = entry.position
+    const base = project(tip)
+    const shape = {
+      depth: tip.x + tip.y,
+      x: base.x,
+      top: base.y - TILE_H / 2 - def.height,
+      bottom: base.y + TILE_H / 2,
+      halfWidth: TILE_W / 2,
+    }
+    const margin = previousIds.has(entry.id) ? tuning.releaseMargin : 0
+    if (figures.some(({ position }) => hides(shape, position, margin))) ids.add(entry.id)
+  }
+  return ids
 }

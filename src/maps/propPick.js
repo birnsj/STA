@@ -18,7 +18,8 @@ export const spriteHref = (object) => object.worldImage || getTile(object.worldT
 
 // The sprite's size, its world lift and the box it covers on the board (board px, origin at the south tip of the
 // footprint, raised by z). object: { position, z?, spriteSize?, spriteAnchorX?, rotation? }. Size is the picture's
-// design pixels; there is no per-item scale. rotation is degrees around the south tip (Template Pieces).
+// design pixels; there is no per-item scale. Template Piece yaw is baked into the PNG (templatePieceArt); rotation
+// here is only a leftover screen spin and should stay 0 for those.
 export function spriteGeometry(object) {
   const size = object.spriteSize ?? { width: TILE_IMAGE.width, height: TILE_IMAGE.height }
   const pivotX = Number.isFinite(object.spriteAnchorX) ? object.spriteAnchorX : size.width / 2
@@ -33,12 +34,12 @@ export function spriteGeometry(object) {
     box,
     pivotX,
     pivotFracX: pivotX / Math.max(1, size.width),
-    // World position of the south tip — Pixi and rotation both pivot here.
+    // World position of the south tip — Pixi pivots here.
     anchor: { x: box.x + pivotX, y: box.y + box.height },
   }
 }
 
-// Map a board point into unrotated picture UVs (0-1). Rotation is around the south-tip footprint.
+// Map a board point into picture UVs (0-1). Screen-space rotation (if any) is around the south tip.
 export function spriteLocalUv(object, point) {
   const { size, box, rotation, anchor, pivotX } = spriteGeometry(object)
   if (!rotation) {

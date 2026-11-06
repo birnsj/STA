@@ -20,7 +20,7 @@ import {
 } from '../../maps/mapEdits.js'
 import { getTile } from '../../maps/mapFormat.js'
 import { editorPropFadeIds } from '../../maps/propPick.js'
-import { getTemplatePiece } from '../../maps/templatePieces.js'
+import { getTemplatePiece, templatePieceArt } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
 import { propSpriteSize, stackFootprint, stackSizeOf, surfaceTileAtBoard } from '../../rules/placement.js'
 import { applyEnvironmentTiles, createEnvironment } from '../../world/environment.js'
@@ -123,15 +123,18 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover, select
   }
   if (templateTool && templateHover) {
     const def = getTemplatePiece(templateTool)
-    if (def) {
+    const art = templatePieceArt(def, templateRotation)
+    if (def && art) {
       list.push({
         id: '__ghost',
         position: templateHover,
         z: 0,
-        rotation: templateRotation,
-        worldImage: def.href,
-        spriteSize: def.size,
-        spriteAnchorX: Number.isFinite(def.anchorX) ? def.anchorX : def.size.width / 2,
+        rotation: 0,
+        yaw: art.yaw,
+        worldImage: art.href,
+        spriteSize: art.size,
+        spriteAnchorX: art.anchorX,
+        animation: art.animation,
         category: def.tags?.includes('wall') ? 'wall' : 'template',
         depth: templateHover.x + templateHover.y + 1000,
         hovered: false,

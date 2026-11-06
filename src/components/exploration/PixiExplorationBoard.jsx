@@ -26,6 +26,7 @@ import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
 import useStableSet from '../maps/useStableSet.js'
 import useWallFade from '../maps/useWallFade.js'
+import { templatePieceFadeIds } from '../../maps/wallFade.js'
 import EdgeScrollDebugOverlay from '../maps/EdgeScrollDebugOverlay.jsx'
 import { DebugOverlay, NpcDebugOverlay, PerceptionDebugOverlay } from './BoardDebugOverlays.jsx'
 import {
@@ -198,14 +199,17 @@ export default function PixiExplorationBoard(props) {
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
   // Only the selected characters cut walls away.
-  const hidden = useWallFade(
-    map,
-    getMembers(state)
-      .filter((member) => isSelected(state, member.id))
-      .map((member) => ({ id: member.id, position: member.position })),
-    bigGroups,
-  )
+  const fadeFigures = getMembers(state)
+    .filter((member) => isSelected(state, member.id))
+    .map((member) => ({ id: member.id, position: member.position }))
+  const hidden = useWallFade(map, fadeFigures, bigGroups)
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
+  // Stickiness matches wallFade releaseMargin (previousIds).
+  const templateFadeMemory = useRef(new Set())
+  const fadedTemplateIds = templatePieceFadeIds(map, fadeFigures, templateFadeMemory.current)
+  useLayoutEffect(() => {
+    templateFadeMemory.current = fadedTemplateIds
+  }, [fadedTemplateIds])
 
   // ---------------------------------------------------------------- what the scene draws, and what clicks hit
 
@@ -358,7 +362,12 @@ export default function PixiExplorationBoard(props) {
   // Runtime inventory drops (rules/inventory.js): isometric tile props + challenge-style name markers.
   // Elevated drops carry z (art pixels) and depth from placement.js so they sit on / sort with their support.
   // Template Piece overlays (authored visual walls) share the same GroundLootView path.
-  const groundLoot = templatePieceSprites(map).map((sprite) => ({ ...sprite, inReach: true, hovered: false }))
+  const groundLoot = templatePieceSprites(map).map((sprite) => ({
+    ...sprite,
+    inReach: true,
+    hovered: false,
+    faded: fadedTemplateIds.has(sprite.id),
+  }))
   for (const view of groundItems) {
     const inReach = groundReachableIds.includes(view.id)
     // Markers/depth use the containing map tile; the prop itself sits on the 32×32 sub-grid position.

@@ -54,7 +54,7 @@ export async function startMapScene(host, read, isCancelled) {
     surfaces.update(board.surfaces)
     reconcile(outlines, board.outlines ?? [], outlineLayer, () => new EditorOutlineView(), (outline, item) => outline.update(item))
     reconcile(labels, board.labels, labelLayer, () => new AreaLabelView(), (label, item) => label.update(item, now, playing))
-    reconcile(groundLoot, board.groundLoot ?? [], stage.layers.depthLayer, () => new GroundLootView(), (loot, item) => loot.update(item))
+    reconcile(groundLoot, board.groundLoot ?? [], stage.layers.depthLayer, () => new GroundLootView(), (loot, item) => loot.update(item, now, playing))
     reconcile(markers, board.markers, markerLayer, () => new EditorMarkerView(), (marker, item) => marker.update(item, now, playing))
     preview.update(board.preview)
   })

@@ -290,7 +290,7 @@ export default function EditorPalette({
                           title={piece.label}
                           onClick={() => onTool(`template:${piece.id}`)}
                         >
-                          <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" />
+                          <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" animate={animateTiles} />
                         </button>
                         <span className="ed-thumb-label">{piece.label}</span>
                       </div>
