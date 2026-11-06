@@ -134,6 +134,78 @@ const WALL_FITTINGS = {
       },
     }
   },
+  // Exterior hull plating — darker armor, rivet rows, no interior LCARS trim.
+  hull: () => ({
+    height(u, z) {
+      const panel = inside(u, z, 2, 8, 30, 84)
+      let h = panel > 0 ? -0.55 * smoothstep(0, 1.2, panel) : 0
+      // Rivets along panel edges.
+      for (const ru of [4, 16, 28]) {
+        for (let rz = 12; rz < 80; rz += 10) {
+          h += dome(Math.hypot(u - ru, z - rz), 0.7, 0.35)
+        }
+      }
+      return h
+    },
+    surface(u, z) {
+      const armor = rgb('#3a424c')
+      const panel = inside(u, z, 2, 8, 30, 84)
+      for (const ru of [4, 16, 28]) {
+        for (let rz = 12; rz < 80; rz += 10) {
+          if (Math.hypot(u - ru, z - rz) < 0.7) return { albedo: STEEL, spec: 0.65, shininess: 40 }
+        }
+      }
+      // Registry / hazard stripe.
+      if (within(z, 48, 54) && panel > 0) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 18 }
+      if (panel > 0) return { albedo: scale(armor, 0.88 + brushed(u, z, 201, 'v') * 0.1), spec: 0.28, shininess: 24 }
+      return { albedo: scale(rgb('#2a3038'), 0.9 + brushed(u, z, 202, 'v') * 0.08), spec: 0.3, shininess: 26 }
+    },
+  }),
+  // Large exterior viewport — animated space glow behind glass.
+  viewport: () => ({
+    height(u, z) {
+      const frame = inside(u, z, 3, 14, 29, 78)
+      if (frame > 0) return frame < 1.4 ? 0.45 : -1.2
+      return 0.15
+    },
+    surface(u, z) {
+      const frame = inside(u, z, 3, 14, 29, 78)
+      if (frame > 0 && frame < 1.4) return { albedo: scale(STEEL, 0.85), spec: 0.55, shininess: 36 }
+      if (frame > 0) {
+        // Starfield / nebula shimmer for blink overlay.
+        const twinkle = hash(Math.floor(u * 2), Math.floor(z / 3), 220)
+        if (twinkle > 0.82) return glowing(rgb('#e8f4ff'), 1.1)
+        if (twinkle > 0.55) return glowing(rgb('#6a90c8'), 0.55)
+        return { albedo: rgb('#040814'), emit: scale(rgb('#1a2850'), 0.35), tag: 'lights', spec: 0.85, shininess: 70 }
+      }
+      return { albedo: scale(rgb('#3a424c'), 0.9 + brushed(u, z, 221, 'v') * 0.1), spec: 0.3, shininess: 26 }
+    },
+  }),
+  // Docking collar face — mating ring + status lights.
+  dock: () => ({
+    height(u, z) {
+      const cx = 16
+      const cy = 48
+      const r = Math.hypot(u - cx, z - cy)
+      if (r < 11) return r < 7 ? -1.4 : dome(Math.abs(r - 9), 2, 1.1)
+      if (inside(u, z, 2, 8, 30, 84) > 0) return -0.4
+      return 0.1
+    },
+    surface(u, z) {
+      const cx = 16
+      const cy = 48
+      const r = Math.hypot(u - cx, z - cy)
+      if (r < 7) return { albedo: rgb('#0a0c10'), ao: 0.45 }
+      if (r < 11) {
+        const onRing = Math.abs(r - 9) < 1.2
+        if (onRing && hash(Math.floor(u), Math.floor(z), 230) > 0.55) return glowing(rgb('#60ff90'), 0.85)
+        return { albedo: STEEL, spec: 0.7, shininess: 45 }
+      }
+      if (within(z, 18, 22) && within(u, 8, 24)) return glowing(rgb('#ffb040'), 0.7)
+      if (within(z, 74, 78) && within(u, 8, 24)) return glowing(rgb('#6fc8ff'), 0.7)
+      return { albedo: scale(rgb('#4a5560'), 0.9 + brushed(u, z, 231, 'v') * 0.1), spec: 0.32, shininess: 28 }
+    },
+  }),
 }
 
 function windowFitting(drawnHeight) {
@@ -171,7 +243,8 @@ export function starshipWallMaterial(drawnHeight, fitting = null) {
       if (v < 7) h += 0.6 + groove(v - 7, 0.6, 0.6)
       if (v > H - 6) h += 0.5 + groove(v - (H - 6), 0.6, 0.5)
       const panel = inside(u, v, 2.5, 11, 29.5, H - 10)
-      if (panel > 0) h -= 0.6 * smoothstep(0, 1.2, panel)
+      // Deep enough that the inset still reads on the darker iso-right face (square corner posts).
+      if (panel > 0) h -= 1.1 * smoothstep(0, 1.2, panel)
       if (H > 40) h += groove(v - H * 0.52, 0.5, 0.35)
       h += groove(u, 0.35, 0.3) + groove(32 - u, 0.35, 0.3)
       return h
@@ -189,7 +262,9 @@ export function starshipWallMaterial(drawnHeight, fitting = null) {
       if (z < 7) return { albedo: rgb('#3c444b'), spec: 0.3, shininess: 30, ao }
       if (z > H - 6) return { albedo: rgb('#8d99a2'), spec: 0.35, shininess: 30, ao }
       if (H > 40 && Math.abs(z - (H - 8.5)) < 1) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 20, ao }
-      const base = inside(u, z, 2.5, 11, 29.5, H - 10) > 0 ? rgb('#66747f') : rgb('#717f8a')
+      // Stronger inset vs frame so both axes of a square corner read as bulkhead faces.
+      const inset = inside(u, z, 2.5, 11, 29.5, H - 10) > 0
+      const base = inset ? rgb('#5a6872') : rgb('#7a8894')
       return { albedo: scale(base, 0.9 + brushed(u, z, face === 'left' ? 72 : 73, 'v') * 0.12), spec: 0.3, shininess: 28, ao }
     },
   }
@@ -203,4 +278,4 @@ export function fittingForFace(face, height) {
   return make ? make() : null
 }
 
-export const STARSHIP_WALL_FACES = ['plain', 'window', 'lcars', 'conduit', 'hatch', 'computer']
+export const STARSHIP_WALL_FACES = ['plain', 'window', 'lcars', 'conduit', 'hatch', 'computer', 'hull', 'viewport', 'dock']

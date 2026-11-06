@@ -39,18 +39,65 @@ describe('templatePieces catalogue', () => {
       'tplStarshipWall32Hatch',
       'tplStarshipWall32Computer',
       'tplStarshipWall32Corner',
+      'tplStarshipWall32PlainLong',
+      'tplStarshipWall32WindowLong',
       'tplStarshipWall32LcarsLong',
       'tplStarshipWall32ConduitLong',
       'tplStarshipWall32HatchLong',
       'tplStarshipWall32ComputerLong',
+      'tplStarshipWall32Tee',
+      'tplStarshipWall32Cross',
+      'tplStarshipWall32Alcove',
+      'tplStarshipDoorFrame',
+      'tplStarshipHull32',
+      'tplStarshipHull32Long',
+      'tplStarshipHull32Corner',
+      'tplStarshipHullViewport',
+      'tplStarshipHullViewportLong',
+      'tplStarshipDockCollar',
       'tplStarshipHalfBulkhead',
       'tplStarshipHalfBulkheadCorner',
       'tplStarshipFloor',
       'tplStarshipDoorway',
       'tplStarshipGrating',
+      'tplStarshipFloor128',
+      'tplStarshipFloor128x64',
+      'tplStarshipFloor192x128',
+      'tplStarshipFloor192x64',
+      'tplStarshipFloor256',
+      'tplStarshipFloorCorridor128',
+      'tplStarshipFloorCorridor128x64',
+      'tplStarshipFloorCorridor192x128',
+      'tplStarshipFloorCargo128',
+      'tplStarshipFloorCargo128x64',
+      'tplStarshipFloorCarpet128',
+      'tplStarshipFloorCarpet192x128',
+      'tplStarshipFloorSickbay128',
+      'tplStarshipGrating128',
+      'tplStarshipGrating128x64',
+      'tplStarshipDoorway128x64',
       'tplStarshipMachinery',
+      'tplStarshipMachineryTall',
+      'tplStarshipMachineryWide',
+      'tplStarshipPillar32',
+      'tplStarshipPillar16',
+      'tplStarshipWarpCoil',
+      'tplStarshipPipeRiser',
+      'tplStarshipJunctionBox',
       'tplStarshipCrate',
       'tplStarshipEpsControl',
+      'tplStarshipChair',
+      'tplStarshipStool',
+      'tplStarshipBench',
+      'tplStarshipBenchLong',
+      'tplStarshipTable',
+      'tplStarshipBed',
+      'tplStarshipConsole',
+      'tplStarshipConsoleWide',
+      'tplStarshipWallConsole',
+      'tplStarshipLocker',
+      'tplStarshipLockerWide',
+      'tplStarshipShelf',
     ]
     const starship = TEMPLATE_PIECES.filter((piece) => piece.tags?.includes('starship'))
     assert.equal(starship.length, expected.length)
@@ -66,10 +113,38 @@ describe('templatePieces catalogue', () => {
     assert.deepEqual(wall.footprint, { width: 64, depth: 32 })
     assert.deepEqual(getTemplatePiece('tplStarshipWall32Corner').footprint, { width: 32, depth: 32 })
     assert.deepEqual(getTemplatePiece('tplStarshipWall32LcarsLong').footprint, { width: 128, depth: 32 })
+    assert.deepEqual(getTemplatePiece('tplStarshipWall32PlainLong').footprint, { width: 128, depth: 32 })
+    assert.deepEqual(getTemplatePiece('tplStarshipHull32').footprint, { width: 64, depth: 32 })
+    assert.equal(getTemplatePiece('tplStarshipHull32').face, 'hull')
+    assert.ok(getTemplatePiece('tplStarshipHullViewport').animation?.overlay)
+    assert.ok(getTemplatePiece('tplStarshipDockCollar').animation?.overlay)
     assert.deepEqual(getTemplatePiece('tplStarshipHalfBulkhead').footprint, { width: 64, depth: 8 })
     assert.deepEqual(getTemplatePiece('tplStarshipFloor').footprint, { width: 64, depth: 64 })
+    assert.deepEqual(getTemplatePiece('tplStarshipFloor128').footprint, { width: 128, depth: 128 })
+    assert.deepEqual(getTemplatePiece('tplStarshipFloor256').footprint, { width: 256, depth: 256 })
+    assert.deepEqual(getTemplatePiece('tplStarshipFloorCorridor128x64').footprint, { width: 128, depth: 64 })
+    assert.equal(getTemplatePiece('tplStarshipFloorCorridor128').material, 'floorCorridor')
+    assert.ok(getTemplatePiece('tplStarshipFloorSickbay128').animation?.overlay)
+    assert.ok(getTemplatePiece('tplStarshipGrating128').animation?.overlay)
+    assert.ok(getTemplatePiece('tplStarshipDoorway128x64').animation?.overlay)
     assert.equal(getTemplatePiece('tplStarshipCrate').height, 16)
     assert.equal(getTemplatePiece('tplStarshipMachinery').height, 40)
+    assert.equal(getTemplatePiece('tplStarshipMachineryTall').height, 64)
+    assert.deepEqual(getTemplatePiece('tplStarshipMachineryWide').footprint, { width: 128, depth: 64 })
+    assert.deepEqual(getTemplatePiece('tplStarshipPillar32').footprint, { width: 32, depth: 32 })
+    assert.ok(getTemplatePiece('tplStarshipWarpCoil').animation?.overlay)
+    assert.equal(getTemplatePiece('tplStarshipWarpCoil').animation.emitColour, '#6fc8ff')
+    assert.equal(getTemplatePiece('tplStarshipJunctionBox').fade, false)
+    assert.equal(getTemplatePiece('tplStarshipPillar32').fade, true)
+    assert.deepEqual(getTemplatePiece('tplStarshipChair').footprint, { width: 36, depth: 42 })
+    assert.deepEqual(getTemplatePiece('tplStarshipConsole').footprint, { width: 60, depth: 50 })
+    assert.equal(getTemplatePiece('tplStarshipConsole').cover, true)
+    assert.ok(getTemplatePiece('tplStarshipConsole').animation?.overlay)
+    assert.equal(getTemplatePiece('tplStarshipConsole').animation.emitColour, '#7aa8ff')
+    assert.ok(getTemplatePiece('tplStarshipBed').animation?.overlay)
+    assert.equal(getTemplatePiece('tplStarshipLocker').fade, true)
+    assert.equal(getTemplatePiece('tplStarshipShelf').fade, true)
+    assert.equal(getTemplatePiece('tplStarshipChair').fade, false)
   })
 
   it('ships a Dimension Kit separate from Starship templates', () => {
@@ -188,10 +263,12 @@ describe('templatePiecePlacements schema', () => {
 describe('templatePiece snap', () => {
   it('snaps tips to the chosen guide grid', () => {
     const board = project({ x: 3.25, y: 4.75 })
-    assert.deepEqual(templatePieceTargetAt(board, 64), snapItemPosition(unproject(board), 64))
+    // Fine grids (32 and under) share origin 0 with item snap; coarse 64+ sit on tile edges (−0.5).
     assert.deepEqual(templatePieceTargetAt(board, 32), snapItemPosition(unproject(board), 32))
     assert.deepEqual(snapTemplatePiecePosition({ x: 3.2, y: 4.1 }, 32), { x: 3, y: 4 })
     assert.deepEqual(snapTemplatePiecePosition({ x: 3.3, y: 4.4 }, 8), snapItemPosition({ x: 3.3, y: 4.4 }, 8))
+    assert.deepEqual(templatePieceTargetAt(board, 64), { x: 3.5, y: 4.5 })
+    assert.deepEqual(snapTemplatePiecePosition({ x: 3.2, y: 4.1 }, 64), { x: 3.5, y: 4.5 })
   })
 
   it('overwrites the same tip but keeps a neighbour placed beside it', () => {
@@ -207,6 +284,26 @@ describe('templatePiece snap', () => {
     const beside = placeTemplatePiece(first.map, { x: 2, y: 4 }, 'tplStarshipWall32', 64)
     assert.ok(beside)
     assert.equal(beside.map.templatePiecePlacements.length, 2)
+  })
+
+  it('keeps a neighbouring floor when the pointer still hits that floor’s sprite', () => {
+    const blank = createBlankMap({ width: 8, height: 8 })
+    const first = placeTemplatePiece(blank, { x: 3, y: 4 }, 'tplStarshipFloor', 32)
+    assert.ok(first)
+    // Painting the next cell while replaceIds still names the neighbour (sprite under the pointer).
+    const next = placeTemplatePiece(first.map, { x: 2, y: 4 }, 'tplStarshipFloor', 32, {
+      replaceIds: [first.object.id],
+    })
+    assert.ok(next)
+    assert.equal(next.map.templatePiecePlacements.length, 2)
+    assert.ok(next.map.templatePiecePlacements.some((entry) => entry.id === first.object.id))
+    // Same tip still replaces (id may be reused once the old tip is cleared).
+    const over = placeTemplatePiece(first.map, { x: 3, y: 4 }, 'tplStarshipFloor', 32, {
+      replaceIds: [first.object.id],
+    })
+    assert.ok(over)
+    assert.equal(over.map.templatePiecePlacements.length, 1)
+    assert.deepEqual(over.map.templatePiecePlacements[0].position, first.object.position)
   })
 
   it('allows tips on the outer rim (width/height inclusive)', () => {

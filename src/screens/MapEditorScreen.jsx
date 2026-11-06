@@ -4,6 +4,7 @@ import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
 import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
+import { EDITOR_GRID_SIZES } from '../components/maps/editorGrid.js'
 import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
 import EditorHelp, { STA_BUILDER_VERSION } from '../components/maps/EditorHelp.jsx'
 import EditorLayersWindow from '../components/maps/EditorLayersWindow.jsx'
@@ -66,8 +67,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   const [showLighting, setShowLighting] = useState(true)
   const [showSurfaces, setShowSurfaces] = useState(false)
   const [showWeather, setShowWeather] = useState(true)
-  const [showGrid, setShowGrid] = useState(false)
-  const [gridSize, setGridSize] = useState(64)
+  const [showGrid, setShowGrid] = useState(true)
+  const [gridSize, setGridSize] = useState(32)
+  const [propFade, setPropFade] = useState(false)
   const [showBounds, setShowBounds] = useState(true)
   const [showCentre, setShowCentre] = useState(false)
   const [showGridOptions, setShowGridOptions] = useState(false)
@@ -122,11 +124,23 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     storyEditor ||
     characterLibrary
 
-  // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo. Skipped while a dialog or sub-editor is open.
+  // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo. Tab cycles the guide grid size.
+  // Skipped while a dialog or sub-editor is open.
   useEffect(() => {
     if (dialogOpen || boardBlocked) return undefined
     const onKey = (event) => {
       if (event.target.closest?.('input, textarea, select')) return
+      if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault()
+        const index = EDITOR_GRID_SIZES.indexOf(gridSize)
+        const from = index >= 0 ? index : EDITOR_GRID_SIZES.indexOf(32)
+        const step = event.shiftKey ? -1 : 1
+        const size = EDITOR_GRID_SIZES[(from + step + EDITOR_GRID_SIZES.length) % EDITOR_GRID_SIZES.length]
+        setShowGrid(true)
+        setGridSize(size)
+        setStatus(`Grid ${size}px.`)
+        return
+      }
       const mod = event.ctrlKey || event.metaKey
       if (!mod) return
       if (event.key === 'z' || event.key === 'Z') {
@@ -143,7 +157,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dialogOpen, boardBlocked, doc])
+  }, [dialogOpen, boardBlocked, doc, gridSize, setStatus])
 
   const tools = useEditorTools({
     map,
@@ -468,6 +482,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         onEnemiesActive={setEnemiesActive}
         placementPreview={itemPlacementPreview}
         onPlacementPreview={(checked) => updateDisplaySettings({ itemPlacementPreview: checked })}
+        propFade={propFade}
+        onPropFade={setPropFade}
         onPlay={onPlay}
         placing={placing}
         onPlacing={tools.onPlacingToggle}
@@ -510,6 +526,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
             animate={animateTiles}
             showGrid={showGrid}
             gridSize={gridSize}
+            propFade={propFade}
             showBounds={showBounds}
             showCentre={showCentre}
             showSurfaces={showSurfaces}

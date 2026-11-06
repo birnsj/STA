@@ -1,6 +1,7 @@
 import { Container, Graphics, Sprite } from 'pixi.js'
 import { diamond, project, TILE_W, unproject } from '../../../maps/iso.js'
 import { drawLoneTiles } from '../canvasTiles.js'
+import { guideOrigin, snapToGuideGrid } from '../editorGrid.js'
 import { EASE } from './cssTiming.js'
 import { makeLabel, placeLabel, textureOf } from './pixiDraw.js'
 
@@ -16,22 +17,10 @@ const GRID_SNAP_STROKE = { color: 0xff6a75, width: 1.5, alpha: 1 }
 const HIGHLIGHT = 0xffb347
 const OUTLINE = 0x03060e
 
-// Guide-line origin matching EditorGridView (tile edges at −0.5 for coarse 64+ steps).
-function guideOrigin(step) {
-  return Math.abs(0.5 / step - Math.round(0.5 / step)) > 1e-9 ? -0.5 : 0
-}
-
 // Nearest guide intersection to a board (SVG) point, for the red snap cursor.
 export function nearestGuideSnap(boardPoint, cellPx) {
-  const size = Number(cellPx) > 0 ? Number(cellPx) : TILE_W
-  const step = size / TILE_W
-  if (!(step > 0) || !boardPoint) return null
-  const origin = guideOrigin(step)
-  const tile = unproject(boardPoint)
-  return {
-    x: origin + Math.round((tile.x - origin) / step) * step,
-    y: origin + Math.round((tile.y - origin) / step) * step,
-  }
+  if (!boardPoint) return null
+  return snapToGuideGrid(unproject(boardPoint), cellPx)
 }
 // Erase Marker: what a click would remove pulses between full and this opacity, 0.8 s each way.
 const DOOMED_MS = 800

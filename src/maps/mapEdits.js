@@ -1,5 +1,6 @@
 // Pure edits for the dev map editor; each returns a new map (or the same one when nothing changed).
 import { getItemById } from '../rules/equipment.js'
+import { snapToGuideGrid } from '../components/maps/editorGrid.js'
 import { ITEM_CELL_PX, itemGridKey, snapItemPosition } from '../rules/itemGrid.js'
 import {
   canPlaceOn,
@@ -693,6 +694,7 @@ export function placementPlaneZ(map, position, itemId, { excludeId = null } = {}
 // instead lands behind or beside the furniture and rejects or misplaces the drop. Falls back to the floor under the point.
 export function groundItemTargetAt(map, boardPoint, { excludeId = null } = {}) {
   const support = supportAtBoard(placementProbeState(map, { excludeId }), boardPoint, { excludeInstanceId: excludeId })
+  // Inventory always locks to the pack grid. The editor guide size is for Template Pieces / the drawn grid.
   return snapItemPosition(support?.hitPoint ?? unproject(boardPoint), ITEM_CELL_PX)
 }
 
@@ -1084,11 +1086,18 @@ export const TEMPLATE_PIECE_CELL_PX = 32
 
 export function snapTemplatePiecePosition(point, cellPx = TEMPLATE_PIECE_CELL_PX) {
   const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
-  return snapItemPosition(point, size)
+  // Same intersections as EditorGridView / the red snap mark (coarse 64+ grids sit on tile edges at −0.5).
+  return snapToGuideGrid(point, size)
 }
 
 export function templatePieceTargetAt(boardPoint, cellPx = TEMPLATE_PIECE_CELL_PX) {
   return snapTemplatePiecePosition(unproject(boardPoint), cellPx)
+}
+
+// Tip key for overwrite checks — must use the guide snap, not itemGridKey (origin 0), or coarse-grid tips collide wrong.
+export function templateTipKey(position, cellPx = TEMPLATE_PIECE_CELL_PX) {
+  const snapped = snapTemplatePiecePosition(position, cellPx)
+  return `${snapped.x},${snapped.y}`
 }
 
 // Tip may sit on the outer rim (x/y === width/height). Content runs into −X/−Y from the tip, so that edges the map.
@@ -1096,12 +1105,11 @@ export const templatePieceFits = (map, position) =>
   position.x >= 0 && position.y >= 0 && position.x <= map.width && position.y <= map.height
 
 export function templatePieceAt(map, position, { excludeId = null, cellPx = TEMPLATE_PIECE_CELL_PX } = {}) {
-  const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
-  const key = itemGridKey(position, size)
+  const key = templateTipKey(position, cellPx)
   return (
     (map.templatePiecePlacements ?? []).find((entry) => {
       if (excludeId && entry.id === excludeId) return false
-      return itemGridKey(entry.position, size) === key
+      return templateTipKey(entry.position, cellPx) === key
     }) ?? null
   )
 }
@@ -1145,12 +1153,18 @@ export function placeTemplatePiece(map, position, pieceId, cellPx = TEMPLATE_PIE
   const snapped = snapTemplatePiecePosition(position, size)
   if (!templatePieceFits(map, snapped)) return null
   const rot = normalizeTemplateRotation(rotation)
-  const replace = new Set(replaceIds ?? [])
-  // Overwrite only the same tip or the sprite under the pointer — not neighbours that merely share a footprint edge.
-  const tipKey = itemGridKey(snapped, size)
+  const tipKey = templateTipKey(snapped, size)
+  // Same-tip overwrite only. A sprite under the pointer is replaced only when that piece's tip is this tip —
+  // otherwise painting the next floor cell would delete the neighbour whose art the pointer still overlaps.
+  const replace = new Set(
+    (replaceIds ?? []).filter((id) => {
+      const entry = (map.templatePiecePlacements ?? []).find((piece) => piece.id === id)
+      return entry && templateTipKey(entry.position, size) === tipKey
+    }),
+  )
   let list = (map.templatePiecePlacements ?? []).filter((entry) => {
     if (replace.has(entry.id)) return false
-    if (itemGridKey(entry.position, size) === tipKey) return false
+    if (templateTipKey(entry.position, size) === tipKey) return false
     return true
   })
   const object = {
@@ -1171,9 +1185,9 @@ export function moveTemplatePiece(map, id, position, cellPx = TEMPLATE_PIECE_CEL
   const size = Number(cellPx) > 0 ? Number(cellPx) : TEMPLATE_PIECE_CELL_PX
   const snapped = snapTemplatePiecePosition(position, size)
   if (!templatePieceFits(map, snapped)) return map
-  const tipKey = itemGridKey(snapped, size)
+  const tipKey = templateTipKey(snapped, size)
   const list = (map.templatePiecePlacements ?? [])
-    .filter((entry) => entry.id === id || itemGridKey(entry.position, size) !== tipKey)
+    .filter((entry) => entry.id === id || templateTipKey(entry.position, size) !== tipKey)
     .map((entry) => (entry.id === id ? { ...entry, position: snapped } : entry))
   return {
     ...map,

@@ -1,12 +1,12 @@
 {
   "notes": [
-    "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props).",
+    "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props, furniture).",
     "Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.",
     "Does not change Generate Map, makeTilesV2, or halfWalls generation.",
-    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props match tile heights.",
+    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props + furniture/consoles (multi-prism).",
     "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.",
     "R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.",
-    "Fitting / prop pieces include animation.overlay emission frames (blink), drawn over the base like wall tile overlays. Art via scripts/makeTemplatePieces.mjs",
+    "Fitting / prop / console / biobed pieces include animation.overlay emission frames (blink). Art via scripts/makeTemplatePieces.mjs",
     "cover / fade match counterpart Starship tiles; animation.emissive / emitColour match wall overlay Properties (saved via /__templates).",
     "Dimension Kit (tplDim*): solid-but-lit AA size/footprint tests. Separate from Starship templates and Calibration tiles. Art via scripts/makeDimensionKit.mjs."
   ],
@@ -720,6 +720,176 @@
       "face": "plain"
     },
     {
+      "id": "tplStarshipWall32PlainLong",
+      "label": "Bulkhead (No Windows, Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32PlainLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32PlainLong_r90.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32PlainLong_r180.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32PlainLong_r270.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "plain",
+        "plainBulkhead",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipWall32WindowLong",
+      "label": "Bulkhead (Windows, Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32WindowLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.5,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong-emission-1.png"
+          }
+        ]
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r90.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r90-emission-1.png"
+              }
+            ]
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r180.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 65,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r180-emission-1.png"
+              }
+            ]
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r270.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWall32WindowLong_r270-emission-1.png"
+              }
+            ]
+          }
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "straight",
+        "thick32",
+        "window",
+        "bulkhead",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "window"
+    },
+    {
       "id": "tplStarshipWall32LcarsLong",
       "label": "LCARS Wall (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32LcarsLong.png",
@@ -1212,6 +1382,742 @@
       "face": "computer"
     },
     {
+      "id": "tplStarshipWall32Tee",
+      "label": "Bulkhead Tee 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Tee.png",
+      "size": {
+        "width": 82,
+        "height": 133
+      },
+      "anchorX": 41,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Tee_r90.png",
+          "size": {
+            "width": 82,
+            "height": 133
+          },
+          "anchorX": 41
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Tee_r180.png",
+          "size": {
+            "width": 82,
+            "height": 133
+          },
+          "anchorX": 41
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Tee_r270.png",
+          "size": {
+            "width": 82,
+            "height": 133
+          },
+          "anchorX": 41
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "tee",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipWall32Cross",
+      "label": "Bulkhead Cross 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Cross.png",
+      "size": {
+        "width": 66,
+        "height": 125
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Cross_r90.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Cross_r180.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Cross_r270.png",
+          "size": {
+            "width": 66,
+            "height": 125
+          },
+          "anchorX": 33
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "cross",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipWall32Alcove",
+      "label": "Bulkhead Alcove 32",
+      "href": "/art/sprites/environment/templates/tplStarshipWall32Alcove.png",
+      "size": {
+        "width": 46,
+        "height": 115
+      },
+      "anchorX": 25,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Alcove_r90.png",
+          "size": {
+            "width": 46,
+            "height": 115
+          },
+          "anchorX": 21
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Alcove_r180.png",
+          "size": {
+            "width": 46,
+            "height": 115
+          },
+          "anchorX": 25
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWall32Alcove_r270.png",
+          "size": {
+            "width": 46,
+            "height": 115
+          },
+          "anchorX": 21
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "alcove",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 40
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipDoorFrame",
+      "label": "Door Frame 32",
+      "href": "/art/sprites/environment/templates/tplStarshipDoorFrame.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorFrame_r90.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorFrame_r180.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorFrame_r270.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "door",
+        "thick32",
+        "plain",
+        "plainBulkhead"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "plain"
+    },
+    {
+      "id": "tplStarshipHull32",
+      "label": "Exterior Hull 32",
+      "href": "/art/sprites/environment/templates/tplStarshipHull32.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32_r90.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32_r180.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 33
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32_r270.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "straight",
+        "thick32"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "hull"
+    },
+    {
+      "id": "tplStarshipHull32Long",
+      "label": "Exterior Hull (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipHull32Long.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Long_r90.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Long_r180.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 65
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Long_r270.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "straight",
+        "thick32",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "hull"
+    },
+    {
+      "id": "tplStarshipHull32Corner",
+      "label": "Exterior Hull Corner 32",
+      "href": "/art/sprites/environment/templates/tplStarshipHull32Corner.png",
+      "size": {
+        "width": 34,
+        "height": 109
+      },
+      "anchorX": 17,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Corner_r90.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Corner_r180.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipHull32Corner_r270.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "corner",
+        "thick32"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "hull"
+    },
+    {
+      "id": "tplStarshipHullViewport",
+      "label": "Hull Viewport 32",
+      "href": "/art/sprites/environment/templates/tplStarshipHullViewport.png",
+      "size": {
+        "width": 49,
+        "height": 117
+      },
+      "anchorX": 33,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.65,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipHullViewport-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipHullViewport-emission-1.png"
+          }
+        ],
+        "emitColour": "#6a90c8"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewport_r90.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#6a90c8"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewport_r180.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 33,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#6a90c8"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewport_r270.png",
+          "size": {
+            "width": 49,
+            "height": 117
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewport_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#6a90c8"
+          }
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "viewport",
+        "straight",
+        "thick32"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "viewport"
+    },
+    {
+      "id": "tplStarshipHullViewportLong",
+      "label": "Hull Viewport (Long) 32",
+      "href": "/art/sprites/environment/templates/tplStarshipHullViewportLong.png",
+      "size": {
+        "width": 81,
+        "height": 133
+      },
+      "anchorX": 65,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.65,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong-emission-1.png"
+          }
+        ],
+        "emissive": 0
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r90.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r90-emission-1.png"
+              }
+            ],
+            "emissive": 0
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r180.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 65,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r180-emission-1.png"
+              }
+            ],
+            "emissive": 0
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r270.png",
+          "size": {
+            "width": 81,
+            "height": 133
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.65,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r270-emission-1.png"
+              }
+            ],
+            "emissive": 0
+          }
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "viewport",
+        "straight",
+        "thick32",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "viewport"
+    },
+    {
+      "id": "tplStarshipDockCollar",
+      "label": "Docking Collar",
+      "href": "/art/sprites/environment/templates/tplStarshipDockCollar.png",
+      "size": {
+        "width": 61,
+        "height": 123
+      },
+      "anchorX": 33,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.45,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDockCollar-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDockCollar-emission-1.png"
+          }
+        ],
+        "emitColour": "#60ff90"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipDockCollar_r90.png",
+          "size": {
+            "width": 61,
+            "height": 123
+          },
+          "anchorX": 28,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.45,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipDockCollar_r180.png",
+          "size": {
+            "width": 61,
+            "height": 123
+          },
+          "anchorX": 33,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.45,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipDockCollar_r270.png",
+          "size": {
+            "width": 61,
+            "height": 123
+          },
+          "anchorX": 28,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.45,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDockCollar_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        }
+      },
+      "tags": [
+        "wall",
+        "starship",
+        "hull",
+        "exterior",
+        "dock",
+        "thick32"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 48
+      },
+      "height": 92,
+      "cover": false,
+      "fade": true,
+      "face": "dock"
+    },
+    {
       "id": "tplStarshipHalfBulkhead",
       "label": "Half Bulkhead",
       "href": "/art/sprites/environment/templates/tplStarshipHalfBulkhead.png",
@@ -1371,6 +2277,23 @@
         "height": 35
       },
       "anchorX": 32,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.7,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway-emission-1.png"
+          }
+        ],
+        "emitColour": "#f0b030"
+      },
       "orients": {
         "90": {
           "href": "/art/sprites/environment/templates/tplStarshipDoorway_r90.png",
@@ -1378,7 +2301,24 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
         },
         "180": {
           "href": "/art/sprites/environment/templates/tplStarshipDoorway_r180.png",
@@ -1386,7 +2326,24 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
         },
         "270": {
           "href": "/art/sprites/environment/templates/tplStarshipDoorway_r270.png",
@@ -1394,7 +2351,24 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
         }
       },
       "tags": [
@@ -1420,6 +2394,25 @@
         "height": 35
       },
       "anchorX": 32,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.35,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating-emission-1.png"
+          }
+        ],
+        "emitColour": "#d0601a"
+      },
       "orients": {
         "90": {
           "href": "/art/sprites/environment/templates/tplStarshipGrating_r90.png",
@@ -1427,7 +2420,26 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
         },
         "180": {
           "href": "/art/sprites/environment/templates/tplStarshipGrating_r180.png",
@@ -1435,7 +2447,26 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
         },
         "270": {
           "href": "/art/sprites/environment/templates/tplStarshipGrating_r270.png",
@@ -1443,7 +2474,26 @@
             "width": 64,
             "height": 35
           },
-          "anchorX": 32
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
         }
       },
       "tags": [
@@ -1459,6 +2509,1102 @@
       "cover": false,
       "fade": false,
       "material": "grating"
+    },
+    {
+      "id": "tplStarshipFloor128",
+      "label": "Deck Plating 128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipFloor128x64",
+      "label": "Deck Plating 128×64",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor128x64.png",
+      "size": {
+        "width": 96,
+        "height": 51
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128x64_r90.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128x64_r180.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor128x64_r270.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipFloor192x128",
+      "label": "Deck Plating 192×128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor192x128.png",
+      "size": {
+        "width": 160,
+        "height": 83
+      },
+      "anchorX": 96,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x128_r90.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x128_r180.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 96
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x128_r270.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "large"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipFloor192x64",
+      "label": "Deck Plating 192×64",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor192x64.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 96,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x64_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x64_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 96
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor192x64_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "large"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipFloor256",
+      "label": "Deck Plating 256",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor256.png",
+      "size": {
+        "width": 256,
+        "height": 131
+      },
+      "anchorX": 128,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor256_r90.png",
+          "size": {
+            "width": 256,
+            "height": 131
+          },
+          "anchorX": 128
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor256_r180.png",
+          "size": {
+            "width": 256,
+            "height": 131
+          },
+          "anchorX": 128
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor256_r270.png",
+          "size": {
+            "width": 256,
+            "height": 131
+          },
+          "anchorX": 128
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "large"
+      ],
+      "footprint": {
+        "width": 256,
+        "depth": 256
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipFloorCorridor128",
+      "label": "Corridor Deck 128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "corridor",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCorridor"
+    },
+    {
+      "id": "tplStarshipFloorCorridor128x64",
+      "label": "Corridor Deck 128×64",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128x64.png",
+      "size": {
+        "width": 96,
+        "height": 51
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128x64_r90.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128x64_r180.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128x64_r270.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "corridor",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCorridor"
+    },
+    {
+      "id": "tplStarshipFloorCorridor192x128",
+      "label": "Corridor Deck 192×128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor192x128.png",
+      "size": {
+        "width": 160,
+        "height": 83
+      },
+      "anchorX": 96,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor192x128_r90.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor192x128_r180.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 96
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor192x128_r270.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "corridor",
+        "large"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCorridor"
+    },
+    {
+      "id": "tplStarshipFloorCargo128",
+      "label": "Cargo Deck 128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "cargo",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCargo"
+    },
+    {
+      "id": "tplStarshipFloorCargo128x64",
+      "label": "Cargo Deck 128×64",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128x64.png",
+      "size": {
+        "width": 96,
+        "height": 51
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128x64_r90.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128x64_r180.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128x64_r270.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "cargo",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCargo"
+    },
+    {
+      "id": "tplStarshipFloorCarpet128",
+      "label": "Carpet 128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "carpet",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCarpet"
+    },
+    {
+      "id": "tplStarshipFloorCarpet192x128",
+      "label": "Carpet 192×128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet192x128.png",
+      "size": {
+        "width": 160,
+        "height": 83
+      },
+      "anchorX": 96,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet192x128_r90.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet192x128_r180.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 96
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet192x128_r270.png",
+          "size": {
+            "width": 160,
+            "height": 83
+          },
+          "anchorX": 64
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "carpet",
+        "large"
+      ],
+      "footprint": {
+        "width": 192,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorCarpet"
+    },
+    {
+      "id": "tplStarshipFloorSickbay128",
+      "label": "Sickbay Deck 128",
+      "href": "/art/sprites/environment/templates/tplStarshipFloorSickbay128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.9,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128-emission-1.png"
+          }
+        ],
+        "emitColour": "#5fd0ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipFloorSickbay128_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor",
+        "sickbay",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floorSickbay"
+    },
+    {
+      "id": "tplStarshipGrating128",
+      "label": "EPS Grating 128",
+      "href": "/art/sprites/environment/templates/tplStarshipGrating128.png",
+      "size": {
+        "width": 128,
+        "height": 67
+      },
+      "anchorX": 64,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.35,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating128-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating128-emission-1.png"
+          }
+        ],
+        "emitColour": "#d0601a"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128_r90.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128_r180.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128_r270.png",
+          "size": {
+            "width": 128,
+            "height": 67
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "grating",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 128
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "grating"
+    },
+    {
+      "id": "tplStarshipGrating128x64",
+      "label": "EPS Grating 128×64",
+      "href": "/art/sprites/environment/templates/tplStarshipGrating128x64.png",
+      "size": {
+        "width": 96,
+        "height": 51
+      },
+      "anchorX": 64,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.35,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64-emission-1.png"
+          }
+        ],
+        "emitColour": "#d0601a"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128x64_r90.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128x64_r180.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipGrating128x64_r270.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.35,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipGrating128x64_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#d0601a"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "grating",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "grating"
+    },
+    {
+      "id": "tplStarshipDoorway128x64",
+      "label": "Doorway 128×64",
+      "href": "/art/sprites/environment/templates/tplStarshipDoorway128x64.png",
+      "size": {
+        "width": 96,
+        "height": 51
+      },
+      "anchorX": 64,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.7,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64-emission-1.png"
+          }
+        ],
+        "emitColour": "#f0b030"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r90.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r180.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r270.png",
+          "size": {
+            "width": 96,
+            "height": 51
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway128x64_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "doorway",
+        "large"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "doorway"
     },
     {
       "id": "tplStarshipMachinery",
@@ -1584,6 +3730,856 @@
       "cover": true,
       "fade": true,
       "material": "machinery"
+    },
+    {
+      "id": "tplStarshipMachineryTall",
+      "label": "Machinery (Tall)",
+      "href": "/art/sprites/environment/templates/tplStarshipMachineryTall.png",
+      "size": {
+        "width": 64,
+        "height": 96
+      },
+      "anchorX": 32,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.2,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall-emission-1.png"
+          }
+        ],
+        "emitColour": "#ff6b3d"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryTall_r90.png",
+          "size": {
+            "width": 64,
+            "height": 96
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryTall_r180.png",
+          "size": {
+            "width": 64,
+            "height": 96
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryTall_r270.png",
+          "size": {
+            "width": 64,
+            "height": 96
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryTall_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "tall"
+      ],
+      "footprint": {
+        "width": 64,
+        "depth": 64
+      },
+      "height": 64,
+      "cover": true,
+      "fade": true,
+      "material": "machinery"
+    },
+    {
+      "id": "tplStarshipMachineryWide",
+      "label": "Machinery (Wide)",
+      "href": "/art/sprites/environment/templates/tplStarshipMachineryWide.png",
+      "size": {
+        "width": 96,
+        "height": 88
+      },
+      "anchorX": 64,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.2,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide-emission-1.png"
+          }
+        ],
+        "emitColour": "#ff6b3d"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryWide_r90.png",
+          "size": {
+            "width": 96,
+            "height": 88
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryWide_r180.png",
+          "size": {
+            "width": 96,
+            "height": 88
+          },
+          "anchorX": 64,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipMachineryWide_r270.png",
+          "size": {
+            "width": 96,
+            "height": 88
+          },
+          "anchorX": 32,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.2,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipMachineryWide_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#ff6b3d"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "long"
+      ],
+      "footprint": {
+        "width": 128,
+        "depth": 64
+      },
+      "height": 40,
+      "cover": true,
+      "fade": true,
+      "material": "machinery"
+    },
+    {
+      "id": "tplStarshipPillar32",
+      "label": "Support Pillar 32",
+      "href": "/art/sprites/environment/templates/tplStarshipPillar32.png",
+      "size": {
+        "width": 34,
+        "height": 109
+      },
+      "anchorX": 17,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.75,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPillar32-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPillar32-emission-1.png"
+          }
+        ],
+        "emitColour": "#5fd0ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar32_r90.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar32_r180.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar32_r270.png",
+          "size": {
+            "width": 34,
+            "height": 109
+          },
+          "anchorX": 17,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar32_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "pillar"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 92,
+      "cover": true,
+      "fade": true,
+      "material": "pillar"
+    },
+    {
+      "id": "tplStarshipPillar16",
+      "label": "Support Pillar 16",
+      "href": "/art/sprites/environment/templates/tplStarshipPillar16.png",
+      "size": {
+        "width": 18,
+        "height": 101
+      },
+      "anchorX": 9,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.75,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPillar16-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPillar16-emission-1.png"
+          }
+        ],
+        "emitColour": "#5fd0ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar16_r90.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar16_r180.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipPillar16_r270.png",
+          "size": {
+            "width": 18,
+            "height": 101
+          },
+          "anchorX": 9,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.75,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPillar16_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "pillar"
+      ],
+      "footprint": {
+        "width": 16,
+        "depth": 16
+      },
+      "height": 92,
+      "cover": true,
+      "fade": true,
+      "material": "pillar"
+    },
+    {
+      "id": "tplStarshipWarpCoil",
+      "label": "Warp Coil Stub",
+      "href": "/art/sprites/environment/templates/tplStarshipWarpCoil.png",
+      "size": {
+        "width": 48,
+        "height": 76
+      },
+      "anchorX": 24,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.28,
+        "frames": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil-emission-1.png"
+          }
+        ],
+        "emitColour": "#6fc8ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWarpCoil_r90.png",
+          "size": {
+            "width": 48,
+            "height": 76
+          },
+          "anchorX": 24,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.28,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#6fc8ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWarpCoil_r180.png",
+          "size": {
+            "width": 48,
+            "height": 76
+          },
+          "anchorX": 24,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.28,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#6fc8ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWarpCoil_r270.png",
+          "size": {
+            "width": 48,
+            "height": 76
+          },
+          "anchorX": 24,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.28,
+            "frames": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWarpCoil_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#6fc8ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "warpCoil"
+      ],
+      "footprint": {
+        "width": 48,
+        "depth": 48
+      },
+      "height": 52,
+      "cover": true,
+      "fade": true,
+      "material": "warpCoil"
+    },
+    {
+      "id": "tplStarshipPipeRiser",
+      "label": "Pipe Riser",
+      "href": "/art/sprites/environment/templates/tplStarshipPipeRiser.png",
+      "size": {
+        "width": 28,
+        "height": 94
+      },
+      "anchorX": 14,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.5,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser-emission-1.png"
+          }
+        ],
+        "emitColour": "#60ff90"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipPipeRiser_r90.png",
+          "size": {
+            "width": 28,
+            "height": 94
+          },
+          "anchorX": 14,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipPipeRiser_r180.png",
+          "size": {
+            "width": 28,
+            "height": 94
+          },
+          "anchorX": 14,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipPipeRiser_r270.png",
+          "size": {
+            "width": 28,
+            "height": 94
+          },
+          "anchorX": 14,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.5,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipPipeRiser_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#60ff90"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "pipeRiser"
+      ],
+      "footprint": {
+        "width": 28,
+        "depth": 28
+      },
+      "height": 80,
+      "cover": true,
+      "fade": true,
+      "material": "pipeRiser"
+    },
+    {
+      "id": "tplStarshipJunctionBox",
+      "label": "Junction Box",
+      "href": "/art/sprites/environment/templates/tplStarshipJunctionBox.png",
+      "size": {
+        "width": 26,
+        "height": 41
+      },
+      "anchorX": 16,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.4,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox-emission-1.png"
+          }
+        ],
+        "emitColour": "#ffb040"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipJunctionBox_r90.png",
+          "size": {
+            "width": 26,
+            "height": 41
+          },
+          "anchorX": 10,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.4,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#ffb040"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipJunctionBox_r180.png",
+          "size": {
+            "width": 26,
+            "height": 41
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.4,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#ffb040"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipJunctionBox_r270.png",
+          "size": {
+            "width": 26,
+            "height": 41
+          },
+          "anchorX": 10,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.4,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipJunctionBox_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#ffb040"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "machinery",
+        "junctionBox"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 20
+      },
+      "height": 28,
+      "cover": true,
+      "fade": false,
+      "material": "junctionBox"
     },
     {
       "id": "tplStarshipCrate",
@@ -1750,6 +4746,882 @@
       "cover": true,
       "fade": false,
       "material": "epsControl"
+    },
+    {
+      "id": "tplStarshipChair",
+      "label": "Ops Chair",
+      "href": "/art/sprites/environment/templates/tplStarshipChair.png",
+      "size": {
+        "width": 39,
+        "height": 48
+      },
+      "anchorX": 18,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipChair_r90.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 21
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipChair_r180.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 18
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipChair_r270.png",
+          "size": {
+            "width": 39,
+            "height": 48
+          },
+          "anchorX": 21
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "chair"
+      ],
+      "footprint": {
+        "width": 36,
+        "depth": 42
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "material": "chair"
+    },
+    {
+      "id": "tplStarshipStool",
+      "label": "Stool",
+      "href": "/art/sprites/environment/templates/tplStarshipStool.png",
+      "size": {
+        "width": 28,
+        "height": 30
+      },
+      "anchorX": 14,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipStool_r90.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipStool_r180.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipStool_r270.png",
+          "size": {
+            "width": 28,
+            "height": 30
+          },
+          "anchorX": 14
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "stool"
+      ],
+      "footprint": {
+        "width": 28,
+        "depth": 28
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "material": "stool"
+    },
+    {
+      "id": "tplStarshipBench",
+      "label": "Bench",
+      "href": "/art/sprites/environment/templates/tplStarshipBench.png",
+      "size": {
+        "width": 42,
+        "height": 33
+      },
+      "anchorX": 30,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipBench_r90.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 12
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipBench_r180.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 30
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipBench_r270.png",
+          "size": {
+            "width": 42,
+            "height": 33
+          },
+          "anchorX": 12
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "bench"
+      ],
+      "footprint": {
+        "width": 60,
+        "depth": 24
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "material": "bench"
+    },
+    {
+      "id": "tplStarshipBenchLong",
+      "label": "Bench (Long)",
+      "href": "/art/sprites/environment/templates/tplStarshipBenchLong.png",
+      "size": {
+        "width": 60,
+        "height": 42
+      },
+      "anchorX": 48,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipBenchLong_r90.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 12
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipBenchLong_r180.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 48
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipBenchLong_r270.png",
+          "size": {
+            "width": 60,
+            "height": 42
+          },
+          "anchorX": 12
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "bench",
+        "long"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 24
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "material": "bench"
+    },
+    {
+      "id": "tplStarshipTable",
+      "label": "Table",
+      "href": "/art/sprites/environment/templates/tplStarshipTable.png",
+      "size": {
+        "width": 56,
+        "height": 44
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipTable_r90.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipTable_r180.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipTable_r270.png",
+          "size": {
+            "width": 56,
+            "height": 44
+          },
+          "anchorX": 28
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "table"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 56
+      },
+      "height": 16,
+      "cover": true,
+      "fade": false,
+      "material": "table"
+    },
+    {
+      "id": "tplStarshipBed",
+      "label": "Biobed",
+      "href": "/art/sprites/environment/templates/tplStarshipBed.png",
+      "size": {
+        "width": 56,
+        "height": 52
+      },
+      "anchorX": 28,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.9,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipBed-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipBed-emission-1.png"
+          }
+        ],
+        "emitColour": "#5fd0ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipBed_r90.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipBed_r180.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipBed_r270.png",
+          "size": {
+            "width": 56,
+            "height": 52
+          },
+          "anchorX": 28,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.9,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipBed_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#5fd0ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "bed"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 56
+      },
+      "height": 12,
+      "cover": true,
+      "fade": false,
+      "material": "bed"
+    },
+    {
+      "id": "tplStarshipConsole",
+      "label": "Console",
+      "href": "/art/sprites/environment/templates/tplStarshipConsole.png",
+      "size": {
+        "width": 52,
+        "height": 64
+      },
+      "anchorX": 30,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.55,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipConsole-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipConsole-emission-1.png"
+          }
+        ],
+        "emitColour": "#7aa8ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsole_r90.png",
+          "size": {
+            "width": 52,
+            "height": 64
+          },
+          "anchorX": 22,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsole_r180.png",
+          "size": {
+            "width": 52,
+            "height": 64
+          },
+          "anchorX": 30,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsole_r270.png",
+          "size": {
+            "width": 52,
+            "height": 64
+          },
+          "anchorX": 22,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsole_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "console"
+      ],
+      "footprint": {
+        "width": 60,
+        "depth": 50
+      },
+      "height": 18,
+      "cover": true,
+      "fade": false,
+      "material": "console"
+    },
+    {
+      "id": "tplStarshipConsoleWide",
+      "label": "Console (Wide)",
+      "href": "/art/sprites/environment/templates/tplStarshipConsoleWide.png",
+      "size": {
+        "width": 71,
+        "height": 76
+      },
+      "anchorX": 48,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.55,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide-emission-1.png"
+          }
+        ],
+        "emitColour": "#7aa8ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsoleWide_r90.png",
+          "size": {
+            "width": 71,
+            "height": 76
+          },
+          "anchorX": 23,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsoleWide_r180.png",
+          "size": {
+            "width": 71,
+            "height": 76
+          },
+          "anchorX": 48,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipConsoleWide_r270.png",
+          "size": {
+            "width": 71,
+            "height": 76
+          },
+          "anchorX": 23,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipConsoleWide_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "console",
+        "long"
+      ],
+      "footprint": {
+        "width": 96,
+        "depth": 52
+      },
+      "height": 18,
+      "cover": true,
+      "fade": false,
+      "material": "console"
+    },
+    {
+      "id": "tplStarshipWallConsole",
+      "label": "Wall Console",
+      "href": "/art/sprites/environment/templates/tplStarshipWallConsole.png",
+      "size": {
+        "width": 45,
+        "height": 61
+      },
+      "anchorX": 30,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.55,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWallConsole-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipWallConsole-emission-1.png"
+          }
+        ],
+        "emitColour": "#7aa8ff"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipWallConsole_r90.png",
+          "size": {
+            "width": 45,
+            "height": 61
+          },
+          "anchorX": 15,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipWallConsole_r180.png",
+          "size": {
+            "width": 45,
+            "height": 61
+          },
+          "anchorX": 30,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipWallConsole_r270.png",
+          "size": {
+            "width": 45,
+            "height": 61
+          },
+          "anchorX": 15,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.55,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipWallConsole_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#7aa8ff"
+          }
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "console",
+        "wall"
+      ],
+      "footprint": {
+        "width": 60,
+        "depth": 36
+      },
+      "height": 18,
+      "cover": true,
+      "fade": false,
+      "material": "console"
+    },
+    {
+      "id": "tplStarshipLocker",
+      "label": "Locker",
+      "href": "/art/sprites/environment/templates/tplStarshipLocker.png",
+      "size": {
+        "width": 33,
+        "height": 69
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipLocker_r90.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 17
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipLocker_r180.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipLocker_r270.png",
+          "size": {
+            "width": 33,
+            "height": 69
+          },
+          "anchorX": 17
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "locker"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 52,
+      "cover": true,
+      "fade": true,
+      "material": "locker"
+    },
+    {
+      "id": "tplStarshipLockerWide",
+      "label": "Locker (Wide)",
+      "href": "/art/sprites/environment/templates/tplStarshipLockerWide.png",
+      "size": {
+        "width": 44,
+        "height": 74
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipLockerWide_r90.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipLockerWide_r180.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipLockerWide_r270.png",
+          "size": {
+            "width": 44,
+            "height": 74
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "locker",
+        "long"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 32
+      },
+      "height": 52,
+      "cover": true,
+      "fade": true,
+      "material": "locker"
+    },
+    {
+      "id": "tplStarshipShelf",
+      "label": "Shelf",
+      "href": "/art/sprites/environment/templates/tplStarshipShelf.png",
+      "size": {
+        "width": 51,
+        "height": 63
+      },
+      "anchorX": 28,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipShelf_r90.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 23
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipShelf_r180.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 28
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipShelf_r270.png",
+          "size": {
+            "width": 51,
+            "height": 63
+          },
+          "anchorX": 23
+        }
+      },
+      "tags": [
+        "prop",
+        "starship",
+        "furniture",
+        "shelf"
+      ],
+      "footprint": {
+        "width": 56,
+        "depth": 48
+      },
+      "height": 37,
+      "cover": true,
+      "fade": true,
+      "material": "shelf"
     },
     {
       "id": "tplDimWall4",

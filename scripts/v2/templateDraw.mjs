@@ -136,13 +136,20 @@ function hitPrism(px, py, prism, cx, ih, yawTurns = 0) {
   const distMinY = mid.dy - ya
   const distMaxY = yb - mid.dy
   const nearest = Math.min(distMinX, distMaxX, distMinY, distMaxY)
-  const onEnd = alongX ? nearest === distMinX || nearest === distMaxX : nearest === distMinY || nearest === distMaxY
+  // Square posts (32×32 corner): no preferred run axis — every vertical side is a wall face with
+  // bulkhead detail (both iso axes), not a plain end-cap. Straight walls keep short ends plain.
+  const square = Math.abs(w - d) <= 1
+  const onXEdge = nearest === distMinX || nearest === distMaxX
+  const onEnd = square ? false : alongX ? onXEdge : nearest === distMinY || nearest === distMaxY
   // lightFace stays on the camera side; material face yaws so fittings move without breaking iso lighting.
   const lightFace = onEnd ? 'end' : px <= cx ? 'left' : 'right'
   const face = yawSideFace(lightFace, yawTurns)
   // Long faces: u runs along the run. End caps: u runs across the thickness (was using run UV → stretch).
+  // Square: u always along the hit edge (X-edge → along Y, Y-edge → along X).
   let u
-  if (onEnd) {
+  if (square) {
+    u = onXEdge ? clamp01((mid.dy - ya) / d) * 32 : clamp01((mid.dx - xa) / w) * 32
+  } else if (onEnd) {
     const across = alongX ? mid.dy - ya : mid.dx - xa
     const span = alongX ? d : w
     u = clamp01(across / span) * 32
@@ -218,7 +225,8 @@ export function paintPrismsAA(prisms, { subsamples = 3, face = 'plain', material
     if (prism.colour) return solidMaterial(prism.colour)
     if (colour) return solidMaterial(colour)
     const h = Math.max(1, (prism.z1 ?? 0) - (prism.z0 ?? 0))
-    const prop = material ? materialForKind(material) : null
+    // Per-prism material (e.g. console screen) wins over the piece-level kind.
+    const prop = materialForKind(prism.material ?? material)
     if (prop) return prop
     return starshipWallMaterial(h, fittingForFace(face, h))
   }
@@ -248,7 +256,7 @@ export function paintPrismsLightsAA(prisms, { face = 'plain', material = null, y
   const turns = ((yawTurns % 4) + 4) % 4
   const materialOf = (prism) => {
     const h = Math.max(1, (prism.z1 ?? 0) - (prism.z0 ?? 0))
-    const prop = material ? materialForKind(material) : null
+    const prop = materialForKind(prism.material ?? material)
     if (prop) return prop
     return starshipWallMaterial(h, fittingForFace(face, h))
   }

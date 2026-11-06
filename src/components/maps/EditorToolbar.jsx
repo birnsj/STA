@@ -105,6 +105,8 @@ export default function EditorToolbar({
   onEnemiesActive,
   placementPreview,
   onPlacementPreview,
+  propFade = false,
+  onPropFade,
   onPlay,
   placing,
   onPlacing,
@@ -248,7 +250,10 @@ export default function EditorToolbar({
             ))}
           </div>
           <label className="me-check" title="The green or red footprint while placing an inventory object.">
-            <input type="checkbox" checked={placementPreview} onChange={(event) => onPlacementPreview(event.target.checked)} /> Placement
+            <input type="checkbox" checked={placementPreview} onChange={(event) => onPlacementPreview(event.target.checked)} /> Placement box
+          </label>
+          <label className="me-check" title="Props and Template Pieces turn see-through under the pointer or when a placement ghost sits behind them.">
+            <input type="checkbox" checked={propFade} onChange={(event) => onPropFade(event.target.checked)} /> Fade
           </label>
           <label className="me-check" title="Off: enemies never notice the away team or start a fight.">
             <input type="checkbox" checked={enemiesActive} onChange={(event) => onEnemiesActive(event.target.checked)} /> Enemies

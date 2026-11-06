@@ -4,6 +4,7 @@ import { isHostile } from '../../exploration/awareness.js'
 import { challengeDefinitionsFor, objectivePosition } from '../../exploration/challengeObjects.js'
 import { snapFacing, spawnFacing } from '../../maps/facing.js'
 import { surfaceOverlayMarks } from '../../maps/surfaceOverlay.js'
+import { layerOfTile } from '../../maps/layers.js'
 import {
   brushPositions,
   groundItemElevation,
@@ -11,6 +12,7 @@ import {
   groundItemTargetAt,
   npcAt,
   paintBrush,
+  paintFloor,
   placementProbeState,
   previewGroundItem,
   swapTiles,
@@ -148,10 +150,15 @@ function groundLootViews(map, selectedGroundItemId, inventoryTool, hover, select
 // The tiles drawn see-through over everything (so a block in front doesn't hide them), as they would look placed: the
 // Move tool mid-drag, both tiles as they would sit after the swap; else the brush at the hovered tile, as it would
 // look painted there (both tiles of a wall panel, paired as they would be). Null when there is nothing to preview.
+// Ground brushes use paintFloor (same as the click): walls keep standing and only floorUnder changes.
 function tilePreview(map, hover, brush, rotated, moveFrom) {
   if (!hover) return null
   if (moveFrom && !moveFrom.markers) return { layout: boardLayout(swapTiles(map, moveFrom, hover)), positions: [moveFrom, hover], key: `move:${moveFrom.x},${moveFrom.y}>${hover.x},${hover.y}` }
   if (!brush || hover.x >= map.width || hover.y >= map.height) return null
+  if (layerOfTile(brush) === 'ground') {
+    const next = paintFloor(map, hover, brush).map ?? map
+    return { layout: boardLayout(next), positions: [hover], key: `brush:${brush}@${hover.x},${hover.y}` }
+  }
   return { layout: boardLayout(paintBrush(map, hover, brush, rotated)), positions: brushPositions(map, hover, brush, rotated), key: `brush:${brush}:${rotated}@${hover.x},${hover.y}` }
 }
 
@@ -208,8 +215,9 @@ export default function EditorBoard({
   ghostBlocks,
   lighting = true,
   animate = true,
-  showGrid = false,
-  gridSize = 64,
+  showGrid = true,
+  gridSize = 32,
+  propFade = false,
   showBounds = true,
   showCentre = false,
   showSurfaces = false,
@@ -281,7 +289,7 @@ export default function EditorBoard({
     }
     const loot = scene.groundLoot ?? []
     const ghost = loot.find((item) => item.id === '__ghost') ?? null
-    const faded = editorPropFadeIds(loot, { boardPoint: boardPointRef.current, ghost })
+    const faded = scene.propFade ? editorPropFadeIds(loot, { boardPoint: boardPointRef.current, ghost }) : new Set()
     // Placement tip when painting props; otherwise the guide intersection nearest the cursor (grid on).
     let snap = scene.grid?.placementSnap ?? null
     if (!snap && scene.grid?.show && boardPointRef.current) {
@@ -435,6 +443,7 @@ export default function EditorBoard({
       ghost: ghostBlocks,
       lighting,
       animate,
+      propFade,
       environment: shownEnvironment,
       labels,
       markers,

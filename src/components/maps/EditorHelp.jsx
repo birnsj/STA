@@ -32,6 +32,13 @@ const SHORTCUTS = [
       { keys: 'Arrow keys', action: 'Pan' },
     ],
   },
+  {
+    group: 'View',
+    rows: [
+      { keys: 'Tab', action: 'Next guide grid size (turns the grid on)' },
+      { keys: 'Shift+Tab', action: 'Previous guide grid size' },
+    ],
+  },
 ]
 
 export default function EditorHelp({ show, onClose }) {
