@@ -41,6 +41,12 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ cameraFollow: 'no' }).cameraFollow, true)
   })
 
+  it('older saves without Edge Scroll get it on; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({ cameraFollow: false }).edgeScroll, true)
+    assert.equal(normalizeDisplaySettings({ edgeScroll: false }).edgeScroll, false)
+    assert.equal(normalizeDisplaySettings({ edgeScroll: 'no' }).edgeScroll, true)
+  })
+
   it('older saves show the item placement box; a saved off stays off', () => {
     assert.equal(normalizeDisplaySettings({}).itemPlacementPreview, true)
     assert.equal(normalizeDisplaySettings({ itemPlacementPreview: false }).itemPlacementPreview, false)

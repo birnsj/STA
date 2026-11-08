@@ -1,0 +1,93 @@
+{
+  "notes": [
+    "Prototype 3D figure appearance (spike3d). Portrait id or species|gender maps to a procedural hair style and colour so the board figure reads as the same person as the portrait.",
+    "genderPresets scale the shared skeleton (shoulders, hips, chest, height) — not separate anim trees.",
+    "hairStyles are built in HumanoidModel.setHair. Non-human races use unique placeholder meshes on the shared rig (src/spike3d/raceMeshes/); humans keep the default head.",
+    "Uniforms use discrete coloured tunic textures per Starfleet division (command / operations / sciences) under public/art/models/characters/shared/ — no mask shader.",
+    "mixedHeritage and newSpecies use the human mesh. Optional GLB overrides: public/art/models/characters/{species}-{gender}.glb."
+  ],
+  "genderPresets": {
+    "male": { "shoulder": 1, "hip": 1, "chest": 1, "height": 1 },
+    "female": { "shoulder": 0.9, "hip": 1.08, "chest": 0.92, "height": 0.96 }
+  },
+  "defaultHair": {
+    "male": "short",
+    "female": "bob",
+    "human-male": "short",
+    "human-female": "bob",
+    "vulcan-male": "bowl",
+    "vulcan-female": "bob",
+    "andorian-male": "short",
+    "andorian-female": "bob",
+    "tellarite-male": "short",
+    "tellarite-female": "bob",
+    "trill-male": "short",
+    "trill-female": "long",
+    "caitian-male": "short",
+    "caitian-female": "bob",
+    "klingon-male": "warrior",
+    "klingon-female": "warrior"
+  },
+  "defaultHairColour": {
+    "human": "#5a3a22",
+    "vulcan": "#1a1a1a",
+    "andorian": "#e8eef5",
+    "tellarite": "#3a2010",
+    "trill": "#4a3020",
+    "caitian": "#c4782a",
+    "klingon": "#1a1208"
+  },
+  "raceMeshes": {
+    "vulcan": {
+      "skin": "#d4a07a",
+      "male": { "modelPath": "/art/models/characters/vulcan-male.glb" },
+      "female": { "modelPath": "/art/models/characters/vulcan-female.glb" }
+    },
+    "andorian": {
+      "skin": "#6a9ec9",
+      "male": { "modelPath": "/art/models/characters/andorian-male.glb" },
+      "female": { "modelPath": "/art/models/characters/andorian-female.glb" }
+    },
+    "tellarite": {
+      "skin": "#c49a78",
+      "male": { "modelPath": "/art/models/characters/tellarite-male.glb" },
+      "female": { "modelPath": "/art/models/characters/tellarite-female.glb" }
+    },
+    "trill": {
+      "skin": "#e0ab86",
+      "male": { "modelPath": "/art/models/characters/trill-male.glb" },
+      "female": { "modelPath": "/art/models/characters/trill-female.glb" }
+    },
+    "caitian": {
+      "skin": "#c4782a",
+      "male": { "modelPath": "/art/models/characters/caitian-male.glb" },
+      "female": { "modelPath": "/art/models/characters/caitian-female.glb" }
+    },
+    "klingon": {
+      "skin": "#c48a6a",
+      "male": { "modelPath": "/art/models/characters/klingon-male.glb" },
+      "female": { "modelPath": "/art/models/characters/klingon-female.glb" }
+    }
+  },
+  "uniformTextures": {
+    "command": "/art/models/characters/shared/uniform-command.png",
+    "operations": "/art/models/characters/shared/uniform-operations.png",
+    "sciences": "/art/models/characters/shared/uniform-sciences.png"
+  },
+  "presentRaceModels": [],
+  "portraitHair": {
+    "human-male-1": { "hairStyle": "short", "hairColour": "#3a2818" },
+    "human-male-2": { "hairStyle": "crew", "hairColour": "#2a1a10" },
+    "human-male-3": { "hairStyle": "short", "hairColour": "#6a4a28" },
+    "human-male-4": { "hairStyle": "crew", "hairColour": "#4a3020" },
+    "human-female-1": { "hairStyle": "bob", "hairColour": "#5a3a22" },
+    "human-female-2": { "hairStyle": "long", "hairColour": "#2a1810" },
+    "human-female-3": { "hairStyle": "bob", "hairColour": "#8a6030" },
+    "vulcan-male-1": { "hairStyle": "bowl", "hairColour": "#111111" },
+    "vulcan-female-1": { "hairStyle": "bob", "hairColour": "#111111" },
+    "andorian-male-1": { "hairStyle": "short", "hairColour": "#e8eef5" },
+    "andorian-female-1": { "hairStyle": "bob", "hairColour": "#e8eef5" },
+    "klingon-warrior-1": { "hairStyle": "warrior", "hairColour": "#1a1208" },
+    "klingon-warrior-2": { "hairStyle": "warrior", "hairColour": "#1a1208" }
+  }
+}

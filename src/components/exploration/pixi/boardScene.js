@@ -53,6 +53,8 @@ export async function startBoardScene(host, read, onReady, isCancelled) {
       readyFor = map
       onReady()
     }
+    // Same viewBox sample as stage.frame — keeps spike3d feet on the Pixi rings while the camera moves.
+    board.spikeFrameRef?.current?.()
   })
 
   return {

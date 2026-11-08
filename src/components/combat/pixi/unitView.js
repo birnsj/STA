@@ -202,11 +202,17 @@ export class UnitView {
 
   // Punch, kick, dodge and get-hit share the reaction sheet. Don't run their clock out while that sheet is still loading,
   // or the clip ends on the idle frame and a one-hit enemy never shows it.
+  // Spike3d (hideSprite): no sheet is drawn — arm from catalogue duration so flinch → fall still advances.
   holdClipUntilSheet(unit, track, now) {
     const name = track.reactionHeldUntil == null ? track.reaction || track.strike : null
     if (!name) return track
     const animation = getSpriteAnimation(name)
     if (!animation || animation.sheetId !== 'reaction') return track
+    if (unit.hideSprite) {
+      if (track.oneShotUntil !== null) return track
+      const ms = (animation.seconds * 1000) / (unit.speed || 1)
+      return { ...track, oneShotUntil: now + ms, playKey: track.playKey + 1 }
+    }
     const set = this.spriteSetFor(unit)
     if (!set) return track
     const entry = this.figure.sheets.sheet(set, animation.sheetId, unit.colour)
@@ -221,18 +227,27 @@ export class UnitView {
   }
 
   // Fall one-shot clock starts only once the fall sheet can draw.
+  // Spike3d: arm immediately from catalogue seconds (FigureView never assigns a layer when hideSprite).
   armFallClock(unit, now) {
     if (this.armSheet !== 'fall' || !this.track?.staggerFall) return
+    const anim = this.track.staggerFall
+    const ms = (getSpriteAnimation(anim).seconds * 1000) / (unit.speed || 1)
+    if (unit.hideSprite) {
+      this.track = { ...this.track, oneShotUntil: now + ms, playKey: this.track.playKey + 1 }
+      this.armWaitFrom = null
+      this.armSheet = null
+      return
+    }
     const set = this.spriteSetFor(unit)
     if (!set) {
+      // No sheet set: still advance the stagger so blastReact can clear.
+      this.track = { ...this.track, oneShotUntil: now + ms, playKey: this.track.playKey + 1 }
       this.armSheet = null
       this.armWaitFrom = null
       return
     }
     this.figure.sheets.sheet(set, 'fall', unit.colour)
     if (!this.figure.sheets.loaded(set, 'fall', unit.colour)) return
-    const anim = this.track.staggerFall
-    const ms = (getSpriteAnimation(anim).seconds * 1000) / (unit.speed || 1)
     this.track = { ...this.track, oneShotUntil: now + ms, playKey: this.track.playKey + 1 }
     this.armWaitFrom = null
     this.armSheet = null
@@ -240,9 +255,23 @@ export class UnitView {
 
   // Start getUp once the texture is on the sprite; finish only after the last frame is displayed.
   // Keep the fall frame while getup retries a failed load; stand without the clip only after GETUP_FAIL_ESCAPE_MS.
+  // Spike3d: no sprite layer — finish getUp on catalogue duration so survivors and First Aid stand again.
   syncGetUpFromDisplay(unit, now) {
     if (!this.track?.gettingUp) {
       this.getUpFailFrom = null
+      return
+    }
+    if (unit.hideSprite) {
+      if (!this.track.getUpPlaying) {
+        const ms = ((getSpriteAnimation(this.track.gettingUp)?.seconds ?? 0.8) * 1000) / (unit.speed || 1)
+        this.track = { ...markGetUpPlaying(this.track), oneShotUntil: now + ms }
+        this.getUpFailFrom = null
+      }
+      if (this.track.oneShotUntil != null && now >= this.track.oneShotUntil) {
+        this.track = clearGetUp(this.track)
+        this.getUpFailFrom = null
+        unit.onStaggerDone?.()
+      }
       return
     }
     const set = this.spriteSetFor(unit)

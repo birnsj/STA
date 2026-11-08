@@ -8,11 +8,10 @@ const PAN_SPEED = 700
 // Screen pixels at the map's edge that pan the camera (debug paints this band when Debug is on).
 // Kept narrow so it does not fight Camera Follow across half the board.
 export const EDGE_MARGIN = 48
-// Share of the remaining gap closed per 60 Hz frame. High enough that follow stays on a walking
-// character (~0.1 s lag) instead of drifting a half-second behind.
-const GLIDE = 0.18
-// Slightly softer when following is turned back on after a free pan (~0.2 s).
-const RETURN_GLIDE = 0.12
+// Share of the remaining gap closed per 60 Hz frame.
+// Active follow sticks hard on the lead (~1–2 frames of lag). Soft return after a free pan.
+const GLIDE = 0.45
+const RETURN_GLIDE = 0.16
 // After WASD / drag release: keep coasting, then slow each 60 Hz frame by this factor.
 const COAST_FRICTION = 0.92
 const COAST_STOP = 12
@@ -290,16 +289,21 @@ export default function useCamera(bounds, view, focus, follow = true, onRightCli
         } else {
           endFreePan()
         }
-      } else if (targetRef.current) {
+      } else if (followRef.current.follow || targetRef.current) {
         velocityRef.current = { x: 0, y: 0 }
-        const target = clamp(centredOn(targetRef.current, size), limits, size)
-        const close = Math.abs(target.x - current.x) < 0.5 && Math.abs(target.y - current.y) < 0.5
+        // While following, chase the live focus point every frame — don't drop the target on arrival
+        // or the camera freezes between React position updates.
+        const focusPoint = followRef.current.follow ? followRef.current.point : targetRef.current
+        const target = clamp(centredOn(focusPoint, size), limits, size)
+        const close = Math.abs(target.x - current.x) < 0.35 && Math.abs(target.y - current.y) < 0.35
         // GLIDE is the share of the way covered per 60 Hz frame; scaled by the real frame time so the camera moves at the
         // same speed whatever the refresh rate and however uneven the frames (a fixed share per frame juddered).
         const glide = 1 - (1 - (returningRef.current ? RETURN_GLIDE : GLIDE)) ** (seconds * 60)
         next = close ? target : { x: current.x + (target.x - current.x) * glide, y: current.y + (target.y - current.y) * glide }
-        if (close) {
+        if (close && !followRef.current.follow) {
           targetRef.current = null
+          returningRef.current = false
+        } else if (close && returningRef.current) {
           returningRef.current = false
         }
       }

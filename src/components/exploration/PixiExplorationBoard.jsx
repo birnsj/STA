@@ -16,6 +16,7 @@ import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { playBoardHover, playWeaponSound } from '../../audio/uiSounds.js'
 import { getWeapon } from '../../combat/weaponSystem.js'
 import { hasCharacterSprite } from '../../rules/appearance.js'
+import { resolveSpike3dAppearance } from '../../spike3d/appearance.js'
 import { worldToGrid } from '../../exploration/tacticalGrid.js'
 import { characterHazardOverlayType, hasCharacterHazardOverlay } from '../../world/characterHazardOverlay.js'
 import { hazardPanic } from '../../world/hazardPanic.js'
@@ -44,6 +45,7 @@ import {
   MARKER_DIAMOND,
   NPC_TAG_DOWN_Y,
   NPC_TAG_Y,
+  SPIKE3D_TAG_Y,
   STRIDE_SPREAD,
   VIEW,
   worldBounds,
@@ -53,14 +55,51 @@ import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionVi
 import { SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
 import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
+import { isSpike3dPreferred, toggleSpike3dPreferred } from '../../spike3d/enabled.js'
+import Spike3dCharacterFx from '../../spike3d/Spike3dCharacterFx.jsx'
+import Spike3dOverlay from '../../spike3d/Spike3dOverlay.jsx'
 // The exploration board, drawn with PixiJS (WebGL). The map, figures, challenge objects, transporter beams and scan
 // sweeps are drawn by the Pixi scene (pixi/boardScene.js) from a description built here each render; the camera,
 // pointer input, radial menus, selection box and debug views stay in an SVG laid over it, whose viewBox the scene
 // follows. Clicks are matched to figures and objects by boardHitTest.js. Presentation and input only.
+// On Deck 10 Brig (this copy's spike), Three.js + Rapier draws characters over the Pixi map.
 
 const clockNow = () => performance.now()
 const isAdditive = (event) => event.shiftKey || event.ctrlKey || event.metaKey
 const { yellow: YELLOW, red: RED, purple: PURPLE, blue: BLUE, drop: DROP } = SIDE_COLOURS
+
+function hexCss(colour) {
+  const n = typeof colour === 'number' ? colour : Number.parseInt(String(colour).replace('#', ''), 16)
+  return `#${(n >>> 0).toString(16).padStart(6, '0')}`
+}
+
+/** Name / LEAD tag in the SVG layer (above the Three canvas when spike3d is on). */
+function FigureTag({ centre, label }) {
+  if (!label?.text) return null
+  const fill = hexCss(label.colour ?? YELLOW)
+  return (
+    <text
+      className="explore-figure-tag"
+      x={centre.x}
+      y={centre.y + label.y}
+      textAnchor="middle"
+      dominantBaseline="alphabetic"
+      fill={fill}
+      stroke="#03060e"
+      strokeWidth={3}
+      paintOrder="stroke"
+      style={{
+        fontFamily: 'Bahnschrift SemiCondensed, Bahnschrift, Arial Narrow, Roboto Condensed, sans-serif',
+        fontSize: label.size ?? 9,
+        fontWeight: label.weight ?? '700',
+        letterSpacing: label.letterSpacing ? `${label.letterSpacing}px` : undefined,
+        pointerEvents: 'none',
+      }}
+    >
+      {label.text}
+    </text>
+  )
+}
 
 const gaitOf = ({ walking, running, sneaking }) => (sneaking ? (walking ? 'sneakWalk' : 'sneakIdle') : running ? 'run' : walking ? 'walk' : 'idle')
 const boardCursor = (target) => {
@@ -72,7 +111,7 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
-  const { itemPlacementPreview } = useDisplaySettings()
+  const { itemPlacementPreview, edgeScroll } = useDisplaySettings()
   const {
     state,
     world,
@@ -116,6 +155,21 @@ export default function PixiExplorationBoard(props) {
     lastObjectShot = null,
   } = props
   const { map } = state
+  const [spike3d, setSpike3d] = useState(() => isSpike3dPreferred())
+  const spikePosesRef = useRef([])
+  const spikeFrameRef = useRef(null)
+  const spikeHostRef = useRef(null)
+
+  // F1: sprites ↔ 3D figures on any exploration map.
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== 'F1' && event.code !== 'F1') return
+      event.preventDefault()
+      setSpike3d(toggleSpike3dPreferred())
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const leader = state.members[state.leaderId]
   // A blast throw already moved the lead to the landing tile. Follow that, not a shot ride still aimed at the explosive.
   const leaderThrown = Boolean(leader?.blastReact?.from && leader?.blastReact?.land)
@@ -167,7 +221,7 @@ export default function PixiExplorationBoard(props) {
           key: `lead:${state.leaderId}${leaderThrown ? `:throw:${leader.blastReact.from.x},${leader.blastReact.from.y}` : ''}`,
           point: project(leader.position),
         }
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, boardFocus, followCamera, null, false, onCameraPan, onCameraFollow)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, boardFocus, followCamera, null, false, onCameraPan, onCameraFollow, edgeScroll)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const holdRef = useRef(null)
   const pointerTypeRef = useRef('mouse')
@@ -198,9 +252,10 @@ export default function PixiExplorationBoard(props) {
 
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  // Only the selected characters cut walls away.
+  // Selected characters cut walls away. Spike3d draws above Pixi walls, so the whole party cuts
+  // or members show through bulkheads.
   const fadeFigures = getMembers(state)
-    .filter((member) => isSelected(state, member.id))
+    .filter((member) => spike3d || isSelected(state, member.id))
     .map((member) => ({ id: member.id, position: member.position }))
   const hidden = useWallFade(map, fadeFigures, bigGroups)
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
@@ -244,21 +299,35 @@ export default function PixiExplorationBoard(props) {
       hazardOverlay,
       panic: hazardPanic(member.character, hazardOverlay),
       spriteSet: portrait.spriteSet,
+      portraitId: portrait.id ?? null,
       colour: portrait.uniform ?? null,
       image: portrait.image,
       name: member.character.name,
       ring: dropTarget ? 'dropTarget' : selected ? 'selected' : 'player',
       arrowColour: dropTarget ? DROP : lead ? YELLOW : BLUE,
       bodyColour: accent,
-      label: lead ? { text: 'LEAD', y: -58, size: 9, weight: '700', colour: dropTarget ? DROP : YELLOW, letterSpacing: 0.72 } : null,
+      label: lead
+        ? {
+            text: 'LEAD',
+            y: spike3d ? SPIKE3D_TAG_Y : NPC_TAG_Y,
+            size: 9,
+            weight: '700',
+            colour: dropTarget ? DROP : YELLOW,
+            letterSpacing: 0.72,
+          }
+        : null,
       beam,
       // Fall / getup sheets are large; ask early so blast stagger can play getUp.
-      preload: true,
+      // Skip character sheet preload when spike3d draws the body (Phase E).
+      preload: !spike3d,
       faded: false,
+      hideSprite: spike3d,
+      position: member.position,
     })
     if (!member.beaming && !member.arriving) {
       const token = !hasCharacterSprite(portrait.spriteSet)
-      targets.push({ kind: 'member', id: member.id, depth, down: animation.down, shapes: figureShapes(centre, { scale: FIGURE_SCALE, token: token && !animation.down, label: lead ? 'LEAD' : null, labelY: -58 }) })
+      const leadY = spike3d ? SPIKE3D_TAG_Y : NPC_TAG_Y
+      targets.push({ kind: 'member', id: member.id, depth, down: animation.down, shapes: figureShapes(centre, { scale: FIGURE_SCALE, token: token && !animation.down, label: lead ? 'LEAD' : null, labelY: leadY }) })
     }
   })
   for (const npc of getNpcs(world)) {
@@ -272,7 +341,7 @@ export default function PixiExplorationBoard(props) {
     const centre = project(npc.position)
     const depth = atDepth(npc.position, 0.5)
     const colour = isHostile(npc) ? RED : PURPLE
-    const tagY = animation.down ? NPC_TAG_DOWN_Y : NPC_TAG_Y
+    const tagY = animation.down ? NPC_TAG_DOWN_Y : spike3d ? SPIKE3D_TAG_Y : NPC_TAG_Y
     // Hazard-only reveal shows the figure and FX without naming them (no sight knowledge).
     const tag = visible || debug ? npc.name : null
     figures.push({
@@ -290,6 +359,7 @@ export default function PixiExplorationBoard(props) {
       hazardOverlay,
       panic: hazardPanic(npc.character, hazardOverlay),
       spriteSet: npc.character?.portrait.spriteSet ?? null,
+      portraitId: npc.character?.portrait?.id ?? null,
       colour: npc.character?.portrait.uniform ?? null,
       image: npc.character?.portrait.image ?? null,
       name: npc.name,
@@ -297,10 +367,13 @@ export default function PixiExplorationBoard(props) {
       arrowColour: colour,
       bodyColour: colour,
       label: tag ? { text: tag, y: tagY, size: 9, weight: '700', colour, letterSpacing: 0.36 } : null,
+      hideSprite: spike3d,
+      position: npc.position,
+      enemy: isHostile(npc),
       // Patrol waypoint idle fidget (NPCController.animationState); null keeps random idle fidgets.
       pose: animation.pose ?? null,
       beam: null,
-      preload: true,
+      preload: !spike3d,
       faded: !visible && !hazardOverlay,
     })
     if (onOpenNpcMenu && visible) {
@@ -472,6 +545,36 @@ export default function PixiExplorationBoard(props) {
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
   const boardRef = useRef(null)
+  // Three.js spike reads these every frame (no React re-render required for camera follow).
+  // Keep beamed figures in the list (SpikeActor hides on beam === 'waiting') so 3D actors are not
+  // disposed and recreated — that was blinking party members out on mission/combat start.
+  spikePosesRef.current = figures
+    .filter((figure) => figure.position)
+    .map((figure) => {
+      const portraitId = figure.portraitId || figure.spriteSet || null
+      const anim =
+        figure.pose?.animation ||
+        (figure.panic ? 'hazardPanic' : null) ||
+        (figure.down ? null : null)
+      return {
+        id: figure.id,
+        position: figure.position,
+        facing: figure.facing,
+        gait: figure.gait,
+        animation: anim,
+        down: figure.down,
+        beam: figure.beam ?? null,
+        blastReact: figure.blastReact,
+        onStaggerDone: figure.onStaggerDone,
+        colour: figure.colour ?? figure.bodyColour,
+        enemy: Boolean(figure.enemy),
+        appearance: resolveSpike3dAppearance({
+          portraitId,
+          uniform: figure.colour,
+          enemy: Boolean(figure.enemy),
+        }),
+      }
+    })
   const targetsRef = useRef(targets)
   const lootRef = useRef(groundLoot)
   const membersRef = useRef(state)
@@ -493,7 +596,22 @@ export default function PixiExplorationBoard(props) {
   }
 
   useLayoutEffect(() => {
-    boardRef.current = { layout, faded, figures, highlights, destructibleHighlights, markers, groundLoot, lastKnown, pulses, effects, explosions, environment, revealed }
+    boardRef.current = {
+      layout,
+      faded,
+      figures,
+      highlights,
+      destructibleHighlights,
+      markers,
+      groundLoot,
+      lastKnown,
+      pulses,
+      effects,
+      explosions,
+      environment,
+      revealed,
+      spikeFrameRef: spike3d ? spikeFrameRef : null,
+    }
     targetsRef.current = targets
     lootRef.current = groundLoot
     membersRef.current = state
@@ -828,6 +946,11 @@ export default function PixiExplorationBoard(props) {
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
+      {spike3d && (
+        <div className="spike3d-overlay-host" ref={spikeHostRef}>
+          <Spike3dOverlay map={map} posesRef={spikePosesRef} svgRef={svgRef} hostRef={spikeHostRef} frameRef={spikeFrameRef} />
+        </div>
+      )}
       {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}
       <svg
         className="battlefield exploration-board"
@@ -855,6 +978,11 @@ export default function PixiExplorationBoard(props) {
             pointerEvents="none"
           />
         )}
+        {/* Spike3d: tags + hazard/hit FX above the Three mesh (Pixi labels/FX sit under the overlay canvas). */}
+        {spike3d && <Spike3dCharacterFx figures={figures} />}
+        {spike3d && figures.map((figure) => (
+          <FigureTag key={`tag-${figure.id}`} centre={figure.centre} label={figure.label} />
+        ))}
         {/* The pack cell a drop will fill. Hidden while the item is going into a party member's bag. */}
         {itemPlacementPreview && placingItem && placeHover && !placeHover.dropMemberId && (
           <polygon

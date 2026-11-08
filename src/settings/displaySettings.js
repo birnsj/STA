@@ -16,6 +16,8 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // tooltips: the hover boxes drawn from title / data-tip attributes (components/TitleTips.jsx).
 // cameraFollow: combat and exploration start with the view following the acting character (the camera button still
 // changes it during play).
+// edgeScroll: holding the pointer at the edge of the combat or exploration map pans the camera (useCamera.js).
+// The map editor never edge-scrolls.
 // itemPlacementPreview: the green/red footprint shown while positioning a ground inventory item in play or the editor.
 // wasdCoast: how far the camera keeps sliding after WASD / arrow keys are released (0 = stop at once, 100 = the
 // current coast). Pointer-drag coast is unchanged.
@@ -33,6 +35,7 @@ export const DEFAULT_DISPLAY_SETTINGS = {
   missionOutro: true,
   tooltips: true,
   cameraFollow: true,
+  edgeScroll: true,
   itemPlacementPreview: true,
   wasdCoast: 100,
   partyAI: 'classic',
@@ -69,6 +72,7 @@ export function normalizeDisplaySettings(saved) {
     missionOutro: flag('missionOutro'),
     tooltips: flag('tooltips'),
     cameraFollow: flag('cameraFollow'),
+    edgeScroll: flag('edgeScroll'),
     itemPlacementPreview: flag('itemPlacementPreview'),
     wasdCoast,
     partyAI,

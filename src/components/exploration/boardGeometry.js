@@ -38,6 +38,8 @@ export const worldBounds = (map) => ({
 // The NPC's name tag: over the head where the party's LEAD tag goes, or just above a body lying down.
 export const NPC_TAG_Y = -58
 export const NPC_TAG_DOWN_Y = -22
+// Spike3d bodies fill ~63 design px; tags sit clear of the hair and draw in the SVG above the Three canvas.
+export const SPIKE3D_TAG_Y = -78
 
 // The tiles a challenge object's art is drawn on, in painter's order: its own and its covers, and the whole footprint of
 // a big object (bigObjects.js), which draws its image in strips from three of its four tiles.

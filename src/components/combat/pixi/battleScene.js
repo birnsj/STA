@@ -8,6 +8,8 @@ import { reconcile, reducedMotion, startPixiStage } from '../../maps/pixi/pixiSt
 import { HighlightView, LastKnownView } from '../../exploration/pixi/boardItems.js'
 import { MovePathView, ObjectMarkView, SnapMarksView, TilesView } from './battleItems.js'
 import { UnitView } from './unitView.js'
+import { unproject } from '../../../maps/iso.js'
+import { resolveSpike3dAppearance } from '../../../spike3d/appearance.js'
 
 // The Pixi combat board's scene (pixiStage.js), drawn once per animation frame from the latest board description
 // (PixiBattlefield): on the floor, the highlighted tiles, the planned path, the snap marks,
@@ -15,7 +17,8 @@ import { UnitView } from './unitView.js'
 // blocks; destructible hover outlines; the effects on top. Presentation only.
 
 // Starts the scene in host. read() returns the latest board description: { layout, faded, units, tiles, hoverKey,
-// path, snapMarks, lastKnown, objects, highlights, effects, explosions, environment (hazards), revealed, svg }; the parts that haven't changed are the same objects as before. onReady(): the map is drawn and the figures have asked for their
+// path, snapMarks, lastKnown, objects, highlights, effects, explosions, environment (hazards), revealed, svg,
+// spikePosesRef? }; the parts that haven't changed are the same objects as before. onReady(): the map is drawn and the figures have asked for their
 // sprite sheets (MapFadeIn waits for those). Resolves to { destroy }, or null if destroyed (isCancelled) before it
 // started; rejects if WebGL can't start.
 export async function startBattleScene(host, read, onReady, isCancelled) {
@@ -54,6 +57,38 @@ export async function startBattleScene(host, read, onReady, isCancelled) {
     reconcile(objects, board.objects, objectLayer, () => new ObjectMarkView(), (marker, item) => marker.update(item))
     reconcile(highlights, map.ready ? board.highlights ?? [] : [], depthLayer, () => new HighlightView(), (highlight, item) => highlight.update(board.layout, item, now))
     reconcile(units, board.units, depthLayer, () => new UnitView(sheets), (unit, item) => unit.update(item, now, board.revealed))
+    // Feed spike3d from unit tracks (shownPose) so combat clips drive the Three overlay.
+    // Keep beamed-in units in the pose list (with beam flag) so actors are not disposed/recreated —
+    // dropping them made party figures blink out for the whole waiting/beaming window.
+    if (board.spikePosesRef) {
+      const poses = []
+      for (const view of units.values()) {
+        const shown = view.shown
+        if (!shown?.centre) continue
+        const position = unproject(shown.centre)
+        const combatant = shown.combatant
+        const portrait = combatant?.character?.portrait
+        poses.push({
+          id: shown.id,
+          position,
+          facing: shown.facing,
+          animation: shown.pose?.animation ?? null,
+          gait: shown.isWalking ? 'run' : 'idle',
+          down: Boolean(shown.down || shown.pose?.animation?.startsWith?.('fall')),
+          beam: shown.beam ?? null,
+          blastReact: combatant?.blastReact ?? null,
+          onStaggerDone: shown.onStaggerDone ?? null,
+          colour: shown.colour ?? shown.bodyColour,
+          enemy: combatant?.side === 'enemy' || combatant?.hostile === true,
+          appearance: resolveSpike3dAppearance({
+            portraitId: portrait?.id ?? shown.spriteSet,
+            uniform: shown.colour,
+            enemy: combatant?.side === 'enemy',
+          }),
+        })
+      }
+      board.spikePosesRef.current = poses
+    }
     reconcile(effects, board.effects, fxLayer, () => new EffectView(), (effect, item) => effect.update(item, now))
     const blastStarted = perfStart()
     reconcile(explosions, board.explosions, fxLayer, () => new ExplosionView(), (explosion, item) => explosion.update(item, now, options.playing))
@@ -62,6 +97,8 @@ export async function startBattleScene(host, read, onReady, isCancelled) {
       readyFor = map
       onReady()
     }
+    // Same viewBox sample as stage.frame — keeps spike3d feet on the Pixi rings while the camera moves.
+    board.spikeFrameRef?.current?.()
   })
 
   return {

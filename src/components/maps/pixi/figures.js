@@ -607,6 +607,31 @@ export class FigureView {
   // revealed: the map has faded in (MapRevealedContext).
   update(figure, now, revealed) {
     const { centre, depth } = figure
+    // Spike3d: Three.js draws the body on the overlay; keep rings/labels, skip sprite sheets.
+    // Hazard + hit-glow are drawn in the SVG layer above Spike3d (Spike3dCharacterFx) — Pixi FX would sit under the mesh.
+    if (figure.hideSprite) {
+      this.staggerPlay = null
+      this.fallPlay = null
+      this.container.position.set(centre.x, centre.y)
+      this.container.zIndex = depth
+      this.body.visible = false
+      this.token.visible = false
+      this.sheet.visible = false
+      this.hazardFx.visible = false
+      this.hitGlowFx.clear()
+      this.hitGlowFx.visible = false
+      this.updateLabel(null)
+      // Match sprite beam-in: hide rings too while waiting so the party doesn't flash as empty bases.
+      if (figure.beam === 'waiting') {
+        this.container.visible = false
+        return
+      }
+      this.container.visible = true
+      this.drawRing(figure.ring)
+      this.arrow.visible = Boolean(figure.facing) && !figure.down
+      if (this.arrow.visible) drawArrow(this.arrow, figure.facing, figure.arrowColour ?? 0xffffff)
+      return
+    }
     this.syncFallPlay(figure, now)
     this.syncBlastStagger(figure, now)
     // Explosion knockback while falling / holding / getting up (not once idle with a leftover blastReact).

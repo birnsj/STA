@@ -92,6 +92,7 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
             <Toggle label="Captain's Log Outro" description="Once the away team beams out, the mission report plays. Off leaves the mission at once." checked={displaySettings.missionOutro} onChange={(checked) => onChangeDisplay({ ...displaySettings, missionOutro: checked })} />
             <Toggle label="Tooltips" description="Resting the pointer on a button, icon or value shows a box explaining it." checked={displaySettings.tooltips} onChange={(checked) => onChangeDisplay({ ...displaySettings, tooltips: checked })} />
             <Toggle label="Camera Follow" description="Combat and exploration start with the view following the acting character." checked={displaySettings.cameraFollow} onChange={(checked) => onChangeDisplay({ ...displaySettings, cameraFollow: checked })} />
+            <Toggle label="Edge Scroll" description="Holding the pointer at the edge of the combat or exploration map pans the camera." checked={displaySettings.edgeScroll} onChange={(checked) => onChangeDisplay({ ...displaySettings, edgeScroll: checked })} />
             <Toggle label="Item Placement Box" description="Shows the green or red footprint while positioning an inventory object on the map." checked={displaySettings.itemPlacementPreview} onChange={(checked) => onChangeDisplay({ ...displaySettings, itemPlacementPreview: checked })} />
           </div>
         </section>

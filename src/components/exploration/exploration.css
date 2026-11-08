@@ -1163,16 +1163,23 @@
   color: var(--text-muted);
 }
 
-/* The action buttons are stacked on top of the Formation panel. Same width and right edge as the minimap. */
+/* The action buttons are stacked on top of the Formation panel. Same width and right edge as the minimap.
+   z-index must beat .battlefield (2) — without it, Pixi/spike3d characters draw through the panel. */
 .explore-bottom-right {
   position: absolute;
   right: 8px;
   bottom: 8px;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
   width: var(--explore-minimap-size);
+  pointer-events: none;
+}
+
+.explore-bottom-right > * {
+  pointer-events: auto;
 }
 
 .explore-action-stack {
@@ -1546,9 +1553,14 @@
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
   font-size: 10px;
   letter-spacing: 0.02em;
+  line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .explore-panel-icon-button,

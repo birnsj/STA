@@ -71,9 +71,9 @@ Where: `src/conversation/`, `conversations/`, `docs/design-tracker.md` (Klingon 
 
 Paint maps, layers / Null / floorUnder, NPCs, objectives, destructibles, hazards, ground items, conversations, story, Generator Editor, music cues per map, playtest. Multi-deck Levels UI is still a placeholder. Item / hazard / destructible **catalogues** and standalone Combat encounter authoring still need JSON edits (`editor-authoring-summary.md`: ~41 complete / 7 partial / 7 hardcoded / 2 missing as of last audit).
 
-**Sprites** (main-menu corner, 2026-10-28; grid migration + editor preview 2026-10-29; uniform load 2026-10-31): character figures use catalogue sheets in `characterSprites.json` (64×128 @ ×4 for walk/run/stand/fidgets/combat/reaction/sneak/surrender/panic; fall/getup wider). Department shirts via masked recolour; base sheet before other pages so beam-in is neither gold-flash nor missing. Sprites editor: iso floor, yellow grids (inferred for split pages), anim Loop/Angle preview. Lab map **Sprite Showcase**. DEV listing + Import via `/__sprites`. How-to: `docs/sprites.md`; decisions: `design-tracker.md`; clock/React cost notes: `docs/performance.md`.
+**Sprites / spike3d** (3D default 2026-11; sheets F1 debug): map characters are procedural Three.js figures (`src/spike3d/`, CharacterBody API) with unique race mesh kits on the shared humanoid rig and division tunic textures under `public/art/models/characters/`. `characterSprites.json` is the clip timing contract. Pixi character sheets skip preload while 3D is on; F1 toggles 2D. Sprites editor + env/FX/dice unchanged. How-to: `docs/sprites.md`, `docs/spike3d-figure-swap-plan.md`.
 
-Where: `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/editor-authoring-summary.md`, `docs/sprites.md`; Sprites: `SpriteSheetsScreen.jsx`, `spriteCatalogue.js`, `characterSprites.json`, `tools/spriteStore.cjs`, `tools/buildSpriteShowcaseMap.mjs`.
+Where: `src/spike3d/`, `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/sprites.md`; Sprites editor: `SpriteSheetsScreen.jsx`, `characterSprites.json`.
 
 ### 7. Music / audio — SHIPPED
 

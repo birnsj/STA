@@ -8,9 +8,13 @@ import { isBlock, project, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { getMaxStress } from '../../rules/personalCondition.js'
 import { getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
+import { isSpike3dPreferred, toggleSpike3dPreferred } from '../../spike3d/enabled.js'
+import Spike3dCharacterFx from '../../spike3d/Spike3dCharacterFx.jsx'
+import Spike3dOverlay from '../../spike3d/Spike3dOverlay.jsx'
 import { characterHazardOverlayType } from '../../world/characterHazardOverlay.js'
 import { hazardPanic } from '../../world/hazardPanic.js'
 import { playBoardHover, playBoardPress } from '../../audio/uiSounds.js'
+import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import { highlightBox, highlightTiles } from '../exploration/boardGeometry.js'
 import { boardLayout } from '../maps/canvasTiles.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
@@ -89,9 +93,23 @@ export default function PixiBattlefield(props) {
     beamOut = false,
     debug = false,
   } = props
+  const { edgeScroll } = useDisplaySettings()
   const { map } = state
+  const [spike3d, setSpike3d] = useState(() => isSpike3dPreferred())
+  const spikePosesRef = useRef([])
+  const spikeFrameRef = useRef(null)
+  const spikeHostRef = useRef(null)
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== 'F1' || event.repeat) return
+      event.preventDefault()
+      setSpike3d(toggleSpike3dPreferred())
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const walking = useMoveAnimation(state.lastMove, msPerTile)
-  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick, true, onCameraPan, onCameraFollow)
+  const { camera, dragHandlers } = useCamera(worldBounds(map), VIEW, { key: focus.key, point: tileCentre(focus.position) }, followCamera, onRightClick, true, onCameraPan, onCameraFollow, edgeScroll)
   const { ref: svgRef, onPointerDown: startCameraDrag, onContextMenu: preventMenu } = dragHandlers
   const shownPosition = (unit) => (walking?.id === unit.id ? walking.position : unit.position)
   const layout = useMemo(() => boardLayout(map), [map])
@@ -100,9 +118,9 @@ export default function PixiBattlefield(props) {
   const units = Object.values(state.combatants).filter((unit) => (!unit.fled || unit.id === beamingId) && !hiddenIds?.includes(unit.id))
   const firing = shotOf(state, state.lastAction)
   // The combatant whose turn it is cuts walls away, and so does every enemy (including fallen ones), so no wall hides a
-  // body or a standing foe (designer request, 2026-10-14; downed kept so stun/dead don't vanish behind bulkheads).
-  // Other party members don't.
-  const cutsWalls = (unit) => unit.id === activeId || unit.side === 'enemy'
+  // body or a standing foe (designer decision, 2026-10-14; downed kept so stun/dead don't vanish behind bulkheads).
+  // Spike3d draws above Pixi walls, so every party member also cuts walls or they show through bulkheads.
+  const cutsWalls = (unit) => unit.id === activeId || unit.side === 'enemy' || (spike3d && unit.side === 'player')
   const hidden = useWallFade(
     map,
     units.filter(cutsWalls).map((unit) => ({ id: unit.id, position: shownPosition(unit) })),
@@ -170,11 +188,12 @@ export default function PixiBattlefield(props) {
       beam,
       beamSpeed: speed,
       speed: isBystander ? 1 : speed,
-      preload: !isBystander,
+      preload: !isBystander && !spike3d,
       poseOptions,
       isWalking,
       onStaggerDone: combatant.blastReact && onStaggerDone ? () => onStaggerDone(combatant.id) : null,
       hitGlow,
+      hideSprite: spike3d,
       selected: selected && !active,
       cover,
       statusLabel,
@@ -325,6 +344,8 @@ export default function PixiBattlefield(props) {
       const hovered = hoverDestructibleRef.current
       board.svg = svgRef.current
       board.hoverKey = hoverKeyRef.current
+      board.spikePosesRef = spike3d ? spikePosesRef : null
+      board.spikeFrameRef = spike3d ? spikeFrameRef : null
       board.highlights = hovered
         ? board.destructibleHighlights.filter((item) => item.id === hovered).map((item) => ({ ...item, hovered: true }))
         : []
@@ -436,6 +457,11 @@ export default function PixiBattlefield(props) {
   return (
     <>
       <div className="pixi-board-host" ref={hostRef} />
+      {spike3d && (
+        <div className="spike3d-overlay-host" ref={spikeHostRef}>
+          <Spike3dOverlay map={map} posesRef={spikePosesRef} svgRef={svgRef} hostRef={spikeHostRef} frameRef={spikeFrameRef} />
+        </div>
+      )}
       {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}
       <svg
         className="battlefield"
@@ -450,6 +476,7 @@ export default function PixiBattlefield(props) {
         data-tip={title ?? undefined}
         data-tip-at="pointer"
       >
+        {spike3d && <Spike3dCharacterFx figures={figures} />}
         {ring && (ring.position || state.combatants[ring.unitId]) && (
           <UnitActionRing
             position={ring.position ?? shownPosition(state.combatants[ring.unitId])}

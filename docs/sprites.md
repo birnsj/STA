@@ -2,6 +2,14 @@
 
 How full-body isometric figures work on exploration and combat boards (presentation only). Decision history: `design-tracker.md`. Sheet definitions: `src/data/adaptation/characterSprites.json`.
 
+## Spike 3D (default, 2026-11)
+
+**Map figures are procedural 3D by default** (`src/spike3d/`, plan: `docs/spike3d-figure-swap-plan.md`). Pixi character sheets are **not** loaded on the exploration/combat critical path while spike3d is on (`hideSprite` / `preload: false`). F1 toggles 2D sprites ↔ 3D for debug.
+
+`characterSprites.json` remains the **clip name + timing contract** for procedural (and later Mixamo) bodies — see `src/spike3d/clips.js`. Environment / FX / dice sprites are unchanged.
+
+Appearance (gender, hair, species) is driven by `src/data/adaptation/spike3dAppearance.json` and `src/spike3d/appearance.js`. **Humans** use the shared `HumanoidModel` head. **Other races** get unique placeholder meshes on that same rig (`src/spike3d/raceMeshes/`); optional GLB overrides live under `public/art/models/characters/{species}-{gender}.glb`. **Uniforms** swap discrete coloured tunic textures per division (`shared/uniform-*.png`) — no mask shader. Bake: `node tools/bakeSpike3dRaceMeshes.mjs`.
+
 ## Sets and lookup
 
 - One **set** per species × gender (Human, Vulcan, Andorian, Tellarite, Trill, Caitian, Klingon).
