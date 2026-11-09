@@ -1,0 +1,48 @@
+{
+  "note": [
+    "Animation catalogues are per body type, not per species. Every humanoid (human, Vulcan, Klingon, …)",
+    "shares the humanoid set; a non-humanoid monster uses its own set. Species still pick appearance",
+    "(race mesh, hair, uniform) on the shared humanoid rig.",
+    "sheetIds list which characterSprites.json sheets (plus procedural 3dOnly extras) belong to the set.",
+    "An empty sheetIds list means the set is reserved but has no clips yet."
+  ],
+  "defaultSetId": "humanoid",
+  "sets": [
+    {
+      "id": "humanoid",
+      "label": "Humanoid",
+      "sheetIds": [
+        "walk",
+        "run",
+        "idle",
+        "sneak",
+        "combat",
+        "reaction",
+        "fall",
+        "getup",
+        "fidgets",
+        "surrender",
+        "panic",
+        "base",
+        "3dOnly"
+      ]
+    },
+    {
+      "id": "monster",
+      "label": "Monster",
+      "sheetIds": []
+    }
+  ],
+  "speciesToSet": {
+    "human": "humanoid",
+    "vulcan": "humanoid",
+    "andorian": "humanoid",
+    "tellarite": "humanoid",
+    "trill": "humanoid",
+    "caitian": "humanoid",
+    "klingon": "humanoid",
+    "romulan": "humanoid",
+    "mixedHeritage": "humanoid",
+    "newSpecies": "humanoid"
+  }
+}

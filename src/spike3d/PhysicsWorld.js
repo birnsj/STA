@@ -20,6 +20,8 @@ export class PhysicsWorld {
     const world = new RAPIER.World(gravity)
     // Finer steps cut wall tunneling when a limb is flung at a bulkhead.
     world.timestep = 1 / 120
+    // Extra solver passes help ragdoll limbs stop sinking through the torso.
+    world.numSolverIterations = 8
     return new PhysicsWorld(RAPIER, world)
   }
 

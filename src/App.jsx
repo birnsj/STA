@@ -82,7 +82,7 @@ function Views() {
     return EPISODE_MODES.includes(saved.mode) ? saved : { ...saved, mode: EPISODE_MODES[0] }
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
-  // Map editor only: enlarges chrome by shrinking the ScaledStage design size (see editorViewScale.js).
+  // Dev Edit / Animations: enlarges chrome by shrinking the ScaledStage design size (see editorViewScale.js).
   const [editorViewScale, setEditorViewScale] = useState(loadEditorViewScale)
   const onEditorViewScale = useCallback((percent) => {
     saveEditorViewScale(percent)
@@ -253,8 +253,13 @@ function Views() {
         </ScaledStage>
       )}
       {view === 'animationViewer' && (
-        <ScaledStage {...MENU_STAGE} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
-          <AnimationViewerScreen onBack={openMenu} />
+        // Same View → View scale chrome as Dev Edit (shared localStorage key).
+        <ScaledStage {...editorStageSize(editorViewScale)} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
+          <AnimationViewerScreen
+            onBack={openMenu}
+            viewScale={editorViewScale}
+            onViewScale={onEditorViewScale}
+          />
           {settingsLayer}
         </ScaledStage>
       )}

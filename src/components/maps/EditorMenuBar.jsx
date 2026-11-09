@@ -81,7 +81,7 @@ const MENUS = [
   },
 ]
 
-export default function EditorMenuBar({ onAction, checks = {} }) {
+export default function EditorMenuBar({ onAction, checks = {}, menus = MENUS }) {
   const [open, setOpen] = useState(null)
   const root = useRef(null)
 
@@ -96,7 +96,7 @@ export default function EditorMenuBar({ onAction, checks = {} }) {
 
   return (
     <div className="ed-menubar" ref={root} role="menubar">
-      {MENUS.map((menu) => (
+      {menus.map((menu) => (
         <div key={menu.id} className="ed-menu">
           <button
             type="button"

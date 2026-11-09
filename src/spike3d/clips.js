@@ -1,8 +1,10 @@
 /**
  * Clip name + timing contract for procedural (and later Mixamo) bodies.
  * Sourced from characterSprites.json so Mixamo mapping keeps the same names.
+ * Viewer catalogues are filtered by animation set (humanoid vs monster, …).
  */
 import spriteData from '../data/adaptation/characterSprites.json'
+import animationSetsData from '../data/adaptation/animationSets.json'
 
 const DEG = Math.PI / 180
 
@@ -80,15 +82,45 @@ const VIEWER_3D_ONLY = [
   { name: 'hazardPanicRun', seconds: 0.6, play: 'loop' },
 ]
 
+/** @returns {{ id: string, label: string, sheetIds: string[] }[]} */
+export function listAnimationSets() {
+  return (animationSetsData.sets ?? []).map((set) => ({
+    id: set.id,
+    label: set.label ?? set.id,
+    sheetIds: [...(set.sheetIds ?? [])],
+  }))
+}
+
+export function defaultAnimationSetId() {
+  return animationSetsData.defaultSetId ?? 'humanoid'
+}
+
+/** Species → animation set (humanoids share one catalogue). */
+export function animationSetIdForSpecies(speciesId) {
+  const map = animationSetsData.speciesToSet ?? {}
+  return map[speciesId] ?? defaultAnimationSetId()
+}
+
+function sheetAllowed(sheetId, allowedIds) {
+  if (!allowedIds) return true
+  return allowedIds.has(sheetId)
+}
+
 /**
  * Grouped clip catalogue for the Animation Viewer.
+ * @param {string} [setId] animation set id (`humanoid`, `monster`, …); omit for default
  * @returns {{ id: string, label: string, clips: { name: string, seconds: number, play: string }[] }[]}
  */
-export function animationViewerGroups() {
+export function animationViewerGroups(setId = defaultAnimationSetId()) {
+  const set = (animationSetsData.sets ?? []).find((entry) => entry.id === setId)
+  const allowedList = set?.sheetIds
+  const allowed = allowedList ? new Set(allowedList) : null
+
   const groups = []
   const sheets = spriteData.sheets ?? {}
   const seen = new Set()
   const pushSheet = (sheetId) => {
+    if (!sheetAllowed(sheetId, allowed)) return
     const sheet = sheets[sheetId]
     if (!sheet?.animations) return
     const clips = Object.entries(sheet.animations).map(([name, anim]) => {
@@ -111,9 +143,11 @@ export function animationViewerGroups() {
     if (VIEWER_SHEET_ORDER.includes(id)) continue
     pushSheet(id)
   }
-  const only3d = VIEWER_3D_ONLY.filter((clip) => !seen.has(clip.name))
-  if (only3d.length) {
-    groups.push({ id: '3dOnly', label: VIEWER_SHEET_LABELS['3dOnly'], clips: only3d })
+  if (sheetAllowed('3dOnly', allowed)) {
+    const only3d = VIEWER_3D_ONLY.filter((clip) => !seen.has(clip.name))
+    if (only3d.length) {
+      groups.push({ id: '3dOnly', label: VIEWER_SHEET_LABELS['3dOnly'], clips: only3d })
+    }
   }
   return groups
 }

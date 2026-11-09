@@ -12,7 +12,7 @@ export default function EditorViewScale({ show, onClose, viewScale, onViewScale 
           Close
         </button>
       </div>
-      <p className="me-text">Enlarge the map editor UI. Higher values help on smaller screens.</p>
+      <p className="me-text">Enlarge the editor UI. Higher values help on smaller screens.</p>
       <div className="ed-seg" role="group" aria-label="View scale">
         {EDITOR_VIEW_SCALES.map((entry) => (
           <button
