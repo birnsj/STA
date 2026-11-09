@@ -55,6 +55,8 @@ import { explosionItems, playNewExplosionSounds } from '../maps/pixi/explosionVi
 import { SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
 import WebglUnavailable from '../maps/pixi/WebglUnavailable.jsx'
+import { isAnimClipDebugOn, toggleAnimClipDebug } from '../../dev/animClipDebug.js'
+import AnimClipDebugLayer from '../maps/AnimClipDebugLayer.jsx'
 import { isSpike3dPreferred, toggleSpike3dPreferred } from '../../spike3d/enabled.js'
 import Spike3dCharacterFx from '../../spike3d/Spike3dCharacterFx.jsx'
 import Spike3dOverlay from '../../spike3d/Spike3dOverlay.jsx'
@@ -156,16 +158,27 @@ export default function PixiExplorationBoard(props) {
   } = props
   const { map } = state
   const [spike3d, setSpike3d] = useState(() => isSpike3dPreferred())
+  const [animClipDebug, setAnimClipDebug] = useState(() => isAnimClipDebugOn())
   const spikePosesRef = useRef([])
   const spikeFrameRef = useRef(null)
   const spikeHostRef = useRef(null)
+  const figuresDebugRef = useRef([])
 
-  // F1: sprites ↔ 3D figures on any exploration map.
+  // F1: sprites ↔ 3D. X: clip names over heads.
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key !== 'F1' && event.code !== 'F1') return
-      event.preventDefault()
-      setSpike3d(toggleSpike3dPreferred())
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+      const tag = event.target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (event.key === 'F1' || event.code === 'F1') {
+        event.preventDefault()
+        setSpike3d(toggleSpike3dPreferred())
+        return
+      }
+      if (event.code === 'KeyX' || event.key === 'x' || event.key === 'X') {
+        event.preventDefault()
+        setAnimClipDebug(toggleAnimClipDebug())
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -323,6 +336,8 @@ export default function PixiExplorationBoard(props) {
       faded: false,
       hideSprite: spike3d,
       position: member.position,
+      // stepBack is procedural (Spike3d); sprites fall back to walk via gait.
+      pose: animation.pose?.animation === 'stepBack' && !spike3d ? null : animation.pose ?? null,
     })
     if (!member.beaming && !member.arriving) {
       const token = !hasCharacterSprite(portrait.spriteSet)
@@ -370,8 +385,10 @@ export default function PixiExplorationBoard(props) {
       hideSprite: spike3d,
       position: npc.position,
       enemy: isHostile(npc),
-      // Patrol waypoint idle fidget (NPCController.animationState); null keeps random idle fidgets.
-      pose: animation.pose ?? null,
+      // stepBack is procedural (Spike3d); sprites have no sheet yet so keep walk via gait only.
+      // Patrol waypoint idle fidget otherwise; null keeps random idle fidgets.
+      pose:
+        animation.pose?.animation === 'stepBack' && !spike3d ? null : animation.pose ?? null,
       beam: null,
       preload: !spike3d,
       faded: !visible && !hazardOverlay,
@@ -542,6 +559,8 @@ export default function PixiExplorationBoard(props) {
     return () => clearTimeout(timer)
   }, [objectShotKey, objectShotSound?.sound, objectShotSound?.injuryMode])
 
+  figuresDebugRef.current = figures
+
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
   const boardRef = useRef(null)
@@ -552,9 +571,16 @@ export default function PixiExplorationBoard(props) {
     .filter((figure) => figure.position)
     .map((figure) => {
       const portraitId = figure.portraitId || figure.spriteSet || null
+      const moving = figure.gait === 'walk' || figure.gait === 'run' || figure.gait === 'sneakWalk'
       const anim =
         figure.pose?.animation ||
-        (figure.panic ? 'hazardPanic' : null) ||
+        (figure.panic
+          ? moving
+            ? figure.gait === 'run'
+              ? 'hazardPanicRun'
+              : 'hazardPanicWalk'
+            : 'hazardPanic'
+          : null) ||
         (figure.down ? null : null)
       return {
         id: figure.id,
@@ -983,6 +1009,7 @@ export default function PixiExplorationBoard(props) {
         {spike3d && figures.map((figure) => (
           <FigureTag key={`tag-${figure.id}`} centre={figure.centre} label={figure.label} />
         ))}
+        {animClipDebug && <AnimClipDebugLayer figuresRef={figuresDebugRef} spike3d={spike3d} />}
         {/* The pack cell a drop will fill. Hidden while the item is going into a party member's bag. */}
         {itemPlacementPreview && placingItem && placeHover && !placeHover.dropMemberId && (
           <polygon

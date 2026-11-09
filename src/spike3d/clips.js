@@ -26,6 +26,9 @@ export const IDLE_FIDGETS = spriteData.idleFidgets?.animations ?? [
   'idleScratchHead',
 ]
 
+/** Seconds between idle fidgets [min, max] — same catalogue as sprite FigureView. */
+export const IDLE_FIDGET_GAP = spriteData.idleFidgets?.gapSeconds ?? [5, 14]
+
 export function clipSeconds(name) {
   return CLIP_META[name]?.seconds ?? 1
 }
@@ -54,6 +57,7 @@ export function basePose() {
     shoulder: [deg(1), deg(2)],
     breathe: 0,
     bounce: 0,
+    hipDrop: 0,
     hipYaw: 0,
     hipRoll: 0,
     torsoYaw: 0,

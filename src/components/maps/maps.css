@@ -14,12 +14,20 @@
   height: 100%;
 }
 
-/* A Pixi board's WebGL canvas (pixi/pixiStage.js), under the board's SVG overlay. */
+/*
+  Board stack (combat / exploration screen children, back → front):
+  0  .pixi-board-host     map tiles / props
+  —  .spike3d-overlay-host  3D characters (no z-index: stays in the auto/0 layer after Pixi so
+                            later HUD siblings without a z-index still paint above the mesh)
+  2  .battlefield         SVG rings, menus, tags, character FX
+  10+ HUD chrome          party rail, minimap, messages, modals (set on each panel)
+*/
 .pixi-board-host {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  z-index: 0;
 }
 
 /* Debug: the screen-edge band that pans the camera (useCamera EDGE_MARGIN). */
@@ -48,13 +56,14 @@
   display: block;
 }
 
-/* Three.js character overlay (spike3d) — above Pixi map art, under the SVG input layer. */
+/* Three.js character overlay (spike3d) — above Pixi map art, under the SVG + HUD. */
 .spike3d-overlay-host {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 1;
+  /* Do not set a positive z-index: that put meshes above any HUD that only had z-index: auto. */
+  z-index: auto;
 }
 
 .spike3d-overlay-canvas {

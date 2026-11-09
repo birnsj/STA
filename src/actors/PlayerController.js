@@ -107,6 +107,7 @@ export class PlayerController extends CharacterController {
       turning: false,
       moving: false,
       running: false,
+      pushed: false,
       order: null,
       path: [],
       replanIn: 0,
@@ -114,6 +115,15 @@ export class PlayerController extends CharacterController {
       parkedFor: null,
       blocked: { seconds: 0 },
     }
+  }
+
+  // Exploration board: step-back while being shoved clear of another body (partyControl resolveOverlaps / separation).
+  animationState(actor) {
+    const base = super.animationState(actor)
+    if (actor.pushed) {
+      return { ...base, walking: true, pose: { animation: 'stepBack', playKey: 'stepBack' } }
+    }
+    return base
   }
 
   // ---------- exploration ----------

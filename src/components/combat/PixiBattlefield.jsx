@@ -8,6 +8,8 @@ import { isBlock, project, unproject } from '../../maps/iso.js'
 import { fadeWholePanels } from '../../maps/wallPanels.js'
 import { getMaxStress } from '../../rules/personalCondition.js'
 import { getSpriteMetrics, hasCharacterSprite } from '../../rules/appearance.js'
+import { isAnimClipDebugOn, toggleAnimClipDebug } from '../../dev/animClipDebug.js'
+import AnimClipDebugLayer from '../maps/AnimClipDebugLayer.jsx'
 import { isSpike3dPreferred, toggleSpike3dPreferred } from '../../spike3d/enabled.js'
 import Spike3dCharacterFx from '../../spike3d/Spike3dCharacterFx.jsx'
 import Spike3dOverlay from '../../spike3d/Spike3dOverlay.jsx'
@@ -96,14 +98,25 @@ export default function PixiBattlefield(props) {
   const { edgeScroll } = useDisplaySettings()
   const { map } = state
   const [spike3d, setSpike3d] = useState(() => isSpike3dPreferred())
+  const [animClipDebug, setAnimClipDebug] = useState(() => isAnimClipDebugOn())
   const spikePosesRef = useRef([])
   const spikeFrameRef = useRef(null)
   const spikeHostRef = useRef(null)
+  const figuresDebugRef = useRef([])
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key !== 'F1' || event.repeat) return
-      event.preventDefault()
-      setSpike3d(toggleSpike3dPreferred())
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+      const tag = event.target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (event.key === 'F1' || event.code === 'F1') {
+        event.preventDefault()
+        setSpike3d(toggleSpike3dPreferred())
+        return
+      }
+      if (event.code === 'KeyX' || event.key === 'x' || event.key === 'X') {
+        event.preventDefault()
+        setAnimClipDebug(toggleAnimClipDebug())
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -191,6 +204,7 @@ export default function PixiBattlefield(props) {
       preload: !isBystander && !spike3d,
       poseOptions,
       isWalking,
+      gait: isWalking ? 'run' : 'idle',
       onStaggerDone: combatant.blastReact && onStaggerDone ? () => onStaggerDone(combatant.id) : null,
       hitGlow,
       hideSprite: spike3d,
@@ -287,6 +301,8 @@ export default function PixiBattlefield(props) {
     if (beamIn === 'beaming') effects.push({ id: `beam-${unit.id}`, kind: 'transporter', position: tileCentre(unit.position), direction: 'in', speed })
     if (beamOut) effects.push({ id: `beam-away-${unit.id}`, kind: 'transporter', position: tileCentre(unit.position), direction: 'away', speed })
   }
+
+  figuresDebugRef.current = figures
 
   // The scene reads the latest description every frame; pointer handlers read the latest targets.
   const revealed = useContext(MapRevealedContext)
@@ -477,6 +493,7 @@ export default function PixiBattlefield(props) {
         data-tip-at="pointer"
       >
         {spike3d && <Spike3dCharacterFx figures={figures} />}
+        {animClipDebug && <AnimClipDebugLayer figuresRef={figuresDebugRef} spike3d={spike3d} />}
         {ring && (ring.position || state.combatants[ring.unitId]) && (
           <UnitActionRing
             position={ring.position ?? shownPosition(state.combatants[ring.unitId])}

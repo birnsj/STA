@@ -6,7 +6,8 @@
  *
  * Contract (pose clip names from characterSprites.json / unitPose.js):
  *   idle, walk, run, sneakIdle, sneakWalk, fidgets, attack, melee, cover,
- *   punch, kick, dodge, getHit, falls, getUp, surrender, hazardPanic
+ *   punch, kick, dodge, getHit, falls, getUp, surrender, hazardPanic,
+ *   hazardPanicWalk, hazardPanicRun
  *
  * Required surface:
  *   play(clip, opts?)
@@ -50,4 +51,6 @@ export const CHARACTER_BODY_CLIPS = [
   'getUp',
   'surrender',
   'hazardPanic',
+  'hazardPanicWalk',
+  'hazardPanicRun',
 ]

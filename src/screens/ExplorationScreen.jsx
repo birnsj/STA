@@ -42,6 +42,7 @@ import useExplorationFootsteps from '../components/exploration/useExplorationFoo
 import useExplorationKeys from '../components/exploration/useExplorationKeys.js'
 import Minimap from '../components/exploration/Minimap.jsx'
 import MapFadeIn from '../components/maps/MapFadeIn.jsx'
+import { isSpike3dPreferred } from '../spike3d/enabled.js'
 import '../components/exploration/exploration.css'
 import '../components/maps/mapEditor.css'
 import awarenessData from '../data/adaptation/exploration/awareness.json'
@@ -204,14 +205,48 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   const [pendingPickup, setPendingPickup] = useState(null)
   const members = getMembers(party)
   const inCombat = state.mode === MODE.COMBAT
+  // Snapshot Pixi + Spike3d so the freeze still shows figures (sprites are hidden while 3D is on).
   const freezeBoard = useCallback((root) => {
-    const canvas = root?.querySelector('.pixi-board-host canvas')
+    const pixi = root?.querySelector('.pixi-board-host canvas')
+    const spike = root?.querySelector('.spike3d-overlay-canvas')
+    if (!pixi?.width) return ''
     try {
-      if (canvas?.width) return canvas.toDataURL('image/jpeg', 0.92)
+      if (!spike?.width) return pixi.toDataURL('image/jpeg', 0.92)
+      const w = pixi.width
+      const h = pixi.height
+      const out = document.createElement('canvas')
+      out.width = w
+      out.height = h
+      const ctx = out.getContext('2d')
+      ctx.fillStyle = '#03060e'
+      ctx.fillRect(0, 0, w, h)
+      ctx.drawImage(pixi, 0, 0, w, h)
+      ctx.drawImage(spike, 0, 0, spike.width, spike.height, 0, 0, w, h)
+      return out.toDataURL('image/jpeg', 0.92)
     } catch {
-      /* canvas unread or lost */
+      try {
+        return pixi.toDataURL('image/jpeg', 0.92)
+      } catch {
+        return ''
+      }
     }
-    return ''
+  }, [])
+  // Lift the freeze only after the new board has presented (and Spike3d has drawn once when it is on).
+  const handoffReleaseRef = useRef(0)
+  const releaseHandoffCover = useCallback((rootRef) => {
+    const token = ++handoffReleaseRef.current
+    const started = performance.now()
+    const tryRelease = () => {
+      if (token !== handoffReleaseRef.current) return
+      const spike = rootRef.current?.querySelector('.spike3d-overlay-canvas')
+      const spikeReady = !isSpike3dPreferred() || spike?.dataset?.spikeReady === '1'
+      if (spikeReady || performance.now() - started > 900) {
+        setHandoffCover(null)
+        return
+      }
+      requestAnimationFrame(tryRelease)
+    }
+    requestAnimationFrame(() => requestAnimationFrame(tryRelease))
   }, [])
   // Enter combat: snapshot explore while it is still mounted, then swap. Also recovers if a fight starts during a
   // to-explore handoff (otherwise inCombat is true but WorldCombat stays unmounted).
@@ -231,15 +266,15 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   }, [beginReturnToExplore, dispatch])
   const onCombatBoardReady = useCallback(() => {
     setBoardSurface('combat')
-    setHandoffCover(null)
-  }, [])
+    releaseHandoffCover(combatRootRef)
+  }, [releaseHandoffCover])
   const onExploreBoardReady = useCallback(() => {
     setBoardSurface((surface) => {
       if (surface !== 'to-explore') return surface
-      setHandoffCover(null)
+      releaseHandoffCover(exploreRootRef)
       return 'explore'
     })
-  }, [])
+  }, [releaseHandoffCover])
   useExplorationFootsteps(members, !inCombat)
   useExplorationFootsteps(getNpcs(world).filter((npc) => partyHearsWalker(party.map, members, npc)), !inCombat)
   // The away team beams in as the mission starts; move orders wait until they are all here.

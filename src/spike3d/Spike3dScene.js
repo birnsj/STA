@@ -1,7 +1,9 @@
 import * as THREE from 'three'
+import { clearLiveClip, reportLiveClip } from '../dev/animClipDebug.js'
 import { isExplosionInjury } from '../rules/appearance.js'
 import { facingToYaw, makeIsoCamera, syncIsoCamera } from './isoProjection.js'
 import { resolveSpike3dAppearance } from './appearance.js'
+import { clipSeconds, IDLE_FIDGET_GAP, IDLE_FIDGETS } from './clips.js'
 import { ProceduralBody, PROCEDURAL_HEIGHT } from './ProceduralBody.js'
 import { HumanoidRagdoll } from './HumanoidRagdoll.js'
 import { createContactShadow } from './contactShadow.js'
@@ -59,7 +61,7 @@ class SpikeActor {
     this.ragdoll = null
     // Match setPose key so the first pose does not rebuild hair/race meshes (showcase blink).
     this._appearanceKey = resolved
-      ? `${resolved.species}|${resolved.gender}|${resolved.hairStyle}|${resolved.hairColour}|${resolved.klingonArmour}|${resolved.uniform ?? ''}`
+      ? `${resolved.species}|${resolved.gender}|${resolved.hairStyle}|${resolved.hairColour}|${resolved.klingonArmour}|${resolved.outfit ?? ''}|${resolved.uniform ?? ''}`
       : null
     this._paintX = 0
     this._paintZ = 0
@@ -69,7 +71,40 @@ class SpikeActor {
     this._yawTarget = this._yaw
     this._posReady = false
     this._pendingTravel = 0
+    // Idle fidgets (same catalogue / gap as sprite FigureView) — only while the resolved clip is idle.
+    this._fidget = null
+    this._nextFidgetAt = null
+    this._lastFidget = null
     this.scene.add(this.root)
+  }
+
+  _fidgetGapMs() {
+    const [minGap, maxGap] = IDLE_FIDGET_GAP
+    return (minGap + Math.random() * (maxGap - minGap)) * 1000
+  }
+
+  _clearFidget() {
+    this._fidget = null
+    this._nextFidgetAt = null
+  }
+
+  /** Base idle, or a one-shot fidget when the gap elapses (never the same twice in a row). */
+  _idleOrFidget(now) {
+    if (this._fidget && (now >= this._fidget.endsAt || this.body.current === 'idle')) {
+      this._fidget = null
+      this._nextFidgetAt = now + this._fidgetGapMs()
+    }
+    if (this._nextFidgetAt === null) this._nextFidgetAt = now + this._fidgetGapMs()
+    if (!this._fidget && now >= this._nextFidgetAt && IDLE_FIDGETS.length) {
+      const choices = IDLE_FIDGETS.filter((name) => name !== this._lastFidget)
+      const pool = choices.length ? choices : IDLE_FIDGETS
+      this._lastFidget = pool[Math.floor(Math.random() * pool.length)]
+      this._fidget = {
+        name: this._lastFidget,
+        endsAt: now + clipSeconds(this._lastFidget) * 1000,
+      }
+    }
+    return this._fidget?.name ?? 'idle'
   }
 
   /** @deprecated use this.body.model — kept for ragdoll material hand-off */
@@ -103,7 +138,7 @@ class SpikeActor {
     this._beam = beam ?? null
     this._lastSeen = performance.now()
     if (appearance) {
-      const key = `${appearance.species}|${appearance.gender}|${appearance.hairStyle}|${appearance.hairColour}|${appearance.klingonArmour}|${appearance.uniform ?? ''}`
+      const key = `${appearance.species}|${appearance.gender}|${appearance.hairStyle}|${appearance.hairColour}|${appearance.klingonArmour}|${appearance.outfit ?? ''}|${appearance.uniform ?? ''}`
       if (key !== this._appearanceKey) {
         this._appearanceKey = key
         this.body.setAppearance(appearance)
@@ -152,9 +187,17 @@ class SpikeActor {
       else if (gait === 'sneakWalk') clip = 'sneakWalk'
       else if (gait === 'sneakIdle') clip = 'sneakIdle'
       else if (gait === 'walk') clip = 'walk'
+      else if (gait === 'stepBack') clip = 'stepBack'
       else clip = 'idle'
     }
+    // Standing idle: random look-around / shift / etc. Walk, combat poses, beam-wait clear the timer.
+    if (clip === 'idle' && !this._down && this._beam !== 'waiting') {
+      clip = this._idleOrFidget(performance.now())
+    } else {
+      this._clearFidget()
+    }
     this.body.play(clip)
+    reportLiveClip(this.id, this.body.current || clip)
   }
 
   _requestRagdoll(blastReact, down) {
@@ -203,6 +246,7 @@ class SpikeActor {
 
   update(dt) {
     if (this.ragdollActive) {
+      reportLiveClip(this.id, 'ragdoll')
       if (this._pendingStaggerClear && this.ragdoll?.settled) {
         this._pendingStaggerClear = false
         this._staggerCallback?.()
@@ -225,6 +269,7 @@ class SpikeActor {
     }
     // Cadence from distance travelled so stride length tracks party walk/run speed.
     this.body.update(dt, travel)
+    reportLiveClip(this.id, this.body.current || 'idle')
     if (this.shadow) {
       // Counter-rotate so the ellipse stays axis-aligned on the floor (reads as a contact blob).
       this.shadow.rotation.y = -this._yaw
@@ -237,6 +282,7 @@ class SpikeActor {
   }
 
   dispose() {
+    clearLiveClip(this.id)
     this._pendingBlast = null
     this.ragdoll?.dispose()
     this.ragdoll = null
@@ -264,6 +310,8 @@ export class Spike3dScene {
       alpha: true,
       antialias: true,
       powerPreference: 'high-performance',
+      // Explore↔combat freezes this canvas with drawImage/toDataURL; without it the buffer is often blank.
+      preserveDrawingBuffer: true,
     })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     // Contact blobs ground the figures; map floor is Pixi so PCF maps never land — skip the cost.
@@ -277,6 +325,8 @@ export class Spike3dScene {
 
     this.scene = new THREE.Scene()
     this.camera = makeIsoCamera()
+    /** True after at least one frame drew with a real SVG viewBox (handoff cover waits on this). */
+    this._paintedOnce = false
 
     // Soft board-matched light: ambient carries most of the look; key is weak so cloth stays matte.
     const hemi = new THREE.HemisphereLight(0xc8d4e4, 0x2a3038, 0.95)
@@ -412,6 +462,7 @@ export class Spike3dScene {
     // Wait for the SVG viewBox — drawing with the default ortho camera places figures wrong for a frame.
     if (!this._viewBox?.width) return
     syncIsoCamera(this.camera, this._viewBox, this.renderer)
+    this._paintedOnce = true
 
     if (this._poses.length) {
       let sx = 0

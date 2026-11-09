@@ -62,15 +62,22 @@ export default function Spike3dOverlay({ map, posesRef, svgRef, hostRef, frameRe
     }
     window.addEventListener('keydown', onKey, true)
 
+    canvas.dataset.spikeReady = '0'
+
     if (frameRef) {
       frameRef.current = () => {
         if (!alive) return
         scene.frame(posesRef?.current ?? [], readSvgViewBox(svgRef?.current))
+        // Handoff cover (ExplorationScreen) waits for this before lifting the freeze.
+        if (scene._paintedOnce && canvas.dataset.spikeReady !== '1') {
+          canvas.dataset.spikeReady = '1'
+        }
       }
     }
 
     return () => {
       alive = false
+      canvas.dataset.spikeReady = '0'
       if (frameRef) frameRef.current = null
       window.removeEventListener('resize', syncSize)
       window.removeEventListener('keydown', onKey, true)

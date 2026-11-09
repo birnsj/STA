@@ -70,11 +70,15 @@ export class HumanoidModel {
     this.body.add(this.hips)
 
     this.pelvis = this.addEllipsoid(this.hips, [0, 1.5 * s, 0], [4.7 * s, 3.4 * s, 3.0 * s], this.pants)
-    // Belt + buckle at the waist break (tunic ↔ trousers).
+    // Belt + buckle at the waist break (tunic ↔ trousers / dress).
     this.addCapsule(this.hips, [0, 4.55 * s, 0], 0.55 * s, 9.4 * s, this.belt, 'x')
     this.addEllipsoid(this.hips, [0, 4.55 * s, 3.15 * s], [1.15 * s, 0.7 * s, 0.45 * s], this.gold)
 
+    this._pantMeshes = []
     this.legs = [this._makeLeg(1), this._makeLeg(-1)]
+    this._skirtGroup = null
+    this._outfit = 'tunic'
+    this._buildSkirt()
 
     // Waist joint — lean/twist split here so the chest isn’t a rigid stick.
     this.spine = new THREE.Group()
@@ -83,7 +87,7 @@ export class HumanoidModel {
     this.hips.add(this.spine)
     this.belly = this.addEllipsoid(this.spine, [0, 1.5 * s, 0.15 * s], [4.55 * s, 3.7 * s, 2.95 * s], this.robe)
     // Tunic hem flare just above the belt.
-    this.addEllipsoid(this.spine, [0, 0.15 * s, 0.05 * s], [5.05 * s, 1.35 * s, 3.25 * s], this.robeDk)
+    this.tunicHem = this.addEllipsoid(this.spine, [0, 0.15 * s, 0.05 * s], [5.05 * s, 1.35 * s, 3.25 * s], this.robeDk)
 
     this.torso = new THREE.Group()
     this.torso.name = 'torso'
@@ -159,10 +163,47 @@ export class HumanoidModel {
       this.arms[i].shoulder.position.x = this._baseArmX[i] * shoulder
       this.legs[i].thigh.position.x = this._baseHipX[i] * hip
     }
+    // Chest > 1 reads as bust (width + depth); chest < 1 narrows the male-default volume.
     this._chestRx = this._baseChest.rx * chest
-    this._chestRy = this._baseChest.ry * chest
-    this._chestRz = this._baseChest.rz
+    this._chestRy = this._baseChest.ry * (0.92 + chest * 0.08)
+    this._chestRz = this._baseChest.rz * (0.85 + chest * 0.2)
     this.chest.scale.set(this._chestRx, this._chestRy, this._chestRz)
+  }
+
+  _buildSkirt() {
+    const s = this._s
+    const g = new THREE.Group()
+    g.name = 'tos_skirt'
+    // Short A-line miniskirt from the belt — more leg than cloth (TOS Federation look).
+    this.addEllipsoid(g, [0, -0.85 * s, 0.1 * s], [5.2 * s, 1.55 * s, 3.85 * s], this.robe)
+    this.addEllipsoid(g, [0, -2.55 * s, 0.15 * s], [6.0 * s, 1.7 * s, 4.45 * s], this.robe)
+    this.addEllipsoid(g, [0, -3.85 * s, 0.12 * s], [6.45 * s, 0.95 * s, 4.7 * s], this.robeDk)
+    g.visible = false
+    this.hips.add(g)
+    this._skirtGroup = g
+  }
+
+  /**
+   * 'tunic' = trousers + short hem (default / male / non-human female).
+   * 'tosDress' = Starfleet human female TOS minidress: skirt, bare thighs, boots.
+   */
+  setOutfit(mode = 'tunic') {
+    const next = mode === 'tosDress' ? 'tosDress' : 'tunic'
+    if (this._outfit === next && this._skirtGroup) {
+      this._skirtGroup.visible = next === 'tosDress'
+      return
+    }
+    this._outfit = next
+    const dress = next === 'tosDress'
+    if (!this._skirtGroup) this._buildSkirt()
+    this._skirtGroup.visible = dress
+    if (this.tunicHem) this.tunicHem.visible = !dress
+    this.pelvis.material = dress ? this.robe : this.pants
+    // Thigh + shin tubes become bare skin under the miniskirt; boot shafts stay black.
+    for (const mesh of this._pantMeshes) {
+      mesh.material = dress ? this.skin : this.pants
+      mesh.visible = true
+    }
   }
 
   setHair(styleId = 'short', colourHex = null) {
@@ -190,39 +231,75 @@ export class HumanoidModel {
     const add = (pos, radii, mat = this.hood) => this.addEllipsoid(g, pos, radii, mat)
     switch (styleId) {
       case 'crew':
-        add([0, 3.0 * s, -0.15 * s], [2.6 * s, 1.1 * s, 2.5 * s])
-        add([0, 2.2 * s, -1.4 * s], [2.4 * s, 1.4 * s, 1.2 * s], this.hoodDk)
+        // Tight military crop — skullcap + short nape.
+        add([0, 3.05 * s, -0.1 * s], [2.55 * s, 1.05 * s, 2.45 * s])
+        add([0, 2.35 * s, -0.05 * s], [2.7 * s, 1.0 * s, 2.55 * s], this.hoodDk)
+        add([0, 1.7 * s, -1.55 * s], [2.2 * s, 1.35 * s, 1.1 * s], this.hoodDk)
         break
       case 'bowl':
-        add([0, 2.9 * s, 0], [2.95 * s, 1.6 * s, 2.9 * s])
-        add([0, 1.4 * s, 0.2 * s], [2.9 * s, 1.2 * s, 2.7 * s], this.hoodDk)
+        // Vulcan bowl: smooth crown, straight fringe volume, clean cheek line.
+        add([0, 3.15 * s, 0.05 * s], [3.05 * s, 1.75 * s, 3.0 * s])
+        add([0, 1.85 * s, 0.35 * s], [3.0 * s, 1.55 * s, 2.85 * s])
+        add([0, 1.1 * s, 1.6 * s], [2.65 * s, 1.0 * s, 1.35 * s], this.hoodDk)
+        add([0, 1.35 * s, -2.0 * s], [2.7 * s, 1.5 * s, 1.2 * s], this.hoodDk)
         break
       case 'bob':
-        add([0, 3.0 * s, -0.1 * s], [2.9 * s, 1.5 * s, 2.75 * s])
-        add([2.6 * s, 0.6 * s, 0.2 * s], [0.85 * s, 2.4 * s, 1.8 * s], this.hoodDk)
-        add([-2.6 * s, 0.6 * s, 0.2 * s], [0.85 * s, 2.4 * s, 1.8 * s], this.hoodDk)
-        add([0, 0.2 * s, -2.2 * s], [2.2 * s, 2.0 * s, 1.1 * s], this.hoodDk)
+        // Soft chin-length bob with side fullness and a rounded back.
+        add([0, 3.2 * s, -0.05 * s], [3.0 * s, 1.65 * s, 2.85 * s])
+        add([0, 1.9 * s, 0.15 * s], [3.05 * s, 1.7 * s, 2.8 * s])
+        add([2.85 * s, 0.35 * s, 0.35 * s], [1.05 * s, 2.6 * s, 2.0 * s])
+        add([-2.85 * s, 0.35 * s, 0.35 * s], [1.05 * s, 2.6 * s, 2.0 * s])
+        add([2.7 * s, -0.9 * s, 0.2 * s], [0.95 * s, 1.8 * s, 1.7 * s], this.hoodDk)
+        add([-2.7 * s, -0.9 * s, 0.2 * s], [0.95 * s, 1.8 * s, 1.7 * s], this.hoodDk)
+        add([0, -0.35 * s, -2.45 * s], [2.5 * s, 2.4 * s, 1.25 * s], this.hoodDk)
         break
       case 'long':
-        add([0, 3.1 * s, -0.2 * s], [2.85 * s, 1.45 * s, 2.7 * s])
-        add([2.5 * s, -0.4 * s, 0], [0.7 * s, 3.2 * s, 1.6 * s], this.hoodDk)
-        add([-2.5 * s, -0.4 * s, 0], [0.7 * s, 3.2 * s, 1.6 * s], this.hoodDk)
-        add([0, -1.2 * s, -2.4 * s], [2.0 * s, 2.8 * s, 1.0 * s], this.hoodDk)
+        // Shoulder-length fall with parted crown and side curtains.
+        add([0, 3.25 * s, -0.15 * s], [3.0 * s, 1.55 * s, 2.85 * s])
+        add([0, 2.0 * s, 0.1 * s], [3.05 * s, 1.6 * s, 2.75 * s])
+        add([2.75 * s, -0.2 * s, 0.15 * s], [0.95 * s, 3.4 * s, 1.85 * s])
+        add([-2.75 * s, -0.2 * s, 0.15 * s], [0.95 * s, 3.4 * s, 1.85 * s])
+        add([2.55 * s, -2.6 * s, 0.05 * s], [0.85 * s, 2.2 * s, 1.55 * s], this.hoodDk)
+        add([-2.55 * s, -2.6 * s, 0.05 * s], [0.85 * s, 2.2 * s, 1.55 * s], this.hoodDk)
+        add([0, -1.8 * s, -2.55 * s], [2.35 * s, 3.2 * s, 1.2 * s], this.hoodDk)
+        add([0, -3.6 * s, -2.2 * s], [1.9 * s, 1.8 * s, 1.0 * s], this.hoodDk)
+        break
+      case 'tos':
+        // TOS officer: lifted crown, soft fringe, cheek-framing sides (Yeoman / Uhura-adjacent silhouette).
+        add([0, 3.55 * s, -0.15 * s], [2.85 * s, 1.85 * s, 2.7 * s])
+        add([0, 2.55 * s, 0.2 * s], [3.0 * s, 1.55 * s, 2.8 * s])
+        add([0, 1.55 * s, 1.55 * s], [2.5 * s, 1.15 * s, 1.45 * s], this.hoodDk)
+        add([2.9 * s, 0.7 * s, 0.45 * s], [1.0 * s, 2.5 * s, 1.9 * s])
+        add([-2.9 * s, 0.7 * s, 0.45 * s], [1.0 * s, 2.5 * s, 1.9 * s])
+        add([2.6 * s, -1.0 * s, 0.25 * s], [0.85 * s, 1.9 * s, 1.55 * s], this.hoodDk)
+        add([-2.6 * s, -1.0 * s, 0.25 * s], [0.85 * s, 1.9 * s, 1.55 * s], this.hoodDk)
+        add([0, 0.4 * s, -2.5 * s], [2.4 * s, 2.3 * s, 1.2 * s], this.hoodDk)
+        break
+      case 'updo':
+        // High bun / beehive mass with neat side sweep.
+        add([0, 4.4 * s, -0.55 * s], [2.35 * s, 2.2 * s, 2.25 * s])
+        add([0, 3.3 * s, -0.2 * s], [2.85 * s, 1.5 * s, 2.65 * s])
+        add([0, 2.1 * s, 0.2 * s], [2.95 * s, 1.35 * s, 2.7 * s], this.hoodDk)
+        add([2.55 * s, 1.0 * s, 0.4 * s], [0.75 * s, 1.9 * s, 1.55 * s], this.hoodDk)
+        add([-2.55 * s, 1.0 * s, 0.4 * s], [0.75 * s, 1.9 * s, 1.55 * s], this.hoodDk)
+        add([0, 1.2 * s, -2.3 * s], [2.2 * s, 1.7 * s, 1.1 * s], this.hoodDk)
         break
       case 'warrior':
-        add([0, 3.2 * s, -0.3 * s], [2.9 * s, 1.6 * s, 2.8 * s])
-        add([0, 1.0 * s, -2.8 * s], [2.4 * s, 3.5 * s, 1.4 * s], this.hoodDk)
-        add([2.4 * s, 0.2 * s, -1.5 * s], [0.9 * s, 2.8 * s, 1.5 * s], this.hoodDk)
-        add([-2.4 * s, 0.2 * s, -1.5 * s], [0.9 * s, 2.8 * s, 1.5 * s], this.hoodDk)
+        add([0, 3.35 * s, -0.25 * s], [3.0 * s, 1.75 * s, 2.9 * s])
+        add([0, 1.9 * s, 0], [2.95 * s, 1.6 * s, 2.7 * s])
+        add([0, 0.4 * s, -2.95 * s], [2.55 * s, 3.8 * s, 1.55 * s], this.hoodDk)
+        add([2.55 * s, -0.2 * s, -1.6 * s], [1.0 * s, 3.2 * s, 1.65 * s], this.hoodDk)
+        add([-2.55 * s, -0.2 * s, -1.6 * s], [1.0 * s, 3.2 * s, 1.65 * s], this.hoodDk)
+        add([0, -2.4 * s, -2.6 * s], [2.0 * s, 2.4 * s, 1.2 * s], this.hoodDk)
         break
       case 'short':
       default:
-        add([0, 3.15 * s, -0.2 * s], [2.85 * s, 1.45 * s, 2.7 * s])
-        add([0, 2.85 * s, 1.15 * s], [2.45 * s, 1.05 * s, 1.65 * s], this.hoodDk)
-        add([0, 2.35 * s, -1.55 * s], [2.7 * s, 1.85 * s, 1.75 * s])
-        add([2.55 * s, 1.85 * s, -0.25 * s], [0.7 * s, 2.0 * s, 2.15 * s], this.hoodDk)
-        add([-2.55 * s, 1.85 * s, -0.25 * s], [0.7 * s, 2.0 * s, 2.15 * s], this.hoodDk)
-        add([0, 1.65 * s, -2.55 * s], [2.35 * s, 1.85 * s, 1.05 * s], this.hoodDk)
+        add([0, 3.2 * s, -0.15 * s], [2.95 * s, 1.55 * s, 2.8 * s])
+        add([0, 2.5 * s, 0.9 * s], [2.55 * s, 1.15 * s, 1.75 * s], this.hoodDk)
+        add([0, 2.15 * s, -1.65 * s], [2.8 * s, 1.85 * s, 1.7 * s])
+        add([2.65 * s, 1.55 * s, -0.2 * s], [0.75 * s, 2.05 * s, 2.1 * s], this.hoodDk)
+        add([-2.65 * s, 1.55 * s, -0.2 * s], [0.75 * s, 2.05 * s, 2.1 * s], this.hoodDk)
+        add([0, 1.35 * s, -2.6 * s], [2.4 * s, 1.9 * s, 1.1 * s], this.hoodDk)
         break
     }
   }
@@ -297,13 +374,15 @@ export class HumanoidModel {
     thigh.name = `thigh_${sideTag}`
     thigh.position.set(hipX, 0, 0)
     this.hips.add(thigh)
-    this.addCapsule(thigh, [0, -thighLen * 0.5, 0], 2.15 * s, thighLen * 0.88, this.pants)
+    const thighMesh = this.addCapsule(thigh, [0, -thighLen * 0.5, 0], 2.15 * s, thighLen * 0.88, this.pants)
+    this._pantMeshes.push(thighMesh)
 
     const shin = new THREE.Group()
     shin.name = `shin_${sideTag}`
     shin.position.set(0, -thighLen, 0)
     thigh.add(shin)
-    this.addCapsule(shin, [0, -shinLen * 0.5, 0], 1.85 * s, shinLen * 0.72, this.pants)
+    const shinPants = this.addCapsule(shin, [0, -shinLen * 0.5, 0], 1.85 * s, shinLen * 0.72, this.pants)
+    this._pantMeshes.push(shinPants)
     // Boot shaft up the shin so the foot isn’t a floating capsule.
     this.addCapsule(shin, [0, -shinLen * 0.72, 0.05 * s], 2.05 * s, shinLen * 0.42, this.boots)
 
@@ -408,6 +487,8 @@ export class HumanoidModel {
     const lean = pose.lean ?? 0
     const sideLean = pose.sideLean ?? 0
     const bounce = pose.bounce ?? 0
+    // Body-unit drop (cover kneel): bounce alone is only a tiny bob and cannot plant a kneel.
+    const hipDrop = pose.hipDrop ?? 0
     const pitch = pose.pitch ?? 0
     const breathe = pose.breathe ?? 0
     const hipYaw = pose.hipYaw ?? 0
@@ -423,7 +504,7 @@ export class HumanoidModel {
     const s = this._s
 
     // Soft vertical settle only — no hip slide/roll (that read as leg wobble).
-    this.body.position.y = bounce * 1.1 * s
+    this.body.position.y = bounce * 1.1 * s - hipDrop * s
     this.hips.position.x = 0
     this.hips.rotation.y = hipYaw
     this.hips.rotation.z = 0

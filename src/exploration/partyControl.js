@@ -14,12 +14,32 @@ import { assignSlots, DEFAULT_FORMATION_ID, formationTargets, getFormation } fro
 import { distance, isClear, isClearLine, nearestWalkableTile, planRoute, RADIUS, slide, tileOf, walkingDistances, walkingDistanceTo } from './navigation.js'
 
 const MOVE = data.movement
-// How readily a character gives way when two get too close: someone standing still never does, and a lead character
-// mostly holds their line while followers step aside.
+// How readily a character gives way when two get too close: a selected lead on a point order mostly holds their line,
+// followers step aside, and anyone left out of the selection yields so they can step back instead of pinning the walker.
 const GIVE_WAY = { none: 0, point: 0.35, follow: 1 }
 // A parked follower (stopped because their spot is crowded) stands still like anyone without an order. Pushed about,
 // they and the follower beside them would keep shuffling, walking on the spot, after the party has stopped.
-const giveWay = (member) => (member.parkedFor ? GIVE_WAY.none : GIVE_WAY[member.order?.type ?? 'none'])
+const giveWayWeight = (member, other, selectedIds) => {
+  if (member.parkedFor) return 0
+  const type = member.order?.type ?? 'none'
+  const selected = selectedIds.includes(member.id)
+  const otherSelected = selectedIds.includes(other.id)
+  // Unselected (e.g. former lead after you pick someone else): yield to the selected mover and play step-back.
+  if (!selected && otherSelected && (other.order?.type === 'point' || other.order?.type === 'follow' || other.moving)) {
+    return GIVE_WAY.follow
+  }
+  if (type === 'follow') return GIVE_WAY.follow
+  if (type === 'point') return GIVE_WAY.point
+  // Idle selected stander: still yield to a walker so they step back rather than the walker sliding off them.
+  if (type === 'none' && (other.order?.type === 'point' || other.order?.type === 'follow')) return GIVE_WAY.follow
+  return 0
+}
+/** Step-back when shoved: never the selected character driving a point move. */
+const shouldStepBack = (member, selectedIds) => {
+  if (member.order?.type === 'point' && selectedIds.includes(member.id)) return false
+  if (!selectedIds.includes(member.id)) return true
+  return !member.moving || Boolean(member.pushed)
+}
 const MAX_TICK_SECONDS = 0.05
 
 // A member standing still at position, looking along heading (radians).
@@ -207,7 +227,7 @@ function changeFormation(state, formationId) {
 
 // Pushes apart any two characters closer than personal space, so nobody stacks on anyone else. Defeated characters
 // take no part.
-function separation(list) {
+function separation(list, selectedIds) {
   const pushes = list.map(() => ({ x: 0, y: 0 }))
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
@@ -216,8 +236,8 @@ function separation(list) {
       if (!canAct(a) || !canAct(b)) continue
       const d = distance(a.position, b.position)
       if (d >= MOVE.personalSpace) continue
-      const wa = giveWay(a)
-      const wb = giveWay(b)
+      const wa = giveWayWeight(a, b, selectedIds)
+      const wb = giveWayWeight(b, a, selectedIds)
       if (!wa && !wb) continue
       // Exactly on top of each other: split along a fixed direction so the result doesn't depend on rounding.
       const dir = d > 1e-4 ? { x: (b.position.x - a.position.x) / d, y: (b.position.y - a.position.y) / d } : { x: Math.cos(i + j), y: Math.sin(i + j) }
@@ -256,7 +276,8 @@ function tick(state, rawSeconds) {
     }
     return controllerFor(member).exploreTick(member, { party: state, seconds, followTarget: followTargets[member.id], others: current })
   })
-  const pushes = separation(current)
+  const selectedIds = state.selectedIds
+  const pushes = separation(current, selectedIds)
   let changed = false
   let members = {}
   steered.forEach(({ member, velocity, direction, run }, i) => {
@@ -271,25 +292,42 @@ function tick(state, rawSeconds) {
     const pace = state.map.slowKeys?.[`${Math.round(member.position.x)},${Math.round(member.position.y)}`] ? 0.5 : 1
     const step = { x: (velocity.x * pace + pushes[i].x) * seconds, y: (velocity.y * pace + pushes[i].y) * seconds }
     const stepping = Math.hypot(step.x, step.y) > 1e-4
+    // Soft personal-space shove with no own walk: step-back (same clip NPCs use when the party walks into them).
+    const pushOnly =
+      Math.hypot(velocity.x, velocity.y) < 1e-3 &&
+      Math.hypot(pushes[i].x, pushes[i].y) > 1e-3 &&
+      shouldStepBack(member, selectedIds)
     let next = member
     if (stepping) {
       const position = slide(state.map, member.position, step)
       const pace = smoothPace(member.pace, { x: (position.x - member.position.x) / seconds, y: (position.y - member.position.y) / seconds }, seconds)
-      const moving = isMovingPace(pace)
+      const moving = isMovingPace(pace) || pushOnly
       // A runner easing into place at the end, or held up, drops to a walk.
       const running = moving && Boolean(run) && Math.hypot(velocity.x, velocity.y) > MOVE.walkSpeed + 0.01
-      next = { ...controllerFor(member).turn(member, direction, seconds), position, pace, moving, running }
-      if (direction && Math.hypot(direction.x, direction.y) > 0.05) next.facing = { x: direction.x, y: direction.y }
-    } else if (member.moving || member.pace) {
+      next = { ...controllerFor(member).turn(member, direction, seconds), position, pace, moving, running, pushed: pushOnly }
+      if (pushOnly) {
+        const len = Math.hypot(pushes[i].x, pushes[i].y) || 1
+        // Face the body that crowded them (push vector points away from that body).
+        next.facing = { x: -pushes[i].x / len, y: -pushes[i].y / len }
+        next.heading = Math.atan2(next.facing.y, next.facing.x)
+      } else if (direction && Math.hypot(direction.x, direction.y) > 0.05) {
+        next.facing = { x: direction.x, y: direction.y }
+      }
+    } else if (member.moving || member.pace || member.pushed) {
       // Not stepping at all: standing still at once, so the walk animation stops when they do.
-      next = { ...member, pace: null, moving: false, running: false }
+      next = { ...member, pace: null, moving: false, running: false, pushed: false }
     }
     if (next !== current[i]) changed = true
     members[member.id] = next
   })
   // A Defeated character has no collision: the others walk over them.
   // Blast stagger stays planted: still collidable so others walk around, but resolveOverlaps must not shove them.
-  const resolved = resolveOverlaps(state.map, members, state.memberIds.filter((id) => canAct(members[id])))
+  const resolved = resolveOverlaps(
+    state.map,
+    members,
+    state.memberIds.filter((id) => canAct(members[id])),
+    selectedIds,
+  )
   if (resolved !== members) {
     const planted = { ...resolved }
     let shoved = false
@@ -392,7 +430,7 @@ export function finishBeamIn(state, ids) {
 
 // Personal space is soft (characters may brush past each other), but bodies never overlap: any two closer than two
 // radii are moved apart at once, by whoever gives way, without being pushed into a wall.
-function resolveOverlaps(map, members, ids) {
+function resolveOverlaps(map, members, ids, selectedIds) {
   const minimum = RADIUS * 2
   let result = members
   for (let i = 0; i < ids.length; i++) {
@@ -401,16 +439,40 @@ function resolveOverlaps(map, members, ids) {
       const b = result[ids[j]]
       const d = distance(a.position, b.position)
       if (d >= minimum) continue
-      const wa = GIVE_WAY[a.order?.type ?? 'none']
-      const wb = GIVE_WAY[b.order?.type ?? 'none']
+      const wa = giveWayWeight(a, b, selectedIds)
+      const wb = giveWayWeight(b, a, selectedIds)
       if (!wa && !wb) continue
       const dir = d > 1e-4 ? { x: (b.position.x - a.position.x) / d, y: (b.position.y - a.position.y) / d } : { x: Math.cos(i + j), y: Math.sin(i + j) }
       const gap = minimum - d
       const shareA = (gap * wa) / (wa + wb)
       const shareB = (gap * wb) / (wa + wb)
       if (result === members) result = { ...members }
-      if (shareA) result[a.id] = { ...a, position: slide(map, a.position, { x: -dir.x * shareA, y: -dir.y * shareA }) }
-      if (shareB) result[b.id] = { ...b, position: slide(map, b.position, { x: dir.x * shareB, y: dir.y * shareB }) }
+      // Selected point-mover keeps walk. Unselected standers (former lead, etc.) and followers play step-back.
+      if (shareA) {
+        const shoved = shouldStepBack(a, selectedIds)
+        result[a.id] = {
+          ...a,
+          position: slide(map, a.position, { x: -dir.x * shareA, y: -dir.y * shareA }),
+          ...(shoved
+            ? { pushed: true, moving: true, facing: { x: dir.x, y: dir.y }, heading: Math.atan2(dir.y, dir.x) }
+            : {}),
+        }
+      }
+      if (shareB) {
+        const shoved = shouldStepBack(b, selectedIds)
+        result[b.id] = {
+          ...b,
+          position: slide(map, b.position, { x: dir.x * shareB, y: dir.y * shareB }),
+          ...(shoved
+            ? {
+                pushed: true,
+                moving: true,
+                facing: { x: -dir.x, y: -dir.y },
+                heading: Math.atan2(-dir.y, -dir.x),
+              }
+            : {}),
+        }
+      }
     }
   }
   return result

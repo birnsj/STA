@@ -52,11 +52,12 @@
   --explore-card-height: 54px;
 }
 
-/* Frozen board frame during explore↔combat handoff until the other Pixi board has painted. */
+/* Frozen board frame during explore↔combat handoff until the other board (Pixi + Spike3d) has painted.
+   Above HUD chrome so the remount cannot flash panels or an empty WebGL canvas through the freeze. */
 .combat-handoff-cover {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 40;
   pointer-events: none;
   background: #03060e;
 }
@@ -1164,7 +1165,7 @@
 }
 
 /* The action buttons are stacked on top of the Formation panel. Same width and right edge as the minimap.
-   z-index must beat .battlefield (2) — without it, Pixi/spike3d characters draw through the panel. */
+   z-index above the board SVG (2) so chrome never draws under 3D characters. */
 .explore-bottom-right {
   position: absolute;
   right: 8px;

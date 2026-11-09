@@ -88,10 +88,27 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  /* Above Pixi + spike3d canvases so rings/menus still receive pointer input. */
+  /* Above Pixi + spike3d so rings, menus, tags and character FX receive input and paint on top. */
   z-index: 2;
   /* Lets a one-finger drag pan the map (useCamera.js) instead of scrolling or zooming the page. */
   touch-action: none;
+}
+
+/* Screen HUD chrome: floor above the board SVG (2). Panels that need a higher stack keep their own z-index later. */
+.combat-screen > .party-bar,
+.combat-screen > .explore-party-bar,
+.combat-screen > .explore-bottom-right,
+.combat-screen > .explore-messages,
+.combat-screen > .combat-top-center,
+.combat-screen > .combat-bottom-left,
+.combat-screen > .explore-minimap-column,
+.combat-screen > .combat-modal-backdrop,
+.combat-screen > .debug-panel,
+.combat-screen > .explore-scan-report,
+.combat-screen > .explore-debug-column,
+.combat-screen > .edge-scroll-debug,
+.combat-screen > .world-combat-debug {
+  z-index: 10;
 }
 
 /* Action buttons around a clicked unit (UnitActionRing). */

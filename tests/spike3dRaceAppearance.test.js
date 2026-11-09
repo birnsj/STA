@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { nearestDivisionId, parseHex, uniformTextureUrl, UNIFORM_DIVISION_IDS } from '../src/spike3d/uniformTextures.js'
 import { resolveRaceMeshId, raceModelPath, skinColourFor, RACE_MESH_SPECIES } from '../src/spike3d/raceMeshes/index.js'
-import { resolveSpike3dAppearance, genderPreset } from '../src/spike3d/appearance.js'
+import { resolveSpike3dAppearance, genderPreset, resolveOutfit } from '../src/spike3d/appearance.js'
 
 describe('spike3d uniform textures', () => {
   it('lists the three Starfleet divisions', () => {
@@ -42,6 +42,7 @@ describe('spike3d appearance resolve', () => {
   it('resolves gender presets and species from portrait-like ids', () => {
     const female = genderPreset('female')
     assert.ok(female.hip > female.shoulder)
+    assert.ok(female.chest > 1)
     const app = resolveSpike3dAppearance({
       portraitId: 'vulcan-female-1',
       uniform: '#2d6fb3',
@@ -50,6 +51,18 @@ describe('spike3d appearance resolve', () => {
     assert.equal(app.gender, 'female')
     assert.equal(app.klingonArmour, false)
     assert.equal(app.uniform, '#2d6fb3')
+    assert.equal(app.outfit, 'tosDress')
+  })
+
+  it('gives Starfleet females the TOS dress outfit (all races)', () => {
+    assert.equal(resolveOutfit({ species: 'human', gender: 'female' }), 'tosDress')
+    assert.equal(resolveOutfit({ species: 'andorian', gender: 'female' }), 'tosDress')
+    assert.equal(resolveOutfit({ species: 'vulcan', gender: 'female' }), 'tosDress')
+    const app = resolveSpike3dAppearance({ portraitId: 'human-female-1', uniform: '#c9a227' })
+    assert.equal(app.outfit, 'tosDress')
+    assert.equal(app.hairStyle, 'tos')
+    assert.equal(resolveOutfit({ species: 'human', gender: 'male' }), 'tunic')
+    assert.equal(resolveOutfit({ species: 'human', gender: 'female', klingonArmour: true }), 'tunic')
   })
 
   it('resolves species from sprite-set ids (Sprite Showcase passes these)', () => {
@@ -59,6 +72,7 @@ describe('spike3d appearance resolve', () => {
     const caitian = resolveSpike3dAppearance({ portraitId: 'caitian-female' })
     assert.equal(caitian.species, 'caitian')
     assert.equal(caitian.gender, 'female')
+    assert.equal(caitian.outfit, 'tosDress')
   })
 
   it('marks Klingons for armour (no division tunic)', () => {
@@ -66,5 +80,6 @@ describe('spike3d appearance resolve', () => {
     assert.equal(app.species, 'klingon')
     assert.equal(app.klingonArmour, true)
     assert.equal(app.uniform, null)
+    assert.equal(app.outfit, 'tunic')
   })
 })

@@ -1,30 +1,31 @@
 {
   "notes": [
     "Prototype 3D figure appearance (spike3d). Portrait id or species|gender maps to a procedural hair style and colour so the board figure reads as the same person as the portrait.",
-    "genderPresets scale the shared skeleton (shoulders, hips, chest, height) — not separate anim trees.",
-    "hairStyles are built in HumanoidModel.setHair. Non-human races use unique placeholder meshes on the shared rig (src/spike3d/raceMeshes/); humans keep the default head.",
+    "genderPresets scale the shared skeleton (shoulders, hips, chest, height) — not separate anim trees. Female presets push hip/chest so non-human women still read female at iso distance.",
+    "hairStyles are built in HumanoidModel.setHair (short, crew, bowl, bob, long, tos, updo, warrior). Non-human races use unique placeholder meshes on the shared rig (src/spike3d/raceMeshes/); humans keep the default head.",
     "Uniforms use discrete coloured tunic textures per Starfleet division (command / operations / sciences) under public/art/models/characters/shared/ — no mask shader.",
+    "outfit: Starfleet females (all races) use tosDress (short TOS miniskirt + boots); males keep tunic+trousers. Klingon armour skips dresses.",
     "mixedHeritage and newSpecies use the human mesh. Optional GLB overrides: public/art/models/characters/{species}-{gender}.glb."
   ],
   "genderPresets": {
     "male": { "shoulder": 1, "hip": 1, "chest": 1, "height": 1 },
-    "female": { "shoulder": 0.9, "hip": 1.08, "chest": 0.92, "height": 0.96 }
+    "female": { "shoulder": 0.84, "hip": 1.18, "chest": 1.12, "height": 0.94 }
   },
   "defaultHair": {
     "male": "short",
     "female": "bob",
     "human-male": "short",
-    "human-female": "bob",
+    "human-female": "tos",
     "vulcan-male": "bowl",
     "vulcan-female": "bob",
     "andorian-male": "short",
-    "andorian-female": "bob",
+    "andorian-female": "long",
     "tellarite-male": "short",
     "tellarite-female": "bob",
     "trill-male": "short",
     "trill-female": "long",
     "caitian-male": "short",
-    "caitian-female": "bob",
+    "caitian-female": "long",
     "klingon-male": "warrior",
     "klingon-female": "warrior"
   },
@@ -80,13 +81,13 @@
     "human-male-2": { "hairStyle": "crew", "hairColour": "#2a1a10" },
     "human-male-3": { "hairStyle": "short", "hairColour": "#6a4a28" },
     "human-male-4": { "hairStyle": "crew", "hairColour": "#4a3020" },
-    "human-female-1": { "hairStyle": "bob", "hairColour": "#5a3a22" },
+    "human-female-1": { "hairStyle": "tos", "hairColour": "#5a3a22" },
     "human-female-2": { "hairStyle": "long", "hairColour": "#2a1810" },
-    "human-female-3": { "hairStyle": "bob", "hairColour": "#8a6030" },
+    "human-female-3": { "hairStyle": "updo", "hairColour": "#8a6030" },
     "vulcan-male-1": { "hairStyle": "bowl", "hairColour": "#111111" },
     "vulcan-female-1": { "hairStyle": "bob", "hairColour": "#111111" },
     "andorian-male-1": { "hairStyle": "short", "hairColour": "#e8eef5" },
-    "andorian-female-1": { "hairStyle": "bob", "hairColour": "#e8eef5" },
+    "andorian-female-1": { "hairStyle": "long", "hairColour": "#e8eef5" },
     "klingon-warrior-1": { "hairStyle": "warrior", "hairColour": "#1a1208" },
     "klingon-warrior-2": { "hairStyle": "warrior", "hairColour": "#1a1208" }
   }

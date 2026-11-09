@@ -249,8 +249,11 @@ export function shownPose(track, { inCover = false, isWalking = false, panic = f
   if (track.strike) return { animation: track.strike, playKey: track.playKey, settled: false, reverse: false }
   if (track.reaction && track.reactionHeldUntil === null) return { animation: track.reaction, playKey: track.playKey, settled: false, reverse: false }
   if (track.surrendered) return { animation: 'surrender', playKey: track.playKey, settled: track.handsSettled, reverse: false }
-  if (isWalking) return { animation: 'run', playKey: 0, settled: false, reverse: false }
-  // Presentation-only: while burning / afflicted, low-Fitness panic overrides standing idle (not cover).
+  // Presentation-only: low-Fitness hazard panic — moving uses a legged variant so they don’t moonwalk.
+  if (isWalking) {
+    if (panic && !inCover) return { animation: 'hazardPanicRun', playKey: 0, settled: false, reverse: false }
+    return { animation: 'run', playKey: 0, settled: false, reverse: false }
+  }
   if (panic && !inCover) return { animation: 'hazardPanic', playKey: 0, settled: false, reverse: false }
   return { animation: inCover ? 'cover' : 'idle', playKey: 0, settled: false, reverse: false }
 }

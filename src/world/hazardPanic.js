@@ -1,6 +1,8 @@
 // Presentation-only hazard panic (designer 2026-10-15): while a character hazard overlay is active, low Fitness
 // prefers a looping panic body pose. No Difficulty or action-cost effect.
-// Fitness ≤ 9: always panic while idle. 10–11: ~50% (stable per character id). ≥ 12: never.
+// Fitness ≤ 9: always panic. 10–11: ~50% (stable per character id). ≥ 12: never.
+// Spike3d: stationary `hazardPanic`; moving `hazardPanicWalk` / `hazardPanicRun` (legs + panicked upper body).
+// Sprites: standing uses the panic sheet; while walking/running they keep the walk/run sheet.
 
 function hashOf(text) {
   let hash = 0

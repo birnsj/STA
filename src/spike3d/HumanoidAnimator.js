@@ -14,7 +14,18 @@ import {
 
 const SPEED_WALK = 0.55
 const SPEED_RUN = 1
-const LOCO_SPEED = { idle: 0, walk: SPEED_WALK, run: SPEED_RUN, sneakWalk: SPEED_WALK * 0.65, sneakIdle: 0 }
+const LOCO_SPEED = {
+  idle: 0,
+  walk: SPEED_WALK,
+  run: SPEED_RUN,
+  sneakWalk: SPEED_WALK * 0.65,
+  sneakIdle: 0,
+  // Party shove: shorter stride while facing the pusher (NPCController keepClear).
+  stepBack: SPEED_WALK * 0.7,
+  // Hazard panic while moving: walk/run legs + panicked upper body.
+  hazardPanicWalk: SPEED_WALK,
+  hazardPanicRun: SPEED_RUN,
+}
 
 const WALK_STRIDE = 2.56
 const RUN_STRIDE = 3.3
@@ -45,7 +56,9 @@ function evalIdlePose(u) {
     elbow: [deg(14), deg(16)],
     shoulder: [deg(1 + breathe * 0.4), deg(2 + breathe * 0.4)],
     breathe,
-    bounce: breathe * 0.05,
+    // No vertical bounce — that lifted both feet off the tile every breath.
+    bounce: 0,
+    hipDrop: 0,
     headYaw: Math.sin(w * 0.35) * deg(2.5),
     headPitch: deg(8) + breathe * deg(0.6),
     spineLean: breathe * deg(0.6),
@@ -104,6 +117,23 @@ function evalSneakIdle(u) {
   }
 }
 
+/** Compact shuffle away while still facing the pusher (lean back, guarded arms). */
+function evalStepBackPose(u) {
+  const gait = evalGaitPose(u, 0, 0.8, 0)
+  return {
+    ...gait,
+    lean: -deg(9),
+    spineLean: -deg(7),
+    chestLean: -deg(3),
+    arm: [deg(-14) + gait.arm[0] * 0.3, deg(-12) + gait.arm[1] * 0.3],
+    shoulder: [deg(-10), deg(-8)],
+    elbow: [deg(36), deg(34)],
+    bounce: gait.bounce * 0.5,
+    headPitch: deg(5),
+    torsoYaw: gait.torsoYaw * 0.55,
+  }
+}
+
 /** One-shot / hold pose curves. u∈[0,1]. */
 function evalActionPose(clip, u) {
   const t = clamp01(u)
@@ -111,20 +141,32 @@ function evalActionPose(clip, u) {
   const p = basePose()
 
   if (clip === 'cover') {
+    // Fresh procedural kneel (not a sprite retarget): right knee down, left foot forward,
+    // torso upright with a slight forward crouch, phaser aimed along facing (getFacing → target).
+    // pitch must stay 0 — any leftover fall tip read as “bent all the way back.”
     const breathe = Math.sin(t * Math.PI * 2)
     return {
       ...p,
-      thigh: [deg(8), deg(12)],
-      knee: [deg(18), deg(22)],
-      arm: [deg(-25), deg(-40)],
-      elbow: [deg(70), deg(85)],
-      shoulder: [deg(-20), deg(-35)],
-      spineLean: deg(18),
-      chestLean: deg(8),
-      headPitch: deg(4),
-      bounce: breathe * 0.03 - 0.05,
+      pitch: 0,
+      // [left planted forward, right knee on the deck]
+      thigh: [deg(36), deg(68)],
+      knee: [deg(72), deg(92)],
+      lean: deg(4),
+      spineLean: deg(8),
+      chestLean: deg(3),
+      sideLean: 0,
+      spineSide: 0,
+      torsoYaw: deg(-4),
+      headPitch: deg(3) + breathe * deg(0.4),
+      headYaw: deg(2),
+      // Weapon ready — keep the gun arm forward, not windmilling up behind the head.
+      arm: [deg(-6), deg(-24)],
+      elbow: [deg(32), deg(64)],
+      shoulder: [deg(-4), deg(-18)],
+      bounce: breathe * 0.012,
+      hipDrop: 6.8,
       prop: true,
-      aim: 0.4,
+      aim: 0.78,
     }
   }
 
@@ -229,19 +271,11 @@ function evalActionPose(clip, u) {
   }
 
   if (clip === 'hazardPanic') {
-    const shake = Math.sin(t * Math.PI * 8)
-    return {
-      ...p,
-      arm: [deg(-30) + deg(15) * shake, deg(-25) - deg(15) * shake],
-      elbow: [deg(50), deg(55)],
-      torsoYaw: deg(8) * shake,
-      headYaw: deg(12) * shake,
-      bounce: 0.04 * Math.abs(shake),
-      spineLean: deg(6),
-    }
+    // Stationary: upper-body flinch only — feet stay planted.
+    return { ...p, ...evalHazardPanicUpper(t), bounce: 0, hipDrop: 0 }
   }
 
-  // Fidgets
+  // Fidgets — upper body / lean only so soles stay planted on the tile.
   if (clip === 'idleLookAround') {
     const look = Math.sin(t * Math.PI * 2)
     return { ...evalIdlePose(t), headYaw: deg(28) * look, torsoYaw: deg(8) * look }
@@ -250,9 +284,9 @@ function evalActionPose(clip, u) {
     const w = Math.sin(t * Math.PI)
     return {
       ...evalIdlePose(t),
-      thigh: [deg(1.5) + deg(6) * w, deg(-1) - deg(4) * w],
-      sideLean: deg(6) * w,
-      bounce: -0.02 * w,
+      sideLean: deg(5) * w,
+      hipYaw: deg(4) * w,
+      torsoYaw: deg(3) * w,
     }
   }
   if (clip === 'idleTurn') {
@@ -260,14 +294,18 @@ function evalActionPose(clip, u) {
     return { ...evalIdlePose(t), hipYaw: deg(35) * turn, torsoYaw: deg(20) * turn, headYaw: deg(15) * turn }
   }
   if (clip === 'idleCheckPhaser') {
-    const reach = Math.sin(Math.min(1, t * 2) * Math.PI)
+    // Quiet hip check — no drawn prop / aim flash (that read as a combat ready).
+    const reach = Math.sin(Math.min(1, t * 1.6) * Math.PI)
     return {
       ...evalIdlePose(t),
-      arm: [deg(2), deg(4) - deg(55) * reach],
-      elbow: [deg(14), deg(16) + deg(50) * reach],
-      headPitch: deg(8) + deg(12) * reach,
-      prop: reach > 0.4,
-      aim: 0.2 * reach,
+      arm: [deg(2), deg(4) - deg(18) * reach],
+      elbow: [deg(14), deg(16) + deg(22) * reach],
+      shoulder: [deg(1), deg(2) - deg(6) * reach],
+      headPitch: deg(8) + deg(4) * reach,
+      headYaw: deg(5) * reach,
+      torsoYaw: deg(3) * reach,
+      prop: false,
+      aim: 0,
     }
   }
   if (clip === 'idleScratchHead') {
@@ -283,16 +321,58 @@ function evalActionPose(clip, u) {
   return evalIdlePose(t)
 }
 
+/** Shared panic torso/arms (stationary clip + moving walk/run variants). */
+function evalHazardPanicUpper(t) {
+  const shake = Math.sin(t * Math.PI * 8)
+  return {
+    arm: [deg(-30) + deg(15) * shake, deg(-25) - deg(15) * shake],
+    elbow: [deg(50), deg(55)],
+    shoulder: [deg(-8) + deg(6) * shake, deg(-6) - deg(6) * shake],
+    torsoYaw: deg(8) * shake,
+    headYaw: deg(12) * shake,
+    headPitch: deg(6),
+    spineLean: deg(6),
+  }
+}
+
+/** Walk/run legs with panicked upper body. */
+function evalHazardPanicMove(u, runMix, weight) {
+  const gait = evalGaitPose(u, runMix, weight, 0)
+  const panic = evalHazardPanicUpper(u)
+  return {
+    ...gait,
+    arm: panic.arm,
+    elbow: panic.elbow,
+    shoulder: panic.shoulder,
+    torsoYaw: panic.torsoYaw,
+    headYaw: panic.headYaw,
+    headPitch: panic.headPitch,
+    spineLean: (gait.spineLean ?? 0) * 0.35 + panic.spineLean,
+    hipDrop: 0,
+  }
+}
+
 export function evalLocomotionPose(clip, u) {
   if (clip === 'walk') return evalGaitPose(u, 0, 1)
   if (clip === 'run') return evalGaitPose(u, 1, 1)
   if (clip === 'sneakWalk') return evalGaitPose(u, 0, 1, 0.85)
   if (clip === 'sneakIdle') return evalSneakIdle(u)
+  if (clip === 'hazardPanicWalk') return evalHazardPanicMove(u, 0, 1)
+  if (clip === 'hazardPanicRun') return evalHazardPanicMove(u, 1, 1)
   return evalIdlePose(u)
 }
 
 function isLoco(clip) {
-  return clip === 'idle' || clip === 'walk' || clip === 'run' || clip === 'sneakIdle' || clip === 'sneakWalk'
+  return (
+    clip === 'idle' ||
+    clip === 'walk' ||
+    clip === 'run' ||
+    clip === 'sneakIdle' ||
+    clip === 'sneakWalk' ||
+    clip === 'stepBack' ||
+    clip === 'hazardPanicWalk' ||
+    clip === 'hazardPanicRun'
+  )
 }
 
 export class HumanoidAnimator {
@@ -317,6 +397,7 @@ export class HumanoidAnimator {
     this._sideLean = 0
     this._sideStep = 0
     this._bounce = 0
+    this._hipDrop = 0
     this._pitch = 0
     this._arm = [0, 0]
     this._shoulder = [0, 0]
@@ -338,6 +419,24 @@ export class HumanoidAnimator {
     this._targetSpeed = LOCO_SPEED[clip] ?? 0
     this._actionT = 0
     this._actionDone = false
+    const leavingFall = String(prev).startsWith('fall') || prev === 'getUp'
+    const upright =
+      clip === 'idle' ||
+      clip === 'cover' ||
+      clip === 'hazardPanic' ||
+      clip === 'walk' ||
+      clip === 'run' ||
+      clip === 'sneakWalk' ||
+      clip === 'sneakIdle' ||
+      clip === 'stepBack' ||
+      clip === 'hazardPanicWalk' ||
+      clip === 'hazardPanicRun' ||
+      IDLE_FIDGETS.includes(clip)
+    // Fall/getUp tip (pitch) must not carry into idle/cover — that read as floating or bent double.
+    if (upright && (force || leavingFall || clip === 'cover' || clip === 'idle')) {
+      this._pitch = 0
+      if (clip !== 'cover') this._hipDrop = 0
+    }
     if (force) {
       this._speed = this._targetSpeed
       this._prevSpeed = this._speed
@@ -350,6 +449,7 @@ export class HumanoidAnimator {
         this._sideLean = 0
         this._pitch = 0
         this._bounce = 0
+        this._hipDrop = 0
         this._hipYaw = 0
         this._torsoYaw = 0
         this._pose = evalIdlePose(0)
@@ -402,7 +502,14 @@ export class HumanoidAnimator {
     const speedRate = (speed - this._prevSpeed) / dt
     this._prevSpeed = speed
     const sneak = clip === 'sneakWalk' || clip === 'sneakIdle'
-    const runMix = sneak || speed <= SPEED_WALK ? 0 : clamp01((speed - SPEED_WALK) / (SPEED_RUN - SPEED_WALK))
+    const panicMove = clip === 'hazardPanicWalk' || clip === 'hazardPanicRun'
+    const runMix = panicMove
+      ? clip === 'hazardPanicRun'
+        ? 1
+        : 0
+      : sneak || speed <= SPEED_WALK
+        ? 0
+        : clamp01((speed - SPEED_WALK) / (SPEED_RUN - SPEED_WALK))
     const weight = clamp01(speed / (sneak ? SPEED_WALK * 0.65 : SPEED_WALK))
     const weightEase = weight * weight * (3 - 2 * weight)
     const crouch = sneak ? 0.85 : 0
@@ -427,6 +534,20 @@ export class HumanoidAnimator {
       desired = evalSneakIdle(this._idleT / idleSec)
     } else if (weightEase < 0.02) {
       desired = evalIdlePose(this._idleT / idleSec)
+    } else if (panicMove) {
+      desired = evalHazardPanicMove(this._gaitPhase, runMix, Math.max(0.55, weightEase))
+    } else if (clip === 'stepBack') {
+      const idle = evalIdlePose(this._idleT / idleSec)
+      const step = evalStepBackPose(this._gaitPhase)
+      desired =
+        weightEase > 0.97
+          ? step
+          : {
+              ...step,
+              bounce: lerp(idle.bounce, step.bounce, weightEase),
+              headYaw: lerp(idle.headYaw, step.headYaw, weightEase),
+              breathe: (idle.breathe ?? 0) * (1 - weightEase),
+            }
     } else if (weightEase > 0.97 && speed >= (sneak ? SPEED_WALK * 0.5 : SPEED_WALK * 0.98)) {
       desired = evalGaitPose(this._gaitPhase, runMix, 1, crouch)
     } else {
@@ -457,6 +578,9 @@ export class HumanoidAnimator {
     this._sideLean = easeToward(this._sideLean, desired.sideLean ?? 0, kSpine, dt)
     this._sideStep = easeToward(this._sideStep, desired.sideStep ?? 0, K_HIP, dt)
     this._bounce = easeToward(this._bounce, desired.bounce ?? 0, K_HIP, dt)
+    // Leave cover kneel quickly so idle doesn’t keep sinking/lifting the soles.
+    const dropTarget = desired.hipDrop ?? 0
+    this._hipDrop = easeToward(this._hipDrop ?? 0, dropTarget, dropTarget < 0.05 || stopping ? K_STOP : K_HIP, dt)
     this._chestLean = easeToward(this._chestLean, (desired.chestLean ?? 0) + accelLean * 0.4, kChest, dt)
     this._torsoYaw = easeToward(this._torsoYaw, desired.torsoYaw ?? 0, kChest, dt)
     this._pitch = easeToward(this._pitch, desired.pitch ?? 0, stopping ? K_STOP : K_SPINE, dt)
@@ -481,6 +605,7 @@ export class HumanoidAnimator {
       sideLean: this._sideLean,
       sideStep: this._sideStep,
       bounce: this._bounce,
+      hipDrop: this._hipDrop,
       pitch: this._pitch,
       arm: [this._arm[0], this._arm[1]],
       shoulder: [this._shoulder[0], this._shoulder[1]],

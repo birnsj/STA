@@ -60,15 +60,23 @@ function walk(map, npc, goal, speed, seconds) {
 }
 
 // NPCs never stand inside a party member or another NPC: anyone walking into one pushes it aside.
+// Returns { position, pushedFrom }: pushedFrom is the body they were shoved away from (for step-back facing).
 function keepClear(map, position, bodies) {
   let result = position
+  let pushedFrom = null
+  let pushAmount = 0
   bodies.forEach((body) => {
     const d = distance(result, body.position)
     if (d >= RADIUS * 2) return
+    const overlap = RADIUS * 2 - d
     const dir = d > 1e-4 ? { x: (result.x - body.position.x) / d, y: (result.y - body.position.y) / d } : { x: 1, y: 0 }
-    result = slide(map, result, { x: dir.x * (RADIUS * 2 - d), y: dir.y * (RADIUS * 2 - d) })
+    result = slide(map, result, { x: dir.x * overlap, y: dir.y * overlap })
+    if (overlap > pushAmount) {
+      pushAmount = overlap
+      pushedFrom = body.position
+    }
   })
-  return result
+  return { position: result, pushedFrom: pushAmount > 1e-5 ? pushedFrom : null }
 }
 
 // What it does once it has identified someone: its own responseType, else its disposition's.
@@ -104,6 +112,7 @@ const sameNpcFrame = (a, b) =>
   a === b ||
   (a.heading === b.heading &&
     a.moving === b.moving &&
+    a.pushed === b.pushed &&
     a.state === b.state &&
     a.suspicion === b.suspicion &&
     a.focusId === b.focusId &&
@@ -340,14 +349,26 @@ export class NPCController extends CharacterController {
       path = []
       pathGoal = null
     }
-    if (look !== null) heading = turnToward(heading, look, seconds)
-    position = keepClear(map, position, [...members, ...others.filter((other) => !isDefeated(other.condition))])
-    return { ...npc, position, heading, moving, path, pathGoal, stuck, patrol, glance, suspicion, investigation, waypointAnim }
+    const cleared = keepClear(map, position, [...members, ...others.filter((other) => !isDefeated(other.condition))])
+    position = cleared.position
+    // Idle / watching NPCs that get shoved: face the pusher and play step-back (not a silent slide).
+    const pushed = Boolean(cleared.pushedFrom) && !goal
+    if (pushed) {
+      heading = turnToward(heading, headingTo(position, cleared.pushedFrom), seconds)
+      moving = true
+    } else if (look !== null) {
+      heading = turnToward(heading, look, seconds)
+    }
+    return { ...npc, position, heading, moving, pushed, path, pathGoal, stuck, patrol, glance, suspicion, investigation, waypointAnim }
   }
 
   // Exploration board: optional pose while a patrol waypoint animation is active (falls back to idle fidgets / gait).
   animationState(actor) {
     const base = super.animationState(actor)
+    if (actor.pushed) {
+      // Procedural Spike3d clip; sprite boards use walking:true (no stepBack sheet yet).
+      return { ...base, walking: true, pose: { animation: 'stepBack', playKey: 'stepBack' } }
+    }
     const name = actor.waypointAnim?.name
     if (name && getSpriteAnimation(name)) {
       return { ...base, pose: { animation: name, playKey: actor.waypointAnim.playKey } }
