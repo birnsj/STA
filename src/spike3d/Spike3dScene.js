@@ -1,13 +1,13 @@
 import * as THREE from 'three'
 import { clearLiveClip, reportLiveClip } from '../dev/animClipDebug.js'
-import { isExplosionInjury } from '../rules/appearance.js'
+import { blastReactionAnimation, blastStaggerAnimation, isExplosionInjury } from '../rules/appearance.js'
 import { facingToYaw, makeIsoCamera, syncIsoCamera } from './isoProjection.js'
 import { resolveSpike3dAppearance } from './appearance.js'
 import { clipSeconds, IDLE_FIDGET_GAP, IDLE_FIDGETS } from './clips.js'
 import { ProceduralBody, PROCEDURAL_HEIGHT } from './ProceduralBody.js'
 import { HumanoidRagdoll } from './HumanoidRagdoll.js'
 import { createContactShadow } from './contactShadow.js'
-import { addColliderMeshes, buildMapColliders } from './mapColliders.js'
+import { addColliderMeshes, addOccluderMeshes, buildMapColliders } from './mapColliders.js'
 import { PhysicsWorld } from './PhysicsWorld.js'
 
 const HEIGHT = PROCEDURAL_HEIGHT
@@ -29,10 +29,10 @@ function blastImpulseFromReact(blastReact, seed = '') {
   dx /= len
   dz /= len
   const radius = Number(injury?.source?.radius) || Number(injury?.radius) || 2
-  // Strong enough to clear the tile; HumanoidRagdoll scales again for settle feel.
-  const power = 10 + radius * 4.5 + (String(seed).length % 4)
+  // Readable flight: enough throw to clear tiles under soft gravity; ragdoll scales again.
+  const power = 6 + radius * 2.6 + (String(seed).length % 3)
   return {
-    impulse: { x: dx * power, y: 7 + radius * 1.6, z: dz * power },
+    impulse: { x: dx * power, y: 4.2 + radius * 1.0, z: dz * power },
     point: at ? { x: at.x, y: HEIGHT * 0.55, z: at.y } : null,
   }
 }
@@ -48,6 +48,9 @@ class SpikeActor {
     this._staggerCallback = null
     this._pendingBlast = null
     this._beam = null
+    this._settleFallClip = null
+    this._ragdollSettledToPose = false
+    this._deathLocked = false
     this._lastSeen = performance.now()
 
     this.root = new THREE.Group()
@@ -126,10 +129,11 @@ class SpikeActor {
 
   setVisible(visible) {
     // 'waiting' = pre-beam-in: keep the actor alive but draw nothing (matches sprite alpha 0).
+    // Ragdoll drives the procedural mesh in place — keep the actor root visible while flopping.
     const show = Boolean(visible) && this._beam !== 'waiting'
-    this.root.visible = show && !this.ragdollActive
+    this.root.visible = show
     if (this.shadow) this.shadow.visible = show && !this.ragdollActive
-    if (this.ragdoll?.root) this.ragdoll.root.visible = show && this.ragdollActive && this.ragdoll.active
+    if (this.ragdoll?.root) this.ragdoll.root.visible = false
   }
 
   setPose({ position, facing, gait, animation, down, beam, blastReact, onStaggerDone, colour, appearance }) {
@@ -137,6 +141,7 @@ class SpikeActor {
     this._down = Boolean(down)
     this._beam = beam ?? null
     this._lastSeen = performance.now()
+    if (!down && this._deathLocked) this._deathLocked = false
     if (appearance) {
       const key = `${appearance.species}|${appearance.gender}|${appearance.hairStyle}|${appearance.hairColour}|${appearance.klingonArmour}|${appearance.outfit ?? ''}|${appearance.uniform ?? ''}`
       if (key !== this._appearanceKey) {
@@ -149,6 +154,8 @@ class SpikeActor {
     }
     if (!position) return
 
+    // Always track the sim tile (landing tile during a blast) even while physics drives the mesh.
+    this._yawTarget = facingToYaw(facing)
     if (!this.ragdollActive) {
       // Sim delta drives stride cadence (setPose runs before update, so root is already snapped).
       if (this._posReady) {
@@ -156,7 +163,6 @@ class SpikeActor {
       }
       this._tx = position.x
       this._tz = position.y
-      this._yawTarget = facingToYaw(facing)
       // Feet stay on the selection ring — soft position lag slid every figure off its circle in sync.
       this.root.position.set(this._tx, 0, this._tz)
       this._paintX = this._tx
@@ -166,6 +172,9 @@ class SpikeActor {
         this._yaw = this._yawTarget
         this.root.rotation.y = this._yaw
       }
+    } else {
+      this._tx = position.x
+      this._tz = position.y
     }
 
     const blastKey = blastReact?.injury?.id ?? (blastReact ? `br:${this.id}` : null)
@@ -177,6 +186,12 @@ class SpikeActor {
 
     if (this.ragdollActive) {
       if (!down && !blastReact) this._clearRagdoll()
+      return
+    }
+
+    // Defeated after ragdoll: keep the death rest — don't let idle/fidget/fall-replay stand them up or sink them.
+    if (this._deathLocked && down) {
+      reportLiveClip(this.id, this._settleFallClip || this.body.current || 'fallBlastBack')
       return
     }
 
@@ -195,6 +210,18 @@ class SpikeActor {
       clip = this._idleOrFidget(performance.now())
     } else {
       this._clearFidget()
+    }
+    // Defeated fall (no ragdoll): play the tip, then lock a death rest once the hold finishes.
+    if (down && String(clip).startsWith('fall')) {
+      this._settleFallClip = clip
+      if (this.body.current === clip && this.body.actionDone) {
+        this.body.applyDeathRest(clip)
+        this._deathLocked = true
+      } else {
+        this.body.play(clip)
+      }
+      reportLiveClip(this.id, clip)
+      return
     }
     this.body.play(clip)
     reportLiveClip(this.id, this.body.current || clip)
@@ -218,8 +245,13 @@ class SpikeActor {
   _activateRagdoll(blastReact, down) {
     if (!this.physics) return
     this.root.updateWorldMatrix(true, true)
-    this.body.root.visible = false
     this.ragdollActive = true
+    this._ragdollSettledToPose = false
+    this.body.root.visible = true
+    // Floor pose after settle: defeat uses the blast fall; stagger uses the shared getUp-matched fall.
+    this._settleFallClip = down
+      ? blastReactionAnimation(blastReact?.injury, this.id)
+      : blastStaggerAnimation()
     if (!this.ragdoll) {
       this.ragdoll = new HumanoidRagdoll(this.physics, this.scene, {
         height: HEIGHT,
@@ -227,31 +259,62 @@ class SpikeActor {
       })
     }
     const { impulse, point } = blastImpulseFromReact(blastReact, this.id)
+    // Jointed ragdoll drives the procedural mesh; death rest is applied when it settles.
     this.body.root.userData.humanoidModel = this.body.model
     this.ragdoll.activate(this.body.root, impulse, point)
     this._pendingStaggerClear = !down
   }
 
+  /** Drop physics and plant the procedural figure on the landing tile in a death / fall rest pose. */
+  _finishRagdollOntoFloor() {
+    if (this._ragdollSettledToPose) return
+    this._ragdollSettledToPose = true
+    this.ragdoll?.disposeBodies()
+    this.ragdollActive = false
+    this.root.position.set(this._tx, 0, this._tz)
+    this.root.rotation.set(0, this._yawTarget, 0)
+    this.root.quaternion.setFromEuler(this.root.rotation)
+    this._yaw = this._yawTarget
+    this._paintX = this._tx
+    this._paintZ = this._tz
+    const clip = this._settleFallClip || 'fallBlastBack'
+    this.body.applyDeathRest(clip)
+    // Defeated: lock the corpse. Stagger survivors stay unlocked so getUp can play.
+    this._deathLocked = Boolean(this._down)
+    reportLiveClip(this.id, clip)
+  }
+
   _clearRagdoll() {
     this.ragdoll?.disposeBodies()
     this.ragdollActive = false
+    this._ragdollSettledToPose = false
+    this._settleFallClip = null
+    this._deathLocked = false
     this._blastKey = null
     this._pendingStaggerClear = false
     this._pendingBlast = null
     this.body.root.visible = true
-    this.root.rotation.x = 0
-    this.root.rotation.z = 0
+    this.root.rotation.set(0, this._yawTarget, 0)
+    this.root.quaternion.setFromEuler(this.root.rotation)
+    this._yaw = this._yawTarget
+    // Snap joints back to a normal idle before the animator takes over again.
+    this.body.model?.applyPose?.({ prop: false, aim: 0 })
     this.body.play('idle', { force: true })
   }
 
   update(dt) {
     if (this.ragdollActive) {
       reportLiveClip(this.id, 'ragdoll')
-      if (this._pendingStaggerClear && this.ragdoll?.settled) {
-        this._pendingStaggerClear = false
-        this._staggerCallback?.()
+      if (this.ragdoll?.settled) {
+        this._finishRagdollOntoFloor()
+        if (this._pendingStaggerClear) {
+          this._pendingStaggerClear = false
+          this._staggerCallback?.()
+        }
+        // Fall pose is now animator-driven; continue into the normal update path.
+      } else {
+        return
       }
-      return
     }
     let travel = 0
     if (this._posReady && dt > 0) {
@@ -268,7 +331,19 @@ class SpikeActor {
       this._paintZ = this.root.position.z
     }
     // Cadence from distance travelled so stride length tracks party walk/run speed.
-    this.body.update(dt, travel)
+    // Death-locked corpses keep their last applied rest — don't let the animator ease them.
+    if (!(this._deathLocked && this._down)) {
+      this.body.update(dt, travel)
+      // After a non-ragdoll defeat fall holds its last frame, lock the corpse on a death rest.
+      if (this._down && !this.ragdollActive) {
+        const clip = this.body.current
+        if (String(clip || '').startsWith('fall') && this.body.actionDone) {
+          this._settleFallClip = clip
+          this.body.applyDeathRest(clip)
+          this._deathLocked = true
+        }
+      }
+    }
     reportLiveClip(this.id, this.body.current || 'idle')
     if (this.shadow) {
       // Counter-rotate so the ellipse stays axis-aligned on the floor (reads as a contact blob).
@@ -344,6 +419,8 @@ export class Spike3dScene {
     this.scene.add(rim)
 
     this.colliders = buildMapColliders(map)
+    // Depth-only wall/prop boxes: characters fail the depth test behind solids so Pixi art shows through.
+    this.occluderGroup = addOccluderMeshes(this.scene, this.colliders, THREE)
     this.colliderGroup = addColliderMeshes(this.scene, this.colliders, THREE)
 
     this._viewBox = null
@@ -360,15 +437,27 @@ export class Spike3dScene {
   /**
    * One paint driven by the Pixi ticker (same viewBox sample as the rings/map).
    * poses: spike pose list; viewBox: { x, y, width, height } from the board SVG.
+   * fadedKeys: tile keys / template ids whose Pixi walls are see-through — drop those occluders
+   * so the full body shows and wall-fade does the read-through (no character silhouette).
    */
-  frame(poses, viewBox) {
+  frame(poses, viewBox, fadedKeys = null) {
     if (this._disposed || !this._ready) return
     this._poses = poses ?? []
     this._viewBox = viewBox
+    this._syncFadedOccluders(fadedKeys)
     const now = performance.now()
     const dt = Math.min(0.05, (now - this._last) / 1000)
     this._last = now
     this._paint(dt)
+  }
+
+  _syncFadedOccluders(fadedKeys) {
+    const faded = fadedKeys instanceof Set ? fadedKeys : null
+    if (!this.occluderGroup) return
+    for (const mesh of this.occluderGroup.children) {
+      const key = mesh.userData?.fadeKey
+      mesh.visible = !key || !faded?.has(key)
+    }
   }
 
   /** Create the Rapier world + map colliders the first time a blast needs a ragdoll. */
@@ -477,7 +566,8 @@ export class Spike3dScene {
       this.sun.position.set(sx / n + 8, 14, sz / n + 6)
     }
 
-    // Painter order by tile x+z (iso depth). Wall occlusion uses Pixi wall-fade while spike3d is on.
+    // Painter order by tile x+z among characters. Occluders hide people behind solid walls; faded
+    // Pixi walls drop their occluders so wall-fade shows the full body through (no ghost silhouette).
     const list = [...this.actors.values()].sort((a, b) => {
       const d = a.paintKey() - b.paintKey()
       return d !== 0 ? d : String(a.id).localeCompare(String(b.id))
@@ -503,6 +593,9 @@ export class Spike3dScene {
     this.physics?.dispose()
     this.physics = null
     this._physicsPromise = null
+    this.occluderGroup?.userData?.dispose?.()
+    if (this.occluderGroup) this.scene.remove(this.occluderGroup)
+    this.occluderGroup = null
     this.colliderGroup?.userData?.dispose?.()
     if (this.colliderGroup) this.scene.remove(this.colliderGroup)
     this.colliderGroup = null

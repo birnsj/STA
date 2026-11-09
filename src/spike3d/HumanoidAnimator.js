@@ -134,6 +134,36 @@ function evalStepBackPose(u) {
   }
 }
 
+/**
+ * Final prone rest for a fall/death clip — body on the deck (no sink), limbs limp.
+ * Used at hold end and when a ragdoll hands off to a death pose.
+ */
+export function evalDeathRestPose(fallClip = 'fallBlastBack') {
+  const clip = fallClip || 'fallBlastBack'
+  const crumple = clip === 'fallCrumple'
+  const forward = clip === 'fallForward'
+  const spin = String(clip).includes('Spin')
+  const pitch = crumple ? deg(88) : forward ? deg(-92) : deg(92)
+  return {
+    ...basePose(),
+    pitch: spin ? pitch * 0.72 : pitch,
+    thigh: [deg(22), deg(48)],
+    knee: [deg(40), deg(62)],
+    arm: [deg(-20), deg(-70)],
+    elbow: [deg(55), deg(78)],
+    shoulder: [deg(-8), deg(-18)],
+    spineLean: crumple ? deg(28) : deg(6),
+    chestLean: forward ? deg(-4) : deg(4),
+    bounce: 0,
+    hipDrop: 0,
+    torsoYaw: spin ? deg(100) : crumple ? deg(12) : deg(8),
+    headYaw: spin ? deg(20) : deg(-6),
+    headPitch: deg(-18),
+    prop: false,
+    aim: 0,
+  }
+}
+
 /** One-shot / hold pose curves. u∈[0,1]. */
 function evalActionPose(clip, u) {
   const t = clamp01(u)
@@ -220,6 +250,8 @@ function evalActionPose(clip, u) {
   }
 
   if (String(clip).startsWith('fall')) {
+    // Mid-fall dips slightly; end rest is ON the deck (bounce 0) so corpses don't sink and vanish.
+    if (ease >= 0.999) return evalDeathRestPose(clip)
     const crumple = clip === 'fallCrumple'
     const forward = clip === 'fallForward'
     const spin = clip.includes('Spin')
@@ -233,7 +265,7 @@ function evalActionPose(clip, u) {
       arm: [deg(-40) * ease, deg(-35) * ease],
       elbow: [deg(40), deg(45)],
       spineLean: crumple ? deg(40) * ease : deg(20) * ease,
-      bounce: -0.35 * ease,
+      bounce: -0.22 * Math.sin(ease * Math.PI),
       torsoYaw: spin ? deg(180) * ease : blast ? deg(20) * ease : 0,
       headPitch: deg(-20) * ease,
     }
@@ -321,21 +353,28 @@ function evalActionPose(clip, u) {
   return evalIdlePose(t)
 }
 
-/** Shared panic torso/arms (stationary clip + moving walk/run variants). */
+/** Shared panic torso/arms — clutch the head in pain (stationary + walk/run variants). */
 function evalHazardPanicUpper(t) {
-  const shake = Math.sin(t * Math.PI * 8)
+  // Slow squeeze pulse + fine tremor (not the old arm-flail).
+  const clutch = 0.72 + 0.28 * Math.sin(t * Math.PI * 3.2)
+  const tremor = Math.sin(t * Math.PI * 11)
+  const rock = Math.sin(t * Math.PI * 2.4)
   return {
-    arm: [deg(-30) + deg(15) * shake, deg(-25) - deg(15) * shake],
-    elbow: [deg(50), deg(55)],
-    shoulder: [deg(-8) + deg(6) * shake, deg(-6) - deg(6) * shake],
-    torsoYaw: deg(8) * shake,
-    headYaw: deg(12) * shake,
-    headPitch: deg(6),
-    spineLean: deg(6),
+    // Both hands up to the temples; elbows bent so palms meet the skull.
+    arm: [deg(-102) - deg(6) * clutch + deg(3) * tremor, deg(-100) - deg(6) * clutch - deg(3) * tremor],
+    elbow: [deg(78) + deg(14) * clutch, deg(80) + deg(14) * clutch],
+    shoulder: [deg(-32) - deg(8) * clutch, deg(-30) - deg(8) * clutch],
+    torsoYaw: deg(5) * rock,
+    headYaw: deg(7) * rock + deg(2) * tremor,
+    headPitch: deg(14) + deg(5) * clutch,
+    spineLean: deg(10) + deg(4) * clutch,
+    chestLean: deg(4),
+    prop: false,
+    aim: 0,
   }
 }
 
-/** Walk/run legs with panicked upper body. */
+/** Walk/run legs with head-clutch upper body. */
 function evalHazardPanicMove(u, runMix, weight) {
   const gait = evalGaitPose(u, runMix, weight, 0)
   const panic = evalHazardPanicUpper(u)
@@ -348,7 +387,10 @@ function evalHazardPanicMove(u, runMix, weight) {
     headYaw: panic.headYaw,
     headPitch: panic.headPitch,
     spineLean: (gait.spineLean ?? 0) * 0.35 + panic.spineLean,
+    chestLean: (gait.chestLean ?? 0) * 0.25 + (panic.chestLean ?? 0),
     hipDrop: 0,
+    prop: false,
+    aim: 0,
   }
 }
 
@@ -408,6 +450,60 @@ export class HumanoidAnimator {
 
   get current() {
     return this._clip
+  }
+
+  get actionDone() {
+    return Boolean(this._actionDone)
+  }
+
+  /** Apply channels from a desired pose immediately (no ease). */
+  _snapPose(desired) {
+    this._lean = desired.lean ?? 0
+    this._hipYaw = desired.hipYaw ?? 0
+    this._hipRoll = desired.hipRoll ?? 0
+    this._spineLean = desired.spineLean ?? 0
+    this._spineYaw = desired.spineYaw ?? 0
+    this._spineSide = desired.spineSide ?? 0
+    this._sideLean = desired.sideLean ?? 0
+    this._sideStep = desired.sideStep ?? 0
+    this._bounce = desired.bounce ?? 0
+    this._hipDrop = desired.hipDrop ?? 0
+    this._chestLean = desired.chestLean ?? 0
+    this._torsoYaw = desired.torsoYaw ?? 0
+    this._pitch = desired.pitch ?? 0
+    this._arm[0] = desired.arm?.[0] ?? 0
+    this._arm[1] = desired.arm?.[1] ?? 0
+    this._shoulder[0] = desired.shoulder?.[0] ?? 0
+    this._shoulder[1] = desired.shoulder?.[1] ?? 0
+    this._elbow[0] = desired.elbow?.[0] ?? 0
+    this._elbow[1] = desired.elbow?.[1] ?? 0
+    this._pose = { ...desired, lean: this._lean, hipYaw: this._hipYaw, bounce: this._bounce, pitch: this._pitch }
+    this.model?.applyPose(this._pose)
+  }
+
+  /** Jump a hold/once clip to its final frame and apply that pose immediately (ragdoll → floor pose). */
+  snapActionToEnd() {
+    const clip = this._clip
+    if (!clip || isLoco(clip)) return false
+    const seconds = clipSeconds(clip)
+    this._actionT = seconds
+    this._actionDone = true
+    const desired = String(clip).startsWith('fall') ? evalDeathRestPose(clip) : evalActionPose(clip, 1)
+    this._snapPose(desired)
+    return true
+  }
+
+  /** Lock a defeated body on a readable prone death rest (after ragdoll or fall hold). */
+  applyDeathRest(fallClip) {
+    const clip = fallClip || this._clip || 'fallBlastBack'
+    this._clip = clip
+    this._targetSpeed = 0
+    this._speed = 0
+    this._prevSpeed = 0
+    this._actionT = clipSeconds(clip)
+    this._actionDone = true
+    this._snapPose(evalDeathRestPose(clip))
+    return true
   }
 
   play(name, { force = false } = {}) {

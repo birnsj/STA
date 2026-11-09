@@ -132,7 +132,7 @@ export default function PixiBattlefield(props) {
   const firing = shotOf(state, state.lastAction)
   // The combatant whose turn it is cuts walls away, and so does every enemy (including fallen ones), so no wall hides a
   // body or a standing foe (designer decision, 2026-10-14; downed kept so stun/dead don't vanish behind bulkheads).
-  // Spike3d draws above Pixi walls, so every party member also cuts walls or they show through bulkheads.
+  // Spike3d: party also cuts walls so wall-fade shows bodies; occluders match the faded set.
   const cutsWalls = (unit) => unit.id === activeId || unit.side === 'enemy' || (spike3d && unit.side === 'player')
   const hidden = useWallFade(
     map,
@@ -140,6 +140,8 @@ export default function PixiBattlefield(props) {
     bigGroups,
   )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
+  const spikeFadedRef = useRef(null)
+  spikeFadedRef.current = spike3d ? faded : null
 
   // ---------------------------------------------------------------- what the scene draws, and what the pointer hits
 
@@ -475,7 +477,14 @@ export default function PixiBattlefield(props) {
       <div className="pixi-board-host" ref={hostRef} />
       {spike3d && (
         <div className="spike3d-overlay-host" ref={spikeHostRef}>
-          <Spike3dOverlay map={map} posesRef={spikePosesRef} svgRef={svgRef} hostRef={spikeHostRef} frameRef={spikeFrameRef} />
+          <Spike3dOverlay
+            map={map}
+            posesRef={spikePosesRef}
+            svgRef={svgRef}
+            hostRef={spikeHostRef}
+            frameRef={spikeFrameRef}
+            fadedRef={spikeFadedRef}
+          />
         </div>
       )}
       {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}

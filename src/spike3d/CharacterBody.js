@@ -17,10 +17,11 @@
  *   setAppearance({ gender, hairStyle, species, … })
  *   dispose()
  *
- * Optional for ragdoll hand-off (ProceduralBody):
+ * Optional for ragdoll / death hand-off (ProceduralBody):
  *   model                underlying HumanoidModel (materials / activate)
  *   materials            { robe, robeDk, skin, hood, boots }
  *   bodyY                bounce offset for contact shadow squash
+ *   applyDeathRest(clip) prone rest after ragdoll settles
  */
 
 export const CHARACTER_BODY_CLIPS = [

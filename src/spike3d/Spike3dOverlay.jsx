@@ -19,8 +19,9 @@ function mapSceneKey(map) {
  * posesRef: mutable { current: pose[] }.
  * svgRef: board SVG — camera must follow its live viewBox (same as Pixi), not React state.
  * frameRef: Pixi boardScene/battleScene calls this after stage.frame(svg) so 3D and rings share one camera sample.
+ * fadedRef: Set of tile keys / template ids currently wall-faded — matching occluders turn off.
  */
-export default function Spike3dOverlay({ map, posesRef, svgRef, hostRef, frameRef }) {
+export default function Spike3dOverlay({ map, posesRef, svgRef, hostRef, frameRef, fadedRef }) {
   const canvasRef = useRef(null)
   const mapRef = useRef(map)
   mapRef.current = map
@@ -67,7 +68,7 @@ export default function Spike3dOverlay({ map, posesRef, svgRef, hostRef, frameRe
     if (frameRef) {
       frameRef.current = () => {
         if (!alive) return
-        scene.frame(posesRef?.current ?? [], readSvgViewBox(svgRef?.current))
+        scene.frame(posesRef?.current ?? [], readSvgViewBox(svgRef?.current), fadedRef?.current ?? null)
         // Handoff cover (ExplorationScreen) waits for this before lifting the freeze.
         if (scene._paintedOnce && canvas.dataset.spikeReady !== '1') {
           canvas.dataset.spikeReady = '1'
@@ -85,7 +86,7 @@ export default function Spike3dOverlay({ map, posesRef, svgRef, hostRef, frameRe
       scene.dispose()
     }
     // sceneKey: remount only when the map's identity meaningfully changes (not every React state clone).
-  }, [sceneKey, posesRef, svgRef, hostRef, frameRef])
+  }, [sceneKey, posesRef, svgRef, hostRef, frameRef, fadedRef])
 
   return <canvas ref={canvasRef} className="spike3d-overlay-canvas" aria-hidden="true" />
 }

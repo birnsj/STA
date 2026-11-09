@@ -265,8 +265,8 @@ export default function PixiExplorationBoard(props) {
 
   const layout = useMemo(() => boardLayout(map), [map])
   const { panels, bigGroups } = layout
-  // Selected characters cut walls away. Spike3d draws above Pixi walls, so the whole party cuts
-  // or members show through bulkheads.
+  // Selected characters cut walls away. With spike3d, the whole party does so wall-fade shows bodies
+  // through bulkheads (occluders turn off for those faded keys — no character silhouette).
   const fadeFigures = getMembers(state)
     .filter((member) => spike3d || isSelected(state, member.id))
     .map((member) => ({ id: member.id, position: member.position }))
@@ -278,6 +278,14 @@ export default function PixiExplorationBoard(props) {
   useLayoutEffect(() => {
     templateFadeMemory.current = fadedTemplateIds
   }, [fadedTemplateIds])
+  const spikeFadedRef = useRef(null)
+  if (spike3d) {
+    const keys = new Set(faded)
+    for (const id of fadedTemplateIds) keys.add(id)
+    spikeFadedRef.current = keys
+  } else {
+    spikeFadedRef.current = null
+  }
 
   // ---------------------------------------------------------------- what the scene draws, and what clicks hit
 
@@ -974,7 +982,14 @@ export default function PixiExplorationBoard(props) {
       <div className="pixi-board-host" ref={hostRef} />
       {spike3d && (
         <div className="spike3d-overlay-host" ref={spikeHostRef}>
-          <Spike3dOverlay map={map} posesRef={spikePosesRef} svgRef={svgRef} hostRef={spikeHostRef} frameRef={spikeFrameRef} />
+          <Spike3dOverlay
+            map={map}
+            posesRef={spikePosesRef}
+            svgRef={svgRef}
+            hostRef={spikeHostRef}
+            frameRef={spikeFrameRef}
+            fadedRef={spikeFadedRef}
+          />
         </div>
       )}
       {debug && <EdgeScrollDebugOverlay boardRef={svgRef} />}

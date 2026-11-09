@@ -181,9 +181,16 @@ function boxesForTemplatePieces(map) {
     const h = heightWorld(def.height ?? def.footprint?.height ?? 0)
     // Skip flat floor slabs (no vertical collision).
     if (h <= FLAT_SOLID_H) continue
-    out.push(
-      tipBox(tip.x, tip.y, pxToTiles(fp.width), pxToTiles(fp.depth), h, def.cover || def.tags?.includes?.('wall') ? 'wall' : 'prop'),
+    const box = tipBox(
+      tip.x,
+      tip.y,
+      pxToTiles(fp.width),
+      pxToTiles(fp.depth),
+      h,
+      def.cover || def.tags?.includes?.('wall') ? 'wall' : 'prop',
     )
+    box.fadeKey = entry.id
+    out.push(box)
   }
   return out
 }
@@ -215,12 +222,60 @@ export function buildMapColliders(map) {
     for (let x = 0; x < row.length; x += 1) {
       const tile = getTile(row[x])
       if (!tile?.solid || tile.empty) continue
-      colliders.push(...boxesForTile(map, x, y, tile))
+      const fadeKey = `${x},${y}`
+      for (const box of boxesForTile(map, x, y, tile)) {
+        box.fadeKey = fadeKey
+        colliders.push(box)
+      }
     }
   }
 
   colliders.push(...boxesForTemplatePieces(map))
   return colliders
+}
+
+/**
+ * Invisible depth-only boxes for walls/props (not floor). Spike characters depth-test against these
+ * so Pixi bulkheads show through where a mesh is behind a solid — same outcome as sprite depthLayer sort.
+ */
+export function addOccluderMeshes(scene, colliders, THREE) {
+  const group = new THREE.Group()
+  group.name = 'spike3d_occluders'
+  group.visible = true
+
+  const material = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    depthWrite: true,
+    depthTest: true,
+    side: THREE.DoubleSide,
+  })
+
+  for (const box of colliders ?? []) {
+    if (box.kind === 'floor') continue
+    const sx = Math.max(0.01, box.maxX - box.minX)
+    const sy = Math.max(0.01, box.maxY - box.minY)
+    const sz = Math.max(0.01, box.maxZ - box.minZ)
+    const cx = (box.minX + box.maxX) / 2
+    const cy = (box.minY + box.maxY) / 2
+    const cz = (box.minZ + box.maxZ) / 2
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material)
+    mesh.position.set(cx, cy, cz)
+    mesh.frustumCulled = false
+    // Draw before characters so depth is already in the buffer when the body tests.
+    mesh.renderOrder = -100
+    if (box.fadeKey != null) mesh.userData.fadeKey = box.fadeKey
+    group.add(mesh)
+  }
+
+  group.userData.dispose = () => {
+    group.traverse((obj) => {
+      obj.geometry?.dispose?.()
+    })
+    material.dispose()
+  }
+
+  scene.add(group)
+  return group
 }
 
 /**

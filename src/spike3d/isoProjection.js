@@ -32,8 +32,8 @@ function applyIsoProjection(camera, viewBox) {
   const sx = 2 / vb.width
   const sy = 2 / vb.height
 
-  // Within one character (multi-pass clears depth between people): height + a little
-  // tile depth so limbs self-occlude. Inter-character order is painter clearDepth.
+  // Height + tile depth: limbs self-occlude; walls/props (occluder boxes) hide people behind them.
+  // Inter-character order is still painter clearDepth (each pass redraws occluders).
   const zTile = 0.008
   const zHeight = 0.14
   const zBias = 0.9

@@ -51,8 +51,22 @@ export class ProceduralBody {
     return this.animator.play(clip, opts)
   }
 
+  /** Hold the last frame of the current action clip (used after ragdoll settles). */
+  snapActionToEnd() {
+    return this.animator.snapActionToEnd()
+  }
+
+  /** Prone death rest on the deck (ragdoll / defeat hand-off). */
+  applyDeathRest(fallClip) {
+    return this.animator.applyDeathRest(fallClip)
+  }
+
   get current() {
     return this.animator.current
+  }
+
+  get actionDone() {
+    return this.animator.actionDone
   }
 
   update(dt, travel = null) {

@@ -1,8 +1,9 @@
 import * as THREE from 'three'
 
 /**
- * Capsule/box ragdoll driven by Rapier. Visuals are separate from the animated model
- * but sized from its joints when available so the flop matches the procedural figure.
+ * Capsule/box Rapier ragdoll that drives the procedural HumanoidModel joints.
+ * Colliders stay cheap proxies; the live figure (hair, race meshes, cloth) is what you see.
+ * Short flight → freeze → SpikeActor plants a death rest.
  */
 export class HumanoidRagdoll {
   constructor(physics, scene, { height = 2.0, materials = {} } = {}) {
@@ -14,56 +15,44 @@ export class HumanoidRagdoll {
     // Procedural officer is authored ~SPRITE_HEIGHT_PX / 32 ≈ 2 world units.
     this.u = height / 2
     this.active = false
+    // Debug-only container (no low-poly body meshes in the normal path).
     this.root = new THREE.Group()
     this.root.name = 'humanoid_ragdoll'
+    this.root.visible = false
     this.scene.add(this.root)
 
     this.bodies = {}
-    this.visuals = {}
     this.joints = []
     this._owned = []
+    this._drive = []
+    this._model = null
     this.settled = false
+    this._poseLocked = false
     this._age = 0
     this._stillTime = 0
+    // Floor-first settle: freeze on first floor contact unless a wall/prop was hit earlier.
+    this._hitWall = false
+    this._hitFloor = false
+    this._wasAirborne = false
+    this._colliderHandles = new Set()
+    /** @type {Map<number, string>} collider handle → body name */
+    this._colliderBodyName = new Map()
 
-    // Prefer shared materials from the live figure so shirt/hair colours match.
-    this.matRobe = materials.robe ?? this._mat(0xd9a92c)
-    this.matRobeDk = materials.robeDk ?? this._mat(0x20212b)
-    this.matSkin = materials.skin ?? this._mat(0xe0ab86)
-    this.matHood = materials.hood ?? this._mat(0x5a3a22)
-    this.matBoot = materials.boots ?? this._mat(0x121217)
-  }
+    this._bodyM = new THREE.Matrix4()
+    this._worldM = new THREE.Matrix4()
+    this._parentInv = new THREE.Matrix4()
+    this._localM = new THREE.Matrix4()
+    this._pos = new THREE.Vector3()
+    this._quat = new THREE.Quaternion()
+    this._scl = new THREE.Vector3()
+    this._one = new THREE.Vector3(1, 1, 1)
 
-  _mat(color) {
-    const m = new THREE.MeshStandardMaterial({
-      color,
-      metalness: 0,
-      roughness: 0.88,
-    })
-    this._owned.push(m)
-    return m
-  }
-
-  _addVisualBox(name, size, material) {
-    const geo = new THREE.BoxGeometry(size[0], size[1], size[2])
-    this._owned.push(geo)
-    const mesh = new THREE.Mesh(geo, material)
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-    this.root.add(mesh)
-    this.visuals[name] = mesh
-    return mesh
-  }
-
-  _addVisualCapsule(name, radius, length, material) {
-    const geo = new THREE.CapsuleGeometry(radius, Math.max(0.01, length), 6, 12)
-    this._owned.push(geo)
-    const mesh = new THREE.Mesh(geo, material)
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-    this.root.add(mesh)
-    this.visuals[name] = mesh
-    return mesh
+    // Kept for callers that still pass materials (optional future debug paint).
+    this.matRobe = materials.robe ?? null
+    this.matRobeDk = materials.robeDk ?? null
+    this.matSkin = materials.skin ?? null
+    this.matHood = materials.hood ?? null
+    this.matBoot = materials.boots ?? null
   }
 
   _createBody(name, translation, rotation, colliderDesc, mass) {
@@ -77,10 +66,39 @@ export class HumanoidRagdoll {
       .setCcdEnabled(true)
     if (rotation) rbDesc.setRotation(rotation)
     const body = this.world.createRigidBody(rbDesc)
-    colliderDesc.setMass(mass).setFriction(1.35).setRestitution(0.02)
-    this.world.createCollider(colliderDesc, body)
+    colliderDesc
+      .setMass(mass)
+      .setFriction(1.35)
+      .setRestitution(0.02)
+      .setActiveCollisionTypes(R.ActiveCollisionTypes.DEFAULT)
+      .setActiveEvents(R.ActiveEvents.COLLISION_EVENTS)
+    const collider = this.world.createCollider(colliderDesc, body)
+    this._colliderHandles.add(collider.handle)
+    this._colliderBodyName.set(collider.handle, name)
     this.bodies[name] = body
     return body
+  }
+
+  ownsCollider(handle) {
+    return this._colliderHandles.has(handle)
+  }
+
+  /**
+   * Level contact from PhysicsWorld (`floor` | `wall` | `prop`).
+   * Floor only counts for hips/torso/head after the body has been airborne — boots scrape the
+   * deck on spawn and would otherwise freeze every throw before a wall can register.
+   */
+  onLevelContact(kind, myHandle) {
+    if (!this.active || this.settled) return
+    if (kind === 'wall' || kind === 'prop') {
+      this._hitWall = true
+      return
+    }
+    if (kind !== 'floor') return
+    const part = this._colliderBodyName.get(myHandle)
+    if (part !== 'hips' && part !== 'torso' && part !== 'head') return
+    if (!this._wasAirborne) return
+    this._hitFloor = true
   }
 
   _jointSpherical(a, b, anchorA, anchorB) {
@@ -98,6 +116,60 @@ export class HumanoidRagdoll {
     return v
   }
 
+  /** Record joint ↔ rigid-body offset at activate so sync keeps the mesh glued to physics. */
+  _captureDrive(name, object) {
+    const body = this.bodies[name]
+    if (!body || !object) return
+    const t = body.translation()
+    const r = body.rotation()
+    this._pos.set(t.x, t.y, t.z)
+    this._quat.set(r.x, r.y, r.z, r.w)
+    this._bodyM.compose(this._pos, this._quat, this._one)
+    object.updateWorldMatrix(true, false)
+    const offset = new THREE.Matrix4().copy(this._bodyM).invert().multiply(object.matrixWorld)
+    // Keep authored scale — decompose every frame was flipping/jittering limbs.
+    const bindScale = object.scale.clone()
+    this._drive.push({ name, object, offset, bindScale })
+  }
+
+  /** Write a world matrix onto obj as local TR relative to its parent (scale stays bind). */
+  _setWorldMatrix(obj, worldM, bindScale) {
+    if (!obj?.parent) {
+      worldM.decompose(obj.position, obj.quaternion, this._scl)
+      if (bindScale) obj.scale.copy(bindScale)
+      return
+    }
+    obj.parent.updateWorldMatrix(true, false)
+    this._parentInv.copy(obj.parent.matrixWorld).invert()
+    this._localM.multiplyMatrices(this._parentInv, worldM)
+    this._localM.decompose(obj.position, obj.quaternion, this._scl)
+    if (bindScale) obj.scale.copy(bindScale)
+  }
+
+  /** Straight bind pose on driven joints so leg/arm offsets aren't fighting idle bend. */
+  _zeroDrivenJoints(model) {
+    if (!model) return
+    const zero = (obj) => {
+      if (!obj) return
+      obj.rotation.set(0, 0, 0)
+    }
+    zero(model.hips)
+    zero(model.spine)
+    zero(model.torso)
+    zero(model.headRoot)
+    for (const leg of model.legs ?? []) {
+      zero(leg.thigh)
+      zero(leg.shin)
+      zero(leg.foot)
+    }
+    for (const arm of model.arms ?? []) {
+      zero(arm.shoulder)
+      zero(arm.upper)
+      zero(arm.forearm)
+      zero(arm.hand)
+    }
+  }
+
   /**
    * Build ragdoll at the character's current world pose and knock it with impulse.
    * @param {THREE.Object3D} modelRoot procedural body root (world-updated)
@@ -108,14 +180,29 @@ export class HumanoidRagdoll {
     this.disposeBodies()
     this.active = true
     this.settled = false
+    this._poseLocked = false
     this._age = 0
     this._stillTime = 0
-    this.root.visible = true
+    this._hitWall = false
+    this._hitFloor = false
+    this._wasAirborne = false
+    this.root.visible = false
 
     modelRoot.updateWorldMatrix(true, true)
     const u = this.u
     const R = this.RAPIER
     const model = modelRoot.userData?.humanoidModel ?? null
+    this._model = model
+
+    // Straight bind so limb offsets aren't fighting idle bend; animator is frozen while active.
+    model?.applyPose?.({ prop: false, aim: 0 })
+    if (model?.pitchPivot) {
+      model.pitchPivot.rotation.set(0, 0, 0)
+      model.pitchPivot.position.set(0, 0, 0)
+    }
+    if (model?.body) model.body.position.set(0, 0, 0)
+    this._zeroDrivenJoints(model)
+    modelRoot.updateWorldMatrix(true, true)
 
     const hipsWP = this._wp(model?.hips, this._wp(modelRoot, new THREE.Vector3()))
     const torsoWP = this._wp(model?.torso ?? model?.chest, hipsWP.clone().add(new THREE.Vector3(0, 0.45 * u, 0)))
@@ -125,18 +212,12 @@ export class HumanoidRagdoll {
     modelRoot.getWorldQuaternion(qRoot)
     const rot = { x: qRoot.x, y: qRoot.y, z: qRoot.z, w: qRoot.w }
 
-    // Hips / pelvis
-    this._addVisualBox('hips', [0.3 * u, 0.2 * u, 0.22 * u], this.matRobeDk)
     this._createBody('hips', hipsWP, rot, R.ColliderDesc.cuboid(0.15 * u, 0.1 * u, 0.11 * u), 3.2)
 
-    // Torso / chest — slightly above hips sample
     const torsoPos = { x: torsoWP.x, y: torsoWP.y + 0.18 * u, z: torsoWP.z }
-    this._addVisualBox('torso', [0.34 * u, 0.5 * u, 0.24 * u], this.matRobe)
     this._createBody('torso', torsoPos, rot, R.ColliderDesc.cuboid(0.17 * u, 0.25 * u, 0.12 * u), 4.8)
 
-    // Head
     const headPos = { x: headWP.x, y: headWP.y + 0.08 * u, z: headWP.z }
-    this._addVisualCapsule('head', 0.11 * u, 0.1 * u, this.matSkin)
     this._createBody('head', headPos, rot, R.ColliderDesc.ball(0.12 * u), 1.1)
 
     const thighLen = 0.38 * u
@@ -148,8 +229,9 @@ export class HumanoidRagdoll {
     for (let i = 0; i < 2; i += 1) {
       const side = sideSign[i]
       const tag = side > 0 ? 'L' : 'R'
-      const leg = model?.legs?.[i]
-      const arm = model?.arms?.[i]
+      // Model: legs/arms[0] = +X = R, [1] = −X = L — opposite of this loop's tag when side>0.
+      const leg = model?.legs?.[side > 0 ? 1 : 0]
+      const arm = model?.arms?.[side > 0 ? 1 : 0]
 
       const thighSample = this._wp(leg?.thigh, null)
       const shinSample = this._wp(leg?.shin, null)
@@ -164,7 +246,6 @@ export class HumanoidRagdoll {
             y: hipsWP.y + localHip.y - thighLen * 0.35,
             z: hipsWP.z + localHip.z,
           }
-      this._addVisualCapsule(`thigh${tag}`, 0.07 * u, thighLen * 0.72, this.matRobeDk)
       this._createBody(
         `thigh${tag}`,
         thighPos,
@@ -180,7 +261,6 @@ export class HumanoidRagdoll {
             y: thighPos.y - thighLen * 0.75,
             z: thighPos.z,
           }
-      this._addVisualCapsule(`shin${tag}`, 0.06 * u, shinLen * 0.55, this.matRobeDk)
       this._createBody(
         `shin${tag}`,
         shinPos,
@@ -188,8 +268,6 @@ export class HumanoidRagdoll {
         R.ColliderDesc.capsule(shinLen * 0.22, 0.055 * u),
         1.5,
       )
-      // Boot tip for mass at the feet
-      this._addVisualCapsule(`boot${tag}`, 0.055 * u, 0.08 * u, this.matBoot)
       this._createBody(
         `boot${tag}`,
         { x: shinPos.x, y: shinPos.y - shinLen * 0.55, z: shinPos.z + 0.04 * u },
@@ -206,7 +284,6 @@ export class HumanoidRagdoll {
             y: torsoPos.y + localShoulder.y - upperLen * 0.2,
             z: torsoPos.z + localShoulder.z,
           }
-      this._addVisualCapsule(`upper${tag}`, 0.055 * u, upperLen * 0.65, this.matRobe)
       this._createBody(
         `upper${tag}`,
         upperPos,
@@ -222,7 +299,6 @@ export class HumanoidRagdoll {
             y: upperPos.y - upperLen * 0.7,
             z: upperPos.z,
           }
-      this._addVisualCapsule(`fore${tag}`, 0.045 * u, foreLen * 0.55, this.matSkin)
       this._createBody(
         `fore${tag}`,
         forePos,
@@ -273,24 +349,42 @@ export class HumanoidRagdoll {
       )
     }
 
-    // Impulse: strong lift + throw, but not Bloodbound-cultist violent.
-    const raw = impulse ?? { x: 0, y: 6, z: -10 }
-    const scale = 0.72
-    const imp = { x: raw.x * scale, y: Math.max(5, raw.y * scale), z: raw.z * scale }
+    // Capture joint offsets after bodies exist (parent → child order for sync).
+    // Feet stay parented under shins (no boot drive) — independent boot bodies twisted the legs.
+    if (model) {
+      modelRoot.updateWorldMatrix(true, true)
+      this._captureDrive('hips', model.hips)
+      this._captureDrive('torso', model.torso)
+      this._captureDrive('head', model.headRoot)
+      // Model index 0 = R (+X), 1 = L (−X).
+      this._captureDrive('thighR', model.legs?.[0]?.thigh)
+      this._captureDrive('shinR', model.legs?.[0]?.shin)
+      this._captureDrive('thighL', model.legs?.[1]?.thigh)
+      this._captureDrive('shinL', model.legs?.[1]?.shin)
+      this._captureDrive('upperR', model.arms?.[0]?.upper)
+      this._captureDrive('foreR', model.arms?.[0]?.forearm)
+      this._captureDrive('upperL', model.arms?.[1]?.upper)
+      this._captureDrive('foreL', model.arms?.[1]?.forearm)
+    }
+
+    // Soft throw; short settle window plants the death pose sooner.
+    const raw = impulse ?? { x: 0, y: 4, z: -6 }
+    const scale = 0.48
+    const imp = { x: raw.x * scale, y: Math.max(3.0, raw.y * scale), z: raw.z * scale }
     const point = hitPoint ?? torsoPos
     torso.applyImpulseAtPoint(imp, point, true)
-    hips.applyImpulse({ x: imp.x * 0.65, y: Math.max(4, imp.y * 0.5) + 3, z: imp.z * 0.65 }, true)
-    head.applyImpulse({ x: imp.x * 0.35, y: imp.y * 0.3 + 1.5, z: imp.z * 0.35 }, true)
+    hips.applyImpulse({ x: imp.x * 0.65, y: Math.max(2.4, imp.y * 0.5) + 1.4, z: imp.z * 0.65 }, true)
+    head.applyImpulse({ x: imp.x * 0.35, y: imp.y * 0.28 + 0.8, z: imp.z * 0.35 }, true)
     for (const tag of ['L', 'R']) {
-      this.bodies[`thigh${tag}`]?.applyImpulse({ x: imp.x * 0.18, y: imp.y * 0.12, z: imp.z * 0.18 }, true)
-      this.bodies[`upper${tag}`]?.applyImpulse({ x: imp.x * 0.22, y: imp.y * 0.16, z: imp.z * 0.22 }, true)
+      this.bodies[`thigh${tag}`]?.applyImpulse({ x: imp.x * 0.16, y: imp.y * 0.1, z: imp.z * 0.16 }, true)
+      this.bodies[`upper${tag}`]?.applyImpulse({ x: imp.x * 0.2, y: imp.y * 0.14, z: imp.z * 0.2 }, true)
     }
 
     torso.applyTorqueImpulse(
       {
-        x: (Math.random() - 0.5) * 2.5,
-        y: (Math.random() - 0.5) * 3.5,
-        z: (Math.random() - 0.5) * 2.5,
+        x: (Math.random() - 0.5) * 1.4,
+        y: (Math.random() - 0.5) * 1.8,
+        z: (Math.random() - 0.5) * 1.4,
       },
       true,
     )
@@ -300,11 +394,23 @@ export class HumanoidRagdoll {
   }
 
   /**
-   * Ramp damping after the hit, then freeze once motion dies out on the floor.
+   * Short settle:
+   * - No wall/prop hit yet → freeze on first floor contact (after a tiny air time).
+   * - Hit a wall/prop first → keep flopping briefly until motion dies near the floor.
+   * Hard cap is short so SpikeActor can hand off to a death rest quickly.
    */
   tickSettle(dt) {
     if (!this.active || this.settled) return
     this._age += dt
+
+    const hipsY = this.bodies.hips?.translation()?.y ?? 0
+    if (hipsY > 0.55 * this.u) this._wasAirborne = true
+
+    // Direct-to-deck: stop when the torso hits the floor, unless we already glanced a bulkhead.
+    if (this._hitFloor && !this._hitWall && this._age > 0.08) {
+      this.freeze()
+      return
+    }
 
     let maxSpeed = 0
     let maxSpin = 0
@@ -319,21 +425,21 @@ export class HumanoidRagdoll {
       if (body.translation().y < 0.45 * this.u) nearFloor = true
     }
 
-    // Bleed energy after the first bounce so he plants on the deck.
-    if (this._age > 0.18) {
-      const damp = 1.1 + Math.min(6, this._age * 2.2)
-      const angDamp = 1.4 + Math.min(7, this._age * 2.4)
+    // Bleed energy early so wall-hit flops plant quickly.
+    if (this._age > 0.1) {
+      const damp = 1.4 + Math.min(8, this._age * 3.5)
+      const angDamp = 1.8 + Math.min(9, this._age * 3.8)
       for (const body of Object.values(this.bodies)) {
         body.setLinearDamping(damp)
         body.setAngularDamping(angDamp)
       }
     }
 
-    const quiet = maxSpeed < 0.35 && maxSpin < 0.9
-    if (quiet && (nearFloor || this._age > 0.9)) this._stillTime += dt
+    const quiet = maxSpeed < 0.55 && maxSpin < 1.4
+    if (quiet && (nearFloor || this._hitFloor || this._age > 0.45)) this._stillTime += dt
     else this._stillTime = 0
 
-    if (this._stillTime > 0.28 || this._age > 4.2) {
+    if (this._stillTime > 0.12 || this._age > 1.6) {
       this.freeze()
     }
   }
@@ -349,17 +455,24 @@ export class HumanoidRagdoll {
       body.setBodyType(R.RigidBodyType.Fixed, true)
       body.sleep()
     }
+    // One last mesh sync, then stop writing joints (kills end-of-flop jitter).
+    this.syncFromPhysics()
+    this._poseLocked = true
   }
 
   syncFromPhysics() {
-    if (!this.active) return
-    for (const [name, body] of Object.entries(this.bodies)) {
-      const mesh = this.visuals[name]
-      if (!mesh || !body) continue
+    if (!this.active || !this._drive.length || this._poseLocked) return
+    for (const entry of this._drive) {
+      const body = this.bodies[entry.name]
+      if (!body || !entry.object) continue
       const t = body.translation()
       const r = body.rotation()
-      mesh.position.set(t.x, t.y, t.z)
-      mesh.quaternion.set(r.x, r.y, r.z, r.w)
+      this._pos.set(t.x, t.y, t.z)
+      this._quat.set(r.x, r.y, r.z, r.w)
+      this._bodyM.compose(this._pos, this._quat, this._one)
+      this._worldM.multiplyMatrices(this._bodyM, entry.offset)
+      this._setWorldMatrix(entry.object, this._worldM, entry.bindScale)
+      entry.object.updateMatrixWorld(true)
     }
   }
 
@@ -373,13 +486,16 @@ export class HumanoidRagdoll {
       this.world.removeRigidBody(body)
     }
     this.bodies = {}
-    for (const mesh of Object.values(this.visuals)) {
-      this.root.remove(mesh)
-      mesh.geometry?.dispose?.()
-    }
-    this.visuals = {}
+    this._drive = []
+    this._model = null
+    this._colliderHandles.clear()
+    this._colliderBodyName.clear()
     this.active = false
     this.settled = false
+    this._poseLocked = false
+    this._hitWall = false
+    this._hitFloor = false
+    this._wasAirborne = false
     this._age = 0
     this._stillTime = 0
     this.root.visible = false

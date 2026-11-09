@@ -56,7 +56,8 @@
   display: block;
 }
 
-/* Three.js character overlay (spike3d) — above Pixi map art, under the SVG + HUD. */
+/* Three.js character overlay (spike3d) — above Pixi map art, under the SVG + HUD.
+   Invisible depth occluders punch mesh pixels so Pixi walls show through behind people. */
 .spike3d-overlay-host {
   position: absolute;
   inset: 0;
