@@ -404,7 +404,7 @@ export function evalLocomotionPose(clip, u) {
   return evalIdlePose(u)
 }
 
-function isLoco(clip) {
+export function isLoco(clip) {
   return (
     clip === 'idle' ||
     clip === 'walk' ||
@@ -428,6 +428,11 @@ export class HumanoidAnimator {
     this._idleT = 0
     this._actionT = 0
     this._actionDone = false
+    this._paused = false
+    // Animation viewer: once-clips hold the last frame instead of returning to idle.
+    this._viewerHoldOnce = false
+    // Animation viewer: treat once-clips as looping when the Loop checkbox is on.
+    this._viewerLoopOnce = false
     this._lean = 0
     this._hipYaw = 0
     this._hipRoll = 0
@@ -454,6 +459,75 @@ export class HumanoidAnimator {
 
   get actionDone() {
     return Boolean(this._actionDone)
+  }
+
+  get paused() {
+    return Boolean(this._paused)
+  }
+
+  /** Playhead 0–1 for the current clip (action phase, gait phase, or idle breath). */
+  get progress() {
+    const clip = this._clip
+    if (isLoco(clip)) {
+      if (clip === 'idle' || clip === 'sneakIdle' || this._targetSpeed === 0) {
+        const idleSec = clipSeconds('idle')
+        return idleSec > 0 ? clamp01(this._idleT / idleSec) : 0
+      }
+      return clamp01(this._gaitPhase)
+    }
+    const seconds = clipSeconds(clip)
+    return seconds > 0 ? clamp01(this._actionT / seconds) : 1
+  }
+
+  setPaused(paused) {
+    this._paused = Boolean(paused)
+  }
+
+  /** Lab mode: once-clips freeze at the end instead of auto-playing idle. */
+  setViewerHoldOnce(on) {
+    this._viewerHoldOnce = Boolean(on)
+  }
+
+  /** Lab mode: once-clips wrap like loop (overrides hold-at-end while on). */
+  setViewerLoopOnce(on) {
+    this._viewerLoopOnce = Boolean(on)
+    if (this._viewerLoopOnce) this._actionDone = false
+  }
+
+  /**
+   * Scrub to u∈[0,1] and snap the pose (no ease). Loco snaps gait/idle phase; actions set _actionT.
+   */
+  seek(u) {
+    const t = clamp01(Number(u) || 0)
+    const clip = this._clip
+    if (isLoco(clip)) {
+      this._speed = this._targetSpeed
+      this._prevSpeed = this._speed
+      const idleSec = clipSeconds('idle')
+      if (clip === 'idle' || clip === 'sneakIdle' || this._targetSpeed === 0) {
+        this._idleT = t * idleSec
+        this._gaitPhase = 0
+        const desired = clip === 'sneakIdle' ? evalSneakIdle(t) : evalIdlePose(t)
+        this._snapPose(desired)
+        return true
+      }
+      this._gaitPhase = t
+      const sneak = clip === 'sneakWalk'
+      const panicMove = clip === 'hazardPanicWalk' || clip === 'hazardPanicRun'
+      const runMix = panicMove ? (clip === 'hazardPanicRun' ? 1 : 0) : sneak ? 0 : clip === 'run' ? 1 : 0
+      let desired
+      if (panicMove) desired = evalHazardPanicMove(t, runMix, 1)
+      else if (clip === 'stepBack') desired = evalStepBackPose(t)
+      else desired = evalGaitPose(t, runMix, 1, sneak ? 0.85 : 0)
+      this._snapPose(desired)
+      return true
+    }
+    const seconds = clipSeconds(clip)
+    this._actionT = t * seconds
+    this._actionDone = t >= 1 - 1e-6 && clipPlayMode(clip) !== 'loop'
+    const desired = evalActionPose(clip, t)
+    this._snapPose(desired)
+    return true
   }
 
   /** Apply channels from a desired pose immediately (no ease). */
@@ -560,6 +634,7 @@ export class HumanoidAnimator {
   }
 
   update(dt, travel = null) {
+    if (this._paused) return
     if (!(dt > 0) || dt > 0.1) return
 
     const clip = this._clip
@@ -568,14 +643,15 @@ export class HumanoidAnimator {
 
     // Non-locomotion: drive action phase; loop/once/hold per catalogue.
     if (!isLoco(clip)) {
+      const loopOnce = mode === 'once' && this._viewerLoopOnce
       if (!this._actionDone) {
         this._actionT += dt
         if (this._actionT >= seconds) {
-          if (mode === 'loop') this._actionT %= seconds
+          if (mode === 'loop' || loopOnce) this._actionT %= seconds
           else {
             this._actionT = seconds
             this._actionDone = true
-            if (mode === 'once') {
+            if (mode === 'once' && !this._viewerHoldOnce) {
               // Return to idle after one-shots (attack, fidgets, getUp, …).
               this.play('idle')
               return this.update(dt, travel)
@@ -584,7 +660,8 @@ export class HumanoidAnimator {
         }
       }
       const u = seconds > 0 ? Math.min(1, this._actionT / seconds) : 1
-      const desired = evalActionPose(clip, mode === 'hold' && this._actionDone ? 1 : u)
+      const holdEnd = (mode === 'hold' || (mode === 'once' && this._viewerHoldOnce && !this._viewerLoopOnce)) && this._actionDone
+      const desired = evalActionPose(clip, holdEnd ? 1 : u)
       this._applyDesired(desired, dt, 0, true)
       return
     }

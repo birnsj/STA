@@ -53,23 +53,31 @@ export class HumanoidRagdoll {
     this.matSkin = materials.skin ?? null
     this.matHood = materials.hood ?? null
     this.matBoot = materials.boots ?? null
+    // Optional Animation Viewer overrides. Null → combat hard-coded defaults below.
+    this.tuning = null
+  }
+
+  /** @param {object|null} tuning viewer knobs from ragdollSettings.js; null restores combat defaults */
+  setTuning(tuning) {
+    this.tuning = tuning ? { ...tuning } : null
   }
 
   _createBody(name, translation, rotation, colliderDesc, mass) {
     const R = this.RAPIER
+    const t = this.tuning
     const rbDesc = R.RigidBodyDesc.dynamic()
       .setTranslation(translation.x, translation.y, translation.z)
       .setCanSleep(true)
       // Slightly sticky so the first bounce doesn't skate across the deck.
-      .setLinearDamping(0.85)
-      .setAngularDamping(1.15)
+      .setLinearDamping(t?.linearDamping ?? 0.85)
+      .setAngularDamping(t?.angularDamping ?? 1.15)
       .setCcdEnabled(true)
     if (rotation) rbDesc.setRotation(rotation)
     const body = this.world.createRigidBody(rbDesc)
     colliderDesc
       .setMass(mass)
-      .setFriction(1.35)
-      .setRestitution(0.02)
+      .setFriction(t?.friction ?? 1.35)
+      .setRestitution(t?.restitution ?? 0.02)
       .setActiveCollisionTypes(R.ActiveCollisionTypes.DEFAULT)
       .setActiveEvents(R.ActiveEvents.COLLISION_EVENTS)
     const collider = this.world.createCollider(colliderDesc, body)
@@ -369,22 +377,36 @@ export class HumanoidRagdoll {
 
     // Soft throw; short settle window plants the death pose sooner.
     const raw = impulse ?? { x: 0, y: 4, z: -6 }
-    const scale = 0.48
-    const imp = { x: raw.x * scale, y: Math.max(3.0, raw.y * scale), z: raw.z * scale }
+    const t = this.tuning
+    const scale = t?.impulseScale ?? 0.48
+    const minLift = t ? 0 : 3.0
+    const imp = {
+      x: raw.x * scale,
+      y: Math.max(minLift, raw.y * scale),
+      z: raw.z * scale,
+    }
     const point = hitPoint ?? torsoPos
     torso.applyImpulseAtPoint(imp, point, true)
-    hips.applyImpulse({ x: imp.x * 0.65, y: Math.max(2.4, imp.y * 0.5) + 1.4, z: imp.z * 0.65 }, true)
-    head.applyImpulse({ x: imp.x * 0.35, y: imp.y * 0.28 + 0.8, z: imp.z * 0.35 }, true)
+    hips.applyImpulse(
+      {
+        x: imp.x * 0.65,
+        y: Math.max(t ? 0 : 2.4, imp.y * 0.5) + (t ? imp.y * 0.25 : 1.4),
+        z: imp.z * 0.65,
+      },
+      true,
+    )
+    head.applyImpulse({ x: imp.x * 0.35, y: imp.y * 0.28 + (t ? 0 : 0.8), z: imp.z * 0.35 }, true)
     for (const tag of ['L', 'R']) {
       this.bodies[`thigh${tag}`]?.applyImpulse({ x: imp.x * 0.16, y: imp.y * 0.1, z: imp.z * 0.16 }, true)
       this.bodies[`upper${tag}`]?.applyImpulse({ x: imp.x * 0.2, y: imp.y * 0.14, z: imp.z * 0.2 }, true)
     }
 
+    const torque = t?.torque ?? 1.6
     torso.applyTorqueImpulse(
       {
-        x: (Math.random() - 0.5) * 1.4,
-        y: (Math.random() - 0.5) * 1.8,
-        z: (Math.random() - 0.5) * 1.4,
+        x: (Math.random() - 0.5) * torque * 0.875,
+        y: (Math.random() - 0.5) * torque * 1.125,
+        z: (Math.random() - 0.5) * torque * 0.875,
       },
       true,
     )
@@ -402,12 +424,17 @@ export class HumanoidRagdoll {
   tickSettle(dt) {
     if (!this.active || this.settled) return
     this._age += dt
+    const t = this.tuning
+    const floorDelay = t?.floorFreezeDelay ?? 0.08
+    const settleMax = t?.settleMaxAge ?? 1.6
+    const freezeOnFloor = t?.freezeOnFloor !== false
+    const dampRamp = t?.dampRamp !== false
 
     const hipsY = this.bodies.hips?.translation()?.y ?? 0
     if (hipsY > 0.55 * this.u) this._wasAirborne = true
 
     // Direct-to-deck: stop when the torso hits the floor, unless we already glanced a bulkhead.
-    if (this._hitFloor && !this._hitWall && this._age > 0.08) {
+    if (freezeOnFloor && this._hitFloor && !this._hitWall && this._age > floorDelay) {
       this.freeze()
       return
     }
@@ -426,7 +453,7 @@ export class HumanoidRagdoll {
     }
 
     // Bleed energy early so wall-hit flops plant quickly.
-    if (this._age > 0.1) {
+    if (dampRamp && this._age > 0.1) {
       const damp = 1.4 + Math.min(8, this._age * 3.5)
       const angDamp = 1.8 + Math.min(9, this._age * 3.8)
       for (const body of Object.values(this.bodies)) {
@@ -436,10 +463,13 @@ export class HumanoidRagdoll {
     }
 
     const quiet = maxSpeed < 0.55 && maxSpin < 1.4
-    if (quiet && (nearFloor || this._hitFloor || this._age > 0.45)) this._stillTime += dt
-    else this._stillTime = 0
+    if (quiet && (nearFloor || this._hitFloor || this._age > Math.min(0.45, settleMax * 0.3))) {
+      this._stillTime += dt
+    } else {
+      this._stillTime = 0
+    }
 
-    if (this._stillTime > 0.12 || this._age > 1.6) {
+    if (this._stillTime > 0.12 || this._age > settleMax) {
       this.freeze()
     }
   }

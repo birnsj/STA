@@ -81,6 +81,9 @@ export default function MainMenuScreen({ width, height, savedCharacters, savedSh
       </CoverArt>
       {/* Dev tools sit top-right, outside the painted menu list (which has no room for more rows). */}
       <div className="main-menu-dev-row" inert={popup ? true : undefined}>
+        <button type="button" className="main-menu-dev" onClick={() => onOpen('animationViewer')}>
+          Animations
+        </button>
         <button type="button" className="main-menu-dev" onClick={() => onOpen('spriteSheets')}>
           Sprites
         </button>

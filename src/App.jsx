@@ -31,10 +31,11 @@ const CombatScreen = lazy(() => import('./screens/CombatScreen.jsx'))
 const ExplorationScreen = lazy(() => import('./screens/ExplorationScreen.jsx'))
 const MapEditorScreen = lazy(() => import('./screens/MapEditorScreen.jsx'))
 const SpriteSheetsScreen = lazy(() => import('./screens/SpriteSheetsScreen.jsx'))
+const AnimationViewerScreen = lazy(() => import('./screens/AnimationViewerScreen.jsx'))
 
 const { steps } = creationSteps
 
-const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'exploration', 'mapEditor', 'spriteSheets']
+const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'combat', 'exploration', 'mapEditor', 'spriteSheets', 'animationViewer']
 // The prototypes Load Episode can open (a saved choice of one since removed falls back to the first).
 const EPISODE_MODES = ['combat', 'exploration']
 
@@ -56,9 +57,10 @@ const VIEW_CUES = {
   combat: 'combat',
   mapEditor: null,
   spriteSheets: null,
+  animationViewer: null,
 }
 
-const QUIET_DEV_VIEWS = new Set(['mapEditor', 'spriteSheets'])
+const QUIET_DEV_VIEWS = new Set(['mapEditor', 'spriteSheets', 'animationViewer'])
 
 // The menu keeps its 1024x576 reference-image coordinates (same 16:9 shape), as does combat (the tactical mockup's size);
 // character creation uses the design resolution.
@@ -247,6 +249,12 @@ function Views() {
         // Same as Dev Edit: always fill, even when Settings is Fit 16:9.
         <ScaledStage {...MENU_STAGE} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
           <SpriteSheetsScreen onBack={openMenu} />
+          {settingsLayer}
+        </ScaledStage>
+      )}
+      {view === 'animationViewer' && (
+        <ScaledStage {...MENU_STAGE} settings={{ ...displaySettings, scaleMode: 'fill' }} titleTips={false}>
+          <AnimationViewerScreen onBack={openMenu} />
           {settingsLayer}
         </ScaledStage>
       )}

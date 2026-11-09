@@ -61,12 +61,39 @@ export class ProceduralBody {
     return this.animator.applyDeathRest(fallClip)
   }
 
+  setPaused(paused) {
+    this.animator.setPaused(paused)
+  }
+
+  /** Animation viewer: once-clips hold at end instead of returning to idle. */
+  setViewerHoldOnce(on) {
+    this.animator.setViewerHoldOnce(on)
+  }
+
+  /** Animation viewer: once-clips loop while the Loop checkbox is on. */
+  setViewerLoopOnce(on) {
+    this.animator.setViewerLoopOnce(on)
+  }
+
+  /** Scrub playhead to u∈[0,1] and snap the pose. */
+  seek(u) {
+    return this.animator.seek(u)
+  }
+
   get current() {
     return this.animator.current
   }
 
   get actionDone() {
     return this.animator.actionDone
+  }
+
+  get paused() {
+    return this.animator.paused
+  }
+
+  get progress() {
+    return this.animator.progress
   }
 
   update(dt, travel = null) {

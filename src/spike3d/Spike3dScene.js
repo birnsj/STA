@@ -277,6 +277,8 @@ class SpikeActor {
     this._yaw = this._yawTarget
     this._paintX = this._tx
     this._paintZ = this._tz
+    // Undo physics local TRS before planting the animator death rest.
+    this.body.model?.restoreBindLocals?.()
     const clip = this._settleFallClip || 'fallBlastBack'
     this.body.applyDeathRest(clip)
     // Defeated: lock the corpse. Stagger survivors stay unlocked so getUp can play.
@@ -297,8 +299,8 @@ class SpikeActor {
     this.root.rotation.set(0, this._yawTarget, 0)
     this.root.quaternion.setFromEuler(this.root.rotation)
     this._yaw = this._yawTarget
-    // Snap joints back to a normal idle before the animator takes over again.
-    this.body.model?.applyPose?.({ prop: false, aim: 0 })
+    // Snap joints back to bind locals, then idle (ragdoll rewrote position + quaternion).
+    this.body.model?.restoreBindLocals?.()
     this.body.play('idle', { force: true })
   }
 

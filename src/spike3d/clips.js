@@ -18,6 +18,11 @@ for (const sheet of Object.values(spriteData.sheets ?? {})) {
   }
 }
 
+// Procedural gait extras (not PNG sheet anims) — keep timings for the Animation Viewer / seek.
+if (!CLIP_META.stepBack) CLIP_META.stepBack = { seconds: 0.8, play: 'loop' }
+if (!CLIP_META.hazardPanicWalk) CLIP_META.hazardPanicWalk = { seconds: 0.8, play: 'loop' }
+if (!CLIP_META.hazardPanicRun) CLIP_META.hazardPanicRun = { seconds: 0.6, play: 'loop' }
+
 export const IDLE_FIDGETS = spriteData.idleFidgets?.animations ?? [
   'idleLookAround',
   'idleShiftWeight',
@@ -35,6 +40,82 @@ export function clipSeconds(name) {
 
 export function clipPlayMode(name) {
   return CLIP_META[name]?.play ?? 'loop'
+}
+
+/** Sheet display order for the Animation Viewer. */
+const VIEWER_SHEET_ORDER = [
+  'walk',
+  'run',
+  'idle',
+  'sneak',
+  'combat',
+  'reaction',
+  'fall',
+  'getup',
+  'fidgets',
+  'surrender',
+  'panic',
+]
+
+const VIEWER_SHEET_LABELS = {
+  walk: 'Walk',
+  run: 'Run',
+  idle: 'Idle',
+  sneak: 'Sneak',
+  combat: 'Combat',
+  reaction: 'Reaction',
+  fall: 'Fall',
+  getup: 'Get Up',
+  fidgets: 'Fidgets',
+  surrender: 'Surrender',
+  panic: 'Panic',
+  base: 'Base (legacy)',
+  '3dOnly': '3D only',
+}
+
+/** Gait clips on the procedural body that are not PNG sheet anims. */
+const VIEWER_3D_ONLY = [
+  { name: 'stepBack', seconds: 0.8, play: 'loop' },
+  { name: 'hazardPanicWalk', seconds: 0.8, play: 'loop' },
+  { name: 'hazardPanicRun', seconds: 0.6, play: 'loop' },
+]
+
+/**
+ * Grouped clip catalogue for the Animation Viewer.
+ * @returns {{ id: string, label: string, clips: { name: string, seconds: number, play: string }[] }[]}
+ */
+export function animationViewerGroups() {
+  const groups = []
+  const sheets = spriteData.sheets ?? {}
+  const seen = new Set()
+  const pushSheet = (sheetId) => {
+    const sheet = sheets[sheetId]
+    if (!sheet?.animations) return
+    const clips = Object.entries(sheet.animations).map(([name, anim]) => {
+      seen.add(name)
+      return {
+        name,
+        seconds: Number(anim.seconds) || 1,
+        play: anim.play === 'hold' || anim.play === 'once' ? anim.play : 'loop',
+      }
+    })
+    if (!clips.length) return
+    groups.push({
+      id: sheetId,
+      label: VIEWER_SHEET_LABELS[sheetId] ?? sheetId,
+      clips,
+    })
+  }
+  for (const id of VIEWER_SHEET_ORDER) pushSheet(id)
+  for (const id of Object.keys(sheets)) {
+    if (VIEWER_SHEET_ORDER.includes(id)) continue
+    pushSheet(id)
+  }
+  const only3d = VIEWER_3D_ONLY.filter((clip) => !seen.has(clip.name))
+  if (only3d.length) {
+    groups.push({ id: '3dOnly', label: VIEWER_SHEET_LABELS['3dOnly'], clips: only3d })
+  }
+  return groups
 }
 
 export const deg = (d) => d * DEG

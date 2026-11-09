@@ -60,6 +60,21 @@ export class PhysicsWorld {
     }
   }
 
+  setGravity(yOrVec) {
+    if (!this.world) return
+    if (typeof yOrVec === 'number') {
+      this.world.gravity = { x: 0, y: yOrVec, z: 0 }
+      return
+    }
+    if (yOrVec && typeof yOrVec === 'object') {
+      this.world.gravity = {
+        x: Number(yOrVec.x) || 0,
+        y: Number(yOrVec.y) || 0,
+        z: Number(yOrVec.z) || 0,
+      }
+    }
+  }
+
   registerRagdoll(ragdoll) {
     this._ragdolls.add(ragdoll)
   }

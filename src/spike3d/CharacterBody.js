@@ -22,6 +22,13 @@
  *   materials            { robe, robeDk, skin, hood, boots }
  *   bodyY                bounce offset for contact shadow squash
  *   applyDeathRest(clip) prone rest after ragdoll settles
+ *
+ * Optional for Animation Viewer (ProceduralBody):
+ *   setPaused(boolean)
+ *   setViewerHoldOnce(boolean)
+ *   setViewerLoopOnce(boolean)
+ *   seek(u)              scrub playhead 0–1 and snap pose
+ *   progress             current playhead 0–1
  */
 
 export const CHARACTER_BODY_CLIPS = [

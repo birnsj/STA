@@ -130,6 +130,41 @@ export class HumanoidModel {
     this.setUniformColour(uni)
 
     this.applyPose({ prop: false, aim: 0 })
+    // Snapshot local TRS so ragdoll sync can be fully undone (it rewrites position + quaternion).
+    this.captureBindLocals()
+  }
+
+  /** Joints whose local TRS ragdoll / applyPose own (not decorative mesh children). */
+  _bindJointList() {
+    const joints = [this.pitchPivot, this.body, this.hips, this.spine, this.torso, this.headRoot]
+    for (const leg of this.legs ?? []) {
+      joints.push(leg.thigh, leg.shin, leg.foot)
+    }
+    for (const arm of this.arms ?? []) {
+      joints.push(arm.shoulder, arm.upper, arm.forearm, arm.hand)
+    }
+    return joints.filter(Boolean)
+  }
+
+  /** Store rest locals (call after proportions change). */
+  captureBindLocals() {
+    this._bindLocals = this._bindJointList().map((obj) => ({
+      obj,
+      position: obj.position.clone(),
+      quaternion: obj.quaternion.clone(),
+      scale: obj.scale.clone(),
+    }))
+  }
+
+  /** Undo physics-driven local TRS before animator poses again. */
+  restoreBindLocals() {
+    if (!this._bindLocals?.length) return
+    for (const { obj, position, quaternion, scale } of this._bindLocals) {
+      obj.position.copy(position)
+      obj.quaternion.copy(quaternion)
+      obj.scale.copy(scale)
+      obj.rotation.setFromQuaternion(quaternion)
+    }
   }
 
   _buildHead(s) {
@@ -168,6 +203,7 @@ export class HumanoidModel {
     this._chestRy = this._baseChest.ry * (0.92 + chest * 0.08)
     this._chestRz = this._baseChest.rz * (0.85 + chest * 0.2)
     this.chest.scale.set(this._chestRx, this._chestRy, this._chestRz)
+    this.captureBindLocals()
   }
 
   _buildSkirt() {
