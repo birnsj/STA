@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import brigFile from '../maps/Deck 10 Brig.json'
 import { parseMapFile } from '../src/maps/mapFormat.js'
-import { buildMapColliders, spriteFootprint } from '../src/spike3d/mapColliders.js'
+import { buildMapColliders, occluderPunchesActor, spriteFootprint } from '../src/spike3d/mapColliders.js'
 import { facingToYaw, projectWorld, WORLD_Y_TO_PX } from '../src/spike3d/isoProjection.js'
 import { TILE_H, TILE_W, project } from '../src/maps/iso.js'
 import { getTile } from '../src/maps/mapFormat.js'
@@ -52,6 +52,28 @@ describe('spike3d map colliders', () => {
     assert.ok(Math.min(dx, dz) === 1 / 8)
     assert.ok(Math.max(dx, dz) === 1)
     assert.equal(wall.maxY, 92 / WORLD_Y_TO_PX)
+  })
+
+  it('raises prop colliders by stackOver height', () => {
+    const map = {
+      width: 1,
+      height: 1,
+      tiles: [['dimCrate']],
+      rotated: [[false]],
+      stackOver: { '0,0': ['dimCrate', 'dimCrate'] },
+    }
+    const prop = buildMapColliders(map).find((c) => c.kind === 'prop')
+    assert.ok(prop)
+    assert.equal(prop.maxY, (16 + 16 + 16) / WORLD_Y_TO_PX)
+  })
+
+  it('only lets occluders in front punch a figure (Pixi depth parity)', () => {
+    // Figure at tile depth 10 sorts as 10.5; block at 10 must not punch (same cell / behind).
+    assert.equal(occluderPunchesActor(10, 10.5), false)
+    // Block one tile in front (11) still punches someone at 10.5.
+    assert.equal(occluderPunchesActor(11, 10.5), true)
+    // Block behind (9) must not punch someone standing in front.
+    assert.equal(occluderPunchesActor(9, 10.5), false)
   })
 
   it('matches Dimension thick-wall and column sprite footprints', () => {

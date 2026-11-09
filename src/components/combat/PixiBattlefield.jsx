@@ -12,6 +12,7 @@ import { isAnimClipDebugOn, toggleAnimClipDebug } from '../../dev/animClipDebug.
 import AnimClipDebugLayer from '../maps/AnimClipDebugLayer.jsx'
 import { isSpike3dPreferred, toggleSpike3dPreferred } from '../../spike3d/enabled.js'
 import Spike3dCharacterFx from '../../spike3d/Spike3dCharacterFx.jsx'
+import Spike3dCombatBadges from '../../spike3d/Spike3dCombatBadges.jsx'
 import Spike3dOverlay from '../../spike3d/Spike3dOverlay.jsx'
 import { characterHazardOverlayType } from '../../world/characterHazardOverlay.js'
 import { hazardPanic } from '../../world/hazardPanic.js'
@@ -502,6 +503,7 @@ export default function PixiBattlefield(props) {
         data-tip-at="pointer"
       >
         {spike3d && <Spike3dCharacterFx figures={figures} />}
+        {spike3d && <Spike3dCombatBadges figures={figures} />}
         {animClipDebug && <AnimClipDebugLayer figuresRef={figuresDebugRef} spike3d={spike3d} />}
         {ring && (ring.position || state.combatants[ring.unitId]) && (
           <UnitActionRing

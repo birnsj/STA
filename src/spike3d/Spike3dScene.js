@@ -7,7 +7,7 @@ import { clipSeconds, IDLE_FIDGET_GAP, IDLE_FIDGETS } from './clips.js'
 import { ProceduralBody, PROCEDURAL_HEIGHT } from './ProceduralBody.js'
 import { HumanoidRagdoll } from './HumanoidRagdoll.js'
 import { createContactShadow } from './contactShadow.js'
-import { addColliderMeshes, addOccluderMeshes, buildMapColliders } from './mapColliders.js'
+import { addColliderMeshes, addOccluderMeshes, buildMapColliders, occluderPunchesActor } from './mapColliders.js'
 import { PhysicsWorld } from './PhysicsWorld.js'
 
 const HEIGHT = PROCEDURAL_HEIGHT
@@ -452,11 +452,28 @@ export class Spike3dScene {
   }
 
   _syncFadedOccluders(fadedKeys) {
-    const faded = fadedKeys instanceof Set ? fadedKeys : null
+    this._fadedOccluders = fadedKeys instanceof Set ? fadedKeys : null
+    // Visibility is applied per actor in _paint (painter-order punch); keep a baseline for empty poses.
     if (!this.occluderGroup) return
     for (const mesh of this.occluderGroup.children) {
       const key = mesh.userData?.fadeKey
-      mesh.visible = !key || !faded?.has(key)
+      mesh.visible = !key || !this._fadedOccluders?.has(key)
+    }
+  }
+
+  /** Only solids in front of this actor write depth — stops low walls/crates eating feet in front. */
+  _syncOccludersForActor(actor) {
+    if (!this.occluderGroup) return
+    const paint = actor.paintKey()
+    const faded = this._fadedOccluders
+    for (const mesh of this.occluderGroup.children) {
+      const key = mesh.userData?.fadeKey
+      if (key && faded?.has(key)) {
+        mesh.visible = false
+        continue
+      }
+      const depth = mesh.userData?.tileDepth
+      mesh.visible = depth == null || occluderPunchesActor(depth, paint)
     }
   }
 
@@ -566,8 +583,8 @@ export class Spike3dScene {
       this.sun.position.set(sx / n + 8, 14, sz / n + 6)
     }
 
-    // Painter order by tile x+z among characters. Occluders hide people behind solid walls; faded
-    // Pixi walls drop their occluders so wall-fade shows the full body through (no ghost silhouette).
+    // Painter order by tile x+z among characters. Per actor, only occluders in front punch the mesh
+    // (matches Pixi depthLayer); faded Pixi walls drop theirs for wall-fade read-through.
     const list = [...this.actors.values()].sort((a, b) => {
       const d = a.paintKey() - b.paintKey()
       return d !== 0 ? d : String(a.id).localeCompare(String(b.id))
@@ -578,11 +595,14 @@ export class Spike3dScene {
     } else {
       for (const actor of list) {
         this.renderer.clearDepth()
+        this._syncOccludersForActor(actor)
         actor.setVisible(true)
         this.renderer.render(this.scene, this.camera)
         actor.setVisible(false)
       }
       for (const actor of list) actor.setVisible(true)
+      // Restore fade-only visibility so debug collider toggle / next frame start clean.
+      this._syncFadedOccluders(this._fadedOccluders)
     }
   }
 

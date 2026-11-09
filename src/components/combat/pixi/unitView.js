@@ -324,8 +324,9 @@ export class UnitView {
   }
 
   // The shield grows in from a fifth of its size over 0.35 s, eased out.
+  // Spike3d: cover lives in the SVG layer above the mesh (Spike3dCombatBadges) — Pixi would sit under it.
   updateCover(shown, now) {
-    if (!shown) {
+    if (!shown || this.unit?.hideSprite) {
       this.cover?.destroy({ children: true })
       this.cover = null
       return
@@ -341,6 +342,14 @@ export class UnitView {
   }
 
   updateBadges(unit) {
+    // Spike3d: stress / AP / labels / brackets are drawn above the mesh in SVG.
+    if (unit.hideSprite) {
+      if (this.look !== 'spike3d') {
+        this.look = 'spike3d'
+        this.badges.removeChildren().forEach((child) => child.destroy({ children: true }))
+      }
+      return
+    }
     const { statusLabel, guard, stressTrack: condition, conditionY, turnStatus, target } = unit
     const look = JSON.stringify([statusLabel, guard, condition, conditionY, turnStatus, target])
     if (this.look === look) return
