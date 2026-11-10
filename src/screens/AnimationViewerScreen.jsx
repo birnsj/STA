@@ -14,6 +14,14 @@ import {
 } from '../spike3d/clips.js'
 import AnimationPreview from '../spike3d/AnimationPreview.jsx'
 import {
+  ATTACHMENT_FLAG_HELPS,
+  ATTACHMENT_SETTING_FIELDS,
+  DEFAULT_ATTACHMENT_SETTINGS,
+  cloneAttachmentSettings,
+  parseAttachmentSettingsFile,
+  serializeAttachmentSettings,
+} from '../spike3d/attachmentSettings.js'
+import {
   DEFAULT_RAGDOLL_SETTINGS,
   RAGDOLL_FLAG_HELPS,
   RAGDOLL_SETTING_FIELDS,
@@ -28,6 +36,11 @@ import '../components/maps/mapEditor.css'
 import './animationViewer.css'
 
 const RAGDOLL_GROUPS = [...new Set(RAGDOLL_SETTING_FIELDS.map((f) => f.group))]
+const ATTACHMENT_GROUPS = [...new Set(ATTACHMENT_SETTING_FIELDS.map((f) => f.group))]
+const PROP_TABS = [
+  { id: 'ragdoll', label: 'Ragdoll' },
+  { id: 'attachments', label: 'Attachments' },
+]
 
 const SPECIES = [...new Set(['human', ...Object.keys(appearanceData.raceMeshes ?? {})])]
 const HAIR_STYLES = ['short', 'crew', 'bowl', 'bob', 'long', 'tos', 'updo', 'warrior']
@@ -50,6 +63,10 @@ const ANIMATION_MENUS = [
       { id: 'saveRagdoll', label: 'Save Ragdoll Settings…' },
       { id: 'loadRagdoll', label: 'Load Ragdoll Settings…' },
       { id: 'defaultsRagdoll', label: 'Reset Ragdoll Defaults' },
+      { sep: true },
+      { id: 'saveAttachments', label: 'Save Attachment Settings…' },
+      { id: 'loadAttachments', label: 'Load Attachment Settings…' },
+      { id: 'defaultsAttachments', label: 'Reset Attachment Defaults' },
       { sep: true },
       { id: 'back', label: 'Back to Menu' },
     ],
@@ -145,8 +162,13 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
   const [ragdollSettings, setRagdollSettings] = useState(() => cloneRagdollSettings())
   const [ragdollLoadError, setRagdollLoadError] = useState('')
   const [ragdollSectionsOpen, setRagdollSectionsOpen] = useState(() => new Set([...RAGDOLL_GROUPS, 'Settle flags']))
+  const [propTab, setPropTab] = useState('ragdoll')
+  const [attachmentSettings, setAttachmentSettings] = useState(() => cloneAttachmentSettings())
+  const [attachmentSectionsOpen, setAttachmentSectionsOpen] = useState(() => new Set(ATTACHMENT_GROUPS))
+  const [attachmentLoadError, setAttachmentLoadError] = useState('')
   const previewControllerRef = useRef(null)
   const ragdollFileRef = useRef(null)
+  const attachmentFileRef = useRef(null)
   const shellRef = useRef(null)
 
   useEffect(() => {
@@ -275,6 +297,53 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
     setRagdollSettings((current) => ({ ...current, [key]: value }))
   }
 
+  const setAttachmentField = (key, value) => {
+    setAttachmentSettings((current) => ({ ...current, [key]: value }))
+  }
+
+  const resetAttachmentSettings = () => {
+    setAttachmentLoadError('')
+    setAttachmentSettings(cloneAttachmentSettings(DEFAULT_ATTACHMENT_SETTINGS))
+  }
+
+  const saveAttachmentSettings = () => {
+    setAttachmentLoadError('')
+    downloadJson(serializeAttachmentSettings(attachmentSettings), 'attachment-settings.json')
+  }
+
+  const loadAttachmentSettingsFile = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    try {
+      const text = await file.text()
+      const parsed = parseAttachmentSettingsFile(JSON.parse(text))
+      if (parsed.error) {
+        setAttachmentLoadError(parsed.error)
+        return
+      }
+      setAttachmentLoadError('')
+      setAttachmentSettings(parsed.settings)
+    } catch {
+      setAttachmentLoadError('Could not read that JSON file.')
+    }
+  }
+
+  const toggleAttachmentSection = (id) => {
+    setAttachmentSectionsOpen((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const formatAttachmentSetting = (key, value) => {
+    if (typeof value !== 'number') return String(value)
+    if (key.endsWith('Deg')) return `${Math.round(value)}°`
+    return Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2)
+  }
+
   const resetRagdollSettings = () => {
     setRagdollLoadError('')
     setRagdollSettings(cloneRagdollSettings(DEFAULT_RAGDOLL_SETTINGS))
@@ -317,6 +386,9 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
     else if (id === 'saveRagdoll') saveRagdollSettings()
     else if (id === 'loadRagdoll') ragdollFileRef.current?.click()
     else if (id === 'defaultsRagdoll') resetRagdollSettings()
+    else if (id === 'saveAttachments') saveAttachmentSettings()
+    else if (id === 'loadAttachments') attachmentFileRef.current?.click()
+    else if (id === 'defaultsAttachments') resetAttachmentSettings()
     else if (id === 'lockedIso') setLockedIso((v) => !v)
     else if (id === 'loopOnce') setLoopOnce((v) => !v)
     else if (id === 'showSkeleton') setShowSkeleton((v) => !v)
@@ -461,6 +533,7 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
                 loopOnce={loopOnce}
                 showSkeleton={showSkeleton}
                 ragdollSettings={ragdollSettings}
+                attachmentSettings={attachmentSettings}
                 onProgress={playing ? onProgress : null}
                 onRagdollActive={onRagdollActive}
                 controllerRef={previewControllerRef}
@@ -573,19 +646,53 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
 
         <aside className="ed-properties me-side">
           <div className="ed-panel-head">Properties</div>
-          <div className="ed-prop-sections-bar">
-            <button
-              type="button"
-              className="ed-prop-sections-btn"
-              onClick={() => setRagdollSectionsOpen(new Set([...RAGDOLL_GROUPS, 'Settle flags']))}
-            >
-              Expand all
-            </button>
-            <span className="ed-prop-sections-sep">/</span>
-            <button type="button" className="ed-prop-sections-btn" onClick={() => setRagdollSectionsOpen(new Set())}>
-              Collapse all
-            </button>
+          <div className="ed-properties-tabs" role="tablist" aria-label="Property set">
+            {PROP_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                className={`ed-tab${propTab === tab.id ? ' is-active' : ''}`}
+                aria-selected={propTab === tab.id}
+                onClick={() => setPropTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+          {propTab === 'ragdoll' ? (
+            <div className="ed-prop-sections-bar">
+              <button
+                type="button"
+                className="ed-prop-sections-btn"
+                onClick={() => setRagdollSectionsOpen(new Set([...RAGDOLL_GROUPS, 'Settle flags']))}
+              >
+                Expand all
+              </button>
+              <span className="ed-prop-sections-sep">/</span>
+              <button type="button" className="ed-prop-sections-btn" onClick={() => setRagdollSectionsOpen(new Set())}>
+                Collapse all
+              </button>
+            </div>
+          ) : (
+            <div className="ed-prop-sections-bar">
+              <button
+                type="button"
+                className="ed-prop-sections-btn"
+                onClick={() => setAttachmentSectionsOpen(new Set(ATTACHMENT_GROUPS))}
+              >
+                Expand all
+              </button>
+              <span className="ed-prop-sections-sep">/</span>
+              <button
+                type="button"
+                className="ed-prop-sections-btn"
+                onClick={() => setAttachmentSectionsOpen(new Set())}
+              >
+                Collapse all
+              </button>
+            </div>
+          )}
           <input
             ref={ragdollFileRef}
             type="file"
@@ -593,110 +700,185 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
             hidden
             onChange={loadRagdollSettingsFile}
           />
+          <input
+            ref={attachmentFileRef}
+            type="file"
+            accept=".json,application/json"
+            hidden
+            onChange={loadAttachmentSettingsFile}
+          />
           <div className="ed-properties-body">
-            <div className="av-ragdoll-actions">
-              <button type="button" className="me-button" onClick={saveRagdollSettings}>
-                Save
-              </button>
-              <button type="button" className="me-button" onClick={() => ragdollFileRef.current?.click()}>
-                Load
-              </button>
-              <button type="button" className="me-button" onClick={resetRagdollSettings}>
-                Defaults
-              </button>
-            </div>
-            <p className="me-text av-ragdoll-note">
-              Tweaks apply on the next Ragdoll. Gravity updates live if physics is already up.
-            </p>
-            {ragdollLoadError ? <p className="me-text av-ragdoll-error">{ragdollLoadError}</p> : null}
-            <div className="av-ragdoll-actions">
-              <button
-                type="button"
-                className="me-button is-primary"
-                onClick={toggleRagdoll}
-                disabled={ragdollBusy}
-              >
-                {ragdollBusy ? 'Ragdoll…' : ragdollActive ? 'Reset pose' : 'Apply & flop'}
-              </button>
-            </div>
-            {RAGDOLL_GROUPS.map((group) => {
-              const isOpen = ragdollSectionsOpen.has(group)
-              return (
-                <div key={group} className={`ed-prop-section${isOpen ? ' is-open' : ''}`}>
-                  <button type="button" className="ed-prop-section-head" onClick={() => toggleRagdollSection(group)}>
-                    <span className="ed-prop-section-chevron" aria-hidden="true" />
-                    <span className="ed-prop-section-title">{group}</span>
+            {propTab === 'ragdoll' ? (
+              <>
+                <div className="av-ragdoll-actions">
+                  <button type="button" className="me-button" onClick={saveRagdollSettings}>
+                    Save
                   </button>
-                  {isOpen && (
-                    <div className="ed-prop-section-body">
-                      {RAGDOLL_SETTING_FIELDS.filter((f) => f.group === group).map((field) => (
-                        <div key={field.key} className="av-ragdoll-field" title={field.help}>
-                          <div className="av-ragdoll-field-label">
-                            <span>{field.label}</span>
-                            {field.key === 'directionDeg' ? (
-                              <label
-                                className="me-check av-ragdoll-inline-check"
-                                title={RAGDOLL_FLAG_HELPS.randomDirection}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={ragdollSettings.randomDirection}
-                                  onChange={(e) => setRagdollField('randomDirection', e.target.checked)}
-                                />
-                                Random
-                              </label>
-                            ) : null}
-                            <span className="av-ragdoll-field-value">
-                              {formatSetting(field.key, ragdollSettings[field.key])}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min={field.min}
-                            max={field.max}
-                            step={field.step}
-                            value={ragdollSettings[field.key]}
-                            disabled={field.key === 'directionDeg' && ragdollSettings.randomDirection}
-                            onChange={(e) => setRagdollField(field.key, Number(e.target.value))}
-                            aria-label={field.label}
-                          />
+                  <button type="button" className="me-button" onClick={() => ragdollFileRef.current?.click()}>
+                    Load
+                  </button>
+                  <button type="button" className="me-button" onClick={resetRagdollSettings}>
+                    Defaults
+                  </button>
+                </div>
+                <p className="me-text av-ragdoll-note">
+                  Tweaks apply on the next Ragdoll. Gravity updates live if physics is already up.
+                </p>
+                {ragdollLoadError ? <p className="me-text av-ragdoll-error">{ragdollLoadError}</p> : null}
+                <div className="av-ragdoll-actions">
+                  <button
+                    type="button"
+                    className="me-button is-primary"
+                    onClick={toggleRagdoll}
+                    disabled={ragdollBusy}
+                  >
+                    {ragdollBusy ? 'Ragdoll…' : ragdollActive ? 'Reset pose' : 'Apply & flop'}
+                  </button>
+                </div>
+                {RAGDOLL_GROUPS.map((group) => {
+                  const isOpen = ragdollSectionsOpen.has(group)
+                  return (
+                    <div key={group} className={`ed-prop-section${isOpen ? ' is-open' : ''}`}>
+                      <button type="button" className="ed-prop-section-head" onClick={() => toggleRagdollSection(group)}>
+                        <span className="ed-prop-section-chevron" aria-hidden="true" />
+                        <span className="ed-prop-section-title">{group}</span>
+                      </button>
+                      {isOpen && (
+                        <div className="ed-prop-section-body">
+                          {RAGDOLL_SETTING_FIELDS.filter((f) => f.group === group).map((field) => (
+                            <div key={field.key} className="av-ragdoll-field" title={field.help}>
+                              <div className="av-ragdoll-field-label">
+                                <span>{field.label}</span>
+                                {field.key === 'directionDeg' ? (
+                                  <label
+                                    className="me-check av-ragdoll-inline-check"
+                                    title={RAGDOLL_FLAG_HELPS.randomDirection}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={ragdollSettings.randomDirection}
+                                      onChange={(e) => setRagdollField('randomDirection', e.target.checked)}
+                                    />
+                                    Random
+                                  </label>
+                                ) : null}
+                                <span className="av-ragdoll-field-value">
+                                  {formatSetting(field.key, ragdollSettings[field.key])}
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min={field.min}
+                                max={field.max}
+                                step={field.step}
+                                value={ragdollSettings[field.key]}
+                                disabled={field.key === 'directionDeg' && ragdollSettings.randomDirection}
+                                onChange={(e) => setRagdollField(field.key, Number(e.target.value))}
+                                aria-label={field.label}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                    </div>
+                  )
+                })}
+                <div className={`ed-prop-section${ragdollSectionsOpen.has('Settle flags') ? ' is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="ed-prop-section-head"
+                    onClick={() => toggleRagdollSection('Settle flags')}
+                  >
+                    <span className="ed-prop-section-chevron" aria-hidden="true" />
+                    <span className="ed-prop-section-title">Settle flags</span>
+                  </button>
+                  {ragdollSectionsOpen.has('Settle flags') && (
+                    <div className="ed-prop-section-body">
+                      <label className="me-check" title={RAGDOLL_FLAG_HELPS.freezeOnFloor}>
+                        <input
+                          type="checkbox"
+                          checked={ragdollSettings.freezeOnFloor}
+                          onChange={(e) => setRagdollField('freezeOnFloor', e.target.checked)}
+                        />
+                        Freeze on floor hit
+                      </label>
+                      <label className="me-check" title={RAGDOLL_FLAG_HELPS.dampRamp}>
+                        <input
+                          type="checkbox"
+                          checked={ragdollSettings.dampRamp}
+                          onChange={(e) => setRagdollField('dampRamp', e.target.checked)}
+                        />
+                        Damping ramp
+                      </label>
                     </div>
                   )}
                 </div>
-              )
-            })}
-            <div className={`ed-prop-section${ragdollSectionsOpen.has('Settle flags') ? ' is-open' : ''}`}>
-              <button
-                type="button"
-                className="ed-prop-section-head"
-                onClick={() => toggleRagdollSection('Settle flags')}
-              >
-                <span className="ed-prop-section-chevron" aria-hidden="true" />
-                <span className="ed-prop-section-title">Settle flags</span>
-              </button>
-              {ragdollSectionsOpen.has('Settle flags') && (
-                <div className="ed-prop-section-body">
-                  <label className="me-check" title={RAGDOLL_FLAG_HELPS.freezeOnFloor}>
-                    <input
-                      type="checkbox"
-                      checked={ragdollSettings.freezeOnFloor}
-                      onChange={(e) => setRagdollField('freezeOnFloor', e.target.checked)}
-                    />
-                    Freeze on floor hit
-                  </label>
-                  <label className="me-check" title={RAGDOLL_FLAG_HELPS.dampRamp}>
-                    <input
-                      type="checkbox"
-                      checked={ragdollSettings.dampRamp}
-                      onChange={(e) => setRagdollField('dampRamp', e.target.checked)}
-                    />
-                    Damping ramp
-                  </label>
+              </>
+            ) : (
+              <>
+                <div className="av-ragdoll-actions">
+                  <button type="button" className="me-button" onClick={saveAttachmentSettings}>
+                    Save
+                  </button>
+                  <button type="button" className="me-button" onClick={() => attachmentFileRef.current?.click()}>
+                    Load
+                  </button>
+                  <button type="button" className="me-button" onClick={resetAttachmentSettings}>
+                    Defaults
+                  </button>
                 </div>
-              )}
-            </div>
+                <p className="me-text av-ragdoll-note">
+                  Left-hand <code>weaponAttach</code> socket for the Type-2 phaser. Changes apply live.
+                </p>
+                {attachmentLoadError ? <p className="me-text av-ragdoll-error">{attachmentLoadError}</p> : null}
+                <label className="me-check" title={ATTACHMENT_FLAG_HELPS.forceShowWeapon}>
+                  <input
+                    type="checkbox"
+                    checked={attachmentSettings.forceShowWeapon}
+                    onChange={(e) => setAttachmentField('forceShowWeapon', e.target.checked)}
+                  />
+                  Always show phaser
+                </label>
+                {ATTACHMENT_GROUPS.map((group) => {
+                  const isOpen = attachmentSectionsOpen.has(group)
+                  return (
+                    <div key={group} className={`ed-prop-section${isOpen ? ' is-open' : ''}`}>
+                      <button
+                        type="button"
+                        className="ed-prop-section-head"
+                        onClick={() => toggleAttachmentSection(group)}
+                      >
+                        <span className="ed-prop-section-chevron" aria-hidden="true" />
+                        <span className="ed-prop-section-title">{group}</span>
+                      </button>
+                      {isOpen && (
+                        <div className="ed-prop-section-body">
+                          {ATTACHMENT_SETTING_FIELDS.filter((f) => f.group === group).map((field) => (
+                            <div key={field.key} className="av-ragdoll-field" title={field.help}>
+                              <div className="av-ragdoll-field-label">
+                                <span>{field.label}</span>
+                                <span className="av-ragdoll-field-value">
+                                  {formatAttachmentSetting(field.key, attachmentSettings[field.key])}
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min={field.min}
+                                max={field.max}
+                                step={field.step}
+                                value={attachmentSettings[field.key]}
+                                onChange={(e) => setAttachmentField(field.key, Number(e.target.value))}
+                                aria-label={field.label}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            )}
           </div>
         </aside>
       </div>

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { cloneAttachmentSettings, DEFAULT_ATTACHMENT_SETTINGS } from './attachmentSettings.js'
 import { applyUniformTexture, clearUniformTexture, parseHex } from './uniformTextures.js'
 
 /**
@@ -55,6 +56,8 @@ export class HumanoidModel {
     this.boots = this.mat(BOOTS, { metalness: 0.12, roughness: 0.62 })
     this.gold = this.mat(INSIGNIA, { metalness: 0.28, roughness: 0.48, emissive: 0x2a2410, emissiveIntensity: 0.04 })
     this.metal = this.mat(0xb8bcc4, { metalness: 0.45, roughness: 0.42 })
+    this.metalDk = this.mat(0x6a7078, { metalness: 0.55, roughness: 0.38 })
+    this.emitter = this.mat(0xff6a4a, { metalness: 0.2, roughness: 0.35, emissive: 0xff4020, emissiveIntensity: 0.55 })
     this.eyes = this.mat(EYES, { metalness: 0.05, roughness: 0.55 })
 
     this.pitchPivot = new THREE.Group()
@@ -126,6 +129,7 @@ export class HumanoidModel {
     this._baseArmX = [this.arms[0].shoulder.position.x, this.arms[1].shoulder.position.x]
     this._baseHipX = [this.legs[0].thigh.position.x, this.legs[1].thigh.position.x]
     this._baseChest = { rx: this._chestRx, ry: this._chestRy, rz: this._chestRz }
+    this._attachment = cloneAttachmentSettings(DEFAULT_ATTACHMENT_SETTINGS)
     this.setHair('short')
     this.setUniformColour(uni)
 
@@ -463,15 +467,36 @@ export class HumanoidModel {
     this.addEllipsoid(hand, [0, -1.05 * s, 0], [1.05 * s, 1.35 * s, 1.25 * s], this.skin)
 
     let rifle = null
+    let weaponAttach = null
     if (side < 0) {
+      // Stable hand socket for sidearms (Type-2 phaser). Pose drives this group; mesh hangs off it.
+      weaponAttach = new THREE.Group()
+      weaponAttach.name = 'weaponAttach'
+      weaponAttach.position.set(0.15 * s, -1.15 * s, 0.55 * s)
+      hand.add(weaponAttach)
+
       rifle = new THREE.Group()
-      rifle.name = 'rifle'
-      hand.add(rifle)
-      this.addEllipsoid(rifle, [0, -2.4 * s, 0], [0.75 * s, 0.95 * s, 2.3 * s], this.metal)
+      rifle.name = 'phaser'
+      weaponAttach.add(rifle)
+      this._buildType2Phaser(rifle, s)
       rifle.visible = false
     }
 
-    return { shoulder, upper, forearm, hand, rifle, upperLen, foreLen, side }
+    return { shoulder, upper, forearm, hand, rifle, weaponAttach, upperLen, foreLen, side }
+  }
+
+  /**
+   * Compact Type-2 silhouette. Authored with muzzle along local +Z and grip along −Y so
+   * applyPose can hang it (aim 0) or level it along facing (aim 1) without stacking tips.
+   */
+  _buildType2Phaser(root, s) {
+    // Grip in the palm (−Y).
+    this.addCapsule(root, [0, -0.7 * s, 0.15 * s], 0.5 * s, 1.35 * s, this.metalDk)
+    // Body along +Z (muzzle forward in attach space).
+    this.addEllipsoid(root, [0, -0.35 * s, 1.6 * s], [0.7 * s, 0.75 * s, 1.9 * s], this.metal)
+    this.addEllipsoid(root, [0, 0.25 * s, 1.35 * s], [0.28 * s, 0.28 * s, 1.0 * s], this.metalDk)
+    this.addEllipsoid(root, [0, -0.2 * s, 3.35 * s], [0.42 * s, 0.42 * s, 0.5 * s], this.emitter)
+    this.addEllipsoid(root, [0.5 * s, -0.15 * s, 0.85 * s], [0.2 * s, 0.28 * s, 0.28 * s], this.gold)
   }
 
   mat(color, opts = {}) {
@@ -516,6 +541,7 @@ export class HumanoidModel {
   }
 
   applyPose(pose = {}) {
+    this._lastPose = pose
     const thigh = pose.thigh ?? [0.04, -0.04]
     const knee = pose.knee ?? [0.08, 0.08]
     const arm = pose.arm ?? [0.08, 0.08]
@@ -595,13 +621,35 @@ export class HumanoidModel {
       a.upper.rotation.z = a.side * (0.045 + Math.abs(arm[i]) * 0.06 + (isWeapon ? aim * 0.08 : 0))
       a.upper.rotation.y = isWeapon ? -aim * 0.35 : a.side * arm[i] * -0.22
       a.forearm.rotation.x = -Math.max(0.12, elbow[i])
-      a.hand.rotation.x = isWeapon ? -aim * 0.5 : -Math.max(0, arm[i]) * 0.18
-      if (a.rifle) {
-        a.rifle.visible = prop
-        a.rifle.rotation.x = -Math.PI * 0.5 * aim
-        a.rifle.position.set(0, -0.02 * s * (1 - aim), 0.02 * s + aim * 0.1 * s)
+      a.hand.rotation.x = isWeapon ? 0 : -Math.max(0, arm[i]) * 0.18
+      if (a.weaponAttach) {
+        // Mesh muzzle = local +Z. Hang down at aim 0 (Rx +90° → −Y); at aim 1 cancel the
+        // gun-arm raise (−arm) so the emitter stays level along facing instead of tipping up.
+        const att = this._attachment ?? DEFAULT_ATTACHMENT_SETTINGS
+        const hang = Math.PI * 0.5
+        const level = -arm[i]
+        const tip = ((Number(att.weaponRotXDeg) || 0) * Math.PI) / 180
+        const yaw = ((Number(att.weaponRotYDeg) || 0) * Math.PI) / 180
+        const roll = ((Number(att.weaponRotZDeg) || 0) * Math.PI) / 180
+        a.weaponAttach.rotation.x = hang * (1 - aim) + level * aim + tip
+        a.weaponAttach.rotation.y = a.side * 0.1 * (1 - aim * 0.5) + yaw
+        a.weaponAttach.rotation.z = a.side * 0.12 * (1 - aim * 0.35) + roll
+        const pz = (Number(att.weaponPosZ) || 0) + aim * (Number(att.weaponAimPosZ) || 0)
+        a.weaponAttach.position.set(
+          (Number(att.weaponPosX) || 0) * s,
+          (Number(att.weaponPosY) || 0) * s,
+          pz * s,
+        )
       }
+      if (a.rifle) a.rifle.visible = prop || Boolean(this._attachment?.forceShowWeapon)
     }
+  }
+
+  /** Animation Viewer: live phaser socket offsets. */
+  setAttachmentSettings(next) {
+    this._attachment = cloneAttachmentSettings(next)
+    // Re-apply current pose so the socket moves immediately.
+    if (this._lastPose) this.applyPose(this._lastPose)
   }
 
   dispose() {

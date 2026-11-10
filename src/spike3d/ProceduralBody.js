@@ -109,6 +109,11 @@ export class ProceduralBody {
     applyAppearance(this.model, appearance)
   }
 
+  /** Animation Viewer: phaser / hand-socket offsets. */
+  setAttachmentSettings(next) {
+    this.model.setAttachmentSettings?.(next)
+  }
+
   dispose() {
     this.model.dispose()
   }

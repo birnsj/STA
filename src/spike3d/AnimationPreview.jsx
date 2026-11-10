@@ -8,6 +8,10 @@ import { createSkeletonOverlay } from './skeletonOverlay.js'
 import { HumanoidRagdoll } from './HumanoidRagdoll.js'
 import { PhysicsWorld } from './PhysicsWorld.js'
 import {
+  DEFAULT_ATTACHMENT_SETTINGS,
+  cloneAttachmentSettings,
+} from './attachmentSettings.js'
+import {
   DEFAULT_RAGDOLL_SETTINGS,
   cloneRagdollSettings,
   impulseFromRagdollSettings,
@@ -41,6 +45,7 @@ export default function AnimationPreview({
   loopOnce = false,
   showSkeleton = false,
   ragdollSettings = null,
+  attachmentSettings = null,
   onProgress = null,
   onRagdollActive = null,
   controllerRef = null,
@@ -52,9 +57,11 @@ export default function AnimationPreview({
   const onProgressRef = useRef(onProgress)
   const onRagdollActiveRef = useRef(onRagdollActive)
   const ragdollSettingsRef = useRef(cloneRagdollSettings(ragdollSettings ?? DEFAULT_RAGDOLL_SETTINGS))
+  const attachmentSettingsRef = useRef(cloneAttachmentSettings(attachmentSettings ?? DEFAULT_ATTACHMENT_SETTINGS))
   onProgressRef.current = onProgress
   onRagdollActiveRef.current = onRagdollActive
   ragdollSettingsRef.current = cloneRagdollSettings(ragdollSettings ?? DEFAULT_RAGDOLL_SETTINGS)
+  attachmentSettingsRef.current = cloneAttachmentSettings(attachmentSettings ?? DEFAULT_ATTACHMENT_SETTINGS)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -340,6 +347,11 @@ export default function AnimationPreview({
         physics?.setGravity(settings.gravity)
         ragdoll?.setTuning(settings)
       },
+      setAttachmentSettings(next) {
+        const settings = cloneAttachmentSettings(next ?? DEFAULT_ATTACHMENT_SETTINGS)
+        attachmentSettingsRef.current = settings
+        body.setAttachmentSettings(settings)
+      },
       async triggerRagdoll() {
         if (ragdollActive && ragdoll && !ragdoll.settled) return
         if (ragdollActive) clearRagdoll()
@@ -379,6 +391,7 @@ export default function AnimationPreview({
     api.setLoopOnce(loopOnce)
     api.setShowSkeleton(showSkeleton)
     api.setRagdollSettings(ragdollSettings)
+    api.setAttachmentSettings(attachmentSettings)
 
     const tick = (now) => {
       if (!alive) return
@@ -466,6 +479,10 @@ export default function AnimationPreview({
   useEffect(() => {
     apiRef.current?.setRagdollSettings(ragdollSettings)
   }, [ragdollSettings])
+
+  useEffect(() => {
+    apiRef.current?.setAttachmentSettings(attachmentSettings)
+  }, [attachmentSettings])
 
   return (
     <div
