@@ -21,7 +21,7 @@ On `d:\STA` only: keep procedural 3D figures now behind a swappable `CharacterBo
 - **Now:** procedural body (`src/spike3d/HumanoidModel.js` + `src/spike3d/HumanoidAnimator.js`).
 - **Later (after this plan):** Mixamo GLTF as a second `CharacterBody` implementation — same clip names, no board rewrite.
 - **Keep:** environment / FX / dice sprites. Only **character** map sprites go away.
-- **Pose contract:** game clip names from `src/data/adaptation/characterSprites.json` and combat `src/components/combat/unitPose.js` stay the API (`idle`, `walk`, `run`, `sneakIdle`, `sneakWalk`, fidgets, `attack`, `melee`, `cover`, `punch`, `kick`, `dodge`, `getHit`, falls, `getUp`, `surrender`, `hazardPanic`).
+- **Pose contract:** game clip names from `src/data/adaptation/characterSprites.json` and combat `src/components/combat/unitPose.js` stay the API (`idle`, `walk`, `run`, `sneakIdle`, `sneakWalk`, fidgets, `phaser-attack01`, `melee`, `cover`, `punch`, `kick`, `dodge`, `getHit`, falls, `getUp`, `surrender`, `hazardPanic`).
 - **Appearance:** male and female proportion presets; swappable procedural hair styles keyed to portrait id/variant so the board figure matches the portrait (Phase D).
 
 ## Architecture
@@ -55,7 +55,7 @@ flowchart LR
 
 Expand `src/spike3d/HumanoidAnimator.js` (and `applyPose` as needed) so every catalogue clip name plays with matching `loop` / `once` / `hold` and durations from `characterSprites.json`.
 
-Order: sneak → fidgets → combat (`attack`/`melee`/`cover`) → reactions → falls/`getUp` → `surrender`/`hazardPanic`.
+Order: sneak → fidgets → combat (`phaser-attack01`/`melee`/`cover`) → reactions → falls/`getUp` → `surrender`/`hazardPanic`.
 
 Wire `SpikeActor.setPose` to prefer `pose.animation` when present (not only `gait`).
 

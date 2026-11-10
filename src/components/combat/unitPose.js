@@ -14,12 +14,14 @@ import { SHOT_ACTIONS } from './battleHelpers.js'
 //
 // A track is { down, fall, settled, fallHeldUntil, surrendered, handsSettled, seenStrike, strike, gettingUp,
 // getUpPlaying, staggerFall, staggerDown, seenBlast, seenReaction, reaction, reactionHeldUntil, pendingDefeat,
-// oneShotUntil, playKey }. A Defeated target still plays get-hit first (pendingDefeat), then the fall.
+// seenInCover, coverEnter, oneShotUntil, playKey }. A Defeated target still plays get-hit first (pendingDefeat), then the fall.
 
-const strikeAnimation = (action) => {
+const strikeAnimation = (action, { inCover = false } = {}) => {
   if (action.variant === 'punch') return 'punch'
   if (action.variant === 'kick') return 'kick'
-  return getWeapon(action.weaponId)?.type === 'melee' ? 'melee' : 'attack'
+  if (getWeapon(action.weaponId)?.type === 'melee') return 'melee'
+  // Kneeling fire from cover — standing ranged stays on phaser-attack01.
+  return inCover ? 'cover-attack' : 'phaser-attack01'
 }
 const isStrikeBy = (action, id) =>
   Boolean(
@@ -29,11 +31,31 @@ const isStrikeBy = (action, id) =>
       ((SHOT_ACTIONS.includes(action.type) && (action.type !== 'ambush' || action.passed)) || action.type === 'attackObject'),
   )
 
-const reactionAnimation = (action, id) => {
+/**
+ * Slip away from the attack: attacker on the defender’s left → dodge-right, on the right → dodge-left.
+ * Facing × (attacker − defender) cross on the map plane (y grows south); head-on defaults to dodge-left.
+ */
+export function dodgeAnimationForSide({ facing, attackerPosition, defenderPosition } = {}) {
+  const from = attackerPosition
+  const to = defenderPosition
+  if (!from || !to) return 'dodge-left'
+  const dx = from.x - to.x
+  const dy = from.y - to.y
+  const fx = Number(facing?.x) || 0
+  const fy = Number(facing?.y) || 0
+  if (!fx && !fy && !dx && !dy) return 'dodge-left'
+  const cross = fx * dy - fy * dx
+  // cross < 0 → attacker on defender’s left (map y-south) → slip right, and vice versa.
+  if (cross < -0.05) return 'dodge-right'
+  if (cross > 0.05) return 'dodge-left'
+  return 'dodge-left'
+}
+
+const reactionAnimation = (action, id, sideOpts = {}) => {
   if (!action || action.targetId !== id || !SHOT_ACTIONS.includes(action.type)) return null
   // A failed ambush is "spotted", not a shot the target dodges.
   if (action.type === 'ambush' && !action.passed) return null
-  if (!action.passed) return 'dodge'
+  if (!action.passed) return dodgeAnimationForSide(sideOpts)
   // 0–2 Momentum flinches even when the hit Defeats them (a Minor). The fall plays after the clip.
   if ((action.momentumGenerated ?? 0) < 3) return 'getHit'
   return null
@@ -41,13 +63,21 @@ const reactionAnimation = (action, id) => {
 
 const oneShotDuration = (animation, speed) => (getSpriteAnimation(animation).seconds * 1000) / speed
 
-export function poseInput(combatant, { lastAction = null, hitDelayMs = 0, speed = 1 } = {}) {
+export function poseInput(
+  combatant,
+  { lastAction = null, hitDelayMs = 0, speed = 1, facing = null, attackerPosition = null } = {},
+) {
   const injury = combatant.blastReact?.injury
   // Prefer injury.id; fall back so a hand-off react without an id still plays fall → getUp.
   const blastKey =
     !combatant.condition?.defeated && combatant.blastReact
       ? (injury?.id ?? combatant.blastReact.key ?? `react:${combatant.id}`)
       : null
+  const sideOpts = {
+    facing,
+    attackerPosition,
+    defenderPosition: combatant.position ?? null,
+  }
   return {
     down: Boolean(combatant.condition?.defeated),
     surrendered: Boolean(combatant.surrendered),
@@ -59,8 +89,9 @@ export function poseInput(combatant, { lastAction = null, hitDelayMs = 0, speed 
     blastKey,
     blastFall: blastKey ? blastStaggerAnimation() : null,
     strikeKey: isStrikeBy(lastAction, combatant.id) ? lastAction.key : null,
-    reactionKey: reactionAnimation(lastAction, combatant.id) ? lastAction.key : null,
-    reaction: reactionAnimation(lastAction, combatant.id),
+    reactionKey: reactionAnimation(lastAction, combatant.id, sideOpts) ? lastAction.key : null,
+    reaction: reactionAnimation(lastAction, combatant.id, sideOpts),
+    inCover: Boolean(combatant.inCover),
     lastAction,
     hitDelayMs,
     speed,
@@ -78,6 +109,9 @@ export function initialPose(input) {
     seenStrike: input.strikeKey,
     seenReaction: input.reactionKey,
     seenBlast: null,
+    // Already in cover on board appear — skip the drop-in so they don’t kneel twice.
+    seenInCover: Boolean(input.inCover),
+    coverEnter: null,
     strike: null,
     reaction: null,
     reactionHeldUntil: null,
@@ -93,7 +127,8 @@ export function initialPose(input) {
 }
 
 export function advancePose(track, input, now) {
-  const { down, surrendered, fall, blastKey, blastFall, strikeKey, reactionKey, reaction, lastAction, hitDelayMs, speed } = input
+  const { down, surrendered, fall, blastKey, blastFall, strikeKey, reactionKey, reaction, lastAction, hitDelayMs, speed, inCover } =
+    input
   let next = track
   // A killing low hit flinches first. Stay standing until that clip ends, then fall (settlePose).
   const flinchFirst = down && !next.down && reaction === 'getHit' && reactionKey !== next.seenReaction
@@ -150,8 +185,25 @@ export function advancePose(track, input, now) {
       playKey: next.playKey + 1,
     }
   }
+  if (inCover && !next.seenInCover) {
+    next = {
+      ...next,
+      seenInCover: true,
+      coverEnter: down ? null : 'cover-enter',
+      playKey: next.playKey + 1,
+    }
+  } else if (!inCover && next.seenInCover) {
+    next = { ...next, seenInCover: false, coverEnter: null, playKey: next.playKey + 1 }
+  }
   if (strikeKey !== null && strikeKey !== next.seenStrike) {
-    next = { ...next, seenStrike: strikeKey, strike: down ? null : strikeAnimation(lastAction), playKey: next.playKey + 1 }
+    next = {
+      ...next,
+      seenStrike: strikeKey,
+      strike: down ? null : strikeAnimation(lastAction, { inCover }),
+      // Strike wins over the drop-in if both land on the same beat.
+      coverEnter: null,
+      playKey: next.playKey + 1,
+    }
   }
   if (reactionKey !== null && reactionKey !== next.seenReaction) {
     next = {
@@ -165,7 +217,8 @@ export function advancePose(track, input, now) {
   }
   if (next === track) return track
   // gettingUp is not wall-clock armed here — unitView starts playback when the getup texture is on the sprite.
-  const oneShot = next.strike ?? (next.reactionHeldUntil === null ? next.reaction : null) ?? next.staggerFall
+  const oneShot =
+    next.strike ?? (next.reactionHeldUntil === null ? next.reaction : null) ?? next.coverEnter ?? next.staggerFall
   return {
     ...next,
     oneShotUntil: oneShot ? now + oneShotDuration(oneShot, speed) : next.staggerDown ? now + blastDownHoldMs() / speed : null,
@@ -208,7 +261,15 @@ export function settlePose(track, now) {
     // Do not clear gettingUp on a wall clock — that pops to idle while the fall frame is still displayed.
     if (next.gettingUp) return next
     const defeated = next.pendingDefeat
-    next = { ...next, strike: null, reaction: null, reactionDurationMs: null, oneShotUntil: null, pendingDefeat: null }
+    next = {
+      ...next,
+      strike: null,
+      coverEnter: null,
+      reaction: null,
+      reactionDurationMs: null,
+      oneShotUntil: null,
+      pendingDefeat: null,
+    }
     if (defeated) {
       return {
         ...next,
@@ -248,6 +309,7 @@ export function shownPose(track, { inCover = false, isWalking = false, panic = f
   }
   if (track.strike) return { animation: track.strike, playKey: track.playKey, settled: false, reverse: false }
   if (track.reaction && track.reactionHeldUntil === null) return { animation: track.reaction, playKey: track.playKey, settled: false, reverse: false }
+  if (track.coverEnter) return { animation: track.coverEnter, playKey: track.playKey, settled: false, reverse: false }
   if (track.surrendered) return { animation: 'surrender', playKey: track.playKey, settled: track.handsSettled, reverse: false }
   // Presentation-only: low-Fitness hazard panic — moving uses a legged variant so they don’t moonwalk.
   if (isWalking) {

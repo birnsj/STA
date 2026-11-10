@@ -25,6 +25,17 @@ if (!CLIP_META.stepBack) CLIP_META.stepBack = { seconds: 0.8, play: 'loop' }
 if (!CLIP_META.hazardPanicWalk) CLIP_META.hazardPanicWalk = { seconds: 0.8, play: 'loop' }
 if (!CLIP_META.hazardPanicRun) CLIP_META.hazardPanicRun = { seconds: 0.6, play: 'loop' }
 
+/** Old ranged-fire clip id → catalogue name. */
+export const CLIP_ALIASES = Object.freeze({
+  attack: 'phaser-attack01',
+  dodge: 'dodge-left',
+})
+
+export function resolveClipName(name) {
+  if (!name) return name
+  return CLIP_ALIASES[name] ?? name
+}
+
 export const IDLE_FIDGETS = spriteData.idleFidgets?.animations ?? [
   'idleLookAround',
   'idleShiftWeight',
@@ -37,11 +48,11 @@ export const IDLE_FIDGETS = spriteData.idleFidgets?.animations ?? [
 export const IDLE_FIDGET_GAP = spriteData.idleFidgets?.gapSeconds ?? [5, 14]
 
 export function clipSeconds(name) {
-  return CLIP_META[name]?.seconds ?? 1
+  return CLIP_META[resolveClipName(name)]?.seconds ?? 1
 }
 
 export function clipPlayMode(name) {
-  return CLIP_META[name]?.play ?? 'loop'
+  return CLIP_META[resolveClipName(name)]?.play ?? 'loop'
 }
 
 /** Sheet display order for the Animation Viewer. */
@@ -170,6 +181,8 @@ export function basePose() {
     arm: [deg(2), deg(4)],
     elbow: [deg(14), deg(16)],
     shoulder: [deg(1), deg(2)],
+    // Extra abduction (radians) — arms out to the sides, not forward.
+    armSide: [0, 0],
     breathe: 0,
     bounce: 0,
     hipDrop: 0,

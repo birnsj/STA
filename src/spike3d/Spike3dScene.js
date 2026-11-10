@@ -119,12 +119,13 @@ class SpikeActor {
     return this.host.physics
   }
 
+  // Matches Pixi figure depth (x+y+0.5) so occluderPunchesActor can compare against block x+y.
   paintKey() {
     if (this.ragdollActive && this.ragdoll?.bodies?.hips) {
       const t = this.ragdoll.bodies.hips.translation()
-      return t.x + t.z
+      return t.x + t.z + 0.5
     }
-    return this._paintX + this._paintZ
+    return this._paintX + this._paintZ + 0.5
   }
 
   setVisible(visible) {

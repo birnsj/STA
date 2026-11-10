@@ -21,90 +21,169 @@ export default function SettingsScreen({ displaySettings, onChangeDisplay, audio
     setShown({ displaySettings, audioSettings })
     setSaved(false)
   }
+
+  const setDisplay = (patch) => onChangeDisplay({ ...displaySettings, ...patch })
+
   return (
     <div className="settings-screen">
       <div className="settings-panel">
-      <header className="settings-header">
-        <h1>Settings</h1>
-      </header>
-      <div className="settings-body">
-        <section className="settings-column" aria-labelledby="settings-display">
-          <h2 id="settings-display" className="ui-heading">Display</h2>
-          <div className="settings-options" role="radiogroup" aria-labelledby="settings-display">
-            {SCALE_MODE_OPTIONS.map((option) => {
-              const selected = displaySettings.scaleMode === option.id
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  className={`settings-option ui-row${selected ? ' is-selected' : ''}`}
-                  onClick={() => onChangeDisplay({ ...displaySettings, scaleMode: option.id })}
-                >
-                  <span className="settings-option-label">{option.label}</span>
-                  <span className="settings-option-description">{option.description}</span>
-                </button>
-              )
-            })}
-          </div>
-          <h2 id="settings-audio" className="ui-heading">Audio</h2>
-          <div className="settings-audio">
-            {AUDIO_CATEGORIES.map((category) => (
-              <SettingsSlider
-                key={category.id}
-                label={category.label}
-                value={audioSettings[category.id]}
-                onChange={(next) => onChangeAudio({ ...audioSettings, [category.id]: next })}
+        <header className="settings-header">
+          <h1>Settings</h1>
+        </header>
+
+        <div className="settings-body">
+          <section className="settings-section" aria-labelledby="settings-display">
+            <h2 id="settings-display" className="ui-heading">Display</h2>
+            <div className="settings-options" role="radiogroup" aria-labelledby="settings-display">
+              {SCALE_MODE_OPTIONS.map((option) => {
+                const selected = displaySettings.scaleMode === option.id
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={`settings-option ui-row${selected ? ' is-selected' : ''}`}
+                    onClick={() => setDisplay({ scaleMode: option.id })}
+                  >
+                    <span className="settings-option-label">{option.label}</span>
+                    <span className="settings-option-description">{option.description}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="settings-switches" aria-label="Display switches">
+              <Toggle
+                label="Guide Highlight"
+                description="In character and starship creation, a box moves to the next section to fill in."
+                checked={displaySettings.guideHighlight}
+                onChange={(checked) => setDisplay({ guideHighlight: checked })}
               />
-            ))}
-            <SettingsSlider
-              label="Sensitivity"
-              title="WASD after glide: how far the camera keeps sliding after you release the keys. 100% is full coast; 0% stops at once."
-              value={displaySettings.wasdCoast}
-              onChange={(wasdCoast) => onChangeDisplay({ ...displaySettings, wasdCoast })}
-            />
-          </div>
-          <h2 id="settings-combat" className="ui-heading">Combat</h2>
-          <div className="settings-ai" role="group" aria-labelledby="settings-combat">
-            <AISelect
-              label="Party AI"
-              title="How your party plays during Auto Combat."
-              options={PARTY_AIS}
-              value={displaySettings.partyAI}
-              onChange={(partyAI) => onChangeDisplay({ ...displaySettings, partyAI })}
-            />
-            <AISelect
-              label="Enemy AI"
-              title="How enemies play every fight, not only Auto Combat."
-              options={ENEMY_AIS}
-              value={displaySettings.enemyAI}
-              onChange={(enemyAI) => onChangeDisplay({ ...displaySettings, enemyAI })}
-            />
-          </div>
-          <div className="settings-switches" aria-label="Display switches">
-            <Toggle label="Guide Highlight" description="In character and starship creation, a box moves to the next section to fill in." checked={displaySettings.guideHighlight} onChange={(checked) => onChangeDisplay({ ...displaySettings, guideHighlight: checked })} />
-            <Toggle label="Creation Summary" description="In character and starship creation, a report opens when you finish a screen, and Summary stays available." checked={displaySettings.creationSummary} onChange={(checked) => onChangeDisplay({ ...displaySettings, creationSummary: checked })} />
-            <Toggle label="Help Hints" description="A box above the party cards says what to do next, and How to Play opens on the first fight." checked={displaySettings.helpHints} onChange={(checked) => onChangeDisplay({ ...displaySettings, helpHints: checked })} />
-            <Toggle label="Fade Walls One at a Time" description="Only the wall blocks hiding a character fade, instead of the room's whole front walls." checked={displaySettings.wallFade === 'single'} onChange={(checked) => onChangeDisplay({ ...displaySettings, wallFade: checked ? 'single' : 'room' })} />
-            <Toggle label="Pulse Objective Tag" description="The tag over the object your current objective is on pulses." checked={displaySettings.objectivePulse} onChange={(checked) => onChangeDisplay({ ...displaySettings, objectivePulse: checked })} />
-            <Toggle label="Captain's Log Intro" description="Before a mission, the Captain's Log opening plays. Off goes straight to the map." checked={displaySettings.missionIntro} onChange={(checked) => onChangeDisplay({ ...displaySettings, missionIntro: checked })} />
-            <Toggle label="Captain's Log Outro" description="Once the away team beams out, the mission report plays. Off leaves the mission at once." checked={displaySettings.missionOutro} onChange={(checked) => onChangeDisplay({ ...displaySettings, missionOutro: checked })} />
-            <Toggle label="Tooltips" description="Resting the pointer on a button, icon or value shows a box explaining it." checked={displaySettings.tooltips} onChange={(checked) => onChangeDisplay({ ...displaySettings, tooltips: checked })} />
-            <Toggle label="Camera Follow" description="Combat and exploration start with the view following the acting character." checked={displaySettings.cameraFollow} onChange={(checked) => onChangeDisplay({ ...displaySettings, cameraFollow: checked })} />
-            <Toggle label="Edge Scroll" description="Holding the pointer at the edge of the combat or exploration map pans the camera." checked={displaySettings.edgeScroll} onChange={(checked) => onChangeDisplay({ ...displaySettings, edgeScroll: checked })} />
-            <Toggle label="Item Placement Box" description="Shows the green or red footprint while positioning an inventory object on the map." checked={displaySettings.itemPlacementPreview} onChange={(checked) => onChangeDisplay({ ...displaySettings, itemPlacementPreview: checked })} />
-          </div>
-        </section>
-      </div>
-      <div className="settings-actions">
-        <button type="button" className="nav-button" onClick={onBack}>
-          Close
-        </button>
-        <button type="button" className={`nav-button nav-next${saved ? '' : ' is-advance'}`} onClick={() => { onSave(); setSaved(true) }}>
-          {saved ? 'Saved' : 'Save Settings'}
-        </button>
-      </div>
+              <Toggle
+                label="Creation Summary"
+                description="In character and starship creation, a report opens when you finish a screen, and Summary stays available."
+                checked={displaySettings.creationSummary}
+                onChange={(checked) => setDisplay({ creationSummary: checked })}
+              />
+              <Toggle
+                label="Help Hints"
+                description="A box above the party cards says what to do next, and How to Play opens on the first fight."
+                checked={displaySettings.helpHints}
+                onChange={(checked) => setDisplay({ helpHints: checked })}
+              />
+              <Toggle
+                label="Tooltips"
+                description="Resting the pointer on a button, icon or value shows a box explaining it."
+                checked={displaySettings.tooltips}
+                onChange={(checked) => setDisplay({ tooltips: checked })}
+              />
+              <Toggle
+                label="Camera Follow"
+                description="Combat and exploration start with the view following the acting character."
+                checked={displaySettings.cameraFollow}
+                onChange={(checked) => setDisplay({ cameraFollow: checked })}
+              />
+              <Toggle
+                label="Edge Scroll"
+                description="Holding the pointer at the edge of the combat or exploration map pans the camera."
+                checked={displaySettings.edgeScroll}
+                onChange={(checked) => setDisplay({ edgeScroll: checked })}
+              />
+              <Toggle
+                label="Captain's Log Intro"
+                description="Before a mission, the Captain's Log opening plays. Off goes straight to the map."
+                checked={displaySettings.missionIntro}
+                onChange={(checked) => setDisplay({ missionIntro: checked })}
+              />
+              <Toggle
+                label="Captain's Log Outro"
+                description="Once the away team beams out, the mission report plays. Off leaves the mission at once."
+                checked={displaySettings.missionOutro}
+                onChange={(checked) => setDisplay({ missionOutro: checked })}
+              />
+              <Toggle
+                label="Pulse Objective Tag"
+                description="The tag over the object your current objective is on pulses."
+                checked={displaySettings.objectivePulse}
+                onChange={(checked) => setDisplay({ objectivePulse: checked })}
+              />
+              <Toggle
+                label="Fade Walls One at a Time"
+                description="Only the wall blocks hiding a character fade, instead of the room's whole front walls."
+                checked={displaySettings.wallFade === 'single'}
+                onChange={(checked) => setDisplay({ wallFade: checked ? 'single' : 'room' })}
+              />
+              <Toggle
+                label="Item Placement Box"
+                description="Shows the green or red footprint while positioning an inventory object on the map."
+                checked={displaySettings.itemPlacementPreview}
+                onChange={(checked) => setDisplay({ itemPlacementPreview: checked })}
+              />
+            </div>
+          </section>
+
+          <section className="settings-section" aria-labelledby="settings-audio">
+            <h2 id="settings-audio" className="ui-heading">Audio</h2>
+            <div className="settings-audio">
+              {AUDIO_CATEGORIES.map((category) => (
+                <SettingsSlider
+                  key={category.id}
+                  label={category.label}
+                  value={audioSettings[category.id]}
+                  onChange={(next) => onChangeAudio({ ...audioSettings, [category.id]: next })}
+                />
+              ))}
+              <SettingsSlider
+                label="Sensitivity"
+                title="WASD after glide: how far the camera keeps sliding after you release the keys. 100% is full coast; 0% stops at once."
+                value={displaySettings.wasdCoast}
+                onChange={(wasdCoast) => setDisplay({ wasdCoast })}
+              />
+            </div>
+          </section>
+
+          <section className="settings-section" aria-labelledby="settings-combat">
+            <h2 id="settings-combat" className="ui-heading">Combat</h2>
+            <div className="settings-ai" role="group" aria-labelledby="settings-combat">
+              <AISelect
+                label="Party AI"
+                title="How your party plays during Auto Combat."
+                options={PARTY_AIS}
+                value={displaySettings.partyAI}
+                onChange={(partyAI) => setDisplay({ partyAI })}
+              />
+              <AISelect
+                label="Enemy AI"
+                title="How enemies play every fight, not only Auto Combat."
+                options={ENEMY_AIS}
+                value={displaySettings.enemyAI}
+                onChange={(enemyAI) => setDisplay({ enemyAI })}
+              />
+              <Toggle
+                label="Auto Combat Rings"
+                description="During Auto Combat, briefly show the chosen action button on the target before it runs."
+                checked={displaySettings.autoCombatRings}
+                onChange={(checked) => setDisplay({ autoCombatRings: checked })}
+              />
+            </div>
+          </section>
+        </div>
+
+        <div className="settings-actions">
+          <button type="button" className="nav-button" onClick={onBack}>
+            Close
+          </button>
+          <button
+            type="button"
+            className={`nav-button nav-next${saved ? '' : ' is-advance'}`}
+            onClick={() => {
+              onSave()
+              setSaved(true)
+            }}
+          >
+            {saved ? 'Saved' : 'Save Settings'}
+          </button>
+        </div>
       </div>
     </div>
   )

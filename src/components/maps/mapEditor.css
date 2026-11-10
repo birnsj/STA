@@ -884,7 +884,44 @@
   font-size: 11px;
 }
 
-.ed-shell .me-check input,
+/*
+ * Native checkbox ticks mis-paint under ScaledStage's CSS transform:scale().
+ * Paint the box ourselves; checked uses a centered SVG tick (no ::after offset).
+ */
+.ed-shell .me-check input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex-shrink: 0;
+  border: 1px solid #6a7585;
+  border-radius: 2px;
+  background-color: #0c1016;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 9px;
+  accent-color: unset;
+  cursor: var(--cursor-pointer);
+}
+
+.ed-shell .me-check input[type='checkbox']:checked {
+  border-color: var(--ed-accent);
+  background-color: var(--ed-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%230a0e14' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M2.5 6.2 5 8.7 9.5 3.3'/%3E%3C/svg%3E");
+}
+
+.ed-shell .me-check input[type='checkbox']:disabled {
+  opacity: 0.45;
+  cursor: var(--cursor-not-allowed);
+}
+
+.ed-shell .me-check input[type='checkbox']:focus-visible {
+  outline: 1px solid var(--ed-accent);
+  outline-offset: 1px;
+}
+
 .ed-shell .me-cover input {
   accent-color: var(--ed-accent);
 }

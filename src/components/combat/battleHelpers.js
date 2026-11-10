@@ -30,7 +30,8 @@ export const OPENING_BANNER_MS = 2400
 const AI_ROLL_MS = 1100
 export const MOVE_TILE_MS = 140
 // How long Auto Combat shows a party member's chosen button before the action runs.
-export const AI_CHOICE_MS = 900
+// Keep short so rings clear quickly once a choice is lit (still readable at 1×; /speed at 2×/4×).
+export const AI_CHOICE_MS = 320
 export const AUTO_END_TURN_MS = 1200
 // A fleeing enemy's beam-out and the away team's beam-in as a mission starts (match the figures' beam animations,
 // maps/pixi/figures.js, and the transporter column, maps/pixi/effects.js).
@@ -309,14 +310,6 @@ export function plannedChoice(state, partyAI) {
   if (active.side !== 'player') return null
   const step = chooseAIStep(state, { partyAI })
   return SHOWN_CHOICES.includes(step.type) ? { ...step, actorId: active.id } : null
-}
-
-// The action just taken, for the buttons to stay up while its dice roll.
-export function lastChoice(state) {
-  const action = state.lastAction
-  if (!action) return null
-  const decision = state.lastDecision?.actorId === action.actorId ? state.lastDecision : null
-  return action.type === 'aim' ? { ...action, targetId: decision?.targetId, weaponId: decision?.weaponId } : action
 }
 
 export function nearestOpponentId(state, combatant) {

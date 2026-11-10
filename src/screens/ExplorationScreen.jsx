@@ -337,7 +337,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   useLayoutEffect(() => {
     if (outro && !inCombat) onOutro?.()
   }, [outro, inCombat, onOutro])
-  useWorldClock(dispatch, !ending.paused && !settingsOpen)
+  // Pause while fighting — keeps cadence from staying hot through combat, and avoids no-op flushSync ticks.
+  useWorldClock(dispatch, !ending.paused && !settingsOpen && !inCombat)
   // UI state: the transporter's picker is open (the last fight's id when opened; a fight since closes it).
   const beamIn = useTransporter(dispatch)
   const [transporterFor, setTransporterFor] = useState(null)

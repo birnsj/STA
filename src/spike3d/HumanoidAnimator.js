@@ -10,6 +10,7 @@ import {
   clipSeconds,
   deg,
   lerp,
+  resolveClipName,
 } from './clips.js'
 
 const SPEED_WALK = 0.55
@@ -72,15 +73,18 @@ function evalGaitPose(u, runMix, weight, crouch = 0) {
   const phase = clamp01(u) * Math.PI * 2
   const s = Math.sin(phase)
   const c = Math.cos(phase)
+  // Full sine stride — plant-bias was skating the feet under a moving root.
   const liftL = 0.5 * (1 - c)
   const liftR = 0.5 * (1 + c)
   const bobWave = 0.5 * (1 - Math.cos(phase * 2))
-  const amp = deg(lerp(24, 40, r)) * w * (1 - crouch * 0.25)
+  // Light arm lag only (no extra hipDrop / harmonics that read as slide).
+  const sArm = Math.sin(phase + lerp(0.12, 0.06, r))
+  const amp = deg(lerp(26, 40, r)) * w * (1 - crouch * 0.25)
   const kneeFlex = deg(lerp(30, 54, r)) * w
   const kneeBase = deg(lerp(6, 11, r)) + deg(50) * crouch
-  const armAmp = deg(lerp(42, 68, r)) * w * (1 - crouch * 0.55)
-  const shoulderAmp = deg(lerp(16, 28, r)) * w * (1 - crouch * 0.4)
-  const bob = lerp(0.22, 0.42, r) * w
+  const armAmp = deg(lerp(34, 68, r)) * w * (1 - crouch * 0.55)
+  const shoulderAmp = deg(lerp(14, 28, r)) * w * (1 - crouch * 0.4)
+  const bob = lerp(0.18, 0.42, r) * w
   const lean = deg(lerp(5, 10, r)) * w + deg(16) * crouch
   const twist = deg(lerp(4, 7, r)) * w
   const side = -s * deg(lerp(2, 3.5, r)) * w
@@ -92,8 +96,8 @@ function evalGaitPose(u, runMix, weight, crouch = 0) {
     ...basePose(),
     thigh: [deg(1.5) + amp * s + crouchThigh, deg(-1) - amp * s + crouchThigh],
     knee: [kneeBase + kneeFlex * liftL * liftL, kneeBase + kneeFlex * liftR * liftR],
-    arm: [deg(8) + armAmp * s + crouchArm, deg(9) - armAmp * s + crouchArm],
-    shoulder: [shoulderAmp * s + deg(6) * crouch, -shoulderAmp * s + deg(8) * crouch],
+    arm: [deg(8) + armAmp * sArm + crouchArm, deg(9) - armAmp * sArm + crouchArm],
+    shoulder: [shoulderAmp * sArm + deg(6) * crouch, -shoulderAmp * sArm + deg(8) * crouch],
     elbow: [
       deg(lerp(28, 50, r)) + deg(16) * liftR * w + crouchElbow,
       deg(lerp(28, 50, r)) + deg(16) * liftL * w + crouchElbow,
@@ -112,23 +116,65 @@ function evalGaitPose(u, runMix, weight, crouch = 0) {
   }
 }
 
+/** Slow scan while crouched — not the tiny idle fidget yaw. */
+function evalSneakLook(u) {
+  const w = clamp01(u) * Math.PI * 2
+  return {
+    headYaw: Math.sin(w * 0.55) * deg(22) + Math.sin(w * 0.22) * deg(10),
+    headPitch: deg(10) + Math.sin(w * 0.35) * deg(5) + Math.sin(w * 0.9) * deg(2),
+  }
+}
+
+/**
+ * Sneak arms out to the sides (lateral).
+ * On this rig +arm X swings BACK — keep arm slightly negative (forward of torso) and raise with armSide.
+ * open 1 = idle; lower = walk (milder).
+ */
+function evalSneakHands(open = 1) {
+  const o = clamp01(open)
+  return {
+    arm: [deg(lerp(-6, -10, o)), deg(lerp(-5, -9, o))],
+    elbow: [deg(lerp(48, 42, o)), deg(lerp(46, 40, o))],
+    shoulder: [deg(lerp(2, 3, o)), deg(lerp(2, 4, o))],
+    // Mild side raise — was reading as a full A-pose.
+    armSide: [deg(lerp(12, 20, o)), deg(lerp(12, 20, o))],
+  }
+}
+
 function evalSneakIdle(u) {
   const idle = evalIdlePose(u)
+  const look = evalSneakLook(u)
   return {
     ...idle,
-    // Match sprite sneakIdle crouch: thighs forward (−X), deep knee bend, hands up.
-    // Arms stay planted — no breathe swing (designer: sneak idle arms don't move).
+    // Crouch: thighs forward (−X), deep knee bend; arms out to the sides, head scanning.
     thigh: [deg(-48), deg(-44)],
     knee: [deg(78), deg(74)],
-    arm: [deg(28), deg(34)],
-    elbow: [deg(70), deg(64)],
-    shoulder: [deg(8), deg(10)],
+    ...evalSneakHands(1),
     spineLean: deg(14) + idle.spineLean,
     chestLean: deg(6),
     lean: deg(16),
     bounce: 0,
     hipDrop: 1.8,
-    headPitch: deg(12),
+    headYaw: look.headYaw,
+    headPitch: look.headPitch,
+  }
+}
+
+/** Crouched shuffle with arms out to the sides and the same head scan as sneak idle. */
+function evalSneakWalk(u) {
+  const gait = evalGaitPose(u, 0, 1, 0.85)
+  const look = evalSneakLook(u)
+  const hands = evalSneakHands(0.65)
+  // Keep a little stride sway on the arms so they don’t freeze solid while moving.
+  const sway = Math.sin(clamp01(u) * Math.PI * 2) * deg(5)
+  return {
+    ...gait,
+    arm: [hands.arm[0] + sway, hands.arm[1] - sway],
+    elbow: hands.elbow,
+    shoulder: hands.shoulder,
+    armSide: hands.armSide,
+    headYaw: look.headYaw,
+    headPitch: look.headPitch,
   }
 }
 
@@ -186,38 +232,108 @@ function evalActionPose(clip, u) {
   const p = basePose()
 
   if (clip === 'cover') {
-    // Fresh procedural kneel (not a sprite retarget): right knee down, left foot forward,
-    // torso upright with a slight forward crouch, phaser aimed along facing (getFacing → target).
-    // pitch must stay 0 — any leftover fall tip read as “bent all the way back.”
-    const breathe = Math.sin(t * Math.PI * 2)
+    // Kneeling cover loop: planted R knee / L foot, gun by the head.
+    // Only integer harmonics of the loop (1×, 2×) so t=0 and t=1 match — fractional rates popped every cycle.
+    const w = clamp01(t) * Math.PI * 2
+    const breathe = Math.sin(w * 2)
+    const look = Math.sin(w)
+    const look2 = Math.sin(w * 2 + 0.6)
     return {
       ...p,
       pitch: 0,
-      // [left planted forward, right knee on the deck]
-      thigh: [deg(36), deg(68)],
-      knee: [deg(72), deg(92)],
-      lean: deg(4),
-      spineLean: deg(8),
-      chestLean: deg(3),
+      // Kneel locked — no thigh/knee rock (that read as glitchy foot swim).
+      thigh: [deg(5), deg(-45)],
+      knee: [deg(98), deg(108)],
+      lean: deg(6) + deg(1.2) * breathe,
+      spineLean: deg(8) + deg(1.8) * breathe,
+      chestLean: deg(3) + deg(1.2) * breathe,
       sideLean: 0,
       spineSide: 0,
-      torsoYaw: deg(-4),
-      headPitch: deg(3) + breathe * deg(0.4),
-      headYaw: deg(2),
-      // Weapon ready — keep the gun arm forward, not windmilling up behind the head.
-      arm: [deg(-6), deg(-24)],
-      elbow: [deg(32), deg(64)],
-      shoulder: [deg(-4), deg(-18)],
-      bounce: breathe * 0.012,
-      hipDrop: 6.8,
+      torsoYaw: deg(-4) + deg(3) * look,
+      hipYaw: 0,
+      headPitch: deg(4) + deg(2) * breathe + deg(2) * look2,
+      headYaw: deg(4) + deg(10) * look,
+      arm: [deg(10) + deg(2) * breathe, deg(-62) + deg(3) * look2],
+      elbow: [deg(14), deg(108) + deg(3) * breathe],
+      shoulder: [deg(2), deg(-28) + deg(2) * look2],
+      armSide: [0, deg(14)],
+      bounce: 0,
+      // Fixed drop — breathing hipDrop bobbed the whole kneel.
+      hipDrop: 8.7,
       prop: true,
-      aim: 0.78,
+      aim: 0.95 + 0.03 * breathe,
     }
   }
 
-  if (clip === 'attack') {
-    // Phaser: raise gun arm, then lower. No recoil / fire kick. Feet stay planted.
-    // Peak aim at mid-clip (smooth up then down).
+  if (clip === 'cover-enter') {
+    // Stand → drop into cover kneel (R knee down, L foot forward, phaser to head-ready).
+    const drop = clamp01(clamp01(t) / 0.92)
+    const dropE = drop * drop * (3 - 2 * drop)
+    return {
+      ...p,
+      pitch: 0,
+      thigh: [lerp(deg(1.5), deg(5), dropE), lerp(deg(-1), deg(-45), dropE)],
+      knee: [lerp(deg(5), deg(98), dropE), lerp(deg(5), deg(108), dropE)],
+      lean: lerp(deg(2), deg(6), dropE),
+      spineLean: lerp(deg(2), deg(8), dropE),
+      chestLean: lerp(deg(1), deg(3), dropE),
+      sideLean: 0,
+      spineSide: 0,
+      torsoYaw: lerp(0, deg(-4), dropE),
+      hipYaw: 0,
+      headPitch: lerp(deg(8), deg(4), dropE),
+      headYaw: lerp(0, deg(4), dropE),
+      arm: [lerp(deg(4), deg(10), dropE), lerp(deg(4), deg(-62), dropE)],
+      elbow: [lerp(deg(14), deg(14), dropE), lerp(deg(16), deg(108), dropE)],
+      shoulder: [lerp(deg(1), deg(2), dropE), lerp(deg(2), deg(-28), dropE)],
+      armSide: [0, lerp(0, deg(14), dropE)],
+      bounce: 0,
+      hipDrop: lerp(0, 8.7, dropE),
+      prop: dropE > 0.12,
+      aim: lerp(0, 0.95, dropE),
+    }
+  }
+
+  if (clip === 'cover-attack') {
+    // Rise from kneel → stand → fire → drop back into cover (so the cover loop doesn’t pop).
+    const u = clamp01(t)
+    const rise = clamp01(u / 0.32)
+    const riseE = rise * rise * (3 - 2 * rise)
+    const fire = Math.sin(clamp01((u - 0.22) / 0.4) * Math.PI)
+    const fireE = fire * fire * (3 - 2 * fire)
+    const sink = u > 0.68 ? clamp01((u - 0.68) / 0.32) : 0
+    const sinkE = sink * sink * (3 - 2 * sink)
+    // 1 = fully up for the shot; ease back to kneel at the end.
+    const up = riseE * (1 - sinkE)
+    return {
+      ...p,
+      pitch: 0,
+      thigh: [lerp(deg(5), deg(1.5), up), lerp(deg(-45), deg(-1), up)],
+      knee: [lerp(deg(98), deg(5), up), lerp(deg(108), deg(5), up)],
+      lean: lerp(deg(6), deg(4), up) + deg(5) * fireE * (1 - sinkE),
+      spineLean: lerp(deg(8), deg(4), up) + deg(6) * fireE * (1 - sinkE),
+      chestLean: lerp(deg(3), deg(2), up) + deg(3) * fireE * (1 - sinkE),
+      sideLean: 0,
+      spineSide: 0,
+      torsoYaw: lerp(deg(-4), 0, up) + deg(-5) * fireE * (1 - sinkE),
+      hipYaw: 0,
+      headPitch: lerp(deg(4), deg(2), up) + deg(2) * fireE * (1 - sinkE),
+      headYaw: lerp(deg(4), deg(-2), up),
+      arm: [lerp(deg(10), deg(6), up), lerp(deg(-62), deg(-90), fireE * (1 - sinkE) + 0 * sinkE)],
+      elbow: [deg(14), lerp(deg(108), deg(10), fireE * (1 - sinkE))],
+      shoulder: [deg(2), lerp(deg(-28), deg(-4), fireE * (1 - sinkE))],
+      armSide: [0, lerp(deg(14), 0, fireE * (1 - sinkE))],
+      bounce: 0,
+      hipDrop: lerp(8.7, 0, up),
+      prop: true,
+      aim: lerp(0.95, 1, fireE * (1 - sinkE)),
+    }
+  }
+
+  if (clip === 'phaser-attack01' || clip === 'attack') {
+    // Phaser: gun arm points FORWARD along facing, then lowers. No recoil / fire kick.
+    // Legacy clip id `attack` kept for any stale callers; catalogue name is phaser-attack01.
+    // On this rig −arm X is forward (+arm X is behind). Peak aim at mid-clip.
     const lift = Math.sin(clamp01(t) * Math.PI)
     const liftE = lift * lift * (3 - 2 * lift)
     return {
@@ -225,16 +341,17 @@ function evalActionPose(clip, u) {
       // Feet planted — no thigh/knee/hip motion for the whole clip.
       thigh: [deg(1.5), deg(-1)],
       knee: [deg(5), deg(5)],
-      // Right stays down; left raises the phaser.
-      arm: [deg(8), lerp(deg(8), deg(-52), liftE)],
-      elbow: [deg(16), lerp(deg(18), deg(8), liftE)],
-      shoulder: [deg(2), lerp(deg(2), deg(-36), liftE)],
-      spineLean: deg(8) * liftE,
-      chestLean: deg(3) * liftE,
-      lean: deg(10) * liftE,
-      headPitch: deg(4) * liftE,
-      headYaw: deg(-4) * liftE,
-      torsoYaw: deg(-12) * liftE,
+      // Right stays down; left thrusts horizontal-forward (−90°). Past that tips the muzzle up.
+      arm: [deg(6), lerp(deg(6), deg(-90), liftE)],
+      elbow: [deg(14), lerp(deg(16), deg(10), liftE)],
+      shoulder: [deg(2), lerp(deg(2), deg(-4), liftE)],
+      armSide: [0, 0],
+      spineLean: deg(6) * liftE,
+      chestLean: deg(2) * liftE,
+      lean: deg(6) * liftE,
+      headPitch: deg(2) * liftE,
+      headYaw: deg(-2) * liftE,
+      torsoYaw: deg(-4) * liftE,
       hipYaw: 0,
       hipDrop: 0,
       bounce: 0,
@@ -245,39 +362,185 @@ function evalActionPose(clip, u) {
     }
   }
 
-  if (clip === 'melee' || clip === 'punch' || clip === 'kick') {
-    const wind = Math.sin(Math.min(1, t * 2.2) * Math.PI)
-    const strike = t < 0.45 ? ease : 1 - (t - 0.45) / 0.55
-    const kick = clip === 'kick'
-    const punch = clip === 'punch' || clip === 'melee'
+  if (clip === 'melee') {
+    // Two-handed shove: both arms thrust forward, slightly out of sync. Right foot planted;
+    // left leg steps forward then recovers. −arm / −thigh X = forward on this rig.
+    const easePush = (u) => {
+      const s = Math.sin(clamp01(u) * Math.PI)
+      return s * s * (3 - 2 * s)
+    }
+    // Left arm lags the right a little so the shove isn’t perfectly mirrored.
+    const pushR = easePush(t)
+    const pushL = easePush(t - 0.1)
+    const windR = t < 0.28 ? Math.sin((t / 0.28) * Math.PI) * (1 - pushR) : 0
+    const windL = t < 0.34 ? Math.sin((t / 0.34) * Math.PI) * (1 - pushL) : 0
+    // Left foot slides forward then back on the deck — thigh + matching knee so it never lifts.
+    const step = Math.sin(clamp01(t) * Math.PI)
     return {
       ...p,
-      thigh: kick ? [deg(10), deg(-5) - deg(55) * wind] : [deg(4), deg(-2)],
-      knee: kick ? [deg(12), deg(20) + deg(40) * wind] : [deg(8), deg(8)],
-      arm: punch
-        ? [deg(8) - deg(70) * wind, deg(10) + deg(20) * (1 - wind)]
-        : [deg(15) - deg(50) * wind, deg(12)],
-      elbow: punch ? [deg(20) + deg(40) * (1 - wind), deg(30)] : [deg(40), deg(35)],
-      shoulder: [deg(-10) - deg(25) * wind, deg(5)],
-      spineLean: deg(6) + deg(10) * strike,
-      torsoYaw: deg(kick ? -8 : 12) * wind,
-      lean: deg(8) * strike,
+      thigh: [deg(1.5), lerp(deg(-1), deg(-14), step)],
+      knee: [deg(6), lerp(deg(6), deg(22), step)],
+      arm: [
+        lerp(deg(6) + deg(18) * windR, deg(-88), pushR),
+        lerp(deg(6) + deg(16) * windL, deg(-90), pushL),
+      ],
+      elbow: [
+        lerp(deg(42) + deg(10) * windR, deg(8), pushR),
+        lerp(deg(40) + deg(10) * windL, deg(8), pushL),
+      ],
+      shoulder: [
+        lerp(deg(2) - deg(6) * windR, deg(-8), pushR),
+        lerp(deg(2) - deg(6) * windL, deg(-8), pushL),
+      ],
+      // Negative armSide tucks both hands toward centre for a close two-hand shove.
+      armSide: [lerp(0, deg(-22), pushR), lerp(0, deg(-22), pushL)],
+      spineLean: deg(4) + deg(14) * Math.max(pushR, pushL) - deg(4) * Math.max(windR, windL),
+      chestLean: deg(8) * Math.max(pushR, pushL),
+      lean: deg(4) + deg(12) * Math.max(pushR, pushL),
+      headPitch: deg(4) * Math.max(pushR, pushL),
+      torsoYaw: deg(-3) * step,
+      hipYaw: 0,
+      hipDrop: 0,
+      bounce: 0,
+      sideLean: 0,
+      spineSide: 0,
       prop: false,
       aim: 0,
     }
   }
 
-  if (clip === 'dodge') {
-    const slide = Math.sin(t * Math.PI)
+  if (clip === 'punch') {
+    // Heavy haymaker on arms[1] (the hand that reads as the character’s right in viewer/iso).
+    // Other arm stays down. −arm X = forward. Slow coil, then a snappy commit.
+    const u = clamp01(t)
+    const wind = u < 0.4 ? Math.sin((u / 0.4) * (Math.PI * 0.5)) : u < 0.48 ? 1 : 0
+    // Sharper than smoothstep — hangs near 0, then jumps into the hit.
+    const smashX = clamp01((u - 0.38) / 0.28)
+    const smash = smashX * smashX * smashX * (4 * (1 - smashX) + smashX)
+    const smashPeak = Math.sin(clamp01((u - 0.38) / 0.42) * Math.PI)
+    const commit = Math.max(smash, smashPeak * smashPeak)
     return {
       ...p,
-      thigh: [deg(8) + deg(10) * slide, deg(6) - deg(8) * slide],
-      knee: [deg(20) + deg(15) * slide, deg(18)],
-      arm: [deg(-15), deg(-10)],
-      spineSide: deg(-18) * slide,
-      sideLean: deg(-14) * slide,
-      torsoYaw: deg(-10) * slide,
-      bounce: -0.08 * slide,
+      pitch: 0,
+      // Step the lead foot into the hit; back leg drives.
+      thigh: [deg(-2) - deg(26) * commit + deg(8) * wind, deg(6) + deg(14) * wind - deg(10) * commit],
+      knee: [deg(8) + deg(36) * commit, deg(10) + deg(16) * wind],
+      // [other arm down, punching arm coils back then whips high — face height]
+      // Past −90° on arm X tips the fist up; shoulder lift carries it to the head.
+      arm: [
+        deg(18) + deg(10) * wind,
+        lerp(deg(18) + deg(70) * wind, deg(-118), commit),
+      ],
+      elbow: [
+        deg(48) + deg(6) * wind,
+        lerp(deg(100) + deg(10) * wind, deg(8), commit),
+      ],
+      shoulder: [
+        deg(2),
+        lerp(deg(8) + deg(22) * wind, deg(-42), commit),
+      ],
+      armSide: [deg(6), lerp(deg(10) * wind, deg(4), commit)],
+      spineLean: deg(4) - deg(10) * wind + deg(20) * commit,
+      chestLean: -deg(4) * wind + deg(14) * commit,
+      lean: deg(2) - deg(8) * wind + deg(18) * commit,
+      // +yaw throws this shoulder through the target.
+      torsoYaw: -deg(32) * wind + deg(40) * commit,
+      hipYaw: -deg(14) * wind + deg(18) * commit,
+      headPitch: -deg(6) * wind + deg(10) * commit,
+      headYaw: -deg(14) * wind + deg(18) * commit,
+      sideLean: -deg(10) * wind + deg(12) * commit,
+      spineSide: -deg(6) * wind + deg(8) * commit,
+      bounce: 0.05 * wind - 0.1 * commit,
+      hipDrop: 1.2 * commit,
+      prop: false,
+      aim: 0,
+    }
+  }
+
+  if (clip === 'kick') {
+    // Extreme action-karate high kick on legs[1]. Plant (index 0) frozen. −thigh X = forward/up.
+    const u = clamp01(t)
+    const chamber = u < 0.42 ? Math.sin((u / 0.42) * (Math.PI * 0.5)) : u < 0.78 ? 1 : 1 - clamp01((u - 0.78) / 0.22)
+    const snapX = clamp01((u - 0.4) / 0.18)
+    const snap = snapX * snapX * (3 - 2 * snapX)
+    const extend = u < 0.4 ? 0 : u < 0.72 ? snap * Math.sin(clamp01((u - 0.4) / 0.32) * Math.PI) : 0
+    const drive = Math.max(chamber, extend)
+    return {
+      ...p,
+      pitch: 0,
+      // Plant locked. Kick almost vertical — chamber to chin, snap past the head.
+      thigh: [deg(2), lerp(deg(-16), deg(-125), chamber) - deg(28) * extend],
+      knee: [deg(6), lerp(deg(28), deg(130), chamber) - deg(108) * extend],
+      // Big arm silhouette — opposite guard out, kick-side arm sweeps back then cuts.
+      arm: [
+        lerp(deg(-8), deg(-70), drive) - deg(12) * extend,
+        deg(16) + deg(36) * chamber - deg(20) * extend,
+      ],
+      elbow: [
+        lerp(deg(48), deg(28), drive),
+        deg(50) + deg(18) * chamber,
+      ],
+      shoulder: [
+        lerp(deg(-4), deg(-22), drive),
+        deg(6) + deg(16) * chamber - deg(8) * extend,
+      ],
+      armSide: [lerp(deg(4), deg(14), drive), deg(10) + deg(8) * chamber],
+      // Deep lean-back + twist into the kick so the upper body sells the height.
+      spineLean: deg(4) - deg(16) * chamber + deg(14) * extend,
+      chestLean: deg(2) - deg(10) * chamber + deg(10) * extend,
+      lean: deg(4) - deg(12) * chamber + deg(12) * extend,
+      torsoYaw: deg(18) * chamber + deg(10) * extend,
+      hipYaw: deg(6) * chamber,
+      headPitch: deg(8) - deg(6) * chamber + deg(14) * extend,
+      headYaw: deg(12) * chamber + deg(6) * extend,
+      sideLean: deg(6) * chamber + deg(4) * extend,
+      spineSide: deg(4) * chamber,
+      bounce: 0,
+      hipDrop: 0,
+      prop: false,
+      aim: 0,
+    }
+  }
+
+  if (clip === 'dodge' || clip === 'dodge-left' || clip === 'dodge-right') {
+    // Boxer slip L/R: load → snap off the line → hold → recover.
+    // side −1 = slip left (dodge-left / legacy dodge), +1 = slip right.
+    const side = clip === 'dodge-right' ? 1 : -1
+    const u = clamp01(t)
+    const load = u < 0.22 ? u / 0.22 : 1
+    const loadE = load * load * (3 - 2 * load)
+    const slipX = clamp01((u - 0.16) / 0.2)
+    const slipIn = slipX * slipX * (3 - 2 * slipX)
+    const hold = u >= 0.36 && u <= 0.58 ? 1 : u < 0.36 ? slipIn : 1
+    const back = u > 0.58 ? clamp01((u - 0.58) / 0.42) : 0
+    const backE = back * back * (3 - 2 * back)
+    const slip = u <= 0.58 ? Math.max(loadE * 0.35, slipIn) * hold : 1 - backE
+    const crouch =
+      lerp(loadE * 0.55, 1, Math.min(1, slipIn + (u > 0.36 && u < 0.58 ? 0.15 : 0))) *
+      (u <= 0.58 ? 1 : 1 - backE * 0.85)
+    return {
+      ...p,
+      pitch: 0,
+      thigh: [deg(2) - deg(22) * crouch, deg(-1) - deg(22) * crouch],
+      knee: [deg(10) + deg(52) * crouch, deg(10) + deg(52) * crouch],
+      arm: [deg(-36) - deg(8) * slip, deg(-38) - deg(8) * slip],
+      elbow: [deg(98) + deg(8) * slip, deg(100) + deg(8) * slip],
+      shoulder: [deg(-22) - deg(6) * slip, deg(-20) - deg(6) * slip],
+      armSide: [deg(10), deg(10)],
+      spineLean: deg(8) + deg(20) * crouch + deg(6) * slip,
+      chestLean: deg(4) + deg(12) * crouch,
+      lean: deg(6) + deg(14) * crouch,
+      sideLean: deg(28) * side * slip,
+      spineSide: deg(22) * side * slip,
+      torsoYaw: deg(12) * side * slip,
+      hipYaw: 0,
+      headPitch: deg(10) + deg(6) * crouch,
+      // Cancel torso yaw so the face stays on the opponent.
+      headYaw: deg(-12) * side * slip,
+      bounce: 0,
+      hipDrop: 2.4 * crouch,
+      prop: false,
+      aim: 0,
     }
   }
 
@@ -442,7 +705,7 @@ function evalHazardPanicMove(u, runMix, weight) {
 export function evalLocomotionPose(clip, u) {
   if (clip === 'walk') return evalGaitPose(u, 0, 1)
   if (clip === 'run') return evalGaitPose(u, 1, 1)
-  if (clip === 'sneakWalk') return evalGaitPose(u, 0, 1, 0.85)
+  if (clip === 'sneakWalk') return evalSneakWalk(u)
   if (clip === 'sneakIdle') return evalSneakIdle(u)
   if (clip === 'hazardPanicWalk') return evalHazardPanicMove(u, 0, 1)
   if (clip === 'hazardPanicRun') return evalHazardPanicMove(u, 1, 1)
@@ -563,7 +826,8 @@ export class HumanoidAnimator {
       let desired
       if (panicMove) desired = evalHazardPanicMove(t, runMix, 1)
       else if (clip === 'stepBack') desired = evalStepBackPose(t)
-      else desired = evalGaitPose(t, runMix, 1, sneak ? 0.85 : 0)
+      else if (sneak) desired = evalSneakWalk(t)
+      else desired = evalGaitPose(t, runMix, 1, 0)
       this._snapPose(desired)
       return true
     }
@@ -626,7 +890,11 @@ export class HumanoidAnimator {
   }
 
   play(name, { force = false } = {}) {
-    const clip = name && (CLIP_META[name] || LOCO_SPEED[name] !== undefined || IDLE_FIDGETS.includes(name)) ? name : null
+    const requested = resolveClipName(name)
+    const clip =
+      requested && (CLIP_META[requested] || LOCO_SPEED[requested] !== undefined || IDLE_FIDGETS.includes(requested))
+        ? requested
+        : null
     if (!clip) return false
     if (!force && this._clip === clip) return true
     const prev = this._clip
@@ -635,9 +903,12 @@ export class HumanoidAnimator {
     this._actionT = 0
     this._actionDone = false
     const leavingFall = String(prev).startsWith('fall') || prev === 'getUp'
+    const coverClip = clip === 'cover' || clip === 'cover-attack' || clip === 'cover-enter'
+    // cover / cover-attack begin kneeling — keep hipDrop. cover-enter begins standing.
+    const startKneeling = clip === 'cover' || clip === 'cover-attack'
     const upright =
       clip === 'idle' ||
-      clip === 'cover' ||
+      coverClip ||
       clip === 'hazardPanic' ||
       clip === 'walk' ||
       clip === 'run' ||
@@ -648,9 +919,9 @@ export class HumanoidAnimator {
       clip === 'hazardPanicRun' ||
       IDLE_FIDGETS.includes(clip)
     // Fall/getUp tip (pitch) must not carry into idle/cover — that read as floating or bent double.
-    if (upright && (force || leavingFall || clip === 'cover' || clip === 'idle')) {
+    if (upright && (force || leavingFall || coverClip || clip === 'idle')) {
       this._pitch = 0
-      if (clip !== 'cover') this._hipDrop = 0
+      if (!startKneeling) this._hipDrop = 0
     }
     if (force) {
       this._speed = this._targetSpeed
@@ -767,14 +1038,24 @@ export class HumanoidAnimator {
               breathe: (idle.breathe ?? 0) * (1 - weightEase),
             }
     } else if (weightEase > 0.97 && speed >= (sneak ? SPEED_WALK * 0.5 : SPEED_WALK * 0.98)) {
-      desired = evalGaitPose(this._gaitPhase, runMix, 1, crouch)
+      if (sneak) {
+        // Stride from gait phase; head scan from idle clock so it doesn’t hitch every step.
+        desired = { ...evalSneakWalk(this._gaitPhase), ...evalSneakLook(this._idleT / idleSec) }
+      } else {
+        desired = evalGaitPose(this._gaitPhase, runMix, 1, crouch)
+      }
     } else {
       const idle = sneak ? evalSneakIdle(this._idleT / idleSec) : evalIdlePose(this._idleT / idleSec)
-      const gait = evalGaitPose(this._gaitPhase, runMix, weightEase, crouch)
+      const gait = sneak
+        ? evalSneakWalk(this._gaitPhase)
+        : evalGaitPose(this._gaitPhase, runMix, weightEase, crouch)
+      // Sneak look-around stays on the idle clock so the scan doesn’t hitch with stride.
+      const sneakLook = sneak ? evalSneakLook(this._idleT / idleSec) : null
       desired = {
         ...gait,
         bounce: lerp(idle.bounce, gait.bounce, weightEase),
-        headYaw: lerp(idle.headYaw, gait.headYaw, weightEase),
+        headYaw: sneakLook ? sneakLook.headYaw : lerp(idle.headYaw, gait.headYaw, weightEase),
+        headPitch: sneakLook ? sneakLook.headPitch : gait.headPitch,
         breathe: (idle.breathe ?? 0) * (1 - weightEase),
       }
     }

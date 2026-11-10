@@ -7,14 +7,14 @@ describe('HumanoidAnimator seek / pause', () => {
   it('classifies loco vs action clips', () => {
     assert.equal(isLoco('walk'), true)
     assert.equal(isLoco('stepBack'), true)
-    assert.equal(isLoco('attack'), false)
+    assert.equal(isLoco('phaser-attack01'), false)
     assert.equal(isLoco('fallBack'), false)
   })
 
   it('seeks an action clip to mid and end', () => {
     const anim = new HumanoidAnimator(null)
     anim.setViewerHoldOnce(true)
-    assert.ok(anim.play('attack', { force: true }))
+    assert.ok(anim.play('phaser-attack01', { force: true }))
     anim.seek(0.5)
     assert.ok(Math.abs(anim.progress - 0.5) < 1e-6)
     assert.equal(anim.actionDone, false)
@@ -73,7 +73,7 @@ describe('animationViewerGroups', () => {
     assert.ok(groups.length >= 5)
     const names = new Set(groups.flatMap((g) => g.clips.map((c) => c.name)))
     assert.ok(names.has('idle'))
-    assert.ok(names.has('attack'))
+    assert.ok(names.has('phaser-attack01'))
     assert.ok(names.has('stepBack'))
     const only = groups.find((g) => g.id === '3dOnly')
     assert.ok(only)

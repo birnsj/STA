@@ -102,14 +102,23 @@ export const spriteSheetFile = (set, sheetId) => `${withSuffix(set.sheet, sprite
 export const spriteMaskFile = (set, sheetId) =>
   set.uniformMask ? `${withSuffix(set.uniformMask, spriteData.sheets[sheetId].suffix)}?${sheetCacheTag(sheetId)}` : null
 
+// Legacy clip ids still used by older callers / split-page filenames.
+const SPRITE_ANIM_ALIASES = {
+  attack: 'phaser-attack01',
+  dodge: 'dodge-left',
+}
+
 // An animation by name with the sheet that draws it: { name, sheetId, sheet, start, frames, seconds, play }, or null.
 // Prefer a dedicated sheet whose id matches the animation (walk → sheets.walk) so one-anim pages win over a legacy
 // copy left on base for fallback.
 export function getSpriteAnimation(name) {
-  const dedicated = spriteData.sheets[name]
-  if (dedicated?.animations?.[name]) return { name, sheetId: name, sheet: dedicated, ...dedicated.animations[name] }
+  const resolved = SPRITE_ANIM_ALIASES[name] ?? name
+  const dedicated = spriteData.sheets[resolved]
+  if (dedicated?.animations?.[resolved]) {
+    return { name: resolved, sheetId: resolved, sheet: dedicated, ...dedicated.animations[resolved] }
+  }
   for (const [sheetId, sheet] of Object.entries(spriteData.sheets)) {
-    if (sheet.animations[name]) return { name, sheetId, sheet, ...sheet.animations[name] }
+    if (sheet.animations[resolved]) return { name: resolved, sheetId, sheet, ...sheet.animations[resolved] }
   }
   return null
 }

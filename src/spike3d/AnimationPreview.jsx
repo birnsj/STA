@@ -16,6 +16,11 @@ import {
   cloneRagdollSettings,
   impulseFromRagdollSettings,
 } from './ragdollSettings.js'
+import {
+  DEFAULT_VIEWER_LIGHT_SETTINGS,
+  cloneViewerLightSettings,
+  lightPositionFromSettings,
+} from './viewerLightSettings.js'
 
 const HEIGHT = PROCEDURAL_HEIGHT
 const PIVOT_Y = HEIGHT * 0.5
@@ -30,6 +35,49 @@ const ZOOM_MAX = 3.5
 const BASE_VIEW = { x: -90, y: -140, width: 180, height: 200 }
 // Same yaw bias SpikeActors use on the board under the locked iso camera.
 const ISO_YAW = Math.PI / 4
+// Locked-iso reference deck: one cell per board tile, 64×64 tiles centred on the figure.
+const ISO_FLOOR_TILES = 64
+const ISO_FLOOR_LIGHT = '#4a5566'
+const ISO_FLOOR_DARK = '#2c3340'
+
+/** Flat checkered plane in XZ (y ≈ 0). World units = board tiles. */
+function createIsoCheckerFloor(tiles = ISO_FLOOR_TILES) {
+  const n = Math.max(2, Math.floor(tiles))
+  const canvas = document.createElement('canvas')
+  canvas.width = n
+  canvas.height = n
+  const ctx = canvas.getContext('2d')
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? ISO_FLOOR_LIGHT : ISO_FLOOR_DARK
+      ctx.fillRect(x, y, 1, 1)
+    }
+  }
+  const map = new THREE.CanvasTexture(canvas)
+  map.magFilter = THREE.NearestFilter
+  map.minFilter = THREE.NearestFilter
+  map.colorSpace = THREE.SRGBColorSpace
+  map.needsUpdate = true
+  const geo = new THREE.PlaneGeometry(n, n)
+  const mat = new THREE.MeshBasicMaterial({
+    map,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: true,
+  })
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.name = 'av_iso_floor'
+  mesh.rotation.x = -Math.PI / 2
+  // Sit just under the contact shadow so feet read on the deck.
+  mesh.position.y = -0.02
+  mesh.visible = false
+  mesh.userData.dispose = () => {
+    geo.dispose()
+    mat.dispose()
+    map.dispose()
+  }
+  return mesh
+}
 
 /**
  * Standalone Spike3d preview for the Animation Viewer (not a board SpikeActor).
@@ -46,6 +94,7 @@ export default function AnimationPreview({
   showSkeleton = false,
   ragdollSettings = null,
   attachmentSettings = null,
+  lightSettings = null,
   onProgress = null,
   onRagdollActive = null,
   controllerRef = null,
@@ -58,10 +107,12 @@ export default function AnimationPreview({
   const onRagdollActiveRef = useRef(onRagdollActive)
   const ragdollSettingsRef = useRef(cloneRagdollSettings(ragdollSettings ?? DEFAULT_RAGDOLL_SETTINGS))
   const attachmentSettingsRef = useRef(cloneAttachmentSettings(attachmentSettings ?? DEFAULT_ATTACHMENT_SETTINGS))
+  const lightSettingsRef = useRef(cloneViewerLightSettings(lightSettings ?? DEFAULT_VIEWER_LIGHT_SETTINGS))
   onProgressRef.current = onProgress
   onRagdollActiveRef.current = onRagdollActive
   ragdollSettingsRef.current = cloneRagdollSettings(ragdollSettings ?? DEFAULT_RAGDOLL_SETTINGS)
   attachmentSettingsRef.current = cloneAttachmentSettings(attachmentSettings ?? DEFAULT_ATTACHMENT_SETTINGS)
+  lightSettingsRef.current = cloneViewerLightSettings(lightSettings ?? DEFAULT_VIEWER_LIGHT_SETTINGS)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -81,18 +132,37 @@ export default function AnimationPreview({
     const scene = new THREE.Scene()
     const camera = makeIsoCamera()
 
-    const hemi = new THREE.HemisphereLight(0xc8d4e4, 0x2a3038, 0.95)
+    const hemi = new THREE.HemisphereLight(0xc8d4e4, 0x2a3038, DEFAULT_VIEWER_LIGHT_SETTINGS.hemiIntensity)
     scene.add(hemi)
-    const sun = new THREE.DirectionalLight(0xfff2e0, 0.55)
-    sun.position.set(6, 12, 5)
-    scene.add(sun)
-    scene.add(sun.target)
-    const fill = new THREE.DirectionalLight(0xa8b8c8, 0.35)
+    // Soft directional fill / rim stay fixed; the key lamp is the slider-driven point light.
+    const fill = new THREE.DirectionalLight(0xa8b8c8, 0.22)
     fill.position.set(-5, 7, -3)
     scene.add(fill)
-    const rim = new THREE.DirectionalLight(0xb0c4d8, 0.22)
+    const rim = new THREE.DirectionalLight(0xb0c4d8, 0.16)
     rim.position.set(-2, 5, 8)
     scene.add(rim)
+
+    const keyLight = new THREE.PointLight(0xfff2e0, DEFAULT_VIEWER_LIGHT_SETTINGS.intensity, 0, 1.1)
+    keyLight.name = 'av_key_light'
+    scene.add(keyLight)
+    const markerGeo = new THREE.SphereGeometry(0.18, 16, 12)
+    const markerMat = new THREE.MeshBasicMaterial({ color: 0xffe08a })
+    const lightMarker = new THREE.Mesh(markerGeo, markerMat)
+    lightMarker.name = 'av_key_light_marker'
+    scene.add(lightMarker)
+
+    const applyLightSettings = (next) => {
+      const settings = cloneViewerLightSettings(next ?? DEFAULT_VIEWER_LIGHT_SETTINGS)
+      lightSettingsRef.current = settings
+      const pos = lightPositionFromSettings(settings)
+      // Pivot sits at mid-body; place the lamp in that same space.
+      keyLight.position.set(pos.x, PIVOT_Y + pos.y, pos.z)
+      keyLight.intensity = Math.max(0, Number(settings.intensity) || 0)
+      hemi.intensity = Math.max(0, Number(settings.hemiIntensity) || 0)
+      lightMarker.position.copy(keyLight.position)
+      lightMarker.visible = Boolean(settings.showMarker)
+    }
+    applyLightSettings(lightSettingsRef.current)
 
     // Pivot at mid-body: figure offset so feet sit at world y=0 when upright.
     const pivot = new THREE.Group()
@@ -121,6 +191,10 @@ export default function AnimationPreview({
     const skeleton = createSkeletonOverlay(body.model, { jointRadius: HEIGHT * 0.018 })
     scene.add(skeleton.root)
     skeleton.setVisible(showSkeleton)
+
+    // World-fixed tile grid (not under the yaw pivot) — only shown in locked iso.
+    const isoFloor = createIsoCheckerFloor(ISO_FLOOR_TILES)
+    scene.add(isoFloor)
 
     let alive = true
     let last = performance.now()
@@ -333,6 +407,7 @@ export default function AnimationPreview({
           pivot.rotation.x = 0
           if (drag?.mode === 'orbit') drag.mode = 'yaw'
         }
+        isoFloor.visible = lockedIsoView
         host.classList.toggle('is-iso-locked', lockedIsoView)
       },
       setLoopOnce(on) {
@@ -351,6 +426,9 @@ export default function AnimationPreview({
         const settings = cloneAttachmentSettings(next ?? DEFAULT_ATTACHMENT_SETTINGS)
         attachmentSettingsRef.current = settings
         body.setAttachmentSettings(settings)
+      },
+      setLightSettings(next) {
+        applyLightSettings(next)
       },
       async triggerRagdoll() {
         if (ragdollActive && ragdoll && !ragdoll.settled) return
@@ -392,6 +470,7 @@ export default function AnimationPreview({
     api.setShowSkeleton(showSkeleton)
     api.setRagdollSettings(ragdollSettings)
     api.setAttachmentSettings(attachmentSettings)
+    api.setLightSettings(lightSettings)
 
     const tick = (now) => {
       if (!alive) return
@@ -439,6 +518,10 @@ export default function AnimationPreview({
       body.dispose()
       shadow.geometry?.dispose?.()
       shadow.material?.dispose?.()
+      isoFloor.userData.dispose?.()
+      scene.remove(isoFloor)
+      markerGeo.dispose()
+      markerMat.dispose()
       renderer.dispose()
       onRagdollActiveRef.current?.(false)
     }
@@ -483,6 +566,10 @@ export default function AnimationPreview({
   useEffect(() => {
     apiRef.current?.setAttachmentSettings(attachmentSettings)
   }, [attachmentSettings])
+
+  useEffect(() => {
+    apiRef.current?.setLightSettings(lightSettings)
+  }, [lightSettings])
 
   return (
     <div

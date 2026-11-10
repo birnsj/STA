@@ -14,7 +14,9 @@ const SPLIT_PREVIEW_SUFFIXES = [
   { suffix: '-sneak-walk', anim: 'sneakWalk' },
   { suffix: '-sneak-idle', anim: 'sneakIdle' },
   { suffix: '-gethit', anim: 'getHit' },
-  { suffix: '-attack', anim: 'attack' },
+  { suffix: '-phaser-attack01', anim: 'phaser-attack01' },
+  // Legacy split-page filename; still maps to the renamed combat clip.
+  { suffix: '-attack', anim: 'phaser-attack01' },
   { suffix: '-melee', anim: 'melee' },
   { suffix: '-cover', anim: 'cover' },
   { suffix: '-punch', anim: 'punch' },

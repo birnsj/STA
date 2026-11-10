@@ -609,16 +609,20 @@ export class HumanoidModel {
     }
 
     const shoulder = pose.shoulder ?? [0, 0]
+    const armSide = pose.armSide ?? [0, 0]
     for (let i = 0; i < 2; i += 1) {
       const a = this.arms[i]
       const isWeapon = !!a.rifle
       const sh = shoulder[i] ?? 0
+      // armSide: + = out to the sides, − = tuck inward (hands closer).
+      const out = armSide[i] ?? 0
       // Keep rest abduction small so idle isn’t a T/A-pose next to the iso sprites.
+      // +arm X is BACK on this rig — don’t stack it with out.
       a.shoulder.rotation.x = sh
       a.shoulder.rotation.y = isWeapon ? -aim * 0.2 : a.side * sh * -0.35
-      a.shoulder.rotation.z = a.side * (0.035 + Math.abs(sh) * 0.35 + (isWeapon ? aim * 0.08 : 0))
+      a.shoulder.rotation.z = a.side * (0.035 + Math.abs(sh) * 0.35 + out * 0.9 + (isWeapon ? aim * 0.08 : 0))
       a.upper.rotation.x = arm[i]
-      a.upper.rotation.z = a.side * (0.045 + Math.abs(arm[i]) * 0.06 + (isWeapon ? aim * 0.08 : 0))
+      a.upper.rotation.z = a.side * (0.045 + Math.abs(arm[i]) * 0.06 + out * 0.35 + (isWeapon ? aim * 0.08 : 0))
       a.upper.rotation.y = isWeapon ? -aim * 0.35 : a.side * arm[i] * -0.22
       a.forearm.rotation.x = -Math.max(0.12, elbow[i])
       a.hand.rotation.x = isWeapon ? 0 : -Math.max(0, arm[i]) * 0.18

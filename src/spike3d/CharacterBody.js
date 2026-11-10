@@ -5,7 +5,7 @@
  * must not import HumanoidModel / GLTF loaders directly.
  *
  * Contract (pose clip names from characterSprites.json / unitPose.js):
- *   idle, walk, run, sneakIdle, sneakWalk, fidgets, attack, melee, cover,
+ *   idle, walk, run, sneakIdle, sneakWalk, fidgets, phaser-attack01, cover-attack, cover-enter, melee, cover,
  *   punch, kick, dodge, getHit, falls, getUp, surrender, hazardPanic,
  *   hazardPanicWalk, hazardPanicRun
  *
@@ -42,12 +42,16 @@ export const CHARACTER_BODY_CLIPS = [
   'idleTurn',
   'idleCheckPhaser',
   'idleScratchHead',
-  'attack',
+  'phaser-attack01',
+  'cover-attack',
+  'cover-enter',
   'melee',
   'cover',
   'punch',
   'kick',
   'dodge',
+  'dodge-left',
+  'dodge-right',
   'getHit',
   'fallCrumple',
   'fallBack',

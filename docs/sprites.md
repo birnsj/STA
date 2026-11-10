@@ -54,7 +54,7 @@ Each catalogue sheet is one PNG under `public/art/sprites/characters/{species}/{
 | `run` | `-run` | run |
 | `idle` | `-stand` | idle (breathing loop) |
 | `fidgets` | `-idle` | idleLookAround, idleShiftWeight, idleTurn, idleCheckPhaser, idleScratchHead |
-| `combat` | `-combat` | attack, melee, cover |
+| `combat` | `-combat` | phaser-attack01, melee, cover |
 | `reaction` | `-reaction` | punch, kick, dodge, getHit |
 | `fall` | `-fall` | crumple / back / forward / spin / blast falls |
 | `getup` | `-getup` | getUp |
@@ -71,7 +71,7 @@ On disk there are also one-anim pages (`*-attack`, `*-melee`, `*-cover`, `*-punc
 ## When clips play
 
 - **Exploration:** idle + fidgets while still; walk / run / sneak from movement; downed figures hold a fall pose.
-- **Combat:** attack or melee on strike; cover while in cover; reaction clips on punch/kick/dodge/getHit; falls on Defeat; getUp after First Aid or blast stagger; surrender holds hands up; hazard panic may replace idle while afflicted (`hazardPanic.js`).
+- **Combat:** phaser-attack01 or melee on strike; cover while in cover; reaction clips on punch/kick/dodge/getHit; falls on Defeat; getUp after First Aid or blast stagger; surrender holds hands up; hazard panic may replace idle while afflicted (`hazardPanic.js`).
 - **Play modes:** `loop`, `once` (return to loop), `hold` (stay on last frame). Timing in `src/components/maps/spriteTiming.js`; combat pose selection in `src/components/combat/unitPose.js`.
 
 ## Generating placeholders

@@ -63,7 +63,6 @@ import {
   choiceRing,
   getPartyTurnInfo,
   justFled,
-  lastChoice,
   MOVE_TILE_MS,
   nearestOpponentId,
   newSeed,
@@ -123,8 +122,8 @@ export function Battle({
   children = null,
 }) {
   // Settings > Help Hints off: the hint text goes, and How to Play does not open by itself (the How to Play button still works).
-  // partyAI / enemyAI come from Settings (persisted display settings).
-  const { helpHints: showHints, cameraFollow, partyAI, enemyAI } = useDisplaySettings()
+  // partyAI / enemyAI / autoCombatRings come from Settings (persisted display settings).
+  const { helpHints: showHints, cameraFollow, partyAI, enemyAI, autoCombatRings } = useDisplaySettings()
   const openSettings = useOpenSettings().openSettings
   // The combat cue plays while the fight is on. When it is decided the view's own cue returns (exploration's, for a
   // fight in the world), so the result is read over the calmer music.
@@ -191,8 +190,12 @@ export function Battle({
   }
   if (isPlayerTurn && !target && targetId !== nearestOpponentId(state, active)) setTargetId(nearestOpponentId(state, active))
 
-  // In Auto Combat, a party member's next Attack, Aim or Assist is shown (its button lit) for a beat before it runs.
-  const planned = useMemo(() => (auto !== 'off' ? plannedChoice(state, partyAI) : null), [auto, state, partyAI])
+  // In Auto Combat, a party member's next Attack, Aim or Assist is shown (its button lit) for a beat before it runs
+  // (Settings > Auto Combat Rings; off skips the ring and the AI_CHOICE_MS wait).
+  const planned = useMemo(
+    () => (auto !== 'off' && autoCombatRings ? plannedChoice(state, partyAI) : null),
+    [auto, autoCombatRings, state, partyAI],
+  )
 
   // Everything the HUD shows about this moment: movement range, the attack preview, who can be guarded, treated,
   // directed or assisted, and why an action is closed. Worked out in combat/combatView.js so this screen keeps only its
@@ -592,7 +595,8 @@ export function Battle({
       slotRef: armed ? setRollSlot : undefined,
     }
   } else if (auto !== 'off' && !state.outcome) {
-    ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : choiceRing(state, lastChoice(state))
+    // Show the pressed choice only for the short AI_CHOICE_MS beat; clear once the step runs (no lastChoice linger).
+    ring = planned ? choiceRing(state, planned, `plan-${state.log.length}`) : null
   }
 
   // Default the party-band pick when a ring opens; keep taskPick in sync for Guard / First Aid / Direct / Assist.

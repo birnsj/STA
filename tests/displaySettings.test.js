@@ -70,4 +70,10 @@ describe('display settings', () => {
     assert.equal(normalizeDisplaySettings({ partyAI: 'nope' }).partyAI, 'classic')
     assert.equal(normalizeDisplaySettings({ enemyAI: 'nope' }).enemyAI, 'classic')
   })
+
+  it('older saves without Auto Combat Rings get them on; a saved off stays off', () => {
+    assert.equal(normalizeDisplaySettings({}).autoCombatRings, true)
+    assert.equal(normalizeDisplaySettings({ autoCombatRings: false }).autoCombatRings, false)
+    assert.equal(normalizeDisplaySettings({ autoCombatRings: 'no' }).autoCombatRings, true)
+  })
 })

@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { blastDownHoldMs, getSpriteAnimation, getUpAnimation } from '../src/rules/appearance.js'
-import { advancePose, initialPose, poseInput, poseWakeAt, settlePose, shownPose } from '../src/components/combat/unitPose.js'
+import {
+  advancePose,
+  dodgeAnimationForSide,
+  initialPose,
+  poseInput,
+  poseWakeAt,
+  settlePose,
+  shownPose,
+} from '../src/components/combat/unitPose.js'
 
 const standing = { id: 'k1', condition: { defeated: false }, surrendered: false }
 const downed = { ...standing, condition: { defeated: true } }
@@ -18,8 +26,8 @@ test('a board appearing mid-fight shows the downed lying and does not replay the
 test('a strike plays once, for its animation length at the playback speed, then back to the loop', () => {
   let track = initialPose(poseInput(standing))
   track = advancePose(track, poseInput(standing, { lastAction: shot(1), speed: 2 }), 1000)
-  assert.equal(shownPose(track).animation, 'attack')
-  const ends = 1000 + (getSpriteAnimation('attack').seconds * 1000) / 2
+  assert.equal(shownPose(track).animation, 'phaser-attack01')
+  const ends = 1000 + (getSpriteAnimation('phaser-attack01').seconds * 1000) / 2
   assert.equal(poseWakeAt(track), ends)
   assert.equal(settlePose(track, ends - 1), track)
   assert.equal(shownPose(settlePose(track, ends)).animation, 'idle')
@@ -27,6 +35,23 @@ test('a strike plays once, for its animation length at the playback speed, then 
   assert.equal(shownPose(melee).animation, 'melee')
   const others = advancePose(initialPose(poseInput(standing)), poseInput(standing, { lastAction: shot(3, 'phaserType2', 'k2') }), 0)
   assert.equal(shownPose(others).animation, 'idle')
+  const fromCover = advancePose(
+    initialPose(poseInput(standing)),
+    poseInput({ ...standing, inCover: true }, { lastAction: shot(4) }),
+    0,
+  )
+  assert.equal(shownPose(fromCover, { inCover: true }).animation, 'cover-attack')
+})
+
+test('entering cover plays cover-enter once, then the cover loop', () => {
+  let track = initialPose(poseInput(standing))
+  track = advancePose(track, poseInput({ ...standing, inCover: true }), 1000)
+  assert.equal(shownPose(track, { inCover: true }).animation, 'cover-enter')
+  const ends = 1000 + getSpriteAnimation('cover-enter').seconds * 1000
+  assert.equal(shownPose(settlePose(track, ends), { inCover: true }).animation, 'cover')
+  // Already in cover when the board appears — no drop-in replay.
+  const midCover = initialPose(poseInput({ ...standing, inCover: true }))
+  assert.equal(shownPose(midCover, { inCover: true }).animation, 'cover')
 })
 
 test('Punch and Kick use their own strike clips', () => {
@@ -42,9 +67,34 @@ test('a target dodges a miss, flinches from a low hit, and leaves heavy hits to 
   const miss = { ...shot(20, 'phaserType2', 'k2'), targetId: 'k1', passed: false, removed: false, momentumGenerated: 0 }
   const low = { ...miss, key: 21, passed: true, momentumGenerated: 2 }
   const heavy = { ...low, key: 22, momentumGenerated: 3 }
-  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: miss }), 0)).animation, 'dodge')
+  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: miss }), 0)).animation, 'dodge-left')
   assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: low }), 0)).animation, 'getHit')
   assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: heavy }), 0)).animation, 'idle')
+})
+
+test('dodge side follows which side the attacker is on', () => {
+  const defender = { x: 5, y: 5 }
+  const facing = { x: 1, y: 0 }
+  // Facing east: north (−y) is left → slip right; south (+y) is right → slip left.
+  assert.equal(
+    dodgeAnimationForSide({ facing, attackerPosition: { x: 5, y: 3 }, defenderPosition: defender }),
+    'dodge-right',
+  )
+  assert.equal(
+    dodgeAnimationForSide({ facing, attackerPosition: { x: 5, y: 7 }, defenderPosition: defender }),
+    'dodge-left',
+  )
+  const start = initialPose(poseInput(standing))
+  const miss = { ...shot(25, 'phaserType2', 'k2'), targetId: 'k1', passed: false, removed: false, momentumGenerated: 0 }
+  const right = advancePose(
+    start,
+    poseInput(
+      { ...standing, position: defender },
+      { lastAction: miss, facing, attackerPosition: { x: 5, y: 3 } },
+    ),
+    0,
+  )
+  assert.equal(shownPose(right).animation, 'dodge-right')
 })
 
 test('a Defeated target flinches, then falls, and a heavy hit uses the fly-back', () => {

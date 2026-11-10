@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { frameColumn, gaitDelay, restColumn, startTiming, steadyGait } from '../src/components/maps/spriteTiming.js'
 
 const loop = { name: 'idle', start: 0, frames: 8, seconds: 2.4, play: 'loop' }
-const once = { name: 'attack', start: 0, frames: 12, seconds: 0.6, play: 'once' }
+const once = { name: 'phaser-attack01', start: 0, frames: 12, seconds: 0.6, play: 'once' }
 const hold = { name: 'fallBack', start: 12, frames: 12, seconds: 0.6, play: 'hold' }
 
 test('a loop steps through its frames on the page clock, offset by its phase', () => {

@@ -246,11 +246,23 @@ export function buildMapColliders(map) {
 
 /**
  * Whether a wall/prop occluder should punch this actor's mesh.
- * Matches Pixi depthLayer: figures sort at x+y+0.5, blocks at x+y — only solids in front hide the body.
- * Without this, iso zHeight makes crate/low-wall tops closer than feet in front, so legs vanish.
+ * Matches Pixi depthLayer: figures sort at x+y+0.5 (paintKey), blocks at x+y (tileDepth) —
+ * only solids strictly in front hide the body. Without this, iso zHeight makes crate/low-wall
+ * tops closer than feet in front, so legs vanish; a soft +0.5 on tileDepth punched same-cell solids.
  */
 export function occluderPunchesActor(tileDepth, paintKey) {
-  return tileDepth + 0.5 > paintKey
+  return tileDepth > paintKey
+}
+
+/** Grid fadeKey "x,y" → Pixi block depth; null for template-piece ids. */
+function cellDepthFromFadeKey(fadeKey) {
+  if (typeof fadeKey !== 'string') return null
+  const comma = fadeKey.indexOf(',')
+  if (comma < 1) return null
+  const x = Number(fadeKey.slice(0, comma))
+  const y = Number(fadeKey.slice(comma + 1))
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return null
+  return x + y
 }
 
 /**
@@ -283,9 +295,9 @@ export function addOccluderMeshes(scene, colliders, THREE) {
     // Draw before characters so depth is already in the buffer when the body tests.
     mesh.renderOrder = -100
     if (box.fadeKey != null) mesh.userData.fadeKey = box.fadeKey
-    // Iso painter depth (tile x+z). Spike3dScene only enables occluders in front of each actor so
-    // low walls/crates cannot punch feet of people standing in front (zHeight made tops "closer").
-    mesh.userData.tileDepth = cx + cz
+    // Iso painter depth = tile x+y (Pixi block zIndex). Prefer the cell from fadeKey so edge-planted
+    // walls don't drift "forward" via AABB center; template pieces fall back to the box centre.
+    mesh.userData.tileDepth = cellDepthFromFadeKey(box.fadeKey) ?? cx + cz
     group.add(mesh)
   }
 

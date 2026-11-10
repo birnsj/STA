@@ -29,6 +29,13 @@ import {
   parseRagdollSettingsFile,
   serializeRagdollSettings,
 } from '../spike3d/ragdollSettings.js'
+import {
+  DEFAULT_VIEWER_LIGHT_SETTINGS,
+  VIEWER_LIGHT_FLAG_HELPS,
+  VIEWER_LIGHT_GROUPS,
+  VIEWER_LIGHT_SETTING_FIELDS,
+  cloneViewerLightSettings,
+} from '../spike3d/viewerLightSettings.js'
 import { UNIFORM_DIVISION_IDS, parseHex } from '../spike3d/uniformTextures.js'
 import uniformsData from '../data/adaptation/uniforms.json'
 import appearanceData from '../data/adaptation/spike3dAppearance.json'
@@ -40,6 +47,7 @@ const ATTACHMENT_GROUPS = [...new Set(ATTACHMENT_SETTING_FIELDS.map((f) => f.gro
 const PROP_TABS = [
   { id: 'ragdoll', label: 'Ragdoll' },
   { id: 'attachments', label: 'Attachments' },
+  { id: 'light', label: 'Light' },
 ]
 
 const SPECIES = [...new Set(['human', ...Object.keys(appearanceData.raceMeshes ?? {})])]
@@ -166,6 +174,8 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
   const [attachmentSettings, setAttachmentSettings] = useState(() => cloneAttachmentSettings())
   const [attachmentSectionsOpen, setAttachmentSectionsOpen] = useState(() => new Set(ATTACHMENT_GROUPS))
   const [attachmentLoadError, setAttachmentLoadError] = useState('')
+  const [lightSettings, setLightSettings] = useState(() => cloneViewerLightSettings())
+  const [lightSectionsOpen, setLightSectionsOpen] = useState(() => new Set(VIEWER_LIGHT_GROUPS))
   const previewControllerRef = useRef(null)
   const ragdollFileRef = useRef(null)
   const attachmentFileRef = useRef(null)
@@ -299,6 +309,29 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
 
   const setAttachmentField = (key, value) => {
     setAttachmentSettings((current) => ({ ...current, [key]: value }))
+  }
+
+  const setLightField = (key, value) => {
+    setLightSettings((current) => ({ ...current, [key]: value }))
+  }
+
+  const resetLightSettings = () => {
+    setLightSettings(cloneViewerLightSettings(DEFAULT_VIEWER_LIGHT_SETTINGS))
+  }
+
+  const toggleLightSection = (id) => {
+    setLightSectionsOpen((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const formatLightSetting = (key, value) => {
+    if (typeof value !== 'number') return String(value)
+    if (key.endsWith('Deg')) return `${Math.round(value)}°`
+    return Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2)
   }
 
   const resetAttachmentSettings = () => {
@@ -534,6 +567,7 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
                 showSkeleton={showSkeleton}
                 ragdollSettings={ragdollSettings}
                 attachmentSettings={attachmentSettings}
+                lightSettings={lightSettings}
                 onProgress={playing ? onProgress : null}
                 onRagdollActive={onRagdollActive}
                 controllerRef={previewControllerRef}
@@ -660,39 +694,55 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
               </button>
             ))}
           </div>
-          {propTab === 'ragdoll' ? (
-            <div className="ed-prop-sections-bar">
-              <button
-                type="button"
-                className="ed-prop-sections-btn"
-                onClick={() => setRagdollSectionsOpen(new Set([...RAGDOLL_GROUPS, 'Settle flags']))}
-              >
-                Expand all
-              </button>
-              <span className="ed-prop-sections-sep">/</span>
-              <button type="button" className="ed-prop-sections-btn" onClick={() => setRagdollSectionsOpen(new Set())}>
-                Collapse all
-              </button>
-            </div>
-          ) : (
-            <div className="ed-prop-sections-bar">
-              <button
-                type="button"
-                className="ed-prop-sections-btn"
-                onClick={() => setAttachmentSectionsOpen(new Set(ATTACHMENT_GROUPS))}
-              >
-                Expand all
-              </button>
-              <span className="ed-prop-sections-sep">/</span>
-              <button
-                type="button"
-                className="ed-prop-sections-btn"
-                onClick={() => setAttachmentSectionsOpen(new Set())}
-              >
-                Collapse all
-              </button>
-            </div>
-          )}
+          <div className="ed-prop-sections-bar">
+            {propTab === 'ragdoll' ? (
+              <>
+                <button
+                  type="button"
+                  className="ed-prop-sections-btn"
+                  onClick={() => setRagdollSectionsOpen(new Set([...RAGDOLL_GROUPS, 'Settle flags']))}
+                >
+                  Expand all
+                </button>
+                <span className="ed-prop-sections-sep">/</span>
+                <button type="button" className="ed-prop-sections-btn" onClick={() => setRagdollSectionsOpen(new Set())}>
+                  Collapse all
+                </button>
+              </>
+            ) : propTab === 'attachments' ? (
+              <>
+                <button
+                  type="button"
+                  className="ed-prop-sections-btn"
+                  onClick={() => setAttachmentSectionsOpen(new Set(ATTACHMENT_GROUPS))}
+                >
+                  Expand all
+                </button>
+                <span className="ed-prop-sections-sep">/</span>
+                <button
+                  type="button"
+                  className="ed-prop-sections-btn"
+                  onClick={() => setAttachmentSectionsOpen(new Set())}
+                >
+                  Collapse all
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="ed-prop-sections-btn"
+                  onClick={() => setLightSectionsOpen(new Set(VIEWER_LIGHT_GROUPS))}
+                >
+                  Expand all
+                </button>
+                <span className="ed-prop-sections-sep">/</span>
+                <button type="button" className="ed-prop-sections-btn" onClick={() => setLightSectionsOpen(new Set())}>
+                  Collapse all
+                </button>
+              </>
+            )}
+          </div>
           <input
             ref={ragdollFileRef}
             type="file"
@@ -814,7 +864,7 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
                   )}
                 </div>
               </>
-            ) : (
+            ) : propTab === 'attachments' ? (
               <>
                 <div className="av-ragdoll-actions">
                   <button type="button" className="me-button" onClick={saveAttachmentSettings}>
@@ -868,6 +918,59 @@ export default function AnimationViewerScreen({ onBack, viewScale = 100, onViewS
                                 step={field.step}
                                 value={attachmentSettings[field.key]}
                                 onChange={(e) => setAttachmentField(field.key, Number(e.target.value))}
+                                aria-label={field.label}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            ) : (
+              <>
+                <div className="av-ragdoll-actions">
+                  <button type="button" className="me-button" onClick={resetLightSettings}>
+                    Defaults
+                  </button>
+                </div>
+                <p className="me-text av-ragdoll-note">
+                  Studio key lamp around the figure. Orbit / Height / Distance move it live; the yellow marker shows where it sits.
+                </p>
+                <label className="me-check" title={VIEWER_LIGHT_FLAG_HELPS.showMarker}>
+                  <input
+                    type="checkbox"
+                    checked={lightSettings.showMarker}
+                    onChange={(e) => setLightField('showMarker', e.target.checked)}
+                  />
+                  Show lamp marker
+                </label>
+                {VIEWER_LIGHT_GROUPS.map((group) => {
+                  const isOpen = lightSectionsOpen.has(group)
+                  return (
+                    <div key={group} className={`ed-prop-section${isOpen ? ' is-open' : ''}`}>
+                      <button type="button" className="ed-prop-section-head" onClick={() => toggleLightSection(group)}>
+                        <span className="ed-prop-section-chevron" aria-hidden="true" />
+                        <span className="ed-prop-section-title">{group}</span>
+                      </button>
+                      {isOpen && (
+                        <div className="ed-prop-section-body">
+                          {VIEWER_LIGHT_SETTING_FIELDS.filter((f) => f.group === group).map((field) => (
+                            <div key={field.key} className="av-ragdoll-field" title={field.help}>
+                              <div className="av-ragdoll-field-label">
+                                <span>{field.label}</span>
+                                <span className="av-ragdoll-field-value">
+                                  {formatLightSetting(field.key, lightSettings[field.key])}
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min={field.min}
+                                max={field.max}
+                                step={field.step}
+                                value={lightSettings[field.key]}
+                                onChange={(e) => setLightField(field.key, Number(e.target.value))}
                                 aria-label={field.label}
                               />
                             </div>

@@ -9,10 +9,10 @@
   ],
   "movement": {
     "walkSpeed": 3.2,
-    "runSpeed": 7.2,
+    "runSpeed": 5.5,
     "runDistance": 1.75,
     "catchUpSpeed": 4.4,
-    "runCatchUpSpeed": 8.4,
+    "runCatchUpSpeed": 6.6,
     "catchUpDistance": 1.5,
     "arriveDistance": 0.6,
     "radius": 0.28,

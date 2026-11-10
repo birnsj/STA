@@ -23,6 +23,7 @@ export const DESIGN_RESOLUTION = { width: 1920, height: 1080 }
 // current coast). Pointer-drag coast is unchanged.
 // partyAI / enemyAI: which Auto Combat brain plays each side (ids must match PARTY_AIS / ENEMY_AIS in autoCombat.js);
 // Party AI only runs while Auto Combat is on, Enemy AI runs every enemy turn.
+// autoCombatRings: during Auto Combat, briefly show the chosen action button on the target before it runs.
 export const DEFAULT_DISPLAY_SETTINGS = {
   scaleMode: 'fill',
   fixedScale: 1,
@@ -40,6 +41,7 @@ export const DEFAULT_DISPLAY_SETTINGS = {
   wasdCoast: 100,
   partyAI: 'classic',
   enemyAI: 'classic',
+  autoCombatRings: true,
 }
 const WALL_FADE_MODES = ['room', 'single']
 // Kept here (not imported from autoCombat) so Node tests can load this file without Vite JSON imports.
@@ -77,6 +79,7 @@ export function normalizeDisplaySettings(saved) {
     wasdCoast,
     partyAI,
     enemyAI,
+    autoCombatRings: flag('autoCombatRings'),
   }
 }
 
