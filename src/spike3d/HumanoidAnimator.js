@@ -544,16 +544,32 @@ function evalActionPose(clip, u) {
     }
   }
 
-  if (clip === 'getHit') {
-    const hit = Math.sin(Math.min(1, t * 1.6) * Math.PI)
+  if (clip === 'getHit' || clip === 'getHit-left' || clip === 'getHit-right') {
+    // Upper-body recoil only — feet stay planted (no thigh/knee/bounce/hipDrop).
+    // Same side convention as dodge (getHit-right = +1).
+    const side = clip === 'getHit-right' ? 1 : -1
+    const u = clamp01(t)
+    const impact = u < 0.28 ? Math.sin((u / 0.28) * (Math.PI / 2)) : 1
+    const hold = u >= 0.28 && u <= 0.52 ? 1 : impact
+    const recover = u > 0.52 ? 1 - clamp01((u - 0.52) / 0.48) : 1
+    const hit = (u <= 0.52 ? hold : recover) * (u < 0.28 ? impact * impact * (3 - 2 * impact) : 1)
+    const snap = hit * hit
     return {
       ...p,
-      arm: [deg(-20) * hit, deg(-25) * hit],
-      spineLean: deg(-12) * hit,
-      chestLean: deg(-8) * hit,
-      headPitch: deg(-10) * hit,
-      torsoYaw: deg(8) * hit,
-      bounce: 0.06 * hit,
+      arm: [deg(-38) * hit - deg(12) * snap, deg(-48) * hit - deg(10) * snap],
+      elbow: [deg(28) + deg(42) * hit, deg(24) + deg(48) * hit],
+      shoulder: [deg(-18) * hit, deg(-22) * hit],
+      armSide: [deg(8) + deg(14) * side * hit, deg(8) - deg(10) * side * hit],
+      spineLean: deg(-22) * hit - deg(8) * snap,
+      chestLean: deg(-16) * hit,
+      lean: deg(-10) * hit,
+      headPitch: deg(-18) * hit - deg(6) * snap,
+      torsoYaw: deg(22) * side * hit,
+      sideLean: deg(26) * side * hit,
+      spineSide: deg(20) * side * hit,
+      headYaw: deg(-14) * side * hit,
+      bounce: 0,
+      hipDrop: 0,
     }
   }
 

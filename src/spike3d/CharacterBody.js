@@ -53,6 +53,8 @@ export const CHARACTER_BODY_CLIPS = [
   'dodge-left',
   'dodge-right',
   'getHit',
+  'getHit-left',
+  'getHit-right',
   'fallCrumple',
   'fallBack',
   'fallForward',

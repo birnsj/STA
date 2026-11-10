@@ -619,6 +619,7 @@
 }
 
 .resource-indicators {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -761,21 +762,82 @@
   box-shadow: 0 0 6px var(--red);
 }
 
-/* A change to Threat (ResourceIndicators): shown beside the chip, held, then faded out; out of the row's layout. */
-.resource-indicator.is-threat {
-  position: relative;
+/* Pressure bands (presentation only — Threat has no rules max). */
+.resource-threat-band {
+  margin-left: 1px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
 }
 
+.resource-indicator.is-threat-low {
+  border-color: #c9a24a;
+  color: #e6d19a;
+}
+
+.resource-indicator.is-threat-low .resource-light {
+  background: #c9a24a;
+  box-shadow: 0 0 6px #c9a24a;
+}
+
+.resource-indicator.is-threat-low .resource-threat-band {
+  background: rgba(201, 162, 74, 0.25);
+  color: #f0d78a;
+}
+
+.resource-indicator.is-threat-rising {
+  border-color: #e07a3a;
+  color: #f0b48a;
+}
+
+.resource-indicator.is-threat-rising .resource-light {
+  background: #e07a3a;
+  box-shadow: 0 0 6px #e07a3a;
+}
+
+.resource-indicator.is-threat-rising .resource-threat-band {
+  background: rgba(224, 122, 58, 0.28);
+  color: #ffc49a;
+}
+
+.resource-indicator.is-threat-high {
+  border-color: var(--red);
+  color: #ffb0b0;
+}
+
+.resource-indicator.is-threat-high .resource-light {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+
+.resource-indicator.is-threat-high .resource-threat-band {
+  background: rgba(220, 60, 60, 0.35);
+  color: #ffd0d0;
+}
+
+/* A change to Threat (ResourceIndicators): float above the row so it never covers Momentum/Threat. */
 .resource-threat-change {
   position: absolute;
-  top: 50%;
-  left: calc(100% + 8px);
-  margin-top: -7px;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 2;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  border: 1px solid rgba(220, 60, 60, 0.7);
+  border-radius: 3px;
+  background: rgba(6, 12, 28, 0.94);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--red);
-  text-shadow: 0 1px 2px #000;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffb0b0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
   animation: threat-change 4s ease-out forwards;
   pointer-events: none;
 }
@@ -783,7 +845,7 @@
 @keyframes threat-change {
   0% {
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateY(4px);
   }
   8%,
   75% {

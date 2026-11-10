@@ -29,6 +29,7 @@ import { generateOutpost } from './generators/outpost.js'
 import { generateSpaceStation } from './generators/spaceStation.js'
 import { generateStarshipDeck } from './generators/starshipDeck.js'
 import { generateSurfaceSite } from './generators/surfaceSite.js'
+import { generateTemplateDeck } from './generators/templateDeck.js'
 import { generateWilderness } from './generators/wilderness.js'
 import { finishHalfWalls } from './generators/halfWalls.js'
 import { withLayoutScale } from './generators/shared.js'
@@ -60,6 +61,7 @@ const stationHall = areaNames.spaceStation.hall
 const stationAreaNames = { hall: stationHall, room: locationList('stationRoom').filter((name) => !stationHall.includes(name)) }
 export const MAP_GENERATORS = [
   { id: 'starshipDeck', label: 'Starship Deck', group: 'space', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateStarshipDeck },
+  { id: 'templateDeck', label: 'Template Deck', group: 'space', setting: 'space', nameCategory: 'shipRoom', areaNames: locationList('shipRoom'), generate: generateTemplateDeck },
   { id: 'spaceStation', label: 'Space Station', group: 'space', setting: 'space', nameCategory: 'stationRoom', areaNames: stationAreaNames, generate: generateSpaceStation },
   { id: 'derelict', label: 'Derelict Ship', group: 'space', setting: 'space', nameCategory: 'derelict', areaNames: locationList('shipRoom'), generate: generateDerelict },
   { id: 'klingonShip', label: 'Klingon Ship', group: 'klingon', setting: 'space', ...own('klingonShip'), generate: generateKlingonShip },
@@ -148,8 +150,16 @@ export function generateMap(map, random = Math.random, scale = {}) {
   const oriented = finishHalfWalls(layout)
   const fitted = applyWallVariants(oriented, random)
   const withCorners = finishWallCorners({ ...fitted, mapType: generator.id })
-  // Destructible objects and hazards were placed on the old layout, so a new one starts without them.
-  return { ...withCorners, mapType: generator.id, biome: biome.id, destructibles: [], hazards: [] }
+  // Destructible objects, hazards and Template Pieces from the old layout do not carry over
+  // (Template Deck writes a fresh placement list; every other location clears them).
+  return {
+    ...withCorners,
+    mapType: generator.id,
+    biome: biome.id,
+    destructibles: [],
+    hazards: [],
+    templatePiecePlacements: generator.id === 'templateDeck' ? (withCorners.templatePiecePlacements ?? []) : [],
+  }
 }
 
 // Open floor tiles a generated hazard may cover (not solid, not a player start or enemy spawn).

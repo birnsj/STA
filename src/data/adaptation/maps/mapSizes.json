@@ -9,6 +9,7 @@
   ],
   "byType": {
     "starshipDeck": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
+    "templateDeck": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
     "spaceStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30], "gigantic": [88, 60] },
     "klingonShip": { "small": [14, 10], "medium": [20, 14], "large": [28, 20], "huge": [40, 28], "gigantic": [80, 56] },
     "klingonStation": { "small": [18, 12], "medium": [24, 16], "large": [32, 22], "huge": [44, 30], "gigantic": [88, 60] },

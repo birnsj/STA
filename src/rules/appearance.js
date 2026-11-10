@@ -106,6 +106,7 @@ export const spriteMaskFile = (set, sheetId) =>
 const SPRITE_ANIM_ALIASES = {
   attack: 'phaser-attack01',
   dodge: 'dodge-left',
+  getHit: 'getHit-left',
 }
 
 // An animation by name with the sheet that draws it: { name, sheetId, sheet, start, frames, seconds, play }, or null.

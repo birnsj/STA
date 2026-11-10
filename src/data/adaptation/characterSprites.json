@@ -84,7 +84,9 @@
         "dodge": { "start": 24, "frames": 10, "seconds": 0.85, "play": "once" },
         "dodge-left": { "start": 24, "frames": 10, "seconds": 0.85, "play": "once" },
         "dodge-right": { "start": 24, "frames": 10, "seconds": 0.85, "play": "once" },
-        "getHit": { "start": 34, "frames": 10, "seconds": 0.45, "play": "once" }
+        "getHit": { "start": 34, "frames": 10, "seconds": 0.65, "play": "once" },
+        "getHit-left": { "start": 34, "frames": 10, "seconds": 0.65, "play": "once" },
+        "getHit-right": { "start": 34, "frames": 10, "seconds": 0.65, "play": "once" }
       }
     },
     "fall": {

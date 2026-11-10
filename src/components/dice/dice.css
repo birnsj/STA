@@ -271,16 +271,99 @@
   font-weight: 700;
 }
 
-.roll-window-select {
+/* Assist picker (replaces native <select>, whose OS popup covered Roll and broke the stage look). */
+.roll-window-assist {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.roll-window-assist-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
   height: 16px;
+  padding: 0 4px;
   border: 1px solid var(--panel-border);
   border-radius: 3px;
   background: var(--panel);
   color: var(--text);
   font: inherit;
   font-size: 10px;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.roll-window-assist-button:hover,
+.roll-window-assist.is-open .roll-window-assist-button {
+  border-color: var(--yellow);
+}
+
+.roll-window-assist-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roll-window-assist-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid var(--label);
+}
+
+.roll-window-assist.is-open .roll-window-assist-caret {
+  border-top: 0;
+  border-bottom: 4px solid var(--yellow);
+}
+
+/* Open upward so the list does not sit on Cancel / Roll. */
+.roll-window-assist-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 2px);
+  z-index: 2;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  max-height: 88px;
+  overflow: auto;
+  border: 1px solid #7cc4ff;
+  border-radius: 3px;
+  background: rgba(6, 12, 28, 0.98);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+.roll-window-assist-list button {
+  display: block;
+  width: 100%;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  text-align: left;
+  cursor: var(--cursor-pointer);
+}
+
+.roll-window-assist-list button:hover,
+.roll-window-assist-list button.is-selected {
+  background: rgba(124, 196, 255, 0.18);
+  color: var(--yellow);
+}
+
+/* Object / NPC ring info cards stay under the centred roll dialog. */
+body:has(.roll-window-backdrop) .unit-ring-info {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .roll-window-summary {

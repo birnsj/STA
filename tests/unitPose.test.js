@@ -4,6 +4,7 @@ import { blastDownHoldMs, getSpriteAnimation, getUpAnimation } from '../src/rule
 import {
   advancePose,
   dodgeAnimationForSide,
+  getHitAnimationForSide,
   initialPose,
   poseInput,
   poseWakeAt,
@@ -68,14 +69,14 @@ test('a target dodges a miss, flinches from a low hit, and leaves heavy hits to 
   const low = { ...miss, key: 21, passed: true, momentumGenerated: 2 }
   const heavy = { ...low, key: 22, momentumGenerated: 3 }
   assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: miss }), 0)).animation, 'dodge-left')
-  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: low }), 0)).animation, 'getHit')
+  assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: low }), 0)).animation, 'getHit-left')
   assert.equal(shownPose(advancePose(start, poseInput(standing, { lastAction: heavy }), 0)).animation, 'idle')
 })
 
-test('dodge side follows which side the attacker is on', () => {
+test('dodge and get-hit side follow which side the attacker is on', () => {
   const defender = { x: 5, y: 5 }
   const facing = { x: 1, y: 0 }
-  // Facing east: north (−y) is left → slip right; south (+y) is right → slip left.
+  // Facing east: north (−y) is left → slip/flinch right; south (+y) is right → slip/flinch left.
   assert.equal(
     dodgeAnimationForSide({ facing, attackerPosition: { x: 5, y: 3 }, defenderPosition: defender }),
     'dodge-right',
@@ -83,6 +84,14 @@ test('dodge side follows which side the attacker is on', () => {
   assert.equal(
     dodgeAnimationForSide({ facing, attackerPosition: { x: 5, y: 7 }, defenderPosition: defender }),
     'dodge-left',
+  )
+  assert.equal(
+    getHitAnimationForSide({ facing, attackerPosition: { x: 5, y: 3 }, defenderPosition: defender }),
+    'getHit-right',
+  )
+  assert.equal(
+    getHitAnimationForSide({ facing, attackerPosition: { x: 5, y: 7 }, defenderPosition: defender }),
+    'getHit-left',
   )
   const start = initialPose(poseInput(standing))
   const miss = { ...shot(25, 'phaserType2', 'k2'), targetId: 'k1', passed: false, removed: false, momentumGenerated: 0 }
@@ -95,6 +104,16 @@ test('dodge side follows which side the attacker is on', () => {
     0,
   )
   assert.equal(shownPose(right).animation, 'dodge-right')
+  const low = { ...miss, key: 26, passed: true, momentumGenerated: 1 }
+  const flinchRight = advancePose(
+    start,
+    poseInput(
+      { ...standing, position: defender },
+      { lastAction: low, facing, attackerPosition: { x: 5, y: 3 } },
+    ),
+    0,
+  )
+  assert.equal(shownPose(flinchRight).animation, 'getHit-right')
 })
 
 test('a Defeated target flinches, then falls, and a heavy hit uses the fly-back', () => {
@@ -102,13 +121,13 @@ test('a Defeated target flinches, then falls, and a heavy hit uses the fly-back'
   const low = { ...shot(30, 'phaserType2', 'k2'), targetId: 'k1', passed: true, removed: true, momentumGenerated: 2 }
   const flinch = advancePose(start, poseInput(downed, { lastAction: low }), 0)
   assert.equal(flinch.down, false)
-  assert.equal(shownPose(flinch).animation, 'getHit')
-  const fallen = settlePose(flinch, getSpriteAnimation('getHit').seconds * 1000)
+  assert.equal(shownPose(flinch).animation, 'getHit-left')
+  const fallen = settlePose(flinch, getSpriteAnimation('getHit-left').seconds * 1000)
   assert.equal(fallen.down, true)
   assert.equal(shownPose(fallen).animation, fallen.fall)
-  assert.notEqual(fallen.fall, 'getHit')
+  assert.ok(!String(fallen.fall).startsWith('getHit'))
   const ambush = { ...low, key: 31, type: 'ambush', momentumGenerated: 1 }
-  assert.equal(shownPose(advancePose(start, poseInput(downed, { lastAction: ambush }), 0)).animation, 'getHit')
+  assert.equal(shownPose(advancePose(start, poseInput(downed, { lastAction: ambush }), 0)).animation, 'getHit-left')
   const thrown = {
     ...downed,
     blastReact: { key: 'heavy:1:k1', from: { x: 1, y: 1 }, land: { x: 3, y: 1 }, facing: { x: 1, y: 0 } },
@@ -124,7 +143,7 @@ test('a target reaction waits for the shot impact', () => {
   const waiting = advancePose(initialPose(poseInput(standing)), poseInput(standing, { lastAction: low, hitDelayMs: 400 }), 1000)
   assert.equal(shownPose(waiting).animation, 'idle')
   assert.equal(poseWakeAt(waiting), 1400)
-  assert.equal(shownPose(settlePose(waiting, 1400)).animation, 'getHit')
+  assert.equal(shownPose(settlePose(waiting, 1400)).animation, 'getHit-left')
 })
 
 test('a fall from a shot waits for the shot to land, then plays from its first frame', () => {

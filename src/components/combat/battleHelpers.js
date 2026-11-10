@@ -267,31 +267,36 @@ export const enemyButtonDefs = (weapon, roll = null) => [
 
 export const typeName = (actionId) => ACTION_TYPE_NAMES[actionTypeOf(actionId)]
 
-// During Auto Combat, the buttons a party member's AI choice uses, with the choice lit (display only).
-// choice: { actorId, type, targetId, weaponId, injuryMode, allyId } - an AI step about to run, or the action just taken.
+// During Auto Combat, the single button a party member's AI choice uses (lit/pressed; display only).
+// choice: { actorId, type, targetId, weaponId, injuryMode, allyId } - an AI step about to run.
 // pressKey: set for a step about to run, so its button is shown being pressed (once per key) before it happens.
 export function choiceRing(state, choice, pressKey = null) {
   const actor = choice && state.combatants[choice.actorId]
   if (!actor || actor.side !== 'player') return null
-  const show = (unitId, buttons, chosenId) => ({
-    unitId,
-    info: null,
-    buttons: buttons.map((button) => ({
-      ...button,
-      enabled: false,
-      active: button.id === chosenId,
-      pressed: button.id === chosenId ? pressKey : null,
-      title: button.id === chosenId ? `${actor.character.name} chose ${button.label}` : button.label,
-    })),
-  })
+  const show = (unitId, button) => {
+    if (!unitId || !button) return null
+    return {
+      unitId,
+      info: null,
+      buttons: [{
+        ...button,
+        enabled: false,
+        active: true,
+        pressed: pressKey,
+        title: `${actor.character.name} chose ${button.label}`,
+      }],
+    }
+  }
   const weapon = getCombatantWeapon(actor, choice.weaponId ?? actor.weaponIds[0])
-  if (choice.type === 'attack') return show(choice.targetId, enemyButtonDefs(weapon), choice.injuryMode)
-  if (choice.type === 'aim' && choice.targetId) return show(choice.targetId, enemyButtonDefs(weapon), 'aim')
-  if (choice.type === 'assist') return show(choice.allyId, [{ id: 'assist', label: 'Assist', icon: 'assist' }], 'assist')
-  if (['scan', 'persuade', 'intimidate'].includes(choice.type) && choice.targetId) return show(choice.targetId, enemyButtonDefs(weapon), choice.type)
+  const enemyButton = (id) => enemyButtonDefs(weapon).find((button) => button.id === id)
+  if (choice.type === 'attack') return show(choice.targetId, enemyButton(choice.injuryMode))
+  if (choice.type === 'aim' && choice.targetId) return show(choice.targetId, enemyButton('aim'))
+  if (choice.type === 'assist') return show(choice.allyId, { id: 'assist', label: 'Assist', icon: 'assist' })
+  if (['scan', 'persuade', 'intimidate'].includes(choice.type) && choice.targetId) {
+    return show(choice.targetId, enemyButton(choice.type))
+  }
   const support = SUPPORT_BUTTONS[choice.type]
-  const unitId = choice.allyId ?? choice.targetId
-  if (support && unitId) return show(unitId, [{ id: choice.type, ...support }], choice.type)
+  if (support) return show(choice.allyId ?? choice.targetId, { id: choice.type, ...support })
   return null
 }
 

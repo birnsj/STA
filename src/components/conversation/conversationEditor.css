@@ -612,12 +612,93 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 4px;
-  max-height: 200px;
+  min-height: 56px;
+  max-height: 160px;
   overflow-y: auto;
   padding: 4px;
   border: 1px solid var(--ed-border);
   border-radius: 2px;
   background: var(--ed-panel);
+}
+
+.ed-shell .ge-picker.is-drop-target .ge-picker-grid {
+  border-color: var(--ed-accent);
+  box-shadow: inset 0 0 0 1px var(--ed-accent);
+}
+
+.ed-shell .ge-ctx-menu {
+  position: absolute;
+  top: auto;
+  z-index: 600;
+  min-width: 140px;
+}
+
+.ed-shell .ge-ctx-menu .ed-menu-item {
+  color: #ff7a6b;
+}
+
+.ed-shell .ge-ctx-menu .ed-menu-item:hover {
+  background: rgba(255, 122, 107, 0.18);
+  color: #ff9a8f;
+}
+
+.ed-shell .me-dialog-backdrop {
+  z-index: 700;
+}
+
+.ed-shell .ge-left-rail {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 232px;
+  min-height: 0;
+  border-right: 1px solid var(--ed-border);
+  background: var(--ed-panel);
+}
+
+.ed-shell .ge-generator-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--ed-border);
+}
+
+.ed-shell .ge-generator-pick .ed-select,
+.ed-shell .ge-generator-pick .ed-select-trigger {
+  width: 100%;
+}
+
+.ed-shell .ge-source-rail {
+  flex: 1;
+  min-height: 0;
+  width: auto;
+  border-right: 0;
+}
+
+.ed-shell .ge-source-hint {
+  margin: 0;
+  padding: 0 8px 6px;
+  color: var(--ed-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+
+.ed-shell .ge-source-thumb {
+  cursor: grab;
+}
+
+.ed-shell .ge-source-thumb:active {
+  cursor: grabbing;
+}
+
+.ed-shell .ge-source-rail .ge-piece-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: auto;
 }
 
 .ed-shell .ge-thumb {
@@ -661,6 +742,11 @@
 .ed-shell .ge-thumb .me-thumb-preview {
   width: 48px;
   height: 40px;
+}
+
+.ed-shell .ge-thumb .ge-piece-thumb {
+  object-fit: contain;
+  image-rendering: auto;
 }
 
 .ed-shell .ge-thumb-none {

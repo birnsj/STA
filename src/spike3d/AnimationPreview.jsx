@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { createContactShadow } from './contactShadow.js'
-import { makeIsoCamera, syncIsoCamera } from './isoProjection.js'
+import { makeIsoCamera, syncIsoCamera, syncIsoCameraFill } from './isoProjection.js'
 import { ProceduralBody, PROCEDURAL_HEIGHT } from './ProceduralBody.js'
 import { resolveSpike3dAppearance } from './appearance.js'
 import { createSkeletonOverlay } from './skeletonOverlay.js'
@@ -192,9 +192,12 @@ export default function AnimationPreview({
     scene.add(skeleton.root)
     skeleton.setVisible(showSkeleton)
 
-    // World-fixed tile grid (not under the yaw pivot) — only shown in locked iso.
+    // Deck under the figure: yaw follows the pivot so drag reads as camera orbit, not a turntable.
+    const isoFloorRoot = new THREE.Group()
+    isoFloorRoot.name = 'av_iso_floor_yaw'
     const isoFloor = createIsoCheckerFloor(ISO_FLOOR_TILES)
-    scene.add(isoFloor)
+    isoFloorRoot.add(isoFloor)
+    scene.add(isoFloorRoot)
 
     let alive = true
     let last = performance.now()
@@ -253,15 +256,19 @@ export default function AnimationPreview({
       return physicsPromise
     }
 
-    // Iso viewBox framed on a standing figure (board px via syncIsoCamera).
+    // Iso viewBox framed on a standing figure (board px). Aspect tracks the host so fill mode has no bars.
     const viewBox = { ...BASE_VIEW }
     let zoom = 1
     let panX = 0
     let panY = 0
 
     const applyView = () => {
-      const w = BASE_VIEW.width / zoom
+      const hostW = Math.max(1, host.clientWidth)
+      const hostH = Math.max(1, host.clientHeight)
+      const aspect = hostW / hostH
+      // Keep BASE_VIEW's vertical framing; widen/narrow to the canvas so syncIsoCameraFill covers edge to edge.
       const h = BASE_VIEW.height / zoom
+      const w = h * aspect
       const cx = BASE_VIEW.x + BASE_VIEW.width / 2 + panX
       const cy = BASE_VIEW.y + BASE_VIEW.height / 2 + panY
       viewBox.x = cx - w / 2
@@ -277,6 +284,7 @@ export default function AnimationPreview({
       renderer.setSize(w, h, false)
       canvas.style.width = '100%'
       canvas.style.height = '100%'
+      applyView()
     }
     syncSize()
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(syncSize) : null
@@ -406,9 +414,14 @@ export default function AnimationPreview({
           // Keep current yaw; only flatten pitch back to board iso.
           pivot.rotation.x = 0
           if (drag?.mode === 'orbit') drag.mode = 'yaw'
+          // Opaque deck behind the checker so resize/pan never flashes the host gradient.
+          renderer.setClearColor(new THREE.Color(ISO_FLOOR_DARK), 1)
+        } else {
+          renderer.setClearColor(0x000000, 0)
         }
         isoFloor.visible = lockedIsoView
         host.classList.toggle('is-iso-locked', lockedIsoView)
+        applyView()
       },
       setLoopOnce(on) {
         body.setViewerLoopOnce(on)
@@ -489,7 +502,10 @@ export default function AnimationPreview({
         if (!body.paused && onProgressRef.current) onProgressRef.current(body.progress)
       }
       skeleton.update()
-      syncIsoCamera(camera, viewBox, renderer)
+      // Floor yaws with the figure pivot → checkerboard orbits with the “camera”.
+      isoFloorRoot.rotation.y = pivot.rotation.y
+      if (lockedIsoView) syncIsoCameraFill(camera, viewBox, renderer)
+      else syncIsoCamera(camera, viewBox, renderer)
       renderer.render(scene, camera)
       raf = requestAnimationFrame(tick)
     }
@@ -519,7 +535,7 @@ export default function AnimationPreview({
       shadow.geometry?.dispose?.()
       shadow.material?.dispose?.()
       isoFloor.userData.dispose?.()
-      scene.remove(isoFloor)
+      scene.remove(isoFloorRoot)
       markerGeo.dispose()
       markerMat.dispose()
       renderer.dispose()

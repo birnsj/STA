@@ -53,11 +53,11 @@ export class HumanoidRagdoll {
     this.matSkin = materials.skin ?? null
     this.matHood = materials.hood ?? null
     this.matBoot = materials.boots ?? null
-    // Optional Animation Viewer overrides. Null → combat hard-coded defaults below.
+    // From ragdollSettings.js (Spike3dScene / Animation Viewer). Null → hard-coded tip-over defaults below.
     this.tuning = null
   }
 
-  /** @param {object|null} tuning viewer knobs from ragdollSettings.js; null restores combat defaults */
+  /** @param {object|null} tuning knobs from ragdollSettings.js; null restores built-in tip-over defaults */
   setTuning(tuning) {
     this.tuning = tuning ? { ...tuning } : null
   }
@@ -489,7 +489,8 @@ export class HumanoidRagdoll {
       this._captureDrive('foreL', model.arms?.[1]?.forearm)
     }
 
-    // Tip-over: torque drops him; linear shove stays light so he falls, not flies.
+    // Tip-over: torque drops him along the knock axis; linear shove stays light so he falls, not flies.
+    // Keep the impulse's horizontal direction — abs() here used to warp diagonals toward the stronger axis.
     const raw = impulse ?? { x: 0, y: 1.2, z: -2.5 }
     const t = this.tuning
     const scale = t?.impulseScale ?? 0.55
@@ -499,9 +500,9 @@ export class HumanoidRagdoll {
     const nx = hx / hLen
     const nz = hz / hLen
     const imp = {
-      x: nx * Math.abs(hx) * scale * 0.28,
+      x: hx * scale * 0.28,
       y: Math.max(0.35, (raw.y || 0) * scale * 0.35),
-      z: nz * Math.abs(hz) * scale * 0.28,
+      z: hz * scale * 0.28,
     }
     const tip = t?.tipTorque ?? 3.4
     const tipTorque = { x: nz * tip, y: 0, z: -nx * tip }

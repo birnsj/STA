@@ -579,14 +579,15 @@ export function Battle({
     }
   } else if (ringDestructible && isPlayerTurn && !state.pending) {
     const buttons = destructibleRingButtons(ringDestructible.id)
-    const showDestructibleInfo = ringInfo || mode !== 'scanObject'
+    // Info only when toggled (Scan when already scanned / arming a scan) — same as the enemy ring; was always-on
+    // and covered the board, especially for explosives with long tip text.
     const hovered = ringHover ?? (mode === 'scanObject' ? 'scan' : 'fire')
     const button = buttons.find((entry) => entry.id === hovered)
     const armed = mode === 'scanObject' && taskPick === ringDestructible.id
     ring = {
       position: ringDestructible.position,
       buttons: buttons.map((entry) => ({ ...entry, pulse: !armed && entry.id === 'scan' && entry.enabled && !entry.active })),
-      info: showDestructibleInfo ? destructibleRingInfo(ringDestructible.id) : null,
+      info: ringInfo ? destructibleRingInfo(ringDestructible.id) : null,
       party: buildRingParty(
         { kind: 'destructible', buttonId: hovered, destructibleId: ringDestructible.id, weaponId: weapon.id },
         { buttonLabel: button?.label ?? null, roll: armed ? ringRoll : null, pulseSlices: armed && !ringPick },
@@ -748,6 +749,7 @@ export function Battle({
           onDestructibleClick={(objectId) => {
             if (!isPlayerTurn) return
             setRingId(ringId === `destructible:${objectId}` ? null : `destructible:${objectId}`)
+            setRingInfo(false)
           }}
           onStaggerDone={(id) => dispatch({ type: 'clearBlastReact', id })}
           onBoardReady={onBoardReady}

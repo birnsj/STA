@@ -1263,11 +1263,6 @@
   width: var(--explore-minimap-size);
 }
 
-/* Threat change call-out would run off the right edge; show it to the left instead. */
-.explore-minimap-column .resource-threat-change {
-  left: auto;
-  right: calc(100% + 8px);
-}
 
 /* The minimap as a computer readout: blue-tinted tiles (the markers keep their colours), still scanlines and a dark
    vignette (::after), a faint cyan pulse at random intervals and, during a Scan, a bright band led by a solid line
@@ -2260,14 +2255,21 @@
   right: calc(8px + 248px + 6px);
   bottom: 8px;
   z-index: 30;
-  width: 540px;
-  height: 280px;
+  width: 520px;
+  height: 200px;
 }
 
 .conversation-dock .conversation-panel {
+  position: absolute;
   inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: auto;
   max-height: none;
+  gap: 4px;
+  padding: 5px 7px;
   overflow: hidden;
 }
 
@@ -2287,12 +2289,13 @@
 .conversation-dock .conversation-line,
 .conversation-dock .conversation-separator {
   box-sizing: border-box;
-  width: calc(100% - 10px);
+  width: calc(100% - 8px);
 }
 
 .conversation-dock .conversation-separator {
   flex: none;
   height: 0;
+  margin: 0;
   border-top: var(--ui-border) solid var(--panel-border);
 }
 
@@ -2302,17 +2305,17 @@
   flex: none;
 }
 
-/* The NPC's line framed and set like the options under it (12px; the text bold), in a darker shade. */
+/* The NPC's line framed and set like the options under it (11px; the text bold), in a darker shade. */
 .conversation-line {
-  padding: 5px 9px;
+  padding: 3px 7px;
   border: var(--ui-border) solid var(--panel-border);
   border-radius: var(--ui-radius);
   background: rgba(3, 6, 14, 0.6);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11px;
+  line-height: 1.25;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
 }
 
 .conversation-line-body {
@@ -2322,17 +2325,18 @@
 
 /* The NPC's own transparent art over the map's episode card (inline background-image), which is 16:9, so it is cropped. */
 .conversation-npc-portrait {
-  width: 60px;
-  height: 75px;
+  width: 40px;
+  height: 50px;
   background-position: center;
   background-size: cover;
 }
 
 .conversation-speaker {
-  margin: 0 0 2px;
+  margin: 0 0 1px;
   color: var(--label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-size: 10px;
 }
 
 .conversation-text {
@@ -2343,22 +2347,33 @@
 .conversation-options {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* The response's text, then the portrait of who would say it on the right. */
 .challenge-approach.conversation-option {
   flex-direction: row;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
+  padding: 3px 7px;
 }
 
 .conversation-option-body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   text-align: left;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.conversation-option-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 10px;
+  line-height: 1.2;
 }
 
 .conversation-option-speaker {
@@ -2367,8 +2382,8 @@
 }
 
 .conversation-option-portrait {
-  width: 60px;
-  height: 75px;
+  width: 40px;
+  height: 50px;
 }
 
 .conversation-option-check {

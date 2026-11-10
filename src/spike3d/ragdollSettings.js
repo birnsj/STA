@@ -1,6 +1,6 @@
 /**
- * Animation Viewer ragdoll knobs. Combat leaves HumanoidRagdoll.tuning null
- * so combat uses the tip-over defaults inside activate().
+ * Shared ragdoll knobs for the Animation Viewer and Spike3d combat / exploration blasts.
+ * Spike3dScene applies cloneRagdollSettings() via HumanoidRagdoll.setTuning before activate().
  *
  * Goal: a readable human fall-down (tip + limb hinges), not a chaotic blast.
  */

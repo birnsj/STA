@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { BONUS_DIE_COSTS, checkDicePurchase, defaultMomentumPayment, MAX_BONUS_DICE, MAX_MOMENTUM } from '../../rules/missionResources.js'
 import D20Icon from '../D20Icon.jsx'
 import { dicePaymentText, needText, successesText, taskTipText, THREAT_EXPLAINED } from '../task/taskText.js'
@@ -8,6 +8,68 @@ import RolledDice from './RolledDice.jsx'
 const DIE_SIZE = 42
 const stop = (event) => event.stopPropagation()
 const firstName = (member) => member.character.name.split(' ')[0]
+
+// Custom Assist picker: the OS <select> popup sat over Roll and broke out of the stage chrome.
+function AssistPicker({ options, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  const listId = useId()
+  const selected = options.find((entry) => entry.id === value) ?? null
+  const label = selected ? `${selected.member.character.name} (TN ${selected.assist.task.targetNumber})` : 'Nobody'
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onPointer = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false)
+    }
+    const onKey = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointer)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const pick = (id) => {
+    onChange(id)
+    setOpen(false)
+  }
+
+  return (
+    <div className={`roll-window-assist${open ? ' is-open' : ''}`} ref={rootRef}>
+      <button
+        type="button"
+        className="roll-window-assist-button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((was) => !was)}
+      >
+        <span className="roll-window-assist-value">{label}</span>
+        <span className="roll-window-assist-caret" aria-hidden="true" />
+      </button>
+      {open && (
+        <ul id={listId} className="roll-window-assist-list" role="listbox" aria-label="Assist">
+          <li role="option" aria-selected={!value}>
+            <button type="button" className={!value ? 'is-selected' : undefined} onClick={() => pick(null)}>
+              Nobody
+            </button>
+          </li>
+          {options.map((entry) => (
+            <li key={entry.id} role="option" aria-selected={value === entry.id}>
+              <button type="button" className={value === entry.id ? 'is-selected' : undefined} onClick={() => pick(entry.id)}>
+                {entry.member.character.name} (TN {entry.assist.task.targetNumber})
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 // The one roll window (designer request, 2026-10-15: BG3-style, centred over the game, the size of the conversation's
 // old dice box): what is rolled, the dice, the choices before the roll, then the outcome. The full task math and the
@@ -82,17 +144,10 @@ export function PreRollWindow({ title, performer, prepared, assistOptions = [], 
         <p className="roll-window-warning">{prepared.blockers[0] ?? "Can't be attempted."}</p>
       )}
       {assistOptions.length > 0 && (
-        <label className="roll-window-row">
+        <div className="roll-window-row">
           <span className="roll-window-label">Assist</span>
-          <select className="roll-window-select" value={assistantId ?? ''} onChange={(event) => setAssistantId(event.target.value || null)}>
-            <option value="">Nobody</option>
-            {assistOptions.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.member.character.name} (TN {entry.assist.task.targetNumber})
-              </option>
-            ))}
-          </select>
-        </label>
+          <AssistPicker options={assistOptions} value={assistantId} onChange={setAssistantId} />
+        </div>
       )}
       <div title={bonusTip}>
         <Stepper label="Bonus d20" value={check.bonusDice} min={0} max={MAX_BONUS_DICE} onChange={setBonusDice}>

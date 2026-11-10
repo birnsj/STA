@@ -32,24 +32,41 @@ const isStrikeBy = (action, id) =>
   )
 
 /**
- * Slip away from the attack: attacker on the defender’s left → dodge-right, on the right → dodge-left.
- * Facing × (attacker − defender) cross on the map plane (y grows south); head-on defaults to dodge-left.
+ * Which side the attack comes from relative to the defender’s facing.
+ * Facing × (attacker − defender) cross on the map plane (y grows south); head-on defaults to left.
+ * @returns {'left'|'right'}
  */
-export function dodgeAnimationForSide({ facing, attackerPosition, defenderPosition } = {}) {
+export function reactionSideForAttack({ facing, attackerPosition, defenderPosition } = {}) {
   const from = attackerPosition
   const to = defenderPosition
-  if (!from || !to) return 'dodge-left'
+  if (!from || !to) return 'left'
   const dx = from.x - to.x
   const dy = from.y - to.y
   const fx = Number(facing?.x) || 0
   const fy = Number(facing?.y) || 0
-  if (!fx && !fy && !dx && !dy) return 'dodge-left'
+  if (!fx && !fy && !dx && !dy) return 'left'
   const cross = fx * dy - fy * dx
-  // cross < 0 → attacker on defender’s left (map y-south) → slip right, and vice versa.
-  if (cross < -0.05) return 'dodge-right'
-  if (cross > 0.05) return 'dodge-left'
-  return 'dodge-left'
+  // cross < 0 → attacker on defender’s left (map y-south) → react right, and vice versa.
+  if (cross < -0.05) return 'right'
+  if (cross > 0.05) return 'left'
+  return 'left'
 }
+
+/**
+ * Slip away from the attack: attacker on the defender’s left → dodge-right, on the right → dodge-left.
+ */
+export function dodgeAnimationForSide(sideOpts = {}) {
+  return reactionSideForAttack(sideOpts) === 'right' ? 'dodge-right' : 'dodge-left'
+}
+
+/**
+ * Flinch off the hit the same way dodge slips: attacker on the left → getHit-right.
+ */
+export function getHitAnimationForSide(sideOpts = {}) {
+  return reactionSideForAttack(sideOpts) === 'right' ? 'getHit-right' : 'getHit-left'
+}
+
+export const isGetHitReaction = (name) => Boolean(name && String(name).startsWith('getHit'))
 
 const reactionAnimation = (action, id, sideOpts = {}) => {
   if (!action || action.targetId !== id || !SHOT_ACTIONS.includes(action.type)) return null
@@ -57,7 +74,7 @@ const reactionAnimation = (action, id, sideOpts = {}) => {
   if (action.type === 'ambush' && !action.passed) return null
   if (!action.passed) return dodgeAnimationForSide(sideOpts)
   // 0–2 Momentum flinches even when the hit Defeats them (a Minor). The fall plays after the clip.
-  if ((action.momentumGenerated ?? 0) < 3) return 'getHit'
+  if ((action.momentumGenerated ?? 0) < 3) return getHitAnimationForSide(sideOpts)
   return null
 }
 
@@ -131,7 +148,7 @@ export function advancePose(track, input, now) {
     input
   let next = track
   // A killing low hit flinches first. Stay standing until that clip ends, then fall (settlePose).
-  const flinchFirst = down && !next.down && reaction === 'getHit' && reactionKey !== next.seenReaction
+  const flinchFirst = down && !next.down && isGetHitReaction(reaction) && reactionKey !== next.seenReaction
   if (down !== next.down) {
     if (flinchFirst) {
       next = { ...next, pendingDefeat: { fall } }

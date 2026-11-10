@@ -517,6 +517,7 @@
     { "id": "dimConsole", "symbol": "ŷ", "label": "Dim Console", "image": "/art/sprites/environment/dimension/dimConsole.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 18, "surface": {"maxStack":3}, "role": null },
     { "id": "dimLocker", "symbol": "Ÿ", "label": "Dim Locker", "image": "/art/sprites/environment/dimension/dimLocker.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 52, "surface": {"maxStack":3}, "role": null },
     { "id": "dimShelf", "symbol": "Ź", "label": "Dim Shelf", "image": "/art/sprites/environment/dimension/dimShelf.png", "solid": true, "blocksSight": false, "cover": true, "fade": false, "height": 37, "surface": {"maxStack":3}, "role": null },
-    { "id": "null", "symbol": "ġ", "label": "Empty (Null)", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null, "empty": true }
+    { "id": "null", "symbol": "ġ", "label": "Empty (Null)", "solid": true, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null, "empty": true },
+    { "id": "templateWall", "symbol": "Ģ", "label": "Template Wall Underlay", "solid": true, "blocksSight": true, "cover": false, "fade": false, "height": 0, "role": null, "empty": true, "wall": true }
   ]
 }

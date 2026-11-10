@@ -299,6 +299,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   // An object whose approaches are all still locked can be clicked too, to see what it would take.
   const reachableIds = inReachIds.filter((id) => challengeFor(state, id).listedActions(state).length > 0)
   const talking = Boolean(state.conversation)
+  // Conversations keep the camera on the lead (and re-arm follow if the player had panned free).
+  const cameraTracksParty = followCamera || talking
   // A hazard put out by the roll is gone at once; its panel stays to show the result.
   const neutralizedShowing = isHazardChallengeId(interactionId) && state.lastTask?.objectId === interactionId && !challengeFor(state, interactionId)
   const openId = !talking && interactionId && (inReachIds.includes(interactionId) || neutralizedShowing) ? interactionId : null
@@ -366,6 +368,11 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   } = useRingMenus()
   // UI state: whether the open NPC's Info card shows; the NPC whose Attack is waiting for confirmation.
   const [npcInfoOpen, setNpcInfoOpen] = useState(false)
+  // Destructible Structure / hazard card beside the ring (off by default so explosives don't cover the board).
+  const [destructibleInfoOpen, setDestructibleInfoOpen] = useState(false)
+  useEffect(() => {
+    setDestructibleInfoOpen(false)
+  }, [menuDestructibleId])
   const [confirmAttackId, setConfirmAttackId] = useState(null)
   // UI state, for the open NPC or object ring (ringKey): the button last hovered and the member picked on its party band.
   // Opening another ring starts both afresh.
@@ -699,7 +706,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   const objectSlices = objectBand?.slices.filter((slice) => slice.available) ?? []
   const objectPicked = objectBandHover === 'scan' ? false : objectSlices.some((slice) => slice.picked)
   // A destructible's ring: Fire (band ranks who has the best shot), Scan (hazards / countermeasures), plus Sabotage and
-  // Defuse (not built yet). The ring stays up after a shot or scan so the player can act again.
+  // Defuse (not built yet). The ring stays up after a shot or scan so the player can act again. The Structure card
+  // opens after a scan (or toggles when already scanned) — not on every open, so explosives don't cover the board.
   const destructibleButtons =
     menuDestructible &&
     destructibleMenuButtons(
@@ -707,9 +715,14 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
       menuDestructible.id,
       {
         fire: (memberId) => dispatch({ type: 'fireOnObject', memberId, objectId: menuDestructible.id }),
-        scan: (memberId) => dispatch({ type: 'scanDestructible', memberId, objectId: menuDestructible.id }),
+        scan: (memberId) => {
+          dispatch({ type: 'scanDestructible', memberId, objectId: menuDestructible.id })
+          setDestructibleInfoOpen(true)
+        },
+        toggleInfo: () => setDestructibleInfoOpen((open) => !open),
       },
       pickedId,
+      destructibleInfoOpen,
     )
   const destructibleBand = menuDestructible
     ? ringPartyBand(state, { destructibleId: menuDestructible.id }, destructibleButtons, hoveredRingButton ?? 'fire', pickedId, pickRingMember)
@@ -718,7 +731,7 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
   const destructibleMenu = menuDestructible && {
     position: menuDestructible.position,
     buttons: destructibleButtons,
-    info: destructibleInfo(state, menuDestructible.id),
+    info: destructibleInfoOpen ? destructibleInfo(state, menuDestructible.id) : null,
     // Fire: only members with a shot. Scan: only those in tricorder range who can scan now.
     party: destructibleBand && {
       ...destructibleBand,
@@ -865,8 +878,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
           itemDragActive={Boolean(itemDrag)}
           hiddenTagIds={hiddenTagIds}
           debug={debugOpen}
-          followCamera={followCamera}
-          onCameraPan={stopFollowing}
+          followCamera={cameraTracksParty}
+          onCameraPan={talking ? undefined : stopFollowing}
           onCameraFollow={startFollowing}
           onMove={move}
           onSelect={select}
@@ -991,8 +1004,8 @@ function Exploration({ state, dispatch, savedCharacters, onExit, onOutro }) {
           formationId={party.formationId}
           onFormation={setFormation}
           onRegroup={regroup}
-          followCamera={followCamera}
-          onFollowCamera={setFollowCamera}
+          followCamera={cameraTracksParty}
+          onFollowCamera={talking ? () => {} : setFollowCamera}
           debugOpen={debugOpen}
           onDebug={setDebugOpen}
           inventoryOpen={inventoryOpen}

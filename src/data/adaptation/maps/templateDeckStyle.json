@@ -1,0 +1,23 @@
+{
+  "notes": "Generator Editor style for Generate Map → Template Deck. Piece ids are Template Pieces; floor/door/crate/machinery are underlay tiles.",
+  "floor": "floor",
+  "door": "doorway",
+  "crate": "crate",
+  "machinery": "machinery",
+  "hazard": true,
+  "straight": "tplStarshipWall32",
+  "straightLong": "tplStarshipWall32PlainLong",
+  "corner": "tplStarshipWall32Corner",
+  "hull": "tplStarshipHull32",
+  "hullLong": "tplStarshipHull32Long",
+  "hullCorner": "tplStarshipHull32Corner",
+  "doorFrame": "tplStarshipDoorFrame",
+  "fittings": [
+    "tplStarshipWall32Window",
+    "tplStarshipWall32Lcars",
+    "tplStarshipWall32Conduit",
+    "tplStarshipWall32Hatch",
+    "tplStarshipWall32Computer"
+  ],
+  "fittingChance": 0.28
+}

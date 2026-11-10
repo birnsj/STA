@@ -120,7 +120,8 @@ export function objectInfo(state, objectId) {
 // A destructible object's radial menu (left click on it; designer request 2026-10-12): Fire, by the member picked on the
 // band or else the best shot; Scan (designer request 2026-10-17: hazards and countermeasures); Sabotage and Defuse are
 // shown but not built yet. fire(memberId) / scan(memberId) open those actions.
-export function destructibleMenuButtons(state, objectId, actions, pickedId = null) {
+// infoOpen: whether the Structure / hazards card beside the ring is showing (toggled by Scan once scanned).
+export function destructibleMenuButtons(state, objectId, actions, pickedId = null, infoOpen = false) {
   const record = state.environment.destructibles[objectId]
   const shooterId = destructibleShooter(state, objectId, pickedId)
   const preview = shooterId ? previewObjectShot(state, shooterId, objectId) : previewObjectShot(state, pickedId ?? state.party.selectedIds[0] ?? state.party.leaderId, objectId)
@@ -133,15 +134,29 @@ export function destructibleMenuButtons(state, objectId, actions, pickedId = nul
   const scanned = isDestructibleScanned(state.objectScans, objectId)
   const scanTitle = !scanner
     ? 'Scan: select a character first.'
-    : scanner.check.possible
-      ? scanned
-        ? `${scanner.member.character.name} scans the ${record.name} again (Reason + Science): refresh its hazard readings.`
+    : !scanner.check.possible
+      ? `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
+      : scanned
+        ? infoOpen
+          ? 'Hide the Structure and hazard card.'
+          : 'Show the Structure and hazard card (Scan again to refresh readings).'
         : `${scanner.member.character.name} scans the ${record.name} (Reason + Science): the hazards it may release and how to counteract them.`
-      : `Scan (${scanner.member.character.name}): ${scanner.check.reason}`
   const unbuilt = (id, label, icon) => ({ id, label, icon, enabled: false, title: `${label}: ${NOT_BUILT}` })
   return [
     { id: 'fire', label: 'Fire', icon: 'attack', enabled: Boolean(shooterId), title: fireTitle, onClick: () => actions.fire(shooterId) },
-    { id: 'scan', label: 'Scan', icon: 'scan', enabled: Boolean(scanner?.check.possible), title: scanTitle, onClick: () => actions.scan(scanner.member.id), keepOpen: true },
+    {
+      id: 'scan',
+      label: 'Scan',
+      icon: 'scan',
+      enabled: Boolean(scanner?.check.possible) || scanned,
+      active: infoOpen,
+      title: scanTitle,
+      onClick: () => {
+        if (scanned) actions.toggleInfo()
+        else if (scanner?.check.possible) actions.scan(scanner.member.id)
+      },
+      keepOpen: true,
+    },
     unbuilt('sabotage', 'Sabotage', 'sabotage'),
     unbuilt('defuse', 'Defuse', 'defuse'),
   ]

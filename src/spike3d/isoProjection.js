@@ -89,6 +89,24 @@ export function syncIsoCamera(camera, viewBox, renderer) {
   renderer.setScissorTest(true)
 }
 
+/**
+ * Same iso projection as syncIsoCamera, but the WebGL viewport fills the whole canvas (no meet letterbox).
+ * Use when the viewBox aspect already matches the canvas (Animation Viewer locked-iso floor).
+ */
+export function syncIsoCameraFill(camera, viewBox, renderer) {
+  const vb = viewBox
+  if (!vb?.width || !vb?.height || !renderer) return
+  applyIsoProjection(camera, vb)
+
+  const canvas = renderer.domElement
+  const cssW = canvas.clientWidth
+  const cssH = canvas.clientHeight
+  if (!cssW || !cssH) return
+
+  renderer.setViewport(0, 0, cssW, cssH)
+  renderer.setScissorTest(false)
+}
+
 export function makeIsoCamera() {
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -2000, 2000)
   camera.matrixAutoUpdate = false

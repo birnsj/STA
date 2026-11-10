@@ -2,7 +2,7 @@
   "notes": [
     "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props, furniture).",
     "Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.",
-    "Does not change Generate Map, makeTilesV2, or halfWalls generation.",
+    "Generate Map → Template Deck places these as walls (templateDeck.js). Does not change makeTilesV2 or halfWalls generation.",
     "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props + furniture/consoles (multi-prism).",
     "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.",
     "R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.",

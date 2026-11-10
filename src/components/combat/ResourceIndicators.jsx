@@ -3,6 +3,18 @@ import { MAX_MOMENTUM } from '../../rules/missionResources.js'
 import { playMomentumLossSound, playMomentumSound } from '../../audio/uiSounds.js'
 import { THREAT_EXPLAINED } from '../task/taskText.js'
 
+// Presentation only: Threat has no book max, so the HUD shows pressure bands instead of a filled meter.
+// Low 1–3, Rising 4–6 (enemies can buy meaningful spends; AI often holds ~4 for Avoid Injury), High 7+.
+export function threatBand(threat) {
+  if (threat <= 0) return { id: 'none', label: null }
+  if (threat <= 3) return { id: 'low', label: 'Low' }
+  if (threat <= 6) return { id: 'rising', label: 'Rising' }
+  return { id: 'high', label: 'High' }
+}
+
+const THREAT_BAND_TIP =
+  `${THREAT_EXPLAINED}\n\nHUD bands (not a rules cap): Low 1–3, Rising 4–6, High 7+.`
+
 // The mission's group Momentum (0-6) and Threat pools (rules/missionResources.js), shown in exploration and combat alike.
 // When Momentum goes up, the newly lit pips pop, the bar flashes and a chime plays; when it goes down, a short falling
 // tone plays. The amount the pool opened with doesn't sound.
@@ -26,8 +38,14 @@ function ResourceIndicators({ momentum, threat, canCancelThreat = false, onCance
   const [threatChange, setThreatChange] = useState({ seen: threat, from: threat, key: 0 })
   if (threat !== threatChange.seen) setThreatChange({ seen: threat, from: threatChange.seen, key: threatChange.key + 1 })
   const threatShift = threatChange.key ? threatChange.seen - threatChange.from : 0
+  const band = threatBand(threat)
   return (
     <div className="resource-indicators">
+      {threatShift !== 0 && (
+        <span key={threatChange.key} className="resource-threat-change" role="status">
+          {threatShift > 0 ? `+${threatShift} Threat for the enemy` : `Enemy spent ${-threatShift} Threat`}
+        </span>
+      )}
       <span
         key={gaining ? `gain-${next.key}` : 'momentum'}
         className={`resource-indicator is-momentum${momentum ? ' is-on' : ''}${gaining ? ' is-gaining' : ''}`}
@@ -47,14 +65,13 @@ function ResourceIndicators({ momentum, threat, canCancelThreat = false, onCance
           {momentum}/{MAX_MOMENTUM}
         </strong>
       </span>
-      <span className={`resource-indicator is-threat${threat ? ' is-on' : ''}`} title={THREAT_EXPLAINED}>
+      <span
+        className={`resource-indicator is-threat${threat ? ' is-on' : ''}${band.id !== 'none' ? ` is-threat-${band.id}` : ''}`}
+        title={THREAT_BAND_TIP}
+      >
         <span className="resource-light" aria-hidden="true" />
         Threat <strong>{threat}</strong>
-        {threatShift !== 0 && (
-          <span key={threatChange.key} className="resource-threat-change" role="status">
-            {threatShift > 0 ? `+${threatShift} Threat for the enemy` : `Enemy spent ${-threatShift} Threat`}
-          </span>
-        )}
+        {band.label && <span className="resource-threat-band">{band.label}</span>}
       </span>
       {canCancelThreat && (
         <button type="button" className="resource-cancel" onClick={onCancelThreat} title="Spend 1 Momentum to remove 1 Threat">

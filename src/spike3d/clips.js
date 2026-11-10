@@ -29,6 +29,7 @@ if (!CLIP_META.hazardPanicRun) CLIP_META.hazardPanicRun = { seconds: 0.6, play: 
 export const CLIP_ALIASES = Object.freeze({
   attack: 'phaser-attack01',
   dodge: 'dodge-left',
+  getHit: 'getHit-left',
 })
 
 export function resolveClipName(name) {

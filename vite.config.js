@@ -13,6 +13,7 @@ import { listConversations, putConversation, removeConversation } from './tools/
 import { listMaps, putMap, removeMap } from './tools/mapStore.cjs'
 import { setStoryTemplates } from './tools/storyStore.cjs'
 import { putDeckStyle } from './tools/deckGeneratorStore.cjs'
+import { putTemplateDeckStyle } from './tools/templateDeckStyleStore.cjs'
 import { applyEffectsChange } from './tools/effectsStore.cjs'
 import { setItemDescription } from './tools/itemStore.cjs'
 import { applyTemplatePieceChange } from './tools/templatePieceStore.cjs'
@@ -29,6 +30,7 @@ const ITEMS_FILE = fileURLToPath(new URL('./src/data/adaptation/items.json', imp
 const EFFECTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/tileEffects.json', import.meta.url))
 const TEMPLATE_PIECES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/templatePieces.json', import.meta.url))
 const DECK_GENERATORS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/deckGenerators.json', import.meta.url))
+const TEMPLATE_DECK_STYLE_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/templateDeckStyle.json', import.meta.url))
 const WALL_VARIANTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/generatedWallVariants.json', import.meta.url))
 const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploration/missionLog.json', import.meta.url))
 const AUTHORED_CHARACTERS_FILE = fileURLToPath(
@@ -125,6 +127,9 @@ const templatePieceFilesEndpoint = () =>
   quietDataEndpoint('template-piece-files-endpoint', '/__templates', TEMPLATE_PIECES_FILE, applyTemplatePieceChange)
 // Generator Editor: deck Location tile / hazard styles.
 const deckGeneratorsEndpoint = () => quietDataEndpoint('deck-generators-endpoint', '/__deck-generators', DECK_GENERATORS_FILE, putDeckStyle)
+// Generator Editor: Template Deck underlay tiles + Template Piece wall kit.
+const templateDeckStyleEndpoint = () =>
+  quietDataEndpoint('template-deck-style-endpoint', '/__template-deck-style', TEMPLATE_DECK_STYLE_FILE, putTemplateDeckStyle)
 // Generator Editor: Generate Map wall fittings (share / panel / tile variants).
 const wallVariantsEndpoint = () => quietDataEndpoint('wall-variants-endpoint', '/__wall-variants', WALL_VARIANTS_FILE, putWallVariantSet)
 // The map editor's Story Wording saves the outro's story templates into missionLog.json.
@@ -299,6 +304,7 @@ export default defineConfig({
     effectsFilesEndpoint(),
     templatePieceFilesEndpoint(),
     deckGeneratorsEndpoint(),
+    templateDeckStyleEndpoint(),
     wallVariantsEndpoint(),
     storyEndpoint(),
     authoredCharactersEndpoint(),

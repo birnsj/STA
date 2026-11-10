@@ -428,7 +428,9 @@ export default function createRingButtons({
         active: setUp || (scanned && ringInfo),
         ...(scanTask ? { details: taskDetails(scanTask.task) } : {}),
         title: scanned
-          ? 'Show what the scan found: hazards it may release and how to counteract them.'
+          ? ringInfo
+            ? 'Hide the Structure and hazard card.'
+            : 'Show what the scan found: hazards it may release and how to counteract them.'
           : `Scan (${typeName('scan')} action): Reason + Science, Difficulty ${scanTask.task.difficulty}. Success shows the hazards it may release and how to counteract them.`,
         onClick: () => {
           if (scanned || setUp) {

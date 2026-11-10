@@ -9,31 +9,47 @@ import { HumanoidRagdoll } from './HumanoidRagdoll.js'
 import { createContactShadow } from './contactShadow.js'
 import { addColliderMeshes, addOccluderMeshes, buildMapColliders, occluderPunchesActor } from './mapColliders.js'
 import { PhysicsWorld } from './PhysicsWorld.js'
+import { cloneRagdollSettings, DEFAULT_RAGDOLL_SETTINGS } from './ragdollSettings.js'
 
 const HEIGHT = PROCEDURAL_HEIGHT
 
-function blastImpulseFromReact(blastReact, seed = '') {
+// Knock direction = damage source → victim (map x/y → world x/z). Strength from ragdollSettings.
+// Never treat the victim tile as the blast origin — that zeros the vector and used to flop everyone the same way.
+function blastImpulseFromReact(blastReact, seed = '', settings = DEFAULT_RAGDOLL_SETTINGS) {
   const injury = blastReact?.injury
-  const origin = injury?.source?.blastOrigin ?? injury?.source?.at
-  const at = blastReact?.from ?? blastReact?.land ?? injury?.source?.at
+  const origin = injury?.source?.blastOrigin
+  const victim = blastReact?.from ?? injury?.source?.at ?? blastReact?.land
   let dx = 0
-  let dz = 1
-  if (origin && at) {
-    dx = (at.x ?? 0) - (origin.x ?? 0)
-    dz = (at.y ?? 0) - (origin.y ?? 0)
-  } else if (blastReact?.facing) {
+  let dz = 0
+  if (origin && victim) {
+    dx = (victim.x ?? 0) - (origin.x ?? 0)
+    dz = (victim.y ?? 0) - (origin.y ?? 0)
+  }
+  // Standing on the charge (or missing origin): use the throw facing / from→land already computed by the rules.
+  if (!(dx || dz) && blastReact?.facing) {
     dx = blastReact.facing.x || 0
     dz = blastReact.facing.y || 0
+  }
+  if (!(dx || dz) && blastReact?.from && blastReact?.land) {
+    dx = blastReact.land.x - blastReact.from.x
+    dz = blastReact.land.y - blastReact.from.y
+  }
+  if (!(dx || dz)) {
+    dx = 0
+    dz = 1
   }
   const len = Math.hypot(dx, dz) || 1
   dx /= len
   dz /= len
-  const radius = Number(injury?.source?.radius) || Number(injury?.radius) || 2
-  // Readable flight: enough throw to clear tiles under soft gravity; ragdoll scales again.
-  const power = 6 + radius * 2.6 + (String(seed).length % 3)
+  const s = { ...DEFAULT_RAGDOLL_SETTINGS, ...settings }
+  // Mild radius boost so larger blasts still feel stronger without ignoring the tuned shove/lift.
+  const radius = Number(injury?.source?.blastRadius) || Number(injury?.source?.radius) || Number(injury?.radius) || 2
+  const radiusBoost = 1 + Math.max(0, radius - 2) * 0.12 + (String(seed).length % 3) * 0.03
+  const power = (Number(s.power) || 0) * radiusBoost
+  const lift = (Number(s.lift) || 0) * radiusBoost
   return {
-    impulse: { x: dx * power, y: 4.2 + radius * 1.0, z: dz * power },
-    point: at ? { x: at.x, y: HEIGHT * 0.55, z: at.y } : null,
+    impulse: { x: dx * power, y: lift, z: dz * power },
+    point: victim ? { x: victim.x, y: HEIGHT * 0.55, z: victim.y } : null,
   }
 }
 
@@ -259,7 +275,10 @@ class SpikeActor {
         materials: this.body.materials,
       })
     }
-    const { impulse, point } = blastImpulseFromReact(blastReact, this.id)
+    const settings = cloneRagdollSettings(this.host.ragdollSettings)
+    this.ragdoll.setTuning(settings)
+    this.physics.setGravity(settings.gravity)
+    const { impulse, point } = blastImpulseFromReact(blastReact, this.id, settings)
     // Jointed ragdoll drives the procedural mesh; death rest is applied when it settles.
     this.body.root.userData.humanoidModel = this.body.model
     this.ragdoll.activate(this.body.root, impulse, point)
@@ -426,6 +445,9 @@ export class Spike3dScene {
     this.occluderGroup = addOccluderMeshes(this.scene, this.colliders, THREE)
     this.colliderGroup = addColliderMeshes(this.scene, this.colliders, THREE)
 
+    // Same tip-over knobs as Animation Viewer (ragdollSettings.js).
+    this.ragdollSettings = cloneRagdollSettings()
+
     this._viewBox = null
     this._poses = []
   }
@@ -484,7 +506,8 @@ export class Spike3dScene {
   ensurePhysics() {
     if (this.physics) return Promise.resolve(this.physics)
     if (this._physicsPromise) return this._physicsPromise
-    this._physicsPromise = PhysicsWorld.create()
+    const gravity = this.ragdollSettings?.gravity ?? DEFAULT_RAGDOLL_SETTINGS.gravity
+    this._physicsPromise = PhysicsWorld.create({ x: 0, y: gravity, z: 0 })
       .then((world) => {
         if (this._disposed) {
           world.dispose()
@@ -500,6 +523,12 @@ export class Spike3dScene {
         return null
       })
     return this._physicsPromise
+  }
+
+  /** Apply Animation Viewer / game ragdoll knobs (gravity + next activate tuning). */
+  setRagdollSettings(settings) {
+    this.ragdollSettings = cloneRagdollSettings(settings)
+    this.physics?.setGravity(this.ragdollSettings.gravity)
   }
 
   setSize(width, height) {
