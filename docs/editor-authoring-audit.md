@@ -30,6 +30,8 @@
 
 **Update (2026-10-22, elevated world placement):** Inventory Objects placements may rest on opt-in tile/item surfaces. Placing or moving onto a surface cell writes `groundItemPlacements[].on` (`{ tile: [x, y] }` or `{ placement: id }`); world Z is derived at runtime (`rules/placement.js`) and shown read-only in `GroundItemInspector`. Painting a furniture prop onto an existing surface cell appends sparse `stackOver` (schema 2 when used). Tile `surface` / item `surface` catalogues remain JSON-only. Session inventory drops use the same placement rules but never rewrite the map. See matrix #27 / #27b; `docs/editor-authoring-summary.md`; `docs/tiles.md`; `docs/world-objects.md`.
 
+**Update (2026-11-11, Auto-Paint + Tools File menus):** New Auto-Paint subsystem is the active map-construction generator (independent of frozen Generate Map / Generator Editor / `generators/*`). Tools → Auto-Paint Ruleset Editor: Template Pieces palette, Rules/Map view toggles (palette stays), shared Grid settings, Generate Map with 128/64/32 tip packing for Template 32. Edit → Toggle Auto-Paint / Rebuild Auto-Paint Walls. Full-screen Tools editors gained top File Save/Load for that editor’s data (`editorSubMenus.js`; objectives/objects use map Save/Load). Assets → Tiles hosts Template Pieces + multi-brush paint; Bulkhead 32 tiles for Auto-Paint roles. Summary refreshed in `docs/editor-authoring-summary.md`; behaviour in `docs/auto-paint.md`. Matrix row counts below are still the 2026-10-18 baseline (not re-scored).
+
 ---
 
 ## A. Executive Summary

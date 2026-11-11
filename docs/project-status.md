@@ -69,11 +69,11 @@ Where: `src/conversation/`, `conversations/`, `docs/design-tracker.md` (Klingon 
 
 ### 6. Map editor (Dev Edit) — SHIPPED (authoring PARTIAL)
 
-Paint maps, layers / Null / floorUnder, NPCs, objectives, destructibles, hazards, ground items, conversations, story, Generator Editor, music cues per map, playtest. Multi-deck Levels UI is still a placeholder. Item / hazard / destructible **catalogues** and standalone Combat encounter authoring still need JSON edits (`editor-authoring-summary.md`: ~41 complete / 7 partial / 7 hardcoded / 2 missing as of last audit).
+Paint maps, layers / Null / floorUnder, Template Pieces + multi-brush, NPCs, objectives, destructibles, hazards, ground items, conversations, story, Generator Editor (frozen Generate Map path), **Auto-Paint** (Ruleset Editor with Rules/Map views + Generate Map 128/64/32 packing; Edit → Toggle/Rebuild Auto-Paint), Tools sub-editors with File Save/Load menus, music cues per map, playtest. Multi-deck Levels UI is still a placeholder. Item / hazard / destructible **catalogues** and standalone Combat encounter authoring still need JSON edits. Overview: `docs/editor-authoring-summary.md` (refreshed 2026-11-11); Auto-Paint: `docs/auto-paint.md`. Baseline audit counts (~41 complete / 7 partial / 7 hardcoded / 2 missing) predate Auto-Paint / Template Piece authoring.
 
 **Sprites / spike3d** (3D default 2026-11; sheets F1 debug): map characters are procedural Three.js figures (`src/spike3d/`, CharacterBody API) with unique race mesh kits on the shared humanoid rig and division tunic textures under `public/art/models/characters/`. `characterSprites.json` is the clip timing contract. Pixi character sheets skip preload while 3D is on; F1 toggles 2D. Sprites editor + env/FX/dice unchanged. How-to: `docs/sprites.md`, `docs/spike3d-figure-swap-plan.md`.
 
-Where: `src/spike3d/`, `src/components/maps/`, `src/maps/`, `docs/tiles.md`, `docs/sprites.md`; Sprites editor: `SpriteSheetsScreen.jsx`, `characterSprites.json`.
+Where: `src/spike3d/`, `src/components/maps/`, `src/maps/` (incl. `autoPaint/`), `docs/tiles.md`, `docs/auto-paint.md`, `docs/sprites.md`; Sprites editor: `SpriteSheetsScreen.jsx`, `characterSprites.json`.
 
 ### 7. Music / audio — SHIPPED
 

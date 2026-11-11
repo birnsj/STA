@@ -2,6 +2,8 @@
 
 **New map-construction generator** for painting floor footprints and assembling wall **tiles**. Independent of Generate Map and the Generator Editor — those stay frozen so existing game maps keep working.
 
+Editor overview / menu placement: `docs/editor-authoring-summary.md` (§8 Auto-Paint; Tools File menus).
+
 ## Current behaviour
 
 1. **Tools → Auto-Paint Ruleset Editor** — palette is the Dev Edit **Template Pieces** catalogue only (`templatePieces.json` via `templatePieceGroups` / `editorTemplatePaletteItems`). No parallel tile dump. Layer tabs. Default ruleset **Template 32**: drops resolve to wall tiles (`wall32` / `wall32Corner`) for grid placement. **Show all** adds Starship wall tiles for larger walls. Save → `autoPaintRulesets.json` (`/__autopaint`).

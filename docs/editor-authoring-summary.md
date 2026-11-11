@@ -1,30 +1,39 @@
 # Dev Edit — Authoring Tools Overview
 
-Source: `docs/editor-authoring-audit.md` (2026-10-18, updates through 2026-10-22; elevated placement 2026-10-22)
+Source: `docs/editor-authoring-audit.md` (2026-10-18 matrix; UI/shell updates through **2026-11-11**)
 Scope: What Dev Edit (Map Editor + sub-editors) can author, save, reload, and playtest vs what still needs JSON/content-file edits.
 
+**Current state (2026-11-11, `572dd04`):** Auto-Paint is the new map-construction path (rulesets + floor→wall assembly + in-tool Generate Map). Frozen Generate Map / Generator Editor / `generators/*` stay for existing maps. Full-screen Tools editors use a top **File** menu (Save/Load for that editor’s data; objectives/objects use map Save/Load). Template Pieces live under Assets → Tiles; multi-brush paint for tiles and templates. Details: `docs/auto-paint.md`, `docs/tiles.md`.
+
 --------------------------------------------------------------------------------
-UI SHELL (2026-10-21)
+UI SHELL (2026-10-21 layout; menus refreshed 2026-11)
 --------------------------------------------------------------------------------
 
-Layout matches the Mission Editor mockup (chrome only; map schema and sub-editors unchanged).
+Layout matches the Mission Editor mockup chrome (ed-shell).
 
-  Menu bar — File / Edit / View / Mission / Test
-    File: New, Load, Save, Save As, Delete, Back
-    Edit: Place Tiles, Move
+  Menu bar — File / Edit / View / Tools / Test / Help
+    File: New, Load, Save, Save As, Delete Map, Back to Menu
+    Edit: Undo, Redo; Toggle Place Tiles, Toggle Move;
+          Toggle Auto-Paint, Rebuild Auto-Paint Walls
     View: See-through blocks, Tile animations, Lighting, Placement surfaces,
-          Weather FX, Grid,
-          Grid options…, Overview / Layers / Levels windows
-    Mission: Generate Map / Name / Episode / Card; Objective / Object /
-             Conversation / Character Library / Generator Editor / Story
+          Weather FX, Grid, Grid options…, View scale…,
+          Overview / Layers / Levels windows
+    Tools: Objective / Object / Conversation / Character Library /
+           Generator Editor / Auto-Paint Ruleset Editor / Story Wording
     Test: Play, Toggle Enemies Active
+    Help: Keyboard Shortcuts…, About STA Builder
 
-  Slim toolbar — Animate, Grid (+ options), Overview, Layers, Levels
-                 (file ops and mission editors live in the menu only)
+  Slim toolbar — Animate, Grid (+ size select + options), Overview, Layers, Levels
+                 (file ops and Tools editors live in the menu; Generate Map /
+                  Name / Episode / Card also on Properties → Map)
 
   Left — Assets (EditorPalette)
     Tabs: Tiles | Environment | Items | Markers | NPCs
+    Tiles includes Template Piece groups (`templatePieces.json`) above tile
+    tilesets; DEV can author tilesets / import PNG / CRUD Template Pieces
     Search; selecting a thumbnail drives the paint tool and Selection props
+    Multi-brush: checkboxes on tile / Template Piece thumbs cycle while painting
+    (Unreal foliage-style); selected brush stays in the set
 
   Center — Viewport
     Map title, board (Pixi), tile coord HUD, notices
@@ -41,15 +50,20 @@ Layout matches the Mission Editor mockup (chrome only; map schema and sub-editor
       Ambient / ambient colour also editable from Properties when a lit wall
             or glowing tile is selected (same map fields as Map tab)
       Hazard: intensity when painting hazards
-      Board pick: NPC / Object / Marker / Destructible / Hazard / Ground item
-            inspectors (unchanged)
+      Board pick: NPC / Object / Marker / Destructible / Hazard / Ground item /
+            Template Piece inspectors
 
   Floating windows — Overview (ghost / animate / lighting / placement surfaces),
                      Layers (active / visibility / lock), Levels (elevation deferred)
 
   Full-screen sub-editors — Conversation, Object, Objective, Story,
-                            Character Library, Generator Editor
-                            (shared ed-shell look; layouts unchanged)
+                            Character Library, Generator Editor,
+                            Auto-Paint Ruleset Editor
+                            (shared ed-shell; each has top File menu for that
+                            editor’s data via `editorSubMenus.js`)
+    Auto-Paint Ruleset: File Save/Load ruleset + Generate Map; toolbar
+      Rules / Map view toggles (left palette stays); Grid uses main editor
+      show/size/options settings
 
 Lighting presentation (also View → Lighting): contact shadows,
 darkness veil from map `ambient` / `ambientColour`,
@@ -60,24 +74,24 @@ soft veil holes scaled by `animations[].emissive`, floor spill tinted by
 VERDICT
 --------------------------------------------------------------------------------
 
-Dev Edit can author a substantial exploration episode (geometry, NPCs including
-patrol / response / perception / waypoint anims, Character Library pool CRUD in
-Vite DEV, conversations, objectives, challenge objects, environment, ground
-items, mission text), but it cannot fully author every runtime property without
-JSON edits—especially item / hazard / destructible type catalogues and
-standalone Combat encounter definitions.
+Dev Edit can author a substantial exploration episode (geometry including
+Auto-Paint / Template walls, NPCs including patrol / response / perception /
+waypoint anims, Character Library pool CRUD in Vite DEV, conversations,
+objectives, challenge objects, environment, ground items, mission text), but it
+cannot fully author every runtime property without JSON edits—especially item /
+hazard / destructible type catalogues and standalone Combat encounter
+definitions.
 
-Audited features: 58
-  Complete: 41
-  Partial: 7
-  Hardcoded: 7
-  Missing: 2
-  Broken: 0
-  N/A: 1
+Baseline audit (2026-10-18): 58 features — 41 Complete / 7 Partial / 7 Hardcoded /
+2 Missing / 0 Broken / 1 N/A. Since then (not re-counted in the audit matrix):
+Auto-Paint Ruleset Editor + Generate Map, Template Piece catalogue paint /
+authoring, multi-brush, Bulkhead 32 wall tiles, sub-editor File menus, map
+layers / Null / floorUnder (already noted 2026-10-21).
 
 Highest-priority gaps: item / environment-type catalogues, standalone Combat
 encounter authoring, challenge definitions still living only in challenges.json
-for sample maps.
+for sample maps; Auto-Paint still shares the deck room grid (no native layout
+yet — see `docs/auto-paint.md`).
 
 --------------------------------------------------------------------------------
 HOW DEV EDIT WORKS
@@ -90,8 +104,9 @@ Play paths:
   - Load Episode → Game → plays the saved map file only
 
 Writes (maps, conversations, story wording, tile flags, tileEffects emissive /
-emitColour / glows) require the Vite DEV server. Production / Electron builds
-are read-only for those files.
+emitColour / glows, Auto-Paint rulesets, Template Pieces, deck generator styles)
+require the Vite DEV server. Production / Electron builds are read-only for those
+files.
 
 Story wording is global (missionLog.json), not per episode.
 
@@ -130,14 +145,24 @@ Map shell (Properties → Map)
   - Location, biome, weather
   - Ambient light (0–100) and ambient colour (darkness veil tint)
   - Generate Map / Name / Card; generate-hazards toggle
+      Frozen path: Starship Deck / Space Station / Derelict / Template Deck
+      etc. via `generators/*` (do not edit for Auto-Paint work)
       Starship Deck / Space Station / Derelict use full bulkheads
       (thin halfBulkhead generation paused; half walls remain palette
       hand-place tiles — see docs/tiles.md)
-      Deck tile styles: Mission → Generator Editor
+      Template Deck: tip-anchored Template Piece walls (locked placer)
+      Deck tile styles: Tools → Generator Editor
+  - New construction path: Tools → Auto-Paint Ruleset Editor → Generate Map
+      (see §8 Auto-Paint)
 
 Episode (Properties → Map)
   - Name, episode card
   - Briefing, outro, outro (abandoned / failed), stardate
+
+Template Pieces (Assets → Tiles)
+  - Tip-anchored pieces from `templatePieces.json` (32px tip grid preferred)
+  - Paint / Move / multi-brush; rotation; DEV catalogue CRUD
+  - Used by Template Deck Generate Map and Auto-Paint Template 32 packing
 
 Markers
   - Area labels
@@ -297,12 +322,13 @@ Hardcoded
   - Global, not per-episode
 
 
-7) GENERATOR EDITOR (Vite DEV)
+7) GENERATOR EDITOR (Vite DEV) — frozen for Auto-Paint work
 ------------------------------
-  - Mission → Generator Editor
+  - Tools → Generator Editor
+  - File: Save / Load styles; Preview Generate Map
   - Edits deck Generate Map styles for Starship Deck, Research Lab,
     Alien Vessel via sprite pickers (floor / wall / corner / door / crate /
-    machinery / hazard)
+    machinery / hazard); Template Deck style → templateDeckStyle.json
   - Corner: optional wall sprite placed at every L/T junction after generate
   - Variations for the style’s Wall tile: share + multi-select panel/tile
     fitting sprites (geometric corners stay plain, then Corner applies)
@@ -310,20 +336,56 @@ Hardcoded
   - Preview on open map when Location matches (same as Generate Map)
   - Derelict inherits Starship Deck paint; station / Klingon / New Location
     still code-only
+  - Do not change `generators/*` / Template Deck placer to “fix” Auto-Paint;
+    use Auto-Paint packing instead
+
+
+8) AUTO-PAINT RULESET EDITOR (Vite DEV) — current generator path
+---------------------------------------
+  - Tools → Auto-Paint Ruleset Editor
+  - File: Load from Disk / Save Ruleset / Revert / Generate Map / Back
+  - Toolbar: Rules | Map view toggles; Save / Revert / Generate Map /
+    Show all; Grid + size + options (shared with main Dev Edit)
+  - Left rail always visible: ruleset pick, label, environment, Template
+    Pieces palette (same catalogue as Assets → Tiles); Show all adds
+    Starship wall tiles for larger walls
+  - Rules view: floor / wall / corner / hull / doorway role slots
+    (drops resolve Template Pieces → wall/floor tiles)
+  - Map view: open map board inside this tool (does not jump to main Dev Edit)
+  - Generate Map: applies draft in memory, runs Auto-Paint layout into the
+    open document, switches to Map view
+      Template 32: deck room grid + `templateWall` underlay + doorways +
+      floorUnder + **128 / 64 / 32** tip packing (`placeWallRuns.js`)
+      Corners = 32×32 posts (also 32-long stubs); does not call frozen
+      `placeTemplateWalls`
+  - Edit → Toggle Auto-Paint: paint floors; walls rebuild from footprint
+  - Edit → Rebuild Auto-Paint Walls: regenerate auto walls from floors
+  - Save ruleset → autoPaintRulesets.json (`/__autopaint`)
+  - Map JSON optional `autoPaint` block (regions, generated/manual/suppressed
+    wall keys). Full behaviour: `docs/auto-paint.md`
+
+Sub-editor File menus (all Tools full-screens)
+  - Shared `subEditorFileMenus` / `mapEmbeddedEditorMenus`
+  - Conversation / Story / Generator / Auto-Paint / Character: own data Save/Load
+  - Objective / Object: Load Map / Save Map / Save Map As (map-embedded)
 
 --------------------------------------------------------------------------------
 FEATURE MATRIX (compact)
 --------------------------------------------------------------------------------
 
 Complete
-  1  Tile painting / palette
+  1  Tile painting / palette (incl. DEV tileset authoring / PNG import)
+  1b Template Piece paint / multi-brush / DEV catalogue CRUD
+  1c Multi-brush Place Tiles (checked thumbs cycle while painting)
   2  Tile rotation
   3  Map resize / size presets
   4  Location / biome / weather
   5  Ambient light (+ ambient colour; Selection emissive / emit colour)
   6  Episode name / card
-  7  Generate Map / Name / Card
-  7b Deck generator styles (Generator Editor; three deck Locations)
+  7  Generate Map / Name / Card (frozen locations; Template Deck included)
+  7b Deck generator styles (Generator Editor; three deck Locations + Template Deck style)
+  7c Auto-Paint Ruleset Editor + Generate Map (128/64/32 packing; Rules/Map views)
+  7d Auto-Paint floor brush / rebuild / promote / suppress wall cells
   8  Area labels
   9  Player starts (≤8) + facing
   10 Enemy spawns + facing
@@ -389,10 +451,16 @@ N/A
 Missing / blocking
   - New item / hazard / destructible TYPE definitions (not just placements)
   - Custom standalone Combat roster (encounters.json)
-  - New Generate Map Location types / station-cave-surface generator params
-    (deck styles only in Generator Editor)
+  - New frozen Generate Map Location types / station-cave-surface generator params
+    (deck styles only in Generator Editor; Auto-Paint still uses shared deck grid)
+  - Auto-Paint-native room layouts, smarter door frames, props/furnishings
   - Elevation / gizmos (Levels window still a placeholder)
-  - Map editor layers (2026-10-21): Ground / Walls / Furniture / Characters / Markers — UI visibility & lock; Null cells; floorUnder; undo/redo
+
+Shipped since baseline audit (document in summary; matrix ids not yet re-audited)
+  - Map layers Ground / Walls / Furniture / Characters / Markers; Null; floorUnder; undo/redo
+  - Template Pieces under Assets → Tiles; Bulkhead 32 wall tiles for Auto-Paint
+  - Auto-Paint subsystem (rulesets, assemble, generate, placeWallRuns)
+  - Sub-editor top File menus
 
 --------------------------------------------------------------------------------
 EASY-TO-MISREAD WORKFLOWS
@@ -420,6 +488,17 @@ EASY-TO-MISREAD WORKFLOWS
    - Emission Colour tints soft floor/wall spill (animations[].emitColour)
    - Scroll to Emission overlays for Emissive + Colour on lit tiles
 
+6) Auto-Paint Generate Map ≠ frozen Generate Map
+   - Tools → Auto-Paint Ruleset Editor → Generate Map uses Auto-Paint packing
+   - Properties → Map → Generate Map / Generator Editor still use frozen
+     `generators/*` (including Template Deck’s locked placer)
+   - Do not edit frozen generators to fix Auto-Paint wall visuals
+
+7) Rules vs Map in Auto-Paint Ruleset Editor
+   - Rules / Map toolbar buttons switch the right pane only
+   - Left Template Pieces palette stays; Grid settings are shared with Dev Edit
+   - Back to Map exits to the main board (generated map already on the document)
+
 --------------------------------------------------------------------------------
 WHAT STILL NEEDS A CONTENT-FILE EDIT
 --------------------------------------------------------------------------------
@@ -433,6 +512,8 @@ WHAT STILL NEEDS A CONTENT-FILE EDIT
   - Shared challenge library (until adopt) → challenges.json
   - Fallback NPCs when map has none     → npcs.json
   - New tile art / flipbook frames      → art + makeTileFrames / tileEffects.json
+  - (DEV UI exists) Auto-Paint rulesets → autoPaintRulesets.json via Ruleset Editor
+  - (DEV UI exists) Template Pieces     → templatePieces.json via Assets palette
 
 --------------------------------------------------------------------------------
 PRIMARY SOURCE FILES
@@ -443,7 +524,8 @@ Editor shell
   EditorPalette.jsx, EditorPropertiesPanel.jsx, MapProperties.jsx,
   AssetProperties.jsx, EditorFloatWindow.jsx, EditorOverviewWindow.jsx,
   EditorLayersWindow.jsx, EditorLevelsWindow.jsx, EditorGridOptions.jsx,
-  useEditorTools.js, EditorInspectors.jsx, EditorBoard.jsx
+  EditorSubScreen.jsx, editorSubMenus.js, useEditorTools.js,
+  useMapDocument.js, EditorInspectors.jsx, EditorBoard.jsx
 
 Inspectors
   NpcInspector.jsx, HazardInspector.jsx, DestructibleInspector.jsx,
@@ -451,10 +533,18 @@ Inspectors
 
 Sub-editors
   ObjectEditorScreen.jsx, ObjectActionFields.jsx, ObjectiveEditorScreen.jsx,
-  ConversationEditorScreen.jsx, StoryEditorScreen.jsx
+  ConversationEditorScreen.jsx, StoryEditorScreen.jsx,
+  GeneratorEditorScreen.jsx, AutoPaintRulesetEditorScreen.jsx,
+  CharacterLibraryScreen.jsx
+
+Auto-Paint
+  src/maps/autoPaint/ (index, rulesets, generate, assemble, placeWallRuns,
+  wallsTemplate, wallsTiles, templatePalette, templateWallCoverage),
+  autoPaintFiles.js, autoPaintRulesets.json
 
 Format I/O
-  mapFormat.js, mapFiles.js, mapEdits.js, effectsFiles.js, effectsStore.cjs
+  mapFormat.js, mapFiles.js, mapEdits.js, templatePieces.js,
+  effectsFiles.js, effectsStore.cjs
 
 Lighting / tiles
   tileArt.js, mapShadows.js, tileSpriteInfo.js, tileEffects.json,
@@ -467,14 +557,17 @@ Runtime
 
 Content
   maps/*.json, conversations/, challenges.json, npcs.json, awareness.json,
-  hazards.json, destructibles.json, items.json, encounters.json, characters.json
+  hazards.json, destructibles.json, items.json, encounters.json, characters.json,
+  autoPaintRulesets.json, templatePieces.json, tiles.json
 
 --------------------------------------------------------------------------------
 RELATED DOCS
 --------------------------------------------------------------------------------
 
   docs/editor-authoring-audit.md   — full status matrix and phase history
+  docs/auto-paint.md               — Auto-Paint behaviour, packing, frozen boundary
   docs/design-tracker.md           — design decisions (scattered editor notes)
   docs/prototype-rules.md          — Book vs Prototype rules (incl. authoring)
-  docs/tiles.md                    — tiles, animations, ambient / emissive lighting
+  docs/tiles.md                    — tiles, Template Deck, Bulkhead 32, lighting
   docs/world-objects.md            — world objects / environment
+  docs/project-status.md           — high-level aspect board
