@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { autoPaintRoleThumbTitle } from '../components/maps/assetThumbTitle.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import { EDITOR_GRID_SIZES } from '../components/maps/editorGrid.js'
 import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
@@ -13,7 +14,8 @@ import {
   listAutoPaintRulesets,
   resolveAutoPaintRuleset,
 } from '../maps/autoPaint/rulesets.js'
-import { resolveAutoPaintTileId } from '../maps/autoPaint/templatePalette.js'
+import { pieceIdForAutoPaintTile, resolveAutoPaintTileId } from '../maps/autoPaint/templatePalette.js'
+import { getTemplatePiece } from '../maps/templatePieces.js'
 import {
   canEditAutoPaintRulesets,
   putAutoPaintRulesetLocal,
@@ -46,10 +48,13 @@ const DOOR_TILE_FIELD = {
 }
 
 const WALL_TILE_FIELDS = [
-  { key: 'straight', label: 'Straight wall (default 32)', required: true },
-  { key: 'corner', label: 'Corner wall', required: true },
+  { key: 'straight', label: 'Straight (64-long)', required: true },
+  { key: 'straightLong', label: 'Straight long (128)', required: false },
+  { key: 'corner', label: 'Corner (32×32)', required: true },
   { key: 'hull', label: 'Hull straight (optional)', required: false },
+  { key: 'hullLong', label: 'Hull long (optional)', required: false },
   { key: 'hullCorner', label: 'Hull corner (optional)', required: false },
+  { key: 'doorFrame', label: 'Door frame (optional)', required: false },
 ]
 
 /** Larger wall tiles from the Starship tileset (optional; Show all). Same PALETTE_GROUPS as Dev Edit Assets. */
@@ -258,14 +263,35 @@ export default function AutoPaintRulesetEditorScreen({
     return out
   }, [templateItems, showAll])
 
-  const resolveDropToTile = (asset) => {
+  // Keep Template Piece ids so Generate Map uses the exact piece from the slot (not a collapsed wall32).
+  const resolveDropToRole = (asset) => {
     if (!asset) return null
-    return resolveAutoPaintTileId(asset.kind === 'tile' || asset.kind === 'piece' ? asset.id : null)
+    if (asset.kind === 'piece' && getTemplatePiece(asset.id)) return asset.id
+    if (asset.kind === 'tile' || asset.kind === 'piece') return resolveAutoPaintTileId(asset.id)
+    return null
   }
 
   const onRoleChange = (patchFn) => (id) => {
-    const resolved = resolveAutoPaintTileId(id) || id
-    patchFn(resolved)
+    if (!id) {
+      patchFn(null)
+      return
+    }
+    if (getTemplatePiece(id)) {
+      patchFn(id)
+      return
+    }
+    patchFn(resolveAutoPaintTileId(id) || id)
+  }
+
+  const roleIdAllowed = (id) => Boolean(getTile(id) || getTemplatePiece(id) || resolveAutoPaintTileId(id))
+
+  // Prefer Template Piece footprint (corner 32×32) over tile sprite size (often 64×128).
+  const roleThumbTitle = (tile) => {
+    const piece = tile?.__piece || getTemplatePiece(tile?.id) || getTemplatePiece(pieceIdForAutoPaintTile(tile?.id))
+    const displayTile = tile?.__piece ? null : tile
+    return autoPaintRoleThumbTitle(displayTile || getTile(resolveAutoPaintTileId(tile?.id)), piece, {
+      extra: 'right-click to remove',
+    })
   }
 
   const loadFromDisk = async () => {
@@ -471,8 +497,9 @@ export default function AutoPaintRulesetEditorScreen({
           <div className="ce-inspector">
             <p className="ce-heading">{draft.label}</p>
             <p className="ge-lead">
-              One catalogue: <strong>templatePieces.json</strong> (Dev Edit → Template Pieces). Auto-Paint places the
-              matching wall <em>tiles</em> (`wall32` / …). Show all adds Starship wall tiles for larger walls.
+              Drag Template Pieces into the roles. Hover shows <strong>footprint</strong> (corner = 32×32, straight 32 =
+              64×32, long = 128×32) — not the tile sprite box. Template 32 Generate Map places those pieces tip-anchored.
+              Show all adds Starship wall tiles for larger true cell walls.
             </p>
 
             <section className="ge-block">
@@ -481,9 +508,11 @@ export default function AutoPaintRulesetEditorScreen({
               <TileSpritePicker
                 label={FLOOR_FIELD.label}
                 options={tileOptions(FLOOR_FIELD, draft.floors.defaultTile)}
-                value={resolveAutoPaintTileId(draft.floors.defaultTile) ?? draft.floors.defaultTile}
+                value={draft.floors.defaultTile}
                 emptyText={emptyHint}
-                resolveDropId={resolveDropToTile}
+                resolveDropId={resolveDropToRole}
+                acceptId={roleIdAllowed}
+                titleForTile={roleThumbTitle}
                 onChange={onRoleChange((id) => patchFloors({ defaultTile: id }))}
               />
             </section>
@@ -491,17 +520,20 @@ export default function AutoPaintRulesetEditorScreen({
             <section className="ge-block">
               <h3 className="ge-block-title">2. Walls / Structure</h3>
               <p className="ge-block-hint">
-                Drag Template wall pieces here. Default Template 32 → Bulkhead 32 tiles. Show all to pick a full bulkhead.
+                Drop Template Pieces into each role — Generate Map places exactly these. Hull None = rim uses
+                straight/corner. Show all to assign a full bulkhead tile instead.
               </p>
               {WALL_TILE_FIELDS.map((field) => (
                 <TileSpritePicker
                   key={field.key}
                   label={field.label}
                   options={tileOptions(WALL_FIELD, draft.walls[field.key] ?? null)}
-                  value={resolveAutoPaintTileId(draft.walls[field.key]) ?? draft.walls[field.key] ?? null}
+                  value={draft.walls[field.key] ?? null}
                   allowNone={!field.required}
                   emptyText={emptyHint}
-                  resolveDropId={resolveDropToTile}
+                  resolveDropId={resolveDropToRole}
+                  acceptId={roleIdAllowed}
+                  titleForTile={roleThumbTitle}
                   onChange={onRoleChange((id) => patchWalls({ [field.key]: id }))}
                 />
               ))}
@@ -513,9 +545,11 @@ export default function AutoPaintRulesetEditorScreen({
               <TileSpritePicker
                 label={DOOR_TILE_FIELD.label}
                 options={tileOptions(DOOR_TILE_FIELD, draft.doors.underlayTile)}
-                value={resolveAutoPaintTileId(draft.doors.underlayTile) ?? draft.doors.underlayTile}
+                value={draft.doors.underlayTile}
                 emptyText={emptyHint}
-                resolveDropId={resolveDropToTile}
+                resolveDropId={resolveDropToRole}
+                acceptId={roleIdAllowed}
+                titleForTile={roleThumbTitle}
                 onChange={onRoleChange((id) => patchDoors({ underlayTile: id }))}
               />
             </section>

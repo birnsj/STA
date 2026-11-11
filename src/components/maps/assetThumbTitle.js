@@ -37,3 +37,28 @@ export function tileThumbTitle(tile, { extra = '' } = {}) {
   if (extra) parts.push(extra)
   return parts.join(' · ')
 }
+
+/**
+ * Auto-Paint role slot title: prefer Template Piece footprint (e.g. corner 32×32)
+ * over tile sprite size (often 64×128), so tips match packing lengths.
+ */
+export function autoPaintRoleThumbTitle(tile, piece, { extra = '' } = {}) {
+  if (!tile && !piece) return extra || ''
+  if (piece) {
+    const parts = [piece.label || piece.id]
+    const fp = piece.footprint
+    if (fp && Number.isFinite(fp.width) && Number.isFinite(fp.depth)) {
+      parts.push(`footprint ${fp.width}×${fp.depth}`)
+    } else if (piece.size && Number.isFinite(piece.size.width) && Number.isFinite(piece.size.height)) {
+      parts.push(`${piece.size.width}×${piece.size.height}`)
+    }
+    if (Number.isFinite(piece.height)) parts.push(`h ${piece.height}`)
+    const layer = layerPart(layerOfTemplatePiece(piece))
+    if (layer) parts.push(layer)
+    parts.push(`piece ${piece.id}`)
+    if (tile?.id && tile.id !== piece.id) parts.push(`role tile ${tile.id}`)
+    if (extra) parts.push(extra)
+    return parts.join(' · ')
+  }
+  return tileThumbTitle(tile, { extra })
+}

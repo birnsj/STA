@@ -1,5 +1,5 @@
 {
-  "notes": "Auto-Paint construction rulesets (new generator). Independent of Generate Map / Generator Editor. Walls are tiles; default Template Deck 32 kit.",
+  "notes": "Auto-Paint construction rulesets (new generator). Independent of Generate Map / Generator Editor. Template 32 wall roles are Template Piece ids; bulkhead-style rulesets use true wall tiles.",
   "rulesets": [
     {
       "schemaVersion": 1,
@@ -7,15 +7,19 @@
       "label": "Template 32",
       "environment": "starshipStation",
       "wallMode": "tiles",
+      "underlayWallTile": "templateWall",
       "floors": {
         "defaultTile": "floor",
         "variants": []
       },
       "walls": {
-        "straight": "wall32",
-        "corner": "wall32Corner",
+        "straight": "tplStarshipWall32",
+        "straightLong": "tplStarshipWall32PlainLong",
+        "corner": "tplStarshipWall32Corner",
         "hull": null,
+        "hullLong": null,
         "hullCorner": null,
+        "doorFrame": null,
         "fittings": [],
         "fittingChance": 0
       },

@@ -45,19 +45,49 @@ const bulkheadRuleset = () =>
   })
 
 describe('Auto-Paint rulesets', () => {
-  it('loads the seed ruleset with wall32 tile ids (piece kit under the hood)', () => {
+  it('loads the seed ruleset with Template Piece wall roles', () => {
     const ruleset = getAutoPaintRuleset('template-32')
     assert.equal(ruleset.id, 'template-32')
     assert.equal(ruleset.label, 'Template 32')
-    assert.equal(ruleset.walls.straight, 'wall32')
-    assert.equal(ruleset.walls.corner, 'wall32Corner')
+    assert.equal(ruleset.walls.straight, 'tplStarshipWall32')
+    assert.equal(ruleset.walls.corner, 'tplStarshipWall32Corner')
+    assert.equal(ruleset.walls.straightLong, 'tplStarshipWall32PlainLong')
+    assert.equal(ruleset.walls.doorFrame, 'tplStarshipDoorFrame')
     assert.equal(rulesetUsesTemplatePieces(ruleset), true)
     const kit = pieceKitFromRuleset(ruleset)
     assert.equal(kit.straight, 'tplStarshipWall32')
     assert.equal(kit.corner, 'tplStarshipWall32Corner')
+    assert.equal(kit.straightLong, 'tplStarshipWall32PlainLong')
+    assert.equal(kit.doorFrame, 'tplStarshipDoorFrame')
+    // Hull roles are None — do not invent Template Deck hull.
+    assert.equal(kit.hull, null)
+    assert.equal(kit.hullCorner, null)
+    assert.equal(kit.hullLong, null)
+    assert.deepEqual(kit.fittings, [])
+    assert.equal(kit.fittingChance, 0)
     assert.ok(getTemplatePiece(kit.straight))
     const { ok, errors } = validateAutoPaintRuleset(ruleset)
     assert.equal(ok, true, errors.join('; '))
+  })
+
+  it('keeps an explicit Template Piece id in the kit (does not collapse to wall32)', () => {
+    const ruleset = resolveAutoPaintRuleset({
+      id: 'hull-roles',
+      label: 'Hull roles',
+      walls: {
+        straight: 'tplStarshipHull32',
+        corner: 'tplStarshipHull32Corner',
+        hull: 'tplStarshipHull32',
+        hullCorner: 'tplStarshipHull32Corner',
+      },
+      floors: { defaultTile: 'floor', variants: [] },
+    })
+    const kit = pieceKitFromRuleset(ruleset)
+    assert.equal(kit.straight, 'tplStarshipHull32')
+    assert.equal(kit.corner, 'tplStarshipHull32Corner')
+    assert.equal(kit.hull, 'tplStarshipHull32')
+    assert.equal(kit.hullCorner, 'tplStarshipHull32Corner')
+    assert.ok(kit.hullLong)
   })
 
   it('reports unknown tile ids without inventing replacements', () => {

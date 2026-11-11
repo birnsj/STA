@@ -4,9 +4,9 @@ import { makeDeckGenerator } from '../generators/starshipDeck.js'
 import { DOOR_TILE } from '../generators/shared.js'
 import { TEMPLATE_WALL_UNDERLAY } from '../generators/templateDeck.js'
 import { getAutoPaintRuleset } from './rulesets.js'
-import { pieceKitFromRuleset } from './templatePalette.js'
+import { pieceKitFromRuleset, resolveAutoPaintTileId } from './templatePalette.js'
 import { placePackedWallPieces } from './placeWallRuns.js'
-import { snapAutoPaintGenerateSize } from './templateWallCoverage.js'
+import { snapAutoPaintGenerateSize } from './generateSize.js'
 import { collectFloorKeys, floorIdsForRuleset } from './topology.js'
 
 /**
@@ -16,8 +16,9 @@ import { collectFloorKeys, floorIdsForRuleset } from './topology.js'
 export function generateAutoPaintMap(source, rulesetId, random = Math.random) {
   const ruleset = getAutoPaintRuleset(rulesetId)
   if (!ruleset) return { map: source, error: 'No Auto-Paint ruleset.' }
-  const floorId = ruleset.floors?.defaultTile || FLOOR_TILE
-  const doorId = ruleset.doors?.underlayTile || DOOR_TILE
+  // Roles may store Template Piece ids; deck underlay needs catalogue tiles.
+  const floorId = resolveAutoPaintTileId(ruleset.floors?.defaultTile) || ruleset.floors?.defaultTile || FLOOR_TILE
+  const doorId = resolveAutoPaintTileId(ruleset.doors?.underlayTile) || ruleset.doors?.underlayTile || DOOR_TILE
   if (!floorId) return { map: source, error: 'Auto-Paint ruleset has no default floor tile.' }
 
   const snapped = snapAutoPaintGenerateSize(source.mapType, source.width, source.height)

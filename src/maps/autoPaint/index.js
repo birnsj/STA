@@ -19,18 +19,37 @@ export {
   promoteWallCellManual,
   removeAutoPaintWallCell,
 } from './wallsTiles.js'
-export { pieceKitFromRuleset, rulesetUsesTemplatePieces } from './templatePalette.js'
+export {
+  pieceIdForAutoPaintTile,
+  pieceKitFromRuleset,
+  resolveAutoPaintTileId,
+  rulesetUsesTemplatePieces,
+} from './templatePalette.js'
 export { collectFloorKeys, exteriorUnderlayKeys, floorIdsForRuleset } from './topology.js'
+export { tipKeyOf } from './wallsTemplate.js'
+export { generateAutoPaintMap } from './generate.js'
+export { snapAutoPaintGenerateSize } from './generateSize.js'
+export {
+  packTipCells,
+  packUnderlayRun,
+  placePackedWallPieces,
+  WALL_LEN_LONG,
+  WALL_LEN_SHORT,
+  WALL_LEN_STUB,
+  WALL_TIP_PX,
+} from './placeWallRuns.js'
 
 import { getAutoPaintRuleset } from './rulesets.js'
 import { assembleWallsFromFloors } from './assemble.js'
+import { resolveAutoPaintTileId } from './templatePalette.js'
 import { paintFloor } from '../mapEdits.js'
 
 /** Paint one floor cell then rebuild walls for the default region (one logical Auto-Paint step). */
 export function autoPaintFloorCell(map, position, rulesetId, { regionId = 'region-1' } = {}) {
   const ruleset = getAutoPaintRuleset(rulesetId)
   if (!ruleset) return { map, error: 'No Auto-Paint ruleset.' }
-  const painted = paintFloor(map, position, ruleset.floors.defaultTile, {})
+  const floorId = resolveAutoPaintTileId(ruleset.floors.defaultTile) || ruleset.floors.defaultTile
+  const painted = paintFloor(map, position, floorId, {})
   if (painted.error) return painted
   const next = assembleWallsFromFloors(painted.map !== map ? painted.map : map, ruleset, { regionId })
   return { map: next }
@@ -43,29 +62,13 @@ export function rebuildAutoPaintWalls(map, rulesetId, options = {}) {
   return { map: assembleWallsFromFloors(map, ruleset, options) }
 }
 
-export { generateAutoPaintMap } from './generate.js'
-export {
-  packTipCells,
-  packUnderlayRun,
-  placePackedWallPieces,
-  WALL_LEN_LONG,
-  WALL_LEN_SHORT,
-  WALL_LEN_STUB,
-  WALL_TIP_PX,
-} from './placeWallRuns.js'
-export { ensureTemplateWallCoverage, snapAutoPaintGenerateSize } from './templateWallCoverage.js'
-
-/** @deprecated Template-piece path retired — wall cells use promoteWallCellManual. */
+/** @deprecated Use promoteWallCellManual. */
 export function promoteTemplatePieceManual(map, _pieceId) {
   return map
 }
 
-/** @deprecated Template-piece path retired — wall cells use removeAutoPaintWallCell. */
+/** @deprecated Use removeAutoPaintWallCell. */
 export function removeAutoPaintTemplatePiece(map, _pieceId) {
   return map
-}
-
-export function tipKeyOf(position) {
-  return `${position.x},${position.y}`
 }
 

@@ -1,18 +1,18 @@
-// Bridge only: Template Pieces (Dev Edit catalogue) ↔ wall/floor tile ids for Auto-Paint placement.
-// Palette listing lives in templatePieces.js (editorTemplatePaletteItems) — do not duplicate it here.
+// Bridge: Auto-Paint role ids (Template Piece or tile) ↔ packer kit / grid tiles.
+// Palette listing lives in templatePieces.js — do not duplicate it here.
 import { getTemplateDeckStyle } from '../generators/templateDeckStyles.js'
 import { getTile } from '../mapFormat.js'
 import { getTemplatePiece } from '../templatePieces.js'
 
-/** Tile ids that are Template-kit art (tip-anchored). Those must place as Template Pieces, not cell tiles. */
+/** Legacy tile ids that mean Template 32 tip art (seed / older rulesets). */
 const TILE_TO_TEMPLATE_PIECE = Object.freeze({
   wall32: 'tplStarshipWall32',
   wall32Corner: 'tplStarshipWall32Corner',
 })
 
 /**
- * Resolve a catalogue id to the tile Auto-Paint places on the grid.
- * Accepts a wall tile id as-is, or a Template Piece id (same catalogue as Dev Edit Assets).
+ * Resolve a catalogue id to the tile Auto-Paint paints on the grid.
+ * Accepts a tile id, or a Template Piece id with a tile counterpart.
  */
 export function resolveAutoPaintTileId(id) {
   if (!id || typeof id !== 'string') return null
@@ -20,8 +20,16 @@ export function resolveAutoPaintTileId(id) {
   return resolveTemplatePieceToTile(id)
 }
 
+/** Template Piece id for a role value (piece id, or wall32 → tpl…). Null = true cell tile / unset. */
+export function pieceIdForAutoPaintTile(roleId) {
+  if (!roleId) return null
+  if (getTemplatePiece(roleId)) return roleId
+  const mapped = TILE_TO_TEMPLATE_PIECE[roleId] || TILE_TO_TEMPLATE_PIECE[resolveAutoPaintTileId(roleId)]
+  return mapped && getTemplatePiece(mapped) ? mapped : null
+}
+
 /**
- * Map a Template Piece id to a tile id using catalogue tags (no parallel id table).
+ * Map a Template Piece id to a tile id using catalogue tags.
  * Returns null when there is no tile counterpart (props/furniture stay browse-only).
  */
 export function resolveTemplatePieceToTile(pieceId) {
@@ -45,7 +53,7 @@ export function resolveTemplatePieceToTile(pieceId) {
   return null
 }
 
-/** True when this ruleset’s wall kit is Template 32 tip art (must use piece placement). */
+/** True when this ruleset’s wall kit is Template tip art (must use piece placement). */
 export function rulesetUsesTemplatePieces(ruleset) {
   const straight = ruleset?.walls?.straight
   if (!straight) return false
@@ -54,32 +62,39 @@ export function rulesetUsesTemplatePieces(ruleset) {
   return Boolean(tileId && TILE_TO_TEMPLATE_PIECE[tileId])
 }
 
-function toPieceId(id, fallback) {
-  if (!id) return fallback
-  if (getTemplatePiece(id)) return id
-  const fromTile = TILE_TO_TEMPLATE_PIECE[id] || TILE_TO_TEMPLATE_PIECE[resolveAutoPaintTileId(id)]
-  if (fromTile && getTemplatePiece(fromTile)) return fromTile
-  return fallback
+/** Role → piece id, or null when empty / unknown (no silent invent). */
+function rolePiece(id) {
+  if (!id) return null
+  return pieceIdForAutoPaintTile(id) || (getTemplatePiece(id) ? id : null)
 }
 
-/** Template Deck–compatible piece kit for wallsTemplate / placeTemplateWalls. */
+/**
+ * Packer kit from ruleset wall roles.
+ * Every piece comes from the ruleset when set. Legacy wall32 tile ids still map via TILE_TO_TEMPLATE_PIECE.
+ * Deck style is only a last-resort default for straight / corner / long / doorFrame if a role is missing.
+ * Hull roles stay null when None — packing uses straight/corner on the rim.
+ */
 export function pieceKitFromRuleset(ruleset) {
   const deck = getTemplateDeckStyle()
-  const fittings = Array.isArray(ruleset?.walls?.fittings)
-    ? ruleset.walls.fittings.map((id) => toPieceId(id, null)).filter(Boolean)
-    : []
+  const walls = ruleset?.walls ?? {}
+  const fittings = Array.isArray(walls.fittings) ? walls.fittings.map(rolePiece).filter(Boolean) : []
+
+  const straight = rolePiece(walls.straight) || deck.straight
+  const corner = rolePiece(walls.corner) || deck.corner
+  const hull = rolePiece(walls.hull)
+  const hullCorner = rolePiece(walls.hullCorner)
+  const straightLong = rolePiece(walls.straightLong) || deck.straightLong
+  const hullLong = hull ? rolePiece(walls.hullLong) || deck.hullLong : null
+
   return {
-    straight: toPieceId(ruleset?.walls?.straight, deck.straight),
-    straightLong: deck.straightLong,
-    corner: toPieceId(ruleset?.walls?.corner, deck.corner),
-    hull: toPieceId(ruleset?.walls?.hull, deck.hull),
-    hullLong: deck.hullLong,
-    hullCorner: toPieceId(ruleset?.walls?.hullCorner, deck.hullCorner),
-    doorFrame: deck.doorFrame,
-    fittings: fittings.length ? fittings : [...deck.fittings],
-    fittingChance:
-      Number.isFinite(Number(ruleset?.walls?.fittingChance))
-        ? Number(ruleset.walls.fittingChance)
-        : deck.fittingChance,
+    straight,
+    straightLong,
+    corner,
+    hull,
+    hullLong,
+    hullCorner,
+    doorFrame: rolePiece(walls.doorFrame) || deck.doorFrame,
+    fittings,
+    fittingChance: Number.isFinite(Number(walls.fittingChance)) ? Number(walls.fittingChance) : 0,
   }
 }

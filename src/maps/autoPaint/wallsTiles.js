@@ -10,7 +10,7 @@ function wallTile(id) {
 
 function familyIds(ruleset) {
   const ids = new Set()
-  for (const key of ['straight', 'corner', 'hull', 'hullCorner']) {
+  for (const key of ['straight', 'straightLong', 'corner', 'hull', 'hullLong', 'hullCorner', 'doorFrame']) {
     const id = wallTile(ruleset.walls?.[key])
     if (id) ids.add(id)
   }

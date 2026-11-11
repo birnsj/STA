@@ -538,8 +538,8 @@ Sub-editors
   CharacterLibraryScreen.jsx
 
 Auto-Paint
-  src/maps/autoPaint/ (index, rulesets, generate, assemble, placeWallRuns,
-  wallsTemplate, wallsTiles, templatePalette, templateWallCoverage),
+  src/maps/autoPaint/ (index, rulesets, generate, generateSize, assemble,
+  placeWallRuns, wallsTemplate, wallsTiles, templatePalette),
   autoPaintFiles.js, autoPaintRulesets.json
 
 Format I/O

@@ -1,40 +1,45 @@
 # Auto-Paint
 
-**New map-construction generator** for painting floor footprints and assembling wall **tiles**. Independent of Generate Map and the Generator Editor — those stay frozen so existing game maps keep working.
+**New map-construction generator** for painting floor footprints and assembling walls. Independent of Generate Map and the Generator Editor — those stay frozen so existing game maps keep working.
 
 Editor overview / menu placement: `docs/editor-authoring-summary.md` (§8 Auto-Paint; Tools File menus).
 
 ## Current behaviour
 
-1. **Tools → Auto-Paint Ruleset Editor** — palette is the Dev Edit **Template Pieces** catalogue only (`templatePieces.json` via `templatePieceGroups` / `editorTemplatePaletteItems`). No parallel tile dump. Layer tabs. Default ruleset **Template 32**: drops resolve to wall tiles (`wall32` / `wall32Corner`) for grid placement. **Show all** adds Starship wall tiles for larger walls. Save → `autoPaintRulesets.json` (`/__autopaint`).
-2. **Generate Map** (Ruleset Editor toolbar) — replaces the open map with an Auto-Paint layout and shows it **inside the Ruleset Editor** (does not jump back to main Dev Edit). Top bar **Rules** / **Map** switches the right pane; the left palette stays. Grid toggle, size, and options match main Dev Edit (shared settings). **Back to Map** exits to Dev Edit. For **Template 32**: deck room grid (`makeDeckGenerator`) with `templateWall` underlay + doorways, floor under every wall cell, then **128 / 64 / 32 packing** (`placeWallRuns.js`): long = 128, short = 64, corner post = 32 stub. Custom sizes snap to Template Deck presets. Does not call frozen `placeTemplateWalls`. Bulkhead-style rulesets still assemble true wall tiles.
-3. **Edit → Toggle Auto-Paint** — paint floors with the Auto-Paint brush.
-4. Paint floors on a Null / blank map. Walls rebuild: Template 32 → tip pieces + underlay; bulkhead rulesets → wall tiles on exterior Null.
-5. **Edit → Rebuild Auto-Paint Walls** — regenerates auto walls from current floors.
+1. **Tools → Auto-Paint Ruleset Editor** — palette is the Dev Edit **Template Pieces** catalogue (`templatePieces.json`). Default ruleset **Template 32** stores **Template Piece ids** in wall roles (straight / long / corner / door frame; optional hull). Hover shows piece **footprint** (corner 32×32). **Show all** adds Starship wall tiles for larger true cell walls. Save → `autoPaintRulesets.json` (`/__autopaint`).
+2. **Generate Map** — builds into the open map and shows it in **Map** view (left palette stays; **Rules** / **Map** toggles). Grid settings are shared with main Dev Edit. Template 32: deck room grid + `templateWall` underlay + doorways + floorUnder + **128 / 64 / 32** packing (`placeWallRuns.js`) using the ruleset kit. Does not call frozen `placeTemplateWalls`.
+3. **Edit → Toggle Auto-Paint** — paint floors; walls rebuild from the footprint.
+4. **Edit → Rebuild Auto-Paint Walls** — regenerate auto walls from current floors.
 
-Larger / true tile walls: assign full-cell tiles (`bulkhead`, `plainBulkhead`, …) into the Straight / Corner roles (tile assembly path).
+Bulkhead-style rulesets: assign full-cell tiles (`bulkhead`, …) into Straight / Corner — tile assembly path (`wallsTiles.js`).
 
-Manual edits of Auto-Paint wall cells can be promoted so Rebuild leaves them alone. Erasing an Auto-Paint wall suppresses that cell so Rebuild does not recreate it.
+Manual Auto-Paint wall cells can be promoted so Rebuild leaves them alone. Erasing suppresses that cell.
+
+## Packing
+
+| Role | Tip length |
+| --- | --- |
+| Straight long | 128 |
+| Straight | 64 |
+| Corner / stub | 32×32 |
+
+Hull None → rim uses straight / corner (no silent Template Deck hull).
 
 ## Collision
 
-Same as other wall tiles (`halfBulkhead` / `bulkhead`): full-cell solid for pathing and sight. Accurate half-cell collision is out of scope.
+Same as other wall tiles: full-cell solid for pathing and sight.
 
 ## Floor under walls
 
-Template 32 / Template Deck: underlay wall cells store the ruleset default floor in `floorUnder` (same as locked Generate Map) so gaps don’t show Null. Erase/rebuild restores that remembered cell. True tile-wall rulesets still remember the previous cell as-is.
+Underlay wall cells store the ruleset default floor in `floorUnder`.
 
 ## Map JSON
 
-Optional `autoPaint` block (`rulesetId`, regions with `floorKeys`, `generatedWallKeys`, `manualWallKeys`, `suppressedWallKeys`). Legacy underlay/tip keys still parse into the wall-key fields.
-
-## Ruleset ids
-
-Save/load validates tile ids against the catalogue. Unknown ids are reported; they are not silently replaced.
+Optional `autoPaint` block (`rulesetId`, regions with floor / underlay / piece / suppressed keys).
 
 ## Not yet
 
-Smarter doorway frames, props / furnishings, richer Auto-Paint-native layouts beyond the shared deck grid.
+Smarter doorway logic, props / furnishings, Auto-Paint-native layouts beyond the shared deck grid.
 
 ## Frozen (do not edit for Auto-Paint)
 

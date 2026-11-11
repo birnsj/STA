@@ -1,5 +1,6 @@
 // Floor-island boundary analysis for Auto-Paint. Orthogonal only (Phase 1).
 import { NULL_TILE, cellKey } from '../mapFormat.js'
+import { resolveAutoPaintTileId } from './templatePalette.js'
 
 const DIRS = [
   { dx: 0, dy: -1, name: 'n' },
@@ -52,6 +53,11 @@ export function exteriorUnderlayKeys(map, floorKeys) {
 }
 
 export function floorIdsForRuleset(ruleset) {
-  const ids = new Set([ruleset.floors.defaultTile, ...(ruleset.floors.variants ?? [])])
+  // Roles may store Template Piece ids; map cells use catalogue tiles.
+  const ids = new Set()
+  for (const id of [ruleset.floors.defaultTile, ...(ruleset.floors.variants ?? [])]) {
+    if (!id) continue
+    ids.add(resolveAutoPaintTileId(id) || id)
+  }
   return ids
 }

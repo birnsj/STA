@@ -15,7 +15,8 @@ export const AUTO_PAINT_WALL_MODES = Object.freeze([{ id: 'tiles', label: 'Wall 
 
 const ENV_IDS = new Set(AUTO_PAINT_ENVIRONMENTS.map((entry) => entry.id))
 const WALL_MODE_IDS = new Set(AUTO_PAINT_WALL_MODES.map((entry) => entry.id))
-const WALL_TILE_KEYS = ['straight', 'corner', 'hull', 'hullCorner']
+// Wall roles may be Template Piece ids (Template 32) or true wall tile ids (bulkhead path).
+const WALL_TILE_KEYS = ['straight', 'straightLong', 'corner', 'hull', 'hullLong', 'hullCorner', 'doorFrame']
 const REQUIRED_WALL_KEYS = ['straight', 'corner']
 
 const FALLBACK = Object.freeze({
@@ -26,10 +27,13 @@ const FALLBACK = Object.freeze({
   wallMode: 'tiles',
   floors: { defaultTile: 'floor', variants: [] },
   walls: {
-    straight: 'wall32',
-    corner: 'wall32Corner',
+    straight: 'tplStarshipWall32',
+    straightLong: 'tplStarshipWall32PlainLong',
+    corner: 'tplStarshipWall32Corner',
     hull: null,
+    hullLong: null,
     hullCorner: null,
+    doorFrame: 'tplStarshipDoorFrame',
     fittings: [],
     fittingChance: 0,
   },

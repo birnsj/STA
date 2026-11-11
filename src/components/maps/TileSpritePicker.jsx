@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { getTile } from '../../maps/mapFormat.js'
-import { tileThumbTitle } from './assetThumbTitle.js'
+import { getTemplatePiece } from '../../maps/templatePieces.js'
+import { tileThumbTitle, templatePieceThumbTitle } from './assetThumbTitle.js'
 import { GE_ASSET_DRAG_TYPE, readGeAssetDrag } from './geAssetDrag.js'
 import { contextMenuPlacement, GeThumbDeleteConfirm, GeThumbDeleteMenu } from './GeThumbContextMenu.jsx'
+import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Generator Editor role slot: shows only assigned tile(s). Drag from the left Palette to add; right-click to remove.
@@ -20,6 +22,10 @@ export default function TileSpritePicker({
   acceptDrop = true,
   /** Optional: map a dropped asset (e.g. Template Piece) to a tile id before optionIds check. */
   resolveDropId = null,
+  /** Optional: custom hover title for an assigned tile (defaults to tileThumbTitle). */
+  titleForTile = null,
+  /** Optional: allow ids beyond `options` (e.g. Template Piece ids kept by Auto-Paint). */
+  acceptId = null,
 }) {
   const selected = multi ? new Set(value ?? []) : null
   const current = multi ? null : value || null
@@ -28,11 +34,29 @@ export default function TileSpritePicker({
   const [pending, setPending] = useState(null)
   const optionIds = new Set(options.map((tile) => tile.id))
 
+  const resolveAssigned = (id) => {
+    if (!id) return null
+    const fromOptions = options.find((tile) => tile.id === id)
+    if (fromOptions) return fromOptions
+    const tile = getTile(id)
+    if (tile) return tile
+    const piece = getTemplatePiece(id)
+    if (piece) return { id: piece.id, label: piece.label, __piece: piece }
+    return null
+  }
+
   const assigned = multi
-    ? (value ?? []).map((id) => options.find((tile) => tile.id === id) || getTile(id)).filter(Boolean)
+    ? (value ?? []).map((id) => resolveAssigned(id)).filter(Boolean)
     : current
-      ? [options.find((tile) => tile.id === current) || getTile(current)].filter(Boolean)
+      ? [resolveAssigned(current)].filter(Boolean)
       : []
+
+  const idAllowed = (id) => {
+    if (!id) return false
+    if (optionIds.has(id)) return true
+    if (typeof acceptId === 'function') return acceptId(id)
+    return false
+  }
 
   const applyId = (id) => {
     if (disabled || !id) return
@@ -85,9 +109,9 @@ export default function TileSpritePicker({
     const asset = readGeAssetDrag(event)
     if (!asset) return
     let id = null
-    if (asset.kind === 'tile') id = asset.id
-    else if (typeof resolveDropId === 'function') id = resolveDropId(asset)
-    if (!id || !optionIds.has(id)) return
+    if (typeof resolveDropId === 'function') id = resolveDropId(asset)
+    else if (asset.kind === 'tile') id = asset.id
+    if (!idAllowed(id)) return
     applyId(id)
   }
 
@@ -101,7 +125,11 @@ export default function TileSpritePicker({
       {label && (
         <div className="ge-picker-head">
           <span className="ce-field-label">{label}</span>
-          {!multi && current && <span className="ge-picker-current">{getTile(current)?.label ?? current}</span>}
+          {!multi && current && (
+            <span className="ge-picker-current">
+              {resolveAssigned(current)?.label ?? getTile(current)?.label ?? current}
+            </span>
+          )}
           {multi && <span className="ge-picker-current">{selected.size} selected</span>}
         </div>
       )}
@@ -112,22 +140,35 @@ export default function TileSpritePicker({
             <span className="ge-thumb-none">{noneLabel}</span>
           </button>
         )}
-        {assigned.map((tile) => (
+        {assigned.map((tile) => {
+          const piece = tile.__piece || getTemplatePiece(tile.id)
+          const title =
+            typeof titleForTile === 'function'
+              ? titleForTile(tile)
+              : piece
+                ? templatePieceThumbTitle(piece, { extra: `${piece.id} · right-click to remove` })
+                : tileThumbTitle(tile, { extra: `${tile.id} · right-click to remove` })
+          return (
           <button
             key={tile.id}
             type="button"
             className="ed-thumb-btn ge-thumb is-selected"
             disabled={disabled}
-            title={tileThumbTitle(tile, { extra: `${tile.id} · right-click to remove` })}
+            title={title}
             onContextMenu={(event) => onContextMenu(event, tile)}
           >
             {multi && (
               <input type="checkbox" className="ge-thumb-check" checked readOnly tabIndex={-1} aria-hidden disabled={disabled} />
             )}
-            <TileThumbnail tile={tile} className="me-thumb-preview" animate={false} />
+            {piece ? (
+              <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" />
+            ) : (
+              <TileThumbnail tile={tile} className="me-thumb-preview" animate={false} />
+            )}
             <span className="ed-thumb-label">{tile.label}</span>
           </button>
-        ))}
+          )
+        })}
         {!assigned.length && !(allowNone && !multi && current == null) && (
           <p className="ce-text ge-picker-empty">{emptyText}</p>
         )}
