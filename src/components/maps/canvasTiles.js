@@ -108,38 +108,63 @@ function drawEmissive(context, draw, strength = 1) {
 
 const loaded = new Map()
 const pending = new Map()
+const derived = new Map()
+const hrefVersions = new Map()
+
+function imageSrc(href) {
+  const base = String(href).split('?')[0]
+  const version = hrefVersions.get(base)
+  return version ? `${base}?v=${version}` : href
+}
+
+// Drop a cached PNG so the next load picks up a replaced file (Dev Edit import).
+export function bustImage(href, version = Date.now()) {
+  const base = String(href ?? '').split('?')[0]
+  if (!base) return
+  hrefVersions.set(base, version)
+  for (const key of [...loaded.keys()]) {
+    if (String(key).split('?')[0] === base) loaded.delete(key)
+  }
+  for (const key of [...pending.keys()]) {
+    if (String(key).split('?')[0] === base) pending.delete(key)
+  }
+  for (const key of [...derived.keys()]) {
+    if (String(key).includes(base)) derived.delete(key)
+  }
+}
+
 // Resolves once href has loaded (null if it failed: the tile is skipped, as a broken SVG image would be).
 export function loadImage(href) {
-  if (loaded.has(href)) return Promise.resolve(loaded.get(href))
-  if (!pending.has(href)) {
+  const src = imageSrc(href)
+  if (loaded.has(src)) return Promise.resolve(loaded.get(src))
+  if (!pending.has(src)) {
     pending.set(
-      href,
+      src,
       new Promise((resolve) => {
         const image = new Image()
         image.onload = () => {
-          loaded.set(href, image)
+          loaded.set(src, image)
           resolve(image)
         }
         image.onerror = () => {
-          loaded.set(href, null)
+          loaded.set(src, null)
           resolve(null)
         }
-        image.src = href
+        image.src = src
       }),
     )
   }
-  return pending.get(href)
+  return pending.get(src)
 }
-export const isLoaded = (href) => loaded.has(href)
+export const isLoaded = (href) => loaded.has(imageSrc(href))
 // The loaded picture itself: undefined until it has loaded, null if it failed.
-export const loadedImage = (href) => loaded.get(href)
+export const loadedImage = (href) => loaded.get(imageSrc(href))
 
 // Mirrored images worked out from loaded ones, by key.
-const derived = new Map()
 const sizeOf = (source) => ({ width: source.naturalWidth || source.width, height: source.naturalHeight || source.height })
 
 // A loaded image (null until it has loaded).
-const sourceOf = (key) => loaded.get(key) ?? null
+const sourceOf = (key) => loaded.get(imageSrc(key)) ?? null
 
 // The image flipped left to right (big objects on a rotated origin are cut from the mirrored picture).
 function mirroredImage(key) {

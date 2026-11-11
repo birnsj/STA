@@ -16,6 +16,14 @@ import { getWallPanels } from './wallPanels.js'
 // brightness in a dark map (null on floors). id: the animation's tile id.
 // overlay (walls): the sprites are the lights alone (their emission images), drawn over the tile's own image.
 const flipbooks = new Map()
+
+export function removeTileAnimationLocal(id) {
+  if (effects.animations?.[id]) delete effects.animations[id]
+  for (const key of [...flipbooks.keys()]) {
+    if (key === id || key.startsWith(`${id}|`)) flipbooks.delete(key)
+  }
+}
+
 function flipbook(id, variant, pick) {
   const key = `${id}|${variant}`
   if (!flipbooks.has(key)) {

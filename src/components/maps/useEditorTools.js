@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MAX_AWAY_TEAM } from '../../exploration/awayTeam.js'
 import { challengeDefinitionsFor } from '../../exploration/challengeObjects.js'
 import { listAuthoredCharacters } from '../../character/authoredCharacters.js'
@@ -35,6 +35,7 @@ import {
   templatePieceAt,
   templatePieceAtBoard,
   templatePieceTargetAt,
+  templateTipKey,
   toggleMarker,
   turnFacing,
   updateDestructible,
@@ -44,12 +45,54 @@ import {
   removeTemplatePiece,
   updateTemplatePiece,
 } from '../../maps/mapEdits.js'
-import { canEditLayer, layerOfTile, selectionPriority } from '../../maps/layers.js'
-import { cellKey, getTile, isEmptyTile, isRotated, NULL_TILE } from '../../maps/mapFormat.js'
-import { getTemplatePiece } from '../../maps/templatePieces.js'
+import { canEditLayer, LAYER_LABELS, layerOfTemplatePiece, layerOfTile, selectionPriority } from '../../maps/layers.js'
+import { cellKey, getTile, isEmptyTile, isRotated, NULL_TILE, PALETTE_GROUPS } from '../../maps/mapFormat.js'
+import { getTemplatePiece, templatePieceGroups } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
 import { toggleCover, updateMapObject } from '../../world/objectAuthoring.js'
+
+// Checked palette tiles for Place Tiles (Unreal foliage-style multi-brush). Palette order, then leftovers.
+function orderedPaintTileIds(selectedIds) {
+  const wanted = selectedIds instanceof Set ? selectedIds : new Set(selectedIds)
+  if (!wanted.size) return []
+  const ordered = []
+  const seen = new Set()
+  for (const group of PALETTE_GROUPS) {
+    for (const id of group.tiles ?? []) {
+      if (!wanted.has(id) || seen.has(id)) continue
+      ordered.push(id)
+      seen.add(id)
+    }
+  }
+  for (const id of wanted) {
+    if (seen.has(id)) continue
+    ordered.push(id)
+    seen.add(id)
+  }
+  return ordered
+}
+
+// Same multi-brush ordering for Template Pieces (catalogue group order).
+function orderedPaintTemplateIds(selectedIds) {
+  const wanted = selectedIds instanceof Set ? selectedIds : new Set(selectedIds)
+  if (!wanted.size) return []
+  const ordered = []
+  const seen = new Set()
+  for (const group of templatePieceGroups()) {
+    for (const piece of group.pieces ?? []) {
+      if (!wanted.has(piece.id) || seen.has(piece.id)) continue
+      ordered.push(piece.id)
+      seen.add(piece.id)
+    }
+  }
+  for (const id of wanted) {
+    if (seen.has(id)) continue
+    ordered.push(id)
+    seen.add(id)
+  }
+  return ordered
+}
 
 function markerLayersAt(map, position) {
   const layers = new Set()
@@ -111,6 +154,12 @@ export default function useEditorTools({
   endStroke = null,
 }) {
   const [tool, setTool] = useState('tile:bulkhead')
+  // Place Tiles multi-brush: checked thumbs cycle while painting (Unreal foliage-style). Selected brush stays checked.
+  const [paintTileIds, setPaintTileIds] = useState(() => new Set(['bulkhead']))
+  const paintCycleRef = useRef(0)
+  const [paintTemplateIds, setPaintTemplateIds] = useState(() => new Set())
+  const paintTemplateCycleRef = useRef(0)
+  const lastTemplateTipRef = useRef(null)
   // Character Library "Use for placement": next Place NPC uses this id (otherwise the first catalogue entry).
   const [pendingCharacterId, setPendingCharacterId] = useState(null)
   // Place Tiles: the board only paints the chosen tile while this is on; off, the pointer is just a cursor.
@@ -149,7 +198,7 @@ export default function useEditorTools({
   // Inventory ground placements (tools 'inventory:{itemId}'): selected instance and Move mode.
   const [selectedGroundItemId, setSelectedGroundItemId] = useState(null)
   const [movingGroundItem, setMovingGroundItem] = useState(false)
-  // Template Piece overlays (tools 'template:{pieceId}'): selected instance and Move mode. Walls layer.
+  // Template Piece overlays (tools 'template:{pieceId}'): selected instance and Move mode. Layer from catalogue.
   const [selectedTemplatePieceId, setSelectedTemplatePieceId] = useState(null)
   const [movingTemplatePiece, setMovingTemplatePiece] = useState(false)
   // Brush rotation for the next place (R steps 90° while a template tool is held).
@@ -267,7 +316,10 @@ export default function useEditorTools({
         if (placing && tool?.startsWith('tile:')) setRotated((value) => !value)
         else if (selectedTemplatePiece) {
           event.preventDefault()
-          if (!canEditLayer(layers, 'walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+          const rotateLayer = layerOfTemplatePiece(selectedTemplatePiece.pieceId)
+          if (!canEditLayer(layers, rotateLayer)) {
+            return setStatus(`${LAYER_LABELS[rotateLayer] ?? rotateLayer} layer is locked or hidden.`)
+          }
           const next = (((selectedTemplatePiece.rotation ?? 0) + 90) % 360 + 360) % 360
           edit(updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next }))
           setStatus(`Rotated ${selectedTemplatePiece.id} to ${next}°.`)
@@ -288,7 +340,10 @@ export default function useEditorTools({
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedTemplatePiece) {
         event.preventDefault()
-        if (!canEditLayer(layers, 'walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+        const deleteLayer = layerOfTemplatePiece(selectedTemplatePiece.pieceId)
+        if (!canEditLayer(layers, deleteLayer)) {
+          return setStatus(`${LAYER_LABELS[deleteLayer] ?? deleteLayer} layer is locked or hidden.`)
+        }
         edit(removeTemplatePiece(map, selectedTemplatePiece.id))
         setSelectedTemplatePieceId(null)
         setMovingTemplatePiece(false)
@@ -414,6 +469,26 @@ export default function useEditorTools({
     setMovingTemplatePiece(false)
   }
 
+  const clearBoardSelection = () => {
+    setSelectedDestructibleId(null)
+    setMovingDestructible(false)
+    setLinkingDestructible(false)
+    setSelectedHazardId(null)
+    setSelectedNpcId(null)
+    setSelectedMarker(null)
+    setSelectedObjectId(null)
+    setPlacingObject(false)
+    setEditingObjectCovers(false)
+    setMovingNpc(false)
+    setEditingPatrol(false)
+    setSelectedWaypointIndex(null)
+    setMovingWaypoint(false)
+    setSelectedGroundItemId(null)
+    setMovingGroundItem(false)
+    setSelectedTemplatePieceId(null)
+    setMovingTemplatePiece(false)
+  }
+
   const applyCandidate = (candidate, position) => {
     setSelectedNpcId(candidate?.kind === 'npc' ? candidate.npc.id : null)
     setSelectedMarker(
@@ -525,6 +600,7 @@ export default function useEditorTools({
   }
 
   // Template Piece tools: snap to the guide grid. Paste overwrites the same tip or the sprite under the pointer only.
+  // Returns true when a placement landed (used by the multi-brush cycle).
   const onTemplateTool = (position, pieceId, boardPoint = null) => {
     const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
     const hit = boardPoint ? templatePieceAtBoard(map, boardPoint) : null
@@ -532,7 +608,10 @@ export default function useEditorTools({
       rotation: templateRotation,
       replaceIds: hit ? [hit.id] : null,
     })
-    if (!placed) return setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
+    if (!placed) {
+      setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
+      return false
+    }
     edit(placed.map)
     setSelectedTemplatePieceId(null)
     setSelectedGroundItemId(null)
@@ -540,6 +619,7 @@ export default function useEditorTools({
     setSelectedHazardId(null)
     const def = getTemplatePiece(pieceId)
     setStatus(`Placed ${def?.label ?? pieceId} (${placed.object.id}).`)
+    return true
   }
 
   // boardPoint: the pointer in board px (EditorBoard), for picking items drawn on raised surfaces.
@@ -579,7 +659,10 @@ export default function useEditorTools({
     }
     if (movingTemplatePiece && selectedTemplatePiece) {
       if (!first) return
-      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
+      const moveLayer = layerOfTemplatePiece(selectedTemplatePiece.pieceId)
+      if (!layerAllowsTool(moveLayer)) {
+        return setStatus(`${LAYER_LABELS[moveLayer] ?? moveLayer} layer is locked or hidden.`)
+      }
       const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
       const moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
       if (moved === map) setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
@@ -593,8 +676,31 @@ export default function useEditorTools({
       return
     }
     if (tool?.startsWith('template:')) {
-      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
-      if (first) onTemplateTool(position, tool.slice('template:'.length), boardPoint)
+      const preferredId = tool.slice('template:'.length)
+      const ordered = orderedPaintTemplateIds(paintTemplateIds)
+      const cycleIds = ordered.length ? ordered : preferredId ? [preferredId] : []
+      if (!cycleIds.length) return
+      if (first) {
+        const preferredAt = cycleIds.indexOf(preferredId)
+        paintTemplateCycleRef.current = preferredAt >= 0 ? preferredAt : 0
+        lastTemplateTipRef.current = null
+      }
+      const pieceId = cycleIds[paintTemplateCycleRef.current % cycleIds.length]
+      const brushLayer = layerOfTemplatePiece(pieceId)
+      if (!layerAllowsTool(brushLayer)) {
+        return setStatus(`${LAYER_LABELS[brushLayer] ?? brushLayer} layer is locked or hidden.`)
+      }
+      const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
+      const tipKey = templateTipKey(target, itemGridSize)
+      // One place per guide-grid tip while dragging (same tip would otherwise spam-replace and advance the cycle).
+      if (!first && tipKey === lastTemplateTipRef.current) return
+      if (!onTemplateTool(position, pieceId, boardPoint)) return
+      lastTemplateTipRef.current = tipKey
+      if (cycleIds.length > 1) {
+        paintTemplateCycleRef.current = (paintTemplateCycleRef.current + 1) % cycleIds.length
+        const nextId = cycleIds[paintTemplateCycleRef.current]
+        if (nextId && `template:${nextId}` !== tool) setTool(`template:${nextId}`)
+      }
       return
     }
     if (tool?.startsWith('destructible:')) {
@@ -670,14 +776,26 @@ export default function useEditorTools({
     }
     if (!tool || tool.startsWith('tile:')) {
       if (tool && placing) {
-        const tileId = tool.slice('tile:'.length)
+        const preferredId = tool.slice('tile:'.length)
+        const ordered = orderedPaintTileIds(paintTileIds)
+        const cycleIds = ordered.length ? ordered : preferredId ? [preferredId] : []
+        if (!cycleIds.length) return
+        if (first) {
+          const preferredAt = cycleIds.indexOf(preferredId)
+          paintCycleRef.current = preferredAt >= 0 ? preferredAt : 0
+        }
+        const tileId = cycleIds[paintCycleRef.current % cycleIds.length]
         const tileLayer = layerOfTile(tileId)
         if (!layerAllowsTool(tileLayer)) return setStatus(`${tileLayer} layer is locked or hidden.`)
+        let didPaint = false
         // Ground-layer tiles use paintFloor so walls keep their floorUnder memory.
         if (tileLayer === 'ground') {
           const result = paintFloor(map, position, tileId, objectDefinitions)
           if (result.error) setStatus(result.error)
-          else if (result.map !== map) edit(result.map)
+          else if (result.map !== map) {
+            edit(result.map)
+            didPaint = true
+          }
         } else {
           const painted = paintBrush(map, position, tileId, rotated, objectDefinitions)
           if (painted === map) {
@@ -689,7 +807,14 @@ export default function useEditorTools({
             }
           } else {
             edit(painted)
+            didPaint = true
           }
+        }
+        // Advance the multi-brush so the next cell (and ghost) flips to the next checked tile.
+        if (didPaint && cycleIds.length > 1) {
+          paintCycleRef.current = (paintCycleRef.current + 1) % cycleIds.length
+          const nextId = cycleIds[paintCycleRef.current]
+          if (nextId && `tile:${nextId}` !== tool) setTool(`tile:${nextId}`)
         }
       } else if (first) selectAt(position, boardPoint)
       return
@@ -733,6 +858,7 @@ export default function useEditorTools({
   // on it moves its markers; any other tile swaps with the drop tile.
   const onPaintEnd = (position) => {
     endStroke?.()
+    lastTemplateTipRef.current = null
     if (!moving || !moveFrom) return
     setMoveFrom(null)
     if (!position || (position.x === moveFrom.x && position.y === moveFrom.y)) return
@@ -769,10 +895,13 @@ export default function useEditorTools({
   // picks up the tile under the pointer (rotation included). Otherwise an NPC, player start or enemy spawn turns 45°.
   const onRightClick = (position, boardPoint = null) => {
     if (tool?.startsWith('template:')) {
-      if (!layerAllowsTool('walls')) return setStatus('Walls / Structure layer is locked or hidden.')
       const hit = boardPoint ? templatePieceAtBoard(map, boardPoint) : null
       const existing = hit ?? (position ? templatePieceAt(map, position, { cellPx: itemGridSize }) : null)
       if (!existing) return
+      const eraseLayer = layerOfTemplatePiece(existing.pieceId)
+      if (!layerAllowsTool(eraseLayer)) {
+        return setStatus(`${LAYER_LABELS[eraseLayer] ?? eraseLayer} layer is locked or hidden.`)
+      }
       edit(removeTemplatePiece(map, existing.id))
       if (selectedTemplatePieceId === existing.id) {
         setSelectedTemplatePieceId(null)
@@ -801,6 +930,16 @@ export default function useEditorTools({
       return
     }
     const tileId = map.tiles[position.y][position.x]
+    clearBoardSelection()
+    setPaintTileIds((prev) => {
+      if (prev.has(tileId)) return prev
+      const next = new Set(prev)
+      next.add(tileId)
+      return next
+    })
+    const ordered = orderedPaintTileIds(new Set([...paintTileIds, tileId]))
+    const at = ordered.indexOf(tileId)
+    paintCycleRef.current = at >= 0 ? at : 0
     setTool(`tile:${tileId}`)
     setRotated(isRotated(map, position))
     setStatus(`Brush: ${getTile(tileId).label}.`)
@@ -816,36 +955,74 @@ export default function useEditorTools({
     setMoveFrom(null)
   }
 
-  const clearBoardSelection = () => {
-    setSelectedDestructibleId(null)
-    setMovingDestructible(false)
-    setLinkingDestructible(false)
-    setSelectedHazardId(null)
-    setSelectedNpcId(null)
-    setSelectedMarker(null)
-    setSelectedObjectId(null)
-    setPlacingObject(false)
-    setEditingObjectCovers(false)
-    setMovingNpc(false)
-    setEditingPatrol(false)
-    setSelectedWaypointIndex(null)
-    setMovingWaypoint(false)
-    setSelectedGroundItemId(null)
-    setMovingGroundItem(false)
-    setSelectedTemplatePieceId(null)
-    setMovingTemplatePiece(false)
-  }
-
   // Assets thumbnail pick: clear board selection so Properties shows the catalogue asset.
+  // Selecting a tile / template brush also checks it for the multi-paint set.
   const selectTool = (next) => {
     clearBoardSelection()
     setTool(next)
+    if (next?.startsWith('tile:')) {
+      const id = next.slice('tile:'.length)
+      setPaintTileIds((prev) => {
+        if (prev.has(id)) return prev
+        const nextSet = new Set(prev)
+        nextSet.add(id)
+        return nextSet
+      })
+      const ordered = orderedPaintTileIds(new Set([...paintTileIds, id]))
+      const at = ordered.indexOf(id)
+      paintCycleRef.current = at >= 0 ? at : 0
+    } else if (next?.startsWith('template:')) {
+      const id = next.slice('template:'.length)
+      setPaintTemplateIds((prev) => {
+        if (prev.has(id)) return prev
+        const nextSet = new Set(prev)
+        nextSet.add(id)
+        return nextSet
+      })
+      const ordered = orderedPaintTemplateIds(new Set([...paintTemplateIds, id]))
+      const at = ordered.indexOf(id)
+      paintTemplateCycleRef.current = at >= 0 ? at : 0
+    }
+  }
+
+  const togglePaintTile = (tileId, checked) => {
+    if (!tileId) return
+    setPaintTileIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(tileId)
+      else next.delete(tileId)
+      return next
+    })
+    if (checked) {
+      const ordered = orderedPaintTileIds(new Set([...paintTileIds, tileId]))
+      const at = ordered.indexOf(tileId)
+      if (at >= 0) paintCycleRef.current = at
+    }
+  }
+
+  const togglePaintTemplate = (pieceId, checked) => {
+    if (!pieceId) return
+    setPaintTemplateIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(pieceId)
+      else next.delete(pieceId)
+      return next
+    })
+    if (checked) {
+      const ordered = orderedPaintTemplateIds(new Set([...paintTemplateIds, pieceId]))
+      const at = ordered.indexOf(pieceId)
+      if (at >= 0) paintTemplateCycleRef.current = at
+    }
   }
 
   return {
     tool,
     setTool,
     selectTool,
+    paintTileIds,
+    togglePaintTile,
+    paintTemplateIds,
+    togglePaintTemplate,
     clearBoardSelection,
     clearLayerSelection,
     placing,

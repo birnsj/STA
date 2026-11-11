@@ -4,10 +4,23 @@ import { normalizeTemplateRotation } from './mapFormat.js'
 
 export const TEMPLATE_PIECES = catalogue.pieces ?? []
 const BY_ID = new Map(TEMPLATE_PIECES.map((piece) => [piece.id, piece]))
+let templatePieceCatalogueEpoch = 0
+export const templatePieceCatalogueEpochOf = () => templatePieceCatalogueEpoch
 
 export const getTemplatePiece = (id) => BY_ID.get(id) ?? null
 
 export const templatePieceIds = () => TEMPLATE_PIECES.map((piece) => piece.id)
+
+// Dev Edit Assets delete: drop a piece from the live catalogue (templatePieces.json already rewritten by /__templates).
+export function removeTemplatePieceLocal(id) {
+  const piece = BY_ID.get(id)
+  if (!piece) throw new Error(`No template piece with id ${id}`)
+  const index = TEMPLATE_PIECES.findIndex((entry) => entry.id === id)
+  if (index >= 0) TEMPLATE_PIECES.splice(index, 1)
+  BY_ID.delete(id)
+  templatePieceCatalogueEpoch += 1
+  return piece
+}
 
 // Same bounds as tileArt overlay emissive (kept local to avoid an import cycle with darknessLights).
 export const TEMPLATE_OVERLAY_EMISSIVE_DEFAULT = 1
@@ -66,6 +79,13 @@ export function setTemplatePieceFlagLocal(id, flag, value) {
   if (flag !== 'cover' && flag !== 'fade') throw new Error(`Unknown flag ${flag}`)
   piece[flag] = Boolean(value)
   return piece[flag]
+}
+
+export function setTemplatePieceLayerLocal(id, layer) {
+  const piece = getTemplatePiece(id)
+  if (!piece) throw new Error(`No template piece ${id}`)
+  piece.layer = layer
+  return layer
 }
 
 export function setTemplateOverlayEmissiveLocal(pieceId, value) {

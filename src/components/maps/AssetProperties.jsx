@@ -9,13 +9,16 @@ import {
   setOverlayEmissiveLocal,
   setOverlayEmitColourLocal,
 } from '../../maps/tileArt.js'
+import { LAYER_IDS, LAYER_LABELS, layerOfTemplatePiece, layerOfTile } from '../../maps/layers.js'
 import { tileSpriteInfo } from '../../maps/tileSpriteInfo.js'
-import { canEditTiles, setTileFlag } from '../../maps/tileFiles.js'
+import { canEditTiles, setTileFlag, setTileLayer } from '../../maps/tileFiles.js'
+import EditorSelect from './EditorSelect.jsx'
 import {
   canEditTemplatePieces,
   setTemplateOverlayEmitColour,
   setTemplateOverlayEmissive,
   setTemplatePieceFlag,
+  setTemplatePieceLayer,
 } from '../../maps/templatePieceFiles.js'
 import {
   getTemplatePiece,
@@ -70,6 +73,43 @@ function FlagBox({ tile, box, onStatus }) {
       <input type="checkbox" checked={value} disabled={!canEditTiles || saving} onChange={(event) => change(event.target.checked)} />
       {box.label}
     </label>
+  )
+}
+
+// Catalogue authoring layer (tiles.json / templatePieces.json `layer`).
+function LayerField({ entry, layerOf, saveLayer, canEdit, fileLabel, ariaLabel, onStatus }) {
+  const [value, setValue] = useState(() => layerOf(entry))
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    setValue(layerOf(entry))
+  }, [entry.id, entry.layer])
+  const change = (next) => {
+    if (!LAYER_IDS.includes(next) || next === value) return
+    setSaving(true)
+    saveLayer(entry.id, next)
+      .then(() => {
+        setValue(next)
+        onStatus?.(`${entry.label ?? entry.id} layer → ${LAYER_LABELS[next]} (saved to ${fileLabel}).`)
+      })
+      .catch((error) => onStatus?.(`Could not change layer for ${entry.label ?? entry.id}: ${error.message}`))
+      .finally(() => setSaving(false))
+  }
+  return (
+    <div className="ed-prop-layer" title={canEdit ? `Editor Assets layer for this ${ariaLabel}` : 'Layer can only be changed in the dev build'}>
+      <EditorSelect
+        className="me-select me-wide"
+        value={value}
+        disabled={!canEdit || saving}
+        aria-label={`${ariaLabel} layer`}
+        onChange={(event) => change(event.target.value)}
+      >
+        {LAYER_IDS.map((id) => (
+          <option key={id} value={id}>
+            {LAYER_LABELS[id]}
+          </option>
+        ))}
+      </EditorSelect>
+    </div>
   )
 }
 
@@ -629,6 +669,19 @@ export default function AssetProperties({
     const tile = getTile(asset.id)
     return (
       <div className="ed-asset-props">
+        <PropertySection id="layer" title="Layer" forceOpen>
+          <LayerField
+            key={`layer:${tile.id}`}
+            entry={tile}
+            layerOf={layerOfTile}
+            saveLayer={setTileLayer}
+            canEdit={canEditTiles}
+            fileLabel="tiles.json"
+            ariaLabel="Tile"
+            onStatus={onStatus}
+          />
+          {!canEditTiles && <p className="me-text is-muted">Layer can only be changed in the dev build.</p>}
+        </PropertySection>
         <PropertySection id="tile" title="Tile">
           <div className="ed-asset-preview">
             <TileThumbnail tile={tile} className="ed-asset-preview-art" animate={animateTiles} />
@@ -706,6 +759,21 @@ export default function AssetProperties({
     const piece = getTemplatePiece(asset.id)
     return (
       <div className="ed-asset-props">
+        {piece && (
+          <PropertySection id="layer" title="Layer" forceOpen>
+            <LayerField
+              key={`layer:${piece.id}`}
+              entry={piece}
+              layerOf={layerOfTemplatePiece}
+              saveLayer={setTemplatePieceLayer}
+              canEdit={canEditTemplatePieces}
+              fileLabel="templatePieces.json"
+              ariaLabel="Template Piece"
+              onStatus={onStatus}
+            />
+            {!canEditTemplatePieces && <p className="me-text is-muted">Layer can only be changed in the dev build.</p>}
+          </PropertySection>
+        )}
         <PropertySection id="template" title="Template Piece">
           <div className="ed-asset-preview">
             {piece && (

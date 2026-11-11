@@ -251,14 +251,6 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         return setLayersOpen((value) => !value)
       case 'levels':
         return setLevelsOpen((value) => !value)
-      case 'generateMap':
-        return doc.onGenerate()
-      case 'generateName':
-        return edit({ ...map, name: randomMapName(map) })
-      case 'generateEpisode':
-        return edit({ ...map, episodeName: randomEpisodeName(map.episodeName, Math.random, map.name) })
-      case 'generateCard':
-        return onGenerateCard()
       case 'objectives':
         return setObjectiveEditor({ index: 0 })
       case 'objects':
@@ -512,9 +504,16 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         <EditorPalette
           tool={tool}
           onTool={tools.selectTool}
+          paintTileIds={tools.paintTileIds}
+          onTogglePaintTile={tools.togglePaintTile}
+          paintTemplateIds={tools.paintTemplateIds}
+          onTogglePaintTemplate={tools.togglePaintTemplate}
           onOpenCharacterLibrary={() => setCharacterLibrary(true)}
           animateTiles={animateTiles}
           activeLayer={editorLayers.layers.active}
+          askConfirm={askConfirm}
+          askText={askText}
+          onStatus={setStatus}
         />
         <div className={`ed-viewport me-board-area${boardBlocked ? ' is-float-busy' : ''}`}>
           <div className="ed-viewport-title">{map.name || 'Untitled map'}</div>

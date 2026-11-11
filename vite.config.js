@@ -17,7 +17,7 @@ import { putTemplateDeckStyle } from './tools/templateDeckStyleStore.cjs'
 import { applyEffectsChange } from './tools/effectsStore.cjs'
 import { setItemDescription } from './tools/itemStore.cjs'
 import { applyTemplatePieceChange } from './tools/templatePieceStore.cjs'
-import { setTileFlag } from './tools/tileStore.cjs'
+import { applyTileChange } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
 import { listSprites, putSprite } from './tools/spriteStore.cjs'
 
@@ -36,6 +36,7 @@ const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploratio
 const AUTHORED_CHARACTERS_FILE = fileURLToPath(
   new URL('./src/data/adaptation/characters.json', import.meta.url),
 )
+const PUBLIC_FOLDER = fileURLToPath(new URL('./public', import.meta.url))
 const EPISODE_ART_FOLDER = fileURLToPath(new URL('./public/art/episodes', import.meta.url))
 const SPRITES_FOLDER = fileURLToPath(new URL('./public/art/sprites', import.meta.url))
 const EPISODE_CARDS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/episodeCards.json', import.meta.url))
@@ -116,15 +117,60 @@ function quietDataEndpoint(name, route, dataFile, save) {
   }
 }
 
-// The map editor's palette Cover checkboxes save into the tile catalogue.
-const tileFilesEndpoint = () => quietDataEndpoint('tile-files-endpoint', '/__tiles', TILES_FILE, setTileFlag)
+// Quiet several related data files: Delete may rewrite tiles + effects + generator styles together.
+function quietRelatedDataEndpoint(name, route, primaryFile, relatedFiles, save) {
+  let savedAt = 0
+  const quiet = new Set([primaryFile, ...relatedFiles].map(toSlashes))
+  const endpoint = jsonEndpoint(name, route, {
+    PUT: (body) => {
+      savedAt = Date.now()
+      return save(primaryFile, body)
+    },
+  })
+  return {
+    ...endpoint,
+    hotUpdate({ file }) {
+      if (quiet.has(toSlashes(file)) && Date.now() - savedAt < 2000) return []
+    },
+  }
+}
+
+// The map editor's palette Cover checkboxes / right-click Delete save into the tile catalogue.
+const tileFilesEndpoint = () =>
+  quietRelatedDataEndpoint(
+    'tile-files-endpoint',
+    '/__tiles',
+    TILES_FILE,
+    [EFFECTS_FILE, DECK_GENERATORS_FILE, WALL_VARIANTS_FILE, TEMPLATE_DECK_STYLE_FILE],
+    (file, body) =>
+      applyTileChange(file, body, {
+        effectsFile: EFFECTS_FILE,
+        templatePiecesFile: TEMPLATE_PIECES_FILE,
+        deckGeneratorsFile: DECK_GENERATORS_FILE,
+        wallVariantsFile: WALL_VARIANTS_FILE,
+        templateDeckStyleFile: TEMPLATE_DECK_STYLE_FILE,
+        publicRoot: PUBLIC_FOLDER,
+      }),
+  )
 // Item Description in Properties saves that one string into the item catalogue.
 const itemFilesEndpoint = () => quietDataEndpoint('item-files-endpoint', '/__items', ITEMS_FILE, setItemDescription)
 // Overlay emissive strength slider in Properties → Selection.
 const effectsFilesEndpoint = () => quietDataEndpoint('effects-files-endpoint', '/__effects', EFFECTS_FILE, applyEffectsChange)
-// Template Piece Cover / Fade / Emissive / Colour in Properties → Selection.
+// Template Piece Cover / Fade / Emissive / Colour / Delete in Properties → Selection / Assets palette.
 const templatePieceFilesEndpoint = () =>
-  quietDataEndpoint('template-piece-files-endpoint', '/__templates', TEMPLATE_PIECES_FILE, applyTemplatePieceChange)
+  quietRelatedDataEndpoint(
+    'template-piece-files-endpoint',
+    '/__templates',
+    TEMPLATE_PIECES_FILE,
+    [TEMPLATE_DECK_STYLE_FILE],
+    (file, body) =>
+      applyTemplatePieceChange(file, body, {
+        tilesFile: TILES_FILE,
+        effectsFile: EFFECTS_FILE,
+        templateDeckStyleFile: TEMPLATE_DECK_STYLE_FILE,
+        publicRoot: PUBLIC_FOLDER,
+      }),
+  )
 // Generator Editor: deck Location tile / hazard styles.
 const deckGeneratorsEndpoint = () => quietDataEndpoint('deck-generators-endpoint', '/__deck-generators', DECK_GENERATORS_FILE, putDeckStyle)
 // Generator Editor: Template Deck underlay tiles + Template Piece wall kit.

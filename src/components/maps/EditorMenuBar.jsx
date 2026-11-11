@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// File / Edit / View / Mission / Test / Help menus. Mission generate actions also have toolbar icons before Enemies.
+// File / Edit / View / Tools / Test / Help. Generate Map / Name / Episode / Card live on the Properties Map tab (and toolbar).
 
 const MENUS = [
   {
@@ -46,14 +46,9 @@ const MENUS = [
     ],
   },
   {
-    id: 'mission',
-    label: 'Mission',
+    id: 'tools',
+    label: 'Tools',
     items: [
-      { id: 'generateMap', label: 'Generate Map' },
-      { id: 'generateName', label: 'Generate Name' },
-      { id: 'generateEpisode', label: 'Generate Episode Name' },
-      { id: 'generateCard', label: 'Generate Card' },
-      { sep: true },
       { id: 'objectives', label: 'Objective Editor' },
       { id: 'objects', label: 'Object Editor' },
       { id: 'conversations', label: 'Conversation Editor' },

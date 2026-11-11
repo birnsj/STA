@@ -16,7 +16,7 @@ import {
 import { nextFacing, spawnFacing } from './facing.js'
 import { TILE_W, unproject } from './iso.js'
 import { pickProp } from './propPick.js'
-import { layerOfSelection, layerOfTile } from './layers.js'
+import { layerOfSelection, layerOfTile, layerOfTemplatePiece } from './layers.js'
 import {
   cellKey,
   FLOOR_TILE,
@@ -365,7 +365,13 @@ export function selectionCandidates(map, objectDefinitions, position, { cellPx =
   const templatePiece = boardPoint
     ? templatePieceAtBoard(map, boardPoint)
     : templatePieceAt(map, position, { cellPx })
-  if (templatePiece) candidates.push({ kind: 'templatePiece', layer: layerOfSelection('templatePiece'), templatePiece })
+  if (templatePiece) {
+    candidates.push({
+      kind: 'templatePiece',
+      layer: layerOfTemplatePiece(templatePiece.pieceId) || layerOfSelection('templatePiece'),
+      templatePiece,
+    })
+  }
   const area = areaAt(map, position)
   if (area) candidates.push({ kind: 'area', layer: layerOfSelection('area'), area })
   const objective = (map.objectives ?? []).find((entry) => entry.position && same(entry.position, position))

@@ -16,7 +16,8 @@ import { makeCharacter } from './support/characters.js'
 
 const EXPECTED = {
   // 2026-10-25: Minor Klingons, and Auto Combat parties rush to hand-to-hand.
-  exploreRoom: 'e050a1c7a85ec490',
+  // 2026-11-10: tiles.json authoring `layer` on catalogue entries (layerOfTile behaviour unchanged).
+  exploreRoom: '4e026c8b429ae73d',
   exploreBrig: 'ff3272b1aa576678',
   autoCombat: '966b39576d38d0f4',
   handOff: '5f824f185c50116b',

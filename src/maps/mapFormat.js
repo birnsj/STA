@@ -103,9 +103,113 @@ const BIOME_MAP_TYPES = new Set(['forest', 'swamp', 'desert', 'iceField', 'volca
 
 const BY_ID = new Map(TILES.map((tile) => [tile.id, tile]))
 const BY_SYMBOL = new Map(TILES.map((tile) => [tile.symbol, tile]))
+let tileCatalogueEpoch = 0
+export const tileCatalogueEpochOf = () => tileCatalogueEpoch
 export const getTile = (id) => BY_ID.get(id)
 export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id
 export const isEmptyTile = (id) => Boolean(getTile(id)?.empty)
+
+function bumpTileCatalogue() {
+  tileCatalogueEpoch += 1
+}
+
+// Dev Edit Assets delete: drop a tile from the live catalogue (tiles.json already rewritten by /__tiles).
+export function removeTileLocal(id) {
+  if (id === NULL_TILE) throw new Error('Cannot delete the Null tile')
+  const tile = BY_ID.get(id)
+  if (!tile) throw new Error(`No tile with id ${id}`)
+  const index = TILES.findIndex((entry) => entry.id === id)
+  if (index >= 0) TILES.splice(index, 1)
+  BY_ID.delete(id)
+  if (tile.symbol != null) BY_SYMBOL.delete(tile.symbol)
+  TILE_IDS.delete(id)
+  for (const group of PALETTE_GROUPS) {
+    if (Array.isArray(group.tiles)) {
+      const next = group.tiles.filter((entry) => entry !== id)
+      group.tiles.length = 0
+      group.tiles.push(...next)
+    }
+  }
+  bumpTileCatalogue()
+  return tile
+}
+
+export function renameTileLocal(id, label) {
+  const tile = BY_ID.get(id)
+  if (!tile) throw new Error(`No tile with id ${id}`)
+  tile.label = label
+  bumpTileCatalogue()
+  return tile
+}
+
+export function addTileLocal(tile, groupId) {
+  if (!tile?.id) throw new Error('tile.id is required')
+  if (BY_ID.has(tile.id)) throw new Error(`Tile ${tile.id} already exists`)
+  TILES.push(tile)
+  BY_ID.set(tile.id, tile)
+  if (tile.symbol != null) BY_SYMBOL.set(tile.symbol, tile)
+  TILE_IDS.add(tile.id)
+  if (groupId) {
+    const group = PALETTE_GROUPS.find((entry) => entry.id === groupId)
+    if (!group) throw new Error(`No palette group with id ${groupId}`)
+    group.tiles = group.tiles ?? []
+    if (!group.tiles.includes(tile.id)) group.tiles.push(tile.id)
+  }
+  bumpTileCatalogue()
+  return tile
+}
+
+export function reorderPaletteGroupsLocal(groupIds) {
+  const byId = new Map(PALETTE_GROUPS.map((group) => [group.id, group]))
+  if (groupIds.length !== byId.size) throw new Error('groupIds must list every palette group')
+  const next = groupIds.map((id) => {
+    const group = byId.get(id)
+    if (!group) throw new Error(`Unknown palette group ${id}`)
+    return group
+  })
+  PALETTE_GROUPS.length = 0
+  PALETTE_GROUPS.push(...next)
+  bumpTileCatalogue()
+  return [...PALETTE_GROUPS]
+}
+
+export function putPaletteGroupLocal({ id, label, section, tiles, created }) {
+  if (created) {
+    if (PALETTE_GROUPS.some((group) => group.id === id)) throw new Error(`Palette group ${id} already exists`)
+    PALETTE_GROUPS.push({ id, label, section, tiles: tiles ? [...tiles] : [] })
+  } else {
+    const group = PALETTE_GROUPS.find((entry) => entry.id === id)
+    if (!group) throw new Error(`No palette group with id ${id}`)
+    group.label = label
+    group.section = section
+    if (Array.isArray(tiles)) {
+      group.tiles.length = 0
+      group.tiles.push(...tiles)
+    }
+  }
+  bumpTileCatalogue()
+  return PALETTE_GROUPS.find((entry) => entry.id === id)
+}
+
+export function removePaletteGroupLocal(id) {
+  const index = PALETTE_GROUPS.findIndex((group) => group.id === id)
+  if (index < 0) throw new Error(`No palette group with id ${id}`)
+  const [removed] = PALETTE_GROUPS.splice(index, 1)
+  bumpTileCatalogue()
+  return removed
+}
+
+export function renameSectionLocal(from, to) {
+  let updated = 0
+  for (const group of PALETTE_GROUPS) {
+    if (group.section === from) {
+      group.section = to
+      updated += 1
+    }
+  }
+  if (updated) bumpTileCatalogue()
+  return updated
+}
 export const cellKey = ({ x, y }) => `${x},${y}`
 export const parseCellKey = (key) => {
   const [x, y] = String(key).split(',').map(Number)

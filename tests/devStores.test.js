@@ -12,7 +12,19 @@ const require = createRequire(import.meta.url)
 const { listCharacters, putCharacter, removeCharacter } = require('../tools/characterStore.cjs')
 const { listConversations, putConversation, removeConversation } = require('../tools/conversationStore.cjs')
 const { listAuthoredCharacters, putAuthoredCharacter, removeAuthoredCharacter } = require('../tools/authoredCharacterStore.cjs')
-const { setTileFlag } = require('../tools/tileStore.cjs')
+const {
+  applyTileChange,
+  createTile,
+  deletePaletteGroup,
+  putPaletteGroup,
+  renameSection,
+  renameTile,
+  reorderPaletteGroups,
+  setTileFlag,
+  setTileLayer,
+  importTileArt,
+} = require('../tools/tileStore.cjs')
+const { applyTemplatePieceChange, setTemplatePieceLayer } = require('../tools/templatePieceStore.cjs')
 const { setItemDescription } = require('../tools/itemStore.cjs')
 const { setAnimationEmissive, setTileGlow } = require('../tools/effectsStore.cjs')
 const { setStoryTemplates } = require('../tools/storyStore.cjs')
@@ -164,13 +176,25 @@ describe('authored character store', () => {
 
 describe('tile store', () => {
   // Hand-formatted like tiles.json: only the one value may change.
-  const original = ['{', '  "note": "keep",', '  "tiles": [', '    { "id": "floor", "cover": false, "fade": true },', '    { "id": "crate", "cover": true, "fade": false }', '  ]', '}', ''].join('\n')
+  const original = [
+    '{',
+    '  "note": "keep",',
+    '  "paletteGroups": [',
+    '    { "id": "floor", "tiles": ["floor"] }',
+    '  ],',
+    '  "tiles": [',
+    '    { "id": "floor", "cover": false, "fade": true },',
+    '    { "id": "crate", "layer": "furniture", "cover": true, "fade": false }',
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
   const file = () => at('tiles.json')
 
   it('changes one flag of one tile and leaves every other byte alone', () => {
     fs.writeFileSync(file(), original)
     assert.deepEqual(setTileFlag(file(), { id: 'crate', cover: false }), { id: 'crate', cover: false })
-    assert.equal(text('tiles.json'), original.replace('"id": "crate", "cover": true', '"id": "crate", "cover": false'))
+    assert.equal(text('tiles.json'), original.replace('"id": "crate", "layer": "furniture", "cover": true', '"id": "crate", "layer": "furniture", "cover": false'))
     setTileFlag(file(), { id: 'floor', fade: false })
     assert.equal(JSON.parse(text('tiles.json')).tiles[0].fade, false)
   })
@@ -181,6 +205,151 @@ describe('tile store', () => {
     assert.throws(() => setTileFlag(file(), { id: 'crate', colour: true }), /Only cover or fade/)
     assert.throws(() => setTileFlag(file(), { id: 'crate', cover: 'yes' }), /true or false/)
     assert.equal(text('tiles.json'), original)
+  })
+
+  it('updates an existing layer and inserts when missing', () => {
+    fs.writeFileSync(file(), original)
+    assert.deepEqual(setTileLayer(file(), { id: 'crate', layer: 'walls' }), { id: 'crate', layer: 'walls' })
+    assert.equal(JSON.parse(text('tiles.json')).tiles[1].layer, 'walls')
+    assert.deepEqual(applyTileChange(file(), { id: 'floor', layer: 'ground' }), { id: 'floor', layer: 'ground' })
+    const tiles = JSON.parse(text('tiles.json')).tiles
+    assert.equal(tiles[0].layer, 'ground')
+    assert.equal(tiles[1].layer, 'walls')
+    // Palette group with the same id must not gain a layer field.
+    assert.equal(JSON.parse(text('tiles.json')).paletteGroups[0].layer, undefined)
+  })
+
+  it('refuses an unknown tile or invalid layer', () => {
+    fs.writeFileSync(file(), original)
+    assert.throws(() => setTileLayer(file(), { id: 'nope', layer: 'ground' }), /No tile with id/)
+    assert.throws(() => setTileLayer(file(), { id: 'crate', layer: 'ceiling' }), /layer must be one of/)
+    assert.equal(text('tiles.json'), original)
+  })
+})
+
+describe('tile store palette authoring', () => {
+  const paletteOriginal = [
+    '{',
+    '  "notes": ["Shared tile catalogue. Next free symbol: A (allocation order in docs/tiles.md)."],',
+    '  "paletteGroups": [',
+    '    { "id": "starship", "section": "Locations", "label": "Starship", "tiles": ["floor"] },',
+    '    { "id": "forest", "section": "Biomes", "label": "Forest", "tiles": [] }',
+    '  ],',
+    '  "tiles": [',
+    '    { "id": "floor", "symbol": ".", "label": "Deck", "image": "/art/sprites/environment/starship/floor.png", "solid": false, "blocksSight": false, "cover": false, "fade": false, "height": 0, "role": null }',
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
+  const file = () => at('tiles.json')
+  const publicRoot = () => at('public')
+
+  beforeEach(() => {
+    fs.mkdirSync(path.join(publicRoot(), 'art', 'sprites', 'environment', '_defaults'), { recursive: true })
+    fs.copyFileSync(
+      path.join(process.cwd(), 'public', 'art', 'sprites', 'environment', '_defaults', 'newTile.png'),
+      path.join(publicRoot(), 'art', 'sprites', 'environment', '_defaults', 'newTile.png'),
+    )
+  })
+
+  it('creates, renames, reorders and deletes palette groups; renames sections', () => {
+    fs.writeFileSync(file(), paletteOriginal)
+    const created = putPaletteGroup(file(), { label: 'Cave', section: 'Locations' }, { publicRoot: publicRoot() })
+    assert.equal(created.created, true)
+    assert.equal(created.section, 'Locations')
+    assert.ok(fs.existsSync(path.join(publicRoot(), 'art', 'sprites', 'environment', created.id)))
+
+    assert.deepEqual(putPaletteGroup(file(), { id: created.id, label: 'Deep Cave', section: 'Locations' }), {
+      id: created.id,
+      label: 'Deep Cave',
+      section: 'Locations',
+      tiles: [],
+    })
+
+    const ids = JSON.parse(text('tiles.json')).paletteGroups.map((group) => group.id)
+    const reordered = [ids[1], ids[0], ids[2]]
+    assert.deepEqual(reorderPaletteGroups(file(), { groupIds: reordered }), { groupIds: reordered })
+    assert.deepEqual(
+      JSON.parse(text('tiles.json')).paletteGroups.map((group) => group.id),
+      reordered,
+    )
+
+    assert.deepEqual(renameSection(file(), { from: 'Locations', to: 'Sites' }), { from: 'Locations', to: 'Sites', updated: 2 })
+    assert.equal(JSON.parse(text('tiles.json')).paletteGroups.find((group) => group.id === 'starship').section, 'Sites')
+
+    assert.deepEqual(deletePaletteGroup(file(), { id: created.id }), { id: created.id, label: 'Deep Cave', deleted: true, tiles: [] })
+    assert.equal(JSON.parse(text('tiles.json')).paletteGroups.some((group) => group.id === created.id), false)
+  })
+
+  it('creates a tile with default art and renames its label', () => {
+    fs.writeFileSync(file(), paletteOriginal)
+    const created = createTile(file(), { groupId: 'starship', label: 'New Pad' }, { publicRoot: publicRoot() })
+    assert.equal(created.id, 'newPad')
+    assert.equal(created.label, 'New Pad')
+    assert.ok(created.symbol)
+    assert.equal(created.image, '/art/sprites/environment/starship/newPad.png')
+    assert.ok(fs.existsSync(path.join(publicRoot(), 'art', 'sprites', 'environment', 'starship', 'newPad.png')))
+    const data = JSON.parse(text('tiles.json'))
+    assert.ok(data.tiles.some((tile) => tile.id === 'newPad'))
+    assert.ok(data.paletteGroups.find((group) => group.id === 'starship').tiles.includes('newPad'))
+    assert.match(data.notes[0], /Next free symbol:/)
+
+    assert.deepEqual(renameTile(file(), { id: 'newPad', label: 'Landing Pad' }), { id: 'newPad', label: 'Landing Pad' })
+    assert.equal(JSON.parse(text('tiles.json')).tiles.find((tile) => tile.id === 'newPad').label, 'Landing Pad')
+  })
+
+  it('imports PNG art over a tile image path', () => {
+    fs.writeFileSync(file(), paletteOriginal)
+    const created = createTile(file(), { groupId: 'starship', label: 'Import Me' }, { publicRoot: publicRoot() })
+    const png = fs.readFileSync(path.join(publicRoot(), 'art', 'sprites', 'environment', '_defaults', 'newTile.png'))
+    const result = importTileArt(
+      file(),
+      { id: created.id, png: png.toString('base64') },
+      { publicRoot: publicRoot() },
+    )
+    assert.equal(result.id, created.id)
+    assert.equal(result.path, created.image)
+    assert.ok(result.version)
+    assert.deepEqual(applyTileChange(file(), { op: 'importTileArt', id: created.id, png: png.toString('base64') }, { publicRoot: publicRoot() }).id, created.id)
+  })
+
+  it('refuses deleting a section that still has tilesets', () => {
+    fs.writeFileSync(file(), paletteOriginal)
+    assert.throws(
+      () => applyTileChange(file(), { op: 'deleteSection', section: 'Locations' }),
+      /still has/,
+    )
+  })
+})
+
+describe('template piece store layer', () => {
+  const original = [
+    '{',
+    '  "notes": [],',
+    '  "pieces": [',
+    '    { "id": "tplFloor", "label": "Floor", "cover": false, "fade": false },',
+    '    { "id": "tplWall", "layer": "walls", "label": "Wall", "cover": false, "fade": true }',
+    '  ]',
+    '}',
+    '',
+  ].join('\n')
+  const file = () => at('templatePieces.json')
+
+  it('updates an existing layer and inserts when missing', () => {
+    fs.writeFileSync(file(), original)
+    assert.deepEqual(setTemplatePieceLayer(file(), { id: 'tplWall', layer: 'furniture' }), { id: 'tplWall', layer: 'furniture' })
+    assert.equal(JSON.parse(text('templatePieces.json')).pieces[1].layer, 'furniture')
+    assert.deepEqual(applyTemplatePieceChange(file(), { id: 'tplFloor', layer: 'ground' }), { id: 'tplFloor', layer: 'ground' })
+    const pieces = JSON.parse(text('templatePieces.json')).pieces
+    assert.equal(pieces[0].layer, 'ground')
+    assert.equal(pieces[1].layer, 'furniture')
+  })
+
+  it('refuses an unknown piece or invalid layer', () => {
+    fs.writeFileSync(file(), original)
+    assert.throws(() => setTemplatePieceLayer(file(), { id: 'nope', layer: 'ground' }), /No template piece with id/)
+    assert.throws(() => setTemplatePieceLayer(file(), { id: 'tplWall', layer: 'ceiling' }), /layer must be one of/)
+    assert.equal(text('templatePieces.json'), original)
   })
 })
 

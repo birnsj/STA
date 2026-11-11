@@ -11,8 +11,18 @@ This page holds the notes that used to sit in the JSON's `notes` array. When a f
 | Key | Meaning |
 |---|---|
 | `imageSize` | Tile PNGs are 64 x 96, with the tile's 64 x 32 floor diamond across the bottom (walls and tall objects are taller, see `imageHeight`). Every image is drawn at its own size standing on its tile, never stretched. Designer decision (Oct 2026): "no tiles should ever be stretched". |
-| `paletteGroups` | The editor's collapsible tile categories, in order, by what each tile was made for. `section` is the heading the category sits under (Locations, Alien Locations, Earth-like Biomes, Alien Biomes). A tile listed in no group shows under Other. |
+| `paletteGroups` | The editor's collapsible **tilesets**, in order. `section` is the **category** heading (Locations, Alien Locations, Earth-like Biomes, Alien Biomes, …). A tile listed in no group shows under Other. |
 | `tiles` | The catalogue, one entry per tile. |
+
+### Palette authoring (Dev Edit, Vite DEV)
+
+In Assets → Tiles (dev build only), you can:
+
+- **Categories** (`section`): Add / Rename / Delete (delete only when no tilesets remain).
+- **Tilesets** (`paletteGroups` entries): Create / Rename / Delete / drag-reorder. Delete removes the group; tiles stay in the catalogue (Other) until deleted.
+- **Sprites** (tiles): **Create sprite** (new catalogue entry + default PNG under `public/art/sprites/environment/<tilesetId>/`), right-click **Rename** (label only), **Import PNG** (replaces that tile’s primary `image`), **Delete**.
+
+Persisted via `PUT /__tiles` (`tools/tileStore.cjs`). Ids and symbols stay stable on rename so maps keep working.
 
 ## Symbols
 
@@ -25,7 +35,7 @@ Allocation order: the printable ASCII characters first (`"` and `\` are avoided;
 - **Null** (`null` / `ġ`): empty cell inside the map rectangle. Solid for movement and placement; clear for sight. Editor New Map starts as all Null. Erasing a floor writes Null.
 - **`floorUnder`**: optional sparse `{ "x,y": tileId }` on the map file. Remembers the floor (or Null) under a wall or prop so erase restores it. Schema version stays **1** for legacy maps; maps that use Null, `floorUnder`, or `stackOver` write **2**.
 - **`stackOver`**: optional sparse `{ "x,y": [tileId, ...] }` — furniture stacked on a surface cell (bottom → top). Painting a prop onto a tile that already has `surface` appends here instead of replacing the base; erase pops the top layer first. See `src/maps/mapEdits.js` `stackTileOn`.
-- Editor layers (Ground, Walls, Furniture, Characters, Markers) are UI state only — never saved. See `src/maps/layers.js`.
+- Editor layers (Ground, Walls, Furniture, Characters, Markers) are UI state only — never saved on the map. Catalogue tiles and Template Pieces may store an optional authoring `layer` in `tiles.json` / `templatePieces.json` (Properties → Layer). See `src/maps/layers.js`.
 - **Move transaction (2026-10-24):** moving a tile cell swaps its complete authored structure atomically: base tile, rotation, `floorUnder`, the full `stackOver` list, and every ground-item support subtree rooted on that cell. The move is rejected when the destination cannot safely accept that structure; it never silently drops stack layers or supported items.
 - **Layer locks:** a locked layer is a mutation boundary, not only a visual state. Painting, Move, erase, placement, duplication, inspector edits and patrol edits must all refuse changes owned by that layer; hiding or locking a layer clears incompatible selection/tool state.
 
