@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { mapEmbeddedEditorMenus } from '../components/maps/editorSubMenus.js'
 import IdInput from '../components/maps/IdInput.jsx'
 import ObjectActionFields from '../components/maps/ObjectActionFields.jsx'
 import data from '../data/adaptation/exploration/challenges.json'
@@ -127,7 +128,7 @@ function ObjectFields({ object, map, otherIds, onChange }) {
   )
 }
 
-export default function ObjectEditorScreen({ map, onChange, initialId = null, onBack }) {
+export default function ObjectEditorScreen({ map, onChange, initialId = null, onBack, onSaveMap, onLoadMap, onSaveAsMap }) {
   const objects = editableObjects(map)
   const [selectedIndex, setSelectedIndex] = useState(() => Math.max(0, objects.findIndex((object) => object.id === initialId)))
   const [actionIndex, setActionIndex] = useState(0)
@@ -197,9 +198,19 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
       select(0)
     })
 
+  const onMenuAction = (id) => {
+    if (id === 'save') return onSaveMap?.()
+    if (id === 'load') return onLoadMap?.()
+    if (id === 'saveAs') return onSaveAsMap?.()
+    if (id === 'back') return onBack?.()
+    return undefined
+  }
+
   return (
     <EditorSubScreen
       title="Object Editor"
+      menus={mapEmbeddedEditorMenus()}
+      onMenuAction={onMenuAction}
       toolbar={
         <>
           <button type="button" className="me-button" onClick={onBack}>
@@ -221,10 +232,10 @@ export default function ObjectEditorScreen({ map, onChange, initialId = null, on
           <span className="me-text">
             Challenge objects of {map.name || 'the open map'}.{' '}
             {map.objects
-              ? 'They are part of the map: Save the map to keep them.'
+              ? 'They are part of the map: File → Save Map to keep them.'
               : fallback
                 ? 'From challenges.json until you change something here; then they are saved with the map.'
-                : 'Changes are part of the map: Save the map to keep them.'}
+                : 'Changes are part of the map: File → Save Map to keep them.'}
           </span>
         </>
       }

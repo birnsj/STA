@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import EditorSelect from '../components/maps/EditorSelect.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { subEditorFileMenus } from '../components/maps/editorSubMenus.js'
 import GeSourcePalette from '../components/maps/GeSourcePalette.jsx'
 import TemplatePieceSpritePicker from '../components/maps/TemplatePieceSpritePicker.jsx'
 import TileSpritePicker from '../components/maps/TileSpritePicker.jsx'
@@ -366,9 +367,26 @@ export default function GeneratorEditorScreen({ map = null, mapType = null, onBa
     return id === selectedId ? dirty : locationDirty(drafts[id], saved[id], variantDrafts, variantSaved)
   }
 
+  const onMenuAction = (id) => {
+    if (id === 'save') return save()
+    if (id === 'load' || id === 'revert') return revert()
+    if (id === 'preview') return preview()
+    if (id === 'back') return discardAndBack()
+    return undefined
+  }
+
   return (
     <EditorSubScreen
       title="Generator Editor"
+      menus={subEditorFileMenus({
+        load: true,
+        save: true,
+        revert: true,
+        loadLabel: 'Reload Saved',
+        saveLabel: 'Save Generator',
+        extraFileItems: [{ id: 'preview', label: 'Preview Generate Map' }],
+      })}
+      onMenuAction={onMenuAction}
       toolbar={
         <>
           <button type="button" className="me-button" onClick={discardAndBack}>

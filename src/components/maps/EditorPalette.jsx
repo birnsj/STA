@@ -21,6 +21,8 @@ import { propSpriteSize } from '../../rules/placement.js'
 import { DESTRUCTIBLE_TYPES, destructibleTileId, HAZARD_TYPES } from '../../world/environment.js'
 import { HAZARD_FRAMES, hazardStrip } from './environmentArt.js'
 import { EDITOR_ITEM_DRAG_TYPE } from './editorItemDrag.js'
+import { tileThumbTitle, templatePieceThumbTitle } from './assetThumbTitle.js'
+import { loadThumbScale, saveThumbScale, THUMB_SCALES, thumbColsForScale } from './editorThumbScale.js'
 import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
@@ -28,24 +30,6 @@ const PALETTE_DRAG_TYPE = 'application/x-sta-palette-group'
 
 // Left Asset Browser: tabbed catalogues (Tiles, Environment, Items, Markers, NPCs). Tool ids unchanged.
 // Visual layout follows the Mission Editor mockup (thumbnail grid); catalogues unchanged.
-
-const THUMB_SCALE_KEY = 'sta-editor-thumb-scale'
-const THUMB_SCALES = [
-  { id: 's', label: 'S', cols: 4, title: 'Small thumbnails' },
-  { id: 'm', label: 'M', cols: 3, title: 'Medium thumbnails' },
-  { id: 'l', label: 'L', cols: 2, title: 'Large thumbnails' },
-  { id: 'xl', label: 'XL', cols: 1, title: 'Extra-large thumbnails' },
-]
-
-function loadThumbScale() {
-  try {
-    const saved = localStorage.getItem(THUMB_SCALE_KEY)
-    if (THUMB_SCALES.some((entry) => entry.id === saved)) return saved
-  } catch {
-    /* ignore */
-  }
-  return 's'
-}
 
 const MARKER_TOOLS = [
   { id: 'playerStarts', label: 'Player Start', swatch: 'player' },
@@ -220,7 +204,7 @@ export default function EditorPalette({
   const importInputRef = useRef(null)
   const importTileIdRef = useRef(null)
   const q = query.trim().toLowerCase()
-  const thumbCols = THUMB_SCALES.find((entry) => entry.id === thumbScale)?.cols ?? 4
+  const thumbCols = thumbColsForScale(thumbScale)
   const GROUPS = useMemo(() => buildPaletteGroups(), [catalogueEpoch])
   const pieceGroups = useMemo(() => templatePieceGroups(), [catalogueEpoch])
   const refreshCatalogue = () => setCatalogueEpoch(tileCatalogueEpochOf() + templatePieceCatalogueEpochOf())
@@ -526,11 +510,7 @@ export default function EditorPalette({
   }
 
   useEffect(() => {
-    try {
-      localStorage.setItem(THUMB_SCALE_KEY, thumbScale)
-    } catch {
-      /* ignore */
-    }
+    saveThumbScale(thumbScale)
   }, [thumbScale])
 
   // Layers window active layer steers the Assets tab (does not override a hand-picked tab until the layer changes).
@@ -650,11 +630,11 @@ export default function EditorPalette({
                             type="button"
                             className={`ed-thumb-btn${tool === `template:${piece.id}` ? ' is-selected' : ''}${inPaintSet ? ' is-paint-set' : ''}`}
                             aria-pressed={tool === `template:${piece.id}`}
-                            title={
-                              canEditTemplatePieces
-                                ? `${piece.label} — check to include in paint cycle · right-click to delete from the game`
-                                : `${piece.label} — check to include in paint cycle`
-                            }
+                            title={templatePieceThumbTitle(piece, {
+                              extra: canEditTemplatePieces
+                                ? 'paint cycle · right-click to delete'
+                                : 'paint cycle',
+                            })}
                             onClick={() => onTool(`template:${piece.id}`)}
                             onContextMenu={(event) => onPieceContextMenu(event, piece)}
                           >
@@ -798,11 +778,11 @@ export default function EditorPalette({
                                 type="button"
                                 className={`ed-thumb-btn${tool === `tile:${tile.id}` ? ' is-selected' : ''}${inPaintSet ? ' is-paint-set' : ''}`}
                                 aria-pressed={tool === `tile:${tile.id}`}
-                                title={
-                                  canEditTiles
-                                    ? `${tile.label} — check to include in paint cycle · right-click for Rename / Import / Delete`
-                                    : `${tile.label} — check to include in paint cycle`
-                                }
+                                title={tileThumbTitle(tile, {
+                                  extra: canEditTiles
+                                    ? 'paint cycle · right-click Rename / Import / Delete'
+                                    : 'paint cycle',
+                                })}
                                 onClick={() => onTool(`tile:${tile.id}`)}
                                 onContextMenu={(event) => onTileContextMenu(event, tile)}
                               >

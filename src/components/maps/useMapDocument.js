@@ -4,6 +4,7 @@ import { canDrawEpisodeArt, drawEpisodeArt } from '../../maps/episodeArt.js'
 import { resizeMap } from '../../maps/mapEdits.js'
 import { canSaveMaps, deleteMap, listMaps, loadMap, saveMap } from '../../maps/mapFiles.js'
 import { createNullMap, DEFAULT_BIOME, DEFAULT_MAP_TYPE, mapFileId } from '../../maps/mapFormat.js'
+import { generateAutoPaintMap, getAutoPaintRuleset } from '../../maps/autoPaint/index.js'
 import { biomeFor, DEFAULT_SIZE, generateNamedMap, generatorFor, sizeFor, sizeIdOf, withGeneratedHazards } from '../../maps/mapGenerators.js'
 import {
   beginMapHistoryStroke,
@@ -173,6 +174,34 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
     setCleanMap(next)
     setGenerated(true)
   }
+
+  // Auto-Paint Ruleset Editor → Generate Map: replace the open document with a floor + Auto-Paint wall layout.
+  // Does not call the frozen Generate Map / generators/* path.
+  const onGenerateAutoPaint = async (rulesetId) => {
+    const operation = beginMapDocumentOperation(guardRef.current)
+    const proceed =
+      onlySetupChanged ||
+      (await confirmDiscard('The open map has unsaved changes. Generating replaces it, and those changes will be lost.', 'Generate'))
+    if (!proceed || !isMapDocumentOperationCurrent(guardRef.current, operation)) return false
+    const result = generateAutoPaintMap(map, rulesetId, Math.random)
+    if (result.error) {
+      setStatus(result.error)
+      return false
+    }
+    let next = result.map
+    next = { ...next, weather: randomWeather(next) }
+    const label = getAutoPaintRuleset(rulesetId)?.label ?? rulesetId
+    const detail = result.status ? ` ${result.status}` : ''
+    replaceMap(
+      next,
+      null,
+      `Generated Auto-Paint map (${label}).${detail} Not saved yet: press Save to keep it.`,
+      { unsaved: true },
+    )
+    setCleanMap(next)
+    return true
+  }
+
   // Re-lists on open so files added or removed outside the editor show up.
   const onShowLoad = () => {
     setShowLoad(true)
@@ -310,6 +339,7 @@ export default function useMapDocument({ askConfirm, askText, setStatus }) {
     onBiome,
     onSize,
     onGenerate,
+    onGenerateAutoPaint,
     onShowLoad,
     onLoad,
     onSave,

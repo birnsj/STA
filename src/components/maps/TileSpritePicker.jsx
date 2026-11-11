@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getTile } from '../../maps/mapFormat.js'
+import { tileThumbTitle } from './assetThumbTitle.js'
 import { GE_ASSET_DRAG_TYPE, readGeAssetDrag } from './geAssetDrag.js'
 import { contextMenuPlacement, GeThumbDeleteConfirm, GeThumbDeleteMenu } from './GeThumbContextMenu.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
@@ -17,6 +18,8 @@ export default function TileSpritePicker({
   disabled = false,
   emptyText = 'Drop a tile from the Palette.',
   acceptDrop = true,
+  /** Optional: map a dropped asset (e.g. Template Piece) to a tile id before optionIds check. */
+  resolveDropId = null,
 }) {
   const selected = multi ? new Set(value ?? []) : null
   const current = multi ? null : value || null
@@ -80,9 +83,12 @@ export default function TileSpritePicker({
     if (disabled || !acceptDrop) return
     event.preventDefault()
     const asset = readGeAssetDrag(event)
-    if (!asset || asset.kind !== 'tile') return
-    if (!optionIds.has(asset.id)) return
-    applyId(asset.id)
+    if (!asset) return
+    let id = null
+    if (asset.kind === 'tile') id = asset.id
+    else if (typeof resolveDropId === 'function') id = resolveDropId(asset)
+    if (!id || !optionIds.has(id)) return
+    applyId(id)
   }
 
   return (
@@ -112,7 +118,7 @@ export default function TileSpritePicker({
             type="button"
             className="ed-thumb-btn ge-thumb is-selected"
             disabled={disabled}
-            title={`${tile.label} (${tile.id}) — right-click to remove`}
+            title={tileThumbTitle(tile, { extra: `${tile.id} · right-click to remove` })}
             onContextMenu={(event) => onContextMenu(event, tile)}
           >
             {multi && (

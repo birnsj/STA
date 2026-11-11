@@ -3,6 +3,7 @@ import ConversationCanvas, { NODE_WIDTH } from '../components/conversation/Conve
 import NodeInspector from '../components/conversation/NodeInspector.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { subEditorFileMenus } from '../components/maps/editorSubMenus.js'
 import { canSaveConversations, conversationFileId, deleteConversation, listConversations, loadConversation, saveConversation } from '../conversation/conversationFiles.js'
 import { dialogueTierWarnings } from '../conversation/dialogueTier.js'
 import { createConversation, createNode, getNode, nextId, NODE_TYPES, removeNode, validateConversation, withLink } from '../conversation/conversationFormat.js'
@@ -141,8 +142,39 @@ export default function ConversationEditorScreen({ initialId = null, map = null,
 
   const selected = conversation && selectedId ? getNode(conversation, selectedId) : null
 
+  const loadPrompt = async () => {
+    if (!(await confirmDiscard())) return
+    const ids = files.map((entry) => entry.id)
+    const pick = window.prompt(
+      ids.length ? `Open conversation id:\n${ids.join(', ')}` : 'Open conversation id:',
+      fileId || ids[0] || '',
+    )
+    if (pick?.trim()) open(pick.trim())
+  }
+
+  const onMenuAction = (id) => {
+    if (id === 'new') return onNew()
+    if (id === 'load') return loadPrompt()
+    if (id === 'save') return onSave()
+    if (id === 'delete') return onDelete()
+    if (id === 'back') return (async () => (await confirmDiscard()) && onBack())()
+    return undefined
+  }
+
   return (
-    <EditorSubScreen>
+    <EditorSubScreen
+      menus={subEditorFileMenus({
+        newItem: true,
+        load: true,
+        save: true,
+        deleteItem: true,
+        newLabel: 'New Conversation',
+        loadLabel: 'Open…',
+        saveLabel: 'Save Conversation',
+        deleteLabel: 'Delete Conversation',
+      })}
+      onMenuAction={onMenuAction}
+    >
       <div className="ce-toolbar">
         <strong className="ess-title">Conversation Editor</strong>
         <button type="button" className="ce-button" onClick={async () => (await confirmDiscard()) && onBack()}>

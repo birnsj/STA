@@ -52,7 +52,8 @@
 // the editor guide grid. rotation degrees in 90° steps (omit when 0); scale (omit when 1, UI locks to 1); order (lower
 // behind). autoPaint: true when Auto-Paint placed the piece (omit when false). Placing an overlay never writes tiles /
 // stackOver.
-// autoPaint: optional map block for Auto-Paint regions / ruleset id (omit when absent). Independent of Generate Map.
+// autoPaint: optional map block for Auto-Paint regions / ruleset id (omit when absent). New generator path —
+// wall tiles on exterior cells (generatedWallKeys); independent of Generate Map.
 // stackOver: sparse { "x,y": [tileId, ...] } — furniture stacked on a surface tile (bottom → top), same pattern as
 // floorUnder. Written only when non-empty; bumps schema to 2.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, ambientColour, width, height, tiles: tile id grid [y][x],
@@ -541,17 +542,38 @@ function parseAutoPaintBlock(raw) {
   const regions = Array.isArray(raw.regions)
     ? raw.regions
         .filter((entry) => entry && typeof entry.id === 'string' && entry.id)
-        .map((entry) => ({
-          id: entry.id,
-          environment: typeof entry.environment === 'string' ? entry.environment : null,
-          floorKeys: Array.isArray(entry.floorKeys) ? entry.floorKeys.map(String) : [],
-          generatedUnderlayKeys: Array.isArray(entry.generatedUnderlayKeys) ? entry.generatedUnderlayKeys.map(String) : [],
-          generatedPieceIds: Array.isArray(entry.generatedPieceIds) ? entry.generatedPieceIds.map(String) : [],
-          manualPieceIds: Array.isArray(entry.manualPieceIds) ? entry.manualPieceIds.map(String) : [],
-          manualUnderlayKeys: Array.isArray(entry.manualUnderlayKeys) ? entry.manualUnderlayKeys.map(String) : [],
-          // Tips the designer deleted; Rebuild must not recreate Auto-Paint pieces here.
-          suppressedTipKeys: Array.isArray(entry.suppressedTipKeys) ? entry.suppressedTipKeys.map(String) : [],
-        }))
+        .map((entry) => {
+          const generatedWallKeys = Array.isArray(entry.generatedWallKeys)
+            ? entry.generatedWallKeys.map(String)
+            : Array.isArray(entry.generatedUnderlayKeys)
+              ? entry.generatedUnderlayKeys.map(String)
+              : []
+          const manualWallKeys = Array.isArray(entry.manualWallKeys)
+            ? entry.manualWallKeys.map(String)
+            : Array.isArray(entry.manualUnderlayKeys)
+              ? entry.manualUnderlayKeys.map(String)
+              : []
+          const suppressedWallKeys = Array.isArray(entry.suppressedWallKeys)
+            ? entry.suppressedWallKeys.map(String)
+            : Array.isArray(entry.suppressedTipKeys)
+              ? entry.suppressedTipKeys.map(String)
+              : []
+          return {
+            id: entry.id,
+            environment: typeof entry.environment === 'string' ? entry.environment : null,
+            floorKeys: Array.isArray(entry.floorKeys) ? entry.floorKeys.map(String) : [],
+            generatedWallKeys,
+            // Legacy aliases kept in memory for older readers during transition.
+            generatedUnderlayKeys: generatedWallKeys,
+            generatedPieceIds: Array.isArray(entry.generatedPieceIds) ? entry.generatedPieceIds.map(String) : [],
+            manualPieceIds: Array.isArray(entry.manualPieceIds) ? entry.manualPieceIds.map(String) : [],
+            manualWallKeys,
+            manualUnderlayKeys: manualWallKeys,
+            // Cells the designer cleared; Rebuild must not recreate Auto-Paint walls here.
+            suppressedWallKeys,
+            suppressedTipKeys: suppressedWallKeys,
+          }
+        })
     : []
   if (!regions.length && !raw.rulesetId) return null
   return {
@@ -569,16 +591,19 @@ function serializeAutoPaintBlock(block) {
     ...(block.defaultEnvironment ? { defaultEnvironment: block.defaultEnvironment } : {}),
     ...(block.regions?.length
       ? {
-          regions: block.regions.map((entry) => ({
-            id: entry.id,
-            ...(entry.environment ? { environment: entry.environment } : {}),
-            floorKeys: entry.floorKeys ?? [],
-            generatedUnderlayKeys: entry.generatedUnderlayKeys ?? [],
-            generatedPieceIds: entry.generatedPieceIds ?? [],
-            ...(entry.manualPieceIds?.length ? { manualPieceIds: entry.manualPieceIds } : {}),
-            ...(entry.manualUnderlayKeys?.length ? { manualUnderlayKeys: entry.manualUnderlayKeys } : {}),
-            ...(entry.suppressedTipKeys?.length ? { suppressedTipKeys: entry.suppressedTipKeys } : {}),
-          })),
+          regions: block.regions.map((entry) => {
+            const generatedWallKeys = entry.generatedWallKeys ?? entry.generatedUnderlayKeys ?? []
+            const manualWallKeys = entry.manualWallKeys ?? entry.manualUnderlayKeys ?? []
+            const suppressedWallKeys = entry.suppressedWallKeys ?? entry.suppressedTipKeys ?? []
+            return {
+              id: entry.id,
+              ...(entry.environment ? { environment: entry.environment } : {}),
+              floorKeys: entry.floorKeys ?? [],
+              generatedWallKeys,
+              ...(manualWallKeys.length ? { manualWallKeys } : {}),
+              ...(suppressedWallKeys.length ? { suppressedWallKeys } : {}),
+            }
+          }),
         }
       : {}),
   }

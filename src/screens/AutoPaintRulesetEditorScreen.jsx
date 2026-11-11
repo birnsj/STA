@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
+import EditorBoard from '../components/maps/EditorBoard.jsx'
+import { EDITOR_GRID_SIZES } from '../components/maps/editorGrid.js'
+import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
 import EditorSelect from '../components/maps/EditorSelect.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { subEditorFileMenus } from '../components/maps/editorSubMenus.js'
 import GeSourcePalette from '../components/maps/GeSourcePalette.jsx'
-import TemplatePieceSpritePicker from '../components/maps/TemplatePieceSpritePicker.jsx'
 import TileSpritePicker from '../components/maps/TileSpritePicker.jsx'
 import {
   AUTO_PAINT_ENVIRONMENTS,
@@ -10,31 +13,21 @@ import {
   listAutoPaintRulesets,
   resolveAutoPaintRuleset,
 } from '../maps/autoPaint/rulesets.js'
-import { canEditAutoPaintRulesets, saveAutoPaintRuleset } from '../maps/autoPaintFiles.js'
+import { resolveAutoPaintTileId } from '../maps/autoPaint/templatePalette.js'
+import {
+  canEditAutoPaintRulesets,
+  putAutoPaintRulesetLocal,
+  reloadAutoPaintRulesetsFromDisk,
+  saveAutoPaintRuleset,
+} from '../maps/autoPaintFiles.js'
+import { layerOfTile } from '../maps/layers.js'
 import { getTile, PALETTE_GROUPS, TILES } from '../maps/mapFormat.js'
-import { TEMPLATE_PIECES } from '../maps/templatePieces.js'
+import {
+  editorTemplatePaletteItems,
+  templatePieceCatalogueEpochOf,
+} from '../maps/templatePieces.js'
 
-// Tools → Auto-Paint Ruleset Editor. UI matches Generator Editor (palette + sprite slots).
-// Independent of Generate Map / Generator Editor data paths.
-
-const ENV_TILE_GROUPS = {
-  starshipStation: ['starship'],
-  indoorBuilding: ['settlement', 'laboratory', 'detention', 'cantina'],
-  outdoorSettlement: ['settlement', 'city', 'farm', 'landingField'],
-  naturalTerrain: [
-    'forest',
-    'swamp',
-    'desert',
-    'iceField',
-    'volcanic',
-    'jungle',
-    'grassland',
-    'tundra',
-    'coast',
-    'mountains',
-    'geothermal',
-  ],
-}
+// Tools → Auto-Paint Ruleset Editor. Palette = Dev Edit Template Pieces catalogue (one file). Wall roles place tiles.
 
 const FLOOR_FIELD = {
   key: 'defaultTile',
@@ -42,28 +35,28 @@ const FLOOR_FIELD = {
   filter: (tile) => !tile.wall && !tile.solid && !tile.empty,
 }
 
-const UNDERLAY_FIELD = {
-  key: 'underlayWallTile',
-  label: 'Wall underlay tile',
-  filter: (tile) => Boolean(tile.wall) || tile.id === 'templateWall',
+const WALL_FIELD = {
+  filter: (tile) => Boolean(tile.wall),
 }
 
 const DOOR_TILE_FIELD = {
   key: 'underlayTile',
-  label: 'Doorway underlay tile',
-  filter: () => true,
+  label: 'Doorway tile',
+  filter: (tile) => !tile.empty,
 }
 
-const WALL_PIECE_FIELDS = [
-  { key: 'straight', label: 'Straight wall (64×32)' },
-  { key: 'straightLong', label: 'Long straight (128×32)' },
-  { key: 'corner', label: 'Corner post (32×32)' },
-  { key: 'hull', label: 'Hull straight' },
-  { key: 'hullLong', label: 'Hull long' },
-  { key: 'hullCorner', label: 'Hull corner' },
+const WALL_TILE_FIELDS = [
+  { key: 'straight', label: 'Straight wall (default 32)', required: true },
+  { key: 'corner', label: 'Corner wall', required: true },
+  { key: 'hull', label: 'Hull straight (optional)', required: false },
+  { key: 'hullCorner', label: 'Hull corner (optional)', required: false },
 ]
 
-const DOOR_PIECE_FIELD = { key: 'doorFrame', label: 'Door frame' }
+/** Larger wall tiles from the Starship tileset (optional; Show all). Same PALETTE_GROUPS as Dev Edit Assets. */
+function starshipWallTiles() {
+  const group = PALETTE_GROUPS.find((entry) => entry.id === 'starship')
+  return (group?.tiles ?? []).map((id) => getTile(id)).filter((tile) => tile?.wall)
+}
 
 function cloneRuleset(ruleset) {
   return resolveAutoPaintRuleset(structuredClone(ruleset))
@@ -73,42 +66,15 @@ function rulesetEqual(a, b) {
   return JSON.stringify(resolveAutoPaintRuleset(a)) === JSON.stringify(resolveAutoPaintRuleset(b))
 }
 
-function tileIdsForEnvironment(environment) {
-  const groupIds = ENV_TILE_GROUPS[environment] ?? []
-  const ids = new Set()
-  for (const groupId of groupIds) {
-    const group = PALETTE_GROUPS.find((entry) => entry.id === groupId)
-    for (const id of group?.tiles ?? []) ids.add(id)
-  }
-  return ids
-}
-
-function piecesForEnvironment(environment) {
-  if (environment === 'starshipStation') {
-    return TEMPLATE_PIECES.filter((piece) => (piece.tags ?? []).includes('starship'))
-  }
-  // Other environments: only pieces explicitly tagged for that setting. Empty is allowed —
-  // Show all is the explicit way to browse unrelated assets (no silent fallback to all walls).
-  if (environment === 'indoorBuilding') {
-    return TEMPLATE_PIECES.filter((piece) => (piece.tags ?? []).includes('indoor') || (piece.tags ?? []).includes('settlement'))
-  }
-  if (environment === 'outdoorSettlement') {
-    return TEMPLATE_PIECES.filter((piece) => (piece.tags ?? []).includes('outdoor') || (piece.tags ?? []).includes('settlement'))
-  }
-  if (environment === 'naturalTerrain') {
-    return TEMPLATE_PIECES.filter((piece) => (piece.tags ?? []).includes('terrain') || (piece.tags ?? []).includes('natural'))
-  }
-  return []
-}
-
 function withSelectedTiles(options, value, multi = false) {
   const list = [...options]
   const ids = new Set(list.map((tile) => tile.id))
   const add = (id) => {
     if (!id || ids.has(id)) return
-    const tile = getTile(id)
+    const resolved = resolveAutoPaintTileId(id) || id
+    const tile = getTile(resolved)
     if (!tile) return
-    ids.add(id)
+    ids.add(tile.id)
     list.push(tile)
   }
   if (multi) (value ?? []).forEach(add)
@@ -116,57 +82,38 @@ function withSelectedTiles(options, value, multi = false) {
   return list.sort((a, b) => a.label.localeCompare(b.label))
 }
 
-function withSelectedPieces(options, value, multi = false) {
-  const list = [...options]
-  const ids = new Set(list.map((piece) => piece.id))
-  const add = (id) => {
-    if (!id || ids.has(id)) return
-    const piece = TEMPLATE_PIECES.find((entry) => entry.id === id)
-    if (!piece) return
-    ids.add(id)
-    list.push(piece)
-  }
-  if (multi) (value ?? []).forEach(add)
-  else add(value)
-  return list
-}
-
-function filterPiecesForRole(pool, fieldKey) {
-  const isHull = (piece) => (piece.tags ?? []).includes('hull') || String(piece.id).includes('Hull')
-  return pool.filter((piece) => {
-    if (fieldKey === 'hullCorner') return isHull(piece) && (piece.tags ?? []).includes('corner')
-    if (fieldKey === 'hullLong') return isHull(piece) && (piece.tags ?? []).includes('long')
-    if (fieldKey === 'hull') return isHull(piece) && (piece.tags ?? []).includes('straight') && !(piece.tags ?? []).includes('long')
-    if (fieldKey === 'straightLong') return !isHull(piece) && (piece.tags ?? []).includes('long')
-    if (fieldKey === 'corner') return !isHull(piece) && (piece.tags ?? []).includes('corner')
-    if (fieldKey === 'doorFrame') return (piece.tags ?? []).includes('door')
-    if (fieldKey === 'straight') {
-      return (
-        !isHull(piece) &&
-        (piece.tags ?? []).includes('straight') &&
-        !(piece.tags ?? []).includes('long') &&
-        !(piece.tags ?? []).includes('door')
-      )
-    }
-    return false
-  })
-}
-
-export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
+export default function AutoPaintRulesetEditorScreen({
+  map = null,
+  boardKey = 0,
+  showGrid = true,
+  onShowGrid,
+  gridSize = 32,
+  onGridSize,
+  showBounds = true,
+  onShowBounds,
+  showCentre = false,
+  onShowCentre,
+  onBack,
+  onGenerateMap,
+  onStatus,
+}) {
   const [epoch, setEpoch] = useState(0)
-  // epoch bumps after Save so the ruleset dropdown re-reads the live catalogue.
   const rulesets = listAutoPaintRulesets()
   void epoch
-  const [selectedId, setSelectedId] = useState(rulesets[0]?.id ?? 'starship-interior-default')
+  const [selectedId, setSelectedId] = useState(rulesets[0]?.id ?? 'template-32')
   const initial = cloneRuleset(getAutoPaintRuleset(selectedId) ?? rulesets[0])
   const [draft, setDraft] = useState(initial)
   const [saved, setSaved] = useState(initial)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [showAll, setShowAll] = useState(false)
+  // 'rules' | 'map' — right pane only; left palette stays.
+  const [viewMode, setViewMode] = useState('rules')
+  const [showGridOptions, setShowGridOptions] = useState(false)
 
   const dirty = !rulesetEqual(draft, saved)
   const canSave = canEditAutoPaintRulesets
+  const showingMap = viewMode === 'map' && map
 
   const openRuleset = (id) => {
     if (dirty && id !== selectedId) {
@@ -180,7 +127,6 @@ export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
     setStatus('')
   }
 
-  // Preserve unexposed fields (fittings, fittingChance, door minGap/preferOpenings, props, variants, wallMode).
   const patch = (partial) => setDraft((current) => resolveAutoPaintRuleset({ ...current, ...partial }))
   const patchWalls = (partial) =>
     setDraft((current) => resolveAutoPaintRuleset({ ...current, walls: { ...current.walls, ...partial } }))
@@ -211,7 +157,6 @@ export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
     }
     setBusy(true)
     try {
-      // Pass full draft so fittings / probabilities / door flags round-trip.
       const result = await saveAutoPaintRuleset(draft)
       const next = cloneRuleset(result)
       setEpoch((value) => value + 1)
@@ -230,39 +175,168 @@ export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
     }
   }
 
-  const sortedTiles = useMemo(() => [...TILES].sort((a, b) => a.label.localeCompare(b.label)), [])
-  const envTileIds = useMemo(() => tileIdsForEnvironment(draft.environment), [draft.environment])
-  const envTiles = useMemo(
-    () => sortedTiles.filter((tile) => envTileIds.has(tile.id)),
-    [sortedTiles, envTileIds],
-  )
-  const envPieces = useMemo(() => piecesForEnvironment(draft.environment), [draft.environment])
-  const catalogueTiles = showAll ? sortedTiles : envTiles
-  const cataloguePieces = showAll ? TEMPLATE_PIECES : envPieces
-  const emptyHint = showAll ? 'No matching assets.' : 'None for this environment — turn on Show all.'
+  // Apply the on-screen draft in memory, generate into the open map, and switch to Map view.
+  const generateMap = async () => {
+    if (typeof onGenerateMap !== 'function') return
+    if (dirty) {
+      try {
+        putAutoPaintRulesetLocal(draft)
+        setSaved(cloneRuleset(draft))
+      } catch (error) {
+        const message = String(error.message ?? error)
+        setStatus(message)
+        onStatus?.(message)
+        return
+      }
+    }
+    setBusy(true)
+    try {
+      const ok = await onGenerateMap(selectedId)
+      if (!ok) return
+      setViewMode('map')
+      const label = draft.label || selectedId
+      const message = `Generated Auto-Paint map (${label}). Still in Ruleset Editor — Back to Map when done.`
+      setStatus(message)
+      onStatus?.(message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
-  const tileOptions = (field, value) => withSelectedTiles(catalogueTiles.filter(field.filter), value)
-  const pieceOptions = (fieldKey, value) =>
-    withSelectedPieces(filterPiecesForRole(cataloguePieces, fieldKey), value)
+  // Same live Template Pieces catalogue as Dev Edit Assets (templatePieces.json via templatePieceGroups).
+  const templateEpoch = templatePieceCatalogueEpochOf()
+  const templateItems = useMemo(
+    () => editorTemplatePaletteItems({ includeDimension: showAll }),
+    [showAll, templateEpoch],
+  )
+
+  // Role options: tiles that Template Pieces resolve to, plus (Show all) Starship wall tiles for larger walls.
+  const roleTiles = useMemo(() => {
+    const byId = new Map()
+    for (const item of templateItems) {
+      const tileId = resolveAutoPaintTileId(item.id)
+      const tile = tileId ? getTile(tileId) : null
+      if (tile) byId.set(tile.id, tile)
+    }
+    // Always allow the Template 32 placement tiles and doorway/floor.
+    for (const id of ['wall32', 'wall32Corner', 'floor', 'doorway', 'grating']) {
+      const tile = getTile(id)
+      if (tile) byId.set(tile.id, tile)
+    }
+    if (showAll) {
+      for (const tile of starshipWallTiles()) byId.set(tile.id, tile)
+      for (const tile of TILES) {
+        if (!tile.wall && !tile.solid && !tile.empty) byId.set(tile.id, tile)
+      }
+    }
+    return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label))
+  }, [templateItems, showAll])
+
+  const emptyHint = showAll
+    ? 'No matching assets.'
+    : 'Drop a Template Piece from the palette (same catalogue as Dev Edit Assets).'
+
+  const tileOptions = (field, value) => withSelectedTiles(roleTiles.filter(field.filter), value)
 
   const paletteItems = useMemo(() => {
-    const tiles = catalogueTiles.map((tile) => ({ kind: 'tile', id: tile.id, label: tile.label }))
-    const pieces = cataloguePieces.map((piece) => ({
-      kind: 'piece',
-      id: piece.id,
-      label: piece.label,
-      href: piece.href,
+    if (!showAll) return templateItems
+    // Show all: Template Pieces + Starship wall tiles (larger walls) — still one Dev Edit tileset + one Template file.
+    const tiles = starshipWallTiles().map((tile) => ({
+      kind: 'tile',
+      id: tile.id,
+      label: tile.label,
+      layer: layerOfTile(tile),
     }))
-    return [...tiles, ...pieces]
-  }, [catalogueTiles, cataloguePieces])
+    const seen = new Set(templateItems.map((item) => `${item.kind}:${item.id}`))
+    const out = [...templateItems]
+    for (const item of tiles) {
+      const key = `${item.kind}:${item.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(item)
+    }
+    return out
+  }, [templateItems, showAll])
+
+  const resolveDropToTile = (asset) => {
+    if (!asset) return null
+    return resolveAutoPaintTileId(asset.kind === 'tile' || asset.kind === 'piece' ? asset.id : null)
+  }
+
+  const onRoleChange = (patchFn) => (id) => {
+    const resolved = resolveAutoPaintTileId(id) || id
+    patchFn(resolved)
+  }
+
+  const loadFromDisk = async () => {
+    if (dirty) {
+      const leave = window.confirm('Discard unsaved Auto-Paint ruleset changes and reload from disk?')
+      if (!leave) return
+    }
+    setBusy(true)
+    try {
+      await reloadAutoPaintRulesetsFromDisk()
+      setEpoch((value) => value + 1)
+      const next = cloneRuleset(getAutoPaintRuleset(selectedId) ?? listAutoPaintRulesets()[0])
+      setSelectedId(next.id)
+      setDraft(next)
+      setSaved(next)
+      const message = `Loaded Auto-Paint rulesets from disk (“${next.label}”).`
+      setStatus(message)
+      onStatus?.(message)
+    } catch (error) {
+      const message = String(error.message ?? error)
+      setStatus(message)
+      onStatus?.(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onMenuAction = (id) => {
+    if (id === 'save') return onSave()
+    if (id === 'load') return loadFromDisk()
+    if (id === 'revert') return revert()
+    if (id === 'generateMap') return generateMap()
+    if (id === 'back') return discardAndBack()
+    return undefined
+  }
 
   return (
     <EditorSubScreen
       title="Auto-Paint Ruleset Editor"
+      className="ap-ruleset-editor"
+      menus={subEditorFileMenus({
+        load: true,
+        save: true,
+        revert: true,
+        loadLabel: 'Load from Disk',
+        saveLabel: 'Save Ruleset',
+        extraFileItems: [{ id: 'generateMap', label: 'Generate Map' }],
+      })}
+      onMenuAction={onMenuAction}
       toolbar={
         <>
           <button type="button" className="me-button" onClick={discardAndBack}>
             {dirty ? 'Back (discard)' : 'Back to Map'}
+          </button>
+          <button
+            type="button"
+            className={`me-button${viewMode === 'rules' ? ' is-on' : ''}`}
+            aria-pressed={viewMode === 'rules'}
+            onClick={() => setViewMode('rules')}
+          >
+            Rules
+          </button>
+          <button
+            type="button"
+            className={`me-button${viewMode === 'map' ? ' is-on' : ''}`}
+            aria-pressed={viewMode === 'map'}
+            disabled={!map}
+            title={map ? 'Show the open map board' : 'Generate a map first'}
+            onClick={() => setViewMode('map')}
+          >
+            Map
           </button>
           <button type="button" className="me-button" disabled={!canSave || !dirty || busy} onClick={onSave}>
             Save
@@ -272,18 +346,64 @@ export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
           </button>
           <button
             type="button"
+            className="me-button"
+            disabled={busy || typeof onGenerateMap !== 'function'}
+            title="Build an Auto-Paint map and show it in Map view."
+            onClick={generateMap}
+          >
+            Generate Map
+          </button>
+          <button
+            type="button"
             className={`me-button${showAll ? ' is-on' : ''}`}
             onClick={() => setShowAll((value) => !value)}
-            title={showAll ? 'Limit palette to this environment’s assets.' : 'Show every tile and Template Piece.'}
+            title={showAll ? 'Template Pieces only (Dev Edit catalogue).' : 'Also show Starship wall tiles for larger walls.'}
           >
-            {showAll ? 'Environment assets only' : 'Show all'}
+            {showAll ? 'Template Pieces only' : 'Show all'}
+          </button>
+          <button
+            type="button"
+            className={`me-button${showGrid ? ' is-on' : ''}`}
+            aria-pressed={showGrid}
+            title="Show the guide grid overlay"
+            onClick={() => onShowGrid?.(!showGrid)}
+          >
+            Grid
+          </button>
+          <EditorSelect
+            className="me-select ed-grid-select"
+            value={gridSize}
+            aria-label="Grid size"
+            title="Grid spacing in world pixels"
+            disabled={!showGrid}
+            onChange={(event) => onGridSize?.(Number(event.target.value))}
+          >
+            {EDITOR_GRID_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}px
+              </option>
+            ))}
+          </EditorSelect>
+          <button
+            type="button"
+            className="me-button ed-icon-btn"
+            title="Grid options"
+            aria-label="Grid options"
+            onClick={() => setShowGridOptions(true)}
+          >
+            <svg className="ed-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M6.2 1.2h3.6l.3 1.6a4.8 4.8 0 0 1 1.2.7l1.5-.6 1.8 3.1-1.2 1.1c.1.4.1.7.1 1.1s0 .7-.1 1.1l1.2 1.1-1.8 3.1-1.5-.6a4.8 4.8 0 0 1-1.2.7l-.3 1.6H6.2l-.3-1.6a4.8 4.8 0 0 1-1.2-.7l-1.5.6L1.4 10l1.2-1.1A4.5 4.5 0 0 1 2.5 8c0-.4 0-.7.1-1.1L1.4 5.8l1.8-3.1 1.5.6a4.8 4.8 0 0 1 1.2-.7l.3-1.6ZM8 5.5A2.5 2.5 0 1 0 8 10.5 2.5 2.5 0 0 0 8 5.5Z"
+              />
+            </svg>
           </button>
           <span className="me-text">
             {status ||
-              (showAll
-                ? 'Full catalogue. Drag from Palette onto a role slot. Right-click a selected asset to remove it.'
-                : `${catalogueTiles.length} tiles · ${cataloguePieces.length} pieces for this environment. Drag onto a role slot.`)}
-            {!canSave && ' Dev server required to save.'}
+              (showingMap
+                ? `${map?.name || 'Untitled map'} · Grid ${gridSize}px`
+                : `${templateItems.length} Template Pieces from templatePieces.json (same as Dev Edit Assets).`)}
+            {!canSave && !showingMap && ' Dev server required to save.'}
           </span>
         </>
       }
@@ -329,77 +449,91 @@ export default function AutoPaintRulesetEditorScreen({ onBack, onStatus }) {
         </label>
         <GeSourcePalette
           title="Palette"
-          hint="Drag onto a role slot. Role filters still apply."
+          hint="Same Template Pieces catalogue as Dev Edit Assets. Layer tabs. Drops resolve to wall/floor tiles for placement."
           items={paletteItems}
         />
       </div>
 
-      <div className="oe-detail oe-wide">
-        <div className="ce-inspector">
-          <p className="ce-heading">{draft.label}</p>
-          <p className="ge-lead">
-            <strong>Auto-Paint</strong> uses this ruleset when painting floor footprints and rebuilding walls. Wall mode:{' '}
-            {draft.wallMode === 'templatePieces' ? 'Template Pieces (32px)' : draft.wallMode}.
-          </p>
-
-          <section className="ge-block">
-            <h3 className="ge-block-title">1. Floors</h3>
-            <p className="ge-block-hint">Drag a floor tile from the Palette into the slot. Right-click to remove.</p>
-            <TileSpritePicker
-              label={FLOOR_FIELD.label}
-              options={tileOptions(FLOOR_FIELD, draft.floors.defaultTile)}
-              value={draft.floors.defaultTile ?? null}
-              emptyText={emptyHint}
-              onChange={(id) => patchFloors({ defaultTile: id })}
-            />
-          </section>
-
-          <section className="ge-block">
-            <h3 className="ge-block-title">2. Walls / Structure</h3>
-            <p className="ge-block-hint">
-              Underlay is solid for pathing; Template Pieces are the visible 32px walls. Drag from the Palette.
-            </p>
-            <TileSpritePicker
-              label={UNDERLAY_FIELD.label}
-              options={tileOptions(UNDERLAY_FIELD, draft.underlayWallTile)}
-              value={draft.underlayWallTile ?? null}
-              emptyText={emptyHint}
-              onChange={(id) => patch({ underlayWallTile: id })}
-            />
-            {WALL_PIECE_FIELDS.map((field) => (
-              <TemplatePieceSpritePicker
-                key={field.key}
-                label={field.label}
-                options={pieceOptions(field.key, draft.walls[field.key] ?? null)}
-                value={draft.walls[field.key] ?? null}
-                allowNone={!['straight', 'corner'].includes(field.key)}
-                emptyText={emptyHint}
-                onChange={(id) => patchWalls({ [field.key]: id })}
-              />
-            ))}
-          </section>
-
-          <section className="ge-block">
-            <h3 className="ge-block-title">3. Doors / Openings</h3>
-            <p className="ge-block-hint">Door underlay tile and frame piece. Other door settings stay on the ruleset when saving.</p>
-            <TileSpritePicker
-              label={DOOR_TILE_FIELD.label}
-              options={tileOptions(DOOR_TILE_FIELD, draft.doors.underlayTile)}
-              value={draft.doors.underlayTile ?? null}
-              emptyText={emptyHint}
-              onChange={(id) => patchDoors({ underlayTile: id })}
-            />
-            <TemplatePieceSpritePicker
-              label={DOOR_PIECE_FIELD.label}
-              options={pieceOptions(DOOR_PIECE_FIELD.key, draft.walls.doorFrame ?? null)}
-              value={draft.walls.doorFrame ?? null}
-              allowNone
-              emptyText={emptyHint}
-              onChange={(id) => patchWalls({ doorFrame: id })}
-            />
-          </section>
+      {showingMap ? (
+        <div className="me-board-area ap-ruleset-board-area">
+          <div className="ed-viewport-title">{map.name || 'Untitled map'}</div>
+          <EditorBoard
+            key={boardKey}
+            map={map}
+            showGrid={showGrid}
+            gridSize={gridSize}
+            showBounds={showBounds}
+            showCentre={showCentre}
+          />
         </div>
-      </div>
+      ) : (
+        <div className="oe-detail oe-wide">
+          <div className="ce-inspector">
+            <p className="ce-heading">{draft.label}</p>
+            <p className="ge-lead">
+              One catalogue: <strong>templatePieces.json</strong> (Dev Edit → Template Pieces). Auto-Paint places the
+              matching wall <em>tiles</em> (`wall32` / …). Show all adds Starship wall tiles for larger walls.
+            </p>
+
+            <section className="ge-block">
+              <h3 className="ge-block-title">1. Floors</h3>
+              <p className="ge-block-hint">Drag a Template floor piece (or Show all → floor tile) onto the slot.</p>
+              <TileSpritePicker
+                label={FLOOR_FIELD.label}
+                options={tileOptions(FLOOR_FIELD, draft.floors.defaultTile)}
+                value={resolveAutoPaintTileId(draft.floors.defaultTile) ?? draft.floors.defaultTile}
+                emptyText={emptyHint}
+                resolveDropId={resolveDropToTile}
+                onChange={onRoleChange((id) => patchFloors({ defaultTile: id }))}
+              />
+            </section>
+
+            <section className="ge-block">
+              <h3 className="ge-block-title">2. Walls / Structure</h3>
+              <p className="ge-block-hint">
+                Drag Template wall pieces here. Default Template 32 → Bulkhead 32 tiles. Show all to pick a full bulkhead.
+              </p>
+              {WALL_TILE_FIELDS.map((field) => (
+                <TileSpritePicker
+                  key={field.key}
+                  label={field.label}
+                  options={tileOptions(WALL_FIELD, draft.walls[field.key] ?? null)}
+                  value={resolveAutoPaintTileId(draft.walls[field.key]) ?? draft.walls[field.key] ?? null}
+                  allowNone={!field.required}
+                  emptyText={emptyHint}
+                  resolveDropId={resolveDropToTile}
+                  onChange={onRoleChange((id) => patchWalls({ [field.key]: id }))}
+                />
+              ))}
+            </section>
+
+            <section className="ge-block">
+              <h3 className="ge-block-title">3. Doors / Openings</h3>
+              <p className="ge-block-hint">Doorway tile for openings (generation not yet).</p>
+              <TileSpritePicker
+                label={DOOR_TILE_FIELD.label}
+                options={tileOptions(DOOR_TILE_FIELD, draft.doors.underlayTile)}
+                value={resolveAutoPaintTileId(draft.doors.underlayTile) ?? draft.doors.underlayTile}
+                emptyText={emptyHint}
+                resolveDropId={resolveDropToTile}
+                onChange={onRoleChange((id) => patchDoors({ underlayTile: id }))}
+              />
+            </section>
+          </div>
+        </div>
+      )}
+      <EditorGridOptions
+        show={showGridOptions}
+        onClose={() => setShowGridOptions(false)}
+        showGrid={showGrid}
+        onShowGrid={onShowGrid}
+        gridSize={gridSize}
+        onGridSize={onGridSize}
+        showBounds={showBounds}
+        onShowBounds={onShowBounds}
+        showCentre={showCentre}
+        onShowCentre={onShowCentre}
+      />
     </EditorSubScreen>
   )
 }

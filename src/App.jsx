@@ -39,9 +39,9 @@ const VIEWS = ['menu', 'shipBuilder', 'settings', 'creator', 'episodeSelect', 'c
 // The prototypes Load Episode can open (a saved choice of one since removed falls back to the first).
 const EPISODE_MODES = ['combat', 'exploration']
 
-// Always open on the main menu; the last view is still saved for in-session use but is not restored on launch.
+// Dev Edit first while Auto-Paint / map tooling is the active authoring path. Main Menu remains reachable via Back.
 function initialView() {
-  return 'menu'
+  return 'mapEditor'
 }
 
 // The music cue each view plays (see src/audio/music.js). Load Episode and Settings keep the main-menu cue, so that

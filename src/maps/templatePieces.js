@@ -199,6 +199,28 @@ export function templatePieceGroups() {
   return groups
 }
 
+/** Flat Template category list for shared editors (Dev Edit Assets / Auto-Paint). Same groups as templatePieceGroups. */
+export function listEditorTemplatePieces({ includeDimension = false } = {}) {
+  const out = []
+  for (const group of templatePieceGroups()) {
+    if (group.id === 'template-dimension' && !includeDimension) continue
+    for (const piece of group.pieces) out.push(piece)
+  }
+  return out
+}
+
+/** GeSourcePalette items for the Template Pieces category (one catalogue, no parallel copy). */
+export function editorTemplatePaletteItems({ includeDimension = false } = {}) {
+  return listEditorTemplatePieces({ includeDimension }).map((piece) => ({
+    kind: 'piece',
+    id: piece.id,
+    label: piece.label,
+    href: piece.href,
+    // Catalogue already authors layer; GeSourcePalette falls back to layerOfTemplatePiece when missing.
+    layer: piece.layer ?? null,
+  }))
+}
+
 // True when a cover Template Piece's footprint overlaps the tile cell (combat standing-next-to cover).
 export function templatePieceGivesCover(map, position) {
   const cellX = Math.round(position.x)

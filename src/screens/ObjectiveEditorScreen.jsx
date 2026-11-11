@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ConditionsEditor } from '../components/conversation/ConversationFields.jsx'
 import ConfirmDialog from '../components/maps/ConfirmDialog.jsx'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { mapEmbeddedEditorMenus } from '../components/maps/editorSubMenus.js'
 import EditorSelect from '../components/maps/EditorSelect.jsx'
 
 // Dev objective editor (opened from the map editor): the open map's objectives (mapFormat.js objectives), listed on the
@@ -81,7 +82,20 @@ function LocationFields({ objective, width, height, onChange, onPick }) {
   )
 }
 
-export default function ObjectiveEditorScreen({ objectives, onChange, mapName, width, height, initialIndex = 0, objects = [], onPick, onBack }) {
+export default function ObjectiveEditorScreen({
+  objectives,
+  onChange,
+  mapName,
+  width,
+  height,
+  initialIndex = 0,
+  objects = [],
+  onPick,
+  onBack,
+  onSaveMap,
+  onLoadMap,
+  onSaveAsMap,
+}) {
   const [selectedIndex, setSelectedIndex] = useState(() => (objectives.length ? Math.min(initialIndex ?? 0, objectives.length - 1) : null))
   const [question, setQuestion] = useState(null)
   const selected = selectedIndex !== null ? objectives[selectedIndex] : null
@@ -112,9 +126,19 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
     setQuestion(null)
   }
 
+  const onMenuAction = (id) => {
+    if (id === 'save') return onSaveMap?.()
+    if (id === 'load') return onLoadMap?.()
+    if (id === 'saveAs') return onSaveAsMap?.()
+    if (id === 'back') return onBack?.()
+    return undefined
+  }
+
   return (
     <EditorSubScreen
       title="Objective Editor"
+      menus={mapEmbeddedEditorMenus()}
+      onMenuAction={onMenuAction}
       toolbar={
         <>
           <button type="button" className="me-button" onClick={onBack}>
@@ -124,7 +148,7 @@ export default function ObjectiveEditorScreen({ objectives, onChange, mapName, w
             Add Objective
           </button>
           <span className="me-text">
-            Objectives of {mapName || 'the open map'}. Changes are part of the map: Save the map to keep them.
+            Objectives of {mapName || 'the open map'}. Changes are part of the map: File → Save Map to keep them.
           </span>
         </>
       }

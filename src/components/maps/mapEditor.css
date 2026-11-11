@@ -1873,6 +1873,25 @@
   background: #0a0c10;
 }
 
+/* Auto-Paint Ruleset Editor: left palette stays; Rules/Map toggles the right pane. */
+.ed-shell.ap-ruleset-editor .ess-body {
+  position: relative;
+  min-height: 0;
+}
+.ed-shell.ap-ruleset-editor .ap-ruleset-board-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #0a0c10;
+}
+.ed-shell.ap-ruleset-editor .ap-ruleset-board-area .me-board {
+  flex: 1;
+  min-height: 0;
+}
+
 .ed-viewport.is-float-busy,
 .ed-viewport.is-float-busy .me-board {
   pointer-events: none;

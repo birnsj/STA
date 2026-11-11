@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import EditorSubScreen from '../components/maps/EditorSubScreen.jsx'
+import { subEditorFileMenus } from '../components/maps/editorSubMenus.js'
 import { STORY_TEMPLATES, storyParagraphs } from '../exploration/missionStory.js'
 import { canEditStory, saveStoryTemplates } from '../exploration/storyFiles.js'
 
@@ -57,18 +58,49 @@ export default function StoryEditorScreen({ onBack }) {
     }
   }
 
+  const load = () => {
+    if (dirty && !window.confirm('Discard unsaved story wording and reload the saved templates?')) return
+    const next = { ...STORY_TEMPLATES }
+    setDraft(next)
+    setSaved({ ...next })
+    setStatus('Loaded story templates from memory (last save / app start).')
+  }
+
+  const revert = () => setDraft({ ...saved })
+
+  const discardAndBack = () => {
+    if (dirty && !window.confirm('Discard unsaved story wording changes?')) return
+    onBack()
+  }
+
+  const onMenuAction = (id) => {
+    if (id === 'save') return save()
+    if (id === 'load') return load()
+    if (id === 'revert') return revert()
+    if (id === 'back') return discardAndBack()
+    return undefined
+  }
+
   return (
     <EditorSubScreen
       title="Story Wording"
+      menus={subEditorFileMenus({
+        load: true,
+        save: true,
+        revert: true,
+        loadLabel: 'Load Templates',
+        saveLabel: 'Save Wording',
+      })}
+      onMenuAction={onMenuAction}
       toolbar={
         <>
-          <button type="button" className="me-button" onClick={onBack}>
+          <button type="button" className="me-button" onClick={discardAndBack}>
             {dirty ? 'Back (discard changes)' : 'Back to Map'}
           </button>
           <button type="button" className="me-button" disabled={!canEditStory || !dirty || empty.length > 0} onClick={save}>
             Save Wording
           </button>
-          <button type="button" className="me-button" disabled={!dirty} onClick={() => setDraft({ ...saved })}>
+          <button type="button" className="me-button" disabled={!dirty} onClick={revert}>
             Revert
           </button>
           <span className="me-text">

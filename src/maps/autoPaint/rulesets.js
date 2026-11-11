@@ -1,7 +1,7 @@
 // Live Auto-Paint ruleset catalogue. Seeded from autoPaintRulesets.json; editor updates memory and persists via /__autopaint.
 import seed from '../../data/adaptation/maps/autoPaintRulesets.json'
 import { TILES } from '../mapFormat.js'
-import { getTemplatePiece } from '../templatePieces.js'
+import { resolveAutoPaintTileId } from './templatePalette.js'
 
 export const AUTO_PAINT_ENVIRONMENTS = Object.freeze([
   { id: 'starshipStation', label: 'Starship / Station' },
@@ -10,32 +10,26 @@ export const AUTO_PAINT_ENVIRONMENTS = Object.freeze([
   { id: 'naturalTerrain', label: 'Natural Terrain' },
 ])
 
-export const AUTO_PAINT_WALL_MODES = Object.freeze([
-  { id: 'templatePieces', label: 'Template Pieces (32px)' },
-  { id: 'tiles', label: 'Wall tiles' },
-])
+// Tile walls only (Template Pieces path retired). Kept for older JSON that still writes wallMode.
+export const AUTO_PAINT_WALL_MODES = Object.freeze([{ id: 'tiles', label: 'Wall tiles' }])
 
 const ENV_IDS = new Set(AUTO_PAINT_ENVIRONMENTS.map((entry) => entry.id))
 const WALL_MODE_IDS = new Set(AUTO_PAINT_WALL_MODES.map((entry) => entry.id))
-const PIECE_KEYS = ['straight', 'straightLong', 'corner', 'hull', 'hullLong', 'hullCorner', 'doorFrame']
-const REQUIRED_PIECE_KEYS = ['straight', 'corner']
+const WALL_TILE_KEYS = ['straight', 'corner', 'hull', 'hullCorner']
+const REQUIRED_WALL_KEYS = ['straight', 'corner']
 
 const FALLBACK = Object.freeze({
   schemaVersion: 1,
-  id: 'starship-interior-default',
-  label: 'Starship Interior',
+  id: 'template-32',
+  label: 'Template 32',
   environment: 'starshipStation',
-  wallMode: 'templatePieces',
-  underlayWallTile: 'templateWall',
+  wallMode: 'tiles',
   floors: { defaultTile: 'floor', variants: [] },
   walls: {
-    straight: 'tplStarshipWall32',
-    straightLong: 'tplStarshipWall32PlainLong',
-    corner: 'tplStarshipWall32Corner',
-    hull: 'tplStarshipHull32',
-    hullLong: 'tplStarshipHull32Long',
-    hullCorner: 'tplStarshipHull32Corner',
-    doorFrame: 'tplStarshipDoorFrame',
+    straight: 'wall32',
+    corner: 'wall32Corner',
+    hull: null,
+    hullCorner: null,
     fittings: [],
     fittingChance: 0,
   },
@@ -44,7 +38,6 @@ const FALLBACK = Object.freeze({
 })
 
 const knownTile = (id) => typeof id === 'string' && TILES.some((tile) => tile.id === id)
-const knownPiece = (id) => typeof id === 'string' && Boolean(getTemplatePiece(id))
 
 function clampChance(value, fallback) {
   const n = Number(value)
@@ -52,7 +45,7 @@ function clampChance(value, fallback) {
   return Math.min(1, Math.max(0, n))
 }
 
-function normalizePieceId(value) {
+function normalizeTileId(value) {
   if (value == null || value === '') return null
   if (typeof value !== 'string') return null
   const id = value.trim()
@@ -69,22 +62,18 @@ export function resolveAutoPaintRuleset(raw = {}) {
 
   const walls = {
     fittings: Array.isArray(wallsIn.fittings)
-      ? wallsIn.fittings.map(normalizePieceId).filter(Boolean)
+      ? wallsIn.fittings.map(normalizeTileId).filter(Boolean)
       : [],
     fittingChance: clampChance(wallsIn.fittingChance, 0),
   }
-  for (const key of PIECE_KEYS) {
-    walls[key] = normalizePieceId(wallsIn[key])
+  for (const key of WALL_TILE_KEYS) {
+    walls[key] = normalizeTileId(wallsIn[key])
   }
 
   const defaultTile =
     typeof floorsIn.defaultTile === 'string' && floorsIn.defaultTile.trim()
       ? floorsIn.defaultTile.trim()
       : FALLBACK.floors.defaultTile
-  const underlayWallTile =
-    typeof base.underlayWallTile === 'string' && base.underlayWallTile.trim()
-      ? base.underlayWallTile.trim()
-      : FALLBACK.underlayWallTile
 
   return {
     schemaVersion: 1,
@@ -92,7 +81,6 @@ export function resolveAutoPaintRuleset(raw = {}) {
     label: typeof base.label === 'string' && base.label.trim() ? base.label.trim() : FALLBACK.label,
     environment: ENV_IDS.has(base.environment) ? base.environment : FALLBACK.environment,
     wallMode: WALL_MODE_IDS.has(base.wallMode) ? base.wallMode : FALLBACK.wallMode,
-    underlayWallTile,
     floors: {
       defaultTile,
       variants: Array.isArray(floorsIn.variants)
@@ -121,27 +109,24 @@ export function validateAutoPaintRuleset(raw) {
   const errors = []
   if (!ruleset.walls.straight) errors.push('walls.straight is required')
   if (!ruleset.walls.corner) errors.push('walls.corner is required')
-  if (!knownTile(ruleset.underlayWallTile)) {
-    errors.push(`underlayWallTile: unknown tile “${ruleset.underlayWallTile}”`)
-  }
   if (!knownTile(ruleset.floors.defaultTile)) {
     errors.push(`floors.defaultTile: unknown tile “${ruleset.floors.defaultTile}”`)
   }
   for (const id of ruleset.floors.variants) {
     if (!knownTile(id)) errors.push(`floors.variants: unknown tile “${id}”`)
   }
-  for (const key of PIECE_KEYS) {
+  for (const key of WALL_TILE_KEYS) {
     const id = ruleset.walls[key]
     if (!id) {
-      if (REQUIRED_PIECE_KEYS.includes(key)) errors.push(`walls.${key} is required`)
+      if (REQUIRED_WALL_KEYS.includes(key)) errors.push(`walls.${key} is required`)
       continue
     }
-    if (!knownPiece(id)) errors.push(`walls.${key}: unknown Template Piece “${id}”`)
+    if (!resolveAutoPaintTileId(id)) errors.push(`walls.${key}: unknown tile/Template Piece “${id}”`)
   }
   for (const id of ruleset.walls.fittings) {
-    if (!knownPiece(id)) errors.push(`walls.fittings: unknown Template Piece “${id}”`)
+    if (!resolveAutoPaintTileId(id)) errors.push(`walls.fittings: unknown tile/Template Piece “${id}”`)
   }
-  if (!knownTile(ruleset.doors.underlayTile)) {
+  if (!resolveAutoPaintTileId(ruleset.doors.underlayTile) && !knownTile(ruleset.doors.underlayTile)) {
     errors.push(`doors.underlayTile: unknown tile “${ruleset.doors.underlayTile}”`)
   }
   return { ok: errors.length === 0, errors, ruleset }
@@ -155,8 +140,7 @@ function loadSeed() {
     if (!ok) {
       console.warn(`[autoPaint] ruleset “${entry?.id ?? '?'}” has catalogue errors:`, errors.join('; '))
     }
-    // Prefer validated seed entries; fill only completely missing required slots from FALLBACK.
-    for (const key of REQUIRED_PIECE_KEYS) {
+    for (const key of REQUIRED_WALL_KEYS) {
       if (!ruleset.walls[key]) ruleset.walls[key] = FALLBACK.walls[key]
     }
     resolved.push(ruleset)

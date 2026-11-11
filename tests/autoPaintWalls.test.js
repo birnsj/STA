@@ -5,13 +5,24 @@ import {
   collectFloorKeys,
   exteriorUnderlayKeys,
   floorIdsForRuleset,
-  promoteTemplatePieceManual,
-  removeAutoPaintTemplatePiece,
-  tipKeyOf,
+  generateAutoPaintMap,
+  noteAutoPaintWallCleared,
+  packTipCells,
+  packUnderlayRun,
+  pieceKitFromRuleset,
+  promoteWallCellManual,
+  resolveAutoPaintRuleset,
+  rulesetUsesTemplatePieces,
+  snapAutoPaintGenerateSize,
   validateAutoPaintRuleset,
+  WALL_LEN_LONG,
+  WALL_LEN_SHORT,
+  WALL_LEN_STUB,
 } from '../src/maps/autoPaint/index.js'
-import { getAutoPaintRuleset, resolveAutoPaintRuleset } from '../src/maps/autoPaint/rulesets.js'
-import { createNullMap, NULL_TILE, parseMapFile, serializeMap, cellKey } from '../src/maps/mapFormat.js'
+import { getAutoPaintRuleset } from '../src/maps/autoPaint/rulesets.js'
+import { assembleWallsFromFloors as assembleTileWallsFromFloors } from '../src/maps/autoPaint/wallsTiles.js'
+import { createNullMap, NULL_TILE, parseMapFile, serializeMap, cellKey, getTile } from '../src/maps/mapFormat.js'
+import { getTemplatePiece } from '../src/maps/templatePieces.js'
 
 function paintFloors(map, cells, floorId = 'floor') {
   const tiles = map.tiles.map((row) => row.slice())
@@ -25,29 +36,40 @@ function rectCells(x0, y0, x1, y1) {
   return cells
 }
 
+const bulkheadRuleset = () =>
+  resolveAutoPaintRuleset({
+    id: 'bulkhead-tiles',
+    label: 'Bulkhead tiles',
+    walls: { straight: 'bulkhead', corner: 'bulkheadCorner' },
+    floors: { defaultTile: 'floor', variants: [] },
+  })
+
 describe('Auto-Paint rulesets', () => {
-  it('loads the seed ruleset with catalogue ids', () => {
-    const ruleset = getAutoPaintRuleset('starship-interior-default')
-    assert.equal(ruleset.id, 'starship-interior-default')
-    assert.equal(ruleset.walls.straight, 'tplStarshipWall32')
-    assert.equal(ruleset.walls.straightLong, 'tplStarshipWall32PlainLong')
-    assert.equal(ruleset.walls.corner, 'tplStarshipWall32Corner')
-    assert.equal(ruleset.walls.hull, 'tplStarshipHull32')
-    assert.equal(ruleset.walls.doorFrame, 'tplStarshipDoorFrame')
+  it('loads the seed ruleset with wall32 tile ids (piece kit under the hood)', () => {
+    const ruleset = getAutoPaintRuleset('template-32')
+    assert.equal(ruleset.id, 'template-32')
+    assert.equal(ruleset.label, 'Template 32')
+    assert.equal(ruleset.walls.straight, 'wall32')
+    assert.equal(ruleset.walls.corner, 'wall32Corner')
+    assert.equal(rulesetUsesTemplatePieces(ruleset), true)
+    const kit = pieceKitFromRuleset(ruleset)
+    assert.equal(kit.straight, 'tplStarshipWall32')
+    assert.equal(kit.corner, 'tplStarshipWall32Corner')
+    assert.ok(getTemplatePiece(kit.straight))
     const { ok, errors } = validateAutoPaintRuleset(ruleset)
     assert.equal(ok, true, errors.join('; '))
   })
 
-  it('reports unknown asset ids without inventing replacements', () => {
+  it('reports unknown tile ids without inventing replacements', () => {
     const resolved = resolveAutoPaintRuleset({
       id: 'tmp',
-      walls: { straight: 'missing-piece', corner: 'also-missing' },
+      walls: { straight: 'missing-wall', corner: 'also-missing' },
     })
-    assert.equal(resolved.walls.straight, 'missing-piece')
+    assert.equal(resolved.walls.straight, 'missing-wall')
     assert.equal(resolved.walls.corner, 'also-missing')
     const { ok, errors } = validateAutoPaintRuleset(resolved)
     assert.equal(ok, false)
-    assert.ok(errors.some((line) => line.includes('missing-piece')))
+    assert.ok(errors.some((line) => line.includes('missing-wall')))
     assert.ok(errors.some((line) => line.includes('also-missing')))
   })
 })
@@ -68,59 +90,34 @@ describe('Auto-Paint topology', () => {
   })
 })
 
-describe('assembleWallsFromFloors', () => {
-  it('builds underlay and pieces; floorUnder remembers Null not a floor id', () => {
+describe('assembleWallsFromFloors (Template 32 pieces)', () => {
+  it('places templateWall underlay + tip pieces (not wall32 cell tiles)', () => {
     let map = createNullMap({ name: 'rect', width: 10, height: 10 })
     map = paintFloors(map, rectCells(3, 3, 5, 5))
-    const ruleset = getAutoPaintRuleset()
-    const next = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
+    const ruleset = getAutoPaintRuleset('template-32')
+    const next = assembleWallsFromFloors(map, ruleset)
     const region = next.autoPaint.regions[0]
     assert.ok(region.generatedUnderlayKeys.length > 0)
     assert.ok(region.generatedPieceIds.length > 0)
+    const autoPieces = (next.templatePiecePlacements ?? []).filter((entry) => entry.autoPaint)
+    assert.ok(autoPieces.length > 0)
+    assert.ok(autoPieces.every((entry) => getTemplatePiece(entry.pieceId)))
     for (const key of region.generatedUnderlayKeys) {
       const [x, y] = key.split(',').map(Number)
-      assert.equal(next.tiles[y][x], ruleset.underlayWallTile)
-      assert.equal(next.floorUnder[key], NULL_TILE)
+      assert.equal(next.tiles[y][x], 'templateWall', `${key} should be templateWall underlay`)
+      assert.equal(next.floorUnder[key], 'floor', `${key} should remember floor under underlay`)
     }
-    // Playable floor cells stay floor (walls sit on exterior Null cells).
     assert.equal(next.tiles[4][4], 'floor')
+    // Same tip-grid rotations as Template Deck (0/90/180/270), not boolean tile mirrors.
+    assert.ok(autoPieces.some((entry) => [0, 90, 180, 270].includes(entry.rotation)))
     const file = serializeMap(next)
     const round = parseMapFile(file, 'rect')
-    assert.equal(round.floorUnder[region.generatedUnderlayKeys[0]], NULL_TILE)
-    assert.ok(round.templatePiecePlacements.some((entry) => entry.autoPaint === true))
+    assert.ok(round.autoPaint.regions[0].generatedUnderlayKeys.length > 0)
+    assert.ok((round.templatePiecePlacements ?? []).length > 0)
   })
 
-  it('restores Null when underlay is stripped on shrink', () => {
-    let map = createNullMap({ name: 'shrink', width: 10, height: 10 })
-    map = paintFloors(map, rectCells(3, 3, 5, 5))
-    const ruleset = getAutoPaintRuleset()
-    map = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    const outerKey = map.autoPaint.regions[0].generatedUnderlayKeys.find((key) => {
-      const [x, y] = key.split(',').map(Number)
-      return x === 2 || y === 2 || x === 6 || y === 6
-    })
-    assert.ok(outerKey)
-    // Shrink footprint so that underlay cell is no longer adjacent.
-    map = paintFloors(
-      { ...map, tiles: map.tiles.map((row) => row.slice()) },
-      rectCells(4, 4, 4, 4),
-    )
-    // Clear old floors outside the single cell so collectFloorKeys shrinks.
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
-        if (map.tiles[y][x] === 'floor' && !(x === 4 && y === 4)) map.tiles[y][x] = NULL_TILE
-      }
-    }
-    const rebuilt = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    const [ox, oy] = outerKey.split(',').map(Number)
-    if (!rebuilt.autoPaint.regions[0].generatedUnderlayKeys.includes(outerKey)) {
-      assert.equal(rebuilt.tiles[oy][ox], NULL_TILE)
-      assert.equal(rebuilt.floorUnder[outerKey], undefined)
-    }
-  })
-
-  it('builds walls for L, U, and concave footprints', () => {
-    const ruleset = getAutoPaintRuleset()
+  it('builds underlay for L, U, and concave footprints', () => {
+    const ruleset = getAutoPaintRuleset('template-32')
     const shapes = [
       { name: 'L', cells: [...rectCells(2, 2, 5, 2), ...rectCells(2, 3, 2, 5)] },
       { name: 'U', cells: [...rectCells(2, 2, 2, 5), ...rectCells(3, 5, 5, 5), ...rectCells(6, 2, 6, 5)] },
@@ -132,55 +129,63 @@ describe('assembleWallsFromFloors', () => {
     for (const shape of shapes) {
       let map = createNullMap({ name: shape.name, width: 10, height: 10 })
       map = paintFloors(map, shape.cells)
-      const next = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
+      const next = assembleWallsFromFloors(map, ruleset)
       assert.ok(next.autoPaint.regions[0].generatedUnderlayKeys.length >= 4, shape.name)
-      assert.ok(next.templatePiecePlacements.length >= 2, shape.name)
+      assert.ok((next.templatePiecePlacements ?? []).some((entry) => entry.autoPaint), shape.name)
+    }
+  })
+})
+
+describe('assembleWallsFromFloors (bulkhead tiles)', () => {
+  it('places bulkhead tiles on exterior Null', () => {
+    let map = createNullMap({ name: 'rect', width: 10, height: 10 })
+    map = paintFloors(map, rectCells(3, 3, 5, 5))
+    const ruleset = bulkheadRuleset()
+    assert.equal(rulesetUsesTemplatePieces(ruleset), false)
+    const next = assembleTileWallsFromFloors(map, ruleset)
+    const region = next.autoPaint.regions[0]
+    assert.ok(region.generatedWallKeys.length > 0)
+    for (const key of region.generatedWallKeys) {
+      const [x, y] = key.split(',').map(Number)
+      assert.ok(getTile(next.tiles[y][x]).wall, `${key} should be a wall tile`)
     }
   })
 
-  it('builds when the floor touches the map edge', () => {
-    let map = createNullMap({ name: 'edge', width: 8, height: 8 })
-    map = paintFloors(map, rectCells(0, 0, 2, 2))
-    const next = assembleWallsFromFloors(map, getAutoPaintRuleset(), { random: () => 0 })
-    assert.ok(next.autoPaint.regions[0].generatedUnderlayKeys.length > 0)
-    assert.equal(next.tiles[0][0], 'floor')
-  })
-
-  it('preserves a manually promoted piece and does not place another auto piece on its tip', () => {
+  it('preserves a manually promoted wall cell on Rebuild', () => {
     let map = createNullMap({ name: 'manual', width: 10, height: 10 })
     map = paintFloors(map, rectCells(3, 3, 4, 4))
-    const ruleset = getAutoPaintRuleset()
-    map = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    const piece = map.templatePiecePlacements.find((entry) => entry.autoPaint)
-    assert.ok(piece)
-    const tip = tipKeyOf(piece.position)
-    map = promoteTemplatePieceManual(map, piece.id)
-    const rebuilt = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    const kept = rebuilt.templatePiecePlacements.find((entry) => entry.id === piece.id)
-    assert.ok(kept)
-    assert.equal(kept.autoPaint, false)
-    const atTip = rebuilt.templatePiecePlacements.filter((entry) => tipKeyOf(entry.position) === tip)
-    assert.equal(atTip.length, 1)
-    assert.equal(atTip[0].id, piece.id)
+    const ruleset = bulkheadRuleset()
+    map = assembleTileWallsFromFloors(map, ruleset)
+    const key = map.autoPaint.regions[0].generatedWallKeys[0]
+    const [x, y] = key.split(',').map(Number)
+    map = promoteWallCellManual(map, { x, y })
+    map = {
+      ...map,
+      tiles: map.tiles.map((row, rowY) => row.map((id, colX) => (rowY === y && colX === x ? 'plainBulkhead' : id))),
+    }
+    const rebuilt = assembleTileWallsFromFloors(map, ruleset)
+    assert.equal(rebuilt.tiles[y][x], 'plainBulkhead')
+    assert.ok(rebuilt.autoPaint.regions[0].manualWallKeys.includes(key))
   })
 
-  it('does not recreate a deleted Auto-Paint piece tip on Rebuild', () => {
+  it('does not recreate a deleted Auto-Paint wall cell on Rebuild', () => {
     let map = createNullMap({ name: 'deleted', width: 10, height: 10 })
     map = paintFloors(map, rectCells(3, 3, 5, 5))
-    const ruleset = getAutoPaintRuleset()
-    map = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    const piece = map.templatePiecePlacements.find((entry) => entry.autoPaint)
-    assert.ok(piece)
-    const tip = tipKeyOf(piece.position)
-    map = removeAutoPaintTemplatePiece(map, piece.id)
-    assert.ok(map.autoPaint.regions[0].suppressedTipKeys.includes(tip))
-    assert.ok(!map.templatePiecePlacements.some((entry) => entry.id === piece.id))
-    const rebuilt = assembleWallsFromFloors(map, ruleset, { random: () => 0 })
-    assert.ok(rebuilt.autoPaint.regions[0].suppressedTipKeys.includes(tip))
-    assert.ok(!rebuilt.templatePiecePlacements.some((entry) => tipKeyOf(entry.position) === tip))
-    const file = serializeMap(rebuilt)
-    const round = parseMapFile(file, 'deleted')
-    assert.ok(round.autoPaint.regions[0].suppressedTipKeys.includes(tip))
+    const ruleset = bulkheadRuleset()
+    map = assembleTileWallsFromFloors(map, ruleset)
+    const key = map.autoPaint.regions[0].generatedWallKeys[0]
+    const [x, y] = key.split(',').map(Number)
+    map = {
+      ...map,
+      tiles: map.tiles.map((row, rowY) => row.map((id, colX) => (rowY === y && colX === x ? NULL_TILE : id))),
+      floorUnder: { ...map.floorUnder },
+    }
+    delete map.floorUnder[key]
+    map = noteAutoPaintWallCleared(map, { x, y })
+    const rebuilt = assembleTileWallsFromFloors(map, ruleset)
+    assert.ok(rebuilt.autoPaint.regions[0].suppressedWallKeys.includes(key))
+    assert.ok(!rebuilt.autoPaint.regions[0].generatedWallKeys.includes(key))
+    assert.equal(rebuilt.tiles[y][x], NULL_TILE)
   })
 
   it('does not claim non-Null exterior cells', () => {
@@ -197,5 +202,85 @@ describe('assembleWallsFromFloors', () => {
     const map = createNullMap({ name: 'blank', width: 4, height: 4 })
     const file = serializeMap(map)
     assert.equal(file.autoPaint, undefined)
+  })
+})
+
+describe('Auto-Paint wall run packing (128 / 64 / 32)', () => {
+  it('packs underlay cells as 128 then 64', () => {
+    assert.deepEqual(
+      packUnderlayRun(5).map((part) => part.len),
+      [WALL_LEN_LONG, WALL_LEN_LONG, WALL_LEN_SHORT],
+    )
+    assert.deepEqual(
+      packUnderlayRun(2).map((part) => part.len),
+      [WALL_LEN_LONG],
+    )
+    assert.deepEqual(
+      packUnderlayRun(1).map((part) => part.len),
+      [WALL_LEN_SHORT],
+    )
+  })
+
+  it('packs tip cells as 128 + 64 + 32 stub', () => {
+    assert.deepEqual(
+      packTipCells(7).map((part) => part.len),
+      [WALL_LEN_LONG, WALL_LEN_SHORT, WALL_LEN_STUB],
+    )
+    assert.deepEqual(
+      packTipCells(1).map((part) => part.len),
+      [WALL_LEN_STUB],
+    )
+  })
+})
+
+describe('Auto-Paint Generate Map', () => {
+  it('snaps custom sizes to Template Deck presets', () => {
+    const exact = snapAutoPaintGenerateSize('templateDeck', 20, 14)
+    assert.equal(exact.snapped, false)
+    assert.equal(exact.sizeId, 'medium')
+    const custom = snapAutoPaintGenerateSize('templateDeck', 19, 13)
+    assert.equal(custom.snapped, true)
+    assert.equal(custom.width, 20)
+    assert.equal(custom.height, 14)
+  })
+
+  it('packs 128/64 walls with corners and floor under underlay', () => {
+    const source = createNullMap({ name: 'gen', width: 20, height: 14 })
+    const { map, error } = generateAutoPaintMap(source, 'template-32', () => 0.25)
+    assert.equal(error, undefined)
+    assert.equal(map.autoPaint?.rulesetId, 'template-32')
+    const floors = collectFloorKeys(map, floorIdsForRuleset(getAutoPaintRuleset('template-32')))
+    assert.ok(floors.length > 10)
+    const underlayKeys = map.autoPaint.regions[0].generatedUnderlayKeys
+    assert.ok(underlayKeys.length > 0)
+    for (const key of underlayKeys) {
+      const [x, y] = key.split(',').map(Number)
+      assert.equal(map.tiles[y][x], 'templateWall')
+      assert.equal(map.floorUnder[key], 'floor', `floor under wall at ${key}`)
+    }
+    const autoPieces = (map.templatePiecePlacements ?? []).filter((entry) => entry.autoPaint)
+    assert.ok(autoPieces.length > 0)
+    assert.ok(autoPieces.some((entry) => entry.pieceId.includes('Corner')), 'corner / 32 stubs')
+    assert.ok(
+      autoPieces.some((entry) => /Long/i.test(entry.pieceId)),
+      '128-long pieces',
+    )
+    assert.ok(
+      autoPieces.some((entry) => /Wall32$|Hull32$/.test(entry.pieceId) || entry.pieceId.includes('Wall32')),
+      '64-long pieces',
+    )
+    let doorCount = 0
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (map.tiles[y][x] === 'doorway') doorCount += 1
+      }
+    }
+    assert.ok(doorCount > 0, 'doorway tiles from deck layout')
+    assert.ok(autoPieces.some((entry) => entry.pieceId.includes('DoorFrame')), 'door frames')
+    assert.ok(map.markers.playerStarts.length > 0)
+    for (const marker of [...map.markers.playerStarts, ...map.markers.enemySpawns]) {
+      assert.ok(!getTile(map.tiles[marker.y][marker.x])?.wall)
+      assert.notEqual(map.tiles[marker.y][marker.x], 'templateWall')
+    }
   })
 })

@@ -324,6 +324,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
             setStatus(`Click a tile to mark ${map.objectives[index].title || map.objectives[index].id} (Escape cancels).`)
           }}
           onBack={() => setObjectiveEditor(null)}
+          onSaveMap={doc.onSave}
+          onLoadMap={doc.onShowLoad}
+          onSaveAsMap={doc.onSaveAs}
         />
       </Suspense>
     )
@@ -332,7 +335,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   if (objectEditor) {
     return (
       <Suspense fallback={null}>
-        <ObjectEditorScreen map={map} onChange={edit} initialId={objectEditor.id} onBack={() => setObjectEditor(null)} />
+        <ObjectEditorScreen
+          map={map}
+          onChange={edit}
+          initialId={objectEditor.id}
+          onBack={() => setObjectEditor(null)}
+          onSaveMap={doc.onSave}
+          onLoadMap={doc.onShowLoad}
+          onSaveAsMap={doc.onSaveAs}
+        />
       </Suspense>
     )
   }
@@ -393,7 +404,24 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     return (
       <Suspense fallback={null}>
         <AutoPaintRulesetEditorScreen
+          map={map}
+          boardKey={doc.boardKey}
+          showGrid={showGrid}
+          onShowGrid={setShowGrid}
+          gridSize={gridSize}
+          onGridSize={setGridSize}
+          showBounds={showBounds}
+          onShowBounds={setShowBounds}
+          showCentre={showCentre}
+          onShowCentre={setShowCentre}
           onBack={() => setAutoPaintRulesetEditor(false)}
+          onGenerateMap={async (rulesetId) => {
+            tools.setAutoPaintRulesetId(rulesetId)
+            const ok = await doc.onGenerateAutoPaint(rulesetId)
+            if (!ok) return false
+            tools.enableAutoPaintTool(rulesetId)
+            return true
+          }}
           onStatus={setStatus}
         />
       </Suspense>

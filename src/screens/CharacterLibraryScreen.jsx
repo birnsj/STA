@@ -12,8 +12,11 @@ import { createEmptyCharacter } from '../character/characterModel.js'
 import {
   canSaveAuthoredCharacters,
   deleteAuthoredCharacterEntry,
+  loadAuthoredCatalogueFromDisk,
   saveAuthoredCharacterEntry,
 } from '../character/authoredCharacterFiles.js'
+import EditorMenuBar from '../components/maps/EditorMenuBar.jsx'
+import { subEditorFileMenus } from '../components/maps/editorSubMenus.js'
 import { AuthoredCharacterProvider } from '../character/AuthoredCharacterSession.jsx'
 import {
   authoredSaveIssues,
@@ -220,8 +223,34 @@ export default function CharacterLibraryScreen({
     )
   }
 
+  const loadCatalogue = async () => {
+    try {
+      await loadAuthoredCatalogueFromDisk()
+      setStatus('Loaded authored characters from disk.')
+    } catch (error) {
+      setStatus(`Could not load characters: ${error.message}`)
+    }
+  }
+
+  const onMenuAction = (id) => {
+    if (id === 'new') return onCreate()
+    if (id === 'load') return loadCatalogue()
+    if (id === 'back') return onBack()
+    return undefined
+  }
+
   return (
     <div className="me-screen ed-shell cl-screen">
+      <EditorMenuBar
+        menus={subEditorFileMenus({
+          newItem: true,
+          load: true,
+          save: false,
+          newLabel: 'Create Character',
+          loadLabel: 'Reload from Disk',
+        })}
+        onAction={onMenuAction}
+      />
       <div className="me-toolbar">
         <strong className="cl-title">Character Library</strong>
         <button type="button" className="me-button is-primary" onClick={onCreate} disabled={!canSaveAuthoredCharacters}>

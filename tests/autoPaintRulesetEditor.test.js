@@ -9,12 +9,12 @@ import {
 
 describe('Auto-Paint ruleset editor field preservation', () => {
   it('keeps fittings, fittingChance, and door flags when patching exposed wall/floor fields', () => {
-    const base = getAutoPaintRuleset('starship-interior-default')
+    const base = getAutoPaintRuleset('template-32')
     const withHidden = resolveAutoPaintRuleset({
       ...base,
       walls: {
         ...base.walls,
-        fittings: ['tplStarshipWall32Window'],
+        fittings: ['plainBulkhead'],
         fittingChance: 0.42,
       },
       doors: {
@@ -38,7 +38,7 @@ describe('Auto-Paint ruleset editor field preservation', () => {
     })
 
     assert.equal(afterUiEdit.walls.fittingChance, 0.42)
-    assert.deepEqual(afterUiEdit.walls.fittings, ['tplStarshipWall32Window'])
+    assert.deepEqual(afterUiEdit.walls.fittings, ['plainBulkhead'])
     assert.equal(afterUiEdit.doors.minGap, 2)
     assert.equal(afterUiEdit.doors.preferOpenings, false)
     assert.deepEqual(afterUiEdit.floors.variants, ['floor'])
@@ -47,13 +47,13 @@ describe('Auto-Paint ruleset editor field preservation', () => {
   })
 
   it('putAutoPaintRulesetLocal round-trips unexposed fields when validation passes', () => {
-    const base = getAutoPaintRuleset('starship-interior-default')
+    const base = getAutoPaintRuleset('template-32')
     const draft = resolveAutoPaintRuleset({
       ...base,
-      id: 'starship-interior-default',
+      id: 'template-32',
       walls: {
         ...base.walls,
-        fittings: ['tplStarshipWall32Lcars'],
+        fittings: ['lcarsWall'],
         fittingChance: 0.15,
       },
       doors: { ...base.doors, minGap: 3, preferOpenings: true },
@@ -62,9 +62,8 @@ describe('Auto-Paint ruleset editor field preservation', () => {
     assert.equal(ok, true, errors.join('; '))
     const saved = putAutoPaintRulesetLocal(draft)
     assert.equal(saved.walls.fittingChance, 0.15)
-    assert.deepEqual(saved.walls.fittings, ['tplStarshipWall32Lcars'])
+    assert.deepEqual(saved.walls.fittings, ['lcarsWall'])
     assert.equal(saved.doors.minGap, 3)
-    // Restore seed-like defaults so other tests keep a clean catalogue.
     putAutoPaintRulesetLocal(base)
   })
 })

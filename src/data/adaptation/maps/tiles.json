@@ -37,6 +37,8 @@
         "plainBulkhead",
         "halfBulkhead",
         "halfBulkheadCorner",
+        "wall32",
+        "wall32Corner",
         "lcarsWall",
         "conduitWall",
         "hatchWall",
@@ -732,6 +734,42 @@
       "height": 92,
       "imageHeight": 128,
       "role": null
+    },
+    {
+      "id": "wall32",
+      "layer": "walls",
+      "symbol": "ź",
+      "label": "Bulkhead 32",
+      "image": "/art/sprites/environment/templates/tplStarshipWall32.png",
+      "runImages": {
+        "x": "/art/sprites/environment/templates/tplStarshipWall32.png",
+        "y": "/art/sprites/environment/templates/tplStarshipWall32_r90.png"
+      },
+      "solid": true,
+      "blocksSight": true,
+      "cover": false,
+      "fade": true,
+      "wall": true,
+      "height": 92,
+      "imageHeight": 128,
+      "role": null,
+      "notes": "Auto-Paint default thickness (Template Deck 32 kit art). Full-cell solid like halfBulkhead."
+    },
+    {
+      "id": "wall32Corner",
+      "layer": "walls",
+      "symbol": "ż",
+      "label": "Bulkhead 32 Corner",
+      "image": "/art/sprites/environment/templates/tplStarshipWall32Corner.png",
+      "solid": true,
+      "blocksSight": true,
+      "cover": false,
+      "fade": true,
+      "wall": true,
+      "height": 92,
+      "imageHeight": 128,
+      "role": null,
+      "notes": "Auto-Paint corner for Bulkhead 32 (Template Deck kit art)."
     },
     {
       "id": "lcarsWall",

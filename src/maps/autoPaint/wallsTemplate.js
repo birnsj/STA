@@ -3,6 +3,8 @@
 import { NULL_TILE, cellKey, normalizeTemplateRotation } from '../mapFormat.js'
 import { snapTemplatePiecePosition, TEMPLATE_PIECE_CELL_PX } from '../mapEdits.js'
 import { getTemplatePiece } from '../templatePieces.js'
+import { placePackedWallPieces } from './placeWallRuns.js'
+import { pieceKitFromRuleset } from './templatePalette.js'
 import { collectFloorKeys, exteriorUnderlayKeys, floorIdsForRuleset, parseCellKey } from './topology.js'
 
 const TEMPLATE_WALL_UNDERLAY = 'templateWall'
@@ -147,24 +149,40 @@ function placeStraightRun(list, usedIds, tiles, width, height, underlayId, x, y,
   return list
 }
 
-function placePiecesOnUnderlay(map, underlayId, kit, random, blockedTips) {
+function isDoorTile(id, doorId) {
+  return Boolean(doorId) && id === doorId
+}
+
+function placePiecesOnUnderlay(map, underlayId, kit, random, blockedTips, { doorId = null } = {}) {
   const { width, height, tiles } = map
   let list = []
   const usedIds = new Set((map.templatePiecePlacements ?? []).map((entry) => entry.id))
   const consumed = new Set()
   const keyOf = (x, y) => `${x},${y}`
-  // Phase 1 exterior ring: treat every underlay cell as hull-facing.
-  const onHull = true
-  const corner = kit.hullCorner || kit.corner
-  const straight = kit.hull || kit.straight
+  // Same as locked Template Deck: map-rim cells use hull pieces; interior walls use straight/corner.
+  const hullCell = (x, y) => x === 0 || y === 0 || x === width - 1 || y === height - 1
   const blocked = new Set(blockedTips)
+  const { corner, hullCorner, hull, straight, doorFrame } = kit
+
+  if (doorId && doorFrame) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!isDoorTile(tiles[y][x], doorId)) continue
+        const alongX =
+          wallAt(tiles, width, height, underlayId, x - 1, y) || wallAt(tiles, width, height, underlayId, x + 1, y)
+        const rot = straightRotationFacingOpen(tiles, width, height, underlayId, x, y, alongX)
+        list = addPiece(list, usedIds, alongX ? tipAlongX(x, y) : tipAlongY(x, y), doorFrame, rot, blocked)
+      }
+    }
+  }
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (tiles[y][x] !== underlayId) continue
       const { n, s, e, w } = neighbours(tiles, width, height, underlayId, x, y)
       if (!isJunction(n, s, e, w)) continue
-      list = addPiece(list, usedIds, cornerTip(x, y), corner, cornerRotation(n, s, e, w), blocked)
+      const piece = hullCell(x, y) ? hullCorner || corner : corner
+      list = addPiece(list, usedIds, cornerTip(x, y), piece, cornerRotation(n, s, e, w), blocked)
       if (isLCorner(n, s, e, w)) consumed.add(keyOf(x, y))
     }
   }
@@ -173,16 +191,18 @@ function placePiecesOnUnderlay(map, underlayId, kit, random, blockedTips) {
     for (let x = 0; x < width; x++) {
       if (tiles[y][x] !== underlayId || consumed.has(keyOf(x, y))) continue
       const { n, s, e, w } = neighbours(tiles, width, height, underlayId, x, y)
+      const onHull = hullCell(x, y)
+      const runPiece = onHull ? hull || straight : straight
 
       if (isJunction(n, s, e, w)) {
         if (e && w) {
           const rot = straightRotationFacingOpen(tiles, width, height, underlayId, x, y, true)
           const tip = rot === 180 ? { x: x + 1, y: y + 0.5 } : tipAlongX(x, y)
-          list = addPiece(list, usedIds, tip, straight, rot, blocked)
+          list = addPiece(list, usedIds, tip, runPiece, rot, blocked)
         } else if (n && s) {
           const rot = straightRotationFacingOpen(tiles, width, height, underlayId, x, y, false)
           const tip = rot === 270 ? { x: x + 0.5, y: y + 1 } : tipAlongY(x, y)
-          list = addPiece(list, usedIds, tip, straight, rot, blocked)
+          list = addPiece(list, usedIds, tip, runPiece, rot, blocked)
         }
         consumed.add(keyOf(x, y))
         continue
@@ -237,16 +257,17 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
     delete floorUnder[key]
   }
 
+  const defaultFloor = ruleset.floors?.defaultTile || null
   for (const key of underlayKeys) {
     const { x, y } = parseCellKey(key)
     const current = tiles[y][x]
     if (current === underlayId) {
-      // Keep existing floorUnder (previous contents from first placement).
-      if (floorUnder[key] == null) floorUnder[key] = NULL_TILE
+      // Keep existing floorUnder; if missing, match Template Deck (floor under walls, not Null).
+      if (floorUnder[key] == null) floorUnder[key] = defaultFloor || NULL_TILE
       continue
     }
-    // Remember actual previous cell (typically Null) — never invent a floor under a Null-cell wall.
-    floorUnder[key] = current
+    // Null → default floor under underlay (same as generateTemplateDeck). Other cells remember themselves.
+    floorUnder[key] = current === NULL_TILE && defaultFloor ? defaultFloor : current
     tiles[y][x] = underlayId
   }
 
@@ -259,12 +280,14 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
     return !entry.autoPaint || !prevAutoIds.has(entry.id)
   })
 
-  const blockedTips = new Set(suppressedTips)
-  for (const entry of keptPieces) blockedTips.add(tipKeyOf(entry.position))
-
   const working = { ...map, tiles, floorUnder, templatePiecePlacements: keptPieces }
-  const generatedPieces = placePiecesOnUnderlay(working, underlayId, ruleset.walls, random, blockedTips)
-  const generatedPieceIds = generatedPieces.map((entry) => entry.id)
+  const kit = pieceKitFromRuleset(ruleset)
+  const doorId = ruleset.doors?.underlayTile || null
+  // 128 / 64 / 32 packing (corner post = 32-long stub). Independent of frozen templateDeck.js.
+  const packed = placePackedWallPieces(working, kit, { doorId, random })
+  const generatedPieceIds = (packed.templatePiecePlacements ?? [])
+    .filter((entry) => entry.autoPaint && !manualPieceIds.has(entry.id))
+    .map((entry) => entry.id)
 
   const region = {
     id: regionId,
@@ -279,8 +302,7 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
 
   const otherRegions = (prev?.regions ?? []).filter((entry) => entry.id !== regionId)
   return {
-    ...working,
-    templatePiecePlacements: [...keptPieces, ...generatedPieces],
+    ...packed,
     autoPaint: {
       rulesetId: ruleset.id,
       defaultEnvironment: ruleset.environment,

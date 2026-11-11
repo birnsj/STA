@@ -42,6 +42,7 @@ import {
   updatePatrolWaypoint,
   updateNpc,
   moveTemplatePiece,
+  removeTemplatePiece,
   updateTemplatePiece,
 } from '../../maps/mapEdits.js'
 import { canEditLayer, LAYER_LABELS, layerOfTemplatePiece, layerOfTile, selectionPriority } from '../../maps/layers.js'
@@ -50,9 +51,8 @@ import {
   autoPaintFloorCell,
   defaultAutoPaintRulesetId,
   getAutoPaintRuleset,
-  promoteTemplatePieceManual,
+  noteAutoPaintWallCleared,
   rebuildAutoPaintWalls,
-  removeAutoPaintTemplatePiece,
 } from '../../maps/autoPaint/index.js'
 import { getTemplatePiece, templatePieceGroups } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
@@ -329,9 +329,7 @@ export default function useEditorTools({
             return setStatus(`${LAYER_LABELS[rotateLayer] ?? rotateLayer} layer is locked or hidden.`)
           }
           const next = (((selectedTemplatePiece.rotation ?? 0) + 90) % 360 + 360) % 360
-          let nextMap = updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next })
-          if (selectedTemplatePiece.autoPaint) nextMap = promoteTemplatePieceManual(nextMap, selectedTemplatePiece.id)
-          edit(nextMap)
+          edit(updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next }))
           setStatus(`Rotated ${selectedTemplatePiece.id} to ${next}°.`)
         } else if (tool?.startsWith('template:')) {
           event.preventDefault()
@@ -354,7 +352,7 @@ export default function useEditorTools({
         if (!canEditLayer(layers, deleteLayer)) {
           return setStatus(`${LAYER_LABELS[deleteLayer] ?? deleteLayer} layer is locked or hidden.`)
         }
-        edit(removeAutoPaintTemplatePiece(map, selectedTemplatePiece.id))
+        edit(removeTemplatePiece(map, selectedTemplatePiece.id))
         setSelectedTemplatePieceId(null)
         setMovingTemplatePiece(false)
         setStatus(`Removed ${selectedTemplatePiece.id}.`)
@@ -691,12 +689,9 @@ export default function useEditorTools({
         return setStatus(`${LAYER_LABELS[moveLayer] ?? moveLayer} layer is locked or hidden.`)
       }
       const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
-      let moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
+      const moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
       if (moved === map) setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
-      else {
-        if (selectedTemplatePiece.autoPaint) moved = promoteTemplatePieceManual(moved, selectedTemplatePiece.id)
-        edit(moved)
-      }
+      else edit(moved)
       setMovingTemplatePiece(false)
       return
     }
@@ -801,7 +796,10 @@ export default function useEditorTools({
       }
       const result = eraseStructure(map, position)
       if (result.error) setStatus(result.error)
-      else if (result.map !== map) edit(result.map)
+      else if (result.map !== map) {
+        // Suppress Auto-Paint rebuild on this cell when the erased wall was Auto-Paint-owned.
+        edit(noteAutoPaintWallCleared(result.map, position))
+      }
       return
     }
     if (!tool || tool.startsWith('tile:')) {
@@ -932,7 +930,7 @@ export default function useEditorTools({
       if (!layerAllowsTool(eraseLayer)) {
         return setStatus(`${LAYER_LABELS[eraseLayer] ?? eraseLayer} layer is locked or hidden.`)
       }
-      edit(removeAutoPaintTemplatePiece(map, existing.id))
+      edit(removeTemplatePiece(map, existing.id))
       if (selectedTemplatePieceId === existing.id) {
         setSelectedTemplatePieceId(null)
         setMovingTemplatePiece(false)
@@ -985,21 +983,21 @@ export default function useEditorTools({
     setMoveFrom(null)
   }
 
-  const enableAutoPaintTool = () => {
+  const enableAutoPaintTool = (rulesetId = autoPaintRulesetId) => {
     clearBoardSelection()
     setTool('autoPaint')
     setPlacing(true)
     setMoving(false)
     setMoveFrom(null)
-    setStatus(`Auto-Paint: ${getAutoPaintRuleset(autoPaintRulesetId)?.label ?? autoPaintRulesetId}. Paint floors; walls rebuild automatically.`)
+    setStatus(`Auto-Paint: ${getAutoPaintRuleset(rulesetId)?.label ?? rulesetId}. Paint floors; walls rebuild automatically.`)
   }
 
-  const rebuildAutoPaint = () => {
+  const rebuildAutoPaint = (rulesetId = autoPaintRulesetId) => {
     if (!layerAllowsTool('ground') || !layerAllowsTool('walls')) {
       return setStatus('Ground and Walls layers must be visible and unlocked for Auto-Paint.')
     }
     beginStroke?.()
-    const result = rebuildAutoPaintWalls(map, autoPaintRulesetId)
+    const result = rebuildAutoPaintWalls(map, rulesetId)
     endStroke?.()
     if (result.error) return setStatus(result.error)
     if (result.map !== map) {

@@ -686,6 +686,12 @@
   flex-shrink: 0;
 }
 
+/* All five authoring layer tabs (Ground…Markers); wrap when the rail is narrow. */
+.ed-shell .ge-layer-tabs .ed-tab {
+  padding: 0 5px;
+  font-size: 9px;
+}
+
 .ed-shell .ge-source-thumb {
   cursor: grab;
 }
@@ -694,21 +700,14 @@
   cursor: grabbing;
 }
 
-.ed-shell .ge-source-rail .ge-piece-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  image-rendering: auto;
-}
-
 .ed-shell .ge-thumb {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 64px;
-  padding: 4px;
+  min-height: 0;
+  padding: 2px;
 }
 
 .ed-shell .ge-thumb-check {
@@ -739,13 +738,12 @@
   pointer-events: none;
 }
 
+/* Match Map Editor Assets: square cell, full preview (TileThumbnail / TemplatePieceThumbnail). */
 .ed-shell .ge-thumb .me-thumb-preview {
-  width: 48px;
-  height: 40px;
-}
-
-.ed-shell .ge-thumb .ge-piece-thumb {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: center bottom;
   image-rendering: auto;
 }
 
@@ -753,8 +751,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 40px;
+  width: 100%;
+  height: 100%;
   color: var(--ed-muted);
   font-size: 10px;
   font-weight: 700;

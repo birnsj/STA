@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { getTemplatePiece } from '../../maps/templatePieces.js'
+import { templatePieceThumbTitle } from './assetThumbTitle.js'
 import { GE_ASSET_DRAG_TYPE, readGeAssetDrag } from './geAssetDrag.js'
 import { contextMenuPlacement, GeThumbDeleteConfirm, GeThumbDeleteMenu } from './GeThumbContextMenu.jsx'
+import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 
 // Generator Editor Template Piece role slot: assigned pieces only. Drag from Palette to add; right-click to remove.
 export default function TemplatePieceSpritePicker({
@@ -112,13 +114,13 @@ export default function TemplatePieceSpritePicker({
             type="button"
             className="ed-thumb-btn ge-thumb is-selected"
             disabled={disabled}
-            title={`${piece.label} (${piece.id}) — right-click to remove`}
+            title={templatePieceThumbTitle(piece, { extra: `${piece.id} · right-click to remove` })}
             onContextMenu={(event) => onContextMenu(event, piece)}
           >
             {multi && (
               <input type="checkbox" className="ge-thumb-check" checked readOnly tabIndex={-1} aria-hidden disabled={disabled} />
             )}
-            <img className="me-thumb-preview ge-piece-thumb" src={piece.href} alt="" draggable={false} />
+            <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" animate={false} />
             <span className="ed-thumb-label">{piece.label}</span>
           </button>
         ))}
