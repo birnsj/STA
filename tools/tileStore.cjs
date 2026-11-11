@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { writeFileAtomic } = require('./atomicWrite.cjs')
 const { collectArtHrefs, deleteOrphanArtFiles } = require('./artHrefUtils.cjs')
+const { trackAuthoringChange } = require('./gitTrack.cjs')
 const { putSprite } = require('./spriteStore.cjs')
 
 // Dev map editor: cover/fade/layer, palette CRUD, create/rename/import tile art, or permanent delete.
@@ -309,6 +310,15 @@ function deleteTile(file, change, extras = {}) {
   const fallbackTileId = data.tiles.find((tile) => tile.id && tile.id !== 'null')?.id ?? data.tiles[0]?.id ?? null
   const scrubbed = scrubGeneratorFiles(extras, id, fallbackTileId)
 
+  const trackFiles = [file]
+  if (effectsRemoved && extras.effectsFile) trackFiles.push(extras.effectsFile)
+  if (scrubbed.length) {
+    if (extras.deckGeneratorsFile) trackFiles.push(extras.deckGeneratorsFile)
+    if (extras.wallVariantsFile) trackFiles.push(extras.wallVariantsFile)
+    if (extras.templateDeckStyleFile) trackFiles.push(extras.templateDeckStyleFile)
+  }
+  const git = trackAuthoringChange(extras.publicRoot, { files: trackFiles, artHrefs: deletedArt })
+
   return {
     id,
     label: removed.label ?? id,
@@ -316,6 +326,7 @@ function deleteTile(file, change, extras = {}) {
     effectsRemoved,
     deletedArt,
     scrubbed,
+    git,
   }
 }
 

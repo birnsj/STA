@@ -238,22 +238,24 @@ export default function EditorPalette({
     }
     const confirmed = await askConfirm({
       title: 'Delete Sprite?',
-      message: `Permanently delete “${label}” from the game (catalogue entry and unused art files)? Maps that still use it will break until fixed. This cannot be undone.`,
+      message: `Permanently delete “${label}” from the game (catalogue entry and unused art files)? The change is staged in git — commit & push to remove it on other machines. Maps that still use it will break until fixed.`,
       confirmLabel: 'Delete',
     })
     if (!confirmed) return
     await runAuthoring(async () => {
+      const gitNote = (result) =>
+        result?.git?.staged?.length ? ' Staged for git — commit & push to sync other machines.' : ''
       if (kind === 'tile') {
         const result = await deleteTile(id)
         clearToolIfDeleted('tile', id)
         onStatus?.(
-          `Deleted tile ${result.label ?? label}${result.deletedArt?.length ? ` (${result.deletedArt.length} art file${result.deletedArt.length === 1 ? '' : 's'})` : ''}.`,
+          `Deleted tile ${result.label ?? label}${result.deletedArt?.length ? ` (${result.deletedArt.length} art file${result.deletedArt.length === 1 ? '' : 's'})` : ''}.${gitNote(result)}`,
         )
       } else {
         const result = await deleteTemplatePiece(id)
         clearToolIfDeleted('template', id)
         onStatus?.(
-          `Deleted Template Piece ${result.label ?? label}${result.deletedArt?.length ? ` (${result.deletedArt.length} art file${result.deletedArt.length === 1 ? '' : 's'})` : ''}.`,
+          `Deleted Template Piece ${result.label ?? label}${result.deletedArt?.length ? ` (${result.deletedArt.length} art file${result.deletedArt.length === 1 ? '' : 's'})` : ''}.${gitNote(result)}`,
         )
       }
     })

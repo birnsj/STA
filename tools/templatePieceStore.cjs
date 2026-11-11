@@ -1,6 +1,7 @@
 const fs = require('fs')
 const { writeFileAtomic } = require('./atomicWrite.cjs')
 const { collectArtHrefs, deleteOrphanArtFiles } = require('./artHrefUtils.cjs')
+const { trackAuthoringChange } = require('./gitTrack.cjs')
 
 // Dev map editor: cover / fade / layer / emissive / emitColour on templatePieces.json (/__templates), or permanent delete.
 
@@ -214,12 +215,17 @@ function deleteTemplatePiece(file, change, extras = {}) {
   const fallbackPieceId = data.pieces[0]?.id ?? null
   const scrubbedStyle = scrubTemplateDeckStyle(extras.templateDeckStyleFile, id, fallbackPieceId)
 
+  const trackFiles = [file]
+  if (scrubbedStyle && extras.templateDeckStyleFile) trackFiles.push(extras.templateDeckStyleFile)
+  const git = trackAuthoringChange(extras.publicRoot, { files: trackFiles, artHrefs: deletedArt })
+
   return {
     id,
     label: removed.label ?? id,
     deleted: true,
     deletedArt,
     scrubbed: scrubbedStyle ? ['templateDeckStyle'] : [],
+    git,
   }
 }
 
