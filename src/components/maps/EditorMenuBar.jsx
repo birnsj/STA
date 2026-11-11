@@ -25,6 +25,9 @@ const MENUS = [
       { sep: true },
       { id: 'placeTiles', label: 'Toggle Place Tiles' },
       { id: 'move', label: 'Toggle Move' },
+      { sep: true },
+      { id: 'autoPaint', label: 'Toggle Auto-Paint' },
+      { id: 'rebuildAutoPaint', label: 'Rebuild Auto-Paint Walls' },
     ],
   },
   {
@@ -54,6 +57,7 @@ const MENUS = [
       { id: 'conversations', label: 'Conversation Editor' },
       { id: 'characters', label: 'Character Library' },
       { id: 'generators', label: 'Generator Editor' },
+      { id: 'autoPaintRuleset', label: 'Auto-Paint Ruleset Editor' },
       { id: 'story', label: 'Story Wording' },
     ],
   },

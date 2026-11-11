@@ -19,6 +19,7 @@ import { setItemDescription } from './tools/itemStore.cjs'
 import { applyTemplatePieceChange } from './tools/templatePieceStore.cjs'
 import { applyTileChange } from './tools/tileStore.cjs'
 import { putWallVariantSet } from './tools/wallVariantStore.cjs'
+import { applyAutoPaintChange } from './tools/autoPaintStore.cjs'
 import { listSprites, putSprite } from './tools/spriteStore.cjs'
 
 const MUSIC_FOLDER = fileURLToPath(new URL('./music', import.meta.url))
@@ -32,6 +33,7 @@ const TEMPLATE_PIECES_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/t
 const DECK_GENERATORS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/deckGenerators.json', import.meta.url))
 const TEMPLATE_DECK_STYLE_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/templateDeckStyle.json', import.meta.url))
 const WALL_VARIANTS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/generatedWallVariants.json', import.meta.url))
+const AUTO_PAINT_RULESETS_FILE = fileURLToPath(new URL('./src/data/adaptation/maps/autoPaintRulesets.json', import.meta.url))
 const MISSION_LOG_FILE = fileURLToPath(new URL('./src/data/adaptation/exploration/missionLog.json', import.meta.url))
 const AUTHORED_CHARACTERS_FILE = fileURLToPath(
   new URL('./src/data/adaptation/characters.json', import.meta.url),
@@ -178,6 +180,8 @@ const templateDeckStyleEndpoint = () =>
   quietDataEndpoint('template-deck-style-endpoint', '/__template-deck-style', TEMPLATE_DECK_STYLE_FILE, putTemplateDeckStyle)
 // Generator Editor: Generate Map wall fittings (share / panel / tile variants).
 const wallVariantsEndpoint = () => quietDataEndpoint('wall-variants-endpoint', '/__wall-variants', WALL_VARIANTS_FILE, putWallVariantSet)
+// Auto-Paint Ruleset Editor: construction rulesets (independent of Generate Map).
+const autoPaintEndpoint = () => quietDataEndpoint('auto-paint-endpoint', '/__autopaint', AUTO_PAINT_RULESETS_FILE, applyAutoPaintChange)
 // The map editor's Story Wording saves the outro's story templates into missionLog.json.
 const storyEndpoint = () => quietDataEndpoint('story-endpoint', '/__story', MISSION_LOG_FILE, (file, body) => setStoryTemplates(file, body?.story))
 
@@ -352,6 +356,7 @@ export default defineConfig({
     deckGeneratorsEndpoint(),
     templateDeckStyleEndpoint(),
     wallVariantsEndpoint(),
+    autoPaintEndpoint(),
     storyEndpoint(),
     authoredCharactersEndpoint(),
     spriteFilesEndpoint(),

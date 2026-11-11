@@ -45,6 +45,7 @@ const ObjectEditorScreen = lazy(() => import('./ObjectEditorScreen.jsx'))
 const StoryEditorScreen = lazy(() => import('./StoryEditorScreen.jsx'))
 const CharacterLibraryScreen = lazy(() => import('./CharacterLibraryScreen.jsx'))
 const GeneratorEditorScreen = lazy(() => import('./GeneratorEditorScreen.jsx'))
+const AutoPaintRulesetEditorScreen = lazy(() => import('./AutoPaintRulesetEditorScreen.jsx'))
 
 function playAwayTeam(savedCharacters) {
   const saved = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
@@ -98,6 +99,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   const [storyEditor, setStoryEditor] = useState(false)
   const [characterLibrary, setCharacterLibrary] = useState(false)
   const [generatorEditor, setGeneratorEditor] = useState(false)
+  const [autoPaintRulesetEditor, setAutoPaintRulesetEditor] = useState(false)
 
   // Hover clears the moment a floating window takes the pointer. Compared while rendering, so no stale frame shows.
   const [wasBlocked, setWasBlocked] = useState(boardBlocked)
@@ -122,7 +124,9 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     Boolean(objectiveEditor) ||
     Boolean(objectEditor) ||
     storyEditor ||
-    characterLibrary
+    characterLibrary ||
+    generatorEditor ||
+    autoPaintRulesetEditor
 
   // Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y redo. Tab cycles the guide grid size.
   // Skipped while a dialog or sub-editor is open.
@@ -229,6 +233,15 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         return tools.onPlacingToggle(!placing)
       case 'move':
         return tools.onMovingToggle(!tools.moving)
+      case 'autoPaint':
+        if (tool === 'autoPaint' && placing) {
+          tools.onPlacingToggle(false)
+          tools.setTool('tile:bulkhead')
+          return setStatus('Auto-Paint off.')
+        }
+        return tools.enableAutoPaintTool()
+      case 'rebuildAutoPaint':
+        return tools.rebuildAutoPaint()
       case 'ghost':
         return setGhostBlocks((value) => !value)
       case 'animate':
@@ -261,6 +274,8 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
         return setCharacterLibrary(true)
       case 'generators':
         return setGeneratorEditor(true)
+      case 'autoPaintRuleset':
+        return setAutoPaintRulesetEditor(true)
       case 'story':
         return setStoryEditor(true)
       case 'play':
@@ -369,6 +384,17 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
             setGeneratorEditor(false)
             await doc.onGenerate()
           }}
+        />
+      </Suspense>
+    )
+  }
+
+  if (autoPaintRulesetEditor) {
+    return (
+      <Suspense fallback={null}>
+        <AutoPaintRulesetEditorScreen
+          onBack={() => setAutoPaintRulesetEditor(false)}
+          onStatus={setStatus}
         />
       </Suspense>
     )

@@ -47,10 +47,12 @@
 // Fractional x/y are allowed for the 32×32 drop grid. name overrides the hover label; pickable/visible default true and
 // are left out on disk when true. on: { tile: [x, y] } or { placement: id } when elevated on a support surface; omitted
 // on the floor. Entries missing id get one on parse. Runtime drops never write back into the map file.
-// templatePiecePlacements: [{ id, pieceId (templatePieces.json), position: [x, y], rotation?, scale?, order }] — modular
-// Starship-look overlays (not tiles). Sit on the deck underlay; pathing/sight use underlay tiles. Pieces snap to the
-// editor guide grid. rotation degrees in 90° steps (omit when 0); scale (omit when 1, UI locks to 1); order (lower behind).
-// Placing an overlay never writes tiles / stackOver.
+// templatePiecePlacements: [{ id, pieceId (templatePieces.json), position: [x, y], rotation?, scale?, order, autoPaint? }] —
+// modular Starship-look overlays (not tiles). Sit on the deck underlay; pathing/sight use underlay tiles. Pieces snap to
+// the editor guide grid. rotation degrees in 90° steps (omit when 0); scale (omit when 1, UI locks to 1); order (lower
+// behind). autoPaint: true when Auto-Paint placed the piece (omit when false). Placing an overlay never writes tiles /
+// stackOver.
+// autoPaint: optional map block for Auto-Paint regions / ruleset id (omit when absent). Independent of Generate Map.
 // stackOver: sparse { "x,y": [tileId, ...] } — furniture stacked on a surface tile (bottom → top), same pattern as
 // floorUnder. Written only when non-empty; bumps schema to 2.
 // In memory a map is { id, name, episodeName, card, mapType, biome, weather, ambient, ambientColour, width, height, tiles: tile id grid [y][x],
@@ -371,6 +373,7 @@ function blankFields(name, width, height, tiles) {
     hazards: [],
     groundItemPlacements: [],
     templatePiecePlacements: [],
+    autoPaint: null,
     briefing: '',
     outro: '',
     outroAbandoned: '',
@@ -519,7 +522,9 @@ function parseTemplatePiecePlacement(raw, width, height, usedIds) {
   const rotation = normalizeTemplateRotation(raw.rotation)
   const scale = Number.isFinite(raw.scale) && raw.scale > 0 ? raw.scale : 1
   const order = Number.isFinite(raw.order) && raw.order >= 0 ? Math.floor(raw.order) : 0
-  return { id, pieceId, position, rotation, scale, order }
+  const placement = { id, pieceId, position, rotation, scale, order }
+  if (raw.autoPaint === true) placement.autoPaint = true
+  return placement
 }
 
 function serializeTemplatePiecePlacement(entry) {
@@ -527,7 +532,56 @@ function serializeTemplatePiecePlacement(entry) {
   if (entry.rotation) record.rotation = entry.rotation
   if (entry.scale != null && entry.scale !== 1) record.scale = entry.scale
   if (entry.order) record.order = entry.order
+  if (entry.autoPaint === true) record.autoPaint = true
   return record
+}
+
+function parseAutoPaintBlock(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const regions = Array.isArray(raw.regions)
+    ? raw.regions
+        .filter((entry) => entry && typeof entry.id === 'string' && entry.id)
+        .map((entry) => ({
+          id: entry.id,
+          environment: typeof entry.environment === 'string' ? entry.environment : null,
+          floorKeys: Array.isArray(entry.floorKeys) ? entry.floorKeys.map(String) : [],
+          generatedUnderlayKeys: Array.isArray(entry.generatedUnderlayKeys) ? entry.generatedUnderlayKeys.map(String) : [],
+          generatedPieceIds: Array.isArray(entry.generatedPieceIds) ? entry.generatedPieceIds.map(String) : [],
+          manualPieceIds: Array.isArray(entry.manualPieceIds) ? entry.manualPieceIds.map(String) : [],
+          manualUnderlayKeys: Array.isArray(entry.manualUnderlayKeys) ? entry.manualUnderlayKeys.map(String) : [],
+          // Tips the designer deleted; Rebuild must not recreate Auto-Paint pieces here.
+          suppressedTipKeys: Array.isArray(entry.suppressedTipKeys) ? entry.suppressedTipKeys.map(String) : [],
+        }))
+    : []
+  if (!regions.length && !raw.rulesetId) return null
+  return {
+    rulesetId: typeof raw.rulesetId === 'string' ? raw.rulesetId : null,
+    defaultEnvironment: typeof raw.defaultEnvironment === 'string' ? raw.defaultEnvironment : null,
+    regions,
+  }
+}
+
+function serializeAutoPaintBlock(block) {
+  if (!block || typeof block !== 'object') return null
+  if (!block.rulesetId && !(block.regions ?? []).length) return null
+  return {
+    ...(block.rulesetId ? { rulesetId: block.rulesetId } : {}),
+    ...(block.defaultEnvironment ? { defaultEnvironment: block.defaultEnvironment } : {}),
+    ...(block.regions?.length
+      ? {
+          regions: block.regions.map((entry) => ({
+            id: entry.id,
+            ...(entry.environment ? { environment: entry.environment } : {}),
+            floorKeys: entry.floorKeys ?? [],
+            generatedUnderlayKeys: entry.generatedUnderlayKeys ?? [],
+            generatedPieceIds: entry.generatedPieceIds ?? [],
+            ...(entry.manualPieceIds?.length ? { manualPieceIds: entry.manualPieceIds } : {}),
+            ...(entry.manualUnderlayKeys?.length ? { manualUnderlayKeys: entry.manualUnderlayKeys } : {}),
+            ...(entry.suppressedTipKeys?.length ? { suppressedTipKeys: entry.suppressedTipKeys } : {}),
+          })),
+        }
+      : {}),
+  }
 }
 
 // The fields an NPC placement keeps (anything else in a file is dropped); empty optional ones are left out on disk.
@@ -866,6 +920,7 @@ export function parseMapFile(file, id) {
         .map((raw) => parseTemplatePiecePlacement(raw, width, rows.length, used))
         .filter(Boolean)
     })(),
+    autoPaint: parseAutoPaintBlock(file.autoPaint),
     briefing: typeof file.briefing === 'string' ? file.briefing : '',
     outro: typeof file.outro === 'string' ? file.outro : '',
     outroAbandoned: typeof file.outroAbandoned === 'string' ? file.outroAbandoned : '',
@@ -922,6 +977,7 @@ export function serializeMap(map) {
     ...(map.templatePiecePlacements?.length
       ? { templatePiecePlacements: map.templatePiecePlacements.map(serializeTemplatePiecePlacement) }
       : {}),
+    ...(serializeAutoPaintBlock(map.autoPaint) ? { autoPaint: serializeAutoPaintBlock(map.autoPaint) } : {}),
     ...(map.briefing?.trim() ? { briefing: map.briefing.trim() } : {}),
     ...(map.outro?.trim() ? { outro: map.outro.trim() } : {}),
     ...(map.outroAbandoned?.trim() ? { outroAbandoned: map.outroAbandoned.trim() } : {}),

@@ -1,0 +1,37 @@
+{
+  "notes": "Auto-Paint construction rulesets. Independent of Generate Map / Generator Editor.",
+  "rulesets": [
+    {
+      "schemaVersion": 1,
+      "id": "starship-interior-default",
+      "label": "Starship Interior",
+      "environment": "starshipStation",
+      "wallMode": "templatePieces",
+      "underlayWallTile": "templateWall",
+      "floors": {
+        "defaultTile": "floor",
+        "variants": []
+      },
+      "walls": {
+        "straight": "tplStarshipWall32",
+        "straightLong": "tplStarshipWall32PlainLong",
+        "corner": "tplStarshipWall32Corner",
+        "hull": "tplStarshipHull32",
+        "hullLong": "tplStarshipHull32Long",
+        "hullCorner": "tplStarshipHull32Corner",
+        "doorFrame": "tplStarshipDoorFrame",
+        "fittings": [],
+        "fittingChance": 0
+      },
+      "doors": {
+        "underlayTile": "doorway",
+        "minGap": 1,
+        "preferOpenings": true
+      },
+      "props": {
+        "enabled": false,
+        "rules": []
+      }
+    }
+  ]
+}

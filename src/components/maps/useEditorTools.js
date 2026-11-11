@@ -42,11 +42,18 @@ import {
   updatePatrolWaypoint,
   updateNpc,
   moveTemplatePiece,
-  removeTemplatePiece,
   updateTemplatePiece,
 } from '../../maps/mapEdits.js'
 import { canEditLayer, LAYER_LABELS, layerOfTemplatePiece, layerOfTile, selectionPriority } from '../../maps/layers.js'
 import { cellKey, getTile, isEmptyTile, isRotated, NULL_TILE, PALETTE_GROUPS } from '../../maps/mapFormat.js'
+import {
+  autoPaintFloorCell,
+  defaultAutoPaintRulesetId,
+  getAutoPaintRuleset,
+  promoteTemplatePieceManual,
+  rebuildAutoPaintWalls,
+  removeAutoPaintTemplatePiece,
+} from '../../maps/autoPaint/index.js'
 import { getTemplatePiece, templatePieceGroups } from '../../maps/templatePieces.js'
 import { getItemById } from '../../rules/equipment.js'
 import { DESTRUCTIBLE_TYPES } from '../../world/environment.js'
@@ -160,6 +167,7 @@ export default function useEditorTools({
   const [paintTemplateIds, setPaintTemplateIds] = useState(() => new Set())
   const paintTemplateCycleRef = useRef(0)
   const lastTemplateTipRef = useRef(null)
+  const [autoPaintRulesetId, setAutoPaintRulesetId] = useState(defaultAutoPaintRulesetId)
   // Character Library "Use for placement": next Place NPC uses this id (otherwise the first catalogue entry).
   const [pendingCharacterId, setPendingCharacterId] = useState(null)
   // Place Tiles: the board only paints the chosen tile while this is on; off, the pointer is just a cursor.
@@ -321,7 +329,9 @@ export default function useEditorTools({
             return setStatus(`${LAYER_LABELS[rotateLayer] ?? rotateLayer} layer is locked or hidden.`)
           }
           const next = (((selectedTemplatePiece.rotation ?? 0) + 90) % 360 + 360) % 360
-          edit(updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next }))
+          let nextMap = updateTemplatePiece(map, selectedTemplatePiece.id, { rotation: next })
+          if (selectedTemplatePiece.autoPaint) nextMap = promoteTemplatePieceManual(nextMap, selectedTemplatePiece.id)
+          edit(nextMap)
           setStatus(`Rotated ${selectedTemplatePiece.id} to ${next}°.`)
         } else if (tool?.startsWith('template:')) {
           event.preventDefault()
@@ -344,7 +354,7 @@ export default function useEditorTools({
         if (!canEditLayer(layers, deleteLayer)) {
           return setStatus(`${LAYER_LABELS[deleteLayer] ?? deleteLayer} layer is locked or hidden.`)
         }
-        edit(removeTemplatePiece(map, selectedTemplatePiece.id))
+        edit(removeAutoPaintTemplatePiece(map, selectedTemplatePiece.id))
         setSelectedTemplatePieceId(null)
         setMovingTemplatePiece(false)
         setStatus(`Removed ${selectedTemplatePiece.id}.`)
@@ -628,6 +638,23 @@ export default function useEditorTools({
     if ((editingPatrol || movingWaypoint) && selectedNpc && first) {
       if (onPatrolEdit(position)) return
     }
+    // Auto-Paint: paint floor footprint and rebuild 32px template walls around it.
+    if (tool === 'autoPaint') {
+      if (!placing) {
+        if (first) selectAt(position, boardPoint)
+        return
+      }
+      if (!layerAllowsTool('ground') || !layerAllowsTool('walls')) {
+        return setStatus('Ground and Walls layers must be visible and unlocked for Auto-Paint.')
+      }
+      const result = autoPaintFloorCell(map, position, autoPaintRulesetId)
+      if (result.error) setStatus(result.error)
+      else if (result.map !== map) {
+        edit(result.map)
+        if (first) setStatus(`Auto-Paint: ${getAutoPaintRuleset(autoPaintRulesetId)?.label ?? autoPaintRulesetId}`)
+      }
+      return
+    }
     // Picking linked tiles: each click adds or removes one (a force-field generator's field).
     if (linkingDestructible && selectedDestructible) {
       if (!first) return
@@ -664,9 +691,12 @@ export default function useEditorTools({
         return setStatus(`${LAYER_LABELS[moveLayer] ?? moveLayer} layer is locked or hidden.`)
       }
       const target = boardPoint ? templatePieceTargetAt(boardPoint, itemGridSize) : position
-      const moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
+      let moved = moveTemplatePiece(map, selectedTemplatePiece.id, target, itemGridSize)
       if (moved === map) setStatus(`Template pieces need a cell on the map (${itemGridSize}px grid).`)
-      else edit(moved)
+      else {
+        if (selectedTemplatePiece.autoPaint) moved = promoteTemplatePieceManual(moved, selectedTemplatePiece.id)
+        edit(moved)
+      }
       setMovingTemplatePiece(false)
       return
     }
@@ -902,7 +932,7 @@ export default function useEditorTools({
       if (!layerAllowsTool(eraseLayer)) {
         return setStatus(`${LAYER_LABELS[eraseLayer] ?? eraseLayer} layer is locked or hidden.`)
       }
-      edit(removeTemplatePiece(map, existing.id))
+      edit(removeAutoPaintTemplatePiece(map, existing.id))
       if (selectedTemplatePieceId === existing.id) {
         setSelectedTemplatePieceId(null)
         setMovingTemplatePiece(false)
@@ -955,11 +985,41 @@ export default function useEditorTools({
     setMoveFrom(null)
   }
 
+  const enableAutoPaintTool = () => {
+    clearBoardSelection()
+    setTool('autoPaint')
+    setPlacing(true)
+    setMoving(false)
+    setMoveFrom(null)
+    setStatus(`Auto-Paint: ${getAutoPaintRuleset(autoPaintRulesetId)?.label ?? autoPaintRulesetId}. Paint floors; walls rebuild automatically.`)
+  }
+
+  const rebuildAutoPaint = () => {
+    if (!layerAllowsTool('ground') || !layerAllowsTool('walls')) {
+      return setStatus('Ground and Walls layers must be visible and unlocked for Auto-Paint.')
+    }
+    beginStroke?.()
+    const result = rebuildAutoPaintWalls(map, autoPaintRulesetId)
+    endStroke?.()
+    if (result.error) return setStatus(result.error)
+    if (result.map !== map) {
+      edit(result.map)
+      setStatus('Auto-Paint walls rebuilt.')
+    } else setStatus('Auto-Paint: nothing to rebuild.')
+  }
+
   // Assets thumbnail pick: clear board selection so Properties shows the catalogue asset.
   // Selecting a tile / template brush also checks it for the multi-paint set.
   const selectTool = (next) => {
     clearBoardSelection()
     setTool(next)
+    if (next === 'autoPaint') {
+      setPlacing(true)
+      setMoving(false)
+      setMoveFrom(null)
+      setStatus(`Auto-Paint: ${getAutoPaintRuleset(autoPaintRulesetId)?.label ?? autoPaintRulesetId}`)
+      return
+    }
     if (next?.startsWith('tile:')) {
       const id = next.slice('tile:'.length)
       setPaintTileIds((prev) => {
@@ -1023,6 +1083,10 @@ export default function useEditorTools({
     togglePaintTile,
     paintTemplateIds,
     togglePaintTemplate,
+    autoPaintRulesetId,
+    setAutoPaintRulesetId,
+    enableAutoPaintTool,
+    rebuildAutoPaint,
     clearBoardSelection,
     clearLayerSelection,
     placing,
