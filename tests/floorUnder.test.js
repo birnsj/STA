@@ -1,9 +1,9 @@
 // Sparse floorUnder memory: walls/props remember the floor they replaced; erase restores it.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { createBlankMap, createNullMap, NULL_TILE, resizeMap, serializeMap, parseMapFile } from '../src/maps/mapFormat.js'
-import { canEraseFloor, eraseStructure, paintFloor, paintTile } from '../src/maps/mapEdits.js'
-import { placeNpc } from '../src/maps/mapEdits.js'
+import { createBlankMap, createNullMap, getTile, groundTileId, NULL_TILE, resizeMap, serializeMap, parseMapFile } from '../src/maps/mapFormat.js'
+import { tileImage } from '../src/maps/iso.js'
+import { canEraseFloor, eraseStructure, paintFloor, paintTile, placeNpc } from '../src/maps/mapEdits.js'
 
 describe('floorUnder', () => {
   it('records the floor when a wall is painted and restores it on erase', () => {
@@ -61,5 +61,33 @@ describe('floorUnder', () => {
     assert.equal(file.floorUnder['1,1'], 'floor')
     const back = parseMapFile(file, 't')
     assert.equal(back.floorUnder['1,1'], 'floor')
+  })
+
+  it('draws remembered floor under empty templateWall, not under solid bulkheads', () => {
+    let map = createBlankMap({ width: 6, height: 6 })
+    map = paintTile(map, { x: 2, y: 2 }, 'floor')
+    map = {
+      ...map,
+      tiles: map.tiles.map((row, y) => row.map((id, x) => (x === 2 && y === 2 ? 'templateWall' : id))),
+      floorUnder: { ...map.floorUnder, '2,2': 'floor' },
+    }
+    assert.equal(groundTileId(map, { x: 2, y: 2 }), 'floor')
+    assert.equal(tileImage(map, { x: 2, y: 2 }), getTile('floor').image)
+
+    map = paintTile(createBlankMap({ width: 6, height: 6 }), { x: 1, y: 1 }, 'bulkhead')
+    assert.equal(map.floorUnder['1,1'], 'floor')
+    // Solid wall art owns the cell visually; remembered floor is erase memory only.
+    assert.equal(groundTileId(map, { x: 1, y: 1 }), 'bulkhead')
+  })
+
+  it('leaves true Null void when floorUnder is missing or Null', () => {
+    const map = createNullMap({ width: 4, height: 4 })
+    assert.equal(groundTileId(map, { x: 1, y: 1 }), null)
+    const withNullUnder = {
+      ...map,
+      tiles: map.tiles.map((row, y) => row.map((id, x) => (x === 1 && y === 1 ? 'templateWall' : id))),
+      floorUnder: { '1,1': NULL_TILE },
+    }
+    assert.equal(groundTileId(withNullUnder, { x: 1, y: 1 }), null)
   })
 })

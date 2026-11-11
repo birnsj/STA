@@ -113,7 +113,7 @@ const boardCursor = (target) => {
 }
 
 export default function PixiExplorationBoard(props) {
-  const { itemPlacementPreview, edgeScroll } = useDisplaySettings()
+  const { itemPlacementPreview, edgeScroll, wallFade: wallFadeMode } = useDisplaySettings()
   const {
     state,
     world,
@@ -272,9 +272,12 @@ export default function PixiExplorationBoard(props) {
     .map((member) => ({ id: member.id, position: member.position }))
   const hidden = useWallFade(map, fadeFigures, bigGroups)
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
-  // Stickiness matches wallFade releaseMargin (previousIds).
+  // Stickiness matches wallFade releaseMargin (previousIds). Room mode fades whole sections via faded cell keys.
   const templateFadeMemory = useRef(new Set())
-  const fadedTemplateIds = templatePieceFadeIds(map, fadeFigures, templateFadeMemory.current)
+  const fadedTemplateIds = templatePieceFadeIds(map, fadeFigures, templateFadeMemory.current, {
+    mode: wallFadeMode,
+    fadedCellKeys: faded,
+  })
   useLayoutEffect(() => {
     templateFadeMemory.current = fadedTemplateIds
   }, [fadedTemplateIds])
@@ -459,9 +462,11 @@ export default function PixiExplorationBoard(props) {
   }
   // Runtime inventory drops (rules/inventory.js): isometric tile props + challenge-style name markers.
   // Elevated drops carry z (art pixels) and depth from placement.js so they sit on / sort with their support.
-  // Template Piece overlays (authored visual walls) share the same GroundLootView path.
+  // Template Piece overlays share GroundLootView for drawing only — pickable: false so play clicks pass through
+  // to move / figures (propPick skips them). Editor hit-tests templatePieceSprites() without that flag.
   const groundLoot = templatePieceSprites(map).map((sprite) => ({
     ...sprite,
+    pickable: false,
     inReach: true,
     hovered: false,
     faded: fadedTemplateIds.has(sprite.id),

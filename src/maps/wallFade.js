@@ -7,7 +7,7 @@ import tuning from '../data/adaptation/maps/wallFade.json'
 import { BIG_IMAGE } from './bigObjects.js'
 import { project, TILE_H, TILE_W } from './iso.js'
 import { getTile, imageSize, TILE_IMAGE, TILES } from './mapFormat.js'
-import { getTemplatePiece } from './templatePieces.js'
+import { getTemplatePiece, templatePieceWorldAabb } from './templatePieces.js'
 
 // How far above a standing figure's feet it is drawn (a full-body sprite or the portrait token is about 52px tall,
 // Andorian antennae a little more, the lead badge above it), times characterSprites.json displayScale.
@@ -67,7 +67,26 @@ const isEmpty = (map, x, y) => x >= 0 && y >= 0 && x < map.width && y < map.heig
 const isFadingWall = (map, x, y) => {
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) return false
   const tile = getTile(map.tiles[y][x])
-  return Boolean(tile.wall && tile.fade && tile.height > 0)
+  // Classic fading wall tiles (drawn height > 0).
+  if (tile.wall && tile.fade && tile.height > 0) return true
+  // Empty Template underlay: pieces draw the wall art; the cell still joins room cutaway / sections.
+  if (tile.wall && tile.empty) return true
+  return false
+}
+
+/** Underlay cell keys a Template Piece footprint covers (tip-anchored AABB). */
+function cellsCoveredByPiece(entry) {
+  const box = templatePieceWorldAabb(entry)
+  if (!box) return []
+  const x0 = Math.floor(box.minX)
+  const y0 = Math.floor(box.minY)
+  const x1 = Math.ceil(box.maxX - 1e-9) - 1
+  const y1 = Math.ceil(box.maxY - 1e-9) - 1
+  const cells = []
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) cells.push(keyOf(x, y))
+  }
+  return cells
 }
 const isDoorway = (map, x, y) => map.tiles[y][x] === 'doorway'
 const isSpaceBarrier = (map, x, y) => isWall(map, x, y) || isDoorway(map, x, y) || isEmpty(map, x, y)
@@ -218,12 +237,15 @@ export function wallFadeStep(map, figures, bigGroups = null, memory = NO_WALL_FA
       const [x, y] = key.split(',').map(Number)
       return figures.some(({ position }) => Math.max(Math.abs(position.x - x), Math.abs(position.y - y)) <= tuning.fadeRange)
     })
-  // Some figure less than roomSideRange tiles from a room side, straight out from the wall, and alongside it.
+  // Some figure less than roomSideRange tiles inward from a room side (into the room, not past it
+  // onto the camera-facing exterior where that wall sits behind the figure), and alongside it.
   const range = tuning.roomSideRange
   const nearSide = ({ across, line, from, to }) =>
     figures.some(({ position }) => {
       const [out, along] = across === 'x' ? [position.x, position.y] : [position.y, position.x]
-      return Math.abs(out - line) < range && along > from - range && along < to + range
+      // inward >= 0: inside the room or on the wall line (doorways). Negative = past the wall (behind the figure).
+      const inward = line - out
+      return inward >= 0 && inward < range && along > from - range && along < to + range
     })
   for (const { id, position } of figures) {
     const x = Math.round(position.x)
@@ -265,24 +287,110 @@ export function fadedBlockKeys(map, points, bigGroups = null) {
   ).keys
 }
 
-// Template Piece placement ids that should draw see-through (same hide test as fading wall tiles).
-export function templatePieceFadeIds(map, figures, previousIds = new Set()) {
+// Screen shape for a Template Piece: tip-anchored art height, horizontal span from the footprint so long
+// thin walls can hide figures along their run (not only at the tip).
+function templatePieceFadeShape(entry, def) {
+  const tip = entry.position
+  const tipPt = project(tip)
+  const box = templatePieceWorldAabb(entry)
+  const top = tipPt.y - TILE_H / 2 - def.height
+  const bottom = tipPt.y + TILE_H / 2
+  if (!box) return { x: tipPt.x, top, bottom, halfWidth: TILE_W / 2 }
+  const far = project({ x: box.minX, y: box.minY })
+  const near = project({ x: box.maxX, y: box.maxY })
+  return {
+    x: (near.x + far.x) / 2,
+    top,
+    bottom,
+    halfWidth: Math.max(TILE_W / 2, Math.abs(near.x - far.x) / 2 + TILE_W / 4),
+  }
+}
+
+// True when the piece's art overlaps the figure and the figure stands behind at least one underlay cell
+// the piece covers (per-cell depth, same as tile walls — not tip depth, which stays high after you walk past).
+function templatePieceHides(piece, point, margin = 0) {
+  const figureDepth = point.x + point.y + 0.5
+  const behind = piece.cells.some((key) => {
+    const [x, y] = key.split(',').map(Number)
+    return figureDepth < x + y
+  })
+  if (!behind) return false
+  const figure = project(point)
+  const { shape } = piece
+  return (
+    Math.abs(figure.x - shape.x) < shape.halfWidth + FIGURE_HALF_WIDTH + margin &&
+    figure.y > shape.top - margin &&
+    figure.y - FIGURE_TOP < shape.bottom + margin
+  )
+}
+
+// Template Piece placement ids that should draw see-through.
+// mode: 'room' (Settings default — fade whole wall sections / room fronts via fadedCellKeys + section grouping)
+// or 'single' (each piece fades only while it hides a figure).
+export function templatePieceFadeIds(map, figures, previousIds = new Set(), { mode = 'room', fadedCellKeys = null } = {}) {
   const ids = new Set()
   if (!figures?.length) return ids
+  const pieces = []
   for (const entry of map.templatePiecePlacements ?? []) {
     const def = getTemplatePiece(entry.pieceId)
     if (!def?.fade || !(def.height > 0)) continue
     const tip = entry.position
-    const base = project(tip)
-    const shape = {
-      depth: tip.x + tip.y,
-      x: base.x,
-      top: base.y - TILE_H / 2 - def.height,
-      bottom: base.y + TILE_H / 2,
-      halfWidth: TILE_W / 2,
+    if (!tip || !Number.isFinite(tip.x) || !Number.isFinite(tip.y)) continue
+    pieces.push({
+      id: entry.id,
+      cells: cellsCoveredByPiece(entry),
+      shape: templatePieceFadeShape(entry, def),
+    })
+  }
+  if (!pieces.length) return ids
+
+  if (mode === 'single') {
+    for (const piece of pieces) {
+      const margin = previousIds.has(piece.id) ? tuning.releaseMargin : 0
+      if (figures.some(({ position }) => templatePieceHides(piece, position, margin))) ids.add(piece.id)
     }
-    const margin = previousIds.has(entry.id) ? tuning.releaseMargin : 0
-    if (figures.some(({ position }) => hides(shape, position, margin))) ids.add(entry.id)
+    return ids
+  }
+
+  // Room mode: pieces on cells already faded by wallFadeStep (room fronts / sticky sections).
+  if (fadedCellKeys?.size) {
+    for (const piece of pieces) {
+      if (piece.cells.some((key) => fadedCellKeys.has(key))) ids.add(piece.id)
+    }
+  }
+
+  // Hide-driven sections: a piece that hides a figure fades with its underlay wall section
+  // (templateWall has no tile height, so fadingBlocks never sees it).
+  const { sectionOf } = analyseWalls(map)
+  const sectionKeys = new Set()
+  const addSectionKeys = (cells) => {
+    for (const key of cells) {
+      for (const sectionKey of sectionOf.get(key) ?? [key]) sectionKeys.add(sectionKey)
+    }
+  }
+  for (const piece of pieces) {
+    const margin = previousIds.has(piece.id) ? tuning.releaseMargin : 0
+    if (figures.some(({ position }) => templatePieceHides(piece, position, margin))) addSectionKeys(piece.cells)
+  }
+  // Stickiness for previously faded pieces: keep the whole section while a figure is still nearby.
+  if (previousIds.size) {
+    for (const piece of pieces) {
+      if (!previousIds.has(piece.id)) continue
+      const section = []
+      for (const key of piece.cells) {
+        for (const sectionKey of sectionOf.get(key) ?? [key]) section.push(sectionKey)
+      }
+      const near = section.some((key) => {
+        const [x, y] = key.split(',').map(Number)
+        return figures.some(({ position }) => Math.max(Math.abs(position.x - x), Math.abs(position.y - y)) <= tuning.fadeRange)
+      })
+      if (near) section.forEach((key) => sectionKeys.add(key))
+    }
+  }
+  if (sectionKeys.size) {
+    for (const piece of pieces) {
+      if (piece.cells.some((key) => sectionKeys.has(key))) ids.add(piece.id)
+    }
   }
   return ids
 }

@@ -2,7 +2,8 @@ import { Container, Graphics, Sprite } from 'pixi.js'
 import { isBlock, project } from '../../../maps/iso.js'
 import { spriteGeometry, spriteHref } from '../../../maps/propPick.js'
 import { getCategoryHighlight } from '../../../rules/equipment.js'
-import { FADED_OPACITY, drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
+import { drawBlockAt, drawTileAt, loadImage } from '../../maps/canvasTiles.js'
+import { fadeLevelAt, retarget, settle } from '../../maps/fadeLevels.js'
 import { OVERLAY_GLOW_BLUR } from '../../../maps/tileArt.js'
 import { templateOverlayEmissionAt, templateOverlayEmissive } from '../../../maps/templatePieces.js'
 import { MARKER_DIAMOND, MARKER_NAME, MARKER_STATE, OUTLINE_COLOURS } from '../boardGeometry.js'
@@ -252,14 +253,16 @@ export class GroundLootView {
     this.animation = null
     this.overlayHref = null
     this.overlayPaintKey = 0
+    // Same 200 ms ease as tile wall fade (fadeLevels.js) — Template Piece walls used to snap.
+    this.fade = { target: new Set(), changes: new Map() }
+    this.fadeKey = null
   }
 
   update(object, now = 0, playing = true) {
     // Shared with the editor's click picking (maps/propPick.js) so what is drawn is what answers a click.
     const { size, z, rotation, anchor, pivotFracX } = spriteGeometry(object)
     this.container.zIndex = object.depth
-    // Editor cutaway (propPick editorPropFadeIds): see-through while the pointer is over the prop or a ghost sits behind it.
-    this.container.alpha = object.faded ? FADED_OPACITY : 1
+    this.applyFade(object, now, playing)
     const href = spriteHref(object)
     const hovered = Boolean(object.hovered)
     const highlight = getCategoryHighlight(object.category)
@@ -287,6 +290,22 @@ export class GroundLootView {
     }
     this.look = look
     this.paint(href, size, look, hovered, highlight, anchor, rotation, pivotFracX, now, playing)
+  }
+
+  applyFade(object, now, playing) {
+    const key = object.id ?? 'prop'
+    const want = Boolean(object.faded)
+    if (this.fadeKey !== key) {
+      this.fadeKey = key
+      this.fade = { target: want ? new Set([key]) : new Set(), changes: new Map() }
+    } else {
+      const next = want ? new Set([key]) : new Set()
+      if (next.size !== this.fade.target.size || [...next].some((id) => !this.fade.target.has(id))) {
+        this.fade = retarget(this.fade, next, now, playing && !reducedMotion())
+      }
+    }
+    this.fade = settle(this.fade, now)
+    this.container.alpha = fadeLevelAt(this.fade, key, now)
   }
 
   placeSprite(sprite, anchor, rotation = 0, pivotFracX = 0.5) {

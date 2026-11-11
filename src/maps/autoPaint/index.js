@@ -32,7 +32,9 @@ export { snapAutoPaintGenerateSize } from './generateSize.js'
 export {
   packTipCells,
   packUnderlayRun,
+  pieceFootprintAabb,
   placePackedWallPieces,
+  wallEdgesContinuouslyCovered,
   WALL_LEN_LONG,
   WALL_LEN_SHORT,
   WALL_LEN_STUB,

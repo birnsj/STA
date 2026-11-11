@@ -95,6 +95,8 @@ export function pickProp(objects, point, { maskOf = (href) => maskSource(href), 
   const ordered = drawOrder(objects)
   for (let i = ordered.length - 1; i >= 0; i--) {
     const object = ordered[i]
+    // Scenery drawn through the loot sprite path (Template Piece walls) sets pickable: false.
+    if (object.pickable === false) continue
     const { u, v } = spriteLocalUv(object, point)
     if (u < 0 || v < 0 || u >= 1 || v >= 1) continue
     // The box is the broad phase. Only an opaque pixel of the art takes the click; a picture that has not loaded yet

@@ -1,7 +1,7 @@
 // Tall walls and see-through blocks (maps/wallFade.js).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { analyseWalls, fadedBlockKeys, wallFadeStep } from '../src/maps/wallFade.js'
+import { analyseWalls, fadedBlockKeys, templatePieceFadeIds, wallFadeStep } from '../src/maps/wallFade.js'
 import { getTile, imageSize, TILES } from '../src/maps/mapFormat.js'
 import { TILE_H } from '../src/maps/iso.js'
 import { fadeWholePanels, getWallPanels } from '../src/maps/wallPanels.js'
@@ -106,6 +106,13 @@ describe('walls that fade together (Prototype: room cutaway, sections, stickines
     assert.equal(wallFadeStep(yard, [{ id: 'a', position: { x: 5, y: 6 } }]).keys.has('5,10'), false, '4 tiles: solid')
   })
 
+  it('a room side stays solid when the figure is past it (wall behind them)', () => {
+    // South wall at y=10: standing at y=12 is outside the room, wall toward -y (behind from the camera).
+    assert.equal(wallFadeStep(yard, [{ id: 'a', position: { x: 5, y: 12 } }]).keys.has('5,10'), false)
+    // East wall at x=12: standing at x=14 is past it.
+    assert.equal(wallFadeStep(yard, [{ id: 'a', position: { x: 14, y: 5 } }]).keys.has('12,5'), false)
+  })
+
   it("a room side fades whole when a figure is near it, straight out from the wall", () => {
     const corner = wallFadeStep(yard, [{ id: 'a', position: { x: 11, y: 9 } }]).keys
     for (const key of ['12,1', '12,5', '12,10', '7,10', '1,10']) assert.ok(corner.has(key), key)
@@ -194,5 +201,77 @@ describe('tall and big objects', () => {
   it('objects 32 high or lower never fade', () => {
     const boulders = mapOf(['.....', '.....', '..oo.', '..oo.', '.....'])
     assert.equal(fadedBlockKeys(boulders, [{ x: 1, y: 1 }], getBigObjects(boulders)).size, 0)
+  })
+})
+
+describe('Template Piece wall fade (Settings room vs single)', () => {
+  // Closed room of floor with templateWall underlay (empty wall cells; pieces draw the art).
+  const W = 'templateWall'
+  const F = 'floor'
+  const templateRoom = {
+    width: 8,
+    height: 8,
+    tiles: [
+      [W, W, W, W, W, W, W, W],
+      [W, F, F, F, F, F, F, W],
+      [W, F, F, F, F, F, F, W],
+      [W, F, F, F, F, F, F, W],
+      [W, F, F, F, F, F, F, W],
+      [W, F, F, F, F, F, F, W],
+      [W, F, F, F, F, F, F, W],
+      [W, W, W, W, W, W, W, W],
+    ],
+    // Three 32-thick pieces along the south underlay (y=7), tip-anchored at +X/+Y of each cell.
+    templatePiecePlacements: [
+      { id: 'p0', pieceId: 'tplStarshipWall32', position: { x: 2, y: 8 }, rotation: 0 },
+      { id: 'p1', pieceId: 'tplStarshipWall32', position: { x: 3, y: 8 }, rotation: 0 },
+      { id: 'p2', pieceId: 'tplStarshipWall32', position: { x: 4, y: 8 }, rotation: 0 },
+    ],
+  }
+
+  it('templateWall underlay joins room front walls and sections', () => {
+    const { spaces, spaceAt, sectionOf } = analyseWalls(templateRoom)
+    const room = spaces[spaceAt[3 * templateRoom.width + 3]]
+    assert.equal(room.kind, 'room')
+    assert.ok(room.frontWalls.includes('3,7'), 'south underlay is a front wall')
+    assert.ok(sectionOf.get('2,7')?.includes('3,7'), 'adjacent underlay cells share a section')
+  })
+
+  it('room mode fades every piece on a faded room-front underlay', () => {
+    const figure = [{ id: 'a', position: { x: 3, y: 5.5 } }]
+    const fadedCells = wallFadeStep(templateRoom, figure).keys
+    assert.ok(fadedCells.has('3,7'), 'south front underlay fades')
+    const ids = templatePieceFadeIds(templateRoom, figure, new Set(), { mode: 'room', fadedCellKeys: fadedCells })
+    assert.ok(ids.has('p0') && ids.has('p1') && ids.has('p2'), 'whole wall of pieces fades together')
+  })
+
+  it("'single' mode fades only pieces that hide the figure", () => {
+    const figure = [{ id: 'a', position: { x: 3, y: 5.5 } }]
+    const roomIds = templatePieceFadeIds(templateRoom, figure, new Set(), {
+      mode: 'room',
+      fadedCellKeys: wallFadeStep(templateRoom, figure).keys,
+    })
+    const singleIds = templatePieceFadeIds(templateRoom, figure, new Set(), {
+      mode: 'single',
+      fadedCellKeys: wallFadeStep(templateRoom, figure, null, undefined, 'single').keys,
+    })
+    assert.equal(roomIds.size, 3, 'room mode fades the whole wall')
+    assert.ok(singleIds.size < 3, 'single mode does not fade the whole wall from room proximity alone')
+  })
+
+  it('a long Template Piece does not keep fading after the figure walks past it', () => {
+    // 128-wide tip-anchored piece: tip depth alone would keep fading once the figure is south of the wall.
+    const longWall = {
+      width: 8,
+      height: 8,
+      tiles: templateRoom.tiles,
+      templatePiecePlacements: [
+        { id: 'long', pieceId: 'tplStarshipWall32PlainLong', position: { x: 5, y: 5 }, rotation: 0 },
+      ],
+    }
+    const behind = [{ id: 'a', position: { x: 3.5, y: 3.2 } }]
+    const past = [{ id: 'a', position: { x: 3.5, y: 6.5 } }]
+    assert.ok(templatePieceFadeIds(longWall, behind, new Set(), { mode: 'single' }).has('long'), 'fades while the figure is behind')
+    assert.equal(templatePieceFadeIds(longWall, past, new Set(), { mode: 'single' }).has('long'), false, 'solid once the figure is past')
   })
 })

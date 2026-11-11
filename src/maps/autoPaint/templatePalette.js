@@ -70,30 +70,23 @@ function rolePiece(id) {
 
 /**
  * Packer kit from ruleset wall roles.
- * Every piece comes from the ruleset when set. Legacy wall32 tile ids still map via TILE_TO_TEMPLATE_PIECE.
- * Deck style is only a last-resort default for straight / corner / long / doorFrame if a role is missing.
- * Hull roles stay null when None — packing uses straight/corner on the rim.
+ * Explicit null stays null (no Template Deck fill-in for doorFrame / hull / long).
+ * Deck style is only a last-resort default for required straight / corner when missing.
  */
 export function pieceKitFromRuleset(ruleset) {
   const deck = getTemplateDeckStyle()
   const walls = ruleset?.walls ?? {}
   const fittings = Array.isArray(walls.fittings) ? walls.fittings.map(rolePiece).filter(Boolean) : []
 
-  const straight = rolePiece(walls.straight) || deck.straight
-  const corner = rolePiece(walls.corner) || deck.corner
   const hull = rolePiece(walls.hull)
-  const hullCorner = rolePiece(walls.hullCorner)
-  const straightLong = rolePiece(walls.straightLong) || deck.straightLong
-  const hullLong = hull ? rolePiece(walls.hullLong) || deck.hullLong : null
-
   return {
-    straight,
-    straightLong,
-    corner,
+    straight: rolePiece(walls.straight) || deck.straight,
+    straightLong: rolePiece(walls.straightLong),
+    corner: rolePiece(walls.corner) || deck.corner,
     hull,
-    hullLong,
-    hullCorner,
-    doorFrame: rolePiece(walls.doorFrame) || deck.doorFrame,
+    hullLong: hull ? rolePiece(walls.hullLong) : null,
+    hullCorner: rolePiece(walls.hullCorner),
+    doorFrame: rolePiece(walls.doorFrame),
     fittings,
     fittingChance: Number.isFinite(Number(walls.fittingChance)) ? Number(walls.fittingChance) : 0,
   }

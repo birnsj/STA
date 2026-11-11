@@ -11,6 +11,9 @@ export const toBattleMap = (mapFile) => ({
   rotated: mapFile.rotated,
   ambient: mapFile.ambient,
   ambientColour: mapFile.ambientColour,
+  // Floor under empty templateWall underlay (draw via groundTileId) + Template Piece walls (edge collision / cover).
+  ...(mapFile.floorUnder && Object.keys(mapFile.floorUnder).length ? { floorUnder: mapFile.floorUnder } : {}),
+  ...(mapFile.templatePiecePlacements?.length ? { templatePiecePlacements: mapFile.templatePiecePlacements } : {}),
   // Area names for the combat minimap (same readout as exploration).
   ...(mapFile.areas?.length ? { areas: mapFile.areas } : {}),
   ...(mapFile.sightBlockers ? { sightBlockers: mapFile.sightBlockers, coverKeys: mapFile.coverKeys, slowKeys: mapFile.slowKeys, environmentKey: mapFile.environmentKey } : {}),
@@ -31,9 +34,16 @@ export const tileAt = (map, position) => {
   return isInside(map, cell) ? map.tiles[cell.y][cell.x] : WALL_TILE
 }
 
-// Solid tiles (walls, crates, machinery...) block movement; only tiles that block sight block line of fire, as does
-// thick smoke or gas (map.sightBlockers).
-export const blocksMovement = (map, position) => getTile(tileAt(map, position)).solid
+// Solid tiles (walls, crates, machinery...) block movement. Empty templateWall underlay is not full-cell solid —
+// Template Piece footprints provide edge collision in exploration isClear / combat canStep.
+// Only tiles that block sight block line of fire, as does thick smoke or gas (map.sightBlockers).
+export const blocksMovement = (map, position) => {
+  const tile = getTile(tileAt(map, position))
+  if (!tile) return true
+  // templateWall: walkable cell; 32-thick pieces block bodies via footprint tests.
+  if (tile.empty && tile.wall) return false
+  return Boolean(tile.solid)
+}
 export const blocksLineOfFire = (map, position) => getTile(tileAt(map, position)).blocksSight || Boolean(map.sightBlockers?.[`${position.x},${position.y}`])
 // A slowing hazard (the coolant leak; map.slowKeys) makes a tile cost two steps of movement.
 export const isSlowTile = (map, position) => Boolean(map.slowKeys?.[`${position.x},${position.y}`])

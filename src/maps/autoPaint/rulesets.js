@@ -33,7 +33,7 @@ const FALLBACK = Object.freeze({
     hull: null,
     hullLong: null,
     hullCorner: null,
-    doorFrame: 'tplStarshipDoorFrame',
+    doorFrame: null,
     fittings: [],
     fittingChance: 0,
   },

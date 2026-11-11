@@ -2,7 +2,9 @@
 // numbers). Characters are circles that may not overlap a solid tile (walls, obstacles; anything outside the map counts
 // as solid). Doorways are walkable tiles, so they need nothing special. Routes come from A* over the tiles and are then
 // straightened wherever a character can walk directly.
+// Template 32: empty templateWall underlay is not a full-cell solid; 32-thick Template Piece footprints are.
 import { blocksMovement } from '../combat/battleMap.js'
+import { circleHitsTemplateWalls } from '../maps/templatePieces.js'
 import data from '../data/adaptation/exploration/partyControl.json'
 
 export const RADIUS = data.movement.radius
@@ -13,7 +15,8 @@ export const tileOf = (point) => ({ x: Math.round(point.x), y: Math.round(point.
 const solid = (map, x, y) => blocksMovement(map, { x, y })
 export const distance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y)
 
-// True when a circle of radius r at point overlaps no solid tile. Tile (tx, ty) covers tx - 0.5 .. tx + 0.5.
+// True when a circle of radius r at point overlaps no solid tile and no Template Piece wall strip.
+// Tile (tx, ty) covers tx - 0.5 .. tx + 0.5.
 export function isClear(map, point, r = RADIUS) {
   for (let ty = Math.round(point.y - r); ty <= Math.round(point.y + r); ty++) {
     for (let tx = Math.round(point.x - r); tx <= Math.round(point.x + r); tx++) {
@@ -23,6 +26,8 @@ export function isClear(map, point, r = RADIUS) {
       if (dx * dx + dy * dy < r * r) return false
     }
   }
+  // Edge collision for Template Pieces (and any empty wall underlay that is no longer full-cell solid).
+  if (circleHitsTemplateWalls(map, point, r)) return false
   return true
 }
 

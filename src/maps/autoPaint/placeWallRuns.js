@@ -1,15 +1,25 @@
 // Template 32 wall packing for Auto-Paint: 128 + 64 + 32 (corner stub).
 // Independent of generators/templateDeck.js (frozen). Tip grid unit = 32px.
+//
+// Geometry (tile units; 1 = 64px underlay cell; tip grid step = 0.5):
+// - Tip is the +X/+Y corner of the footprint; box extends toward −X/−Y.
+// - Horizontal straight tipAlongX(x,y) → south-edge strip of cell (x,y).
+// - Vertical straight tipAlongY(x,y) → east-edge strip of cell (x,y).
+// - Corner tip (x+1,y+1) → SE 32×32 of the junction cell only.
+// - Arms from −X / −Y therefore leave a 0.5-cell gap to that post; +X / +Y meet flush.
+// - Junction fills use tips (x+0.5,y+1) and (x+1,y+0.5) on those same edges — never
+//   tipAlongX/Y (collides with the corner tip) and never the axis-swapped half tips.
 import { NULL_TILE, normalizeTemplateRotation } from '../mapFormat.js'
 import { snapTemplatePiecePosition, TEMPLATE_PIECE_CELL_PX } from '../mapEdits.js'
-import { getTemplatePiece } from '../templatePieces.js'
+import { getTemplatePiece, templatePieceFootprint } from '../templatePieces.js'
 
 export const WALL_TIP_PX = TEMPLATE_PIECE_CELL_PX // 32
-export const WALL_LEN_LONG = 128 // tip units: 4
-export const WALL_LEN_SHORT = 64 // tip units: 2
+export const WALL_LEN_LONG = 128 // tip units: 4 (= 2 underlay cells)
+export const WALL_LEN_SHORT = 64 // tip units: 2 (= 1 underlay cell)
 export const WALL_LEN_STUB = 32 // tip units: 1 (corner post as a 32-long)
 
 const UNDERLAY = 'templateWall'
+const TIP_EPS = 1e-6
 
 function tipKeyOf(position) {
   return `${position.x},${position.y}`
@@ -81,24 +91,49 @@ function freePieceId(pieceId, used) {
   return id
 }
 
+function tipAlongX(x, y, tilesWide = 1) {
+  return { x: x + tilesWide, y: y + 1 }
+}
+
+function tipAlongY(x, y, tilesLong = 1) {
+  return { x: x + 1, y: y + tilesLong }
+}
+
+function cornerTip(x, y) {
+  return { x: x + 1, y: y + 1 }
+}
+
+/** South-edge fill tip: closes the 0.5-cell gap west of the SE corner post. */
+function junctionFillTipAlongX(x, y) {
+  return { x: x + 0.5, y: y + 1 }
+}
+
+/** East-edge fill tip: closes the 0.5-cell gap north of the SE corner post. */
+function junctionFillTipAlongY(x, y) {
+  return { x: x + 1, y: y + 0.5 }
+}
+
 function addPiece(list, usedIds, tips, tip, pieceId, rotation) {
-  if (!pieceId || !getTemplatePiece(pieceId)) return list
+  if (!pieceId || !getTemplatePiece(pieceId)) return { list, placed: false }
   const snapped = snapTemplatePiecePosition(tip, WALL_TIP_PX)
   const key = tipKeyOf(snapped)
-  if (tips.has(key)) return list
+  if (tips.has(key)) return { list, placed: false }
   tips.add(key)
-  return [
-    ...list,
-    {
-      id: freePieceId(pieceId, usedIds),
-      pieceId,
-      position: snapped,
-      rotation: normalizeTemplateRotation(rotation),
-      scale: 1,
-      order: list.length,
-      autoPaint: true,
-    },
-  ]
+  return {
+    list: [
+      ...list,
+      {
+        id: freePieceId(pieceId, usedIds),
+        pieceId,
+        position: snapped,
+        rotation: normalizeTemplateRotation(rotation),
+        scale: 1,
+        order: list.length,
+        autoPaint: true,
+      },
+    ],
+    placed: true,
+  }
 }
 
 /**
@@ -135,36 +170,140 @@ export function packTipCells(tipCells) {
   return parts
 }
 
-function tipForSegment(x0, y0, alongX, cellsWide, rot) {
-  // South tip of a segment that starts at underlay cell (x0,y0) and spans `cellsWide` cells.
-  if (alongX) {
-    if (rot === 180) return { x: x0 + cellsWide, y: y0 + 0.5 }
-    return { x: x0 + cellsWide, y: y0 + 1 }
-  }
-  if (rot === 270) return { x: x0 + 0.5, y: y0 + cellsWide }
-  return { x: x0 + 1, y: y0 + cellsWide }
-}
-
-function tipForStub(x, y, alongX, rot) {
-  // 32-long stub: corner-sized piece centered on the cell edge.
-  if (alongX) {
-    if (rot === 180) return { x: x + 0.5, y: y + 0.5 }
-    return { x: x + 0.5, y: y + 1 }
-  }
-  if (rot === 270) return { x: x + 0.5, y: y + 0.5 }
-  return { x: x + 1, y: y + 0.5 }
-}
-
 function pieceForLen(kit, len, onHull) {
-  if (len === WALL_LEN_LONG) return onHull ? kit.hullLong || kit.straightLong : kit.straightLong || kit.straight
+  if (len === WALL_LEN_LONG) return onHull ? kit.hullLong || kit.straightLong || kit.straight : kit.straightLong || kit.straight
   if (len === WALL_LEN_SHORT) return onHull ? kit.hull || kit.straight : kit.straight
-  // 32 stub: corner art as a short post
   return onHull ? kit.hullCorner || kit.corner : kit.corner
+}
+
+/** Axis-aligned footprint AABB in tile units (tip = +X/+Y corner). */
+export function pieceFootprintAabb(entry) {
+  const def = getTemplatePiece(entry.pieceId)
+  if (!def) return null
+  const fp = templatePieceFootprint(def, entry.rotation ?? 0)
+  if (!fp) return null
+  const tip = entry.position
+  const w = fp.width / 64
+  const d = fp.depth / 64
+  return { minX: tip.x - w, maxX: tip.x, minY: tip.y - d, maxY: tip.y }
+}
+
+function intervalCovered(intervals, start, end) {
+  const sorted = intervals.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  let cur = start
+  for (const [a, b] of sorted) {
+    if (b <= cur + TIP_EPS) continue
+    if (a > cur + TIP_EPS) return false
+    cur = Math.max(cur, b)
+    if (cur >= end - TIP_EPS) return true
+  }
+  return cur >= end - TIP_EPS
+}
+
+/**
+ * True when every required non-doorway wall edge segment is covered by a piece footprint.
+ * Straight cells need their full south (E–W) or east (N–S) edge. Junctions only require the
+ * half-edges that actually meet an arm (−X/−Y gaps + +X/+Y flush quarters) so L insides stay open.
+ */
+export function wallEdgesContinuouslyCovered(map, placements, { doorId = null } = {}) {
+  const { width, height, tiles } = map
+  const pieces = placements ?? map.templatePiecePlacements ?? []
+  const south = new Map() // y -> [x0,x1][]
+  const east = new Map() // x -> [y0,y1][]
+
+  const push = (mapRef, key, a, b) => {
+    if (!mapRef.has(key)) mapRef.set(key, [])
+    mapRef.get(key).push([a, b])
+  }
+
+  for (const entry of pieces) {
+    const box = pieceFootprintAabb(entry)
+    if (!box) continue
+    const thickX = box.maxX - box.minX
+    const thickY = box.maxY - box.minY
+    // Horizontal run (or square corner): cover the south edge of the footprint.
+    if (thickX + TIP_EPS >= 0.5) push(south, box.maxY, box.minX, box.maxX)
+    // Vertical run (or square corner): cover the east edge of the footprint.
+    if (thickY + TIP_EPS >= 0.5) push(east, box.maxX, box.minY, box.maxY)
+  }
+
+  const okSouth = (x0, x1, edgeY) => intervalCovered(south.get(edgeY) ?? [], x0, x1)
+  const okEast = (y0, y1, edgeX) => intervalCovered(east.get(edgeX) ?? [], y0, y1)
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!wallAt(tiles, width, height, x, y)) continue
+      if (doorId && isDoor(tiles, x, y, doorId)) continue
+      const { n, s, e, w } = neighbours(tiles, width, height, x, y)
+      if (isJunction(n, s, e, w)) {
+        if (w && !okSouth(x, x + 0.5, y + 1)) return false
+        if (e && !okSouth(x + 0.5, x + 1, y + 1)) return false
+        if (n && !okEast(y, y + 0.5, x + 1)) return false
+        if (s && !okEast(y + 0.5, y + 1, x + 1)) return false
+        continue
+      }
+      const alongX = e || w || (!n && !s)
+      if (alongX) {
+        if (!okSouth(x, x + 1, y + 1)) return false
+      } else if (!okEast(y, y + 1, x + 1)) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
+/**
+ * Place one greedy straight (1 or 2 cells). Stops before junctions / axis bends.
+ * Marks covered underlay cells in `consumed` only when a piece was actually placed.
+ */
+function placeStraightGreedy(list, usedIds, tips, tiles, width, height, x, y, alongX, onHull, consumed, keyOf, kit) {
+  const shortId = pieceForLen(kit, WALL_LEN_SHORT, onHull)
+  const longId = pieceForLen(kit, WALL_LEN_LONG, onHull)
+  if (alongX) {
+    const next = wallAt(tiles, width, height, x + 1, y) && !consumed.has(keyOf(x + 1, y))
+    const nn = next ? neighbours(tiles, width, height, x + 1, y) : null
+    const nextBlocked =
+      nn && (isLCorner(nn.n, nn.s, nn.e, nn.w) || isJunction(nn.n, nn.s, nn.e, nn.w) || nn.n || nn.s)
+    const nextOnHull = next && hullCell(width, height, x + 1, y)
+    const longOk = next && !nextBlocked && onHull === nextOnHull && longId
+    const rot = straightRotation(tiles, width, height, x, y, true)
+    if (longOk) {
+      const placed = addPiece(list, usedIds, tips, tipAlongX(x, y, 2), longId, rot)
+      if (placed.placed) {
+        consumed.add(keyOf(x, y))
+        consumed.add(keyOf(x + 1, y))
+      }
+      return placed.list
+    }
+    const placed = addPiece(list, usedIds, tips, tipAlongX(x, y), shortId, rot)
+    if (placed.placed) consumed.add(keyOf(x, y))
+    return placed.list
+  }
+
+  const next = wallAt(tiles, width, height, x, y + 1) && !consumed.has(keyOf(x, y + 1))
+  const nn = next ? neighbours(tiles, width, height, x, y + 1) : null
+  const nextBlocked =
+    nn && (isLCorner(nn.n, nn.s, nn.e, nn.w) || isJunction(nn.n, nn.s, nn.e, nn.w) || nn.e || nn.w)
+  const nextOnHull = next && hullCell(width, height, x, y + 1)
+  const longOk = next && !nextBlocked && onHull === nextOnHull && longId
+  const rot = straightRotation(tiles, width, height, x, y, false)
+  if (longOk) {
+    const placed = addPiece(list, usedIds, tips, tipAlongY(x, y, 2), longId, rot)
+    if (placed.placed) {
+      consumed.add(keyOf(x, y))
+      consumed.add(keyOf(x, y + 1))
+    }
+    return placed.list
+  }
+  const placed = addPiece(list, usedIds, tips, tipAlongY(x, y), shortId, rot)
+  if (placed.placed) consumed.add(keyOf(x, y))
+  return placed.list
 }
 
 /**
  * Place Template Pieces on templateWall underlay using 128/64/32 packing.
- * doorId: doorway tile id for door-frame pieces (optional).
+ * Tracks underlay-cell coverage explicitly. doorId + kit.doorFrame both required for frames.
  */
 export function placePackedWallPieces(map, kit, { doorId = null, random = Math.random } = {}) {
   const { width, height, tiles } = map
@@ -176,27 +315,27 @@ export function placePackedWallPieces(map, kit, { doorId = null, random = Math.r
   for (const entry of map.templatePiecePlacements ?? []) {
     if (entry.autoPaint) continue
     list.push(entry)
-    tips.add(tipKeyOf(entry.position))
+    tips.add(tipKeyOf(snapTemplatePiecePosition(entry.position, WALL_TIP_PX)))
     usedIds.add(entry.id)
   }
 
   const keyOf = (x, y) => `${x},${y}`
   const consumed = new Set()
 
-  // 1) Door frames
+  // 1) Door frames — only when the ruleset supplied a doorFrame piece.
   if (doorId && kit.doorFrame) {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         if (!isDoor(tiles, x, y, doorId)) continue
         const alongX = wallAt(tiles, width, height, x - 1, y) || wallAt(tiles, width, height, x + 1, y)
         const rot = straightRotation(tiles, width, height, x, y, alongX)
-        const tip = alongX ? { x: x + 1, y: y + 1 } : { x: x + 1, y: y + 1 }
-        list = addPiece(list, usedIds, tips, tip, kit.doorFrame, rot)
+        const tip = alongX ? tipAlongX(x, y) : tipAlongY(x, y)
+        list = addPiece(list, usedIds, tips, tip, kit.doorFrame, rot).list
       }
     }
   }
 
-  // 2) Corners at every junction (32×32 posts)
+  // 2) Corner posts at every junction (SE tip). Do not consume yet — pass 3 fills −X/−Y gaps.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!wallAt(tiles, width, height, x, y)) continue
@@ -204,99 +343,56 @@ export function placePackedWallPieces(map, kit, { doorId = null, random = Math.r
       if (!isJunction(n, s, e, w)) continue
       const onHull = hullCell(width, height, x, y)
       const piece = onHull ? kit.hullCorner || kit.corner : kit.corner
-      list = addPiece(list, usedIds, tips, { x: x + 1, y: y + 1 }, piece, cornerRotation(n, s, e, w))
-      // L-corners are fully covered by the post; straights start beside them.
-      if (isLCorner(n, s, e, w)) consumed.add(keyOf(x, y))
+      list = addPiece(list, usedIds, tips, cornerTip(x, y), piece, cornerRotation(n, s, e, w)).list
     }
   }
 
-  // 3) Straight runs on remaining underlay cells (each cell once)
-  const visit = new Set(consumed)
-
-  const claimRun = (cells, alongX) => {
-    if (!cells.length) return
-    const packs = packUnderlayRun(cells.length)
-    let index = 0
-    for (const part of packs) {
-      const start = cells[index]
-      const onHull = cells.slice(index, index + part.cells).every((cell) => hullCell(width, height, cell.x, cell.y))
-      const rot = straightRotation(tiles, width, height, start.x, start.y, alongX)
-      const pieceId = pieceForLen(kit, part.len, onHull)
-      // Prefer alternate tip when the primary tip is already taken by a corner post.
-      let tip = tipForSegment(start.x, start.y, alongX, part.cells, rot)
-      const primaryKey = tipKeyOf(snapTemplatePiecePosition(tip, WALL_TIP_PX))
-      if (tips.has(primaryKey)) {
-        tip = tipForSegment(start.x, start.y, alongX, part.cells, alongX ? (rot === 0 ? 180 : 0) : rot === 90 ? 270 : 90)
-      }
-      list = addPiece(list, usedIds, tips, tip, pieceId, rot)
-      index += part.cells
-    }
-  }
-
-  // Horizontal runs
-  for (let y = 0; y < height; y++) {
-    let run = []
-    const flush = () => {
-      claimRun(run, true)
-      run = []
-    }
-    for (let x = 0; x < width; x++) {
-      const key = keyOf(x, y)
-      if (!wallAt(tiles, width, height, x, y) || visit.has(key)) {
-        flush()
-        continue
-      }
-      const { n, s, e, w } = neighbours(tiles, width, height, x, y)
-      // Only cells that belong to an X-run (have E/W neighbour, or lone east-west wall).
-      const alongX = e || w || (!n && !s)
-      if (!alongX && (n || s)) {
-        flush()
-        continue
-      }
-      visit.add(key)
-      run.push({ x, y })
-      if (!e) flush()
-    }
-    flush()
-  }
-
-  // Vertical runs (cells not yet visited)
-  for (let x = 0; x < width; x++) {
-    let run = []
-    const flush = () => {
-      claimRun(run, false)
-      run = []
-    }
-    for (let y = 0; y < height; y++) {
-      const key = keyOf(x, y)
-      if (!wallAt(tiles, width, height, x, y) || visit.has(key)) {
-        flush()
-        continue
-      }
-      visit.add(key)
-      run.push({ x, y })
-      const { s } = neighbours(tiles, width, height, x, y)
-      if (!s) flush()
-    }
-    flush()
-  }
-
-  // 4) Any underlay cell still without a nearby piece: 32 stub (corner art)
+  // 3) Junction fills + greedy 128/64 straights.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (!wallAt(tiles, width, height, x, y)) continue
+      if (!wallAt(tiles, width, height, x, y) || consumed.has(keyOf(x, y))) continue
       const { n, s, e, w } = neighbours(tiles, width, height, x, y)
-      const alongX = e || w || (!n && !s)
-      const rot = straightRotation(tiles, width, height, x, y, alongX)
-      const candidates = [
-        { x: x + 1, y: y + 1 },
-        tipForSegment(x, y, alongX, 1, rot),
-        tipForSegment(x, y, alongX, 1, alongX ? 180 : 270),
-        tipForStub(x, y, alongX, rot),
-      ]
-      if (candidates.some((tip) => tips.has(tipKeyOf(snapTemplatePiecePosition(tip, WALL_TIP_PX))))) continue
       const onHull = hullCell(width, height, x, y)
-      list = addPiece(list, usedIds, tips, tipForStub(x, y, alongX, rot), pieceForLen(kit, WALL_LEN_STUB, onHull), rot)
+      const runPiece = pieceForLen(kit, WALL_LEN_SHORT, onHull)
+
+      if (isJunction(n, s, e, w)) {
+        // Close half-cell gaps west / north of the SE corner post. +X / +Y arms already meet flush.
+        // Tips stay on the south / east edges — never the axis-swapped half offsets.
+        if (w) {
+          const rot = straightRotation(tiles, width, height, x, y, true)
+          list = addPiece(list, usedIds, tips, junctionFillTipAlongX(x, y), runPiece, rot).list
+        }
+        if (n) {
+          const rot = straightRotation(tiles, width, height, x, y, false)
+          list = addPiece(list, usedIds, tips, junctionFillTipAlongY(x, y), runPiece, rot).list
+        }
+        consumed.add(keyOf(x, y))
+        continue
+      }
+
+      const alongX = e || w || (!n && !s)
+      list = placeStraightGreedy(list, usedIds, tips, tiles, width, height, x, y, alongX, onHull, consumed, keyOf, kit)
+    }
+  }
+
+  // 4) Safety: any still-uncovered underlay cell gets a short straight (not a corner stub flood).
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!wallAt(tiles, width, height, x, y) || consumed.has(keyOf(x, y))) continue
+      const { n, s, e, w } = neighbours(tiles, width, height, x, y)
+      const alongX = e || w || (!n && !s)
+      const onHull = hullCell(width, height, x, y)
+      const rot = straightRotation(tiles, width, height, x, y, alongX)
+      const tip = alongX ? tipAlongX(x, y) : tipAlongY(x, y)
+      let result = addPiece(list, usedIds, tips, tip, pieceForLen(kit, WALL_LEN_SHORT, onHull), rot)
+      list = result.list
+      if (!result.placed) {
+        // Primary tip blocked — try the junction-style half tip on the same edge.
+        const alt = alongX ? junctionFillTipAlongX(x, y) : junctionFillTipAlongY(x, y)
+        result = addPiece(list, usedIds, tips, alt, pieceForLen(kit, WALL_LEN_SHORT, onHull), rot)
+        list = result.list
+      }
+      if (result.placed) consumed.add(keyOf(x, y))
     }
   }
 

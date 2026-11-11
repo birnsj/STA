@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import { getTile, imageSize } from '../../maps/mapFormat.js'
+import { getTile, groundTileId, imageSize, NULL_TILE } from '../../maps/mapFormat.js'
 import { loadImage } from './canvasTiles.js'
 import './maps.css'
 
@@ -26,7 +26,7 @@ function topFace(tile, image, size) {
 // A map's tiles top down, one unit per tile with tile (x, y) centred on (x, y), for the minimaps (exploration, map editor).
 // Drawn into one canvas, redrawn only when the tiles change: a big map has thousands of tiles, too many to keep as SVG
 // elements in a view that re-renders as people move.
-export default function MinimapTiles({ tiles }) {
+export default function MinimapTiles({ tiles, floorUnder = null }) {
   const canvasRef = useRef(null)
   const rows = tiles.length
   const columns = tiles[0]?.length ?? 0
@@ -36,24 +36,34 @@ export default function MinimapTiles({ tiles }) {
     if (!canvas || !rows || !columns) return undefined
     let cancelled = false
     const size = Math.max(1, Math.min(MAX_TILE_PIXELS, Math.floor(MAX_PIXELS / Math.max(rows, columns))))
-    const ids = [...new Set(tiles.flat())]
-    Promise.all(ids.map((id) => loadImage(getTile(id).image))).then((images) => {
+    const map = { tiles, floorUnder: floorUnder ?? {}, width: columns, height: rows }
+    const ids = new Set()
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < columns; x++) {
+        const id = groundTileId(map, { x, y }) ?? tiles[y][x]
+        if (id && id !== NULL_TILE) ids.add(id)
+      }
+    }
+    const idList = [...ids]
+    Promise.all(idList.map((id) => loadImage(getTile(id)?.image))).then((images) => {
       if (cancelled) return
-      const faces = new Map(ids.map((id, i) => [id, topFace(getTile(id), images[i], size)]))
+      const faces = new Map(idList.map((id, i) => [id, topFace(getTile(id), images[i], size)]))
       canvas.width = columns * size
       canvas.height = rows * size
       const context = canvas.getContext('2d')
-      tiles.forEach((row, y) =>
-        row.forEach((id, x) => {
-          if (getTile(id).empty) return
-          context.drawImage(faces.get(id), x * size, y * size)
-        }),
-      )
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < columns; x++) {
+          const id = groundTileId(map, { x, y })
+          if (!id) continue
+          const face = faces.get(id)
+          if (face) context.drawImage(face, x * size, y * size)
+        }
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [tiles, rows, columns])
+  }, [tiles, floorUnder, rows, columns])
 
   return (
     <foreignObject x={-0.5} y={-0.5} width={columns} height={rows} pointerEvents="none">

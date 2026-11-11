@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getPlaytestParty, hasAuthoredCharacter } from '../character/authoredCharacters.js'
 import { normalizeCharacterRecord } from '../character/runtimeCharacter.js'
 import { ENEMY_SPAWNS_NEEDED } from '../combat/encounters.js'
-import { MAX_AWAY_TEAM } from '../exploration/awayTeam.js'
 import EditorBoard from '../components/maps/EditorBoard.jsx'
 import { EDITOR_GRID_SIZES } from '../components/maps/editorGrid.js'
 import EditorGridOptions from '../components/maps/EditorGridOptions.jsx'
@@ -47,11 +46,27 @@ const CharacterLibraryScreen = lazy(() => import('./CharacterLibraryScreen.jsx')
 const GeneratorEditorScreen = lazy(() => import('./GeneratorEditorScreen.jsx'))
 const AutoPaintRulesetEditorScreen = lazy(() => import('./AutoPaintRulesetEditorScreen.jsx'))
 
+// Editor Play: four party + four enemies (not the full eight-start / full-spawn roster).
+const EDITOR_PLAY_TEAM = 4
+
 function playAwayTeam(savedCharacters) {
   const saved = savedCharacters.map((entry) => normalizeCharacterRecord(entry.record, { id: entry.id }).character).filter(Boolean)
   const taken = new Set(saved.map((character) => character.id))
-  const authored = getPlaytestParty(MAX_AWAY_TEAM).filter((character) => character && !taken.has(character.id))
-  return [...saved, ...authored].slice(0, MAX_AWAY_TEAM)
+  const authored = getPlaytestParty(EDITOR_PLAY_TEAM).filter((character) => character && !taken.has(character.id))
+  return [...saved, ...authored].slice(0, EDITOR_PLAY_TEAM)
+}
+
+// First four player starts and enemy posts only — placement uses these lists.
+function playtestMap(map) {
+  return {
+    ...map,
+    markers: {
+      ...map.markers,
+      playerStarts: (map.markers.playerStarts ?? []).slice(0, EDITOR_PLAY_TEAM),
+      enemySpawns: (map.markers.enemySpawns ?? []).slice(0, EDITOR_PLAY_TEAM),
+    },
+    npcs: map.npcs?.length ? map.npcs.slice(0, EDITOR_PLAY_TEAM) : map.npcs,
+  }
 }
 
 export default function MapEditorScreen({ savedCharacters = [], onBack, viewScale = 100, onViewScale }) {
@@ -89,7 +104,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
       return next
     })
   const boardBlocked = floatBusyIds.size > 0
-  const [playTeam, setPlayTeam] = useState(null)
+  const [playSession, setPlaySession] = useState(null)
   const [enemiesActive, setEnemiesActive] = useState(true)
   const [hover, setHover] = useState(null)
   const [conversations, setConversations] = useState([])
@@ -119,7 +134,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   const dialogOpen =
     dialogShowing ||
     doc.showLoad ||
-    Boolean(playTeam) ||
+    Boolean(playSession) ||
     Boolean(conversationEditor) ||
     Boolean(objectiveEditor) ||
     Boolean(objectEditor) ||
@@ -208,7 +223,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     if (playErrors.length) return setStatus(`Cannot play: ${playErrors[0]}`)
     const team = playAwayTeam(savedCharacters)
     if (!team.length) return setStatus('Play needs the authored redshirt party or a saved character.')
-    setPlayTeam(team)
+    setPlaySession({ map: playtestMap(map), characters: team })
   }
 
   const onMenuAction = async (id) => {
@@ -428,10 +443,16 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
     )
   }
 
-  if (playTeam) {
+  if (playSession) {
     return (
       <Suspense fallback={null}>
-        <ExplorationPlaytest map={map} characters={playTeam} savedCharacters={savedCharacters} enemiesActive={enemiesActive} onExit={() => setPlayTeam(null)} />
+        <ExplorationPlaytest
+          map={playSession.map}
+          characters={playSession.characters}
+          savedCharacters={savedCharacters}
+          enemiesActive={enemiesActive}
+          onExit={() => setPlaySession(null)}
+        />
       </Suspense>
     )
   }

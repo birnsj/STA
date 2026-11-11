@@ -112,6 +112,24 @@ export const getTile = (id) => BY_ID.get(id)
 export const tileIdForSymbol = (symbol) => BY_SYMBOL.get(symbol)?.id
 export const isEmptyTile = (id) => Boolean(getTile(id)?.empty)
 
+/**
+ * Drawable ground tile at a cell, or null when the cell should stay void.
+ * Empty underlay (e.g. templateWall) with a remembered non-empty floorUnder returns that floor
+ * so boards can paint deck under invisible walls without changing pathing solidity.
+ */
+export function groundTileId(map, { x, y }) {
+  const id = map?.tiles?.[y]?.[x]
+  if (id == null) return null
+  const tile = getTile(id)
+  if (!tile) return null
+  if (!tile.empty) return id
+  const under = map.floorUnder?.[`${x},${y}`]
+  if (under == null || under === NULL_TILE) return null
+  const underTile = getTile(under)
+  if (!underTile || underTile.empty) return null
+  return under
+}
+
 function bumpTileCatalogue() {
   tileCatalogueEpoch += 1
 }

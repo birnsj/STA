@@ -23,15 +23,15 @@ Manual Auto-Paint wall cells can be promoted so Rebuild leaves them alone. Erasi
 | Straight | 64 |
 | Corner / stub | 32×32 |
 
-Hull None → rim uses straight / corner (no silent Template Deck hull).
+Hull / doorFrame **null** → no Template Deck fill-in (rim uses straight/corner; doorways stay underlay-only). Packing tracks **underlay-cell coverage** and tip-grid edge continuity: corner posts sit on the SE tip; −X/−Y arms leave a half-cell gap that a south-edge tip `(x+0.5,y+1)` / east-edge tip `(x+1,y+0.5)` fill closes. Never reuse `tipAlongX/Y` at junctions (collides with the corner tip).
 
 ## Collision
 
-Same as other wall tiles: full-cell solid for pathing and sight.
+`templateWall` underlay is **not** full-cell solid for movement. Bodies collide with Template Piece **footprints** (32-thick edge strips) via `circleHitsTemplateWalls` / exploration `isClear`. Sight still uses full-cell `blocksSight` on the underlay. Combat steps also reject paths that cross a piece strip (`isClearLine`).
 
 ## Floor under walls
 
-Underlay wall cells store the ruleset default floor in `floorUnder`.
+Underlay wall cells store the ruleset default floor in `floorUnder`. Empty `templateWall` cells paint that floor on the board (walls stay Template Piece overlays). Combat’s `toBattleMap` keeps `floorUnder` + placements so the battlefield matches exploration.
 
 ## Map JSON
 

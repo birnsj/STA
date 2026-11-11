@@ -221,6 +221,45 @@ export function editorTemplatePaletteItems({ includeDimension = false } = {}) {
   }))
 }
 
+/** Tip-anchored footprint AABB in tile units (tip = +X/+Y corner). */
+export function templatePieceWorldAabb(entry) {
+  const def = getTemplatePiece(entry?.pieceId)
+  if (!def) return null
+  const tip = entry.position
+  if (!tip || !Number.isFinite(tip.x) || !Number.isFinite(tip.y)) return null
+  const fp = templatePieceFootprint(def, entry.rotation ?? 0)
+  if (!fp?.width || !fp?.depth) return null
+  const w = fp.width / 64
+  const d = fp.depth / 64
+  return { minX: tip.x - w, maxX: tip.x, minY: tip.y - d, maxY: tip.y, def }
+}
+
+function isTemplateWallCollider(def) {
+  const tags = new Set((def.tags ?? []).map((tag) => String(tag).toLowerCase()))
+  if (tags.has('floor') || tags.has('doorway') || tags.has('carpet') || tags.has('grating')) return false
+  if (tags.has('wall') || tags.has('halfbulkhead') || tags.has('column') || tags.has('pillar')) return true
+  return def.layer === 'walls'
+}
+
+export function circleHitsAabb(point, radius, box) {
+  if (!point || !box || !(radius > 0)) return false
+  const cx = Math.min(Math.max(point.x, box.minX), box.maxX)
+  const cy = Math.min(Math.max(point.y, box.minY), box.maxY)
+  const dx = point.x - cx
+  const dy = point.y - cy
+  return dx * dx + dy * dy < radius * radius
+}
+
+/** True when a circle overlaps any Template Piece wall/structure footprint (edge collision). */
+export function circleHitsTemplateWalls(map, point, radius) {
+  for (const entry of map.templatePiecePlacements ?? []) {
+    const box = templatePieceWorldAabb(entry)
+    if (!box || !isTemplateWallCollider(box.def)) continue
+    if (circleHitsAabb(point, radius, box)) return true
+  }
+  return false
+}
+
 // True when a cover Template Piece's footprint overlaps the tile cell (combat standing-next-to cover).
 export function templatePieceGivesCover(map, position) {
   const cellX = Math.round(position.x)
@@ -228,17 +267,9 @@ export function templatePieceGivesCover(map, position) {
   for (const entry of map.templatePiecePlacements ?? []) {
     const def = getTemplatePiece(entry.pieceId)
     if (!def?.cover) continue
-    const tip = entry.position
-    const fp = templatePieceFootprint(def, entry.rotation ?? 0)
-    if (!fp) continue
-    // Footprint is design px (64 = one tile), tip is the south tip of the piece.
-    const w = fp.width / 64
-    const d = fp.depth / 64
-    const minX = tip.x - w
-    const maxX = tip.x
-    const minY = tip.y - d
-    const maxY = tip.y
-    if (cellX >= Math.floor(minX) && cellX <= Math.floor(maxX) && cellY >= Math.floor(minY) && cellY <= Math.floor(maxY)) {
+    const box = templatePieceWorldAabb(entry)
+    if (!box) continue
+    if (cellX >= Math.floor(box.minX) && cellX <= Math.floor(box.maxX) && cellY >= Math.floor(box.minY) && cellY <= Math.floor(box.maxY)) {
       return true
     }
   }

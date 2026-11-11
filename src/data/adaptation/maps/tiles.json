@@ -5210,7 +5210,7 @@
       "layer": "ground",
       "symbol": "Ģ",
       "label": "Template Wall Underlay",
-      "solid": true,
+      "solid": false,
       "blocksSight": true,
       "cover": false,
       "fade": false,

@@ -213,6 +213,14 @@ describe('the alpha test itself', () => {
     assert.equal(pickProp([tiedA, tiedB], point, { maskOf: () => lopsided })?.id, 'tiedB', 'ties go to the one added later, as on the board')
   })
 
+  it('skips scenery marked pickable: false (Template Piece walls drawn via loot sprites)', () => {
+    const wall = object({ id: 'wall', depth: 3, pickable: false })
+    const loot = object({ id: 'loot', depth: 1 })
+    const point = at(0.75, 0.25)
+    assert.equal(pickProp([wall], point, { maskOf: () => lopsided }), null)
+    assert.equal(pickProp([loot, wall], point, { maskOf: () => lopsided })?.id, 'loot')
+  })
+
   it('a picture that has not loaded, or failed, does not take the click or hide the sprite behind it', () => {
     const point = at(0.75, 0.25)
     const front = object({ id: 'front', depth: 2 })

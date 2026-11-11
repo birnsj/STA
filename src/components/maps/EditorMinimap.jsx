@@ -19,7 +19,7 @@ export default function EditorMinimap({ map }) {
   return (
     <section className="me-minimap" aria-label="Minimap">
       <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
-        <MinimapTiles tiles={map.tiles} />
+        <MinimapTiles tiles={map.tiles} floorUnder={map.floorUnder} />
         {map.areas.map((area) => (
           <text key={`${area.position.x},${area.position.y}`} className="me-minimap-label" x={area.position.x - 0.4} y={area.position.y + 0.3}>
             {area.name.toUpperCase()}

@@ -20,6 +20,8 @@ import { playBoardHover, playBoardPress } from '../../audio/uiSounds.js'
 import { useDisplaySettings } from '../../settings/DisplaySettingsContext.js'
 import { highlightBox, highlightTiles } from '../exploration/boardGeometry.js'
 import { boardLayout } from '../maps/canvasTiles.js'
+import { templatePieceSprites } from '../../maps/mapEdits.js'
+import { templatePieceFadeIds } from '../../maps/wallFade.js'
 import { MapReadyContext, MapRevealedContext } from '../maps/mapReady.js'
 import { RINGS, SIDE_COLOURS } from '../maps/pixi/figures.js'
 import usePixiScene from '../maps/pixi/usePixiScene.js'
@@ -96,7 +98,7 @@ export default function PixiBattlefield(props) {
     beamOut = false,
     debug = false,
   } = props
-  const { edgeScroll } = useDisplaySettings()
+  const { edgeScroll, wallFade: wallFadeMode } = useDisplaySettings()
   const { map } = state
   const [spike3d, setSpike3d] = useState(() => isSpike3dPreferred())
   const [animClipDebug, setAnimClipDebug] = useState(() => isAnimClipDebugOn())
@@ -141,8 +143,29 @@ export default function PixiBattlefield(props) {
     bigGroups,
   )
   const faded = useStableSet(fadeWholeBigObjects(fadeWholePanels(hidden, panels), bigGroups))
+  const templateFadeMemory = useRef(new Set())
+  const fadeFigures = units.filter(cutsWalls).map((unit) => ({ id: unit.id, position: shownPosition(unit) }))
+  const fadedTemplateIds = templatePieceFadeIds(map, fadeFigures, templateFadeMemory.current, {
+    mode: wallFadeMode,
+    fadedCellKeys: faded,
+  })
+  templateFadeMemory.current = fadedTemplateIds
   const spikeFadedRef = useRef(null)
-  spikeFadedRef.current = spike3d ? faded : null
+  if (spike3d) {
+    const keys = new Set(faded)
+    for (const id of fadedTemplateIds) keys.add(id)
+    spikeFadedRef.current = keys
+  } else {
+    spikeFadedRef.current = null
+  }
+  // Template Piece walls: same GroundLootView draw path as exploration; not pickable in combat.
+  const groundLoot = templatePieceSprites(map).map((sprite) => ({
+    ...sprite,
+    pickable: false,
+    inReach: true,
+    hovered: false,
+    faded: fadedTemplateIds.has(sprite.id),
+  }))
 
   // ---------------------------------------------------------------- what the scene draws, and what the pointer hits
 
@@ -337,6 +360,7 @@ export default function PixiBattlefield(props) {
       layout,
       faded,
       units: figures,
+      groundLoot,
       tiles: { reachableKeys: overlay.reachableKeys, pathKeys: overlay.pathKeys, destinationKey },
       path: overlay.path ?? null,
       snapMarks,

@@ -2,6 +2,7 @@
 // obstacles block; nobody moves through an enemy's tile. Implementation detail: a diagonal step may not cut a wall
 // or cover corner, and allies can be passed through but not stopped on.
 import { blocksMovement, isSlowTile, NEIGHBOUR_OFFSETS, samePosition, tileKey } from './battleMap.js'
+import { isClearLine } from '../exploration/navigation.js'
 
 // Book (Core pp.288–289): Move goes up to one zone (within Medium range), Sprint two zones (within Long range); no
 // attribute sets the distance.
@@ -16,6 +17,8 @@ function canStep(map, from, offset, blockedKeys) {
   if (dx !== 0 && dy !== 0) {
     if (blocksMovement(map, { x: from.x + dx, y: from.y }) || blocksMovement(map, { x: from.x, y: from.y + dy })) return null
   }
+  // Template 32 edge walls: underlay cells are walkable, but the 32-thick strip still blocks the step.
+  if (map.templatePiecePlacements?.length && !isClearLine(map, from, to)) return null
   return to
 }
 

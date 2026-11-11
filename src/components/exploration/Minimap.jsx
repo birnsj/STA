@@ -81,7 +81,7 @@ export default function Minimap({ map, party, world, knowledge, environment = nu
       {!toolbarOutside && toolbar}
       <svg viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
         <g className="minimap-readout-tiles">
-          <MinimapTiles tiles={map.tiles} />
+          <MinimapTiles tiles={map.tiles} floorUnder={map.floorUnder} />
         </g>
         {doors.map((door) => (
           <path key={door.id} className={`minimap-door${door.closed ? ' is-closed' : ''}`} d={cellsPath(door.cells)} data-tip={`${door.name}: ${door.stateLabel}`} />

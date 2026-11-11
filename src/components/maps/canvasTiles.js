@@ -5,7 +5,7 @@
 // A change only repaints the area it touched. Presentation only.
 import { BIG_IMAGE, getBigObjects } from '../../maps/bigObjects.js'
 import { diamond, isBlock, project, TILE_H, TILE_W, tileImage, tileImageBox } from '../../maps/iso.js'
-import { getTile, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
+import { getTile, groundTileId, imageSize, isRotated, TILE_IMAGE } from '../../maps/mapFormat.js'
 import { joinedImage } from '../../maps/railJoins.js'
 import {
   animationOffset,
@@ -408,8 +408,12 @@ function indexOf(layout) {
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
-      // Null cells are neither floors nor blocks: nothing drawn, nothing lit.
-      if (getTile(id).empty) return
+      const tile = getTile(id)
+      // Empty underlay with floorUnder still paints as floor; true Null stays void.
+      if (tile.empty) {
+        if (groundTileId(map, position)) floors.push({ position, area: tileImageBox(position) })
+        return
+      }
       if (isBlock(id)) blocks.push({ position, key: keyOf(position), depth: x + y, area: blockArea(layout, position) })
       else floors.push({ position, area: tileImageBox(position) })
     }),
@@ -439,7 +443,7 @@ export function changedArea(before, after) {
     const origin = layout.bigGroups.get(at)
     const stack = layout.map.stackOver?.[at]
     const stacked = Array.isArray(stack) ? stack.join(',') : ''
-    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}|${layout.map.wallScars?.[at] ?? ''}|${stacked}`
+    return `${layout.map.tiles[position.y][position.x]}|${isRotated(layout.map, position)}|${panel ? `${panel.axis}${panel.half}${panel.window}` : ''}|${origin ? keyOf(origin) : ''}|${layout.map.wallScars?.[at] ?? ''}|${stacked}|${layout.map.floorUnder?.[at] ?? ''}`
   }
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
@@ -746,7 +750,8 @@ function lightingOf(map) {
   map.tiles.forEach((row, y) =>
     row.forEach((id, x) => {
       const position = { x, y }
-      if (getTile(id).empty || isBlock(id)) return
+      // Contact shade on visible floors, including deck under empty underlay.
+      if (!groundTileId(map, position) || isBlock(id)) return
       for (const side of SIDES) {
         if (!blockAt(x + side.dx, y + side.dy)) continue
         SHADE_BANDS.forEach(([from, to], band) => strips.push({ band, quad: edgeStrip(position, side, from, to), box: tileImageBox(position) }))
@@ -771,15 +776,22 @@ function drawFloorEdges(context, map, area) {
   const lips = []
   for (let y = 0; y < map.height; y++) {
     for (let x = 0; x < map.width; x++) {
-      const tile = getTile(map.tiles[y][x])
-      if (tile.empty || tile.height > 0 || tile.wall) continue
       const position = { x, y }
+      const groundId = groundTileId(map, position)
+      if (!groundId) continue
+      const ground = getTile(groundId)
+      // Live wall/prop art covers the cell; empty underlay showing floorUnder still gets lips.
+      const live = getTile(map.tiles[y][x])
+      if (!live.empty && (live.height > 0 || live.wall)) continue
+      if (ground.height > 0 || ground.wall) continue
       const box = tileImageBox(position)
       if (!overlaps(box, area)) continue
       for (const side of EDGE_SIDES) {
-        const neighbour = neighbourTile(map, x + side.dx, y + side.dy)
-        if (neighbour && !neighbour.empty) continue
-        // neighbour null = out of map; also treat as exposed. Wall/door on that side would have height/wall/doorway.
+        const nx = x + side.dx
+        const ny = y + side.dy
+        const neighbour = neighbourTile(map, nx, ny)
+        // Continuous deck under adjacent empty underlay is not an exposed lip.
+        if (neighbour && groundTileId(map, { x: nx, y: ny })) continue
         if (neighbour?.wall || neighbour?.id === 'doorway') continue
         lips.push(edgeStrip(position, side, 0, 0.12))
       }
@@ -827,10 +839,10 @@ function drawLighting(context, map, area) {
       const row = map.tiles[y]
       if (!row) continue
       for (let x = Math.max(0, cx - reach); x <= Math.min(map.width - 1, cx + reach); x++) {
-        const id = row[x]
-        if (id == null) continue
-        const tile = getTile(id)
-        if (tile.empty || tile.height > 0) continue
+        const groundId = groundTileId(map, { x, y })
+        if (!groundId) continue
+        const tile = getTile(groundId)
+        if (tile.height > 0) continue
         floors.push({ x, y })
       }
     }
