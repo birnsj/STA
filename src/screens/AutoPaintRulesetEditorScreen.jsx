@@ -13,8 +13,10 @@ import {
   getAutoPaintRuleset,
   listAutoPaintRulesets,
   resolveAutoPaintRuleset,
+  weightedIds,
 } from '../maps/autoPaint/rulesets.js'
 import { pieceIdForAutoPaintTile, resolveAutoPaintTileId } from '../maps/autoPaint/templatePalette.js'
+import { normalizeWeightedEntries } from '../maps/generators/weightedChoice.js'
 import { getTemplatePiece } from '../maps/templatePieces.js'
 import {
   canEditAutoPaintRulesets,
@@ -71,20 +73,32 @@ function rulesetEqual(a, b) {
   return JSON.stringify(resolveAutoPaintRuleset(a)) === JSON.stringify(resolveAutoPaintRuleset(b))
 }
 
-function withSelectedTiles(options, value, multi = false) {
+function withSelectedTiles(options, value) {
   const list = [...options]
   const ids = new Set(list.map((tile) => tile.id))
   const add = (id) => {
     if (!id || ids.has(id)) return
+    // Keep Template Piece ids as display rows when the catalogue has no tile counterpart yet.
+    if (getTemplatePiece(id)) {
+      ids.add(id)
+      list.push({ id, label: getTemplatePiece(id).label, __piece: getTemplatePiece(id) })
+      return
+    }
     const resolved = resolveAutoPaintTileId(id) || id
     const tile = getTile(resolved)
     if (!tile) return
     ids.add(tile.id)
     list.push(tile)
   }
-  if (multi) (value ?? []).forEach(add)
-  else add(value)
+  for (const id of weightedIds(value)) add(id)
   return list.sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function mapWeightedRoleIds(entries) {
+  return normalizeWeightedEntries(entries, { allowEmpty: true }).map((entry) => {
+    if (getTemplatePiece(entry.id)) return entry
+    return { id: resolveAutoPaintTileId(entry.id) || entry.id, weight: entry.weight }
+  })
 }
 
 export default function AutoPaintRulesetEditorScreen({
@@ -271,16 +285,13 @@ export default function AutoPaintRulesetEditorScreen({
     return null
   }
 
-  const onRoleChange = (patchFn) => (id) => {
-    if (!id) {
-      patchFn(null)
+  const onWeightedRoleChange = (patchFn, { allowEmpty = false } = {}) => (entries) => {
+    const next = mapWeightedRoleIds(entries)
+    if (!next.length) {
+      patchFn(allowEmpty ? null : next)
       return
     }
-    if (getTemplatePiece(id)) {
-      patchFn(id)
-      return
-    }
-    patchFn(resolveAutoPaintTileId(id) || id)
+    patchFn(next)
   }
 
   const roleIdAllowed = (id) => Boolean(getTile(id) || getTemplatePiece(id) || resolveAutoPaintTileId(id))
@@ -504,53 +515,64 @@ export default function AutoPaintRulesetEditorScreen({
 
             <section className="ge-block">
               <h3 className="ge-block-title">1. Floors</h3>
-              <p className="ge-block-hint">Drag a Template floor piece (or Show all → floor tile) onto the slot.</p>
+              <p className="ge-block-hint">
+                Drag Template floor pieces (or Show all → floor tiles) into the slot. Multiple allowed — mix % on each
+                thumb. Right-click to remove.
+              </p>
               <TileSpritePicker
                 label={FLOOR_FIELD.label}
                 options={tileOptions(FLOOR_FIELD, draft.floors.defaultTile)}
                 value={draft.floors.defaultTile}
+                multi
+                weighted
                 emptyText={emptyHint}
                 resolveDropId={resolveDropToRole}
                 acceptId={roleIdAllowed}
                 titleForTile={roleThumbTitle}
-                onChange={onRoleChange((id) => patchFloors({ defaultTile: id }))}
+                onChange={onWeightedRoleChange((entries) => patchFloors({ defaultTile: entries }))}
               />
             </section>
 
             <section className="ge-block">
               <h3 className="ge-block-title">2. Walls / Structure</h3>
               <p className="ge-block-hint">
-                Drop Template Pieces into each role — Generate Map places exactly these. Hull None = rim uses
-                straight/corner. Show all to assign a full bulkhead tile instead.
+                Drop Template Pieces into each role (multiple allowed). Mix % is relative among pieces in that role.
+                Empty optional roles = rim uses straight/corner. Show all for full bulkhead tiles. Right-click to
+                remove.
               </p>
               {WALL_TILE_FIELDS.map((field) => (
                 <TileSpritePicker
                   key={field.key}
                   label={field.label}
-                  options={tileOptions(WALL_FIELD, draft.walls[field.key] ?? null)}
-                  value={draft.walls[field.key] ?? null}
-                  allowNone={!field.required}
+                  options={tileOptions(WALL_FIELD, draft.walls[field.key] ?? [])}
+                  value={draft.walls[field.key] ?? []}
+                  multi
+                  weighted
                   emptyText={emptyHint}
                   resolveDropId={resolveDropToRole}
                   acceptId={roleIdAllowed}
                   titleForTile={roleThumbTitle}
-                  onChange={onRoleChange((id) => patchWalls({ [field.key]: id }))}
+                  onChange={onWeightedRoleChange((entries) => patchWalls({ [field.key]: entries }), {
+                    allowEmpty: !field.required,
+                  })}
                 />
               ))}
             </section>
 
             <section className="ge-block">
               <h3 className="ge-block-title">3. Doors / Openings</h3>
-              <p className="ge-block-hint">Doorway tile for openings (generation not yet).</p>
+              <p className="ge-block-hint">Doorway tile(s) for openings — multiple allowed with mix %.</p>
               <TileSpritePicker
                 label={DOOR_TILE_FIELD.label}
                 options={tileOptions(DOOR_TILE_FIELD, draft.doors.underlayTile)}
                 value={draft.doors.underlayTile}
+                multi
+                weighted
                 emptyText={emptyHint}
                 resolveDropId={resolveDropToRole}
                 acceptId={roleIdAllowed}
                 titleForTile={roleThumbTitle}
-                onChange={onRoleChange((id) => patchDoors({ underlayTile: id }))}
+                onChange={onWeightedRoleChange((entries) => patchDoors({ underlayTile: entries }))}
               />
             </section>
           </div>

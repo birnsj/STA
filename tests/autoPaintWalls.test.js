@@ -54,23 +54,23 @@ describe('Auto-Paint rulesets', () => {
     const ruleset = getAutoPaintRuleset('template-32')
     assert.equal(ruleset.id, 'template-32')
     assert.equal(ruleset.label, 'Template 32')
-    assert.equal(ruleset.walls.straight, 'tplStarshipWall32')
-    assert.equal(ruleset.walls.corner, 'tplStarshipWall32Corner')
-    assert.equal(ruleset.walls.straightLong, 'tplStarshipWall32PlainLong')
+    assert.deepEqual(ruleset.walls.straight, [{ id: 'tplStarshipWall32', weight: 1 }])
+    assert.deepEqual(ruleset.walls.corner, [{ id: 'tplStarshipWall32Corner', weight: 1 }])
+    assert.deepEqual(ruleset.walls.straightLong, [{ id: 'tplStarshipWall32PlainLong', weight: 1 }])
     assert.equal(ruleset.walls.doorFrame, null)
     assert.equal(rulesetUsesTemplatePieces(ruleset), true)
     const kit = pieceKitFromRuleset(ruleset)
-    assert.equal(kit.straight, 'tplStarshipWall32')
-    assert.equal(kit.corner, 'tplStarshipWall32Corner')
-    assert.equal(kit.straightLong, 'tplStarshipWall32PlainLong')
+    assert.deepEqual(kit.straight, [{ id: 'tplStarshipWall32', weight: 1 }])
+    assert.deepEqual(kit.corner, [{ id: 'tplStarshipWall32Corner', weight: 1 }])
+    assert.deepEqual(kit.straightLong, [{ id: 'tplStarshipWall32PlainLong', weight: 1 }])
     // Explicit null must not fall back to Template Deck doorFrame.
-    assert.equal(kit.doorFrame, null)
-    assert.equal(kit.hull, null)
-    assert.equal(kit.hullCorner, null)
-    assert.equal(kit.hullLong, null)
+    assert.deepEqual(kit.doorFrame, [])
+    assert.deepEqual(kit.hull, [])
+    assert.deepEqual(kit.hullCorner, [])
+    assert.deepEqual(kit.hullLong, [])
     assert.deepEqual(kit.fittings, [])
     assert.equal(kit.fittingChance, 0)
-    assert.ok(getTemplatePiece(kit.straight))
+    assert.ok(getTemplatePiece(kit.straight[0].id))
     const { ok, errors } = validateAutoPaintRuleset(ruleset)
     assert.equal(ok, true, errors.join('; '))
   })
@@ -90,12 +90,12 @@ describe('Auto-Paint rulesets', () => {
       floors: { defaultTile: 'floor', variants: [] },
     })
     const kit = pieceKitFromRuleset(ruleset)
-    assert.equal(kit.straight, 'tplStarshipHull32')
-    assert.equal(kit.corner, 'tplStarshipHull32Corner')
-    assert.equal(kit.hull, 'tplStarshipHull32')
-    assert.equal(kit.hullLong, 'tplStarshipHull32Long')
-    assert.equal(kit.hullCorner, 'tplStarshipHull32Corner')
-    assert.equal(kit.doorFrame, null)
+    assert.deepEqual(kit.straight, [{ id: 'tplStarshipHull32', weight: 1 }])
+    assert.deepEqual(kit.corner, [{ id: 'tplStarshipHull32Corner', weight: 1 }])
+    assert.deepEqual(kit.hull, [{ id: 'tplStarshipHull32', weight: 1 }])
+    assert.deepEqual(kit.hullLong, [{ id: 'tplStarshipHull32Long', weight: 1 }])
+    assert.deepEqual(kit.hullCorner, [{ id: 'tplStarshipHull32Corner', weight: 1 }])
+    assert.deepEqual(kit.doorFrame, [])
   })
 
   it('reports unknown tile ids without inventing replacements', () => {
@@ -103,8 +103,8 @@ describe('Auto-Paint rulesets', () => {
       id: 'tmp',
       walls: { straight: 'missing-wall', corner: 'also-missing' },
     })
-    assert.equal(resolved.walls.straight, 'missing-wall')
-    assert.equal(resolved.walls.corner, 'also-missing')
+    assert.deepEqual(resolved.walls.straight, [{ id: 'missing-wall', weight: 1 }])
+    assert.deepEqual(resolved.walls.corner, [{ id: 'also-missing', weight: 1 }])
     const { ok, errors } = validateAutoPaintRuleset(resolved)
     assert.equal(ok, false)
     assert.ok(errors.some((line) => line.includes('missing-wall')))
@@ -308,12 +308,13 @@ describe('placePackedWallPieces coverage', () => {
     })
   }
 
-  it('covers a straight run of 1 / 2 / 3 / 4 underlay cells (64 / 128 / 192 / 256 px)', () => {
+  it('covers a straight run with Corner 32 end caps and 128/64 middle', () => {
+    // Free ends always get Bulkhead Corner 32; middle packs 128 then 64.
     const cases = [
-      { cells: [[2, 2]], expectLong: 0, expectShort: 1 },
-      { cells: [[2, 2], [3, 2]], expectLong: 1, expectShort: 0 },
-      { cells: [[2, 2], [3, 2], [4, 2]], expectLong: 1, expectShort: 1 },
-      { cells: [[2, 2], [3, 2], [4, 2], [5, 2]], expectLong: 2, expectShort: 0 },
+      { cells: [[2, 2]], expectLong: 0, expectShort: 0, expectCorners: 2 },
+      { cells: [[2, 2], [3, 2]], expectLong: 0, expectShort: 1, expectCorners: 2 },
+      { cells: [[2, 2], [3, 2], [4, 2]], expectLong: 1, expectShort: 0, expectCorners: 2 },
+      { cells: [[2, 2], [3, 2], [4, 2], [5, 2]], expectLong: 1, expectShort: 1, expectCorners: 2 },
     ]
     for (const entry of cases) {
       const map = placePackedWallPieces(underlayMap(10, 10, entry.cells), kit())
@@ -321,14 +322,15 @@ describe('placePackedWallPieces coverage', () => {
       const longs = pieces.filter((p) => /Long/i.test(p.pieceId)).length
       const shorts = pieces.filter((p) => p.pieceId === 'tplStarshipWall32').length
       const corners = pieces.filter((p) => /Corner/i.test(p.pieceId)).length
+      assert.equal(corners, entry.expectCorners, `end-cap corners for ${entry.cells.length} cells`)
       assert.equal(longs, entry.expectLong, `long count for ${entry.cells.length} cells`)
       assert.equal(shorts, entry.expectShort, `short count for ${entry.cells.length} cells`)
-      assert.equal(corners, 0, `no corner posts on a straight run (${entry.cells.length})`)
       assert.equal(new Set(tipKeys(pieces)).size, pieces.length, 'unique tip keys')
+      assert.equal(wallEdgesContinuouslyCovered(map, pieces), true)
     }
   })
 
-  it('places one corner on an L-junction and covers both arms', () => {
+  it('places a junction corner on an L and Corner 32 end caps on free arm ends', () => {
     const map = placePackedWallPieces(
       underlayMap(10, 10, [
         [3, 3],
@@ -341,13 +343,13 @@ describe('placePackedWallPieces coverage', () => {
     )
     const pieces = autoPieces(map)
     const corners = pieces.filter((p) => /Corner/i.test(p.pieceId))
-    assert.equal(corners.length, 1, 'single L corner post')
+    assert.ok(corners.length >= 3, 'junction corner + free-end caps')
     assert.ok(pieces.some((p) => /Long/i.test(p.pieceId) || p.pieceId === 'tplStarshipWall32'))
     assert.equal(new Set(tipKeys(pieces)).size, pieces.length)
     assert.equal(wallEdgesContinuouslyCovered(map, pieces), true)
   })
 
-  it('handles a T-junction without flooding corner stubs', () => {
+  it('handles a T-junction with end caps (no tip collisions)', () => {
     // Horizontal through-run with a south stem at the middle cell (true T at 4,4).
     const map = placePackedWallPieces(
       underlayMap(12, 12, [
@@ -363,13 +365,13 @@ describe('placePackedWallPieces coverage', () => {
     )
     const pieces = autoPieces(map)
     const corners = pieces.filter((p) => /Corner/i.test(p.pieceId))
-    assert.equal(corners.length, 1, 'one T corner post')
+    assert.ok(corners.length >= 4, 'junction corner + free-end caps on three arms')
     assert.ok(pieces.length >= 3, 'corner + through + stem coverage')
     assert.equal(new Set(tipKeys(pieces)).size, pieces.length)
     assert.equal(wallEdgesContinuouslyCovered(map, pieces), true)
   })
 
-  it('handles a cross without redundant corner posts', () => {
+  it('handles a cross with end caps (one junction corner tip)', () => {
     const map = placePackedWallPieces(
       underlayMap(12, 12, [
         [5, 3],
@@ -384,7 +386,8 @@ describe('placePackedWallPieces coverage', () => {
     )
     const pieces = autoPieces(map)
     const corners = pieces.filter((p) => /Corner/i.test(p.pieceId))
-    assert.equal(corners.length, 1, 'one cross corner post')
+    assert.ok(corners.length >= 5, 'junction corner + free-end caps on four arms')
+    assert.ok(pieces.some((p) => `${p.position.x},${p.position.y}` === '6,6' || `${p.position.x},${p.position.y}` === '5.5,6' || p.pieceId.includes('Corner')))
     assert.equal(new Set(tipKeys(pieces)).size, pieces.length)
     assert.equal(wallEdgesContinuouslyCovered(map, pieces), true)
   })
@@ -393,12 +396,17 @@ describe('placePackedWallPieces coverage', () => {
     const map = underlayMap(8, 8, [
       [2, 3],
       [3, 3],
-      [5, 3],
       [6, 3],
+      [7, 3],
     ])
-    map.tiles[3][4] = 'doorway'
-    const packed = placePackedWallPieces(map, kit(), { doorId: 'doorway' })
-    assert.ok(!autoPieces(packed).some((p) => /DoorFrame/i.test(p.pieceId)))
+    map.tiles[3][4] = 'floor'
+    map.tiles[3][5] = 'floor'
+    const packed = placePackedWallPieces(map, kit(), { doorKeys: ['4,3', '5,3'] })
+    const pieces = autoPieces(packed)
+    assert.ok(!pieces.some((p) => /DoorFrame/i.test(p.pieceId)))
+    assert.equal(pieces.filter((p) => p.pieceId === 'tplStarshipDoorway32').length, 3, '96px = 3× Doorway 32')
+    assert.ok(pieces.some((p) => /Corner/i.test(p.pieceId)), 'Corner 32 on leftover tip / free wall ends')
+    assert.ok(!pieces.some((p) => p.pieceId === 'tplStarshipFloor32'), 'no Floor 32 overlay on openings')
   })
 
   it('snaps every tip to the 32px tip grid', () => {
@@ -498,33 +506,37 @@ describe('placePackedWallPieces geometric continuity', () => {
     const horiz = placePackedWallPieces(underlayMap(10, 10, [[2, 2], [3, 2], [4, 2]]), kit())
     const hPieces = autoPieces(horiz)
     assert.deepEqual(byTip(hPieces), {
-      '4,3': { pieceId: 'tplStarshipWall32PlainLong', rotation: 180 },
-      '5,3': { pieceId: 'tplStarshipWall32', rotation: 180 },
+      '2.5,3': { pieceId: 'tplStarshipWall32Corner', rotation: 270 },
+      '4.5,3': { pieceId: 'tplStarshipWall32PlainLong', rotation: 180 },
+      '5,3': { pieceId: 'tplStarshipWall32Corner', rotation: 0 },
     })
     assert.equal(wallEdgesContinuouslyCovered(horiz, hPieces), true)
 
     const vert = placePackedWallPieces(underlayMap(10, 10, [[2, 2], [2, 3], [2, 4]]), kit())
     const vPieces = autoPieces(vert)
     assert.deepEqual(byTip(vPieces), {
-      '3,4': { pieceId: 'tplStarshipWall32PlainLong', rotation: 270 },
-      '3,5': { pieceId: 'tplStarshipWall32', rotation: 270 },
+      '3,2.5': { pieceId: 'tplStarshipWall32Corner', rotation: 270 },
+      '3,4.5': { pieceId: 'tplStarshipWall32PlainLong', rotation: 270 },
+      '3,5': { pieceId: 'tplStarshipWall32Corner', rotation: 180 },
     })
     assert.equal(wallEdgesContinuouslyCovered(vert, vPieces), true)
   })
 
   it('joins all four L-corners with continuous edge coverage', () => {
     const cases = [
-      { name: 'ne', cells: [[5, 3], [5, 4], [6, 4]], cornerRot: 0 },
-      { name: 'es', cells: [[6, 4], [5, 4], [5, 5]], cornerRot: 90 },
-      { name: 'sw', cells: [[4, 4], [5, 4], [5, 3]], cornerRot: 270 },
-      { name: 'wn', cells: [[4, 4], [5, 4], [5, 5]], cornerRot: 180 },
+      { name: 'ne', cells: [[5, 3], [5, 4], [6, 4]], cornerTip: '6,5', cornerRot: 0 },
+      { name: 'es', cells: [[6, 4], [5, 4], [5, 5]], cornerTip: '6,5', cornerRot: 90 },
+      { name: 'sw', cells: [[4, 4], [5, 4], [5, 3]], cornerTip: '6,5', cornerRot: 270 },
+      { name: 'wn', cells: [[4, 4], [5, 4], [5, 5]], cornerTip: '6,5', cornerRot: 180 },
     ]
     for (const entry of cases) {
       const map = placePackedWallPieces(underlayMap(12, 12, entry.cells), kit())
       const pieces = autoPieces(map)
       const corners = pieces.filter((p) => /Corner/i.test(p.pieceId))
-      assert.equal(corners.length, 1, `${entry.name} corner count`)
-      assert.equal(corners[0].rotation, entry.cornerRot, `${entry.name} corner rot`)
+      assert.ok(corners.length >= 3, `${entry.name} junction + end caps`)
+      const junction = pieces.find((p) => /Corner/i.test(p.pieceId) && `${p.position.x},${p.position.y}` === entry.cornerTip)
+      assert.ok(junction, `${entry.name} junction tip ${entry.cornerTip}`)
+      assert.equal(junction.rotation, entry.cornerRot, `${entry.name} corner rot`)
       assert.equal(wallEdgesContinuouslyCovered(map, pieces), true, `${entry.name} continuity`)
       assertNoFootprintOverlapInterior(pieces)
       assert.equal(new Set(pieces.map((p) => `${p.position.x},${p.position.y}`)).size, pieces.length)
@@ -537,28 +549,36 @@ describe('placePackedWallPieces geometric continuity', () => {
         name: 'stem-s',
         cells: [[2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [4, 5], [4, 6]],
         fillTip: '4.5,5',
+        junctionTip: '5,5',
       },
       {
         name: 'stem-n',
         cells: [[2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [4, 3], [4, 2]],
         fillTip: '4.5,5',
+        junctionTip: '5,5',
       },
       {
         name: 'stem-e',
         cells: [[4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [5, 4], [6, 4]],
         fillTip: '5,4.5',
+        junctionTip: '5,5',
       },
       {
         name: 'stem-w',
         cells: [[4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [3, 4], [2, 4]],
         fillTip: '5,4.5',
+        junctionTip: '5,5',
       },
     ]
     for (const entry of cases) {
       const map = placePackedWallPieces(underlayMap(12, 12, entry.cells), kit())
       const pieces = autoPieces(map)
       const corners = pieces.filter((p) => /Corner/i.test(p.pieceId))
-      assert.equal(corners.length, 1, `${entry.name} one corner`)
+      assert.ok(corners.length >= 4, `${entry.name} junction + end caps`)
+      assert.ok(
+        pieces.some((p) => /Corner/i.test(p.pieceId) && `${p.position.x},${p.position.y}` === entry.junctionTip),
+        `${entry.name} junction corner at ${entry.junctionTip}`,
+      )
       assert.ok(
         pieces.some((p) => `${p.position.x},${p.position.y}` === entry.fillTip),
         `${entry.name} junction fill at ${entry.fillTip}`,
@@ -568,7 +588,7 @@ describe('placePackedWallPieces geometric continuity', () => {
     }
   })
 
-  it('joins a cross with both axis fills and one corner', () => {
+  it('joins a cross with both axis fills, junction corner, and end caps', () => {
     const map = placePackedWallPieces(
       underlayMap(12, 12, [
         [5, 3],
@@ -582,35 +602,39 @@ describe('placePackedWallPieces geometric continuity', () => {
       kit(),
     )
     const pieces = autoPieces(map)
-    assert.equal(pieces.filter((p) => /Corner/i.test(p.pieceId)).length, 1)
+    assert.ok(pieces.filter((p) => /Corner/i.test(p.pieceId)).length >= 5)
     const tips = new Set(pieces.map((p) => `${p.position.x},${p.position.y}`))
-    assert.ok(tips.has('5.5,6'), 'corner tip')
-    assert.ok(tips.has('5,6'), 'west-arm or south-edge fill toward corner')
+    assert.ok(tips.has('6,6'), 'junction corner tip')
+    assert.ok(tips.has('5.5,6'), 'west-arm south-edge fill toward corner')
     assert.ok(tips.has('6,5.5'), 'north-arm east-edge fill')
     assert.equal(wallEdgesContinuouslyCovered(map, pieces), true)
     assertNoFootprintOverlapInterior(pieces)
   })
 
-  it('leaves a two-cell doorway open and terminates walls at the gap', () => {
+  it('leaves a 96px doorway lined with Doorway 32 and terminates walls at the gap', () => {
     const map = underlayMap(12, 10, [
       [2, 4],
       [3, 4],
       [6, 4],
       [7, 4],
     ])
-    map.tiles[4][4] = 'doorway'
-    map.tiles[4][5] = 'doorway'
-    const packed = placePackedWallPieces(map, kit(), { doorId: 'doorway' })
+    map.tiles[4][4] = 'floor'
+    map.tiles[4][5] = 'floor'
+    const doorKeys = ['4,4', '5,4']
+    const packed = placePackedWallPieces(map, kit(), { doorKeys })
     const pieces = autoPieces(packed)
-    assert.ok(!pieces.some((p) => /DoorFrame|Corner/i.test(p.pieceId)))
-    // No piece footprint may cover the doorway cells' south-edge span [4,6] at y=5.
+    assert.ok(!pieces.some((p) => /DoorFrame/i.test(p.pieceId)))
+    assert.equal(pieces.filter((p) => p.pieceId === 'tplStarshipDoorway32').length, 3)
+    assert.ok(!pieces.some((p) => p.pieceId === 'tplStarshipFloor32'))
+    // Wall run pieces must not cover the first 96px (3 tips) of the opening south edge [4, 5.5] at y=5.
     for (const entry of pieces) {
+      if (/Doorway32|Corner/i.test(entry.pieceId)) continue
       const box = pieceFootprintAabb(entry)
       if (Math.abs(box.maxY - 5) > 1e-9) continue
-      const overlap = Math.min(box.maxX, 6) - Math.max(box.minX, 4)
-      assert.ok(overlap <= 1e-9, `doorway south edge must stay open, overlap=${overlap}`)
+      const overlap = Math.min(box.maxX, 5.5) - Math.max(box.minX, 4)
+      assert.ok(overlap <= 1e-9, `wall must not bridge 96px doorway south edge, overlap=${overlap}`)
     }
-    assert.equal(wallEdgesContinuouslyCovered(packed, pieces, { doorId: 'doorway' }), true)
+    assert.equal(wallEdgesContinuouslyCovered(packed, pieces, { doorKeys }), true)
   })
 
   it('joins long walls into doorways and L-corners without gaps', () => {
@@ -628,13 +652,14 @@ describe('placePackedWallPieces geometric continuity', () => {
       [12, 7],
       [12, 8],
     ])
-    map.tiles[5][7] = 'doorway'
-    map.tiles[5][8] = 'doorway'
-    const packed = placePackedWallPieces(map, kit(), { doorId: 'doorway' })
+    map.tiles[5][7] = 'floor'
+    map.tiles[5][8] = 'floor'
+    const doorKeys = ['7,5', '8,5']
+    const packed = placePackedWallPieces(map, kit(), { doorKeys })
     const pieces = autoPieces(packed)
-    assert.equal(pieces.filter((p) => /Corner/i.test(p.pieceId)).length, 1)
+    assert.ok(pieces.some((p) => /Corner/i.test(p.pieceId)))
     assert.ok(pieces.some((p) => /Long/i.test(p.pieceId)))
-    assert.equal(wallEdgesContinuouslyCovered(packed, pieces, { doorId: 'doorway' }), true)
+    assert.equal(wallEdgesContinuouslyCovered(packed, pieces, { doorKeys }), true)
     assertNoFootprintOverlapInterior(pieces)
   })
 })
@@ -675,13 +700,20 @@ describe('Auto-Paint Generate Map', () => {
       autoPieces.some((entry) => /Wall32$|Hull32$/.test(entry.pieceId) || entry.pieceId.includes('Wall32')),
       '64-long pieces',
     )
-    let doorCount = 0
-    for (let y = 0; y < map.height; y++) {
-      for (let x = 0; x < map.width; x++) {
-        if (map.tiles[y][x] === 'doorway') doorCount += 1
-      }
+    const doorKeys = map.autoPaint.regions[0].generatedDoorKeys ?? []
+    assert.ok(doorKeys.length > 0, 'door opening keys recorded')
+    for (const key of doorKeys) {
+      const [x, y] = key.split(',').map(Number)
+      assert.notEqual(map.tiles[y][x], 'doorway', 'no full-cell doorway tile')
+      assert.ok(!getTile(map.tiles[y][x])?.wall, `opening ${key} is walkable floor`)
     }
-    assert.ok(doorCount > 0, 'doorway tiles from deck layout')
+    const doorway32 = autoPieces.filter((entry) => entry.pieceId === 'tplStarshipDoorway32')
+    assert.ok(doorway32.length >= 3, 'at least one 96px (3× Doorway 32) opening')
+    assert.equal(doorway32.length % 3, 0, 'Doorway 32 count is multiples of 3')
+    assert.ok(
+      !autoPieces.some((entry) => entry.pieceId === 'tplStarshipFloor32'),
+      'no Floor 32 overlay on openings',
+    )
     // Seed doorFrame is null — must not invent Template Deck frames.
     assert.ok(!autoPieces.some((entry) => entry.pieceId.includes('DoorFrame')), 'no door frames when role is null')
     assert.equal(

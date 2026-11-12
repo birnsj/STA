@@ -7,7 +7,7 @@ Editor overview / menu placement: `docs/editor-authoring-summary.md` (§8 Auto-P
 ## Current behaviour
 
 1. **Tools → Auto-Paint Ruleset Editor** — palette is the Dev Edit **Template Pieces** catalogue (`templatePieces.json`). Default ruleset **Template 32** stores **Template Piece ids** in wall roles (straight / long / corner / door frame; optional hull). Hover shows piece **footprint** (corner 32×32). **Show all** adds Starship wall tiles for larger true cell walls. Save → `autoPaintRulesets.json` (`/__autopaint`).
-2. **Generate Map** — builds into the open map and shows it in **Map** view (left palette stays; **Rules** / **Map** toggles). Grid settings are shared with main Dev Edit. Template 32: deck room grid + `templateWall` underlay + doorways + floorUnder + **128 / 64 / 32** packing (`placeWallRuns.js`) using the ruleset kit. Does not call frozen `placeTemplateWalls`.
+2. **Generate Map** — builds into the open map and shows it in **Map** view (left palette stays; **Rules** / **Map** toggles). Grid settings are shared with main Dev Edit. Template 32: deck room grid + `templateWall` underlay + **96-wide** openings (two floor cells; **3× Doorway 32** + Corner 32 leftover) + wall runs with **Corner 32 end caps** on every free edge + floorUnder + **128 / 64 / 32** packing (`placeWallRuns.js`). Does not call frozen `placeTemplateWalls`.
 3. **Edit → Toggle Auto-Paint** — paint floors; walls rebuild from the footprint.
 4. **Edit → Rebuild Auto-Paint Walls** — regenerate auto walls from current floors.
 
@@ -23,7 +23,7 @@ Manual Auto-Paint wall cells can be promoted so Rebuild leaves them alone. Erasi
 | Straight | 64 |
 | Corner / stub | 32×32 |
 
-Hull / doorFrame **null** → no Template Deck fill-in (rim uses straight/corner; doorways stay underlay-only). Packing tracks **underlay-cell coverage** and tip-grid edge continuity: corner posts sit on the SE tip; −X/−Y arms leave a half-cell gap that a south-edge tip `(x+0.5,y+1)` / east-edge tip `(x+1,y+0.5)` fill closes. Never reuse `tipAlongX/Y` at junctions (collides with the corner tip).
+Hull / doorFrame **null** → no Template Deck fill-in (rim uses straight/corner; doorways stay underlay-only). Packing tracks **underlay-cell coverage** and tip-grid edge continuity: junction corner posts sit on the SE tip; −X/−Y arms leave a half-cell gap that a south-edge tip `(x+0.5,y+1)` / east-edge tip `(x+1,y+0.5)` fill closes. **Free run ends** (door jambs, open edges) also get **Bulkhead Corner 32** end caps so every wall edge has the same finished post detail — never a flat cut straight. Never reuse `tipAlongX/Y` at junctions (collides with the corner tip).
 
 ## Collision
 
@@ -37,9 +37,13 @@ Underlay wall cells store the ruleset default floor in `floorUnder`. Empty `temp
 
 Optional `autoPaint` block (`rulesetId`, regions with floor / underlay / piece / suppressed keys).
 
+## Doorways
+
+Openings are **96px** (three Doorway 32 tips) on a **two-cell** floor gap — no full-cell `doorway` tile and no Floor 32 overlay (underlay is already deck). Generate keeps the frozen deck’s two-tile cuts (trims longer runs to two cells), paints them as floor, then packs **3× Doorway 32** on the wall strip and a **Corner 32** on any leftover tip; wall runs at the jambs also get Corner 32 end caps. Keys live in `autoPaint.regions[].generatedDoorKeys`. Optional `walls.doorFrame` still places a frame piece when set.
+
 ## Not yet
 
-Smarter doorway logic, props / furnishings, Auto-Paint-native layouts beyond the shared deck grid.
+Props / furnishings, Auto-Paint-native layouts beyond the shared deck grid.
 
 ## Frozen (do not edit for Auto-Paint)
 

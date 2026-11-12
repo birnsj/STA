@@ -2,8 +2,8 @@
   "notes": [
     "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props, furniture).",
     "Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.",
-    "Generate Map → Template Deck places these as walls (templateDeck.js). Does not change makeTilesV2 or halfWalls generation.",
-    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props + furniture/consoles (multi-prism).",
+    "Does not change Generate Map, makeTilesV2, or halfWalls generation.",
+    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 and 32×32 slabs (doorway also 32×32 and 128×64); props + furniture/consoles (multi-prism).",
     "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.",
     "R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.",
     "Fitting / prop / console / biobed pieces include animation.overlay emission frames (blink). Art via scripts/makeTemplatePieces.mjs",
@@ -12,7 +12,7 @@
   ],
   "pieces": [
     {
-      "id": "tplStarshipWall32", "layer": "walls",
+      "id": "tplStarshipWall32",
       "label": "Bulkhead (No Windows) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32.png",
       "size": {
@@ -64,7 +64,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipWall32Window", "layer": "walls",
+      "id": "tplStarshipWall32Window",
       "label": "Bulkhead (Windows) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Window.png",
       "size": {
@@ -180,7 +180,7 @@
       "face": "window"
     },
     {
-      "id": "tplStarshipWall32Lcars", "layer": "walls",
+      "id": "tplStarshipWall32Lcars",
       "label": "LCARS Wall 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Lcars.png",
       "size": {
@@ -300,7 +300,7 @@
       "face": "lcars"
     },
     {
-      "id": "tplStarshipWall32Conduit", "layer": "walls",
+      "id": "tplStarshipWall32Conduit",
       "label": "EPS Conduit Wall 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Conduit.png",
       "size": {
@@ -428,7 +428,7 @@
       "face": "conduit"
     },
     {
-      "id": "tplStarshipWall32Hatch", "layer": "walls",
+      "id": "tplStarshipWall32Hatch",
       "label": "Jefferies Hatch Wall 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Hatch.png",
       "size": {
@@ -548,7 +548,7 @@
       "face": "hatch"
     },
     {
-      "id": "tplStarshipWall32Computer", "layer": "walls",
+      "id": "tplStarshipWall32Computer",
       "label": "Computer Bank Wall 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Computer.png",
       "size": {
@@ -571,7 +571,8 @@
             "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer-emission-1.png"
           }
         ],
-        "emitColour": "#aab4a3"
+        "emitColour": "#aab4a3",
+        "emissive": 0.1
       },
       "orients": {
         "90": {
@@ -596,7 +597,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r90-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         },
         "180": {
@@ -621,7 +623,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r180-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         },
         "270": {
@@ -646,7 +649,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r270-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         }
       },
@@ -668,7 +672,7 @@
       "face": "computer"
     },
     {
-      "id": "tplStarshipWall32Corner", "layer": "walls",
+      "id": "tplStarshipWall32Corner",
       "label": "Bulkhead Corner 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Corner.png",
       "size": {
@@ -720,7 +724,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipWall32PlainLong", "layer": "walls",
+      "id": "tplStarshipWall32PlainLong",
       "label": "Bulkhead (No Windows, Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32PlainLong.png",
       "size": {
@@ -773,7 +777,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipWall32WindowLong", "layer": "walls",
+      "id": "tplStarshipWall32WindowLong",
       "label": "Bulkhead (Windows, Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32WindowLong.png",
       "size": {
@@ -890,7 +894,7 @@
       "face": "window"
     },
     {
-      "id": "tplStarshipWall32LcarsLong", "layer": "walls",
+      "id": "tplStarshipWall32LcarsLong",
       "label": "LCARS Wall (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32LcarsLong.png",
       "size": {
@@ -1011,7 +1015,7 @@
       "face": "lcars"
     },
     {
-      "id": "tplStarshipWall32ConduitLong", "layer": "walls",
+      "id": "tplStarshipWall32ConduitLong",
       "label": "EPS Conduit Wall (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32ConduitLong.png",
       "size": {
@@ -1140,7 +1144,7 @@
       "face": "conduit"
     },
     {
-      "id": "tplStarshipWall32HatchLong", "layer": "walls",
+      "id": "tplStarshipWall32HatchLong",
       "label": "Jefferies Hatch Wall (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32HatchLong.png",
       "size": {
@@ -1261,7 +1265,7 @@
       "face": "hatch"
     },
     {
-      "id": "tplStarshipWall32ComputerLong", "layer": "walls",
+      "id": "tplStarshipWall32ComputerLong",
       "label": "Computer Bank Wall (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32ComputerLong.png",
       "size": {
@@ -1382,7 +1386,7 @@
       "face": "computer"
     },
     {
-      "id": "tplStarshipWall32Tee", "layer": "walls",
+      "id": "tplStarshipWall32Tee",
       "label": "Bulkhead Tee 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Tee.png",
       "size": {
@@ -1434,7 +1438,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipWall32Cross", "layer": "walls",
+      "id": "tplStarshipWall32Cross",
       "label": "Bulkhead Cross 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Cross.png",
       "size": {
@@ -1486,7 +1490,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipWall32Alcove", "layer": "walls",
+      "id": "tplStarshipWall32Alcove",
       "label": "Bulkhead Alcove 32",
       "href": "/art/sprites/environment/templates/tplStarshipWall32Alcove.png",
       "size": {
@@ -1538,7 +1542,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipDoorFrame", "layer": "walls",
+      "id": "tplStarshipDoorFrame",
       "label": "Door Frame 32",
       "href": "/art/sprites/environment/templates/tplStarshipDoorFrame.png",
       "size": {
@@ -1590,7 +1594,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipHull32", "layer": "walls",
+      "id": "tplStarshipHull32",
       "label": "Exterior Hull 32",
       "href": "/art/sprites/environment/templates/tplStarshipHull32.png",
       "size": {
@@ -1642,7 +1646,7 @@
       "face": "hull"
     },
     {
-      "id": "tplStarshipHull32Long", "layer": "walls",
+      "id": "tplStarshipHull32Long",
       "label": "Exterior Hull (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipHull32Long.png",
       "size": {
@@ -1695,7 +1699,7 @@
       "face": "hull"
     },
     {
-      "id": "tplStarshipHull32Corner", "layer": "walls",
+      "id": "tplStarshipHull32Corner",
       "label": "Exterior Hull Corner 32",
       "href": "/art/sprites/environment/templates/tplStarshipHull32Corner.png",
       "size": {
@@ -1747,7 +1751,7 @@
       "face": "hull"
     },
     {
-      "id": "tplStarshipHullViewport", "layer": "walls",
+      "id": "tplStarshipHullViewport",
       "label": "Hull Viewport 32",
       "href": "/art/sprites/environment/templates/tplStarshipHullViewport.png",
       "size": {
@@ -1868,7 +1872,7 @@
       "face": "viewport"
     },
     {
-      "id": "tplStarshipHullViewportLong", "layer": "walls",
+      "id": "tplStarshipHullViewportLong",
       "label": "Hull Viewport (Long) 32",
       "href": "/art/sprites/environment/templates/tplStarshipHullViewportLong.png",
       "size": {
@@ -1891,7 +1895,7 @@
             "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong-emission-1.png"
           }
         ],
-        "emissive": 0
+        "emitColour": "#6a90c8"
       },
       "orients": {
         "90": {
@@ -1916,7 +1920,7 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r90-emission-1.png"
               }
             ],
-            "emissive": 0
+            "emitColour": "#6a90c8"
           }
         },
         "180": {
@@ -1941,7 +1945,7 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r180-emission-1.png"
               }
             ],
-            "emissive": 0
+            "emitColour": "#6a90c8"
           }
         },
         "270": {
@@ -1966,7 +1970,7 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipHullViewportLong_r270-emission-1.png"
               }
             ],
-            "emissive": 0
+            "emitColour": "#6a90c8"
           }
         }
       },
@@ -1990,7 +1994,7 @@
       "face": "viewport"
     },
     {
-      "id": "tplStarshipDockCollar", "layer": "walls",
+      "id": "tplStarshipDockCollar",
       "label": "Docking Collar",
       "href": "/art/sprites/environment/templates/tplStarshipDockCollar.png",
       "size": {
@@ -2118,7 +2122,7 @@
       "face": "dock"
     },
     {
-      "id": "tplStarshipHalfBulkhead", "layer": "walls",
+      "id": "tplStarshipHalfBulkhead",
       "label": "Half Bulkhead",
       "href": "/art/sprites/environment/templates/tplStarshipHalfBulkhead.png",
       "size": {
@@ -2169,7 +2173,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipHalfBulkheadCorner", "layer": "walls",
+      "id": "tplStarshipHalfBulkheadCorner",
       "label": "Half Bulkhead Corner",
       "href": "/art/sprites/environment/templates/tplStarshipHalfBulkheadCorner.png",
       "size": {
@@ -2220,7 +2224,7 @@
       "face": "plain"
     },
     {
-      "id": "tplStarshipFloor", "layer": "ground",
+      "id": "tplStarshipFloor",
       "label": "Deck Plating",
       "href": "/art/sprites/environment/templates/tplStarshipFloor.png",
       "size": {
@@ -2269,7 +2273,56 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipDoorway", "layer": "ground",
+      "id": "tplStarshipFloor32",
+      "label": "Deck Plating 32×32",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor32.png",
+      "size": {
+        "width": 32,
+        "height": 19
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r90.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r180.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r270.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
+      "id": "tplStarshipDoorway",
       "label": "Doorway",
       "href": "/art/sprites/environment/templates/tplStarshipDoorway.png",
       "size": {
@@ -2386,7 +2439,124 @@
       "material": "doorway"
     },
     {
-      "id": "tplStarshipGrating", "layer": "ground",
+      "id": "tplStarshipDoorway32",
+      "label": "Doorway 32×32",
+      "href": "/art/sprites/environment/templates/tplStarshipDoorway32.png",
+      "size": {
+        "width": 32,
+        "height": 19
+      },
+      "anchorX": 16,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.7,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway32-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway32-emission-1.png"
+          }
+        ],
+        "emitColour": "#f0b030"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r90.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r180.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r270.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "doorway"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "doorway"
+    },
+    {
+      "id": "tplStarshipGrating",
       "label": "EPS Grating",
       "href": "/art/sprites/environment/templates/tplStarshipGrating.png",
       "size": {
@@ -2511,7 +2681,7 @@
       "material": "grating"
     },
     {
-      "id": "tplStarshipFloor128", "layer": "ground",
+      "id": "tplStarshipFloor128",
       "label": "Deck Plating 128",
       "href": "/art/sprites/environment/templates/tplStarshipFloor128.png",
       "size": {
@@ -2561,7 +2731,7 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipFloor128x64", "layer": "ground",
+      "id": "tplStarshipFloor128x64",
       "label": "Deck Plating 128×64",
       "href": "/art/sprites/environment/templates/tplStarshipFloor128x64.png",
       "size": {
@@ -2611,7 +2781,7 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipFloor192x128", "layer": "ground",
+      "id": "tplStarshipFloor192x128",
       "label": "Deck Plating 192×128",
       "href": "/art/sprites/environment/templates/tplStarshipFloor192x128.png",
       "size": {
@@ -2661,7 +2831,7 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipFloor192x64", "layer": "ground",
+      "id": "tplStarshipFloor192x64",
       "label": "Deck Plating 192×64",
       "href": "/art/sprites/environment/templates/tplStarshipFloor192x64.png",
       "size": {
@@ -2711,7 +2881,7 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipFloor256", "layer": "ground",
+      "id": "tplStarshipFloor256",
       "label": "Deck Plating 256",
       "href": "/art/sprites/environment/templates/tplStarshipFloor256.png",
       "size": {
@@ -2761,7 +2931,7 @@
       "material": "floor"
     },
     {
-      "id": "tplStarshipFloorCorridor128", "layer": "ground",
+      "id": "tplStarshipFloorCorridor128",
       "label": "Corridor Deck 128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128.png",
       "size": {
@@ -2812,7 +2982,7 @@
       "material": "floorCorridor"
     },
     {
-      "id": "tplStarshipFloorCorridor128x64", "layer": "ground",
+      "id": "tplStarshipFloorCorridor128x64",
       "label": "Corridor Deck 128×64",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor128x64.png",
       "size": {
@@ -2863,7 +3033,7 @@
       "material": "floorCorridor"
     },
     {
-      "id": "tplStarshipFloorCorridor192x128", "layer": "ground",
+      "id": "tplStarshipFloorCorridor192x128",
       "label": "Corridor Deck 192×128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCorridor192x128.png",
       "size": {
@@ -2914,7 +3084,7 @@
       "material": "floorCorridor"
     },
     {
-      "id": "tplStarshipFloorCargo128", "layer": "ground",
+      "id": "tplStarshipFloorCargo128",
       "label": "Cargo Deck 128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128.png",
       "size": {
@@ -2965,7 +3135,7 @@
       "material": "floorCargo"
     },
     {
-      "id": "tplStarshipFloorCargo128x64", "layer": "ground",
+      "id": "tplStarshipFloorCargo128x64",
       "label": "Cargo Deck 128×64",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCargo128x64.png",
       "size": {
@@ -3016,7 +3186,7 @@
       "material": "floorCargo"
     },
     {
-      "id": "tplStarshipFloorCarpet128", "layer": "ground",
+      "id": "tplStarshipFloorCarpet128",
       "label": "Carpet 128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet128.png",
       "size": {
@@ -3067,7 +3237,7 @@
       "material": "floorCarpet"
     },
     {
-      "id": "tplStarshipFloorCarpet192x128", "layer": "ground",
+      "id": "tplStarshipFloorCarpet192x128",
       "label": "Carpet 192×128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorCarpet192x128.png",
       "size": {
@@ -3118,7 +3288,7 @@
       "material": "floorCarpet"
     },
     {
-      "id": "tplStarshipFloorSickbay128", "layer": "ground",
+      "id": "tplStarshipFloorSickbay128",
       "label": "Sickbay Deck 128",
       "href": "/art/sprites/environment/templates/tplStarshipFloorSickbay128.png",
       "size": {
@@ -3237,7 +3407,7 @@
       "material": "floorSickbay"
     },
     {
-      "id": "tplStarshipGrating128", "layer": "ground",
+      "id": "tplStarshipGrating128",
       "label": "EPS Grating 128",
       "href": "/art/sprites/environment/templates/tplStarshipGrating128.png",
       "size": {
@@ -3363,7 +3533,7 @@
       "material": "grating"
     },
     {
-      "id": "tplStarshipGrating128x64", "layer": "ground",
+      "id": "tplStarshipGrating128x64",
       "label": "EPS Grating 128×64",
       "href": "/art/sprites/environment/templates/tplStarshipGrating128x64.png",
       "size": {
@@ -3489,7 +3659,7 @@
       "material": "grating"
     },
     {
-      "id": "tplStarshipDoorway128x64", "layer": "ground",
+      "id": "tplStarshipDoorway128x64",
       "label": "Doorway 128×64",
       "href": "/art/sprites/environment/templates/tplStarshipDoorway128x64.png",
       "size": {
@@ -3607,7 +3777,7 @@
       "material": "doorway"
     },
     {
-      "id": "tplStarshipMachinery", "layer": "furniture",
+      "id": "tplStarshipMachinery",
       "label": "Machinery",
       "href": "/art/sprites/environment/templates/tplStarshipMachinery.png",
       "size": {
@@ -3732,7 +3902,7 @@
       "material": "machinery"
     },
     {
-      "id": "tplStarshipMachineryTall", "layer": "furniture",
+      "id": "tplStarshipMachineryTall",
       "label": "Machinery (Tall)",
       "href": "/art/sprites/environment/templates/tplStarshipMachineryTall.png",
       "size": {
@@ -3858,7 +4028,7 @@
       "material": "machinery"
     },
     {
-      "id": "tplStarshipMachineryWide", "layer": "furniture",
+      "id": "tplStarshipMachineryWide",
       "label": "Machinery (Wide)",
       "href": "/art/sprites/environment/templates/tplStarshipMachineryWide.png",
       "size": {
@@ -3984,7 +4154,7 @@
       "material": "machinery"
     },
     {
-      "id": "tplStarshipPillar32", "layer": "walls",
+      "id": "tplStarshipPillar32",
       "label": "Support Pillar 32",
       "href": "/art/sprites/environment/templates/tplStarshipPillar32.png",
       "size": {
@@ -4102,7 +4272,7 @@
       "material": "pillar"
     },
     {
-      "id": "tplStarshipPillar16", "layer": "walls",
+      "id": "tplStarshipPillar16",
       "label": "Support Pillar 16",
       "href": "/art/sprites/environment/templates/tplStarshipPillar16.png",
       "size": {
@@ -4220,7 +4390,7 @@
       "material": "pillar"
     },
     {
-      "id": "tplStarshipWarpCoil", "layer": "furniture",
+      "id": "tplStarshipWarpCoil",
       "label": "Warp Coil Stub",
       "href": "/art/sprites/environment/templates/tplStarshipWarpCoil.png",
       "size": {
@@ -4346,7 +4516,7 @@
       "material": "warpCoil"
     },
     {
-      "id": "tplStarshipPipeRiser", "layer": "furniture",
+      "id": "tplStarshipPipeRiser",
       "label": "Pipe Riser",
       "href": "/art/sprites/environment/templates/tplStarshipPipeRiser.png",
       "size": {
@@ -4464,7 +4634,7 @@
       "material": "pipeRiser"
     },
     {
-      "id": "tplStarshipJunctionBox", "layer": "furniture",
+      "id": "tplStarshipJunctionBox",
       "label": "Junction Box",
       "href": "/art/sprites/environment/templates/tplStarshipJunctionBox.png",
       "size": {
@@ -4582,7 +4752,7 @@
       "material": "junctionBox"
     },
     {
-      "id": "tplStarshipCrate", "layer": "furniture",
+      "id": "tplStarshipCrate",
       "label": "Crate / Low Console",
       "href": "/art/sprites/environment/templates/tplStarshipCrate.png",
       "size": {
@@ -4631,7 +4801,7 @@
       "material": "crate"
     },
     {
-      "id": "tplStarshipEpsControl", "layer": "furniture",
+      "id": "tplStarshipEpsControl",
       "label": "EPS Conduit Control",
       "href": "/art/sprites/environment/templates/tplStarshipEpsControl.png",
       "size": {
@@ -4748,7 +4918,7 @@
       "material": "epsControl"
     },
     {
-      "id": "tplStarshipChair", "layer": "furniture",
+      "id": "tplStarshipChair",
       "label": "Ops Chair",
       "href": "/art/sprites/environment/templates/tplStarshipChair.png",
       "size": {
@@ -4798,7 +4968,7 @@
       "material": "chair"
     },
     {
-      "id": "tplStarshipStool", "layer": "furniture",
+      "id": "tplStarshipStool",
       "label": "Stool",
       "href": "/art/sprites/environment/templates/tplStarshipStool.png",
       "size": {
@@ -4848,7 +5018,7 @@
       "material": "stool"
     },
     {
-      "id": "tplStarshipBench", "layer": "furniture",
+      "id": "tplStarshipBench",
       "label": "Bench",
       "href": "/art/sprites/environment/templates/tplStarshipBench.png",
       "size": {
@@ -4898,7 +5068,7 @@
       "material": "bench"
     },
     {
-      "id": "tplStarshipBenchLong", "layer": "furniture",
+      "id": "tplStarshipBenchLong",
       "label": "Bench (Long)",
       "href": "/art/sprites/environment/templates/tplStarshipBenchLong.png",
       "size": {
@@ -4949,7 +5119,7 @@
       "material": "bench"
     },
     {
-      "id": "tplStarshipTable", "layer": "furniture",
+      "id": "tplStarshipTable",
       "label": "Table",
       "href": "/art/sprites/environment/templates/tplStarshipTable.png",
       "size": {
@@ -4999,7 +5169,7 @@
       "material": "table"
     },
     {
-      "id": "tplStarshipBed", "layer": "furniture",
+      "id": "tplStarshipBed",
       "label": "Biobed",
       "href": "/art/sprites/environment/templates/tplStarshipBed.png",
       "size": {
@@ -5117,7 +5287,7 @@
       "material": "bed"
     },
     {
-      "id": "tplStarshipConsole", "layer": "furniture",
+      "id": "tplStarshipConsole",
       "label": "Console",
       "href": "/art/sprites/environment/templates/tplStarshipConsole.png",
       "size": {
@@ -5235,7 +5405,7 @@
       "material": "console"
     },
     {
-      "id": "tplStarshipConsoleWide", "layer": "furniture",
+      "id": "tplStarshipConsoleWide",
       "label": "Console (Wide)",
       "href": "/art/sprites/environment/templates/tplStarshipConsoleWide.png",
       "size": {
@@ -5354,7 +5524,7 @@
       "material": "console"
     },
     {
-      "id": "tplStarshipWallConsole", "layer": "walls",
+      "id": "tplStarshipWallConsole",
       "label": "Wall Console",
       "href": "/art/sprites/environment/templates/tplStarshipWallConsole.png",
       "size": {
@@ -5473,7 +5643,7 @@
       "material": "console"
     },
     {
-      "id": "tplStarshipLocker", "layer": "furniture",
+      "id": "tplStarshipLocker",
       "label": "Locker",
       "href": "/art/sprites/environment/templates/tplStarshipLocker.png",
       "size": {
@@ -5523,7 +5693,7 @@
       "material": "locker"
     },
     {
-      "id": "tplStarshipLockerWide", "layer": "furniture",
+      "id": "tplStarshipLockerWide",
       "label": "Locker (Wide)",
       "href": "/art/sprites/environment/templates/tplStarshipLockerWide.png",
       "size": {
@@ -5574,7 +5744,7 @@
       "material": "locker"
     },
     {
-      "id": "tplStarshipShelf", "layer": "furniture",
+      "id": "tplStarshipShelf",
       "label": "Shelf",
       "href": "/art/sprites/environment/templates/tplStarshipShelf.png",
       "size": {
@@ -5624,7 +5794,8 @@
       "material": "shelf"
     },
     {
-      "id": "tplDimWall4", "layer": "walls",
+      "id": "tplDimWall4",
+      "layer": "walls",
       "label": "Dim Wall 4",
       "href": "/art/sprites/environment/templates/tplDimWall4.png",
       "size": {
@@ -5673,7 +5844,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall8", "layer": "walls",
+      "id": "tplDimWall8",
+      "layer": "walls",
       "label": "Dim Wall 8",
       "href": "/art/sprites/environment/templates/tplDimWall8.png",
       "size": {
@@ -5722,7 +5894,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall12", "layer": "walls",
+      "id": "tplDimWall12",
+      "layer": "walls",
       "label": "Dim Wall 12",
       "href": "/art/sprites/environment/templates/tplDimWall12.png",
       "size": {
@@ -5771,7 +5944,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall16", "layer": "walls",
+      "id": "tplDimWall16",
+      "layer": "walls",
       "label": "Dim Wall 16",
       "href": "/art/sprites/environment/templates/tplDimWall16.png",
       "size": {
@@ -5820,7 +5994,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall24", "layer": "walls",
+      "id": "tplDimWall24",
+      "layer": "walls",
       "label": "Dim Wall 24",
       "href": "/art/sprites/environment/templates/tplDimWall24.png",
       "size": {
@@ -5869,7 +6044,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall32", "layer": "walls",
+      "id": "tplDimWall32",
+      "layer": "walls",
       "label": "Dim Wall 32",
       "href": "/art/sprites/environment/templates/tplDimWall32.png",
       "size": {
@@ -5918,7 +6094,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall48", "layer": "walls",
+      "id": "tplDimWall48",
+      "layer": "walls",
       "label": "Dim Wall 48",
       "href": "/art/sprites/environment/templates/tplDimWall48.png",
       "size": {
@@ -5967,7 +6144,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall32Long", "layer": "walls",
+      "id": "tplDimWall32Long",
+      "layer": "walls",
       "label": "Dim Wall 32 Long",
       "href": "/art/sprites/environment/templates/tplDimWall32Long.png",
       "size": {
@@ -6017,7 +6195,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall32XLong", "layer": "walls",
+      "id": "tplDimWall32XLong",
+      "layer": "walls",
       "label": "Dim Wall 32 XLong",
       "href": "/art/sprites/environment/templates/tplDimWall32XLong.png",
       "size": {
@@ -6067,7 +6246,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall32Half", "layer": "walls",
+      "id": "tplDimWall32Half",
+      "layer": "walls",
       "label": "Dim Wall 32 Half",
       "href": "/art/sprites/environment/templates/tplDimWall32Half.png",
       "size": {
@@ -6116,7 +6296,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall32Short", "layer": "walls",
+      "id": "tplDimWall32Short",
+      "layer": "walls",
       "label": "Dim Wall 32 Short",
       "href": "/art/sprites/environment/templates/tplDimWall32Short.png",
       "size": {
@@ -6165,7 +6346,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimWall16Half", "layer": "walls",
+      "id": "tplDimWall16Half",
+      "layer": "walls",
       "label": "Dim Wall 16 Half",
       "href": "/art/sprites/environment/templates/tplDimWall16Half.png",
       "size": {
@@ -6214,7 +6396,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost8", "layer": "walls",
+      "id": "tplDimPost8",
+      "layer": "walls",
       "label": "Dim Post 8",
       "href": "/art/sprites/environment/templates/tplDimPost8.png",
       "size": {
@@ -6262,7 +6445,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost12", "layer": "walls",
+      "id": "tplDimPost12",
+      "layer": "walls",
       "label": "Dim Post 12",
       "href": "/art/sprites/environment/templates/tplDimPost12.png",
       "size": {
@@ -6310,7 +6494,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost16", "layer": "walls",
+      "id": "tplDimPost16",
+      "layer": "walls",
       "label": "Dim Post 16",
       "href": "/art/sprites/environment/templates/tplDimPost16.png",
       "size": {
@@ -6358,7 +6543,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost24", "layer": "walls",
+      "id": "tplDimPost24",
+      "layer": "walls",
       "label": "Dim Post 24",
       "href": "/art/sprites/environment/templates/tplDimPost24.png",
       "size": {
@@ -6406,7 +6592,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost32", "layer": "walls",
+      "id": "tplDimPost32",
+      "layer": "walls",
       "label": "Dim Post 32",
       "href": "/art/sprites/environment/templates/tplDimPost32.png",
       "size": {
@@ -6454,7 +6641,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost48", "layer": "walls",
+      "id": "tplDimPost48",
+      "layer": "walls",
       "label": "Dim Post 48",
       "href": "/art/sprites/environment/templates/tplDimPost48.png",
       "size": {
@@ -6502,7 +6690,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost64", "layer": "walls",
+      "id": "tplDimPost64",
+      "layer": "walls",
       "label": "Dim Post 64",
       "href": "/art/sprites/environment/templates/tplDimPost64.png",
       "size": {
@@ -6550,7 +6739,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost96", "layer": "walls",
+      "id": "tplDimPost96",
+      "layer": "walls",
       "label": "Dim Post 96",
       "href": "/art/sprites/environment/templates/tplDimPost96.png",
       "size": {
@@ -6598,7 +6788,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimPost32Half", "layer": "walls",
+      "id": "tplDimPost32Half",
+      "layer": "walls",
       "label": "Dim Post 32 Half",
       "href": "/art/sprites/environment/templates/tplDimPost32Half.png",
       "size": {
@@ -6646,7 +6837,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCornerL8", "layer": "walls",
+      "id": "tplDimCornerL8",
+      "layer": "walls",
       "label": "Dim Corner L 8",
       "href": "/art/sprites/environment/templates/tplDimCornerL8.png",
       "size": {
@@ -6695,7 +6887,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCornerL16", "layer": "walls",
+      "id": "tplDimCornerL16",
+      "layer": "walls",
       "label": "Dim Corner L 16",
       "href": "/art/sprites/environment/templates/tplDimCornerL16.png",
       "size": {
@@ -6744,7 +6937,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCornerL32", "layer": "walls",
+      "id": "tplDimCornerL32",
+      "layer": "walls",
       "label": "Dim Corner L 32",
       "href": "/art/sprites/environment/templates/tplDimCornerL32.png",
       "size": {
@@ -6793,7 +6987,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTee", "layer": "walls",
+      "id": "tplDimTee",
+      "layer": "walls",
       "label": "Dim Tee",
       "href": "/art/sprites/environment/templates/tplDimTee.png",
       "size": {
@@ -6842,7 +7037,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCross", "layer": "walls",
+      "id": "tplDimCross",
+      "layer": "walls",
       "label": "Dim Cross",
       "href": "/art/sprites/environment/templates/tplDimCross.png",
       "size": {
@@ -6891,7 +7087,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimArch", "layer": "walls",
+      "id": "tplDimArch",
+      "layer": "walls",
       "label": "Dim Arch",
       "href": "/art/sprites/environment/templates/tplDimArch.png",
       "size": {
@@ -6940,7 +7137,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimAlcove", "layer": "walls",
+      "id": "tplDimAlcove",
+      "layer": "walls",
       "label": "Dim Alcove",
       "href": "/art/sprites/environment/templates/tplDimAlcove.png",
       "size": {
@@ -6989,7 +7187,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor8", "layer": "ground",
+      "id": "tplDimFloor8",
+      "layer": "ground",
       "label": "Dim Floor 8",
       "href": "/art/sprites/environment/templates/tplDimFloor8.png",
       "size": {
@@ -7037,7 +7236,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor12", "layer": "ground",
+      "id": "tplDimFloor12",
+      "layer": "ground",
       "label": "Dim Floor 12",
       "href": "/art/sprites/environment/templates/tplDimFloor12.png",
       "size": {
@@ -7085,7 +7285,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor16", "layer": "ground",
+      "id": "tplDimFloor16",
+      "layer": "ground",
       "label": "Dim Floor 16",
       "href": "/art/sprites/environment/templates/tplDimFloor16.png",
       "size": {
@@ -7133,7 +7334,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor24", "layer": "ground",
+      "id": "tplDimFloor24",
+      "layer": "ground",
       "label": "Dim Floor 24",
       "href": "/art/sprites/environment/templates/tplDimFloor24.png",
       "size": {
@@ -7181,7 +7383,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor32", "layer": "ground",
+      "id": "tplDimFloor32",
+      "layer": "ground",
       "label": "Dim Floor 32",
       "href": "/art/sprites/environment/templates/tplDimFloor32.png",
       "size": {
@@ -7229,7 +7432,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor48", "layer": "ground",
+      "id": "tplDimFloor48",
+      "layer": "ground",
       "label": "Dim Floor 48",
       "href": "/art/sprites/environment/templates/tplDimFloor48.png",
       "size": {
@@ -7277,7 +7481,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor64", "layer": "ground",
+      "id": "tplDimFloor64",
+      "layer": "ground",
       "label": "Dim Floor 64",
       "href": "/art/sprites/environment/templates/tplDimFloor64.png",
       "size": {
@@ -7325,7 +7530,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor96", "layer": "ground",
+      "id": "tplDimFloor96",
+      "layer": "ground",
       "label": "Dim Floor 96",
       "href": "/art/sprites/environment/templates/tplDimFloor96.png",
       "size": {
@@ -7373,7 +7579,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor128", "layer": "ground",
+      "id": "tplDimFloor128",
+      "layer": "ground",
       "label": "Dim Floor 128",
       "href": "/art/sprites/environment/templates/tplDimFloor128.png",
       "size": {
@@ -7421,7 +7628,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor160", "layer": "ground",
+      "id": "tplDimFloor160",
+      "layer": "ground",
       "label": "Dim Floor 160",
       "href": "/art/sprites/environment/templates/tplDimFloor160.png",
       "size": {
@@ -7469,7 +7677,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor192", "layer": "ground",
+      "id": "tplDimFloor192",
+      "layer": "ground",
       "label": "Dim Floor 192",
       "href": "/art/sprites/environment/templates/tplDimFloor192.png",
       "size": {
@@ -7517,7 +7726,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor256", "layer": "ground",
+      "id": "tplDimFloor256",
+      "layer": "ground",
       "label": "Dim Floor 256",
       "href": "/art/sprites/environment/templates/tplDimFloor256.png",
       "size": {
@@ -7565,7 +7775,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor64x32", "layer": "ground",
+      "id": "tplDimFloor64x32",
+      "layer": "ground",
       "label": "Dim Floor 64×32",
       "href": "/art/sprites/environment/templates/tplDimFloor64x32.png",
       "size": {
@@ -7613,7 +7824,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor64x16", "layer": "ground",
+      "id": "tplDimFloor64x16",
+      "layer": "ground",
       "label": "Dim Floor 64×16",
       "href": "/art/sprites/environment/templates/tplDimFloor64x16.png",
       "size": {
@@ -7661,7 +7873,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor64x48", "layer": "ground",
+      "id": "tplDimFloor64x48",
+      "layer": "ground",
       "label": "Dim Floor 64×48",
       "href": "/art/sprites/environment/templates/tplDimFloor64x48.png",
       "size": {
@@ -7709,7 +7922,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor96x32", "layer": "ground",
+      "id": "tplDimFloor96x32",
+      "layer": "ground",
       "label": "Dim Floor 96×32",
       "href": "/art/sprites/environment/templates/tplDimFloor96x32.png",
       "size": {
@@ -7757,7 +7971,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor96x16", "layer": "ground",
+      "id": "tplDimFloor96x16",
+      "layer": "ground",
       "label": "Dim Floor 96×16",
       "href": "/art/sprites/environment/templates/tplDimFloor96x16.png",
       "size": {
@@ -7805,7 +8020,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor96x64", "layer": "ground",
+      "id": "tplDimFloor96x64",
+      "layer": "ground",
       "label": "Dim Floor 96×64",
       "href": "/art/sprites/environment/templates/tplDimFloor96x64.png",
       "size": {
@@ -7853,7 +8069,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor128x64", "layer": "ground",
+      "id": "tplDimFloor128x64",
+      "layer": "ground",
       "label": "Dim Floor 128×64",
       "href": "/art/sprites/environment/templates/tplDimFloor128x64.png",
       "size": {
@@ -7901,7 +8118,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor128x32", "layer": "ground",
+      "id": "tplDimFloor128x32",
+      "layer": "ground",
       "label": "Dim Floor 128×32",
       "href": "/art/sprites/environment/templates/tplDimFloor128x32.png",
       "size": {
@@ -7949,7 +8167,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor128x16", "layer": "ground",
+      "id": "tplDimFloor128x16",
+      "layer": "ground",
       "label": "Dim Floor 128×16",
       "href": "/art/sprites/environment/templates/tplDimFloor128x16.png",
       "size": {
@@ -7997,7 +8216,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor192x64", "layer": "ground",
+      "id": "tplDimFloor192x64",
+      "layer": "ground",
       "label": "Dim Floor 192×64",
       "href": "/art/sprites/environment/templates/tplDimFloor192x64.png",
       "size": {
@@ -8045,7 +8265,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor192x32", "layer": "ground",
+      "id": "tplDimFloor192x32",
+      "layer": "ground",
       "label": "Dim Floor 192×32",
       "href": "/art/sprites/environment/templates/tplDimFloor192x32.png",
       "size": {
@@ -8093,7 +8314,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor32x16", "layer": "ground",
+      "id": "tplDimFloor32x16",
+      "layer": "ground",
       "label": "Dim Floor 32×16",
       "href": "/art/sprites/environment/templates/tplDimFloor32x16.png",
       "size": {
@@ -8141,7 +8363,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor48x24", "layer": "ground",
+      "id": "tplDimFloor48x24",
+      "layer": "ground",
       "label": "Dim Floor 48×24",
       "href": "/art/sprites/environment/templates/tplDimFloor48x24.png",
       "size": {
@@ -8189,7 +8412,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimFloor48x16", "layer": "ground",
+      "id": "tplDimFloor48x16",
+      "layer": "ground",
       "label": "Dim Floor 48×16",
       "href": "/art/sprites/environment/templates/tplDimFloor48x16.png",
       "size": {
@@ -8237,7 +8461,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox16h4", "layer": "walls",
+      "id": "tplDimBox16h4",
+      "layer": "walls",
       "label": "Dim Box 16 h4",
       "href": "/art/sprites/environment/templates/tplDimBox16h4.png",
       "size": {
@@ -8285,7 +8510,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox16h8", "layer": "walls",
+      "id": "tplDimBox16h8",
+      "layer": "walls",
       "label": "Dim Box 16 h8",
       "href": "/art/sprites/environment/templates/tplDimBox16h8.png",
       "size": {
@@ -8333,7 +8559,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox16h16", "layer": "walls",
+      "id": "tplDimBox16h16",
+      "layer": "walls",
       "label": "Dim Box 16 h16",
       "href": "/art/sprites/environment/templates/tplDimBox16h16.png",
       "size": {
@@ -8381,7 +8608,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox16h32", "layer": "walls",
+      "id": "tplDimBox16h32",
+      "layer": "walls",
       "label": "Dim Box 16 h32",
       "href": "/art/sprites/environment/templates/tplDimBox16h32.png",
       "size": {
@@ -8429,7 +8657,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox16h48", "layer": "walls",
+      "id": "tplDimBox16h48",
+      "layer": "walls",
       "label": "Dim Box 16 h48",
       "href": "/art/sprites/environment/templates/tplDimBox16h48.png",
       "size": {
@@ -8477,7 +8706,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h4", "layer": "walls",
+      "id": "tplDimBox32h4",
+      "layer": "walls",
       "label": "Dim Box 32 h4",
       "href": "/art/sprites/environment/templates/tplDimBox32h4.png",
       "size": {
@@ -8525,7 +8755,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h8", "layer": "walls",
+      "id": "tplDimBox32h8",
+      "layer": "walls",
       "label": "Dim Box 32 h8",
       "href": "/art/sprites/environment/templates/tplDimBox32h8.png",
       "size": {
@@ -8573,7 +8804,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h12", "layer": "walls",
+      "id": "tplDimBox32h12",
+      "layer": "walls",
       "label": "Dim Box 32 h12",
       "href": "/art/sprites/environment/templates/tplDimBox32h12.png",
       "size": {
@@ -8621,7 +8853,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h16", "layer": "walls",
+      "id": "tplDimBox32h16",
+      "layer": "walls",
       "label": "Dim Box 32 h16",
       "href": "/art/sprites/environment/templates/tplDimBox32h16.png",
       "size": {
@@ -8669,7 +8902,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h24", "layer": "walls",
+      "id": "tplDimBox32h24",
+      "layer": "walls",
       "label": "Dim Box 32 h24",
       "href": "/art/sprites/environment/templates/tplDimBox32h24.png",
       "size": {
@@ -8717,7 +8951,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h32", "layer": "walls",
+      "id": "tplDimBox32h32",
+      "layer": "walls",
       "label": "Dim Box 32 h32",
       "href": "/art/sprites/environment/templates/tplDimBox32h32.png",
       "size": {
@@ -8765,7 +9000,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h48", "layer": "walls",
+      "id": "tplDimBox32h48",
+      "layer": "walls",
       "label": "Dim Box 32 h48",
       "href": "/art/sprites/environment/templates/tplDimBox32h48.png",
       "size": {
@@ -8813,7 +9049,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h64", "layer": "walls",
+      "id": "tplDimBox32h64",
+      "layer": "walls",
       "label": "Dim Box 32 h64",
       "href": "/art/sprites/environment/templates/tplDimBox32h64.png",
       "size": {
@@ -8861,7 +9098,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox32h80", "layer": "walls",
+      "id": "tplDimBox32h80",
+      "layer": "walls",
       "label": "Dim Box 32 h80",
       "href": "/art/sprites/environment/templates/tplDimBox32h80.png",
       "size": {
@@ -8909,7 +9147,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox64h8", "layer": "walls",
+      "id": "tplDimBox64h8",
+      "layer": "walls",
       "label": "Dim Box 64 h8",
       "href": "/art/sprites/environment/templates/tplDimBox64h8.png",
       "size": {
@@ -8957,7 +9196,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox64h16", "layer": "walls",
+      "id": "tplDimBox64h16",
+      "layer": "walls",
       "label": "Dim Box 64 h16",
       "href": "/art/sprites/environment/templates/tplDimBox64h16.png",
       "size": {
@@ -9005,7 +9245,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox64h32", "layer": "walls",
+      "id": "tplDimBox64h32",
+      "layer": "walls",
       "label": "Dim Box 64 h32",
       "href": "/art/sprites/environment/templates/tplDimBox64h32.png",
       "size": {
@@ -9053,7 +9294,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox64h64", "layer": "walls",
+      "id": "tplDimBox64h64",
+      "layer": "walls",
       "label": "Dim Box 64 h64",
       "href": "/art/sprites/environment/templates/tplDimBox64h64.png",
       "size": {
@@ -9101,7 +9343,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBox64h92", "layer": "walls",
+      "id": "tplDimBox64h92",
+      "layer": "walls",
       "label": "Dim Box 64 h92",
       "href": "/art/sprites/environment/templates/tplDimBox64h92.png",
       "size": {
@@ -9149,7 +9392,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h2", "layer": "walls",
+      "id": "tplDimTiny2h2",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×2",
       "href": "/art/sprites/environment/templates/tplDimTiny2h2.png",
       "size": {
@@ -9198,7 +9442,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h4", "layer": "walls",
+      "id": "tplDimTiny2h4",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×4",
       "href": "/art/sprites/environment/templates/tplDimTiny2h4.png",
       "size": {
@@ -9247,7 +9492,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h6", "layer": "walls",
+      "id": "tplDimTiny2h6",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×6",
       "href": "/art/sprites/environment/templates/tplDimTiny2h6.png",
       "size": {
@@ -9296,7 +9542,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h8", "layer": "walls",
+      "id": "tplDimTiny2h8",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×8",
       "href": "/art/sprites/environment/templates/tplDimTiny2h8.png",
       "size": {
@@ -9345,7 +9592,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h12", "layer": "walls",
+      "id": "tplDimTiny2h12",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×12",
       "href": "/art/sprites/environment/templates/tplDimTiny2h12.png",
       "size": {
@@ -9394,7 +9642,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny2h16", "layer": "walls",
+      "id": "tplDimTiny2h16",
+      "layer": "walls",
       "label": "Dim Tiny 2×2×16",
       "href": "/art/sprites/environment/templates/tplDimTiny2h16.png",
       "size": {
@@ -9443,7 +9692,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h2", "layer": "walls",
+      "id": "tplDimTiny4h2",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×2",
       "href": "/art/sprites/environment/templates/tplDimTiny4h2.png",
       "size": {
@@ -9492,7 +9742,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h4", "layer": "walls",
+      "id": "tplDimTiny4h4",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×4",
       "href": "/art/sprites/environment/templates/tplDimTiny4h4.png",
       "size": {
@@ -9541,7 +9792,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h6", "layer": "walls",
+      "id": "tplDimTiny4h6",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×6",
       "href": "/art/sprites/environment/templates/tplDimTiny4h6.png",
       "size": {
@@ -9590,7 +9842,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h8", "layer": "walls",
+      "id": "tplDimTiny4h8",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×8",
       "href": "/art/sprites/environment/templates/tplDimTiny4h8.png",
       "size": {
@@ -9639,7 +9892,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h12", "layer": "walls",
+      "id": "tplDimTiny4h12",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×12",
       "href": "/art/sprites/environment/templates/tplDimTiny4h12.png",
       "size": {
@@ -9688,7 +9942,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4h16", "layer": "walls",
+      "id": "tplDimTiny4h16",
+      "layer": "walls",
       "label": "Dim Tiny 4×4×16",
       "href": "/art/sprites/environment/templates/tplDimTiny4h16.png",
       "size": {
@@ -9737,7 +9992,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h2", "layer": "walls",
+      "id": "tplDimTiny6h2",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×2",
       "href": "/art/sprites/environment/templates/tplDimTiny6h2.png",
       "size": {
@@ -9786,7 +10042,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h4", "layer": "walls",
+      "id": "tplDimTiny6h4",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×4",
       "href": "/art/sprites/environment/templates/tplDimTiny6h4.png",
       "size": {
@@ -9835,7 +10092,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h6", "layer": "walls",
+      "id": "tplDimTiny6h6",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×6",
       "href": "/art/sprites/environment/templates/tplDimTiny6h6.png",
       "size": {
@@ -9884,7 +10142,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h8", "layer": "walls",
+      "id": "tplDimTiny6h8",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×8",
       "href": "/art/sprites/environment/templates/tplDimTiny6h8.png",
       "size": {
@@ -9933,7 +10192,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h12", "layer": "walls",
+      "id": "tplDimTiny6h12",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×12",
       "href": "/art/sprites/environment/templates/tplDimTiny6h12.png",
       "size": {
@@ -9982,7 +10242,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6h16", "layer": "walls",
+      "id": "tplDimTiny6h16",
+      "layer": "walls",
       "label": "Dim Tiny 6×6×16",
       "href": "/art/sprites/environment/templates/tplDimTiny6h16.png",
       "size": {
@@ -10031,7 +10292,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h2", "layer": "walls",
+      "id": "tplDimTiny8h2",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×2",
       "href": "/art/sprites/environment/templates/tplDimTiny8h2.png",
       "size": {
@@ -10080,7 +10342,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h4", "layer": "walls",
+      "id": "tplDimTiny8h4",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×4",
       "href": "/art/sprites/environment/templates/tplDimTiny8h4.png",
       "size": {
@@ -10129,7 +10392,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h6", "layer": "walls",
+      "id": "tplDimTiny8h6",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×6",
       "href": "/art/sprites/environment/templates/tplDimTiny8h6.png",
       "size": {
@@ -10178,7 +10442,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h8", "layer": "walls",
+      "id": "tplDimTiny8h8",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×8",
       "href": "/art/sprites/environment/templates/tplDimTiny8h8.png",
       "size": {
@@ -10227,7 +10492,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h12", "layer": "walls",
+      "id": "tplDimTiny8h12",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×12",
       "href": "/art/sprites/environment/templates/tplDimTiny8h12.png",
       "size": {
@@ -10276,7 +10542,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8h16", "layer": "walls",
+      "id": "tplDimTiny8h16",
+      "layer": "walls",
       "label": "Dim Tiny 8×8×16",
       "href": "/art/sprites/environment/templates/tplDimTiny8h16.png",
       "size": {
@@ -10325,7 +10592,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8x4h2", "layer": "walls",
+      "id": "tplDimTiny8x4h2",
+      "layer": "walls",
       "label": "Dim Tiny 8×4×2",
       "href": "/art/sprites/environment/templates/tplDimTiny8x4h2.png",
       "size": {
@@ -10374,7 +10642,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8x4h4", "layer": "walls",
+      "id": "tplDimTiny8x4h4",
+      "layer": "walls",
       "label": "Dim Tiny 8×4×4",
       "href": "/art/sprites/environment/templates/tplDimTiny8x4h4.png",
       "size": {
@@ -10423,7 +10692,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8x4h8", "layer": "walls",
+      "id": "tplDimTiny8x4h8",
+      "layer": "walls",
       "label": "Dim Tiny 8×4×8",
       "href": "/art/sprites/environment/templates/tplDimTiny8x4h8.png",
       "size": {
@@ -10472,7 +10742,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8x2h2", "layer": "walls",
+      "id": "tplDimTiny8x2h2",
+      "layer": "walls",
       "label": "Dim Tiny 8×2×2",
       "href": "/art/sprites/environment/templates/tplDimTiny8x2h2.png",
       "size": {
@@ -10521,7 +10792,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny8x2h4", "layer": "walls",
+      "id": "tplDimTiny8x2h4",
+      "layer": "walls",
       "label": "Dim Tiny 8×2×4",
       "href": "/art/sprites/environment/templates/tplDimTiny8x2h4.png",
       "size": {
@@ -10570,7 +10842,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4x2h2", "layer": "walls",
+      "id": "tplDimTiny4x2h2",
+      "layer": "walls",
       "label": "Dim Tiny 4×2×2",
       "href": "/art/sprites/environment/templates/tplDimTiny4x2h2.png",
       "size": {
@@ -10619,7 +10892,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4x2h4", "layer": "walls",
+      "id": "tplDimTiny4x2h4",
+      "layer": "walls",
       "label": "Dim Tiny 4×2×4",
       "href": "/art/sprites/environment/templates/tplDimTiny4x2h4.png",
       "size": {
@@ -10668,7 +10942,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny4x2h8", "layer": "walls",
+      "id": "tplDimTiny4x2h8",
+      "layer": "walls",
       "label": "Dim Tiny 4×2×8",
       "href": "/art/sprites/environment/templates/tplDimTiny4x2h8.png",
       "size": {
@@ -10717,7 +10992,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny12x4h4", "layer": "walls",
+      "id": "tplDimTiny12x4h4",
+      "layer": "walls",
       "label": "Dim Tiny 12×4×4",
       "href": "/art/sprites/environment/templates/tplDimTiny12x4h4.png",
       "size": {
@@ -10766,7 +11042,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny12x4h8", "layer": "walls",
+      "id": "tplDimTiny12x4h8",
+      "layer": "walls",
       "label": "Dim Tiny 12×4×8",
       "href": "/art/sprites/environment/templates/tplDimTiny12x4h8.png",
       "size": {
@@ -10815,7 +11092,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny12x8h4", "layer": "walls",
+      "id": "tplDimTiny12x8h4",
+      "layer": "walls",
       "label": "Dim Tiny 12×8×4",
       "href": "/art/sprites/environment/templates/tplDimTiny12x8h4.png",
       "size": {
@@ -10864,7 +11142,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny16x4h4", "layer": "walls",
+      "id": "tplDimTiny16x4h4",
+      "layer": "walls",
       "label": "Dim Tiny 16×4×4",
       "href": "/art/sprites/environment/templates/tplDimTiny16x4h4.png",
       "size": {
@@ -10913,7 +11192,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny16x4h8", "layer": "walls",
+      "id": "tplDimTiny16x4h8",
+      "layer": "walls",
       "label": "Dim Tiny 16×4×8",
       "href": "/art/sprites/environment/templates/tplDimTiny16x4h8.png",
       "size": {
@@ -10962,7 +11242,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny16x8h4", "layer": "walls",
+      "id": "tplDimTiny16x8h4",
+      "layer": "walls",
       "label": "Dim Tiny 16×8×4",
       "href": "/art/sprites/environment/templates/tplDimTiny16x8h4.png",
       "size": {
@@ -11011,7 +11292,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny16x8h8", "layer": "walls",
+      "id": "tplDimTiny16x8h8",
+      "layer": "walls",
       "label": "Dim Tiny 16×8×8",
       "href": "/art/sprites/environment/templates/tplDimTiny16x8h8.png",
       "size": {
@@ -11060,7 +11342,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6x2h2", "layer": "walls",
+      "id": "tplDimTiny6x2h2",
+      "layer": "walls",
       "label": "Dim Tiny 6×2×2",
       "href": "/art/sprites/environment/templates/tplDimTiny6x2h2.png",
       "size": {
@@ -11109,7 +11392,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6x2h6", "layer": "walls",
+      "id": "tplDimTiny6x2h6",
+      "layer": "walls",
       "label": "Dim Tiny 6×2×6",
       "href": "/art/sprites/environment/templates/tplDimTiny6x2h6.png",
       "size": {
@@ -11158,7 +11442,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6x4h2", "layer": "walls",
+      "id": "tplDimTiny6x4h2",
+      "layer": "walls",
       "label": "Dim Tiny 6×4×2",
       "href": "/art/sprites/environment/templates/tplDimTiny6x4h2.png",
       "size": {
@@ -11207,7 +11492,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTiny6x4h6", "layer": "walls",
+      "id": "tplDimTiny6x4h6",
+      "layer": "walls",
       "label": "Dim Tiny 6×4×6",
       "href": "/art/sprites/environment/templates/tplDimTiny6x4h6.png",
       "size": {
@@ -11256,7 +11542,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPad2", "layer": "ground",
+      "id": "tplDimTinyPad2",
+      "layer": "ground",
       "label": "Dim Tiny Pad 2",
       "href": "/art/sprites/environment/templates/tplDimTinyPad2.png",
       "size": {
@@ -11305,7 +11592,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPost2", "layer": "walls",
+      "id": "tplDimTinyPost2",
+      "layer": "walls",
       "label": "Dim Tiny Post 2",
       "href": "/art/sprites/environment/templates/tplDimTinyPost2.png",
       "size": {
@@ -11354,7 +11642,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPad4", "layer": "ground",
+      "id": "tplDimTinyPad4",
+      "layer": "ground",
       "label": "Dim Tiny Pad 4",
       "href": "/art/sprites/environment/templates/tplDimTinyPad4.png",
       "size": {
@@ -11403,7 +11692,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPost4", "layer": "walls",
+      "id": "tplDimTinyPost4",
+      "layer": "walls",
       "label": "Dim Tiny Post 4",
       "href": "/art/sprites/environment/templates/tplDimTinyPost4.png",
       "size": {
@@ -11452,7 +11742,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPad6", "layer": "ground",
+      "id": "tplDimTinyPad6",
+      "layer": "ground",
       "label": "Dim Tiny Pad 6",
       "href": "/art/sprites/environment/templates/tplDimTinyPad6.png",
       "size": {
@@ -11501,7 +11792,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPost6", "layer": "walls",
+      "id": "tplDimTinyPost6",
+      "layer": "walls",
       "label": "Dim Tiny Post 6",
       "href": "/art/sprites/environment/templates/tplDimTinyPost6.png",
       "size": {
@@ -11550,7 +11842,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPad8", "layer": "ground",
+      "id": "tplDimTinyPad8",
+      "layer": "ground",
       "label": "Dim Tiny Pad 8",
       "href": "/art/sprites/environment/templates/tplDimTinyPad8.png",
       "size": {
@@ -11599,7 +11892,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTinyPost8", "layer": "walls",
+      "id": "tplDimTinyPost8",
+      "layer": "walls",
       "label": "Dim Tiny Post 8",
       "href": "/art/sprites/environment/templates/tplDimTinyPost8.png",
       "size": {
@@ -11648,7 +11942,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimSteps2", "layer": "furniture",
+      "id": "tplDimSteps2",
+      "layer": "furniture",
       "label": "Dim Steps 2",
       "href": "/art/sprites/environment/templates/tplDimSteps2.png",
       "size": {
@@ -11696,7 +11991,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimSteps3", "layer": "furniture",
+      "id": "tplDimSteps3",
+      "layer": "furniture",
       "label": "Dim Steps 3",
       "href": "/art/sprites/environment/templates/tplDimSteps3.png",
       "size": {
@@ -11744,7 +12040,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimSteps4", "layer": "furniture",
+      "id": "tplDimSteps4",
+      "layer": "furniture",
       "label": "Dim Steps 4",
       "href": "/art/sprites/environment/templates/tplDimSteps4.png",
       "size": {
@@ -11792,7 +12089,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimSteps5", "layer": "furniture",
+      "id": "tplDimSteps5",
+      "layer": "furniture",
       "label": "Dim Steps 5",
       "href": "/art/sprites/environment/templates/tplDimSteps5.png",
       "size": {
@@ -11840,7 +12138,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimSteps6", "layer": "furniture",
+      "id": "tplDimSteps6",
+      "layer": "furniture",
       "label": "Dim Steps 6",
       "href": "/art/sprites/environment/templates/tplDimSteps6.png",
       "size": {
@@ -11888,7 +12187,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimStepsWide", "layer": "furniture",
+      "id": "tplDimStepsWide",
+      "layer": "furniture",
       "label": "Dim Steps Wide",
       "href": "/art/sprites/environment/templates/tplDimStepsWide.png",
       "size": {
@@ -11936,7 +12236,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimRamp", "layer": "furniture",
+      "id": "tplDimRamp",
+      "layer": "furniture",
       "label": "Dim Ramp",
       "href": "/art/sprites/environment/templates/tplDimRamp.png",
       "size": {
@@ -11985,7 +12286,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimRampTall", "layer": "furniture",
+      "id": "tplDimRampTall",
+      "layer": "furniture",
       "label": "Dim Ramp Tall",
       "href": "/art/sprites/environment/templates/tplDimRampTall.png",
       "size": {
@@ -12034,7 +12336,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimL12", "layer": "walls",
+      "id": "tplDimL12",
+      "layer": "walls",
       "label": "Dim L 12",
       "href": "/art/sprites/environment/templates/tplDimL12.png",
       "size": {
@@ -12082,7 +12385,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimL24", "layer": "walls",
+      "id": "tplDimL24",
+      "layer": "walls",
       "label": "Dim L 24",
       "href": "/art/sprites/environment/templates/tplDimL24.png",
       "size": {
@@ -12130,7 +12434,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimU", "layer": "walls",
+      "id": "tplDimU",
+      "layer": "walls",
       "label": "Dim U",
       "href": "/art/sprites/environment/templates/tplDimU.png",
       "size": {
@@ -12178,7 +12483,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimU48", "layer": "walls",
+      "id": "tplDimU48",
+      "layer": "walls",
       "label": "Dim U 48",
       "href": "/art/sprites/environment/templates/tplDimU48.png",
       "size": {
@@ -12226,7 +12532,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimRing", "layer": "walls",
+      "id": "tplDimRing",
+      "layer": "walls",
       "label": "Dim Ring",
       "href": "/art/sprites/environment/templates/tplDimRing.png",
       "size": {
@@ -12274,7 +12581,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimRing48", "layer": "walls",
+      "id": "tplDimRing48",
+      "layer": "walls",
       "label": "Dim Ring 48",
       "href": "/art/sprites/environment/templates/tplDimRing48.png",
       "size": {
@@ -12322,7 +12630,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimNotch", "layer": "walls",
+      "id": "tplDimNotch",
+      "layer": "walls",
       "label": "Dim Notch",
       "href": "/art/sprites/environment/templates/tplDimNotch.png",
       "size": {
@@ -12370,7 +12679,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimZ", "layer": "walls",
+      "id": "tplDimZ",
+      "layer": "walls",
       "label": "Dim Z",
       "href": "/art/sprites/environment/templates/tplDimZ.png",
       "size": {
@@ -12418,7 +12728,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTable", "layer": "furniture",
+      "id": "tplDimTable",
+      "layer": "furniture",
       "label": "Dim Table",
       "href": "/art/sprites/environment/templates/tplDimTable.png",
       "size": {
@@ -12466,7 +12777,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimTableLow", "layer": "furniture",
+      "id": "tplDimTableLow",
+      "layer": "furniture",
       "label": "Dim Table Low",
       "href": "/art/sprites/environment/templates/tplDimTableLow.png",
       "size": {
@@ -12514,7 +12826,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimChair", "layer": "furniture",
+      "id": "tplDimChair",
+      "layer": "furniture",
       "label": "Dim Chair",
       "href": "/art/sprites/environment/templates/tplDimChair.png",
       "size": {
@@ -12562,7 +12875,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimStool", "layer": "furniture",
+      "id": "tplDimStool",
+      "layer": "furniture",
       "label": "Dim Stool",
       "href": "/art/sprites/environment/templates/tplDimStool.png",
       "size": {
@@ -12610,7 +12924,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBench", "layer": "furniture",
+      "id": "tplDimBench",
+      "layer": "furniture",
       "label": "Dim Bench",
       "href": "/art/sprites/environment/templates/tplDimBench.png",
       "size": {
@@ -12658,7 +12973,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBenchLong", "layer": "furniture",
+      "id": "tplDimBenchLong",
+      "layer": "furniture",
       "label": "Dim Bench Long",
       "href": "/art/sprites/environment/templates/tplDimBenchLong.png",
       "size": {
@@ -12706,7 +13022,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimBed", "layer": "furniture",
+      "id": "tplDimBed",
+      "layer": "furniture",
       "label": "Dim Bed",
       "href": "/art/sprites/environment/templates/tplDimBed.png",
       "size": {
@@ -12754,7 +13071,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimConsole", "layer": "furniture",
+      "id": "tplDimConsole",
+      "layer": "furniture",
       "label": "Dim Console",
       "href": "/art/sprites/environment/templates/tplDimConsole.png",
       "size": {
@@ -12802,7 +13120,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimLocker", "layer": "furniture",
+      "id": "tplDimLocker",
+      "layer": "furniture",
       "label": "Dim Locker",
       "href": "/art/sprites/environment/templates/tplDimLocker.png",
       "size": {
@@ -12850,7 +13169,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimLockerWide", "layer": "furniture",
+      "id": "tplDimLockerWide",
+      "layer": "furniture",
       "label": "Dim Locker Wide",
       "href": "/art/sprites/environment/templates/tplDimLockerWide.png",
       "size": {
@@ -12898,7 +13218,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimShelf", "layer": "furniture",
+      "id": "tplDimShelf",
+      "layer": "furniture",
       "label": "Dim Shelf",
       "href": "/art/sprites/environment/templates/tplDimShelf.png",
       "size": {
@@ -12946,7 +13267,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCrate", "layer": "furniture",
+      "id": "tplDimCrate",
+      "layer": "furniture",
       "label": "Dim Crate",
       "href": "/art/sprites/environment/templates/tplDimCrate.png",
       "size": {
@@ -12994,7 +13316,8 @@
       "face": "plain"
     },
     {
-      "id": "tplDimCrateTall", "layer": "furniture",
+      "id": "tplDimCrateTall",
+      "layer": "furniture",
       "label": "Dim Crate Tall",
       "href": "/art/sprites/environment/templates/tplDimCrateTall.png",
       "size": {

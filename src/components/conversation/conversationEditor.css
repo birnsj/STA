@@ -613,7 +613,7 @@
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 4px;
   min-height: 56px;
-  max-height: 160px;
+  max-height: 220px;
   overflow-y: auto;
   padding: 4px;
   border: 1px solid var(--ed-border);
@@ -698,6 +698,38 @@
 
 .ed-shell .ge-source-thumb:active {
   cursor: grabbing;
+}
+
+.ed-shell .ge-thumb-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ed-shell .ge-thumb-slot.has-weight {
+  min-height: 0;
+}
+
+.ed-shell .ge-thumb-weight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.ed-shell .ge-thumb-weight input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--ed-accent);
+}
+
+.ed-shell .ge-thumb-weight-pct {
+  min-width: 3ch;
+  color: var(--ed-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .ed-shell .ge-thumb {

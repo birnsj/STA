@@ -416,6 +416,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
   }
 
   if (autoPaintRulesetEditor) {
+    // Keep dialogs mounted: Generate Map may askConfirm when the open map is dirty.
     return (
       <Suspense fallback={null}>
         <AutoPaintRulesetEditorScreen
@@ -439,6 +440,7 @@ export default function MapEditorScreen({ savedCharacters = [], onBack, viewScal
           }}
           onStatus={setStatus}
         />
+        {dialogs}
       </Suspense>
     )
   }

@@ -3,6 +3,7 @@ const path = require('path')
 const { writeFileAtomic } = require('./atomicWrite.cjs')
 
 // Dev Auto-Paint Ruleset Editor: CRUD into autoPaintRulesets.json (/__autopaint).
+// Role fields accept a string id or [{ id, weight }, ...] (relative mix).
 
 const ENVIRONMENTS = new Set(['starshipStation', 'indoorBuilding', 'outdoorSettlement', 'naturalTerrain'])
 const WALL_MODES = new Set(['templatePieces', 'tiles'])
@@ -39,6 +40,47 @@ function normalizeId(value) {
   return id
 }
 
+function clamp01(n) {
+  if (!Number.isFinite(n)) return 0
+  return Math.min(1, Math.max(0, n))
+}
+
+function normalizeRole(raw, { allowEmpty = false } = {}) {
+  const collected = []
+  const push = (id, weight) => {
+    if (typeof id !== 'string' || !id.trim()) return
+    const trimmed = id.trim()
+    if (collected.some((entry) => entry.id === trimmed)) return
+    collected.push({ id: trimmed, weight: weight == null ? 1 : clamp01(Number(weight)) })
+  }
+  if (raw == null || raw === '') {
+    /* empty */
+  } else if (typeof raw === 'string') {
+    push(raw, 1)
+  } else if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (typeof entry === 'string') push(entry, 1)
+      else if (entry && typeof entry === 'object') push(entry.id, entry.weight)
+    }
+  } else if (typeof raw === 'object') {
+    push(raw.id, raw.weight)
+  }
+  if (!collected.length) {
+    if (allowEmpty) return []
+    throw new Error('role must include at least one id')
+  }
+  const sum = collected.reduce((total, entry) => total + entry.weight, 0)
+  if (sum <= 0) {
+    const equal = 1 / collected.length
+    return collected.map((entry) => ({ id: entry.id, weight: Math.round(equal * 1000) / 1000 }))
+  }
+  return collected.map((entry) => ({ id: entry.id, weight: Math.round((entry.weight / sum) * 1000) / 1000 }))
+}
+
+function roleIds(role) {
+  return normalizeRole(role, { allowEmpty: true }).map((entry) => entry.id)
+}
+
 function normalizeRuleset(raw, fallbackId) {
   if (!raw || typeof raw !== 'object') throw new Error('ruleset required')
   const id = normalizeId(raw.id ?? fallbackId)
@@ -48,50 +90,62 @@ function normalizeRuleset(raw, fallbackId) {
   const walls = raw.walls && typeof raw.walls === 'object' ? raw.walls : {}
   const doors = raw.doors && typeof raw.doors === 'object' ? raw.doors : {}
   const props = raw.props && typeof raw.props === 'object' ? raw.props : {}
-  const defaultTile = typeof floors.defaultTile === 'string' && floors.defaultTile.trim() ? floors.defaultTile.trim() : 'floor'
+  const defaultTile = normalizeRole(floors.defaultTile ?? 'floor')
   const underlayWallTile =
     typeof raw.underlayWallTile === 'string' && raw.underlayWallTile.trim() ? raw.underlayWallTile.trim() : 'templateWall'
 
   const nextWalls = {}
   for (const key of PIECE_KEYS) {
     const value = walls[key]
-    nextWalls[key] = typeof value === 'string' && value.trim() ? value.trim() : null
+    if (value == null || value === '') {
+      nextWalls[key] = null
+      continue
+    }
+    const list = normalizeRole(value, { allowEmpty: true })
+    nextWalls[key] = list.length ? list : null
   }
-  if (!nextWalls.straight) throw new Error('walls.straight required')
-  if (!nextWalls.corner) throw new Error('walls.corner required')
+  if (!nextWalls.straight?.length) throw new Error('walls.straight required')
+  if (!nextWalls.corner?.length) throw new Error('walls.corner required')
 
-  const fittings = Array.isArray(walls.fittings)
-    ? walls.fittings.filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim())
-    : []
+  const fittings = normalizeRole(walls.fittings, { allowEmpty: true })
   const fittingChance = Number(walls.fittingChance)
   nextWalls.fittings = fittings
   nextWalls.fittingChance = Number.isFinite(fittingChance) ? Math.min(1, Math.max(0, fittingChance)) : 0
 
   const tileIds = catalogueTileIds()
   const pieceIds = cataloguePieceIds()
+  const knownRole = (roleId) => tileIds.has(roleId) || pieceIds.has(roleId)
   const errors = []
   if (!tileIds.has(underlayWallTile)) errors.push(`underlayWallTile: unknown tile “${underlayWallTile}”`)
-  if (!tileIds.has(defaultTile)) errors.push(`floors.defaultTile: unknown tile “${defaultTile}”`)
+  // Floor roles may be tile ids or Template Piece ids (client resolves pieces → tiles at generate).
+  for (const tileId of roleIds(defaultTile)) {
+    if (!tileIds.has(tileId) && !pieceIds.has(tileId)) {
+      errors.push(`floors.defaultTile: unknown tile “${tileId}”`)
+    }
+  }
   const variants = Array.isArray(floors.variants)
-    ? floors.variants.filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim())
+    ? floors.variants.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim())
     : []
   for (const variant of variants) {
     if (!tileIds.has(variant)) errors.push(`floors.variants: unknown tile “${variant}”`)
   }
   for (const key of PIECE_KEYS) {
-    const pieceId = nextWalls[key]
-    if (!pieceId) {
+    const ids = roleIds(nextWalls[key])
+    if (!ids.length) {
       if (REQUIRED_PIECE_KEYS.includes(key)) errors.push(`walls.${key} is required`)
       continue
     }
-    if (!pieceIds.has(pieceId)) errors.push(`walls.${key}: unknown Template Piece “${pieceId}”`)
+    for (const pieceId of ids) {
+      if (!knownRole(pieceId)) errors.push(`walls.${key}: unknown Template Piece “${pieceId}”`)
+    }
   }
-  for (const pieceId of fittings) {
-    if (!pieceIds.has(pieceId)) errors.push(`walls.fittings: unknown Template Piece “${pieceId}”`)
+  for (const pieceId of roleIds(fittings)) {
+    if (!knownRole(pieceId)) errors.push(`walls.fittings: unknown Template Piece “${pieceId}”`)
   }
-  const underlayDoor =
-    typeof doors.underlayTile === 'string' && doors.underlayTile.trim() ? doors.underlayTile.trim() : 'doorway'
-  if (!tileIds.has(underlayDoor)) errors.push(`doors.underlayTile: unknown tile “${underlayDoor}”`)
+  const underlayDoor = normalizeRole(doors.underlayTile ?? 'doorway')
+  for (const doorId of roleIds(underlayDoor)) {
+    if (!knownRole(doorId)) errors.push(`doors.underlayTile: unknown tile “${doorId}”`)
+  }
   if (errors.length) throw new Error(`Invalid Auto-Paint ruleset: ${errors.join('; ')}`)
 
   return {

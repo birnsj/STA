@@ -1,6 +1,14 @@
 // Live Auto-Paint ruleset catalogue. Seeded from autoPaintRulesets.json; editor updates memory and persists via /__autopaint.
+// Wall / floor / door roles are weighted lists [{ id, weight }]; legacy strings load as equal weights.
 import seed from '../../data/adaptation/maps/autoPaintRulesets.json'
 import { TILES } from '../mapFormat.js'
+import { getTemplatePiece } from '../templatePieces.js'
+import {
+  normalizeWeightedEntries,
+  primaryId,
+  serializeWeighted,
+  weightedIds,
+} from '../generators/weightedChoice.js'
 import { resolveAutoPaintTileId } from './templatePalette.js'
 
 export const AUTO_PAINT_ENVIRONMENTS = Object.freeze([
@@ -42,6 +50,14 @@ const FALLBACK = Object.freeze({
 })
 
 const knownTile = (id) => typeof id === 'string' && TILES.some((tile) => tile.id === id)
+const knownRole = (id) => Boolean(resolveAutoPaintTileId(id) || getTemplatePiece(id))
+// Floors may store a tile id or a Template Piece that resolves to a floor tile (palette drops).
+const knownFloorRole = (id) => {
+  if (!id || typeof id !== 'string') return false
+  if (knownTile(id)) return true
+  const resolved = resolveAutoPaintTileId(id)
+  return Boolean(resolved && knownTile(resolved))
+}
 
 function clampChance(value, fallback) {
   const n = Number(value)
@@ -49,11 +65,24 @@ function clampChance(value, fallback) {
   return Math.min(1, Math.max(0, n))
 }
 
-function normalizeTileId(value) {
-  if (value == null || value === '') return null
-  if (typeof value !== 'string') return null
-  const id = value.trim()
-  return id || null
+// Keep unknown ids so validateAutoPaintRuleset can report them (do not invent replacements).
+const anyId = (id) => typeof id === 'string' && Boolean(id.trim())
+
+function roleList(raw, { required = false, fallback = null, known = anyId } = {}) {
+  const list = normalizeWeightedEntries(raw, {
+    known,
+    allowEmpty: true,
+    fallback: null,
+  })
+  if (required && !list.length && fallback != null) {
+    return normalizeWeightedEntries(fallback, { known: anyId, allowEmpty: true })
+  }
+  return list
+}
+
+function optionalRole(raw) {
+  const list = roleList(raw, { required: false })
+  return list.length ? list : null
 }
 
 /** Normalize a ruleset without inventing replacement catalogue ids. */
@@ -65,19 +94,20 @@ export function resolveAutoPaintRuleset(raw = {}) {
   const propsIn = base.props && typeof base.props === 'object' ? base.props : {}
 
   const walls = {
-    fittings: Array.isArray(wallsIn.fittings)
-      ? wallsIn.fittings.map(normalizeTileId).filter(Boolean)
-      : [],
+    fittings: roleList(wallsIn.fittings, { required: false }),
     fittingChance: clampChance(wallsIn.fittingChance, 0),
   }
   for (const key of WALL_TILE_KEYS) {
-    walls[key] = normalizeTileId(wallsIn[key])
+    const required = REQUIRED_WALL_KEYS.includes(key)
+    walls[key] = required
+      ? roleList(wallsIn[key], { required: true, fallback: FALLBACK.walls[key] })
+      : optionalRole(wallsIn[key])
   }
 
-  const defaultTile =
-    typeof floorsIn.defaultTile === 'string' && floorsIn.defaultTile.trim()
-      ? floorsIn.defaultTile.trim()
-      : FALLBACK.floors.defaultTile
+  const defaultTile = roleList(floorsIn.defaultTile, {
+    required: true,
+    fallback: FALLBACK.floors.defaultTile,
+  })
 
   return {
     schemaVersion: 1,
@@ -93,10 +123,10 @@ export function resolveAutoPaintRuleset(raw = {}) {
     },
     walls,
     doors: {
-      underlayTile:
-        typeof doorsIn.underlayTile === 'string' && doorsIn.underlayTile.trim()
-          ? doorsIn.underlayTile.trim()
-          : FALLBACK.doors.underlayTile,
+      underlayTile: roleList(doorsIn.underlayTile, {
+        required: true,
+        fallback: FALLBACK.doors.underlayTile,
+      }),
       minGap: Number.isFinite(Number(doorsIn.minGap)) ? Math.max(1, Math.floor(Number(doorsIn.minGap))) : 1,
       preferOpenings: doorsIn.preferOpenings !== false,
     },
@@ -111,29 +141,37 @@ export function resolveAutoPaintRuleset(raw = {}) {
 export function validateAutoPaintRuleset(raw) {
   const ruleset = resolveAutoPaintRuleset(raw)
   const errors = []
-  if (!ruleset.walls.straight) errors.push('walls.straight is required')
-  if (!ruleset.walls.corner) errors.push('walls.corner is required')
-  if (!knownTile(ruleset.floors.defaultTile)) {
-    errors.push(`floors.defaultTile: unknown tile “${ruleset.floors.defaultTile}”`)
+  if (!primaryId(ruleset.walls.straight)) errors.push('walls.straight is required')
+  if (!primaryId(ruleset.walls.corner)) errors.push('walls.corner is required')
+  for (const id of weightedIds(ruleset.floors.defaultTile)) {
+    if (!knownFloorRole(id)) errors.push(`floors.defaultTile: unknown tile “${id}”`)
   }
   for (const id of ruleset.floors.variants) {
     if (!knownTile(id)) errors.push(`floors.variants: unknown tile “${id}”`)
   }
   for (const key of WALL_TILE_KEYS) {
-    const id = ruleset.walls[key]
-    if (!id) {
+    const ids = weightedIds(ruleset.walls[key])
+    if (!ids.length) {
       if (REQUIRED_WALL_KEYS.includes(key)) errors.push(`walls.${key} is required`)
       continue
     }
-    if (!resolveAutoPaintTileId(id)) errors.push(`walls.${key}: unknown tile/Template Piece “${id}”`)
+    for (const id of ids) {
+      if (!knownRole(id)) errors.push(`walls.${key}: unknown tile/Template Piece “${id}”`)
+    }
   }
-  for (const id of ruleset.walls.fittings) {
-    if (!resolveAutoPaintTileId(id)) errors.push(`walls.fittings: unknown tile/Template Piece “${id}”`)
+  for (const id of weightedIds(ruleset.walls.fittings)) {
+    if (!knownRole(id)) errors.push(`walls.fittings: unknown tile/Template Piece “${id}”`)
   }
-  if (!resolveAutoPaintTileId(ruleset.doors.underlayTile) && !knownTile(ruleset.doors.underlayTile)) {
-    errors.push(`doors.underlayTile: unknown tile “${ruleset.doors.underlayTile}”`)
+  for (const id of weightedIds(ruleset.doors.underlayTile)) {
+    if (!knownRole(id) && !knownTile(id)) errors.push(`doors.underlayTile: unknown tile “${id}”`)
   }
   return { ok: errors.length === 0, errors, ruleset }
+}
+
+function cloneRole(value) {
+  if (value == null) return null
+  if (Array.isArray(value)) return value.map((entry) => ({ ...entry }))
+  return value
 }
 
 function loadSeed() {
@@ -145,7 +183,9 @@ function loadSeed() {
       console.warn(`[autoPaint] ruleset “${entry?.id ?? '?'}” has catalogue errors:`, errors.join('; '))
     }
     for (const key of REQUIRED_WALL_KEYS) {
-      if (!ruleset.walls[key]) ruleset.walls[key] = FALLBACK.walls[key]
+      if (!primaryId(ruleset.walls[key])) {
+        ruleset.walls[key] = roleList(FALLBACK.walls[key], { required: true, fallback: FALLBACK.walls[key] })
+      }
     }
     resolved.push(ruleset)
   }
@@ -160,9 +200,20 @@ export const autoPaintRulesetEpochOf = () => catalogueEpoch
 export function listAutoPaintRulesets() {
   return rulesets.map((entry) => ({
     ...entry,
-    floors: { ...entry.floors, variants: [...entry.floors.variants] },
-    walls: { ...entry.walls, fittings: [...entry.walls.fittings] },
-    doors: { ...entry.doors },
+    floors: {
+      ...entry.floors,
+      defaultTile: cloneRole(entry.floors.defaultTile),
+      variants: [...entry.floors.variants],
+    },
+    walls: {
+      ...entry.walls,
+      fittings: cloneRole(entry.walls.fittings) ?? [],
+      ...Object.fromEntries(WALL_TILE_KEYS.map((key) => [key, cloneRole(entry.walls[key])])),
+    },
+    doors: {
+      ...entry.doors,
+      underlayTile: cloneRole(entry.doors.underlayTile),
+    },
     props: { ...entry.props, rules: [...entry.props.rules] },
   }))
 }
@@ -205,3 +256,33 @@ export function replaceAutoPaintRulesetsLocal(list) {
   catalogueEpoch += 1
   return listAutoPaintRulesets()
 }
+
+/** Snapshot shape for /__autopaint (weighted roles serialized). */
+export function autoPaintRulesetsSnapshot() {
+  return {
+    notes: seed?.notes ?? '',
+    rulesets: listAutoPaintRulesets().map((entry) => ({
+      ...entry,
+      floors: {
+        defaultTile: serializeWeighted(entry.floors.defaultTile),
+        variants: [...entry.floors.variants],
+      },
+      walls: {
+        fittingChance: entry.walls.fittingChance,
+        fittings: serializeWeighted(entry.walls.fittings, { allowEmpty: true }),
+        ...Object.fromEntries(
+          WALL_TILE_KEYS.map((key) => [
+            key,
+            entry.walls[key] == null ? null : serializeWeighted(entry.walls[key], { allowEmpty: true }),
+          ]),
+        ),
+      },
+      doors: {
+        ...entry.doors,
+        underlayTile: serializeWeighted(entry.doors.underlayTile),
+      },
+    })),
+  }
+}
+
+export { primaryId, weightedIds }

@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { getTile } from '../../maps/mapFormat.js'
 import { getTemplatePiece } from '../../maps/templatePieces.js'
+import {
+  addWeightedEntry,
+  normalizeWeightedEntries,
+  removeWeightedEntry,
+  setEntryWeight,
+  weightedIds,
+} from '../../maps/generators/weightedChoice.js'
 import { tileThumbTitle, templatePieceThumbTitle } from './assetThumbTitle.js'
 import { GE_ASSET_DRAG_TYPE, readGeAssetDrag } from './geAssetDrag.js'
 import { contextMenuPlacement, GeThumbDeleteConfirm, GeThumbDeleteMenu } from './GeThumbContextMenu.jsx'
@@ -8,6 +15,7 @@ import TemplatePieceThumbnail from './TemplatePieceThumbnail.jsx'
 import TileThumbnail from './TileThumbnail.jsx'
 
 // Generator Editor role slot: shows only assigned tile(s). Drag from the left Palette to add; right-click to remove.
+// weighted: value is [{ id, weight }, ...] with per-thumb % sliders (equal split on land, normalize to 100%).
 export default function TileSpritePicker({
   label,
   hint = null,
@@ -15,6 +23,7 @@ export default function TileSpritePicker({
   value,
   onChange,
   multi = false,
+  weighted = false,
   allowNone = false,
   noneLabel = 'None',
   disabled = false,
@@ -27,8 +36,15 @@ export default function TileSpritePicker({
   /** Optional: allow ids beyond `options` (e.g. Template Piece ids kept by Auto-Paint). */
   acceptId = null,
 }) {
-  const selected = multi ? new Set(value ?? []) : null
-  const current = multi ? null : value || null
+  const useWeights = Boolean(weighted)
+  const useMulti = multi || useWeights
+  const entries = useWeights ? normalizeWeightedEntries(value, { allowEmpty: true }) : null
+  const selected = useWeights
+    ? new Set(entries.map((entry) => entry.id))
+    : useMulti
+      ? new Set(value ?? [])
+      : null
+  const current = useMulti ? null : value || null
   const [dropOver, setDropOver] = useState(false)
   const [menu, setMenu] = useState(null)
   const [pending, setPending] = useState(null)
@@ -45,11 +61,8 @@ export default function TileSpritePicker({
     return null
   }
 
-  const assigned = multi
-    ? (value ?? []).map((id) => resolveAssigned(id)).filter(Boolean)
-    : current
-      ? [resolveAssigned(current)].filter(Boolean)
-      : []
+  const assignedIds = useWeights ? weightedIds(entries) : useMulti ? (value ?? []) : current ? [current] : []
+  const assigned = assignedIds.map((id) => resolveAssigned(id)).filter(Boolean)
 
   const idAllowed = (id) => {
     if (!id) return false
@@ -60,7 +73,12 @@ export default function TileSpritePicker({
 
   const applyId = (id) => {
     if (disabled || !id) return
-    if (!multi) {
+    if (useWeights) {
+      if (selected.has(id)) return
+      onChange(addWeightedEntry(entries, id))
+      return
+    }
+    if (!useMulti) {
       onChange(id)
       return
     }
@@ -70,12 +88,21 @@ export default function TileSpritePicker({
 
   const removeId = (id) => {
     if (disabled) return
-    if (multi) {
+    if (useWeights) {
+      onChange(removeWeightedEntry(entries, id))
+      return
+    }
+    if (useMulti) {
       if (!selected.has(id)) return
       onChange((value ?? []).filter((entry) => entry !== id))
       return
     }
     if (current === id) onChange(null)
+  }
+
+  const onWeight = (id, pct) => {
+    if (disabled || !useWeights) return
+    onChange(setEntryWeight(entries, id, Number(pct) / 100))
   }
 
   const onContextMenu = (event, tile) => {
@@ -115,6 +142,8 @@ export default function TileSpritePicker({
     applyId(id)
   }
 
+  const weightOf = (id) => entries?.find((entry) => entry.id === id)?.weight ?? 0
+
   return (
     <div
       className={`ge-picker${disabled ? ' is-disabled' : ''}${dropOver ? ' is-drop-target' : ''}`}
@@ -125,23 +154,24 @@ export default function TileSpritePicker({
       {label && (
         <div className="ge-picker-head">
           <span className="ce-field-label">{label}</span>
-          {!multi && current && (
+          {!useMulti && current && (
             <span className="ge-picker-current">
               {resolveAssigned(current)?.label ?? getTile(current)?.label ?? current}
             </span>
           )}
-          {multi && <span className="ge-picker-current">{selected.size} selected</span>}
+          {useMulti && <span className="ge-picker-current">{selected.size} selected</span>}
         </div>
       )}
       {hint && <p className="ce-text">{hint}</p>}
-      <div className="ge-picker-grid" role={multi ? 'list' : 'group'} aria-label={label || 'Tiles'}>
-        {allowNone && !multi && current == null && (
+      <div className="ge-picker-grid" role={useMulti ? 'list' : 'group'} aria-label={label || 'Tiles'}>
+        {allowNone && !useMulti && current == null && (
           <button type="button" className="ed-thumb-btn ge-thumb is-selected" disabled={disabled} title={noneLabel}>
             <span className="ge-thumb-none">{noneLabel}</span>
           </button>
         )}
         {assigned.map((tile) => {
           const piece = tile.__piece || getTemplatePiece(tile.id)
+          const pct = useWeights ? Math.round(weightOf(tile.id) * 100) : null
           const title =
             typeof titleForTile === 'function'
               ? titleForTile(tile)
@@ -149,27 +179,43 @@ export default function TileSpritePicker({
                 ? templatePieceThumbTitle(piece, { extra: `${piece.id} · right-click to remove` })
                 : tileThumbTitle(tile, { extra: `${tile.id} · right-click to remove` })
           return (
-          <button
-            key={tile.id}
-            type="button"
-            className="ed-thumb-btn ge-thumb is-selected"
-            disabled={disabled}
-            title={title}
-            onContextMenu={(event) => onContextMenu(event, tile)}
-          >
-            {multi && (
-              <input type="checkbox" className="ge-thumb-check" checked readOnly tabIndex={-1} aria-hidden disabled={disabled} />
-            )}
-            {piece ? (
-              <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" />
-            ) : (
-              <TileThumbnail tile={tile} className="me-thumb-preview" animate={false} />
-            )}
-            <span className="ed-thumb-label">{tile.label}</span>
-          </button>
+            <div key={tile.id} className={`ge-thumb-slot${useWeights ? ' has-weight' : ''}`}>
+              <button
+                type="button"
+                className="ed-thumb-btn ge-thumb is-selected"
+                disabled={disabled}
+                title={title}
+                onContextMenu={(event) => onContextMenu(event, tile)}
+              >
+                {useMulti && !useWeights && (
+                  <input type="checkbox" className="ge-thumb-check" checked readOnly tabIndex={-1} aria-hidden disabled={disabled} />
+                )}
+                {piece ? (
+                  <TemplatePieceThumbnail piece={piece} className="me-thumb-preview" />
+                ) : (
+                  <TileThumbnail tile={tile} className="me-thumb-preview" animate={false} />
+                )}
+                <span className="ed-thumb-label">{tile.label}</span>
+              </button>
+              {useWeights && (
+                <label className="ge-thumb-weight" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.stopPropagation()}>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={pct}
+                    disabled={disabled || assigned.length < 2}
+                    aria-label={`${tile.label} mix percent`}
+                    onChange={(event) => onWeight(tile.id, event.target.value)}
+                  />
+                  <span className="ge-thumb-weight-pct">{pct}%</span>
+                </label>
+              )}
+            </div>
           )
         })}
-        {!assigned.length && !(allowNone && !multi && current == null) && (
+        {!assigned.length && !(allowNone && !useMulti && current == null) && (
           <p className="ce-text ge-picker-empty">{emptyText}</p>
         )}
       </div>

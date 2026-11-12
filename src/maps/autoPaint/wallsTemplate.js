@@ -48,8 +48,10 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
     delete floorUnder[key]
   }
 
-  const defaultFloor =
-    resolveAutoPaintTileId(ruleset.floors?.defaultTile) || ruleset.floors?.defaultTile || null
+  const floorPick = Array.isArray(ruleset.floors?.defaultTile)
+    ? ruleset.floors.defaultTile[0]?.id || ruleset.floors.defaultTile[0]
+    : ruleset.floors?.defaultTile
+  const defaultFloor = resolveAutoPaintTileId(floorPick) || floorPick || null
   for (const key of underlayKeys) {
     const { x, y } = parseCellKey(key)
     const current = tiles[y][x]
@@ -71,8 +73,14 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
 
   const working = { ...map, tiles, floorUnder, templatePiecePlacements: keptPieces }
   const kit = pieceKitFromRuleset(ruleset)
-  const doorId = resolveAutoPaintTileId(ruleset.doors?.underlayTile) || ruleset.doors?.underlayTile || null
-  const packed = placePackedWallPieces(working, kit, { doorId, random })
+  // Openings are floor cells; keys come from Generate (or leftover doorway tiles on older maps).
+  const doorKeys = new Set(prevRegion?.generatedDoorKeys ?? [])
+  for (let y = 0; y < map.height; y++) {
+    for (let x = 0; x < map.width; x++) {
+      if (tiles[y][x] === 'doorway') doorKeys.add(cellKey({ x, y }))
+    }
+  }
+  const packed = placePackedWallPieces(working, kit, { doorKeys: [...doorKeys], random })
   const generatedPieceIds = (packed.templatePiecePlacements ?? [])
     .filter((entry) => entry.autoPaint && !manualPieceIds.has(entry.id))
     .map((entry) => entry.id)
@@ -82,6 +90,7 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', r
     environment: null,
     floorKeys,
     generatedUnderlayKeys: underlayKeys,
+    generatedDoorKeys: [...doorKeys],
     generatedPieceIds,
     manualPieceIds: [...manualPieceIds],
     manualUnderlayKeys: [...manualUnderlay],

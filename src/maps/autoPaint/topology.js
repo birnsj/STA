@@ -53,9 +53,12 @@ export function exteriorUnderlayKeys(map, floorKeys) {
 }
 
 export function floorIdsForRuleset(ruleset) {
-  // Roles may store Template Piece ids; map cells use catalogue tiles.
+  // Roles may store Template Piece ids or weighted lists; map cells use catalogue tiles.
   const ids = new Set()
-  for (const id of [ruleset.floors.defaultTile, ...(ruleset.floors.variants ?? [])]) {
+  const defaults = Array.isArray(ruleset.floors?.defaultTile)
+    ? ruleset.floors.defaultTile.map((entry) => (typeof entry === 'string' ? entry : entry?.id))
+    : [ruleset.floors?.defaultTile]
+  for (const id of [...defaults, ...(ruleset.floors?.variants ?? [])]) {
     if (!id) continue
     ids.add(resolveAutoPaintTileId(id) || id)
   }
