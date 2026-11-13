@@ -136,8 +136,8 @@ function hitPrism(px, py, prism, cx, ih, yawTurns = 0) {
   const distMinY = mid.dy - ya
   const distMaxY = yb - mid.dy
   const nearest = Math.min(distMinX, distMaxX, distMinY, distMaxY)
-  // Square posts (32×32 corner): no preferred run axis — every vertical side is a wall face with
-  // bulkhead detail (both iso axes), not a plain end-cap. Straight walls keep short ends plain.
+  // Square posts (32×32 corner): no preferred run axis — every vertical side is a wall face.
+  // Straight walls still classify short tips as 'end' (no fittings); material paints bulkhead detail there too.
   const square = Math.abs(w - d) <= 1
   const onXEdge = nearest === distMinX || nearest === distMaxX
   const onEnd = square ? false : alongX ? onXEdge : nearest === distMinY || nearest === distMaxY

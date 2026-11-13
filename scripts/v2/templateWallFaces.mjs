@@ -221,51 +221,56 @@ function windowFitting(drawnHeight) {
   }
 }
 
-// 32-thick Starship wall face: thin-wall top/ends + bulkhead-style long faces, optional fitting (null = plain).
+// 32-thick Starship wall: bulkhead panel + trim on every vertical face (long sides and thickness ends).
+// Fittings (windows/LCARS/…) stay on long faces only — ends keep the plain bulkhead look.
 export function starshipWallMaterial(drawnHeight, fitting = null) {
   const H = Math.max(8, drawnHeight)
+  const bulkheadHeight = (u, v) => {
+    let h = 0
+    if (v < 7) h += 0.6 + groove(v - 7, 0.6, 0.6)
+    if (v > H - 6) h += 0.5 + groove(v - (H - 6), 0.6, 0.5)
+    const panel = inside(u, v, 2.5, 11, 29.5, H - 10)
+    // Deep enough that the inset still reads on the darker iso-right face (square corner posts / ends).
+    if (panel > 0) h -= 1.1 * smoothstep(0, 1.2, panel)
+    if (H > 40) h += groove(v - H * 0.52, 0.5, 0.35)
+    h += groove(u, 0.35, 0.3) + groove(32 - u, 0.35, 0.3)
+    return h
+  }
+  const bulkheadSurface = (u, z, face) => {
+    const ao = 0.62 + 0.38 * smoothstep(0, 16, z)
+    if (H > 40 && Math.abs(z - (H - 3.4)) < 0.9) return { albedo: rgb('#dff0ff'), emit: scale(rgb('#bfe2ff'), 0.55) }
+    if (H > 40 && Math.abs(z - 8.6) < 0.55) return { albedo: rgb('#9fd0ff'), emit: scale(rgb('#7fc0ff'), 0.4) }
+    if (z < 7) return { albedo: rgb('#3c444b'), spec: 0.3, shininess: 30, ao }
+    if (z > H - 6) return { albedo: rgb('#8d99a2'), spec: 0.35, shininess: 30, ao }
+    if (H > 40 && Math.abs(z - (H - 8.5)) < 1) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 20, ao }
+    const inset = inside(u, z, 2.5, 11, 29.5, H - 10) > 0
+    const base = inset ? rgb('#5a6872') : rgb('#7a8894')
+    const brushSeed = face === 'left' ? 72 : face === 'right' ? 73 : 74
+    return { albedo: scale(base, 0.9 + brushed(u, z, brushSeed, 'v') * 0.12), spec: 0.3, shininess: 28, ao }
+  }
   return {
     height(u, v, face) {
       if (face === 'top') {
         const edge = Math.min(u, 32 - u)
         return bevel(edge, 1.4, 1.1) + groove(edge - 0.9, 0.35, 0.25)
       }
-      if (face === 'end') {
-        const e = Math.min(u, 32 - u, v, H - v)
-        return bevel(e, 1.2, 0.9)
-      }
+      // Ends: same recessed panel + kick/cap as long faces (no fittings).
+      if (face === 'end') return bulkheadHeight(u, v)
       const fitted = fitting?.height?.(u, v, face) ?? fitting?.height?.(u, v)
       if (fitted != null) {
         const front = face === 'left' ? 32 - u : u
         return fitted + bevel(front, 2.2, 1.6) + groove(face === 'left' ? u : 32 - u, 0.35, 0.3)
       }
-      let h = 0
-      if (v < 7) h += 0.6 + groove(v - 7, 0.6, 0.6)
-      if (v > H - 6) h += 0.5 + groove(v - (H - 6), 0.6, 0.5)
-      const panel = inside(u, v, 2.5, 11, 29.5, H - 10)
-      // Deep enough that the inset still reads on the darker iso-right face (square corner posts).
-      if (panel > 0) h -= 1.1 * smoothstep(0, 1.2, panel)
-      if (H > 40) h += groove(v - H * 0.52, 0.5, 0.35)
-      h += groove(u, 0.35, 0.3) + groove(32 - u, 0.35, 0.3)
-      return h
+      return bulkheadHeight(u, v)
     },
     surface(u, v, face) {
       if (face === 'top') return { albedo: scale(rgb('#7d8a94'), 0.92 + noise(u / 6, v / 6, 71) * 0.1), spec: 0.25, shininess: 22 }
-      // Brush across the thickness (along u), not up the wall — vertical grain looked like a stretched front edge.
-      if (face === 'end') return { albedo: scale(rgb('#6a767f'), 0.9 + brushed(u, v, 74, 'u') * 0.1), spec: 0.28, shininess: 26 }
+      if (face === 'end') return bulkheadSurface(u, v, face)
       const z = v
       const ao = 0.62 + 0.38 * smoothstep(0, 16, z)
       const fitted = fitting?.surface?.(u, z, face) ?? fitting?.surface?.(u, z)
       if (fitted) return { ao, ...fitted }
-      if (H > 40 && Math.abs(z - (H - 3.4)) < 0.9) return { albedo: rgb('#dff0ff'), emit: scale(rgb('#bfe2ff'), 0.55) }
-      if (H > 40 && Math.abs(z - 8.6) < 0.55) return { albedo: rgb('#9fd0ff'), emit: scale(rgb('#7fc0ff'), 0.4) }
-      if (z < 7) return { albedo: rgb('#3c444b'), spec: 0.3, shininess: 30, ao }
-      if (z > H - 6) return { albedo: rgb('#8d99a2'), spec: 0.35, shininess: 30, ao }
-      if (H > 40 && Math.abs(z - (H - 8.5)) < 1) return { albedo: rgb('#c8883a'), spec: 0.2, shininess: 20, ao }
-      // Stronger inset vs frame so both axes of a square corner read as bulkhead faces.
-      const inset = inside(u, z, 2.5, 11, 29.5, H - 10) > 0
-      const base = inset ? rgb('#5a6872') : rgb('#7a8894')
-      return { albedo: scale(base, 0.9 + brushed(u, z, face === 'left' ? 72 : 73, 'v') * 0.12), spec: 0.3, shininess: 28, ao }
+      return bulkheadSurface(u, z, face)
     },
   }
 }
