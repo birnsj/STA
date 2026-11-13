@@ -1,6 +1,7 @@
 // Bridge: Auto-Paint role ids (Template Piece or tile) ↔ packer kit / grid tiles.
 // Palette listing lives in templatePieces.js — do not duplicate it here.
 import { getTemplateDeckStyle } from '../generators/templateDeckStyles.js'
+import { normalizeWeightedEntries, primaryId, weightedIds } from '../generators/weightedChoice.js'
 import { getTile } from '../mapFormat.js'
 import { getTemplatePiece } from '../templatePieces.js'
 
@@ -55,7 +56,7 @@ export function resolveTemplatePieceToTile(pieceId) {
 
 /** True when this ruleset’s wall kit is Template tip art (must use piece placement). */
 export function rulesetUsesTemplatePieces(ruleset) {
-  const straight = ruleset?.walls?.straight
+  const straight = primaryId(ruleset?.walls?.straight)
   if (!straight) return false
   if (getTemplatePiece(straight)) return true
   const tileId = resolveAutoPaintTileId(straight)
@@ -68,26 +69,43 @@ function rolePiece(id) {
   return pieceIdForAutoPaintTile(id) || (getTemplatePiece(id) ? id : null)
 }
 
+/** Weighted role (string | [{id,weight}]) → weighted Template Piece list (may be empty). */
+function asWeightedPieces(raw) {
+  const entries = normalizeWeightedEntries(raw, { allowEmpty: true })
+  const mapped = []
+  for (const entry of entries) {
+    const piece = rolePiece(entry.id)
+    if (piece) mapped.push({ id: piece, weight: entry.weight })
+  }
+  return normalizeWeightedEntries(mapped, { allowEmpty: true })
+}
+
+function deckWeighted(key) {
+  return asWeightedPieces(getTemplateDeckStyle()[key])
+}
+
 /**
- * Packer kit from ruleset wall roles.
- * Explicit null stays null (no Template Deck fill-in for doorFrame / hull / long).
+ * Packer kit from ruleset wall roles (weighted Template Piece lists).
+ * Explicit empty/null stays empty (no Template Deck fill-in for doorFrame / hull / long).
  * Deck style is only a last-resort default for required straight / corner when missing.
  */
 export function pieceKitFromRuleset(ruleset) {
-  const deck = getTemplateDeckStyle()
   const walls = ruleset?.walls ?? {}
-  const fittings = Array.isArray(walls.fittings) ? walls.fittings.map(rolePiece).filter(Boolean) : []
+  const straight = asWeightedPieces(walls.straight)
+  const corner = asWeightedPieces(walls.corner)
+  const hull = asWeightedPieces(walls.hull)
 
-  const hull = rolePiece(walls.hull)
   return {
-    straight: rolePiece(walls.straight) || deck.straight,
-    straightLong: rolePiece(walls.straightLong),
-    corner: rolePiece(walls.corner) || deck.corner,
+    straight: straight.length ? straight : deckWeighted('straight'),
+    straightLong: asWeightedPieces(walls.straightLong),
+    corner: corner.length ? corner : deckWeighted('corner'),
     hull,
-    hullLong: hull ? rolePiece(walls.hullLong) : null,
-    hullCorner: rolePiece(walls.hullCorner),
-    doorFrame: rolePiece(walls.doorFrame),
-    fittings,
+    hullLong: hull.length ? asWeightedPieces(walls.hullLong) : [],
+    hullCorner: asWeightedPieces(walls.hullCorner),
+    doorFrame: asWeightedPieces(walls.doorFrame),
+    fittings: asWeightedPieces(walls.fittings),
     fittingChance: Number.isFinite(Number(walls.fittingChance)) ? Number(walls.fittingChance) : 0,
   }
 }
+
+export { primaryId, weightedIds }

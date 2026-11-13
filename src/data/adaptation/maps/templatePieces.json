@@ -3,7 +3,7 @@
     "Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props, furniture).",
     "Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.",
     "Does not change Generate Map, makeTilesV2, or halfWalls generation.",
-    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props + furniture/consoles (multi-prism).",
+    "Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 and 32×32 slabs (doorway also 32×32 and 128×64); props + furniture/consoles (multi-prism).",
     "Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.",
     "R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.",
     "Fitting / prop / console / biobed pieces include animation.overlay emission frames (blink). Art via scripts/makeTemplatePieces.mjs",
@@ -571,7 +571,8 @@
             "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer-emission-1.png"
           }
         ],
-        "emitColour": "#aab4a3"
+        "emitColour": "#aab4a3",
+        "emissive": 0.1
       },
       "orients": {
         "90": {
@@ -596,7 +597,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r90-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         },
         "180": {
@@ -621,7 +623,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r180-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         },
         "270": {
@@ -646,7 +649,8 @@
                 "emission": "/art/sprites/environment/templates/tplStarshipWall32Computer_r270-emission-1.png"
               }
             ],
-            "emitColour": "#aab4a3"
+            "emitColour": "#aab4a3",
+            "emissive": 0.1
           }
         }
       },
@@ -2269,6 +2273,55 @@
       "material": "floor"
     },
     {
+      "id": "tplStarshipFloor32",
+      "label": "Deck Plating 32×32",
+      "href": "/art/sprites/environment/templates/tplStarshipFloor32.png",
+      "size": {
+        "width": 32,
+        "height": 19
+      },
+      "anchorX": 16,
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r90.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r180.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipFloor32_r270.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "floor"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "floor"
+    },
+    {
       "id": "tplStarshipDoorway",
       "label": "Doorway",
       "href": "/art/sprites/environment/templates/tplStarshipDoorway.png",
@@ -2379,6 +2432,123 @@
       "footprint": {
         "width": 64,
         "depth": 64
+      },
+      "height": 3,
+      "cover": false,
+      "fade": false,
+      "material": "doorway"
+    },
+    {
+      "id": "tplStarshipDoorway32",
+      "label": "Doorway 32×32",
+      "href": "/art/sprites/environment/templates/tplStarshipDoorway32.png",
+      "size": {
+        "width": 32,
+        "height": 19
+      },
+      "anchorX": 16,
+      "animation": {
+        "overlay": true,
+        "frameTime": 0.7,
+        "frames": [
+          0,
+          1
+        ],
+        "images": [
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway32-emission-0.png"
+          },
+          {
+            "emission": "/art/sprites/environment/templates/tplStarshipDoorway32-emission-1.png"
+          }
+        ],
+        "emitColour": "#f0b030"
+      },
+      "orients": {
+        "90": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r90.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r90-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r90-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "180": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r180.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r180-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r180-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        },
+        "270": {
+          "href": "/art/sprites/environment/templates/tplStarshipDoorway32_r270.png",
+          "size": {
+            "width": 32,
+            "height": 19
+          },
+          "anchorX": 16,
+          "animation": {
+            "overlay": true,
+            "frameTime": 0.7,
+            "frames": [
+              0,
+              1
+            ],
+            "images": [
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r270-emission-0.png"
+              },
+              {
+                "emission": "/art/sprites/environment/templates/tplStarshipDoorway32_r270-emission-1.png"
+              }
+            ],
+            "emitColour": "#f0b030"
+          }
+        }
+      },
+      "tags": [
+        "floor",
+        "starship",
+        "doorway"
+      ],
+      "footprint": {
+        "width": 32,
+        "depth": 32
       },
       "height": 3,
       "cover": false,

@@ -9,13 +9,41 @@
       "wallMode": "tiles",
       "underlayWallTile": "templateWall",
       "floors": {
-        "defaultTile": "floor",
+        "defaultTile": [
+          {
+            "id": "floor",
+            "weight": 0.333
+          },
+          {
+            "id": "tplStarshipDoorway32",
+            "weight": 0.333
+          },
+          {
+            "id": "tplStarshipDoorway",
+            "weight": 0.333
+          }
+        ],
         "variants": []
       },
       "walls": {
-        "straight": "tplStarshipWall32",
-        "straightLong": "tplStarshipWall32PlainLong",
-        "corner": "tplStarshipWall32Corner",
+        "straight": [
+          {
+            "id": "tplStarshipWall32",
+            "weight": 1
+          }
+        ],
+        "straightLong": [
+          {
+            "id": "tplStarshipWall32PlainLong",
+            "weight": 1
+          }
+        ],
+        "corner": [
+          {
+            "id": "tplStarshipWall32Corner",
+            "weight": 1
+          }
+        ],
         "hull": null,
         "hullLong": null,
         "hullCorner": null,
@@ -24,7 +52,12 @@
         "fittingChance": 0
       },
       "doors": {
-        "underlayTile": "doorway",
+        "underlayTile": [
+          {
+            "id": "doorway",
+            "weight": 1
+          }
+        ],
         "minGap": 1,
         "preferOpenings": true
       },

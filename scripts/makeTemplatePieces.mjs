@@ -532,9 +532,27 @@ add(
 add('tplStarshipFloor', 'Deck Plating', ['floor', 'starship', 'floor'], { w: RUN, d: RUN }, FLOOR_H, slabPrisms(RUN, RUN, FLOOR_H), {
   material: 'floor',
 })
+add(
+  'tplStarshipFloor32',
+  'Deck Plating 32×32',
+  ['floor', 'starship', 'floor'],
+  { w: 32, d: 32 },
+  FLOOR_H,
+  slabPrisms(32, 32, FLOOR_H),
+  { material: 'floor' },
+)
 add('tplStarshipDoorway', 'Doorway', ['floor', 'starship', 'doorway'], { w: RUN, d: RUN }, FLOOR_H, slabPrisms(RUN, RUN, FLOOR_H), {
   material: 'doorway',
 })
+add(
+  'tplStarshipDoorway32',
+  'Doorway 32×32',
+  ['floor', 'starship', 'doorway'],
+  { w: 32, d: 32 },
+  FLOOR_H,
+  slabPrisms(32, 32, FLOOR_H),
+  { material: 'doorway' },
+)
 add('tplStarshipGrating', 'EPS Grating', ['floor', 'starship', 'grating'], { w: RUN, d: RUN }, FLOOR_H, slabPrisms(RUN, RUN, FLOOR_H), {
   material: 'grating',
 })
@@ -803,7 +821,7 @@ const notes = [
   'Starship Template Pieces: overlay duplicate of the Starship & Station palette (walls, floors, half bulkheads, props, furniture).',
   'Overlays only — sit on deck underlay; do not replace ground tiles. Pathing/sight use the underlay.',
   'Does not change Generate Map, makeTilesV2, or halfWalls generation.',
-  'Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 slabs; props + furniture/consoles (multi-prism).',
+  'Walls 32 thick (64 / 128 run); corner post is 32×32; half bulkheads 8 thick (L-corners 64×64); floors 64×64 and 32×32 slabs (doorway also 32×32 and 128×64); props + furniture/consoles (multi-prism).',
   'Tips snap to the editor guide grid. Paste overwrites the same tip or the sprite under the pointer.',
   'R yaws 90° around the vertical through the south tip (isometric floor). Art is re-projected per yaw (orients); not a screen-space spin.',
   'Fitting / prop / console / biobed pieces include animation.overlay emission frames (blink). Art via scripts/makeTemplatePieces.mjs',

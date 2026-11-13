@@ -1,5 +1,6 @@
 // Auto-Paint tile walls: exterior Null ring → wall tiles + finish (orient / corners).
 // Independent of Generate Map / generators/* (those stay frozen).
+import { pickWeighted, weightedIds } from '../generators/weightedChoice.js'
 import { NULL_TILE, getTile } from '../mapFormat.js'
 import { resolveAutoPaintTileId } from './templatePalette.js'
 import { collectFloorKeys, exteriorUnderlayKeys, floorIdsForRuleset, parseCellKey } from './topology.js'
@@ -8,16 +9,21 @@ function wallTile(id) {
   return resolveAutoPaintTileId(id)
 }
 
+function roleTileIds(role) {
+  return weightedIds(role).map((id) => wallTile(id)).filter(Boolean)
+}
+
+function pickRoleTile(role, random = Math.random) {
+  const id = typeof role === 'string' ? role : pickWeighted(role, random)
+  return wallTile(id)
+}
+
 function familyIds(ruleset) {
   const ids = new Set()
   for (const key of ['straight', 'straightLong', 'corner', 'hull', 'hullLong', 'hullCorner', 'doorFrame']) {
-    const id = wallTile(ruleset.walls?.[key])
-    if (id) ids.add(id)
+    for (const id of roleTileIds(ruleset.walls?.[key])) ids.add(id)
   }
-  for (const id of ruleset.walls?.fittings ?? []) {
-    const tileId = wallTile(id)
-    if (tileId) ids.add(tileId)
-  }
+  for (const id of roleTileIds(ruleset.walls?.fittings)) ids.add(id)
   return ids
 }
 
@@ -29,10 +35,9 @@ function isFamilyTile(id, family) {
  * Orient true wall *tiles* (bulkhead / halfBulkhead family) toward open floor.
  * Template 32 tip art must not use this path — see wallsTemplate.js.
  */
-export function finishAutoPaintWalls(map, ruleset) {
-  const straight = wallTile(ruleset.walls?.straight)
-  const corner = wallTile(ruleset.walls?.corner) || straight
-  if (!straight) return map
+export function finishAutoPaintWalls(map, ruleset, random = Math.random) {
+  const straightFallback = pickRoleTile(ruleset.walls?.straight, random)
+  if (!straightFallback) return map
   const family = familyIds(ruleset)
   if (!family.size) return map
 
@@ -58,10 +63,10 @@ export function finishAutoPaintWalls(map, ruleset) {
       const e = wallAt(x + 1, y)
       const w = wallAt(x - 1, y)
       if ((n || s) && (e || w)) {
-        tiles[y][x] = corner
+        tiles[y][x] = pickRoleTile(ruleset.walls?.corner, random) || straightFallback
         rotated[y][x] = openAt(x + 1, y) || openAt(x, y + 1)
       } else {
-        tiles[y][x] = straight
+        tiles[y][x] = pickRoleTile(ruleset.walls?.straight, random) || straightFallback
         if (e || w) rotated[y][x] = openAt(x, y + 1) && !openAt(x, y - 1)
         else if (n || s) rotated[y][x] = openAt(x + 1, y) && !openAt(x - 1, y)
         else rotated[y][x] = false
@@ -72,18 +77,20 @@ export function finishAutoPaintWalls(map, ruleset) {
   return { ...map, tiles, rotated }
 }
 
-function pickWallTile(ruleset, onHull) {
-  if (onHull && ruleset.walls?.hull) return wallTile(ruleset.walls.hull) || wallTile(ruleset.walls.straight)
-  return wallTile(ruleset.walls.straight)
+function pickWallTile(ruleset, onHull, random = Math.random) {
+  if (onHull && weightedIds(ruleset.walls?.hull).length) {
+    return pickRoleTile(ruleset.walls.hull, random) || pickRoleTile(ruleset.walls.straight, random)
+  }
+  return pickRoleTile(ruleset.walls.straight, random)
 }
 
 /**
  * Clear previous Auto-Paint wall cells for a region, then rebuild from current floors.
  * Preserves manual wall keys and suppressed cell keys. Does not write Template Pieces.
  */
-export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1' } = {}) {
+export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1', random = Math.random } = {}) {
   const floorIds = floorIdsForRuleset(ruleset)
-  const straightTile = wallTile(ruleset.walls?.straight)
+  const straightTile = pickRoleTile(ruleset.walls?.straight, random)
   if (!straightTile || !getTile(straightTile)) {
     return map
   }
@@ -136,7 +143,7 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1' } 
   for (const key of wallKeys) {
     const { x, y } = parseCellKey(key)
     const current = tiles[y][x]
-    const nextId = pickWallTile(ruleset, rim.has(key))
+    const nextId = pickWallTile(ruleset, rim.has(key), random)
     if (current === nextId || isFamilyTile(current, family)) {
       if (floorUnder[key] == null) floorUnder[key] = NULL_TILE
       tiles[y][x] = nextId
@@ -154,7 +161,7 @@ export function assembleWallsFromFloors(map, ruleset, { regionId = 'region-1' } 
       ? map.rotated.map((row) => row.slice())
       : Array.from({ length: map.height }, () => Array.from({ length: map.width }, () => false)),
   }
-  working = finishAutoPaintWalls(working, ruleset)
+  working = finishAutoPaintWalls(working, ruleset, random)
 
   const region = {
     id: regionId,

@@ -38,7 +38,7 @@ describe('Auto-Paint ruleset editor field preservation', () => {
     })
 
     assert.equal(afterUiEdit.walls.fittingChance, 0.42)
-    assert.deepEqual(afterUiEdit.walls.fittings, ['plainBulkhead'])
+    assert.deepEqual(afterUiEdit.walls.fittings, [{ id: 'plainBulkhead', weight: 1 }])
     assert.equal(afterUiEdit.doors.minGap, 2)
     assert.equal(afterUiEdit.doors.preferOpenings, false)
     assert.deepEqual(afterUiEdit.floors.variants, ['floor'])
@@ -62,8 +62,21 @@ describe('Auto-Paint ruleset editor field preservation', () => {
     assert.equal(ok, true, errors.join('; '))
     const saved = putAutoPaintRulesetLocal(draft)
     assert.equal(saved.walls.fittingChance, 0.15)
-    assert.deepEqual(saved.walls.fittings, ['lcarsWall'])
+    assert.deepEqual(saved.walls.fittings, [{ id: 'lcarsWall', weight: 1 }])
     assert.equal(saved.doors.minGap, 3)
+    putAutoPaintRulesetLocal(base)
+  })
+
+  it('accepts Template Piece floor ids that resolve to a catalogue tile', () => {
+    const base = getAutoPaintRuleset('template-32')
+    const draft = resolveAutoPaintRuleset({
+      ...base,
+      floors: { ...base.floors, defaultTile: [{ id: 'tplStarshipFloor', weight: 1 }] },
+    })
+    const { ok, errors } = validateAutoPaintRuleset(draft)
+    assert.equal(ok, true, errors.join('; '))
+    const saved = putAutoPaintRulesetLocal(draft)
+    assert.deepEqual(saved.floors.defaultTile, [{ id: 'tplStarshipFloor', weight: 1 }])
     putAutoPaintRulesetLocal(base)
   })
 })

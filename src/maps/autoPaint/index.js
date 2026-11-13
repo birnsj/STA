@@ -28,6 +28,16 @@ export {
 export { collectFloorKeys, exteriorUnderlayKeys, floorIdsForRuleset } from './topology.js'
 export { tipKeyOf } from './wallsTemplate.js'
 export { generateAutoPaintMap } from './generate.js'
+export {
+  AUTO_PAINT_DOOR_CELLS,
+  AUTO_PAINT_DOOR_TIP_UNITS,
+  AUTO_PAINT_DOORWAY_PIECE,
+  collectDoorCells,
+  doorRunsFromKeys,
+  paintDoorCellsAsFloor,
+  shrinkDoorwaysToMaxCells,
+  shrinkDoorwaysToSingleCell,
+} from './doorways.js'
 export { snapAutoPaintGenerateSize } from './generateSize.js'
 export {
   packTipCells,
@@ -50,7 +60,11 @@ import { paintFloor } from '../mapEdits.js'
 export function autoPaintFloorCell(map, position, rulesetId, { regionId = 'region-1' } = {}) {
   const ruleset = getAutoPaintRuleset(rulesetId)
   if (!ruleset) return { map, error: 'No Auto-Paint ruleset.' }
-  const floorId = resolveAutoPaintTileId(ruleset.floors.defaultTile) || ruleset.floors.defaultTile
+  const floorRole = ruleset.floors.defaultTile
+  const floorPick = Array.isArray(floorRole)
+    ? floorRole[0]?.id || floorRole[0]
+    : floorRole
+  const floorId = resolveAutoPaintTileId(floorPick) || floorPick
   const painted = paintFloor(map, position, floorId, {})
   if (painted.error) return painted
   const next = assembleWallsFromFloors(painted.map !== map ? painted.map : map, ruleset, { regionId })
